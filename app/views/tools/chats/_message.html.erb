@@ -1,0 +1,114 @@
+<%
+  tool = message.chat.tool
+
+  # Timestamp formatting
+  time_ago = Time.current - message.created_at
+  if time_ago < 24.hours
+    timestamp = message.created_at.strftime("%-I:%M %p")
+  elsif time_ago < 48.hours
+    timestamp = "Yesterday at " + message.created_at.strftime("%-I:%M %p")
+  else
+    timestamp = message.created_at.strftime("%b %-d, %-I:%M %p")
+  end
+
+  has_content = message.body.present?
+  has_files = message.has_files?
+  image_files = has_files ? message.image_files : []
+  other_files = has_files ? message.other_files : []
+  reply_to = message.reply_to
+
+  # Check if this is a continuation of previous message (passed from parent)
+  is_continuation = local_assigns.fetch(:is_continuation, false)
+%>
+<div id="<%= dom_id(message) %>"
+     class="group/message flex gap-2.5 sm:gap-3 px-2 sm:px-4 py-1.5 sm:py-2 hover:bg-background-secondary/50 <%= is_continuation ? '' : 'mt-2 sm:mt-3' %>"
+     data-controller="message"
+     data-message-user-id-value="<%= message.user_id %>"
+     data-message-id="<%= message.id %>"
+     data-message-author="<%= message.user.name %>"
+     data-message-content="<%= truncate(message.body.to_plain_text, length: 100) %>">
+
+  <!-- Avatar column -->
+  <div class="flex-shrink-0 w-9 sm:w-11">
+    <% unless is_continuation %>
+      <%= render "shared/avatar", user: message.user, size: :md, class: "sm:hidden" %><%= render "shared/avatar", user: message.user, size: :xl, class: "hidden sm:inline-flex" %>
+    <% else %>
+      <!-- Hover timestamp for continuation messages -->
+      <span class="hidden group-hover/message:block text-xs text-text-tertiary text-right leading-relaxed pt-[5px]">
+        <%= message.created_at.strftime("%-I:%M") %>
+      </span>
+    <% end %>
+  </div>
+
+  <!-- Message content -->
+  <div class="flex-1 min-w-0">
+    <% unless is_continuation %>
+      <!-- Header: name and timestamp -->
+      <div class="flex items-baseline gap-2 mb-0.5">
+        <span class="font-semibold text-sm text-text-primary"><%= message.user.name %></span>
+        <span class="text-xs text-text-tertiary"><%= timestamp %></span>
+      </div>
+    <% end %>
+
+    <% if reply_to %>
+      <!-- Reply quote -->
+      <div class="mb-2 pl-3 py-1.5 border-l-2 border-accent/50 bg-background-secondary/50 rounded-r">
+        <div class="text-xs font-medium text-accent mb-0.5"><%= reply_to.user.name %></div>
+        <div class="text-sm text-text-secondary line-clamp-2"><%= reply_to.body.to_plain_text.truncate(200) %></div>
+      </div>
+    <% end %>
+
+    <% if has_content %>
+      <div class="text-sm sm:text-base text-text-primary rich-text-content"><%= message.body %></div>
+    <% end %>
+
+    <% if image_files.any? %>
+      <div class="flex flex-wrap gap-2 mt-2">
+        <% image_files.each do |file| %>
+          <%= link_to rails_blob_path(file, disposition: "inline"), target: "_blank", class: "block" do %>
+            <%= image_tag rails_blob_path(file, disposition: "inline"),
+                  alt: file.filename.to_s,
+                  class: "w-[100px] h-[100px] rounded object-cover hover:opacity-90 transition-opacity",
+                  loading: "lazy" %>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+
+    <% if other_files.any? %>
+      <div class="flex flex-wrap gap-2 mt-2">
+        <% other_files.each do |file| %>
+          <%= link_to url_for(file),
+                target: "_blank",
+                class: "inline-flex items-center gap-2 px-3 py-1.5 rounded border border-border-light hover:bg-background-secondary transition-colors",
+                download: file.filename.to_s do %>
+            <%= render "shared/icon", name: "file", size: 16, class: "text-text-tertiary" %>
+            <span class="text-sm text-text-primary"><%= file.filename.to_s %></span>
+            <span class="text-xs text-text-tertiary"><%= number_to_human_size(file.byte_size) %></span>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Actions (show on hover) -->
+  <div class="flex-shrink-0 opacity-0 group-hover/message:opacity-100 transition-opacity">
+    <div class="flex items-center -mt-1 bg-surface border border-border-light rounded-lg shadow-sm">
+      <%= render "components/icon_button",
+            icon: "reply",
+            title: "Reply",
+            group: :left,
+            data: { action: "click->chat#startReply", message_id: message.id } %>
+      <div class="hidden" data-message-delete>
+        <%= render "components/icon_button",
+              icon: "trash-2",
+              title: "Delete",
+              variant: :danger,
+              group: :right,
+              href: tool_chat_message_path(tool, message),
+              method: :delete,
+              turbo_confirm: "Delete this message?" %>
+      </div>
+    </div>
+  </div>
+</div>

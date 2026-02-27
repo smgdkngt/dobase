@@ -1,0 +1,69 @@
+<%
+  comments_count = item.comments.size
+  attachments_count = item.attachments.size
+  is_completed = item.completed?
+  has_description = item.description.present?
+%>
+<div class="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-background-tertiary/50 transition-colors group <%= 'todo-item-completed' if is_completed %>"
+     id="todo-item-<%= item.id %>"
+     data-sort-id="<%= item.id %>"
+     data-item-id="<%= item.id %>">
+
+  <%# Checkbox %>
+  <div class="todo-checkbox-wrapper" data-checkbox-wrapper>
+    <input type="checkbox"
+           class="todo-checkbox"
+           <%= "checked" if is_completed %>
+           data-action="change->todo#toggleCompletion"
+           data-item-id="<%= item.id %>"
+           data-complete-url="<%= tool_todo_item_completion_path(tool, item) %>">
+  </div>
+
+  <%# Content (click opens detail) %>
+  <div class="flex-1 min-w-0 cursor-pointer flex items-center gap-2"
+       data-action="click->todo#openItem"
+       data-item-id="<%= item.id %>">
+    <span class="text-[0.9375rem] text-text-primary leading-normal"><%= item.title %></span>
+    <% if item.assigned_user.present? %>
+      <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-accent-light text-accent text-[0.5625rem] font-semibold shrink-0"
+            title="<%= item.assigned_user.name %>">
+        <%= item.assigned_user.name&.chars&.first&.upcase %>
+      </span>
+    <% end %>
+    <% if has_description || comments_count > 0 || attachments_count > 0 %>
+      <span class="inline-flex items-center gap-1.5 text-text-tertiary shrink-0">
+        <% if has_description %>
+          <%= render "shared/icon", name: "align-left", size: 12 %>
+        <% end %>
+        <% if comments_count > 0 %>
+          <span class="inline-flex items-center gap-0.5">
+            <%= render "shared/icon", name: "message-square-text", size: 12 %>
+            <span class="text-xs"><%= comments_count %></span>
+          </span>
+        <% end %>
+        <% if attachments_count > 0 %>
+          <span class="inline-flex items-center gap-0.5">
+            <%= render "shared/icon", name: "paperclip", size: 12 %>
+            <span class="text-xs"><%= attachments_count %></span>
+          </span>
+        <% end %>
+      </span>
+    <% end %>
+  </div>
+
+  <% if item.due_date.present? %>
+    <%
+      due_class = if item.due_date < Date.current
+        "text-error bg-error-light"
+      elsif item.due_date <= Date.current + 2
+        "text-warning bg-warning-light"
+      else
+        "text-text-tertiary bg-background-tertiary"
+      end
+    %>
+    <span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-sm shrink-0 <%= due_class %>">
+      <%= render "shared/icon", name: "calendar", size: 10 %>
+      <%= item.due_date.strftime("%b %-d") %>
+    </span>
+  <% end %>
+</div>

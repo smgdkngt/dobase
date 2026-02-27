@@ -1,0 +1,45 @@
+<% content_for(:title) { "#{@document.title} - #{app_name}" } %>
+
+<div class="tool-layout flex flex-col h-full"
+     data-controller="document-editor"
+     data-document-editor-document-id-value="<%= @document.id %>"
+     data-document-editor-save-url-value="<%= tool_docs_document_path(@tool, @document) %>">
+
+  <% title_input = capture do %>
+    <label for="document-title" class="sr-only">Document title</label>
+    <input type="text"
+           id="document-title"
+           value="<%= @document.title %>"
+           class="text-lg font-semibold bg-transparent border-none focus:outline-none focus:ring-0 text-text-primary placeholder:text-text-tertiary"
+           placeholder="Untitled"
+           data-document-editor-target="title"
+           data-action="input->document-editor#scheduleAutoSave blur->document-editor#save">
+  <% end %>
+
+  <%= render "components/tool_topbar", tool: @document.tool, back_path: tool_docs_path(@document.tool), title_html: title_input do %>
+    <span class="text-sm text-text-tertiary" data-document-editor-target="saveIndicator">Saved</span>
+
+    <%= render "components/icon_button",
+          icon: "trash-2",
+          title: "Delete document",
+          variant: :ghost,
+          href: tool_docs_document_path(@tool, @document),
+          method: :delete,
+          turbo_confirm: "Are you sure? This document will be permanently deleted." %>
+  <% end %>
+
+  <main class="flex-1 flex flex-col overflow-hidden">
+    <% input_id = "document_content_#{@document.id}" %>
+    <%= form_with model: @document, url: tool_docs_document_path(@tool, @document), method: :patch, class: "flex-1 flex flex-col overflow-hidden", data: { document_editor_target: "form" } do |f| %>
+      <%= hidden_field_tag "docs_document[content]", @document.content&.try(:to_trix_html) || @document.content, id: input_id %>
+      <rhino-editor input="<%= input_id %>"
+        class="document-editor flex-1"
+        placeholder="Start writing..."
+        data-document-editor-target="editor"
+        data-action="rhino-change->document-editor#scheduleAutoSave"
+        data-blob-url-template="<%= rails_service_blob_url(":signed_id", ":filename") %>"
+        data-direct-upload-url="<%= rails_direct_uploads_url %>">
+      </rhino-editor>
+    <% end %>
+  </main>
+</div>

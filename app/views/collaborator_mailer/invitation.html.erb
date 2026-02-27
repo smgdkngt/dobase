@@ -1,0 +1,16 @@
+<h2 style="margin: 0 0 16px;">You're invited to collaborate</h2>
+
+<p style="margin: 0 0 16px;">
+  <strong><%= @inviter.name %></strong> has invited you to collaborate on
+  <strong><%= @tool.name %></strong> in <%= app_name %>.
+</p>
+
+<p style="margin: 0 0 24px;">
+  <%= link_to "Accept Invitation", @accept_url,
+      style: "display: inline-block; padding: 12px 24px; background-color: #4F46E5; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px;" %>
+</p>
+
+<p style="margin: 0;">
+  This invitation will expire in 7 days.
+  If you don't have an account yet, you'll be able to create one when you accept.
+</p>

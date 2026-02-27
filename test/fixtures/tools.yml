@@ -1,0 +1,62 @@
+project_board:
+  name: Project Board
+  tool_type: board
+  owner: one
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+shared_board:
+  name: Shared Board
+  tool_type: board
+  owner: one
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+my_docs:
+  name: My Documents
+  tool_type: docs
+  owner: one
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+my_calendar:
+  name: My Calendar
+  tool_type: calendar
+  owner: one
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+other_calendar:
+  name: Other Calendar
+  tool_type: calendar
+  owner: two
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+my_files:
+  name: My Files
+  tool_type: files
+  owner: one
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+my_mail:
+  name: My Mail
+  tool_type: mail
+  owner: one
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+my_room:
+  name: Team Standup
+  tool_type: room
+  owner: one
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+my_todos:
+  name: My Todos
+  tool_type: todos
+  owner: one
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>

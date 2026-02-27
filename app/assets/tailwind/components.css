@@ -1,0 +1,371 @@
+/* Reusable component styles */
+@layer components {
+  /* Button variants */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply bg-accent text-text-inverse hover:bg-accent-hover focus-visible:ring-accent;
+  }
+
+  .btn-secondary {
+    @apply bg-background-secondary text-text-primary border border-border hover:bg-background-tertiary focus-visible:ring-accent;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent text-text-secondary hover:bg-background-secondary hover:text-text-primary focus-visible:ring-accent;
+  }
+
+  .btn-danger {
+    @apply bg-error text-text-inverse hover:opacity-90 focus-visible:ring-error;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs gap-1.5;
+  }
+
+  .btn-lg {
+    @apply px-6 py-3 text-base;
+  }
+
+  /* Icon Button - for toolbar actions */
+  .icon-btn {
+    @apply inline-flex items-center justify-center w-8 h-8 rounded-lg text-text-secondary hover:bg-background-secondary hover:text-text-primary transition-colors;
+  }
+
+  .icon-btn-sm {
+    @apply w-7 h-7;
+  }
+
+  .icon-btn-danger {
+    @apply text-error hover:bg-error/10;
+  }
+
+  .icon-btn-accent {
+    @apply bg-accent text-white hover:bg-accent/90 hover:text-white;
+  }
+
+  /* Grouped button modifiers - use with icon-btn */
+  .icon-btn-group-left {
+    @apply rounded-l-lg rounded-r-none;
+  }
+
+  .icon-btn-group-right {
+    @apply rounded-r-lg rounded-l-none;
+  }
+
+  .icon-btn-group-middle {
+    @apply rounded-none;
+  }
+
+  /* Drop target highlight for drag and drop */
+  .drop-highlight {
+    @apply !bg-accent-light ring-2 ring-accent;
+  }
+
+  /* Form inputs */
+  .input {
+    @apply block w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-colors;
+  }
+
+  .input-error {
+    @apply border-error focus:border-error focus:ring-error/20;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-text-primary mb-1.5;
+  }
+
+  .help-text {
+    @apply text-xs text-text-secondary mt-1.5;
+  }
+
+  .error-text {
+    @apply text-xs text-error mt-1.5;
+  }
+
+  .form-field {
+    @apply mb-4;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-accent text-white text-xs font-medium;
+  }
+
+  .badge-sm {
+    @apply min-w-[1rem] h-4 px-1 text-[0.625rem];
+  }
+
+  .badge-muted {
+    @apply bg-background-secondary text-text-secondary;
+  }
+
+  .badge-success {
+    @apply bg-success text-white;
+  }
+
+  .badge-warning {
+    @apply bg-warning text-white;
+  }
+
+  .badge-error {
+    @apply bg-error text-white;
+  }
+
+  /* Tabs */
+  .tabs {
+    @apply flex items-center gap-1;
+  }
+
+  .tab {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-text-secondary hover:bg-background-secondary hover:text-text-primary transition-colors;
+  }
+
+  .tab.active {
+    @apply bg-background-secondary text-text-primary font-medium;
+  }
+
+  /* Search Form */
+  .search-form {
+    @apply flex items-center gap-2 px-3 py-1.5 bg-background-secondary border border-border-light rounded-lg transition-all;
+  }
+
+  .search-form:focus-within {
+    @apply border-accent ring-2 ring-accent/20;
+  }
+
+  .search-form-icon {
+    @apply text-text-tertiary flex-shrink-0;
+  }
+
+  .search-form-input {
+    @apply bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-tertiary w-44;
+  }
+
+  /* Tool Topbar */
+  .tool-topbar {
+    @apply flex items-center justify-between px-4 py-1 bg-surface border-b border-border-light min-h-[53px];
+  }
+
+  .tool-topbar-title {
+    @apply text-lg font-semibold text-text-primary;
+  }
+
+  .tool-topbar-actions {
+    @apply flex items-center gap-2;
+  }
+
+  /* Card */
+  .card {
+    @apply bg-surface rounded-xl border border-border-light shadow-sm;
+  }
+
+  .card-header {
+    @apply px-5 py-4 border-b border-border-light;
+  }
+
+  .card-body {
+    @apply px-5 py-4;
+  }
+
+  /* Avatar */
+  .avatar {
+    @apply inline-flex items-center justify-center rounded-full bg-background-tertiary text-text-secondary font-medium overflow-hidden;
+  }
+
+  .avatar-sm {
+    @apply w-6 h-6 text-xs;
+  }
+
+  .avatar-md {
+    @apply w-8 h-8 text-sm;
+  }
+
+  .avatar-lg {
+    @apply w-10 h-10 text-base;
+  }
+
+  .avatar-xl {
+    @apply w-11 h-11 text-base;
+  }
+
+  /* Popover menu base */
+  .popover-menu {
+    @apply w-48 rounded-lg bg-surface border border-border-light shadow-lg py-1 m-0 inset-auto;
+  }
+
+  .dropdown-item {
+    @apply block w-full px-4 py-2 text-sm text-text-primary hover:bg-background-secondary text-left transition-colors;
+  }
+
+  .dropdown-divider {
+    @apply my-1 border-t border-border-light;
+  }
+
+  /* Modal (<dialog>) */
+  .modal-dialog {
+    @apply w-full m-auto bg-surface rounded-xl shadow-xl p-0 border-0 max-h-[90vh] overflow-hidden;
+  }
+
+  .modal-dialog[open] {
+    @apply flex flex-col;
+  }
+
+  .modal-dialog::backdrop {
+    @apply bg-black/40 backdrop-blur-sm;
+  }
+
+  .modal-dialog > * {
+    @apply w-full;
+  }
+
+  .modal-header {
+    @apply flex items-center justify-between px-5 py-4 border-b border-border-light;
+  }
+
+  .modal-body {
+    @apply px-5 py-4;
+  }
+
+  /* Flash messages */
+  .flash {
+    @apply rounded-lg px-4 py-3 text-sm flex items-center gap-3;
+  }
+
+  .flash-notice {
+    @apply bg-accent-light text-accent border border-accent/20;
+  }
+
+  .flash-success {
+    @apply bg-success-light text-success border border-success/20;
+  }
+
+  .flash-alert,
+  .flash-error {
+    @apply bg-error-light text-error border border-error/20;
+  }
+
+  .flash-warning {
+    @apply bg-warning-light text-warning border border-warning/20;
+  }
+
+  .flash {
+    transition: opacity 220ms ease, transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* Entry animation via @starting-style — fires when element is first painted */
+  @starting-style {
+    .flash {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+
+  .flash-dismiss {
+    @apply opacity-0 translate-x-full transition-all duration-200 ease-in-out;
+  }
+
+  /* Collaborators */
+  .collaborator-row {
+    @apply flex items-center justify-between py-2;
+  }
+
+  .collaborator-info {
+    @apply flex items-center gap-3 min-w-0;
+  }
+
+  .collaborator-name {
+    @apply text-sm font-medium text-text-primary;
+  }
+
+  .collaborator-email {
+    @apply text-xs text-text-tertiary;
+  }
+
+  .collaborator-remove {
+    @apply text-xs text-error bg-transparent border-none cursor-pointer px-2 py-1 rounded-sm shrink-0 hover:bg-error-light;
+  }
+
+  /* ── Rich text input (compact Rhino editor) ──────────────────────── */
+
+  .rich-text-input {
+    @apply flex flex-col rounded-md border border-border bg-surface transition-colors text-sm;
+  }
+
+  .rich-text-input:focus-within {
+    @apply border-accent ring-2 ring-accent/20;
+  }
+
+  .rich-text-input rhino-editor {
+    @apply flex flex-col;
+    --rhino-border-color: transparent;
+    --rhino-button-active-border-color: var(--color-accent);
+  }
+
+  .rich-text-input rhino-editor [role="toolbar"] {
+    @apply border-b border-border-light;
+  }
+
+
+  /* ── Rich text content (compact rendering for chat/comments) ─────── */
+
+  .rich-text-content {
+    @apply text-text-primary leading-snug;
+
+    p { @apply my-0; }
+    p + p { @apply mt-0.5; }
+    strong, b { @apply font-semibold; }
+    em, i { @apply italic; }
+    a { @apply text-accent underline; }
+    code { @apply bg-background-secondary px-0.5 py-px rounded text-[0.85em] font-mono; }
+    pre { @apply bg-background-secondary p-1.5 rounded my-1 overflow-x-auto text-xs; }
+    pre code { @apply bg-transparent p-0; }
+    ul { @apply list-disc pl-4 my-0.5; }
+    ol { @apply list-decimal pl-4 my-0.5; }
+    li { @apply my-0; }
+    blockquote { @apply border-l-2 border-border pl-2 text-text-secondary italic my-0.5; }
+    h1, h2, h3, h4 { @apply font-semibold text-inherit my-0.5; }
+  }
+
+  /* Chat empty state: hide when messages exist */
+  #chat_messages:has([data-controller="message"]) > #chat-empty-state {
+    @apply hidden!;
+  }
+
+  #chat_messages:not(:has([data-controller="message"])) > [role="separator"] {
+    @apply hidden!;
+  }
+
+  /* Keyboard shortcut key badges */
+  .shortcut-key {
+    @apply inline-flex items-center justify-center min-w-6 px-1.5 py-0.5 text-xs bg-background-secondary border border-border rounded text-text-secondary;
+    font-family: inherit;
+  }
+
+  .shortcut-list {
+    @apply flex flex-col gap-0.5;
+  }
+
+  /* Tool type selection card */
+  .tool-type-card {
+    transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+  }
+
+  /* Checked state: a very gentle press */
+  :checked + .tool-type-card {
+    transform: scale(0.98);
+  }
+
+  /* Command palette */
+  .command-palette-item {
+    @apply flex items-center gap-3 px-4 py-2.5 text-sm text-text-primary no-underline transition-colors cursor-pointer;
+  }
+  .command-palette-item:hover, .command-palette-item.selected {
+    @apply bg-background-secondary;
+  }
+  .command-palette-item.hidden {
+    @apply hidden;
+  }
+}

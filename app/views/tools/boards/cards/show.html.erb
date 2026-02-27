@@ -1,0 +1,362 @@
+<%
+  # Color values stored as CSS vars so Tailwind JIT never needs to purge them.
+  # `bg`   – hex for solid swatches / dots
+  # `pill` – inline style for the text pill (bg + text + ring via CSS)
+  color_map = {
+    "red"    => { hex: "#ef4444", text: "#b91c1c", bg_light: "#fef2f2", ring: "#fca5a5" },
+    "orange" => { hex: "#f97316", text: "#c2410c", bg_light: "#fff7ed", ring: "#fdba74" },
+    "yellow" => { hex: "#facc15", text: "#854d0e", bg_light: "#fefce8", ring: "#fde047" },
+    "green"  => { hex: "#22c55e", text: "#15803d", bg_light: "#f0fdf4", ring: "#86efac" },
+    "blue"   => { hex: "#3b82f6", text: "#1d4ed8", bg_light: "#eff6ff", ring: "#93c5fd" },
+    "purple" => { hex: "#a855f7", text: "#7e22ce", bg_light: "#faf5ff", ring: "#d8b4fe" }
+  }
+  current_color = color_map[@card.color]
+%>
+<%= turbo_frame_tag "card-detail-content", class: "contents" do %>
+<div data-controller="board-card"
+     data-board-card-card-id-value="<%= @card.id %>"
+     data-board-card-tool-id-value="<%= @tool.id %>"
+     class="flex flex-col w-full"
+     style="max-height: 80vh; min-height: 60vh;">
+
+  <%# ─── Header ─────────────────────────────────────────────────────── %>
+  <div class="flex items-start gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-border-light">
+    <div class="flex-1 min-w-0">
+
+      <%# Breadcrumb row: color pill + column name %>
+      <div class="flex items-center gap-2 mb-2">
+        <% if current_color %>
+          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset"
+                style="background-color: <%= current_color[:bg_light] %>; color: <%= current_color[:text] %>; --tw-ring-color: <%= current_color[:ring] %>;">
+            <span class="w-1.5 h-1.5 rounded-full" style="background-color: <%= current_color[:hex] %>;"></span>
+            <%= @card.color.capitalize %>
+          </span>
+        <% end %>
+        <span class="text-xs text-text-tertiary">
+          in
+          <span class="font-medium text-text-secondary"><%= @card.column.name %></span>
+        </span>
+      </div>
+
+      <%# Editable title %>
+      <h2 class="text-lg font-semibold text-text-primary leading-snug cursor-text hover:text-accent transition-colors"
+          data-board-card-target="titleDisplay"
+          data-action="click->board-card#editTitle"><%= @card.title %></h2>
+      <input type="text"
+             value="<%= @card.title %>"
+             class="input text-lg font-semibold hidden w-full"
+             data-board-card-target="titleInput"
+             data-action="blur->board-card#saveTitle keydown->board-card#titleKeydown">
+    </div>
+
+    <%= render "components/icon_button",
+        icon: "x",
+        title: "Close",
+        size: :sm,
+        data: { action: "click->modal#close" } %>
+  </div>
+
+  <%# ─── Body: two-column layout ────────────────────────────────────── %>
+  <div class="flex-1 flex flex-col sm:flex-row min-h-0">
+
+    <%# Left column: Description + Activity %>
+    <div class="flex-1 min-w-0 flex flex-col overflow-y-auto">
+      <div>
+
+        <%# Description %>
+        <section class="p-4 sm:p-5">
+          <h3 class="text-sm font-semibold text-text-tertiary mb-2 flex items-center gap-1.5">
+            <%= render "shared/icon", name: "align-left", size: 14, class: "opacity-70" %>
+            Description
+          </h3>
+
+          <% if @card.description.present? %>
+            <div class="text-sm text-text-primary leading-snug rich-text-content cursor-text rounded-md px-3 py-2.5 hover:bg-background-secondary transition-colors -mx-3"
+                 data-board-card-target="descriptionDisplay"
+                 data-action="click->board-card#editDescription">
+              <%= @card.description %>
+            </div>
+          <% else %>
+            <div class="text-sm text-text-tertiary/70 italic cursor-text rounded-md px-3 py-2.5 hover:bg-background-secondary hover:text-text-tertiary transition-colors -mx-3"
+                 data-board-card-target="descriptionDisplay"
+                 data-action="click->board-card#editDescription">
+              Add a description...
+            </div>
+          <% end %>
+
+          <div class="hidden" data-board-card-target="descriptionEdit">
+            <%= form_with url: tool_board_card_path(@tool, @card), method: :patch, data: { turbo_frame: "card-detail-content" } do |f| %>
+              <%= render "components/rich_text_input", name: "card[description]", value: @card.description do %>
+                <%= render "components/icon_button",
+                      icon: "x",
+                      title: "Cancel",
+                      size: :sm,
+                      class: "rounded",
+                      type: :button,
+                      data: { action: "click->board-card#cancelDescription" } %>
+                <%= render "components/icon_button",
+                      icon: "check",
+                      title: "Save",
+                      variant: :accent,
+                      size: :sm,
+                      class: "rounded",
+                      type: :submit %>
+              <% end %>
+            <% end %>
+          </div>
+        </section>
+
+        <%# Discussion / Comments %>
+        <section class="border-t border-border-light p-4 sm:p-5">
+          <h3 class="text-sm font-semibold text-text-tertiary mb-4 flex items-center gap-1.5">
+            <%= render "shared/icon", name: "message-square-text", size: 14, class: "opacity-70" %>
+            Comments
+            <% if @card.comments.any? %>
+              <span class="ml-0.5 font-normal normal-case tracking-normal"><%= @card.comments.count %></span>
+            <% end %>
+          </h3>
+
+          <%# Comments list first (newest comments visible without scrolling past the form) %>
+          <% if @card.comments.any? %>
+            <div class="space-y-4 mb-4">
+              <% @card.comments.includes(:user, :rich_text_body).order(created_at: :asc).each do |comment| %>
+                <div class="flex gap-2.5">
+                  <%= render "shared/avatar", user: comment.user, size: :sm %>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-baseline gap-2 mb-0.5">
+                      <span class="text-sm font-semibold text-text-primary"><%= comment.user.name %></span>
+                      <span class="text-xs text-text-tertiary"><%= time_ago_in_words(comment.created_at) %> ago</span>
+                    </div>
+                    <div class="text-sm text-text-primary leading-snug rich-text-content"><%= comment.body %></div>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+
+          <%# Comment form at the bottom %>
+          <%= form_with url: tool_board_card_comments_path(@tool, @card), data: { turbo_frame: "card-detail-content" } do %>
+            <div class="flex gap-2.5">
+              <%= render "shared/avatar", user: current_user, size: :sm %>
+              <div class="flex-1">
+                <%= render "components/rich_text_input", name: "body", placeholder: "Write a comment..." do %>
+                  <%= render "components/icon_button",
+                        icon: "send",
+                        title: "Post comment",
+                        variant: :accent,
+                        size: :sm,
+                        class: "rounded",
+                        type: :submit %>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </section>
+
+      </div>
+    </div>
+
+    <%# Right column: Metadata sidebar %>
+    <div class="sm:w-56 border-t sm:border-t-0 sm:border-l border-border-light bg-background-secondary/50 overflow-y-auto flex-shrink-0">
+      <div>
+
+        <%# ── Assignee ───────────────────────────────────────────────── %>
+        <div class="p-3">
+          <p class="text-xs font-medium text-text-tertiary px-1 mb-1">Assignee</p>
+          <div class="relative">
+            <button type="button"
+                    class="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-background-secondary transition-colors select-none group w-full"
+                    commandfor="card-assignee-menu"
+                    command="toggle-popover"
+                    style="anchor-name: --card-assignee">
+              <% if @card.assigned_user %>
+                <%= render "shared/avatar", user: @card.assigned_user, size: :sm %>
+                <span class="text-sm font-medium text-text-primary flex-1 truncate text-left" data-board-card-target="assigneeLabel"><%= @card.assigned_user.name %></span>
+              <% else %>
+                <div class="w-6 h-6 rounded-full bg-background-tertiary border border-dashed border-border flex items-center justify-center flex-shrink-0">
+                  <%= render "shared/icon", name: "user", size: 12, class: "text-text-tertiary" %>
+                </div>
+                <span class="text-sm text-text-tertiary flex-1 text-left" data-board-card-target="assigneeLabel">Unassigned</span>
+              <% end %>
+              <%= render "shared/icon", name: "chevron-down", size: 12, class: "text-text-tertiary flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" %>
+            </button>
+            <div id="card-assignee-menu" popover="auto"
+                 class="popover-menu max-h-44 overflow-y-auto"
+                 style="position-anchor: --card-assignee; top: anchor(bottom); left: anchor(left); width: anchor-size(width);">
+              <button type="button"
+                      class="flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-left hover:bg-background-secondary transition-colors"
+                      data-action="click->board-card#setAssignee"
+                      data-user-id=""
+                      data-user-name="Unassigned"
+                      commandfor="card-assignee-menu" command="hide-popover">
+                <div class="w-6 h-6 rounded-full bg-background-tertiary flex items-center justify-center flex-shrink-0">
+                  <%= render "shared/icon", name: "user", size: 12, class: "text-text-tertiary" %>
+                </div>
+                <span class="text-text-tertiary">Unassigned</span>
+              </button>
+              <% @collaborators.each do |user| %>
+                <button type="button"
+                        class="flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-left hover:bg-background-secondary transition-colors"
+                        data-action="click->board-card#setAssignee"
+                        data-user-id="<%= user.id %>"
+                        data-user-name="<%= user.name %>"
+                        commandfor="card-assignee-menu" command="hide-popover">
+                  <%= render "shared/avatar", user: user, size: :sm %>
+                  <span class="text-text-primary flex-1 truncate"><%= user.name %></span>
+                  <% if @card.assigned_user == user %>
+                    <%= render "shared/icon", name: "check", size: 13, class: "text-accent flex-shrink-0" %>
+                  <% end %>
+                </button>
+              <% end %>
+            </div>
+          </div>
+        </div>
+
+        <div class="h-px bg-border-light"></div>
+
+        <%# ── Due Date ────────────────────────────────────────────────── %>
+        <div class="p-3">
+          <p class="text-xs font-medium text-text-tertiary px-1 mb-1">Due date</p>
+          <label class="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-background-secondary transition-colors">
+            <div class="w-6 h-6 rounded-md bg-background-tertiary flex items-center justify-center flex-shrink-0">
+              <%= render "shared/icon", name: "calendar", size: 13, class: "text-text-tertiary" %>
+            </div>
+            <input type="date"
+                   value="<%= @card.due_date&.iso8601 %>"
+                   class="text-sm bg-transparent border-none outline-none cursor-pointer flex-1 min-w-0"
+                   data-action="change->board-card#setDueDate"
+                   data-board-card-target="dueDateInput">
+          </label>
+        </div>
+
+        <div class="h-px bg-border-light"></div>
+
+        <%# ── Label / Color ──────────────────────────────────────────── %>
+        <div class="p-3">
+          <p class="text-xs font-medium text-text-tertiary px-1 mb-1">Label</p>
+          <div class="relative">
+            <button type="button"
+                    class="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-background-secondary transition-colors select-none group w-full"
+                    commandfor="card-color-menu"
+                    command="toggle-popover"
+                    style="anchor-name: --card-color">
+              <span class="w-4 h-4 rounded-sm flex-shrink-0"
+                    data-board-card-target="colorDot"
+                    style="<%= current_color ? "background-color: #{current_color[:hex]};" : "background-color: transparent; border: 1px dashed var(--color-border);" %>"></span>
+              <span class="text-sm flex-1 text-left <%= current_color ? "font-medium text-text-primary" : "text-text-tertiary" %>"
+                    data-board-card-target="colorLabel"><%= current_color ? @card.color.capitalize : "No label" %></span>
+              <%= render "shared/icon", name: "chevron-down", size: 12, class: "text-text-tertiary flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" %>
+            </button>
+            <div id="card-color-menu" popover="auto"
+                 class="popover-menu"
+                 style="position-anchor: --card-color; top: anchor(bottom); left: anchor(left); width: anchor-size(width);">
+              <button type="button"
+                      class="flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-left hover:bg-background-secondary transition-colors"
+                      data-action="click->board-card#setColor"
+                      data-color=""
+                      commandfor="card-color-menu" command="hide-popover">
+                <span class="w-4 h-4 rounded-sm bg-background-tertiary border border-border flex-shrink-0"></span>
+                <span class="text-text-tertiary">None</span>
+              </button>
+              <% color_map.each do |color, styles| %>
+                <button type="button"
+                        class="flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-left hover:bg-background-secondary transition-colors"
+                        data-action="click->board-card#setColor"
+                        data-color="<%= color %>"
+                        data-color-hex="<%= styles[:hex] %>"
+                        commandfor="card-color-menu" command="hide-popover">
+                  <span class="w-4 h-4 rounded-sm flex-shrink-0" style="background-color: <%= styles[:hex] %>;"></span>
+                  <span class="text-text-primary"><%= color.capitalize %></span>
+                  <% if @card.color == color %>
+                    <%= render "shared/icon", name: "check", size: 13, class: "text-accent ml-auto flex-shrink-0" %>
+                  <% end %>
+                </button>
+              <% end %>
+            </div>
+          </div>
+        </div>
+
+        <div class="h-px bg-border-light"></div>
+
+        <%# ── Attachments ─────────────────────────────────────────────── %>
+        <div class="p-3">
+          <div class="flex items-center justify-between px-1 mb-1">
+            <p class="text-xs font-medium text-text-tertiary">
+              Attachments
+              <% if @card.attachments.any? %>
+                <span class="font-normal normal-case tracking-normal ml-0.5 text-text-tertiary">(<%= @card.attachments.count %>)</span>
+              <% end %>
+            </p>
+            <%= form_with url: tool_board_card_attachments_path(@tool, @card), multipart: true, class: "inline", data: { turbo_frame: "card-detail-content" } do %>
+              <label class="text-xs font-medium text-accent hover:text-accent-hover cursor-pointer transition-colors">
+                + Add
+                <input type="file" name="file" multiple class="hidden"
+                       data-action="change->board-card#submitAttachment">
+              </label>
+            <% end %>
+          </div>
+
+          <div class="space-y-1">
+            <% if @card.attachments.any? %>
+              <% @card.attachments.each do |attachment| %>
+                <div class="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-background-secondary group transition-colors">
+                  <div class="w-6 h-6 rounded bg-background-tertiary flex items-center justify-center flex-shrink-0">
+                    <%= render "shared/icon", name: "paperclip", size: 12, class: "text-text-tertiary" %>
+                  </div>
+                  <a href="<%= rails_blob_path(attachment.file) %>"
+                     target="_blank"
+                     class="text-sm text-text-primary hover:text-accent truncate flex-1 min-w-0 transition-colors">
+                    <%= attachment.file.filename %>
+                  </a>
+                  <span class="text-xs text-text-tertiary shrink-0"><%= number_to_human_size(attachment.file.byte_size) %></span>
+                  <%= link_to tool_board_card_attachment_path(@tool, @card, attachment),
+                      class: "opacity-0 group-hover:opacity-100 p-0.5 rounded hover:text-error text-text-tertiary transition-all",
+                      data: { turbo_method: :delete, turbo_confirm: "Delete this attachment?", turbo_frame: "card-detail-content" } do %>
+                    <%= render "shared/icon", name: "x", size: 12 %>
+                  <% end %>
+                </div>
+              <% end %>
+            <% else %>
+              <p class="text-sm text-text-tertiary px-2 py-1">No attachments yet</p>
+            <% end %>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <%# ─── Footer ──────────────────────────────────────────────────────── %>
+  <div class="flex items-center justify-between px-4 sm:px-5 py-3 border-t border-border-light bg-background-secondary/50">
+    <div class="flex items-center gap-4">
+      <% if @card.archived? %>
+        <%= link_to tool_board_card_archive_path(@tool, @card),
+            class: "inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-accent transition-colors",
+            data: { turbo_method: :delete, turbo_frame: "_top" } do %>
+          <%= render "shared/icon", name: "archive-restore", size: 14 %>
+          Restore card
+        <% end %>
+      <% else %>
+        <%= link_to tool_board_card_archive_path(@tool, @card),
+            class: "inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-accent transition-colors",
+            data: { turbo_method: :post, turbo_frame: "_top" } do %>
+          <%= render "shared/icon", name: "archive", size: 14 %>
+          Archive card
+        <% end %>
+      <% end %>
+      <%= link_to tool_board_card_path(@tool, @card),
+          class: "inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-error transition-colors",
+          data: {
+            turbo_method: :delete,
+            turbo_confirm: "Delete this card? This cannot be undone.",
+            turbo_frame: "_top"
+          } do %>
+        <%= render "shared/icon", name: "trash-2", size: 14 %>
+        Delete card
+      <% end %>
+    </div>
+    <span class="text-xs text-text-tertiary">Saved automatically</span>
+  </div>
+
+</div>
+<% end %>

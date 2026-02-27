@@ -1,0 +1,20 @@
+<%#
+  Navigation Pill component - centered navigation control
+
+  A blue pill-shaped container for navigation actions (prev/next, today, picker, etc.)
+
+  Usage:
+    render "components/nav_pill" do
+      # Add buttons/content here
+    end
+
+  Example:
+    render "components/nav_pill" do
+      render "components/nav_pill_button", icon: "chevron-left", action: "controller#prev"
+      render "components/nav_pill_button", text: "Today", action: "controller#today"
+      render "components/nav_pill_button", icon: "chevron-right", action: "controller#next"
+    end
+%>
+<div class="relative flex items-center gap-0.5 bg-accent text-white rounded-full px-1.5 py-1">
+  <%= yield %>
+</div>

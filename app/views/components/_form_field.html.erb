@@ -1,0 +1,95 @@
+<%#
+  Form Field component - USE THIS FOR ALL FORM FIELDS
+
+  Required:
+    label: Field label text
+    name: Field name for the input
+
+  Options:
+    type: :text (default), :email, :password, :search, :number, :date, :textarea, :select
+    value: Current field value
+    placeholder: Placeholder text
+    required: true if required
+    autofocus: true to autofocus
+    autocomplete: autocomplete attribute value
+    help: Help text below the field
+    error: Error message (or pass object + field for auto-detection)
+    object: Model object for error detection
+    field: Field name symbol for error detection on object
+    options: For select type - array of [label, value] pairs
+    rows: For textarea - number of rows (default: 3)
+    min/max: For number type
+    disabled: true to disable
+    class: Additional classes for the input
+
+  Examples:
+    render "components/form_field", label: "Email", name: "email", type: :email, required: true
+    render "components/form_field", label: "Password", name: "password", type: :password, help: "At least 8 characters"
+    render "components/form_field", label: "Bio", name: "bio", type: :textarea, rows: 5
+    render "components/form_field", label: "Role", name: "role", type: :select, options: [["Admin", "admin"], ["User", "user"]]
+    render "components/form_field", label: "Name", name: "name", object: @user, field: :name
+%>
+<%
+  type ||= :text
+  rows ||= 3
+
+  # Determine if there's an error
+  has_error = false
+  error_message = nil
+
+  if local_assigns[:error]
+    has_error = true
+    error_message = local_assigns[:error]
+  elsif local_assigns[:object] && local_assigns[:field]
+    errors = local_assigns[:object].errors[local_assigns[:field]]
+    if errors.any?
+      has_error = true
+      error_message = errors.first
+    end
+  end
+
+  input_classes = ["input"]
+  input_classes << "input-error" if has_error
+  input_classes << local_assigns[:class] if local_assigns[:class]
+  input_classes = input_classes.join(" ")
+%>
+
+<%
+  shared_options = {
+    name: name,
+    id: name,
+    class: input_classes,
+    placeholder: local_assigns[:placeholder],
+    required: local_assigns[:required] || nil,
+    autofocus: local_assigns[:autofocus] || nil,
+    disabled: local_assigns[:disabled] || nil,
+    data: local_assigns[:data]
+  }.compact
+%>
+
+<div class="form-field">
+  <%= tag.label label, for: name, class: "label" %>
+
+  <% case type %>
+  <% when :textarea %>
+    <%= tag.textarea(local_assigns[:value], **shared_options, rows: rows) %>
+
+  <% when :select %>
+    <%= tag.select(**shared_options) do %>
+      <% (local_assigns[:options] || []).each do |opt| %>
+        <% opt_label, opt_value = opt.is_a?(Array) ? opt : [opt, opt] %>
+        <%= tag.option opt_label, value: opt_value, selected: local_assigns[:value].to_s == opt_value.to_s || nil %>
+      <% end %>
+    <% end %>
+
+  <% else %>
+    <%= tag.input(**shared_options, type: type, value: local_assigns[:value],
+          autocomplete: local_assigns[:autocomplete], min: local_assigns[:min], max: local_assigns[:max]) %>
+  <% end %>
+
+  <% if has_error %>
+    <%= tag.p error_message, class: "error-text" %>
+  <% elsif local_assigns[:help] %>
+    <%= tag.p local_assigns[:help], class: "help-text" %>
+  <% end %>
+</div>

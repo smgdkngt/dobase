@@ -1,0 +1,28 @@
+<%
+  unread = notification.unread?
+  icon_name = notification.respond_to?(:icon_name) ? notification.icon_name : "bell"
+  message_text = notification.respond_to?(:message) ? notification.message : "New notification"
+  notification_url = notification.respond_to?(:url) ? notification.url : notifications_path
+%>
+<a href="<%= notification_url %>"
+   data-turbo-frame="_top"
+   class="flex items-start gap-3 px-4 py-3 hover:bg-background-secondary transition-colors border-b border-border-light last:border-b-0 <%= 'bg-accent-light/30' if unread %>"
+   data-action="click->notifications#markAsRead"
+   data-notification-id="<%= notification.id %>">
+  <div class="flex-shrink-0 mt-0.5 text-text-secondary">
+    <%= render "shared/icon", name: icon_name, size: 16 %>
+  </div>
+  <div class="flex-1 min-w-0">
+    <p class="text-sm text-text-primary leading-snug <%= 'font-medium' if unread %>">
+      <%= message_text %>
+    </p>
+    <p class="text-xs text-text-tertiary mt-0.5">
+      <%= time_ago_in_words(notification.created_at) %> ago
+    </p>
+  </div>
+  <% if unread %>
+    <div class="flex-shrink-0 mt-1.5">
+      <span class="block w-2 h-2 rounded-full bg-accent"></span>
+    </div>
+  <% end %>
+</a>

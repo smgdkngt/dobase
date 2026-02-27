@@ -1,0 +1,67 @@
+<% content_for :title, "Edit Calendar Account - #{@tool.name} - #{app_name}" %>
+<% content_for :page_title, "Edit Calendar Account" %>
+
+<div class="p-6">
+  <div class="max-w-2xl">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="text-lg font-semibold">Edit calendar account</h2>
+        <p class="text-sm text-text-secondary mt-1">Update your CalDAV server settings</p>
+      </div>
+      <div class="card-body">
+        <%= form_with model: @calendar_account, url: tool_calendar_account_path(@tool), method: :patch do |f| %>
+          <%= render "shared/error_flash", object: @calendar_account %>
+
+          <!-- CalDAV URL -->
+          <div class="mb-6">
+            <h3 class="text-sm font-semibold text-text-primary mb-3">Server Settings</h3>
+            <div>
+              <label for="calendar_account_caldav_url" class="label">CalDAV URL</label>
+              <%= f.text_field :caldav_url,
+                class: "input #{@calendar_account.errors[:caldav_url].any? ? 'input-error' : ''}",
+                required: true
+              %>
+              <p class="help-text">Your calendar server's CalDAV endpoint URL</p>
+            </div>
+          </div>
+
+          <!-- Credentials -->
+          <div class="mb-6">
+            <h3 class="text-sm font-semibold text-text-primary mb-3">Credentials</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="calendar_account_username" class="label">Username</label>
+                <%= f.text_field :username,
+                  class: "input #{@calendar_account.errors[:username].any? ? 'input-error' : ''}",
+                  required: true
+                %>
+              </div>
+              <div>
+                <label for="calendar_account_password" class="label">Password</label>
+                <%= f.password_field :password,
+                  class: "input",
+                  placeholder: "Leave blank to keep current password"
+                %>
+                <p class="help-text">Only fill if changing password</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <%= button_to "Delete Account",
+                  tool_calendar_account_path(@tool),
+                  method: :delete,
+                  class: "text-sm text-error hover:underline",
+                  data: { turbo_confirm: "Delete this calendar account? All synced calendars and events will be removed." } %>
+            </div>
+            <div class="flex items-center gap-3">
+              <%= render "components/button", text: "Cancel", href: tool_path(@tool), variant: :secondary %>
+              <%= render "components/button", text: "Save Changes" %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

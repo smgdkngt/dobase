@@ -1,0 +1,93 @@
+<%
+  reorder_mode ||= false
+  pending_items = list.items.pending.order(:position).to_a
+  recently_completed_items = list.items.recently_completed.order(:position).to_a
+  completed_hidden_count = list.items.completed_hidden.count
+  pending_count = pending_items.size
+%>
+<div class="border border-border rounded-lg"
+     id="todo-list-<%= list.id %>"
+     data-sort-id="<%= list.id %>"
+     data-list-id="<%= list.id %>">
+
+  <%# Header %>
+  <div class="flex items-center justify-between py-3 px-4 gap-2">
+    <span class="text-base font-semibold text-text-primary cursor-pointer px-1.5 py-0.5 rounded-sm border border-transparent flex-1 min-w-0 hover:bg-background-tertiary"
+          data-action="dblclick->todo#startRenameList"
+          data-list-id="<%= list.id %>"><%= list.title %></span>
+    <span class="text-xs text-text-tertiary bg-background-tertiary rounded-full px-2 py-0.5 min-w-[1.25rem] text-center"
+          id="list-<%= list.id %>-count"><%= pending_count %></span>
+    <% if reorder_mode %>
+      <%= render "components/icon_button",
+          icon: "trash-2",
+          title: "Delete list",
+          size: :sm,
+          variant: :danger,
+          href: tool_todo_list_path(tool, list),
+          method: :delete,
+          turbo_confirm: pending_count > 0 ?
+            "Delete this list and its #{pending_count} item#{'s' unless pending_count == 1}?" :
+            "Delete this list?" %>
+    <% end %>
+  </div>
+
+  <% if list.description.present? %>
+    <div class="px-4 pb-2 text-sm text-text-secondary"><%= list.description %></div>
+  <% end %>
+
+  <%# Items: pending first, then recently completed at the bottom %>
+  <div class="todo-list-items px-2 pb-2 flex flex-col gap-0.5 min-h-[2rem] rounded-md transition-colors"
+       id="list-<%= list.id %>-items"
+       data-controller="sortable"
+       data-sortable-group-value="todo-items"
+       data-sortable-url-value="<%= todo_list_positions_path(list) %>"
+       data-sortable-param-name-value="item_ids">
+    <% pending_items.each do |item| %>
+      <%= render "tools/todos/item", item: item, tool: tool %>
+    <% end %>
+    <% recently_completed_items.each do |item| %>
+      <%= render "tools/todos/item", item: item, tool: tool %>
+    <% end %>
+
+    <% if completed_hidden_count > 0 %>
+      <button type="button"
+              class="flex items-center gap-1.5 px-2 py-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors"
+              data-action="todo#toggleCompleted"
+              data-todo-target="completedToggle"
+              data-list-id="<%= list.id %>">
+        <%= render "shared/icon", name: "check-circle", size: 12 %>
+        <span data-todo-target="completedToggleLabel" data-list-id="<%= list.id %>"><%= completed_hidden_count %> completed</span>
+      </button>
+      <div class="hidden flex-col gap-0.5" data-todo-target="completedSection" data-list-id="<%= list.id %>">
+        <% list.items.completed_hidden.order(:position).each do |item| %>
+          <%= render "tools/todos/item", item: item, tool: tool %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Add item form %>
+  <div class="todo-add-item px-2 pb-2">
+    <button type="button" class="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md border-none bg-transparent text-text-tertiary text-sm cursor-pointer transition-all hover:bg-background-tertiary hover:text-text-primary"
+            data-todo-target="addItemBtn"
+            data-action="todo#showAddItem"
+            data-list-id="<%= list.id %>">
+      <%= render "shared/icon", name: "plus", size: 14 %>
+      Add item
+    </button>
+    <div class="hidden flex-col gap-2 [&.active]:flex" data-todo-target="addItemForm" data-list-id="<%= list.id %>">
+      <%= form_with url: todo_list_items_path(list) do |f| %>
+        <textarea name="title" class="w-full px-2.5 py-2 border border-border rounded-md text-sm bg-surface text-text-primary outline-none resize-none focus:border-accent focus:ring-2 focus:ring-accent/15"
+                  data-todo-target="addItemInput"
+                  data-list-id="<%= list.id %>"
+                  placeholder="What needs to be done?"
+                  rows="1"
+                  data-action="keydown->todo#addItemKeydown"></textarea>
+        <div class="flex items-center gap-1.5">
+          <%= render "components/button", text: "Add", size: :sm %>
+          <%= render "components/button", text: "Cancel", size: :sm, variant: :ghost, type: :button, data: { action: "todo#hideAddItem", "list-id": list.id } %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

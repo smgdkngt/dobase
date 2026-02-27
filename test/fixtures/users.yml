@@ -1,0 +1,22 @@
+<% password_digest = BCrypt::Password.create("password") %>
+<% otp_secret = ROTP::Base32.random %>
+
+one:
+  first_name: User
+  last_name: One
+  email_address: one@example.com
+  password_digest: <%= password_digest %>
+
+two:
+  first_name: User
+  last_name: Two
+  email_address: two@example.com
+  password_digest: <%= password_digest %>
+
+with_otp:
+  first_name: User
+  last_name: OTP
+  email_address: otp@example.com
+  password_digest: <%= password_digest %>
+  otp_secret: <%= otp_secret %>
+  otp_required: true

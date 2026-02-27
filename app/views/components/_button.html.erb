@@ -1,0 +1,103 @@
+<%#
+  Button component - USE THIS FOR ALL BUTTONS
+
+  Required:
+    text: Button label text (omit for icon_only)
+
+  Options:
+    variant: :primary (default), :secondary, :ghost, :danger
+    size: :sm, :md (default)
+    icon: Icon name (rendered before text)
+    icon_class: Additional CSS classes for the icon
+    icon_only: true for icon-only buttons (requires icon, title)
+    type: :submit (default), :button, :reset
+    href: If provided, renders as link_to instead of button
+    method: HTTP method for link (e.g., :delete, :patch)
+    title: Tooltip text (required for icon_only)
+    data: Data attributes hash
+    class: Additional CSS classes
+    disabled: true to disable
+    loading: true to show spinner and disable button
+    full_width: true for w-full
+    form: Form ID for submit buttons outside forms
+    name: Input name for submit buttons
+    value: Input value for submit buttons
+    turbo_confirm: Confirmation message
+    commandfor: ID of dialog element to control (for native dialog commands)
+    command: Dialog command (show-modal, close)
+
+  Examples:
+    render "components/button", text: "Save", variant: :primary
+    render "components/button", text: "Cancel", variant: :secondary
+    render "components/button", text: "Delete", variant: :danger, icon: "trash-2"
+    render "components/button", icon: "settings", icon_only: true, variant: :ghost, title: "Settings"
+    render "components/button", text: "View", href: some_path, variant: :secondary
+    render "components/button", text: "Open", commandfor: "my-dialog", command: "show-modal", type: :button
+    render "components/button", text: "Saving...", loading: true
+%>
+<%
+  variant ||= :primary
+  size ||= :md
+  type ||= :submit
+  icon_only ||= false
+  disabled ||= false
+  loading ||= false
+  full_width ||= false
+
+  # Loading implies disabled
+  is_disabled = disabled || loading
+
+  size_class = size == :sm ? "btn-sm" : ""
+  variant_class = case variant
+    when :primary then "btn-primary"
+    when :secondary then "btn-secondary"
+    when :ghost then "btn-ghost"
+    when :danger then "btn-danger"
+    else "btn-primary"
+  end
+
+  icon_size = size == :sm ? 14 : 16
+
+  classes = ["btn", variant_class, size_class]
+  classes << "w-full" if full_width
+  classes << local_assigns[:class] if local_assigns[:class]
+  classes = classes.reject(&:blank?).join(" ")
+
+  data_attrs = local_assigns[:data] || {}
+  data_attrs[:turbo_confirm] = turbo_confirm if local_assigns[:turbo_confirm]
+  data_attrs[:turbo_method] = local_assigns[:method] if local_assigns[:method]
+%>
+
+<%
+  html_options = {
+    class: classes,
+    title: local_assigns[:title],
+    data: data_attrs.presence
+  }.compact
+
+  content = capture do
+    if loading
+      concat render("shared/icon", name: "loader-2", size: icon_size, class: "animate-spin")
+    elsif local_assigns[:icon]
+      concat render("shared/icon", name: icon, size: icon_size, class: local_assigns[:icon_class])
+    end
+    concat tag.span(text) unless icon_only
+  end
+%>
+
+<% if local_assigns[:href] %>
+  <%= link_to content, local_assigns[:href], **html_options %>
+<% else %>
+  <%
+    html_options.merge!(
+      type: type,
+      disabled: is_disabled || nil,
+      form: local_assigns[:form],
+      name: local_assigns[:name],
+      value: local_assigns[:value],
+      commandfor: local_assigns[:commandfor],
+      command: local_assigns[:command]
+    ).compact!
+  %>
+  <%= tag.button(**html_options) { content } %>
+<% end %>

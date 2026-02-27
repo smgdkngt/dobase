@@ -1,0 +1,5 @@
+first_comment:
+  item: pending_one
+  user: one
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>

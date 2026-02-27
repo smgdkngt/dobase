@@ -1,0 +1,120 @@
+<% content_for :title, "Compose - #{@tool.name} - #{app_name}" %>
+<% content_for :page_title, "" %>
+
+<%= form_with url: tool_mails_path(@tool), method: :post, class: "compose-layout", data: { controller: "compose" } do %>
+  <!-- Top Bar -->
+  <div class="flex items-center px-4 gap-3 bg-surface border-b border-border-light">
+    <%= link_to tool_mails_path(@tool), class: "flex items-center justify-center w-8 h-8 rounded-lg hover:bg-background-secondary transition-colors" do %>
+      <%= render "shared/icon", name: "arrow-left", size: 18, class: "text-text-secondary" %>
+    <% end %>
+    <span class="text-sm font-semibold text-text-primary">New Message</span>
+
+    <div class="flex items-center gap-2 ml-auto">
+      <%= render "components/button", text: "Discard", variant: :ghost, size: :sm, href: tool_mails_path(@tool) %>
+      <%= render "components/button", text: "Send", icon: "send", size: :sm, type: :submit %>
+    </div>
+  </div>
+
+  <!-- Recipients -->
+  <div class="bg-surface border-b border-border-light">
+    <!-- To -->
+    <div class="flex items-center px-4 py-3 gap-3 border-b border-border-light relative"
+         data-controller="email-autocomplete"
+         data-email-autocomplete-url-value="<%= tool_mails_contacts_path(@tool) %>">
+      <label class="text-sm text-text-tertiary shrink-0">To</label>
+      <div class="flex-1 flex flex-wrap items-center gap-1.5 min-w-0">
+        <span data-email-autocomplete-target="tags" class="contents"></span>
+        <input type="hidden" name="to" value="<%= @to %>" data-email-autocomplete-target="hidden">
+        <input type="text"
+               class="flex-1 min-w-24 text-sm text-text-primary bg-transparent outline-none"
+               autocomplete="off"
+               data-email-autocomplete-target="input"
+               data-compose-target="to">
+      </div>
+      <button type="button" class="text-xs text-text-tertiary hover:text-text-secondary shrink-0" data-action="compose#toggleBcc">Bcc</button>
+      <div class="hidden absolute left-16 top-full mt-1 w-72 bg-surface border border-border-light rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto"
+           data-email-autocomplete-target="results"></div>
+    </div>
+
+    <!-- Cc -->
+    <div class="flex items-center px-4 py-3 gap-3 border-b border-border-light relative"
+         data-controller="email-autocomplete"
+         data-email-autocomplete-url-value="<%= tool_mails_contacts_path(@tool) %>">
+      <label class="text-sm text-text-tertiary shrink-0">Cc</label>
+      <div class="flex-1 flex flex-wrap items-center gap-1.5 min-w-0">
+        <span data-email-autocomplete-target="tags" class="contents"></span>
+        <input type="hidden" name="cc" value="<%= @cc %>" data-email-autocomplete-target="hidden">
+        <input type="text"
+               class="flex-1 min-w-24 text-sm text-text-primary bg-transparent outline-none"
+               autocomplete="off"
+               data-email-autocomplete-target="input">
+      </div>
+      <div class="hidden absolute left-16 top-full mt-1 w-72 bg-surface border border-border-light rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto"
+           data-email-autocomplete-target="results"></div>
+    </div>
+
+    <!-- Bcc (hidden by default) -->
+    <div class="flex items-center px-4 py-3 gap-3 border-b border-border-light hidden relative"
+         data-compose-target="bccField"
+         data-controller="email-autocomplete"
+         data-email-autocomplete-url-value="<%= tool_mails_contacts_path(@tool) %>">
+      <label class="text-sm text-text-tertiary shrink-0">Bcc</label>
+      <div class="flex-1 flex flex-wrap items-center gap-1.5 min-w-0">
+        <span data-email-autocomplete-target="tags" class="contents"></span>
+        <input type="hidden" name="bcc" value="<%= @bcc %>" data-email-autocomplete-target="hidden">
+        <input type="text"
+               class="flex-1 min-w-24 text-sm text-text-primary bg-transparent outline-none"
+               autocomplete="off"
+               data-email-autocomplete-target="input">
+      </div>
+      <div class="hidden absolute left-16 top-full mt-1 w-72 bg-surface border border-border-light rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto"
+           data-email-autocomplete-target="results"></div>
+    </div>
+
+    <!-- Subject -->
+    <div class="flex items-center px-4 py-3 gap-3">
+      <label class="text-sm text-text-tertiary">Subject</label>
+      <input type="text"
+             name="subject"
+             value="<%= @subject %>"
+             class="flex-1 text-sm text-text-primary bg-transparent outline-none placeholder:text-text-tertiary"
+             placeholder=""
+             autocomplete="off">
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="compose-body bg-surface overflow-y-auto">
+    <% input_id = "compose_body_#{SecureRandom.hex(4)}" %>
+    <%= hidden_field_tag "body", @body, id: input_id %>
+    <rhino-editor input="<%= input_id %>"
+      class="compose-editor flex-1"
+      placeholder="Compose your message..."
+      data-blob-url-template="<%= rails_service_blob_url(":signed_id", ":filename") %>"
+      data-direct-upload-url="<%= rails_direct_uploads_url %>">
+    </rhino-editor>
+  </div>
+
+  <!-- Attachments Area -->
+  <div class="bg-surface border-t border-border-light px-4 py-2" data-compose-target="attachmentsArea">
+    <div class="flex flex-wrap gap-2" data-compose-target="attachmentsList"></div>
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="flex items-center px-4 py-3 bg-surface border-t border-border-light gap-3">
+    <label class="flex items-center gap-2 px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-background-secondary rounded-lg cursor-pointer transition-colors">
+      <%= render "shared/icon", name: "paperclip", size: 16 %>
+      <span>Attach</span>
+      <input type="file"
+             name="attachments[]"
+             multiple
+             class="hidden"
+             data-compose-target="fileInput"
+             data-action="change->compose#handleFiles">
+    </label>
+
+    <div class="flex items-center gap-2 ml-auto text-xs text-text-tertiary">
+      <span>Sending as <%= @mail_account.email_address %></span>
+    </div>
+  </div>
+<% end %>

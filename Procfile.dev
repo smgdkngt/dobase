@@ -1,0 +1,2 @@
+web: bin/rails server -p $PORT
+css: bundle exec tailwindcss -i ./app/assets/tailwind/application.css -o ./app/assets/builds/tailwind.css --watch=always

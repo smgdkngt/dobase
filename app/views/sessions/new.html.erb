@@ -1,0 +1,51 @@
+<% content_for :title, "Sign In - #{app_name}" %>
+
+<div class="w-full max-w-sm">
+  <div class="text-center mb-8">
+    <img src="<%= app_logo_path %>" alt="<%= app_name %>" class="w-16 h-16 mx-auto mb-4">
+    <h1 class="text-2xl font-semibold text-text-primary">Welcome back</h1>
+    <p class="text-text-secondary mt-1">Sign in to your <%= app_name %> account</p>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <%= form_with url: session_path, method: :post, class: "space-y-4" do |f| %>
+        <div>
+          <label for="email_address" class="label">Email</label>
+          <%= f.email_field :email_address,
+            class: "input",
+            placeholder: "you@example.com",
+            required: true,
+            autofocus: true,
+            autocomplete: "email",
+            value: params[:email_address]
+          %>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="password" class="label !mb-0">Password</label>
+            <%= link_to "Forgot password?", new_password_path, class: "text-xs text-accent hover:underline" %>
+          </div>
+          <%= f.password_field :password,
+            class: "input",
+            placeholder: "Enter your password",
+            required: true,
+            autocomplete: "current-password",
+            maxlength: 72
+          %>
+        </div>
+
+        <%= render "components/button", text: "Sign In", full_width: true %>
+      <% end %>
+    </div>
+  </div>
+
+  <p class="text-center text-sm text-text-secondary mt-6">
+    Don't have an account?
+    <%= link_to "Sign up", signup_path, class: "text-accent hover:underline font-medium" %>
+  </p>
+  <p class="text-center text-xs text-text-tertiary mt-4">
+    Powered by <a href="https://dobase.co" class="hover:underline" target="_blank">Dobase</a>
+  </p>
+</div>

@@ -1,0 +1,58 @@
+<%#
+  Event block displayed in the week grid
+  Positioned absolutely based on start time and duration
+  For multi-day events, clips to the display_date boundaries
+%>
+<%
+  # Get the display date (the day column we're rendering in)
+  current_day = local_assigns[:display_date] || event.start_time.to_date
+  day_start = current_day.to_time.beginning_of_day
+  day_end = current_day.to_time.end_of_day
+
+  # Clip event times to this day's boundaries
+  visible_start = [event.start_time, day_start].max
+  visible_end = [event.end_time, day_end].min
+
+  # Calculate position and height based on visible portion
+  start_hour = visible_start.hour
+  start_minute = visible_start.min
+  duration_minutes = ((visible_end - visible_start) / 60).to_i
+
+  # Position from top (as percentage of 24 hours)
+  top_position = (start_hour * 60 + start_minute) / (24.0 * 60) * 100
+
+  # Height (as percentage of 24 hours)
+  height = [duration_minutes / (24.0 * 60) * 100, 4].max # Minimum 4% height
+
+  # For multi-day events, show if this is the start day
+  is_start_day = event.start_time.to_date == current_day
+  show_time = is_start_day
+
+  # Background color from calendar
+  bg_color = calendar&.color || "#3b82f6"
+
+  # Determine text color based on background brightness
+  text_color = "text-white"
+%>
+
+<div class="absolute left-0.5 right-0.5 rounded-md shadow-sm cursor-pointer overflow-hidden border border-white/20 transition-shadow hover:shadow-md hover:z-10 min-h-5"
+     style="top: <%= top_position %>%; height: <%= height %>%; background-color: <%= bg_color %>;"
+     data-event-id="<%= event.id %>"
+     data-action="click->calendar#showEvent">
+  <div class="p-1.5 h-full overflow-hidden">
+    <% if show_time %>
+      <div class="text-[0.6875rem] font-medium mb-0.5 truncate <%= text_color %>">
+        <%= event.start_time.strftime("%H:%M") %>
+      </div>
+    <% end %>
+    <div class="text-xs font-semibold truncate <%= text_color %>">
+      <% if event.is_recurring? %><%= render "shared/icon", name: "repeat", size: 10, class: "inline-block mr-0.5 opacity-75" %><% end %><%= event.summary %>
+    </div>
+    <% if event.location.present? && is_start_day %>
+      <div class="text-[0.625rem] mt-0.5 truncate opacity-90 <%= text_color %>">
+        <%= render "shared/icon", name: "map-pin", size: 10, class: "inline" %>
+        <%= event.location %>
+      </div>
+    <% end %>
+  </div>
+</div>

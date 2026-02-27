@@ -1,0 +1,28 @@
+<%
+  instance = local_assigns[:instance]
+  is_active = current_page?(tool_path(instance)) ||
+    (request.path.include?("/tools/#{instance.id}/"))
+  emoji = instance.emoji_icon
+%>
+<a href="<%= tool_path(instance) %>"
+   class="sidebar-tool-item group/tool sidebar-item <%= is_active ? 'sidebar-item-active' : '' %>"
+   data-sort-id="<%= instance.id %>"
+   data-action="click->mobile-sidebar#navigate">
+  <% if emoji %>
+    <span class="shrink-0 text-base leading-none" aria-hidden="true"><%= emoji %></span>
+  <% else %>
+    <%= render "shared/icon", name: instance.display_icon, size: 18 %>
+  <% end %>
+  <span class="truncate flex-1"><%= instance.display_name %></span>
+  <% if instance.tool_type.slug == "mail" && instance.mail_account %>
+    <% unread = instance.mail_account.messages.inbox.not_archived.unread.count %>
+    <% if unread > 0 %>
+      <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-accent text-white text-xs font-medium"><%= unread > 99 ? "99+" : unread %></span>
+    <% end %>
+  <% end %>
+  <button type="button" class="sidebar-tool-menu-btn"
+          data-action="click->sidebar#editTool"
+          data-tool-id="<%= instance.id %>">
+    <%= render "shared/icon", name: "settings", size: 14 %>
+  </button>
+</a>

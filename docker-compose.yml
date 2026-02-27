@@ -1,0 +1,28 @@
+services:
+  web:
+    build: .
+    ports:
+      - "3000:80"
+    environment:
+      - RAILS_MASTER_KEY=${RAILS_MASTER_KEY}
+      - RAILS_ENV=production
+      - APP_NAME=${APP_NAME:-Dobase}
+      - APP_HOST=${APP_HOST:-localhost:3000}
+    volumes:
+      - storage:/rails/storage
+    restart: unless-stopped
+
+  # Optional: LiveKit server for the Room (video) tool.
+  # Uncomment to enable video conferencing.
+  #
+  # livekit:
+  #   image: livekit/livekit-server:latest
+  #   ports:
+  #     - "7880:7880"
+  #     - "7881:7881"
+  #   environment:
+  #     - LIVEKIT_KEYS=devkey:devsecret
+  #   restart: unless-stopped
+
+volumes:
+  storage:

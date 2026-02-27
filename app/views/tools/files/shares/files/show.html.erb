@@ -1,0 +1,34 @@
+<% content_for(:title) { "#{@file.name} - Shared" } %>
+
+<div class="w-full max-w-[900px]" data-controller="public-gallery">
+  <div class="mb-4">
+    <%= render "components/back_link", href: share_path(@share.token), text: "Back to folder" %>
+  </div>
+
+  <div class="mb-8">
+    <%= render "components/media_preview", file: @file, max_height: "max-h-[70vh]", rounded: :xl, autoplay: true, show_name: true %>
+
+    <% if @file.image? && @images.size > 1 %>
+      <div class="flex items-center justify-center gap-4 mt-4">
+        <% prev_index = (@current_index - 1) % @images.size %>
+        <% next_index = (@current_index + 1) % @images.size %>
+        <%= link_to share_file_path(@share.token, @images[prev_index]), class: "p-2 rounded-full bg-background-secondary text-text-secondary hover:bg-background-tertiary hover:text-text-primary transition-all" do %>
+          <%= render "shared/icon", name: "chevron-left", size: 20 %>
+        <% end %>
+        <span class="text-sm text-text-secondary"><%= @current_index + 1 %> / <%= @images.size %></span>
+        <%= link_to share_file_path(@share.token, @images[next_index]), class: "p-2 rounded-full bg-background-secondary text-text-secondary hover:bg-background-tertiary hover:text-text-primary transition-all" do %>
+          <%= render "shared/icon", name: "chevron-right", size: 20 %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="flex items-center justify-center gap-4 p-4 bg-background-secondary rounded-xl">
+    <span class="font-medium"><%= @file.name %></span>
+    <span class="text-text-secondary text-sm"><%= @file.human_file_size %></span>
+    <%= link_to share_download_path(@share.token), class: "btn btn-primary" do %>
+      <%= render "shared/icon", name: "download", size: 16 %>
+      <span>Download</span>
+    <% end %>
+  </div>
+</div>

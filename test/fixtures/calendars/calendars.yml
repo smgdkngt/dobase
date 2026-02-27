@@ -1,0 +1,39 @@
+personal:
+  account: icloud_account
+  remote_id: /123456789/calendars/personal/
+  remote_url: https://caldav.icloud.com/123456789/calendars/personal/
+  name: Personal
+  color: "#3b82f6"
+  enabled: true
+  is_default: true
+  position: 0
+  ctag: "abc123"
+  sync_token: "http://caldav.icloud.com/sync/token-123"
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+work:
+  account: icloud_account
+  remote_id: /123456789/calendars/work/
+  remote_url: https://caldav.icloud.com/123456789/calendars/work/
+  name: Work
+  color: "#ef4444"
+  enabled: true
+  is_default: false
+  position: 1
+  ctag: "def456"
+  sync_token: "http://caldav.icloud.com/sync/token-456"
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+disabled_calendar:
+  account: icloud_account
+  remote_id: /123456789/calendars/disabled/
+  remote_url: https://caldav.icloud.com/123456789/calendars/disabled/
+  name: Disabled
+  color: "#9ca3af"
+  enabled: false
+  is_default: false
+  position: 2
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>

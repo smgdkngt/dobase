@@ -1,0 +1,42 @@
+<%= render "shared/modal", id: "new-tool-modal", title: "Add Tool", size: :md do %>
+  <%= form_with model: Tool.new, url: tools_path do |f| %>
+    <div class="mb-6" data-controller="tool-type-select">
+      <label class="label mb-3">What do you want to add?</label>
+      <div class="grid grid-cols-2 gap-3">
+        <% ToolType.enabled.order(:name).each_with_index do |tool_type, index| %>
+          <label class="block cursor-pointer">
+            <%= f.radio_button :tool_type_id, tool_type.id,
+                class: "sr-only peer",
+                data: { action: "change->tool-type-select#select" } %>
+            <div class="tool-type-card flex items-center gap-3 p-3 rounded-xl border-2 border-border-light hover:border-border transition-all peer-checked:border-accent peer-checked:ring-2 peer-checked:ring-accent/20 peer-checked:bg-accent/5"
+                 data-tool-type-select-target="card">
+              <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                   style="background: <%= tool_type_color(tool_type) %>20;">
+                <%= render "shared/icon", name: tool_type.icon, size: 20, style: "color: #{tool_type_color(tool_type)};" %>
+              </div>
+              <div class="min-w-0">
+                <div class="font-medium text-sm text-text-primary"><%= tool_type.name %></div>
+                <div class="text-xs text-text-tertiary truncate"><%= tool_type_description(tool_type) %></div>
+              </div>
+            </div>
+          </label>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="mb-6">
+      <label for="tool_name" class="label">Name</label>
+      <%= f.text_field :name,
+        class: "input",
+        placeholder: "e.g. Work Email, Project Board...",
+        required: true
+      %>
+      <p class="text-xs text-text-tertiary mt-1.5">You can rename this anytime</p>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 pt-2">
+      <%= render "components/button", text: "Cancel", variant: :ghost, type: :button, data: { action: "click->modal#close" } %>
+      <%= render "components/button", text: "Create", icon: "plus" %>
+    </div>
+  <% end %>
+<% end %>

@@ -1,0 +1,95 @@
+<% content_for(:title) { "#{@folder.name} - Shared Folder" } %>
+
+<div class="w-full max-w-[900px]" data-controller="public-gallery">
+  <div class="flex items-center justify-between gap-4 mb-8">
+    <div class="text-left">
+      <h1 class="flex items-center gap-3 text-2xl font-semibold mb-2 text-accent">
+        <%= render "shared/icon", name: "folder", size: 24 %>
+        <%= @folder.name %>
+      </h1>
+      <p class="text-text-secondary">
+        <%= pluralize(@files.count, "file") %><%= ", #{pluralize(@folders.count, 'folder')}" if @folders.any? %>
+        &middot; Shared <%= time_ago_in_words(@share.created_at) %> ago
+      </p>
+    </div>
+    <% if @files.any? %>
+      <%= link_to share_download_path(@share.token), class: "btn btn-primary" do %>
+        <%= render "shared/icon", name: "download", size: 16 %>
+        <span>Download All</span>
+      <% end %>
+    <% end %>
+  </div>
+
+  <% if @folders.any? || @files.any? %>
+    <div class="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
+      <% @folders.each do |folder| %>
+        <div class="flex flex-col items-center p-6 rounded-xl transition-colors hover:bg-background-secondary">
+          <div class="mb-3 text-accent">
+            <%= render "shared/icon", name: "folder", size: 32 %>
+          </div>
+          <span class="text-sm text-center line-clamp-2 break-words"><%= folder.name %></span>
+          <span class="text-xs text-text-tertiary mt-1">Folder</span>
+        </div>
+      <% end %>
+
+      <% @files.each_with_index do |file, index| %>
+        <% if file.image? %>
+          <a href="<%= share_file_path(@share.token, file) %>"
+             class="flex flex-col items-center p-6 rounded-xl transition-colors hover:bg-background-secondary"
+             data-action="public-gallery#openLightbox"
+             data-index="<%= @images.index(file) %>">
+            <div class="w-20 h-20 mb-3 rounded-lg overflow-hidden">
+              <%= image_tag url_for(file.file), alt: file.name, class: "w-full h-full object-cover" %>
+            </div>
+            <span class="text-sm text-center line-clamp-2 break-words"><%= file.name %></span>
+            <span class="text-xs text-text-tertiary mt-1"><%= file.human_file_size %></span>
+          </a>
+        <% else %>
+          <a href="<%= share_file_path(@share.token, file) %>" class="flex flex-col items-center p-6 rounded-xl transition-colors hover:bg-background-secondary">
+            <div class="mb-3 text-text-tertiary">
+              <%= render "shared/icon", name: file.icon_name, size: 32 %>
+            </div>
+            <span class="text-sm text-center line-clamp-2 break-words"><%= file.name %></span>
+            <span class="text-xs text-text-tertiary mt-1"><%= file.human_file_size %></span>
+          </a>
+        <% end %>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="text-center p-12 text-text-tertiary">
+      <p>This folder is empty</p>
+    </div>
+  <% end %>
+
+  <% if @share.expires_at %>
+    <p class="text-center text-text-tertiary text-sm mt-8">
+      This link expires <%= @share.expires_at.strftime("%B %-d, %Y") %>
+    </p>
+  <% end %>
+
+  <%# Image lightbox %>
+  <% if @images.any? %>
+    <div class="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center" data-public-gallery-target="lightbox" hidden>
+      <button class="absolute top-4 right-4 p-3 text-white opacity-70 hover:opacity-100 transition-opacity" data-action="public-gallery#closeLightbox">
+        <%= render "shared/icon", name: "x", size: 24 %>
+      </button>
+      <button class="absolute left-4 top-1/2 -translate-y-1/2 p-4 text-white opacity-70 hover:opacity-100 transition-opacity" data-action="public-gallery#prev">
+        <%= render "shared/icon", name: "chevron-left", size: 32 %>
+      </button>
+      <button class="absolute right-4 top-1/2 -translate-y-1/2 p-4 text-white opacity-70 hover:opacity-100 transition-opacity" data-action="public-gallery#next">
+        <%= render "shared/icon", name: "chevron-right", size: 32 %>
+      </button>
+      <div class="max-w-[90vw] max-h-[80vh] [&_img]:max-w-full [&_img]:max-h-[80vh] [&_img]:object-contain" data-public-gallery-target="lightboxContent">
+        <%# Image loaded dynamically %>
+      </div>
+      <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-4 text-white" data-public-gallery-target="lightboxInfo">
+        <%# Info loaded dynamically %>
+      </div>
+      <div class="hidden" data-public-gallery-target="images">
+        <% @images.each do |img| %>
+          <span data-url="<%= url_for(img.file) %>" data-name="<%= img.name %>" data-download="<%= share_download_path(@share.token) %>"></span>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>

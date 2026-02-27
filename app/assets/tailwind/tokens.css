@@ -1,0 +1,156 @@
+/* Design Tokens - macOS-inspired design system */
+@theme {
+  /* Colors - Light Mode */
+  --color-background: #ffffff;
+  --color-background-secondary: #f5f5f7;
+  --color-background-tertiary: #e8e8ed;
+  --color-surface: #ffffff;
+  --color-surface-elevated: #ffffff;
+
+  --color-text-primary: #1d1d1f;
+  --color-text-secondary: #6e6e73;
+  --color-text-tertiary: #86868b;
+  --color-text-inverse: #ffffff;
+
+  --color-border: #d2d2d7;
+  --color-border-light: #e8e8ed;
+  --color-divider: #d2d2d7;
+
+  --color-accent: #0071e3;
+  --color-accent-hover: #0077ed;
+  --color-accent-light: #e8f4fd;
+
+  --color-success: #34c759;
+  --color-success-light: #e8f8ed;
+  --color-warning: #ff9500;
+  --color-warning-light: #fff4e6;
+  --color-error: #ff3b30;
+  --color-error-light: #ffebea;
+
+  /* Sidebar */
+  --color-sidebar-bg: #f5f5f7;
+  --color-sidebar-hover: #e8e8ed;
+  --color-sidebar-active: #d2d2d7;
+  --color-sidebar-text: #1d1d1f;
+  --color-sidebar-text-muted: #6e6e73;
+
+  /* Typography */
+  --font-family-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-family-mono: "SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco, "Cascadia Mono", monospace;
+
+  --font-size-xs: 0.6875rem;
+  --font-size-sm: 0.8125rem;
+  --font-size-base: 0.875rem;
+  --font-size-lg: 1rem;
+  --font-size-xl: 1.125rem;
+  --font-size-2xl: 1.375rem;
+  --font-size-3xl: 1.75rem;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+
+  /* Spacing */
+  --spacing-0: 0;
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-5: 1.25rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+  --spacing-10: 2.5rem;
+  --spacing-12: 3rem;
+  --spacing-16: 4rem;
+
+  /* Border Radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.16);
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
+
+  /* Layout */
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 64px;
+  --topbar-height: 52px;
+}
+
+/* Base styles */
+@layer base {
+  html {
+    font-family: var(--font-family-sans);
+    font-size: 16px;
+    line-height: var(--line-height-normal);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-text-primary);
+  }
+
+  * {
+    border-color: var(--color-border);
+  }
+
+  /* Dark Mode Overrides */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-background: #1c1c1e;
+      --color-background-secondary: #2c2c2e;
+      --color-background-tertiary: #3a3a3c;
+      --color-surface: #2c2c2e;
+      --color-surface-elevated: #3a3a3c;
+
+      --color-text-primary: #f5f5f7;
+      --color-text-secondary: #a1a1a6;
+      --color-text-tertiary: #8e8e93;
+      --color-text-inverse: #1d1d1f;
+
+      --color-border: #48484a;
+      --color-border-light: #3a3a3c;
+      --color-divider: #48484a;
+
+      --color-accent: #0a84ff;
+      --color-accent-hover: #409cff;
+      --color-accent-light: rgba(10, 132, 255, 0.15);
+
+      --color-success: #30d158;
+      --color-success-light: rgba(48, 209, 88, 0.15);
+      --color-warning: #ff9f0a;
+      --color-warning-light: rgba(255, 159, 10, 0.15);
+      --color-error: #ff453a;
+      --color-error-light: rgba(255, 69, 58, 0.15);
+
+      --color-sidebar-bg: #2c2c2e;
+      --color-sidebar-hover: #3a3a3c;
+      --color-sidebar-active: #48484a;
+      --color-sidebar-text: #f5f5f7;
+      --color-sidebar-text-muted: #a1a1a6;
+
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+      --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
+
+    }
+  }
+}

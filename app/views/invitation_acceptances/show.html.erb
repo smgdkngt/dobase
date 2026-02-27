@@ -1,0 +1,44 @@
+<% content_for :title, "Invitation - #{app_name}" %>
+
+<div class="flex items-center justify-center min-h-full py-12">
+  <div class="w-full max-w-sm">
+    <div class="text-center mb-8">
+      <img src="<%= app_logo_path %>" alt="<%= app_name %>" class="w-16 h-16 mx-auto mb-4">
+      <h1 class="text-2xl font-semibold text-text-primary">You're invited</h1>
+      <p class="text-text-secondary mt-1">
+        <strong><%= @inviter.name %></strong> invited you to collaborate on
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-body text-center">
+        <div class="flex items-center justify-center gap-3 mb-4">
+          <% if @tool.emoji_icon %>
+            <span class="text-2xl"><%= @tool.emoji_icon %></span>
+          <% else %>
+            <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+              <%= render "shared/icon", name: @tool.tool_type.icon, size: 20, class: "text-accent" %>
+            </div>
+          <% end %>
+          <span class="text-lg font-semibold text-text-primary"><%= @tool.display_name %></span>
+        </div>
+
+        <p class="text-sm text-text-secondary mb-6">
+          Joining gives you access to this <%= @tool.tool_type.name.downcase %>.
+        </p>
+
+        <div class="flex flex-col gap-2">
+          <%= form_with url: invitation_acceptance_path(token: @invitation.token) do %>
+            <%= render "components/button", text: "Accept Invitation", full_width: true %>
+          <% end %>
+          <%= render "components/button",
+                text: "Decline",
+                variant: :ghost,
+                href: invitation_acceptance_path(token: @invitation.token),
+                method: :delete,
+                full_width: true %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,64 @@
+<% content_for(:title) { "#{@document.title} - #{app_name}" } %>
+
+<div class="tool-layout flex flex-col h-full"
+     data-controller="document-viewer"
+     data-document-viewer-document-id-value="<%= @document.id %>">
+
+  <% title_html = capture do %>
+    <h1 class="text-base sm:text-lg font-semibold text-text-primary truncate" data-document-viewer-target="title"><%= @document.title %></h1>
+  <% end %>
+
+  <%= render "components/tool_topbar", tool: @document.tool, back_path: tool_docs_path(@document.tool), title_html: title_html do %>
+    <div class="flex items-center gap-2 sm:gap-3">
+      <span class="flex items-center gap-1.5 text-sm text-warning <%= 'hidden' unless @locked_by %>"
+            data-document-viewer-target="lockStatus"
+            role="status"
+            aria-live="polite">
+        <span class="w-2 h-2 bg-warning rounded-full animate-pulse" aria-hidden="true"></span>
+        <%= @locked_by&.name %> is editing
+      </span>
+
+      <span class="hidden sm:inline text-sm text-text-tertiary <%= 'hidden' if @locked_by || !@document.last_edited_by %>"
+            data-document-viewer-target="editedStatus">
+        <% if @document.last_edited_by %>
+          Edited <%= time_ago_in_words(@document.last_edited_at || @document.updated_at) %> ago
+          by <%= @document.last_edited_by.name %>
+        <% end %>
+      </span>
+
+      <a href="<%= edit_tool_docs_document_path(@tool, @document) %>"
+         class="btn btn-sm <%= @locked_by ? 'btn-secondary opacity-50 pointer-events-none' : 'btn-primary' %>"
+         data-document-viewer-target="editButton"
+         <% if @locked_by %>
+           aria-disabled="true"
+           title="<%= @locked_by.name %> is currently editing"
+         <% end %>>
+        <%= render "shared/icon", name: "edit", size: 16 %>
+        Edit
+      </a>
+
+      <%= render "components/icon_button",
+            icon: "trash-2",
+            title: "Delete document",
+            variant: :ghost,
+            href: tool_docs_document_path(@tool, @document),
+            method: :delete,
+            turbo_confirm: "Are you sure? This document will be permanently deleted." %>
+    </div>
+  <% end %>
+
+  <main class="flex-1 overflow-y-auto">
+    <% if @document.content.present? || @locked_by %>
+      <article class="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 document-view" data-document-viewer-target="content">
+        <%= @document.content %>
+      </article>
+    <% else %>
+      <div class="h-full flex items-center justify-center">
+        <%= render "components/empty_state",
+              icon: "file-text",
+              title: "This document is empty",
+              description: "Click Edit to start writing" %>
+      </div>
+    <% end %>
+  </main>
+</div>

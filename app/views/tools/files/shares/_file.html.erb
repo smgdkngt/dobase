@@ -1,0 +1,27 @@
+<% content_for(:title) { "#{@file.name} - Shared File" } %>
+
+<div class="w-full max-w-[900px]" data-controller="public-file">
+  <div class="text-center mb-8">
+    <h1 class="text-2xl font-semibold mb-2"><%= @file.name %></h1>
+    <p class="text-text-secondary">
+      <%= @file.human_file_size %> &middot; Shared <%= time_ago_in_words(@share.created_at) %> ago
+    </p>
+  </div>
+
+  <div class="mb-8">
+    <%= render "components/media_preview", file: @file, max_height: "max-h-[70vh]", rounded: :xl %>
+  </div>
+
+  <div class="flex justify-center gap-4">
+    <%= link_to share_download_path(@share.token), class: "btn btn-primary btn-lg" do %>
+      <%= render "shared/icon", name: "download", size: 20 %>
+      <span>Download</span>
+    <% end %>
+  </div>
+
+  <% if @share.expires_at %>
+    <p class="text-center text-text-tertiary text-sm mt-6">
+      This link expires <%= @share.expires_at.strftime("%B %-d, %Y") %>
+    </p>
+  <% end %>
+</div>

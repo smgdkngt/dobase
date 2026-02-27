@@ -1,0 +1,204 @@
+<%= turbo_frame_tag "profile-form" do %>
+  <div data-controller="tabs" data-tabs-default-value="profile" class="edit-modal-layout flex -m-5 h-[500px]">
+    <%# Vertical tab navigation %>
+    <div class="edit-modal-tabs flex flex-col gap-1 w-44 flex-shrink-0 p-4 border-r border-border-light bg-background-secondary/50">
+      <button type="button" class="tab w-full justify-start" data-tabs-target="tab" data-tab="profile" data-action="click->tabs#select">
+        <%= render "shared/icon", name: "user", size: 16 %>
+        <span>Profile</span>
+      </button>
+      <button type="button" class="tab w-full justify-start" data-tabs-target="tab" data-tab="security" data-action="click->tabs#select">
+        <%= render "shared/icon", name: "shield", size: 16 %>
+        <span>Security</span>
+      </button>
+      <button type="button" class="tab w-full justify-start" data-tabs-target="tab" data-tab="sessions" data-action="click->tabs#select">
+        <%= render "shared/icon", name: "monitor", size: 16 %>
+        <span>Sessions</span>
+        <% if @sessions.count > 1 %>
+          <%= render "components/badge", text: @sessions.count, size: :sm %>
+        <% end %>
+      </button>
+
+      <div class="mt-auto pt-2 border-t border-border-light flex flex-col gap-1">
+        <%= render "components/button",
+              text: "Delete account",
+              variant: :ghost,
+              icon: "trash-2",
+              size: :sm,
+              class: "text-error w-full justify-start",
+              href: profile_path,
+              method: :delete,
+              turbo_confirm: "Are you sure you want to delete your account? All your data will be permanently removed. This cannot be undone.",
+              data: { turbo_frame: "_top" } %>
+      </div>
+    </div>
+
+    <%# Panel content %>
+    <div class="edit-modal-content flex-1 py-4 pr-5 pl-5 overflow-y-auto">
+      <%# Profile panel %>
+      <div data-tabs-target="panel" data-tab="profile">
+        <%= form_with model: @user, url: profile_path, method: :patch, data: { turbo_frame: "_top" } do |f| %>
+          <%= render "shared/error_flash", object: @user %>
+
+          <div class="flex items-center gap-4 mb-6">
+            <div class="flex-shrink-0">
+              <%= render "shared/avatar", user: @user, size: :xl %>
+            </div>
+            <div class="flex-1">
+              <label for="user_avatar" class="label">Avatar</label>
+              <%= f.file_field :avatar,
+                class: "input",
+                accept: "image/png,image/jpeg,image/gif,image/webp"
+              %>
+              <p class="help-text">Max 5MB</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="form-field">
+              <label for="user_first_name" class="label">First name</label>
+              <%= f.text_field :first_name,
+                class: "input #{@user.errors[:first_name].any? ? 'input-error' : ''}",
+                required: true, autocomplete: "given-name" %>
+            </div>
+            <div class="form-field">
+              <label for="user_last_name" class="label">Last name</label>
+              <%= f.text_field :last_name,
+                class: "input #{@user.errors[:last_name].any? ? 'input-error' : ''}",
+                required: true, autocomplete: "family-name" %>
+            </div>
+          </div>
+
+          <div class="form-field mb-4">
+            <label for="user_email_address" class="label">Email</label>
+            <%= f.email_field :email_address,
+              class: "input #{@user.errors[:email_address].any? ? 'input-error' : ''}",
+              required: true, autocomplete: "email" %>
+          </div>
+
+          <div class="form-field">
+            <label for="user_timezone" class="label">Timezone</label>
+            <%= f.time_zone_select :timezone,
+              ActiveSupport::TimeZone.all,
+              { default: "UTC" },
+              class: "input #{@user.errors[:timezone].any? ? 'input-error' : ''}" %>
+          </div>
+
+          <div class="flex justify-end mt-6">
+            <%= render "components/button", text: "Save changes" %>
+          </div>
+        <% end %>
+      </div>
+
+      <%# Security panel %>
+      <div data-tabs-target="panel" data-tab="security" class="hidden">
+        <h3 class="text-sm font-semibold text-text-primary mb-4">Change password</h3>
+
+        <%= form_with model: @user, url: profile_path, method: :patch, data: { turbo_frame: "_top" } do |f| %>
+          <div class="form-field mb-4">
+            <label for="user_password" class="label">New password</label>
+            <%= f.password_field :password,
+              class: "input",
+              placeholder: "Enter new password",
+              autocomplete: "new-password" %>
+            <p class="help-text">At least 8 characters</p>
+          </div>
+
+          <div class="form-field">
+            <label for="user_password_confirmation" class="label">Confirm password</label>
+            <%= f.password_field :password_confirmation,
+              class: "input",
+              placeholder: "Confirm new password",
+              autocomplete: "new-password" %>
+          </div>
+
+          <div class="flex justify-end mt-4">
+            <%= render "components/button", text: "Update password" %>
+          </div>
+        <% end %>
+
+        <hr class="my-6 border-border-light">
+
+        <h3 class="text-sm font-semibold text-text-primary mb-3">Two-factor authentication</h3>
+
+        <% if @user.otp_required? %>
+          <div class="flex items-center gap-3 mb-3">
+            <div class="flex items-center justify-center w-8 h-8 rounded-full bg-success/10 text-success flex-shrink-0">
+              <%= render "shared/icon", name: "check", size: 16 %>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-text-primary">Enabled</p>
+              <p class="text-xs text-text-tertiary">Your account is protected with an authenticator app</p>
+            </div>
+          </div>
+          <%= form_with url: two_factor_setup_path, method: :delete, class: "flex items-center gap-2", data: { turbo_frame: "profile-form" } do |f| %>
+            <%= f.password_field :password,
+              class: "input flex-1 !py-1.5 text-xs",
+              required: true,
+              placeholder: "Enter password to disable",
+              autocomplete: "current-password" %>
+            <%= render "components/button",
+              text: "Disable",
+              variant: :danger,
+              size: :sm %>
+          <% end %>
+        <% else %>
+          <div class="flex items-center gap-3">
+            <div class="flex items-center justify-center w-8 h-8 rounded-full bg-background-secondary text-text-tertiary flex-shrink-0">
+              <%= render "shared/icon", name: "lock", size: 16 %>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-text-primary">Not enabled</p>
+              <p class="text-xs text-text-tertiary">Add an extra layer of security to your account</p>
+            </div>
+            <%= render "components/button",
+              text: "Enable",
+              variant: :secondary,
+              size: :sm,
+              href: new_two_factor_setup_path,
+              data: { turbo_frame: "profile-form" } %>
+          </div>
+        <% end %>
+      </div>
+
+      <%# Sessions panel %>
+      <div data-tabs-target="panel" data-tab="sessions" class="hidden">
+        <h3 class="text-sm font-semibold text-text-primary mb-1">Active sessions</h3>
+        <p class="text-xs text-text-tertiary mb-4">Devices where you're currently signed in</p>
+
+        <div class="space-y-3">
+          <% @sessions.each do |s| %>
+            <% is_current = s.id == Current.session&.id %>
+            <div class="flex items-start gap-3 p-3 rounded-lg <%= is_current ? 'bg-accent/5 border border-accent/20' : 'bg-background-secondary' %>">
+              <div class="flex-shrink-0 mt-0.5 text-text-secondary">
+                <%= render "shared/icon", name: device_icon(s.user_agent), size: 16 %>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <p class="text-sm font-medium text-text-primary truncate"><%= browser_name(s.user_agent) %></p>
+                  <% if is_current %>
+                    <span class="text-[10px] font-semibold text-accent bg-accent/10 px-1.5 py-px rounded-full uppercase tracking-wide">Current</span>
+                  <% end %>
+                </div>
+                <p class="text-xs text-text-tertiary">
+                  <%= s.ip_address || "Unknown IP" %>
+                  &middot;
+                  <%= time_ago_in_words(s.created_at) %> ago
+                </p>
+              </div>
+              <% unless is_current %>
+                <%= render "components/icon_button",
+                  icon: "x",
+                  title: "Revoke session",
+                  size: :sm,
+                  variant: :danger,
+                  href: user_session_path(s),
+                  method: :delete,
+                  data: { turbo_frame: "profile-form", turbo_confirm: "Revoke this session? The device will be signed out." } %>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>

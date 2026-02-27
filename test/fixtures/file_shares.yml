@@ -1,0 +1,8 @@
+readme_share:
+  shareable: readme (Files::Item)
+  created_by: one
+  token: test-share-token-readme-<%= SecureRandom.hex(8) %>
+  download_count: 3
+  expires_at: <%= 1.week.from_now.to_fs(:db) %>
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>

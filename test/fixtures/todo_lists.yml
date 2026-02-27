@@ -1,0 +1,13 @@
+main:
+  tool: my_todos
+  title: To Do
+  position: 0
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+backlog:
+  tool: my_todos
+  title: Backlog
+  position: 1
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>

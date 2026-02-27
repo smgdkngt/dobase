@@ -1,0 +1,6 @@
+@layer components {
+  [data-participant-id] {
+    min-height: 200px;
+    aspect-ratio: 16 / 9;
+  }
+}

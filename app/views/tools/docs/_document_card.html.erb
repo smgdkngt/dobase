@@ -1,0 +1,60 @@
+<% if view_mode == "grid" %>
+  <%# Grid card with preview %>
+  <div data-document-id="<%= document.id %>">
+    <%= link_to tool_docs_document_path(document.tool, document),
+        class: "group block bg-surface border border-border-light rounded-lg overflow-hidden hover:border-accent hover:shadow-md transition-all" do %>
+      <div class="aspect-[4/3] bg-background p-4 overflow-hidden relative">
+        <% if document.content.present? %>
+          <div class="document-view pointer-events-none origin-top-left scale-[0.4] w-[250%]">
+            <%= document.content %>
+          </div>
+        <% else %>
+          <div class="h-full flex items-center justify-center">
+            <%= render "shared/icon", name: "file-text", size: 48, class: "text-text-tertiary/30" %>
+          </div>
+        <% end %>
+        <div class="absolute top-2 right-2 <%= 'hidden' unless document.locked? %>"
+             data-editing-indicator
+             role="status"
+             aria-live="polite">
+          <span class="flex items-center gap-1.5 px-2 py-0.5 bg-background-secondary text-text-secondary text-xs font-medium rounded-full">
+            <span class="w-1.5 h-1.5 bg-warning rounded-full animate-pulse" aria-hidden="true"></span>
+            <span data-editing-user><%= document.locked_by&.name %></span>
+          </span>
+        </div>
+      </div>
+      <div class="p-3 border-t border-border-light">
+        <h3 class="font-medium text-sm truncate group-hover:text-accent"><%= document.title %></h3>
+        <p class="text-xs text-text-tertiary mt-1 truncate">
+          Edited <%= time_ago_in_words(document.updated_at) %> ago
+        </p>
+      </div>
+    <% end %>
+  </div>
+<% else %>
+  <%# List row %>
+  <div data-document-id="<%= document.id %>">
+    <%= link_to tool_docs_document_path(document.tool, document),
+        class: "group flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-background-secondary transition-colors" do %>
+      <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-background-secondary rounded-lg text-text-tertiary group-hover:text-accent group-hover:bg-accent/10 transition-colors relative">
+        <%= render "shared/icon", name: "file-text", size: 20 %>
+        <span class="absolute -top-1 -right-1 w-3 h-3 bg-warning rounded-full animate-pulse <%= 'hidden' unless document.locked? %>"
+              data-editing-indicator
+              data-editing-user="<%= document.locked_by&.name %>"></span>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2">
+          <h3 class="font-medium text-sm truncate group-hover:text-accent"><%= document.title %></h3>
+          <span class="flex-shrink-0 text-xs text-warning <%= 'hidden' unless document.locked? %>"
+                data-editing-label>
+            <%= document.locked_by&.name %> is editing
+          </span>
+        </div>
+        <p class="text-xs text-text-tertiary truncate mt-0.5"><%= document.preview_text(length: 100) %></p>
+      </div>
+      <div class="text-xs text-text-tertiary flex-shrink-0">
+        <%= time_ago_in_words(document.updated_at) %> ago
+      </div>
+    <% end %>
+  </div>
+<% end %>

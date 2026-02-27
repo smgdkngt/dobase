@@ -1,0 +1,44 @@
+<%#
+  Rich Text Input — compact ActionText editor for chat messages and comments.
+
+  Required:
+    name: Form field name (e.g., "message[body]", "body")
+
+  Options:
+    value:           Pre-filled ActionText content (default: nil)
+    placeholder:     Placeholder text (default: "Write something...")
+    submit_on_enter: Enter submits the form, Shift+Enter for newline (default: false)
+    buttons:         Toolbar buttons to keep (default: bold, italic, code)
+    data:            Additional data attributes for the wrapper
+
+  Examples:
+    render "components/rich_text_input", name: "message[body]", submit_on_enter: true
+    render "components/rich_text_input", name: "body", placeholder: "Write a comment..."
+%>
+<%
+  placeholder     = local_assigns.fetch(:placeholder, "Write something...")
+  submit_on_enter = local_assigns.fetch(:submit_on_enter, false)
+  buttons         = local_assigns.fetch(:buttons, %w[bold italic code])
+  value           = local_assigns[:value]
+  extra_data      = local_assigns.fetch(:data, {})
+  input_id        = "rich_text_#{SecureRandom.hex(4)}"
+%>
+<%= tag.div class: "rich-text-input", data: {
+      controller: "rich-text-input",
+      rich_text_input_submit_on_enter_value: submit_on_enter,
+      rich_text_input_buttons_value: buttons.to_json
+    }.merge(extra_data) do %>
+  <%= hidden_field_tag name, value&.try(:to_trix_html) || value, id: input_id %>
+  <rhino-editor input="<%= input_id %>"
+    placeholder="<%= placeholder %>"
+    defer-initialize
+    data-rich-text-input-target="editor"
+    data-blob-url-template="<%= rails_service_blob_url(":signed_id", ":filename") %>"
+    data-direct-upload-url="<%= rails_direct_uploads_url %>">
+  </rhino-editor>
+  <% if block_given? %>
+    <div class="flex items-center justify-end gap-1 p-1">
+      <%= yield %>
+    </div>
+  <% end %>
+<% end %>

@@ -1,0 +1,78 @@
+<%#
+  Event details view - can be rendered in a turbo_frame or modal
+%>
+<%= turbo_frame_tag "event_modal_content" do %>
+<div class="event-details">
+  <!-- Event title and time -->
+  <div class="mb-4">
+    <h3 class="text-lg font-semibold text-text-primary mb-2"><%= @event.summary %></h3>
+    <div class="flex items-center gap-2 text-sm text-text-secondary">
+      <%= render "shared/icon", name: "clock", size: 16 %>
+      <span>
+        <%= @event.start_time.strftime("%b %d, %Y at %H:%M") %>
+        -
+        <%= @event.end_time.strftime("%H:%M") %>
+      </span>
+    </div>
+  </div>
+
+  <!-- Calendar -->
+  <div class="mb-4 flex items-center gap-2">
+    <div class="w-3 h-3 rounded-full" style="background-color: <%= @calendar.color %>"></div>
+    <span class="text-sm text-text-secondary"><%= @calendar.name %></span>
+  </div>
+
+  <!-- Recurrence -->
+  <% if @event.is_recurring? && @event.recurrence_description.present? %>
+    <div class="mb-4">
+      <div class="flex items-start gap-2 text-sm">
+        <%= render "shared/icon", name: "repeat", size: 16, class: "text-text-tertiary mt-0.5" %>
+        <span class="text-text-primary"><%= @event.recurrence_description %></span>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Location -->
+  <% if @event.location.present? %>
+    <div class="mb-4">
+      <div class="flex items-start gap-2 text-sm">
+        <%= render "shared/icon", name: "map-pin", size: 16, class: "text-text-tertiary mt-0.5" %>
+        <span class="text-text-primary"><%= @event.location %></span>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Description -->
+  <% if @event.description.present? %>
+    <div class="mb-4">
+      <label class="text-xs font-medium text-text-tertiary uppercase tracking-wide mb-1 block">Description</label>
+      <div class="text-sm text-text-primary whitespace-pre-wrap"><%= @event.description %></div>
+    </div>
+  <% end %>
+
+  <!-- Actions -->
+  <div class="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-border-light">
+    <%= render "components/button",
+        text: "Delete",
+        variant: :danger,
+        icon: "trash-2",
+        href: tool_calendar_event_path(@tool, @event),
+        method: :delete,
+        turbo_confirm: "Delete this event?",
+        data: { turbo_frame: "_top" } %>
+
+    <div class="flex items-center gap-2">
+      <%= render "components/button",
+          text: "Close",
+          variant: :secondary,
+          type: :button,
+          data: { action: "click->modal#close" } %>
+      <%= render "components/button",
+          text: "Edit",
+          icon: "edit",
+          href: edit_tool_calendar_event_path(@tool, @event),
+          data: { turbo_frame: "event_modal_content" } %>
+    </div>
+  </div>
+</div>
+<% end %>

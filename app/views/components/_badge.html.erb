@@ -1,0 +1,25 @@
+<%#
+  Badge component - USE THIS FOR ALL BADGES
+
+  Required:
+    text: Badge content (number or text)
+
+  Options:
+    variant: :default (accent), :muted, :success, :warning, :error
+    size: :sm, :md (default)
+
+  Examples:
+    render "components/badge", text: 5
+    render "components/badge", text: "Pending", variant: :warning
+    render "components/badge", text: "Owner", variant: :muted, size: :sm
+%>
+<%
+  variant ||= :default
+  size ||= :md
+
+  classes = ["badge"]
+  classes << "badge-#{variant}" unless variant == :default
+  classes << "badge-sm" if size == :sm
+  classes = classes.join(" ")
+%>
+<span class="<%= classes %>"><%= text %></span>

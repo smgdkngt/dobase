@@ -1,0 +1,61 @@
+<% content_for(:title) { "#{@tool.name} - #{app_name}" } %>
+
+<% content_for :command_palette_actions do %>
+  <%= render "shared/command_palette_action", key: "n", description: "New document", icon: "plus" %>
+<% end %>
+
+<% content_for :keyboard_shortcuts do %>
+  <div>
+    <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Docs</h3>
+    <div class="shortcut-list">
+      <%= render "shared/shortcut_row", key: "n", description: "New document" %>
+      <%= render "shared/shortcut_row", key: "Ctrl+S", description: "Save (in editor)" %>
+    </div>
+  </div>
+<% end %>
+
+<div class="tool-layout flex flex-col h-full"
+     data-controller="docs-index"
+     data-docs-index-tool-id-value="<%= @tool.id %>">
+  <%= render "components/tool_topbar", title: @tool.name, tool: @tool do %>
+    <div class="flex items-center gap-2">
+      <%# View mode toggle %>
+      <div class="flex bg-background-secondary rounded-md p-0.5" role="group" aria-label="View mode">
+        <%= link_to tool_docs_path(@tool, view: "grid"),
+            class: "p-1.5 rounded transition-colors #{@view_mode == 'grid' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'}",
+            "aria-label": "Grid view",
+            "aria-current": (@view_mode == 'grid' ? 'true' : nil),
+            data: { turbo_action: "replace" } do %>
+          <%= render "shared/icon", name: "grid", size: 16 %>
+        <% end %>
+        <%= link_to tool_docs_path(@tool, view: "list"),
+            class: "p-1.5 rounded transition-colors #{@view_mode == 'list' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'}",
+            "aria-label": "List view",
+            "aria-current": (@view_mode == 'list' ? 'true' : nil),
+            data: { turbo_action: "replace" } do %>
+          <%= render "shared/icon", name: "list", size: 16 %>
+        <% end %>
+      </div>
+
+      <%= form_with url: tool_docs_documents_path(@tool), method: :post, class: "inline" do %>
+        <%= render "components/button", text: "New Document", icon: "plus", size: :sm, data: { controller: "hotkey", hotkey: "n" } %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <main class="flex-1 overflow-y-auto p-3 sm:p-6">
+    <% if @documents.empty? %>
+      <%= render "components/empty_state",
+          icon: "file-text",
+          title: "A blank canvas",
+          description: "Press N to create your first document",
+          size: :md %>
+    <% else %>
+      <div class="<%= @view_mode == 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4' : 'flex flex-col' %>">
+        <% @documents.each do |document| %>
+          <%= render "tools/docs/document_card", document: document, view_mode: @view_mode %>
+        <% end %>
+      </div>
+    <% end %>
+  </main>
+</div>

@@ -1,0 +1,42 @@
+<%# locals: (share:, shareable:, share_url:, errors: nil) %>
+<%= turbo_frame_tag "share-content" do %>
+  <% if share&.persisted? %>
+    <div class="flex gap-2" data-controller="clipboard">
+      <input type="text" readonly value="<%= share_url(share.token) %>" class="input flex-1" data-clipboard-target="source">
+      <%= render "components/button", text: "Copy", variant: :secondary, size: :sm, type: :button, data: { action: "clipboard#copy", clipboard_target: "button" } %>
+    </div>
+    <% if share.expires_at %>
+      <p class="text-sm text-text-secondary mt-2">
+        Expires <%= share.expires_at.strftime("%B %-d, %Y") %>
+      </p>
+    <% end %>
+    <% if share.password_protected? %>
+      <p class="text-xs text-text-tertiary mt-1">Password protected</p>
+    <% end %>
+    <p class="text-xs text-text-tertiary mt-1">
+      Downloaded <%= pluralize(share.download_count, "time") %>
+    </p>
+    <div class="mt-4 pt-4 border-t border-border flex justify-end">
+      <%= render "components/button", text: "Remove Share", variant: :danger, size: :sm, href: share_url, method: :delete, turbo_confirm: "Remove public access?" %>
+    </div>
+  <% else %>
+    <%= form_with url: share_url, method: :post, data: { controller: "share-form", action: "turbo:submit-end->share-form#onSuccess" } do |f| %>
+      <% if errors&.any? %>
+        <div class="mb-4 p-3 bg-error-light text-error rounded-lg text-sm">
+          <%= errors.join(", ") %>
+        </div>
+      <% end %>
+      <div class="mb-4">
+        <label class="label">Expiration (optional)</label>
+        <input type="date" name="expires_at" class="input" min="<%= Date.tomorrow %>" value="<%= 1.week.from_now.to_date %>">
+      </div>
+      <div class="mb-4">
+        <label class="label">Password (optional)</label>
+        <input type="text" name="password" class="input" placeholder="Leave blank for no password" autocomplete="off" data-1p-ignore data-lpignore="true" data-protonpass-ignore="true">
+      </div>
+      <div class="flex justify-end gap-2">
+        <%= render "components/button", text: "Create Link", variant: :primary %>
+      </div>
+    <% end %>
+  <% end %>
+<% end %>

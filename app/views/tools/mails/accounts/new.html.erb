@@ -1,0 +1,148 @@
+<% content_for :title, "Setup Email - #{@tool.name} - #{app_name}" %>
+<% content_for :page_title, "Setup Email Account" %>
+
+<div class="p-6">
+<div class="max-w-2xl">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="text-lg font-semibold">Connect your email account</h2>
+      <p class="text-sm text-text-secondary mt-1">Enter your email server settings to sync your inbox</p>
+    </div>
+    <div class="card-body">
+      <%= form_with model: @mail_account, url: tool_mails_account_path(@tool), method: :post, data: { turbo: false } do |f| %>
+        <%= render "shared/error_flash", object: @mail_account %>
+
+        <!-- Basic Info -->
+        <div class="mb-6">
+          <h3 class="text-sm font-semibold text-text-primary mb-3">Account Details</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="mail_account_email_address" class="label">Email Address</label>
+              <%= f.email_field :email_address,
+                class: "input #{@mail_account.errors[:email_address].any? ? 'input-error' : ''}",
+                placeholder: "you@example.com",
+                required: true,
+                autofocus: true
+              %>
+            </div>
+            <div>
+              <label for="mail_account_display_name" class="label">Display Name</label>
+              <%= f.text_field :display_name,
+                class: "input",
+                placeholder: "John Doe"
+              %>
+              <p class="help-text">Name shown on sent emails</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Credentials -->
+        <div class="mb-6">
+          <h3 class="text-sm font-semibold text-text-primary mb-3">Credentials</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="mail_account_username" class="label">Username</label>
+              <%= f.text_field :username,
+                class: "input #{@mail_account.errors[:username].any? ? 'input-error' : ''}",
+                placeholder: "you@example.com",
+                required: true
+              %>
+              <p class="help-text">Usually your email address</p>
+            </div>
+            <div>
+              <label for="mail_account_password" class="label">Password</label>
+              <%= f.password_field :password,
+                class: "input #{@mail_account.errors[:encrypted_password].any? ? 'input-error' : ''}",
+                placeholder: "App password or password",
+                required: true
+              %>
+              <p class="help-text">Use an app password if available</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- IMAP Settings -->
+        <div class="mb-6">
+          <h3 class="text-sm font-semibold text-text-primary mb-3">IMAP Settings (Incoming Mail)</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="md:col-span-2">
+              <label for="mail_account_imap_host" class="label">IMAP Server</label>
+              <%= f.text_field :imap_host,
+                class: "input #{@mail_account.errors[:imap_host].any? ? 'input-error' : ''}",
+                placeholder: "imap.example.com",
+                required: true
+              %>
+            </div>
+            <div>
+              <label for="mail_account_imap_port" class="label">Port</label>
+              <%= f.number_field :imap_port,
+                class: "input",
+                value: @mail_account.imap_port || 993
+              %>
+            </div>
+          </div>
+          <div class="mt-3">
+            <label class="flex items-center gap-3 cursor-pointer">
+              <%= f.check_box :imap_ssl, class: "w-4 h-4 rounded border-border text-accent focus:ring-accent/20", checked: @mail_account.imap_ssl.nil? || @mail_account.imap_ssl %>
+              <span class="text-sm text-text-primary">Use SSL/TLS</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- SMTP Settings -->
+        <div class="mb-6">
+          <h3 class="text-sm font-semibold text-text-primary mb-3">SMTP Settings (Outgoing Mail)</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="md:col-span-2">
+              <label for="mail_account_smtp_host" class="label">SMTP Server</label>
+              <%= f.text_field :smtp_host,
+                class: "input #{@mail_account.errors[:smtp_host].any? ? 'input-error' : ''}",
+                placeholder: "smtp.example.com",
+                required: true
+              %>
+            </div>
+            <div>
+              <label for="mail_account_smtp_port" class="label">Port</label>
+              <%= f.number_field :smtp_port,
+                class: "input",
+                value: @mail_account.smtp_port || 587
+              %>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+            <div>
+              <label for="mail_account_smtp_auth" class="label">Authentication</label>
+              <%= f.select :smtp_auth,
+                [["Plain", "plain"], ["Login", "login"], ["CRAM-MD5", "cram_md5"]],
+                {},
+                class: "input"
+              %>
+            </div>
+            <div class="flex items-end pb-2">
+              <label class="flex items-center gap-3 cursor-pointer">
+                <%= f.check_box :smtp_tls, class: "w-4 h-4 rounded border-border text-accent focus:ring-accent/20", checked: @mail_account.smtp_tls.nil? || @mail_account.smtp_tls %>
+                <span class="text-sm text-text-primary">Use STARTTLS</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Common Presets Help -->
+        <div class="mb-6 p-4 bg-background-secondary rounded-lg">
+          <h4 class="text-sm font-medium text-text-primary mb-2">Common Settings</h4>
+          <div class="text-xs text-text-secondary space-y-1">
+            <p><strong>Gmail:</strong> imap.gmail.com:993, smtp.gmail.com:587 (use App Password)</p>
+            <p><strong>Outlook:</strong> outlook.office365.com:993, smtp.office365.com:587</p>
+            <p><strong>Yahoo:</strong> imap.mail.yahoo.com:993, smtp.mail.yahoo.com:587</p>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3">
+          <%= render "components/button", text: "Cancel", href: tool_path(@tool), variant: :secondary %>
+          <%= render "components/button", text: "Connect Account", icon: "mail" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+</div>

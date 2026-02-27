@@ -1,0 +1,25 @@
+<%# Flash messages component %>
+<%
+  flash_config = {
+    "notice"  => { css: "flash-notice",  icon: "info" },
+    "success" => { css: "flash-success", icon: "check-circle" },
+    "alert"   => { css: "flash-alert",   icon: "alert-circle" },
+    "error"   => { css: "flash-alert",   icon: "alert-circle" },
+    "warning" => { css: "flash-warning", icon: "alert-circle" }
+  }
+  default_config = { css: "flash-notice", icon: "info" }
+%>
+<% if flash.any? %>
+  <div class="fixed bottom-6 right-6 z-[9999] max-w-sm flex flex-col gap-2" data-controller="flash">
+    <% flash.each do |type, message| %>
+      <% cfg = flash_config[type.to_s] || default_config %>
+      <div class="flash <%= cfg[:css] %>" data-flash-target="message" data-action="click->flash#dismiss" role="alert">
+        <%= render "shared/icon", name: cfg[:icon], size: 18 %>
+        <span class="flex-1"><%= message %></span>
+        <button type="button" class="ml-2 opacity-70 hover:opacity-100" data-action="click->flash#dismiss">
+          <%= render "shared/icon", name: "x", size: 16 %>
+        </button>
+      </div>
+    <% end %>
+  </div>
+<% end %>

@@ -1,0 +1,36 @@
+<%#
+  Search component - USE THIS FOR ALL SEARCH INPUTS
+
+  Required:
+    url: Form action URL
+
+  Options:
+    name: Input name (default: "q")
+    value: Current search value
+    placeholder: Placeholder text (default: "Search...")
+    hidden_fields: Hash of hidden field names/values
+    data: Data attributes for the form
+    input_data: Data attributes for the input element
+    autofocus: true to autofocus
+
+  Examples:
+    render "components/search", url: search_path, placeholder: "Search emails..."
+    render "components/search", url: search_path, value: params[:q], hidden_fields: { folder: @folder }
+    render "components/search", url: search_path, input_data: { controller_target: "search" }
+%>
+<%
+  name ||= "q"
+  placeholder ||= "Search..."
+  hidden_fields ||= {}
+  data ||= {}
+  input_data ||= {}
+%>
+<%= form_with url: url, method: :get, class: "search-form", data: data do %>
+  <%= render "shared/icon", name: "search", size: 14, class: "search-form-icon" %>
+  <%= tag.input type: :search, name: name, value: local_assigns[:value], placeholder: placeholder,
+        class: "search-form-input", autocomplete: "off",
+        autofocus: local_assigns[:autofocus] || nil, data: input_data.presence %>
+  <% hidden_fields.each do |field_name, field_value| %>
+    <%= tag.input type: :hidden, name: field_name, value: field_value %>
+  <% end %>
+<% end %>

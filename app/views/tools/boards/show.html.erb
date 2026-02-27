@@ -1,0 +1,62 @@
+<% content_for(:title) { "#{@tool.name} - #{app_name}" } %>
+<% reorder_mode = params[:reorder].present? %>
+
+<% content_for :command_palette_actions do %>
+  <%= render "shared/command_palette_action", key: "c", description: "Add card", icon: "plus" %>
+  <%= render "shared/command_palette_action", key: "n", description: "Add column", icon: "layout" %>
+<% end %>
+
+<% content_for :keyboard_shortcuts do %>
+  <div>
+    <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Board</h3>
+    <div class="shortcut-list">
+      <%= render "shared/shortcut_row", key: "c", description: "Add card" %>
+      <%= render "shared/shortcut_row", key: "n", description: "Add column" %>
+    </div>
+  </div>
+<% end %>
+
+<div class="tool-layout flex flex-col h-screen overflow-hidden" data-controller="board" data-board-tool-id-value="<%= @tool.id %>">
+  <button data-controller="hotkey" data-hotkey="c" data-action="click->board#addCardToFirstColumn" hidden>Add card</button>
+  <%= render "components/tool_topbar", title: @tool.name do %>
+    <% if reorder_mode %>
+      <%= render "components/button", text: "Done", size: :sm, variant: :primary, href: tool_board_path(@tool), data: { turbo_action: "replace" } %>
+    <% else %>
+      <%= render "components/button", text: "Edit", size: :sm, variant: :ghost, href: tool_board_path(@tool, reorder: 1) %>
+    <% end %>
+    <%= render "components/button", text: "Add Column", icon: "plus", size: :sm, variant: :secondary, type: :button, commandfor: "add-column-modal", command: "show-modal", data: { controller: "hotkey", hotkey: "n" } %>
+  <% end %>
+
+  <div class="flex gap-4 flex-1 overflow-x-auto overflow-y-hidden p-4 items-stretch <%= 'reorder-mode' if reorder_mode %>"
+       <% if reorder_mode %>
+       data-controller="sortable"
+       data-sortable-url-value="<%= tool_board_positions_path(@tool) %>"
+       data-sortable-param-name-value="column_ids"
+       <% end %>>
+    <%= render partial: "tools/boards/column",
+          collection: @columns, as: :column,
+          locals: { tool: @tool, reorder_mode: reorder_mode } %>
+  </div>
+
+  <%# Card detail dialog — larger two-column layout %>
+  <dialog id="card-detail-modal"
+          class="modal-dialog"
+          style="max-width: 56rem;"
+          data-controller="modal"
+          data-board-target="cardDetailDialog">
+    <div data-board-target="cardModal">
+      <%# Content loaded dynamically via board#openCard %>
+    </div>
+  </dialog>
+
+  <%# Add column dialog %>
+  <%= render "shared/modal", id: "add-column-modal", title: "Add Column", size: :sm do %>
+    <%= form_with url: tool_board_columns_path(@tool), method: :post, data: { turbo_frame: "_top" } do %>
+      <%= render "components/form_field", label: "Column name", name: "name", required: true, autofocus: true, placeholder: "e.g. To Do" %>
+      <div class="flex justify-end gap-2 mt-4">
+        <%= render "components/button", text: "Cancel", variant: :ghost, type: :button, data: { action: "modal#close" } %>
+        <%= render "components/button", text: "Add Column", variant: :primary %>
+      </div>
+    <% end %>
+  <% end %>
+</div>

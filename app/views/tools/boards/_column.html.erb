@@ -1,0 +1,110 @@
+<%
+  active_cards = column.cards.active
+  archived_cards = column.cards.archived
+  active_count = active_cards.size
+  archived_count = archived_cards.size
+%>
+<div class="board-column flex flex-col bg-background-secondary rounded-lg max-h-full <%= 'collapsed' if column.collapsed? %>"
+     id="board-column-<%= column.id %>"
+     data-sort-id="<%= column.id %>"
+     data-column-id="<%= column.id %>">
+
+  <%# Collapsed strip %>
+  <div class="board-column-collapsed-strip"
+       data-action="click->board#expandColumn"
+       data-column-id="<%= column.id %>">
+    <span class="board-column-collapsed-name"><%= column.name %></span>
+    <span class="board-column-collapsed-count"><%= active_count %></span>
+  </div>
+
+  <%# Expanded content %>
+  <div class="board-column-expanded">
+    <div class="flex items-center justify-between py-3 px-3 pb-2 gap-2">
+      <span class="text-sm font-semibold text-text-primary uppercase tracking-wide cursor-pointer px-1.5 py-0.5 rounded-sm border border-transparent flex-1 min-w-0 hover:bg-background-tertiary"
+            data-action="dblclick->board#startRenameColumn"
+            data-column-id="<%= column.id %>"><%= column.name %></span>
+      <span class="text-xs text-text-tertiary bg-background-tertiary rounded-full px-2 py-0.5 min-w-[1.25rem] text-center"
+            id="column-<%= column.id %>-count"><%= active_count %></span>
+      <% if reorder_mode %>
+        <%= render "components/icon_button",
+            icon: "trash-2",
+            title: "Delete column",
+            size: :sm,
+            variant: :danger,
+            href: tool_board_column_path(tool, column),
+            method: :delete,
+            turbo_confirm: active_count > 0 ?
+              "Delete this column and its #{active_count} card#{'s' unless active_count == 1}?" :
+              "Delete this column?" %>
+      <% else %>
+        <button type="button"
+                class="p-1 rounded text-text-tertiary hover:text-text-primary hover:bg-background-tertiary transition-colors"
+                data-action="board#collapseColumn"
+                data-column-id="<%= column.id %>"
+                title="Collapse column">
+          <%= render "shared/icon", name: "panel-left-close", size: 14 %>
+        </button>
+      <% end %>
+    </div>
+
+    <div class="board-column-cards flex-1 overflow-y-auto px-2 pb-2 flex flex-col gap-2 min-h-[4rem] rounded-md transition-colors"
+         id="column-<%= column.id %>-cards"
+         data-controller="sortable"
+         data-sortable-group-value="board-cards"
+         data-sortable-url-value="<%= column_positions_path(column) %>"
+         data-sortable-param-name-value="card_ids">
+      <%= render partial: "tools/boards/card",
+            collection: active_cards, as: :card %>
+
+      <% if archived_count > 0 %>
+        <button type="button"
+                class="flex items-center gap-1.5 px-2 py-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors"
+                data-action="board#toggleArchived"
+                data-board-target="archivedToggle"
+                data-column-id="<%= column.id %>">
+          <%= render "shared/icon", name: "archive", size: 12 %>
+          <span data-board-target="archivedToggleLabel" data-column-id="<%= column.id %>"><%= archived_count %> archived</span>
+        </button>
+        <div class="hidden flex-col gap-2" data-board-target="archivedSection" data-column-id="<%= column.id %>">
+          <% archived_cards.each do |card| %>
+            <div class="board-card-archived bg-surface border border-border-light rounded-md p-3 relative">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-sm text-text-secondary truncate"><%= card.title %></span>
+                <%= link_to tool_board_card_archive_path(tool, card),
+                    class: "inline-flex items-center gap-1 text-xs text-text-tertiary hover:text-accent transition-colors flex-shrink-0",
+                    data: { turbo_method: :delete, turbo_frame: "_top" } do %>
+                  <%= render "shared/icon", name: "archive-restore", size: 12 %>
+                  Restore
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="board-add-card p-2">
+      <button type="button" class="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md border-none bg-transparent text-text-tertiary text-sm cursor-pointer transition-all hover:bg-background-tertiary hover:text-text-primary"
+              data-board-target="addCardBtn"
+              data-action="board#showAddCard"
+              data-column-id="<%= column.id %>">
+        <%= render "shared/icon", name: "plus", size: 14 %>
+        Add card
+      </button>
+      <div class="hidden flex-col gap-2 [&.active]:flex" data-board-target="addCardForm" data-column-id="<%= column.id %>">
+        <%= form_with url: column_cards_path(column) do |f| %>
+          <textarea name="title" class="w-full px-2.5 py-2 border border-border rounded-md text-sm bg-surface text-text-primary outline-none resize-none focus:border-accent focus:ring-2 focus:ring-accent/15"
+                    data-board-target="addCardInput"
+                    data-column-id="<%= column.id %>"
+                    placeholder="Enter card title..."
+                    rows="2"
+                    data-action="keydown->board#addCardKeydown"></textarea>
+          <div class="flex items-center gap-1.5">
+            <%= render "components/button", text: "Add", size: :sm %>
+            <%= render "components/button", text: "Cancel", size: :sm, variant: :ghost, type: :button, data: { action: "board#hideAddCard", "column-id": column.id } %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

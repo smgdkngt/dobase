@@ -1,0 +1,55 @@
+board:
+  name: Board
+  slug: boards
+  icon: layout
+  enabled: true
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+mail:
+  name: Mail
+  slug: mail
+  icon: mail
+  enabled: true
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+docs:
+  name: Docs
+  slug: docs
+  icon: file-text
+  enabled: true
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+calendar:
+  name: Calendar
+  slug: calendar
+  icon: calendar
+  enabled: true
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+files:
+  name: Files
+  slug: files
+  icon: folder
+  enabled: true
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+room:
+  name: Room
+  slug: room
+  icon: video
+  enabled: true
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+todos:
+  name: Todos
+  slug: todos
+  icon: check-square
+  enabled: true
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>

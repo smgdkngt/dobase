@@ -1,0 +1,21 @@
+meeting_notes:
+  title: Meeting Notes
+  tool: my_docs
+  last_edited_by: one
+  last_edited_at: <%= Time.current.to_fs(:db) %>
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+project_plan:
+  title: Project Plan
+  tool: my_docs
+  last_edited_by: one
+  last_edited_at: <%= 1.day.ago.to_fs(:db) %>
+  created_at: <%= 1.week.ago.to_fs(:db) %>
+  updated_at: <%= 1.day.ago.to_fs(:db) %>
+
+empty_document:
+  title: Empty Document
+  tool: my_docs
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>

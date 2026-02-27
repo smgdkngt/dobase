@@ -1,0 +1,52 @@
+<%#
+  Modal component (using native <dialog>)
+  Usage:
+    render "shared/modal", id: "confirm-delete", title: "Confirm Delete" do
+      <p>Are you sure you want to delete this item?</p>
+    end
+
+  Open declaratively from anywhere:
+    <button commandfor="confirm-delete" command="show-modal">Open</button>
+
+  Options:
+    id: Unique identifier for the modal (required)
+    title: Modal header title
+    size: :sm, :md (default), :lg, :xl
+    show_close: Show close button (default: true)
+%>
+<%
+  modal_id = local_assigns[:id]
+  title = local_assigns[:title]
+  size = local_assigns[:size] || :md
+  show_close = local_assigns.fetch(:show_close, true)
+  extra_data = local_assigns.fetch(:data, {})
+
+  size_classes = {
+    sm: "max-w-sm",
+    md: "max-w-md",
+    lg: "max-w-lg",
+    xl: "max-w-3xl"
+  }
+%>
+<%= tag.dialog id: modal_id, class: "modal-dialog #{size_classes[size]}",
+      data: { controller: "modal" }.merge(extra_data) do %>
+  <% if title || show_close %>
+    <div class="modal-header">
+      <% if title %>
+        <h2 class="text-lg font-semibold text-text-primary"><%= title %></h2>
+      <% else %>
+        <div></div>
+      <% end %>
+      <% if show_close %>
+        <%= render "components/icon_button",
+            icon: "x",
+            title: "Close",
+            data: { action: "click->modal#close" } %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="modal-body">
+    <%= yield %>
+  </div>
+<% end %>

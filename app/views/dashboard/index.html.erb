@@ -1,0 +1,21 @@
+<% content_for :title, app_name %>
+
+<div class="flex items-center justify-center min-h-[80vh]">
+  <div class="text-center max-w-md px-6">
+    <div class="w-16 h-16 bg-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+      <%= render "shared/icon", name: "layout", size: 32, class: "text-accent" %>
+    </div>
+    <h1 class="text-2xl font-semibold text-text-primary mb-2">Welcome to <%= app_name %></h1>
+    <p class="text-text-secondary mb-6">
+      Tools are your workspace. Add a mail client, a task board, documents, or
+      anything else you need. Each tool lives in the sidebar and keeps its own
+      data and settings.
+    </p>
+    <%= render "components/button",
+        text: "Create your first tool",
+        icon: "plus",
+        type: :button,
+        commandfor: "new-tool-modal",
+        command: "show-modal" %>
+  </div>
+</div>

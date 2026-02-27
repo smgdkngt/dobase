@@ -1,0 +1,228 @@
+/* Layout styles - Sidebar, Main Content, Mobile */
+@layer components {
+  /* Sidebar */
+  .sidebar {
+    @apply fixed left-0 top-0 bottom-0 w-[var(--sidebar-width)] bg-sidebar-bg border-r border-border-light flex flex-col;
+  }
+
+  .sidebar-item {
+    @apply flex items-center gap-3 px-3 py-2 mx-2 rounded-lg text-sm text-sidebar-text hover:bg-sidebar-hover transition-colors cursor-pointer;
+  }
+
+  .sidebar-item-active {
+    @apply bg-sidebar-active font-medium;
+  }
+
+  /* Sidebar groups */
+  .sidebar-group-header {
+    @apply flex items-center gap-1.5 px-3 py-1.5 mx-2 rounded-md cursor-pointer select-none
+           hover:bg-sidebar-hover transition-colors text-sidebar-text-muted;
+  }
+
+  .sidebar-group-chevron {
+    @apply flex items-center justify-center w-4 h-4 rounded
+           transition-colors cursor-pointer flex-shrink-0;
+  }
+
+  .sidebar-group-name {
+    @apply text-xs font-semibold uppercase tracking-wider cursor-default;
+  }
+
+  .sidebar-group-actions {
+    @apply flex items-center gap-0.5 flex-shrink-0;
+  }
+
+  .sidebar-group-actions .sidebar-context-btn {
+    @apply opacity-0 transition-opacity;
+  }
+
+  .sidebar-group-header:hover .sidebar-group-actions .sidebar-context-btn {
+    @apply opacity-100;
+  }
+
+  .sidebar-context-btn {
+    @apply p-0.5 rounded hover:bg-background-tertiary text-text-tertiary
+           hover:text-text-primary transition-colors cursor-pointer;
+  }
+
+  /* Sidebar tool item layout */
+  .sidebar-tool-item {
+    @apply select-none;
+  }
+
+  .sidebar-tool-menu-btn {
+    @apply flex items-center justify-center w-5 h-5 rounded
+           text-text-tertiary hover:text-text-primary hover:bg-background-tertiary
+           cursor-pointer flex-shrink-0;
+    opacity: 0;
+    transform: translateX(3px);
+    transition: opacity 150ms ease, transform 150ms ease;
+  }
+
+  .sidebar-tool-item:hover .sidebar-tool-menu-btn {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  /* Sidebar inline rename */
+  .sidebar-rename-input {
+    @apply bg-surface border border-accent rounded px-1 py-0 text-xs font-semibold
+           uppercase tracking-wider text-sidebar-text w-full
+           focus:outline-none focus:ring-1 focus:ring-accent;
+  }
+
+  /* Sidebar context menu positioning (CSS Anchor Positioning — no Tailwind equivalents) */
+  .sidebar-context-menu {
+    position-anchor: --sidebar-ctx-trigger;
+    position-area: inline-end block-start;
+    @apply ms-1;
+    position-try-fallbacks: flip-inline, flip-block;
+  }
+
+  /* Sidebar icon button — used in logo bar and bottom bar */
+  .sidebar-add-btn {
+    @apply flex items-center justify-center w-8 h-8 rounded-lg
+           text-text-tertiary hover:text-text-primary hover:bg-sidebar-hover
+           transition-colors cursor-pointer flex-shrink-0;
+  }
+
+  /* Bottom bar — avatar + name left, bell right */
+  .sidebar-bottom-bar {
+    @apply border-t border-border-light px-2 py-2 flex items-center gap-1;
+  }
+
+  /* User button: avatar + name, takes remaining space */
+  .sidebar-user-btn {
+    @apply flex items-center gap-2 flex-1 min-w-0 px-1.5 py-1 rounded-lg
+           hover:bg-sidebar-hover transition-colors cursor-pointer;
+  }
+
+  .sidebar-user-name {
+    @apply text-sm font-medium text-text-primary truncate text-left leading-none;
+    /* Max-width: 240px sidebar - 16px padding×2 - 28px avatar - 8px gap - 32px bell - 4px gap = ~136px */
+    max-width: 136px;
+  }
+
+  /* User popover (opens upward, left-aligned to trigger) — CSS Anchor Positioning */
+  .sidebar-user-popover {
+    position-anchor: --sidebar-user-btn;
+    position-area: block-start span-inline-end;
+    @apply mb-1 w-52;
+  }
+
+  /* Notifications popover (opens upward) — CSS Anchor Positioning */
+  .sidebar-notifications-popover {
+    position-anchor: --sidebar-notifications-btn;
+    position-area: block-start span-inline-end;
+    @apply mb-1;
+  }
+
+  /* Add popover (opens downward, left-aligned to trigger in logo bar) — CSS Anchor Positioning */
+  .sidebar-add-popover {
+    position-anchor: --sidebar-add-btn;
+    position-area: block-end span-inline-end;
+    @apply mt-1;
+  }
+
+  /* Main content */
+  .main-content {
+    @apply min-h-screen;
+    margin-left: var(--sidebar-width);
+  }
+
+  /* Full-height tool layouts */
+  .main-content:has(.tool-layout) {
+    @apply h-dvh overflow-hidden p-0;
+  }
+
+  /* Mobile header */
+  .mobile-header {
+    @apply fixed top-0 left-0 right-0 h-11 bg-sidebar-bg border-b border-border-light
+           items-center justify-between px-3 z-40 hidden;
+  }
+
+  .sidebar-overlay {
+    @apply fixed inset-0 bg-black/50 z-40 opacity-0 pointer-events-none transition-opacity duration-300;
+  }
+
+  .sidebar-overlay.active {
+    @apply opacity-100 pointer-events-auto;
+  }
+
+  .sidebar-close-btn {
+    @apply hidden items-center justify-center w-8 h-8 rounded-lg
+           text-text-secondary hover:text-text-primary hover:bg-sidebar-hover transition-colors;
+  }
+}
+
+/* Responsive: Mobile */
+@media (max-width: 1023px) {
+  .mobile-header {
+    @apply flex!;
+  }
+
+  .sidebar {
+    @apply z-50 -translate-x-full transition-transform duration-300 ease-in-out;
+  }
+
+  .sidebar.open {
+    @apply translate-x-0;
+  }
+
+  .sidebar-close-btn {
+    @apply flex!;
+  }
+
+  .main-content {
+    @apply ml-0! pt-11;
+  }
+
+  .main-content:has(.tool-layout) {
+    @apply h-[calc(100dvh-2.75rem)]! min-h-0! mt-11 pt-0;
+  }
+
+  .tool-topbar {
+    @apply px-3 gap-2 flex-wrap;
+  }
+
+  .tool-topbar-title {
+    @apply text-base;
+  }
+
+  .tool-topbar-actions {
+    @apply gap-1;
+  }
+
+  /* Modal adjustments */
+  .modal-dialog {
+    @apply max-w-[95vw]! max-h-[85vh] m-4;
+  }
+
+  .modal-body {
+    @apply max-h-[calc(85vh-60px)] overflow-y-auto;
+  }
+
+  /* Edit modal: horizontal tabs on mobile */
+  .edit-modal-layout {
+    @apply flex-col! h-auto!;
+  }
+
+  .edit-modal-tabs {
+    @apply flex-row! w-full! border-r-0! border-b border-border-light p-2! gap-1! overflow-x-auto;
+  }
+
+  .edit-modal-tabs .tab {
+    @apply flex-1 justify-center! px-3! py-2! whitespace-nowrap;
+  }
+
+  .edit-modal-content {
+    @apply h-[55vh]! pl-0! pt-4!;
+  }
+}
+
+/* Utility classes */
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+}

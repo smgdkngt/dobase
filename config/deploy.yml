@@ -1,0 +1,78 @@
+# Name of your application. Used to uniquely configure containers.
+service: dobase
+
+# Name of the container image.
+image: dobase
+
+# Deploy to these servers.
+servers:
+  web:
+    - your-server-ip
+
+# SSL via Let's Encrypt. If using Cloudflare, set SSL/TLS to "Full".
+proxy:
+  ssl: true
+  host: your-domain.com
+
+# Container registry. Uses a local registry by default.
+registry:
+  server: localhost:5555
+
+env:
+  secret:
+    - SECRET_KEY_BASE
+    - SMTP_USERNAME
+    - SMTP_PASSWORD
+    - LIVEKIT_API_KEY
+    - LIVEKIT_API_SECRET
+  clear:
+    SOLID_QUEUE_IN_PUMA: true
+    APP_NAME: Dobase
+    APP_HOST: your-domain.com
+    APP_LOGO_PATH: /icon.svg
+    APP_FROM_EMAIL: notifications@your-domain.com
+    SMTP_ADDRESS: smtp.example.com
+    SMTP_PORT: 587
+    LIVEKIT_URL: ws://localhost:7880
+    # WEB_CONCURRENCY: 2
+    # JOB_CONCURRENCY: 3
+
+aliases:
+  console: app exec --interactive --reuse "bin/rails console"
+  shell: app exec --interactive --reuse "bash"
+  logs: app logs -f
+  dbc: app exec --interactive --reuse "bin/rails dbconsole --include-password"
+
+# Persistent storage for SQLite database and Active Storage files.
+volumes:
+  - "dobase_storage:/rails/storage"
+
+# Bridge assets between deploys to avoid 404s on in-flight requests.
+asset_path: /rails/public/assets
+
+builder:
+  arch: amd64
+
+# LiveKit accessory for the Room (video) tool. Remove if not needed.
+# accessories:
+#   livekit:
+#     image: livekit/livekit-server:latest
+#     host: your-server-ip
+#     proxy:
+#       host: room.your-domain.com
+#       ssl: true
+#       app_port: 7880
+#       healthcheck:
+#         path: /
+#       buffering:
+#         requests: false
+#         responses: false
+#     options:
+#       publish:
+#         - "7881:7881"
+#         - "50000-50100:50000-50100/udp"
+#     env:
+#       secret:
+#         - LIVEKIT_KEYS
+#     volumes:
+#       - "livekit_data:/data"

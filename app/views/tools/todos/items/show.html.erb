@@ -1,0 +1,275 @@
+<%= turbo_frame_tag "item-detail-content", class: "contents" do %>
+<div data-controller="todo-item"
+     data-todo-item-item-id-value="<%= @item.id %>"
+     data-todo-item-tool-id-value="<%= @tool.id %>"
+     class="flex flex-col w-full"
+     style="max-height: 80vh; min-height: 60vh;">
+
+  <%# ─── Header ─────────────────────────────────────────────────────── %>
+  <div class="flex items-center gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-border-light">
+    <%# Big checkbox %>
+    <input type="checkbox"
+           class="todo-checkbox todo-checkbox-lg shrink-0"
+           <%= "checked" if @item.completed? %>
+           data-action="change->todo-item#toggleCompletion">
+
+    <div class="flex-1 min-w-0">
+      <%# Editable title %>
+      <h2 class="text-lg font-semibold text-text-primary leading-snug cursor-text hover:text-accent transition-colors"
+          data-todo-item-target="titleDisplay"
+          data-action="click->todo-item#editTitle"><%= @item.title %></h2>
+      <input type="text"
+             value="<%= @item.title %>"
+             class="input text-lg font-semibold hidden w-full"
+             data-todo-item-target="titleInput"
+             data-action="blur->todo-item#saveTitle keydown->todo-item#titleKeydown">
+    </div>
+
+    <%= render "components/icon_button",
+        icon: "x",
+        title: "Close",
+        size: :sm,
+        data: { action: "click->modal#close" } %>
+  </div>
+
+  <%# ─── Body: two-column layout ────────────────────────────────────── %>
+  <div class="flex-1 flex flex-col sm:flex-row min-h-0">
+
+    <%# Left column: Description + Activity %>
+    <div class="flex-1 min-w-0 flex flex-col overflow-y-auto">
+      <div>
+
+        <%# Description %>
+        <section class="p-4 sm:p-5">
+          <h3 class="text-sm font-semibold text-text-tertiary mb-2 flex items-center gap-1.5">
+            <%= render "shared/icon", name: "align-left", size: 14, class: "opacity-70" %>
+            Description
+          </h3>
+
+          <% if @item.description.present? %>
+            <div class="text-sm text-text-primary leading-snug rich-text-content cursor-text rounded-md px-3 py-2.5 hover:bg-background-secondary transition-colors -mx-3"
+                 data-todo-item-target="descriptionDisplay"
+                 data-action="click->todo-item#editDescription">
+              <%= @item.description %>
+            </div>
+          <% else %>
+            <div class="text-sm text-text-tertiary/70 italic cursor-text rounded-md px-3 py-2.5 hover:bg-background-secondary hover:text-text-tertiary transition-colors -mx-3"
+                 data-todo-item-target="descriptionDisplay"
+                 data-action="click->todo-item#editDescription">
+              Add a description...
+            </div>
+          <% end %>
+
+          <div class="hidden" data-todo-item-target="descriptionEdit">
+            <%= form_with url: tool_todo_item_path(@tool, @item), method: :patch, data: { turbo_frame: "item-detail-content" } do |f| %>
+              <%= render "components/rich_text_input", name: "item[description]", value: @item.description do %>
+                <%= render "components/icon_button",
+                      icon: "x",
+                      title: "Cancel",
+                      size: :sm,
+                      class: "rounded",
+                      type: :button,
+                      data: { action: "click->todo-item#cancelDescription" } %>
+                <%= render "components/icon_button",
+                      icon: "check",
+                      title: "Save",
+                      variant: :accent,
+                      size: :sm,
+                      class: "rounded",
+                      type: :submit %>
+              <% end %>
+            <% end %>
+          </div>
+        </section>
+
+        <%# Discussion / Comments %>
+        <section class="border-t border-border-light p-4 sm:p-5">
+          <h3 class="text-sm font-semibold text-text-tertiary mb-4 flex items-center gap-1.5">
+            <%= render "shared/icon", name: "message-square-text", size: 14, class: "opacity-70" %>
+            Comments
+            <% if @item.comments.any? %>
+              <span class="ml-0.5 font-normal normal-case tracking-normal"><%= @item.comments.count %></span>
+            <% end %>
+          </h3>
+
+          <% if @item.comments.any? %>
+            <div class="space-y-4 mb-4">
+              <% @item.comments.includes(:user, :rich_text_body).order(created_at: :asc).each do |comment| %>
+                <div class="flex gap-2.5">
+                  <%= render "shared/avatar", user: comment.user, size: :sm %>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-baseline gap-2 mb-0.5">
+                      <span class="text-sm font-semibold text-text-primary"><%= comment.user.name %></span>
+                      <span class="text-xs text-text-tertiary"><%= time_ago_in_words(comment.created_at) %> ago</span>
+                    </div>
+                    <div class="text-sm text-text-primary leading-snug rich-text-content"><%= comment.body %></div>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+
+          <%# Comment form %>
+          <%= form_with url: tool_todo_item_comments_path(@tool, @item), data: { turbo_frame: "item-detail-content" } do %>
+            <div class="flex gap-2.5">
+              <%= render "shared/avatar", user: current_user, size: :sm %>
+              <div class="flex-1">
+                <%= render "components/rich_text_input", name: "body", placeholder: "Write a comment..." do %>
+                  <%= render "components/icon_button",
+                        icon: "send",
+                        title: "Post comment",
+                        variant: :accent,
+                        size: :sm,
+                        class: "rounded",
+                        type: :submit %>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </section>
+
+      </div>
+    </div>
+
+    <%# Right column: Metadata sidebar %>
+    <div class="sm:w-56 border-t sm:border-t-0 sm:border-l border-border-light bg-background-secondary/50 overflow-y-auto flex-shrink-0">
+      <div>
+
+        <%# ── Assignee ───────────────────────────────────────────────── %>
+        <div class="p-3">
+          <p class="text-xs font-medium text-text-tertiary px-1 mb-1">Assignee</p>
+          <div class="relative">
+            <button type="button"
+                    class="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-background-secondary transition-colors select-none group w-full"
+                    commandfor="item-assignee-menu"
+                    command="toggle-popover"
+                    style="anchor-name: --item-assignee">
+              <% if @item.assigned_user %>
+                <%= render "shared/avatar", user: @item.assigned_user, size: :sm %>
+                <span class="text-sm font-medium text-text-primary flex-1 truncate text-left" data-todo-item-target="assigneeLabel"><%= @item.assigned_user.name %></span>
+              <% else %>
+                <div class="w-6 h-6 rounded-full bg-background-tertiary border border-dashed border-border flex items-center justify-center flex-shrink-0">
+                  <%= render "shared/icon", name: "user", size: 12, class: "text-text-tertiary" %>
+                </div>
+                <span class="text-sm text-text-tertiary flex-1 text-left" data-todo-item-target="assigneeLabel">Unassigned</span>
+              <% end %>
+              <%= render "shared/icon", name: "chevron-down", size: 12, class: "text-text-tertiary flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" %>
+            </button>
+            <div id="item-assignee-menu" popover="auto"
+                 class="popover-menu max-h-44 overflow-y-auto"
+                 style="position-anchor: --item-assignee; top: anchor(bottom); left: anchor(left); width: anchor-size(width);">
+              <button type="button"
+                      class="flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-left hover:bg-background-secondary transition-colors"
+                      data-action="click->todo-item#setAssignee"
+                      data-user-id=""
+                      data-user-name="Unassigned"
+                      commandfor="item-assignee-menu" command="hide-popover">
+                <div class="w-6 h-6 rounded-full bg-background-tertiary flex items-center justify-center flex-shrink-0">
+                  <%= render "shared/icon", name: "user", size: 12, class: "text-text-tertiary" %>
+                </div>
+                <span class="text-text-tertiary">Unassigned</span>
+              </button>
+              <% @collaborators.each do |user| %>
+                <button type="button"
+                        class="flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-left hover:bg-background-secondary transition-colors"
+                        data-action="click->todo-item#setAssignee"
+                        data-user-id="<%= user.id %>"
+                        data-user-name="<%= user.name %>"
+                        commandfor="item-assignee-menu" command="hide-popover">
+                  <%= render "shared/avatar", user: user, size: :sm %>
+                  <span class="text-text-primary flex-1 truncate"><%= user.name %></span>
+                  <% if @item.assigned_user == user %>
+                    <%= render "shared/icon", name: "check", size: 13, class: "text-accent flex-shrink-0" %>
+                  <% end %>
+                </button>
+              <% end %>
+            </div>
+          </div>
+        </div>
+
+        <div class="h-px bg-border-light"></div>
+
+        <%# ── Attachments ─────────────────────────────────────────────── %>
+        <div class="p-3">
+          <div class="flex items-center justify-between px-1 mb-1">
+            <p class="text-xs font-medium text-text-tertiary">
+              Attachments
+              <% if @item.attachments.any? %>
+                <span class="font-normal normal-case tracking-normal ml-0.5 text-text-tertiary">(<%= @item.attachments.count %>)</span>
+              <% end %>
+            </p>
+            <%= form_with url: tool_todo_item_attachments_path(@tool, @item), multipart: true, class: "inline", data: { turbo_frame: "item-detail-content" } do %>
+              <label class="text-xs font-medium text-accent hover:text-accent-hover cursor-pointer transition-colors">
+                + Add
+                <input type="file" name="file" class="hidden"
+                       data-action="change->todo-item#submitAttachment">
+              </label>
+            <% end %>
+          </div>
+
+          <div class="space-y-1">
+            <% if @item.attachments.any? %>
+              <% @item.attachments.each do |attachment| %>
+                <div class="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-background-secondary group transition-colors">
+                  <div class="w-6 h-6 rounded bg-background-tertiary flex items-center justify-center flex-shrink-0">
+                    <%= render "shared/icon", name: "paperclip", size: 12, class: "text-text-tertiary" %>
+                  </div>
+                  <a href="<%= rails_blob_path(attachment.file) %>"
+                     target="_blank"
+                     class="text-sm text-text-primary hover:text-accent truncate flex-1 min-w-0 transition-colors">
+                    <%= attachment.file.filename %>
+                  </a>
+                  <span class="text-xs text-text-tertiary shrink-0"><%= number_to_human_size(attachment.file.byte_size) %></span>
+                  <%= link_to tool_todo_item_attachment_path(@tool, @item, attachment),
+                      class: "opacity-0 group-hover:opacity-100 p-0.5 rounded hover:text-error text-text-tertiary transition-all",
+                      data: { turbo_method: :delete, turbo_confirm: "Delete this attachment?", turbo_frame: "item-detail-content" } do %>
+                    <%= render "shared/icon", name: "x", size: 12 %>
+                  <% end %>
+                </div>
+              <% end %>
+            <% else %>
+              <p class="text-sm text-text-tertiary px-2 py-1">No attachments yet</p>
+            <% end %>
+          </div>
+        </div>
+
+        <div class="h-px bg-border-light"></div>
+
+        <%# ── Due Date ────────────────────────────────────────────────── %>
+        <div class="p-3">
+          <p class="text-xs font-medium text-text-tertiary px-1 mb-1">Due date</p>
+          <label class="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-background-secondary transition-colors">
+            <div class="w-6 h-6 rounded-md bg-background-tertiary flex items-center justify-center flex-shrink-0">
+              <%= render "shared/icon", name: "calendar", size: 13, class: "text-text-tertiary" %>
+            </div>
+            <input type="date"
+                   value="<%= @item.due_date&.iso8601 %>"
+                   class="text-sm bg-transparent border-none outline-none cursor-pointer flex-1 min-w-0"
+                   data-action="change->todo-item#setDueDate"
+                   data-todo-item-target="dueDateInput">
+          </label>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <%# ─── Footer ──────────────────────────────────────────────────────── %>
+  <div class="flex items-center justify-between px-4 sm:px-5 py-3 border-t border-border-light bg-background-secondary/50">
+    <div class="flex items-center gap-4">
+      <%= link_to tool_todo_item_path(@tool, @item),
+          class: "inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-error transition-colors",
+          data: {
+            turbo_method: :delete,
+            turbo_confirm: "Delete this item? This cannot be undone.",
+            turbo_frame: "_top"
+          } do %>
+        <%= render "shared/icon", name: "trash-2", size: 14 %>
+        Delete item
+      <% end %>
+    </div>
+    <span class="text-xs text-text-tertiary">Saved automatically</span>
+  </div>
+
+</div>
+<% end %>

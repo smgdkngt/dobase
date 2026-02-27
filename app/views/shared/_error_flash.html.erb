@@ -1,0 +1,7 @@
+<%# Displays first error from a model. Usage: render "shared/error_flash", object: @user %>
+<% if object.errors.any? %>
+  <div class="flash flash-error mb-4">
+    <%= render "shared/icon", name: "alert-circle", size: 18 %>
+    <span><%= object.errors.full_messages.first %></span>
+  </div>
+<% end %>

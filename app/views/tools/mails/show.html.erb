@@ -1,0 +1,88 @@
+<% content_for :title, "#{@message.subject || '(No subject)'} - #{@tool.name} - #{app_name}" %>
+<% content_for :page_title, @tool.name %>
+
+<div class="space-y-4">
+  <!-- Back link -->
+  <div>
+    <%= link_to tool_mails_path(@tool), class: "inline-flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary" do %>
+      <%= render "shared/icon", name: "arrow-left", size: 16 %>
+      <span>Back to inbox</span>
+    <% end %>
+  </div>
+
+  <!-- Email Content -->
+  <div class="card">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-border-light">
+      <div class="flex items-start justify-between gap-4">
+        <div class="flex-1 min-w-0">
+          <h1 class="text-xl font-semibold text-text-primary mb-3">
+            <%= @message.subject.presence || "(No subject)" %>
+          </h1>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+              <span class="text-sm font-medium text-accent">
+                <%= @message.display_from.to_s[0]&.upcase %>
+              </span>
+            </div>
+            <div>
+              <p class="font-medium text-text-primary"><%= @message.display_from %></p>
+              <p class="text-sm text-text-secondary"><%= @message.from_address %></p>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <%= render "components/icon_button",
+              icon: "star",
+              title: @message.starred? ? "Unstar" : "Star",
+              href: tool_mail_star_path(@tool, @message),
+              method: @message.starred? ? :delete : :post,
+              icon_class: @message.starred? ? "text-warning fill-warning" : nil %>
+          <%= render "components/icon_button",
+              icon: @message.read? ? "mail" : "mail-open",
+              title: @message.read? ? "Mark unread" : "Mark read",
+              href: tool_mail_read_path(@tool, @message),
+              method: @message.read? ? :delete : :post %>
+          <%= render "components/icon_button",
+              icon: "trash-2",
+              title: "Delete",
+              variant: :danger,
+              href: tool_mails_path(@tool, @message),
+              method: :delete,
+              turbo_confirm: "Delete this email?" %>
+        </div>
+      </div>
+
+      <!-- Meta -->
+      <div class="mt-4 text-sm text-text-secondary space-y-1">
+        <p><strong>Date:</strong> <%= @message.sent_at&.strftime("%B %d, %Y at %I:%M %p") %></p>
+        <% if @message.to_addresses_list.any? %>
+          <p><strong>To:</strong> <%= @message.to_addresses_list.join(", ") %></p>
+        <% end %>
+        <% if @message.cc_addresses_list.any? %>
+          <p><strong>Cc:</strong> <%= @message.cc_addresses_list.join(", ") %></p>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Calendar Invites -->
+    <% if @message.calendar_invites.any? %>
+      <div class="px-6 pt-6 space-y-4">
+        <% @message.calendar_invites.each do |invite| %>
+          <%= render "tools/mails/calendar_invite", invite: invite, tool: @tool %>
+        <% end %>
+      </div>
+    <% end %>
+
+    <!-- Body -->
+    <div class="px-6 py-6">
+      <%= render "tools/mails/email_body", message: @message %>
+    </div>
+
+    <!-- Actions -->
+    <div class="px-6 py-4 border-t border-border-light flex items-center gap-3">
+      <%= render "components/button", text: "Reply", icon: "reply", href: new_tool_mail_path(@tool, reply_to: @message.id) %>
+      <%= render "components/button", text: "Forward", icon: "forward", variant: :secondary, href: new_tool_mail_path(@tool, forward: @message.id) %>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,28 @@
+readme:
+  tool: my_files
+  name: readme.txt
+  content_type: text/plain
+  file_size: 1024
+  position: 0
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+report:
+  tool: my_files
+  folder: documents
+  name: report.pdf
+  content_type: application/pdf
+  file_size: 204800
+  position: 0
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+photo:
+  tool: my_files
+  folder: photos
+  name: sunset.jpg
+  content_type: image/jpeg
+  file_size: 512000
+  position: 0
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>

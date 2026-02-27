@@ -1,0 +1,72 @@
+<%#
+  Media Preview component - renders file previews (image, video, audio, PDF, or generic)
+
+  Required:
+    file: File object with .file attachment and helper methods
+
+  Options:
+    max_height: Max height for media (default: "max-h-full" or "max-h-[70vh]" for public)
+    rounded: Border radius size (default: :lg, also :md, :xl)
+    shadow: Whether to show shadow (default: true)
+    controls: Show video/audio controls (default: true)
+    autoplay: Autoplay video/audio (default: false)
+
+  Examples:
+    render "components/media_preview", file: @file
+    render "components/media_preview", file: @file, max_height: "max-h-[70vh]", rounded: :xl
+%>
+<%
+  max_height = local_assigns.fetch(:max_height, "max-h-full")
+  rounded = local_assigns.fetch(:rounded, :lg)
+  shadow = local_assigns.fetch(:shadow, true)
+  controls = local_assigns.fetch(:controls, true)
+  autoplay = local_assigns.fetch(:autoplay, false)
+
+  radius_class = case rounded
+    when :xl then "rounded-xl"
+    when :lg then "rounded-lg"
+    when :md then "rounded-md"
+    else "rounded-lg"
+  end
+
+  shadow_class = shadow ? "shadow-lg" : ""
+%>
+<% if file.image? %>
+  <div class="flex justify-center">
+    <%= image_tag url_for(file.file), alt: file.name, class: "max-w-full #{max_height} object-contain #{radius_class} #{shadow_class}" %>
+  </div>
+<% elsif file.video? %>
+  <div class="flex justify-center">
+    <%= tag.video controls: controls || nil, autoplay: autoplay || nil,
+          class: "max-w-full #{max_height} #{radius_class} #{shadow_class}" do %>
+      <%= tag.source src: url_for(file.file), type: file.content_type %>
+    <% end %>
+  </div>
+<% elsif file.audio? %>
+  <div class="flex flex-col items-center p-12 bg-background-secondary <%= radius_class %> text-text-tertiary">
+    <%= render "shared/icon", name: "music", size: 64 %>
+    <% if local_assigns[:show_name] %>
+      <p class="mt-2"><%= file.name %></p>
+    <% end %>
+    <%= tag.audio controls: controls || nil, autoplay: autoplay || nil,
+          class: "mt-4 w-full max-w-[400px]" do %>
+      <%= tag.source src: url_for(file.file), type: file.content_type %>
+    <% end %>
+  </div>
+<% elsif file.pdf? %>
+  <div class="w-full h-full min-h-[70vh]">
+    <iframe src="<%= url_for(file.file) %>" type="application/pdf" class="w-full h-full border-none <%= radius_class %>"></iframe>
+  </div>
+<% else %>
+  <div class="flex flex-col items-center p-16 bg-background-secondary <%= radius_class %> text-text-tertiary">
+    <%= render "shared/icon", name: file.icon_name, size: 64 %>
+    <p class="mt-4 text-lg font-medium text-text-primary"><%= file.name %></p>
+    <p class="text-text-secondary"><%= file.human_file_size %></p>
+    <% if local_assigns[:download_path] %>
+      <%= link_to download_path, class: "btn btn-primary mt-4" do %>
+        <%= render "shared/icon", name: "download", size: 16 %>
+        <span>Download</span>
+      <% end %>
+    <% end %>
+  </div>
+<% end %>

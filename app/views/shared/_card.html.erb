@@ -1,0 +1,47 @@
+<%#
+  Card component
+  Usage:
+    render "shared/card" do
+      Content here
+    end
+
+    render "shared/card", title: "Settings" do
+      Content here
+    end
+
+    render "shared/card", title: "Profile", footer: true do |card|
+      <% card.with_body do %>
+        Body content
+      <% end %>
+      <% card.with_footer do %>
+        Footer content
+      <% end %>
+    end
+
+  Options:
+    title: Card header title
+    padding: :normal (default), :none, :compact
+    class: Additional CSS classes
+%>
+<%
+  title = local_assigns[:title]
+  padding = local_assigns[:padding] || :normal
+  extra_class = local_assigns[:class] || ""
+
+  padding_classes = {
+    none: "",
+    compact: "p-3",
+    normal: "p-5"
+  }
+%>
+<div class="card <%= extra_class %>">
+  <% if title %>
+    <div class="card-header">
+      <h3 class="text-base font-semibold text-text-primary"><%= title %></h3>
+    </div>
+  <% end %>
+
+  <div class="card-body <%= padding_classes[padding] unless padding == :normal %>">
+    <%= yield %>
+  </div>
+</div>

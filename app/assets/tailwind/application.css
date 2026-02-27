@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* Design system modules */
+@import "./tokens.css";
+@import "./components.css";
+@import "./layout.css";
+
+/* Tool-specific styles */
+@import "./tools/board.css";
+@import "./tools/calendar.css";
+@import "./tools/docs.css";
+@import "./tools/mails.css";
+@import "./tools/room.css";
+@import "./tools/todo.css";

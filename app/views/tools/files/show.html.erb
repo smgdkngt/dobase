@@ -1,0 +1,212 @@
+<% content_for(:title) { "#{@tool.name} - #{app_name}" } %>
+
+<% content_for :command_palette_actions do %>
+  <%= render "shared/command_palette_action", key: "u", description: "Upload file", icon: "upload" %>
+  <%= render "shared/command_palette_action", key: "n", description: "New folder", icon: "folder-plus" %>
+<% end %>
+
+<% content_for :keyboard_shortcuts do %>
+  <div>
+    <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Files</h3>
+    <div class="shortcut-list">
+      <%= render "shared/shortcut_row", key: "u", description: "Upload file" %>
+      <%= render "shared/shortcut_row", key: "n", description: "New folder" %>
+      <%= render "shared/shortcut_row", key: "Esc", description: "Clear selection" %>
+    </div>
+  </div>
+<% end %>
+
+<div class="tool-layout flex flex-col h-full"
+     data-controller="files file-selection file-context-menu file-upload file-drag"
+     data-files-tool-id-value="<%= @tool.id %>"
+     data-file-drag-tool-id-value="<%= @tool.id %>"
+     data-action="file-context-menu:action->files#handleContextAction file-selection:changed->file-drag#selectionChanged">
+  <button data-controller="hotkey" data-hotkey="Escape" data-action="click->files#clearSelection" hidden>Clear selection</button>
+  <%# Topbar %>
+  <div class="tool-topbar">
+    <h1 class="tool-topbar-title"><%= @tool.name %></h1>
+
+    <%# Selection toolbar (hidden by default) %>
+    <div class="hidden ml-4" data-file-selection-target="bulkToolbar">
+      <%= render "components/nav_pill" do %>
+        <%= render "components/nav_pill_button", icon: "x", title: "Deselect all", data: { action: "file-selection#clear" } %>
+        <span class="px-1 text-sm font-medium" data-file-selection-target="bulkCount">0 selected</span>
+        <%= render "components/nav_pill_button", icon: "download", title: "Download", data: { action: "files#bulkDownload" } %>
+        <%= render "components/nav_pill_button", icon: "trash-2", title: "Delete", data: { action: "files#bulkDelete" } %>
+      <% end %>
+    </div>
+
+    <div class="tool-topbar-actions">
+      <div class="flex bg-background-secondary rounded-md p-0.5">
+        <%= link_to tool_files_path(@tool, folder_id: @folder&.id, view: "grid"),
+            class: "p-1.5 rounded transition-all #{@view_mode == 'grid' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'}",
+            data: { turbo_action: "replace" } do %>
+          <%= render "shared/icon", name: "grid", size: 16 %>
+        <% end %>
+        <%= link_to tool_files_path(@tool, folder_id: @folder&.id, view: "list"),
+            class: "p-1.5 rounded transition-all #{@view_mode == 'list' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'}",
+            data: { turbo_action: "replace" } do %>
+          <%= render "shared/icon", name: "list", size: 16 %>
+        <% end %>
+      </div>
+      <%= render "components/button",
+          text: "New Folder",
+          icon: "folder-plus",
+          size: :sm,
+          variant: :secondary,
+          type: :button,
+          data: { controller: "hotkey", action: "files#newFolder", hotkey: "n" } %>
+      <%= form_with url: tool_files_uploads_path(@tool), multipart: true, class: "inline",
+          data: { file_upload_target: "form" } do %>
+        <input type="hidden" name="folder_id" value="<%= @folder&.id %>" data-file-upload-target="folderId">
+        <label class="btn btn-sm btn-primary cursor-pointer" data-controller="hotkey" data-hotkey="u">
+          <%= render "shared/icon", name: "upload", size: 16 %>
+          <span>Upload</span>
+          <input type="file" name="files[]" multiple class="hidden"
+                 data-action="change->file-upload#upload" data-file-upload-target="input">
+        </label>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Breadcrumbs %>
+  <% if @ancestors.any? %>
+    <nav class="flex items-center gap-2 px-3 sm:px-6 py-3 text-sm border-b border-border-light">
+      <%= link_to tool_files_path(@tool),
+          class: "flex items-center justify-center w-8 h-8 rounded-lg text-text-secondary hover:text-accent hover:bg-background-secondary transition-all",
+          data: { file_drag_target: "dropTarget", item_type: "folder", item_id: "",
+                  action: "dragover->file-drag#dragOverFolder dragenter->file-drag#dragEnterFolder dragleave->file-drag#dragLeaveFolder drop->file-drag#dropOnFolder" } do %>
+        <%= render "shared/icon", name: "home", size: 16 %>
+      <% end %>
+      <% @ancestors.each do |ancestor| %>
+        <span class="text-text-tertiary">/</span>
+        <% if ancestor == @folder %>
+          <span class="px-2 py-1 text-text-primary font-medium"><%= ancestor.name %></span>
+        <% else %>
+          <%= link_to ancestor.name, tool_files_path(@tool, folder_id: ancestor.id),
+              class: "px-2 py-1 rounded-lg text-text-secondary hover:text-accent hover:bg-background-secondary transition-all",
+              data: { file_drag_target: "dropTarget", item_type: "folder", item_id: ancestor.id,
+                      action: "dragover->file-drag#dragOverFolder dragenter->file-drag#dragEnterFolder dragleave->file-drag#dragLeaveFolder drop->file-drag#dropOnFolder" } %>
+        <% end %>
+      <% end %>
+    </nav>
+  <% end %>
+
+  <%# Drop zone %>
+  <div class="group/dropzone flex-1 relative overflow-y-auto p-3 sm:p-6"
+       data-file-upload-target="dropzone"
+       data-action="click->file-selection#deselectOutside dragover->file-upload#dragOver dragenter->file-upload#dragEnter dragleave->file-upload#dragLeave drop->file-upload#drop">
+    <div class="hidden group-[.drag-active]/dropzone:flex absolute inset-4 flex-col items-center justify-center gap-4 bg-accent-light border-2 border-dashed border-accent rounded-lg text-accent z-10 pointer-events-none">
+      <%= render "shared/icon", name: "upload-cloud", size: 48 %>
+      <p>Drop files here to upload</p>
+    </div>
+
+    <%# File grid/list %>
+    <div class="<%= @view_mode == 'grid' ? 'flex flex-wrap gap-2 sm:gap-4 content-start min-h-full' : 'flex flex-col' %>">
+      <% if @folders.empty? && @files.empty? %>
+        <div class="flex flex-col items-center justify-center py-16 text-center w-full">
+          <div class="text-text-tertiary mb-4">
+            <%= render "shared/icon", name: "folder-open", size: 48 %>
+          </div>
+          <p class="text-sm font-medium text-text-primary">Nothing here yet</p>
+          <p class="text-sm text-text-tertiary mt-1">Drop files anywhere on this page to upload</p>
+        </div>
+      <% else %>
+        <% @folders.each do |folder| %>
+          <%= render "tools/files/folder_item", folder: folder, tool: @tool, view_mode: @view_mode %>
+        <% end %>
+        <% @files.each do |file| %>
+          <%= render "tools/files/file_item", file: file, tool: @tool, view_mode: @view_mode %>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Context menu %>
+  <div class="hidden fixed min-w-[180px] bg-surface border border-border-light rounded-lg shadow-lg py-1 z-50"
+       data-file-context-menu-target="menu">
+    <button type="button" class="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-left hover:bg-background-secondary transition-colors"
+            data-action="file-context-menu#open">
+      <%= render "shared/icon", name: "external-link", size: 16 %>
+      Open
+    </button>
+    <button type="button" class="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-left hover:bg-background-secondary transition-colors"
+            data-action="file-context-menu#download">
+      <%= render "shared/icon", name: "download", size: 16 %>
+      Download
+    </button>
+    <div class="h-px bg-border-light my-1 mx-2"></div>
+    <button type="button" class="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-left hover:bg-background-secondary transition-colors"
+            data-action="file-context-menu#rename">
+      <%= render "shared/icon", name: "edit-2", size: 16 %>
+      Rename
+    </button>
+    <button type="button" class="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-left hover:bg-background-secondary transition-colors"
+            data-action="file-context-menu#share">
+      <%= render "shared/icon", name: "share", size: 16 %>
+      Share
+    </button>
+    <div class="h-px bg-border-light my-1 mx-2"></div>
+    <button type="button" class="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-left text-error hover:bg-error-light transition-colors"
+            data-action="file-context-menu#delete">
+      <%= render "shared/icon", name: "trash-2", size: 16 %>
+      Delete
+    </button>
+  </div>
+
+  <%# Rename dialog %>
+  <dialog class="modal-dialog max-w-sm" data-files-target="renameDialog">
+    <div class="modal-header">
+      <h2 class="text-lg font-semibold">Rename</h2>
+      <%= render "components/icon_button", icon: "x", title: "Close", size: :sm,
+          data: { action: "files#closeRenameDialog" } %>
+    </div>
+    <form class="modal-body" data-action="submit->files#submitRename">
+      <div class="mb-4">
+        <label class="label" for="rename_name">Name</label>
+        <input type="text" id="rename_name" class="input" required autofocus
+               data-files-target="renameInput">
+      </div>
+      <div class="flex justify-end gap-2">
+        <%= render "components/button", text: "Cancel", variant: :ghost, type: :button,
+            data: { action: "files#closeRenameDialog" } %>
+        <%= render "components/button", text: "Rename", variant: :primary %>
+      </div>
+    </form>
+  </dialog>
+
+  <%# New folder dialog %>
+  <dialog class="modal-dialog max-w-sm" data-files-target="folderDialog">
+    <div class="modal-header">
+      <h2 class="text-lg font-semibold">New Folder</h2>
+      <%= render "components/icon_button", icon: "x", title: "Close", size: :sm,
+          data: { action: "files#closeFolderDialog" } %>
+    </div>
+    <%= form_with url: tool_files_folders_path(@tool), class: "modal-body",
+        data: { action: "turbo:submit-end->files#closeFolderDialog" } do %>
+      <input type="hidden" name="parent_id" value="<%= @folder&.id %>">
+      <div class="mb-4">
+        <label class="label" for="folder_name">Folder name</label>
+        <input type="text" name="name" id="folder_name" class="input" placeholder="My Folder"
+               required autofocus data-files-target="folderNameInput">
+      </div>
+      <div class="flex justify-end gap-2">
+        <%= render "components/button", text: "Cancel", variant: :ghost, type: :button,
+            data: { action: "files#closeFolderDialog" } %>
+        <%= render "components/button", text: "Create", variant: :primary %>
+      </div>
+    <% end %>
+  </dialog>
+
+  <%# Share dialog %>
+  <dialog class="modal-dialog max-w-md" data-files-target="shareDialog">
+    <div class="modal-header">
+      <h2 class="text-lg font-semibold">Share</h2>
+      <%= render "components/icon_button", icon: "x", title: "Close", size: :sm,
+          data: { action: "files#closeShareDialog" } %>
+    </div>
+    <div class="modal-body">
+      <%= turbo_frame_tag "share-content" %>
+    </div>
+  </dialog>
+</div>

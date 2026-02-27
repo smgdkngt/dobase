@@ -1,0 +1,11 @@
+<h2 style="margin: 0 0 16px;">You've been assigned to a card</h2>
+
+<p style="margin: 0 0 16px;">
+  <strong><%= @assigner.name %></strong> assigned you to
+  <strong><%= @card.title %></strong> in <strong><%= @tool.name %></strong>.
+</p>
+
+<p style="margin: 0 0 24px;">
+  <%= link_to "View Card", tool_board_card_url(@tool, @card),
+      style: "display: inline-block; padding: 12px 24px; background-color: #4F46E5; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px;" %>
+</p>

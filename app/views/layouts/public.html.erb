@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= content_for(:title) || "Shared File - #{app_name}" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= yield :head %>
+
+    <link rel="icon" href="/icon.png" type="image/png">
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body class="bg-background text-text-primary">
+    <div class="min-h-screen flex flex-col">
+      <header class="px-8 py-4 border-b border-border-light">
+        <div class="flex items-center gap-3">
+          <img src="<%= app_logo_path %>" alt="<%= app_name %>" class="w-8 h-8">
+          <span class="font-semibold"><%= app_name %></span>
+        </div>
+      </header>
+
+      <main class="flex-1 flex flex-col items-center p-8">
+        <%= yield %>
+      </main>
+
+      <footer class="px-8 py-4 text-center border-t border-border-light">
+        <p class="text-text-tertiary text-sm">
+          Shared via <a href="/" class="text-accent hover:underline"><%= app_name %></a>
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>

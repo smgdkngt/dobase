@@ -1,0 +1,21 @@
+<dialog class="modal-dialog max-w-lg"
+        data-keyboard-shortcuts-target="dialog"
+        data-controller="modal">
+  <div class="modal-header">
+    <h2 class="text-lg font-semibold text-text-primary">Keyboard shortcuts</h2>
+    <%= render "components/icon_button", icon: "x", title: "Close",
+        data: { action: "click->modal#close" } %>
+  </div>
+  <div class="modal-body space-y-6 max-h-[70vh] overflow-y-auto">
+    <div>
+      <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Global</h3>
+      <div class="shortcut-list">
+        <%= render "shared/shortcut_row", key: "?", description: "Show keyboard shortcuts" %>
+        <%= render "shared/shortcut_row", key: "\u2318K", description: "Jump to tool" %>
+        <%= render "shared/shortcut_row", key: "b", description: "Notifications" %>
+      </div>
+    </div>
+
+    <%= content_for(:keyboard_shortcuts) %>
+  </div>
+</dialog>

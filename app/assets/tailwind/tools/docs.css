@@ -1,0 +1,58 @@
+/* Docs tool styles */
+
+/* Rhino editor customizations for document editing */
+rhino-editor.document-editor {
+  @apply flex flex-col h-full;
+  --rhino-border-color: transparent;
+  --rhino-button-active-border-color: var(--color-accent);
+}
+
+rhino-editor.document-editor [role="toolbar"] {
+  @apply shrink-0 border-b border-border-light px-4 py-2 bg-background-secondary;
+}
+
+rhino-editor.document-editor .trix-content {
+  @apply flex-1 max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 w-full;
+  border: none;
+  border-radius: 0;
+  min-height: 100%;
+}
+
+/* Rich text content styling — scoped to docs tool (editor and viewer) */
+rhino-editor.document-editor .trix-content,
+.document-view .rich-text-content {
+  @apply text-text-primary text-xl leading-relaxed;
+
+  > :first-child {
+    @apply mt-0;
+  }
+
+  p, ul, ol, blockquote, pre {
+    @apply my-2;
+  }
+
+  h1, h2, h3, h4 {
+    @apply mt-4 mb-1 font-semibold leading-tight;
+  }
+
+  h1 { @apply text-3xl; }
+  h2 { @apply text-2xl; }
+  h3 { @apply text-xl; }
+  h4 { @apply text-lg; }
+
+  blockquote {
+    @apply border-l-2 border-border pl-4 text-text-secondary italic;
+  }
+
+  ul, ol {
+    @apply pl-6;
+  }
+
+  ul {
+    @apply list-disc;
+  }
+
+  ol {
+    @apply list-decimal;
+  }
+}

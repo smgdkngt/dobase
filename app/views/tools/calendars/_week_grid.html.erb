@@ -1,0 +1,224 @@
+<%#
+  Week grid partial
+  Displays a 7-day week with hourly time slots
+%>
+<%
+  days = (0..6).map { |i| week_start + i.days }
+  today = Date.today
+  hours = (0..23).to_a
+
+  # Separate all-day and timed events
+  all_day_events, timed_events = events.partition(&:all_day?)
+
+  # Group timed events by each day they span (not just start day)
+  timed_by_day = {}
+  days.each do |day|
+    timed_by_day[day] = timed_events.select do |event|
+      event_start = event.start_time.to_date
+      event_end = event.end_time.to_date
+      day >= event_start && day <= event_end
+    end
+  end
+
+  # For all-day events, map each day to events that span it
+  all_day_by_day = {}
+  days.each do |day|
+    all_day_by_day[day] = all_day_events.select do |event|
+      event_start = event.start_time.to_date
+      event_end = event.end_time.to_date
+      day >= event_start && day <= event_end
+    end
+  end
+
+  # Check if there are any all-day events this week
+  has_all_day = all_day_events.any?
+%>
+
+<div class="week-grid">
+  <!-- Header row with day names and dates -->
+  <div class="week-header">
+    <!-- Week number cell -->
+    <div class="week-header-cell time-label-cell">
+      <span class="text-xs font-medium text-text-tertiary">W<%= week_start.cweek %></span>
+    </div>
+
+    <!-- Day headers -->
+    <% days.each do |day| %>
+      <%
+        is_today = day == today
+        day_name = day.strftime("%a")
+        day_number = day.day
+      %>
+      <div class="week-header-cell <%= 'today' if is_today %>">
+        <div class="text-xs font-medium text-text-secondary"><%= day_name %></div>
+        <div class="text-lg font-semibold <%= is_today ? 'text-accent' : 'text-text-primary' %>">
+          <%= day_number %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- All-day events row -->
+  <% if has_all_day %>
+    <%
+      week_end = week_start + 6.days
+
+      # Calculate spans for each all-day event within this week
+      # Each span: { event:, start_col: 0-6, span: 1-7, show_title: bool, is_start: bool, is_end: bool }
+      all_day_spans = all_day_events.map do |event|
+        event_start = event.start_time.to_date
+        event_end = event.end_time.to_date
+
+        # Clip to this week's boundaries
+        visible_start = [event_start, week_start].max
+        visible_end = [event_end, week_end].min
+
+        start_col = (visible_start - week_start).to_i
+        end_col = (visible_end - week_start).to_i
+        span = end_col - start_col + 1
+
+        # Show title at actual start OR at week start if continuing from previous week
+        is_continuation = event_start < week_start
+        is_start = visible_start == event_start
+        is_end = visible_end == event_end
+
+        {
+          event: event,
+          start_col: start_col,
+          span: span,
+          show_title: true,
+          is_continuation: is_continuation,
+          is_start: is_start,
+          is_end: is_end
+        }
+      end
+
+      # Sort by start column, then by span (longer events first for better stacking)
+      all_day_spans.sort_by! { |s| [s[:start_col], -s[:span]] }
+
+      # Assign rows to avoid overlapping events
+      # Track which columns are occupied at each row level
+      row_assignments = []
+      all_day_spans.each do |span_info|
+        start_col = span_info[:start_col]
+        end_col = start_col + span_info[:span] - 1
+
+        # Find first row where this span fits
+        row = 0
+        loop do
+          row_assignments[row] ||= []
+          conflicts = row_assignments[row].any? do |existing|
+            existing_end = existing[:start_col] + existing[:span] - 1
+            !(end_col < existing[:start_col] || start_col > existing_end)
+          end
+
+          if conflicts
+            row += 1
+          else
+            row_assignments[row] << span_info
+            span_info[:row] = row
+            break
+          end
+        end
+      end
+
+      max_rows = row_assignments.size
+    %>
+    <div class="all-day-row" style="<%= "min-height: #{24 + max_rows * 24}px" if max_rows > 1 %>">
+      <div class="all-day-label">
+        <span class="text-xs text-text-tertiary">All day</span>
+      </div>
+      <div class="all-day-events-grid">
+        <!-- Grid lines for each day -->
+        <% 7.times do |i| %>
+          <div class="all-day-grid-cell" style="grid-column: <%= i + 1 %>"></div>
+        <% end %>
+
+        <!-- Event spans -->
+        <% all_day_spans.each do |span_info| %>
+          <%
+            event = span_info[:event]
+            calendar = calendars.find { |c| c.id == event.calendar_id }
+            bg_color = calendar&.color || '#3b82f6'
+
+            # Rounded corners based on position
+            rounded_class = if span_info[:is_start] && span_info[:is_end]
+              "rounded"
+            elsif span_info[:is_start]
+              "rounded-l"
+            elsif span_info[:is_end]
+              "rounded-r"
+            else
+              ""
+            end
+          %>
+          <div class="all-day-event-span <%= rounded_class %>"
+               style="grid-column: <%= span_info[:start_col] + 1 %> / span <%= span_info[:span] %>; grid-row: <%= span_info[:row] + 1 %>; background-color: <%= bg_color %>;"
+               data-event-id="<%= event.id %>"
+               data-action="click->calendar#showEvent">
+            <span class="truncate text-white text-xs font-medium">
+              <% if span_info[:is_continuation] %>
+                ← <%= event.summary %>
+              <% else %>
+                <%= event.summary %>
+              <% end %>
+            </span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Time grid -->
+  <div class="week-body">
+    <!-- Time labels column -->
+    <div class="time-labels">
+      <% hours.each do |hour| %>
+        <div class="time-label">
+          <span class="text-xs text-text-tertiary"><%= "%02d:00" % hour %></span>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Day columns -->
+    <div class="week-columns">
+      <% days.each do |day| %>
+        <%
+          is_today = day == today
+          day_events = timed_by_day[day] || []
+        %>
+        <div class="week-column <%= 'today' if is_today %>"
+             data-date="<%= day.iso8601 %>">
+
+          <!-- Hour slots -->
+          <% hours.each do |hour| %>
+            <div class="hour-slot"
+                 data-hour="<%= hour %>"
+                 data-action="click->calendar#createAtSlot"></div>
+          <% end %>
+
+          <!-- Events for this day -->
+          <% day_events.each do |event| %>
+            <%= render "tools/calendars/event_block",
+                event: event,
+                calendar: calendars.find { |c| c.id == event.calendar_id },
+                display_date: day %>
+          <% end %>
+
+          <!-- Current time indicator (only for today) -->
+          <% if is_today %>
+            <%
+              current_hour = Time.current.hour
+              current_minute = Time.current.min
+              top_position = (current_hour * 60 + current_minute) / (24.0 * 60) * 100
+            %>
+            <div class="absolute left-0 right-0 z-20 pointer-events-none" style="top: <%= top_position %>%">
+              <div class="absolute left-0 w-2 h-2 rounded-full bg-error -translate-x-1/2 -translate-y-1/2"></div>
+              <div class="h-0.5 bg-error"></div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

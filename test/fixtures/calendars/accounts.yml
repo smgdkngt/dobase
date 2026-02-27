@@ -1,0 +1,20 @@
+icloud_account:
+  tool: my_calendar
+  provider: icloud
+  caldav_url: https://caldav.icloud.com/
+  username: user@icloud.com
+  encrypted_password: <%= ActiveSupport::MessageEncryptor.new(Rails.application.secret_key_base[0, 32]).encrypt_and_sign("test-password") %>
+  sync_status: synced
+  last_synced_at: <%= 1.hour.ago.to_fs(:db) %>
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+pending_account:
+  tool: other_calendar
+  provider: fastmail
+  caldav_url: https://caldav.fastmail.com/dav/principals/user/user@fastmail.com/
+  username: user@fastmail.com
+  encrypted_password: <%= ActiveSupport::MessageEncryptor.new(Rails.application.secret_key_base[0, 32]).encrypt_and_sign("test-password") %>
+  sync_status: pending
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>

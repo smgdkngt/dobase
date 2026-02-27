@@ -1,0 +1,53 @@
+<%# locals: (file:, tool:, view_mode:) %>
+<%
+  base_classes = "group relative cursor-pointer select-none transition-colors"
+  grid_classes = "w-[110px] sm:w-[140px] p-3 sm:p-4 rounded-lg flex flex-col items-center gap-2 hover:bg-background-secondary"
+  list_classes = "flex items-center gap-3 px-4 py-3 border-b border-border-light hover:bg-background-secondary"
+  item_classes = view_mode == "grid" ? "#{base_classes} #{grid_classes}" : "#{base_classes} #{list_classes}"
+
+  icon_base = "flex items-center justify-center shrink-0 rounded-xl"
+  icon_size = view_mode == "grid" ? "w-12 h-12 sm:w-16 sm:h-16" : "w-7 h-7 rounded-md"
+%>
+<div class="<%= item_classes %>"
+     data-file-selection-target="item"
+     data-file-drag-target="item"
+     data-item-type="file"
+     data-item-id="<%= file.id %>"
+     data-item-url="<%= tool_files_item_path(tool, file) %>"
+     draggable="true"
+     data-action="click->file-selection#select click->file-drag#recordClick dblclick->files#openItem contextmenu->file-context-menu#show dragstart->file-drag#dragStart dragend->file-drag#dragEnd">
+  <% if file.image? && file.file.attached? %>
+    <div class="<%= icon_base %> <%= icon_size %> overflow-hidden">
+      <%= image_tag url_for(file.file), class: "w-full h-full object-cover" %>
+    </div>
+  <% else %>
+    <div class="<%= icon_base %> <%= icon_size %> bg-gradient-to-br from-zinc-400 to-zinc-500 text-white">
+      <%= render "shared/icon", name: file.icon_name, size: view_mode == "grid" ? 32 : 16 %>
+    </div>
+  <% end %>
+  <% if view_mode == "grid" %>
+    <span data-item-name class=" text-sm text-center line-clamp-2 break-words"><%= file.name %></span>
+  <% else %>
+    <div class="flex items-center gap-4 sm:gap-8 flex-1 min-w-0">
+      <span data-item-name class=" flex-1 min-w-0 truncate text-sm sm:text-base"><%= file.name %></span>
+      <span class="w-5 shrink-0 text-center hidden sm:block">
+        <% if file.share %>
+          <span class="text-accent" title="Shared"><%= render "shared/icon", name: "link", size: 14 %></span>
+        <% end %>
+      </span>
+      <span class="text-sm text-text-secondary w-[100px] text-right shrink-0 hidden md:block"><%= file.human_file_size %></span>
+      <span class="text-sm text-text-secondary w-[100px] text-right shrink-0 hidden lg:block"><%= file.created_at.strftime("%b %-d, %Y") %></span>
+    </div>
+  <% end %>
+  <div class="<%= view_mode == 'grid' ? 'absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity' : '' %> flex items-center gap-2">
+    <% if view_mode == "grid" && file.share %>
+      <span class="text-accent" title="Shared">
+        <%= render "shared/icon", name: "link", size: 14 %>
+      </span>
+    <% end %>
+    <button type="button" class="p-1 rounded text-text-tertiary hover:bg-background-tertiary hover:text-text-primary transition-all <%= 'opacity-0 group-hover:opacity-100' if view_mode == 'grid' %>"
+            data-action="click->file-context-menu#showFromButton:stop">
+      <%= render "shared/icon", name: "more-vertical", size: 16 %>
+    </button>
+  </div>
+</div>

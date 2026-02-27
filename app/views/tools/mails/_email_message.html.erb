@@ -1,0 +1,55 @@
+<%# Locals: email_message, is_last %>
+<div class="border-b border-border-light last:border-b-0" data-controller="collapse" data-collapse-open-value="<%= is_last %>">
+  <button type="button" class="w-full flex items-start gap-3 p-4 bg-transparent border-none cursor-pointer text-left hover:bg-background-secondary" data-action="click->collapse#toggle">
+    <div class="w-10 h-10 rounded-full bg-accent-light flex items-center justify-center flex-shrink-0">
+      <span class="text-sm font-semibold text-accent"><%= email_message.display_from.to_s[0]&.upcase %></span>
+    </div>
+    <div class="flex-1 min-w-0">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-sm font-semibold text-text-primary"><%= email_message.display_from %></span>
+        <% if email_message.from_name.present? && email_message.from_name != email_message.from_address %>
+          <span class="text-xs text-text-tertiary"><%= email_message.from_address %></span>
+        <% end %>
+        <span class="text-xs text-text-tertiary ml-auto"><%= email_message.sent_at&.strftime("%b %d, %I:%M %p") %></span>
+      </div>
+      <div class="text-xs text-text-tertiary mt-0.5" data-collapse-target="preview">
+        To: <%= email_message.to_addresses_list.join(", ").truncate(50) %>
+        <% if email_message.cc_addresses_list.any? %>
+          &middot; Cc: <%= email_message.cc_addresses_list.join(", ").truncate(30) %>
+        <% end %>
+      </div>
+    </div>
+    <div class="text-text-tertiary transition-transform <%= 'rotate-180' if is_last %>" data-collapse-target="icon">
+      <%= render "shared/icon", name: "chevron-down", size: 14 %>
+    </div>
+  </button>
+  <div data-collapse-target="content" class="<%= is_last ? '' : 'hidden' %>">
+    <div class="px-4 pb-4 pl-[4.25rem]">
+      <%= render "tools/mails/email_body", message: email_message %>
+
+      <% if email_message.attachments.any? %>
+        <div class="mt-4 pt-4 border-t border-border-light">
+          <div class="text-xs font-medium text-text-secondary mb-2">
+            <%= render "shared/icon", name: "paperclip", size: 12, class: "inline mr-1" %>
+            <%= pluralize(email_message.attachments.count, "attachment") %>
+          </div>
+          <% email_message.attachments.each do |attachment| %>
+            <% if attachment.file.attached? %>
+              <%= link_to rails_blob_path(attachment.file, disposition: "attachment"), class: "inline-flex items-center gap-2 px-3 py-2 bg-background-secondary rounded-md text-sm text-text-primary no-underline mr-2 mb-2 hover:bg-background-tertiary" do %>
+                <%= render "shared/icon", name: "file", size: 14 %>
+                <span><%= attachment.filename.truncate(25) %></span>
+                <span class="text-xs text-text-tertiary"><%= attachment.human_readable_size %></span>
+              <% end %>
+            <% else %>
+              <span class="inline-flex items-center gap-2 px-3 py-2 bg-background-secondary rounded-md text-sm text-text-primary no-underline mr-2 mb-2 hover:bg-background-tertiary opacity-50">
+                <%= render "shared/icon", name: "file", size: 14 %>
+                <span><%= attachment.filename.truncate(25) %></span>
+                <span class="text-xs text-text-tertiary"><%= attachment.human_readable_size %></span>
+              </span>
+            <% end %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

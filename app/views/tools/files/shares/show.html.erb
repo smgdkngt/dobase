@@ -1,0 +1,22 @@
+<% if @share_not_found %>
+  <% content_for(:title) { "Not Found" } %>
+  <%= render "components/empty_state",
+      icon: "file-x",
+      title: "Not Found",
+      description: "This shared link doesn't exist or has been removed. Please check the URL or contact the person who shared it with you.",
+      size: :lg %>
+<% elsif @share_expired %>
+  <% content_for(:title) { "Link Expired" } %>
+  <%= render "components/empty_state",
+      icon: "clock",
+      title: "Link Expired",
+      description: "This shared link is no longer available. The owner may have removed the share or it may have passed its expiration date.",
+      size: :lg %>
+<% elsif @password_required %>
+  <% content_for(:title) { "Password Required" } %>
+  <%= render "password_form" %>
+<% elsif @share.folder? %>
+  <%= render "folder" %>
+<% else %>
+  <%= render "file" %>
+<% end %>

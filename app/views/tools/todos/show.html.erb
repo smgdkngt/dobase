@@ -1,0 +1,74 @@
+<% content_for(:title) { "#{@tool.name} - #{app_name}" } %>
+<% reorder_mode = params[:reorder].present? %>
+
+<% content_for :command_palette_actions do %>
+  <%= render "shared/command_palette_action", key: "t", description: "Add todo", icon: "plus" %>
+  <%= render "shared/command_palette_action", key: "n", description: "Add list", icon: "list" %>
+<% end %>
+
+<% content_for :keyboard_shortcuts do %>
+  <div>
+    <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Todos</h3>
+    <div class="shortcut-list">
+      <%= render "shared/shortcut_row", key: "t", description: "Add todo" %>
+      <%= render "shared/shortcut_row", key: "n", description: "Add list" %>
+    </div>
+  </div>
+<% end %>
+
+<div class="tool-layout flex flex-col h-screen overflow-hidden" data-controller="todo" data-todo-tool-id-value="<%= @tool.id %>">
+  <button data-controller="hotkey" data-hotkey="t" data-action="click->todo#addItemToFirstList" hidden>Add todo</button>
+  <%= render "components/tool_topbar", title: @tool.name do %>
+    <% if reorder_mode %>
+      <%= render "components/button", text: "Done", size: :sm, variant: :primary, href: tool_todo_path(@tool), data: { turbo_action: "replace" } %>
+    <% else %>
+      <%= render "components/button", text: "Edit", size: :sm, variant: :ghost, href: tool_todo_path(@tool, reorder: 1) %>
+    <% end %>
+    <%= render "components/button", text: "Add List", icon: "plus", size: :sm, variant: :secondary, type: :button, commandfor: "add-list-modal", command: "show-modal", data: { controller: "hotkey", hotkey: "n" } %>
+  <% end %>
+
+  <div class="flex-1 overflow-y-auto p-4 pt-6">
+    <% if @lists.empty? %>
+      <div class="flex items-center justify-center h-full">
+        <%= render "components/empty_state",
+            icon: "check-square",
+            title: "Nothing to do yet",
+            description: "Create a list to start organizing your work",
+            size: :md %>
+      </div>
+    <% else %>
+      <div class="max-w-2xl mx-auto flex flex-col gap-4 <%= 'reorder-mode' if reorder_mode %>"
+           <% if reorder_mode %>
+           data-controller="sortable"
+           data-sortable-url-value="<%= tool_todo_positions_path(@tool) %>"
+           data-sortable-param-name-value="list_ids"
+           <% end %>>
+        <%= render partial: "tools/todos/list",
+              collection: @lists, as: :list,
+              locals: { tool: @tool, reorder_mode: reorder_mode } %>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Item detail dialog %>
+  <dialog id="item-detail-modal"
+          class="modal-dialog"
+          style="max-width: 56rem;"
+          data-controller="modal"
+          data-todo-target="itemDetailDialog">
+    <div data-todo-target="itemModal">
+      <%# Content loaded dynamically via todo#openItem %>
+    </div>
+  </dialog>
+
+  <%# Add list dialog %>
+  <%= render "shared/modal", id: "add-list-modal", title: "Add List", size: :sm do %>
+    <%= form_with url: tool_todo_lists_path(@tool), method: :post, data: { turbo_frame: "_top" } do %>
+      <%= render "components/form_field", label: "List title", name: "title", required: true, autofocus: true, placeholder: "e.g. To Do" %>
+      <div class="flex justify-end gap-2 mt-4">
+        <%= render "components/button", text: "Cancel", variant: :ghost, type: :button, data: { action: "modal#close" } %>
+        <%= render "components/button", text: "Add List", variant: :primary %>
+      </div>
+    <% end %>
+  <% end %>
+</div>

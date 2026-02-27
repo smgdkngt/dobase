@@ -1,0 +1,64 @@
+<%
+  comments_count = card.comments.size
+  attachments_count = card.attachments.size
+%>
+<div class="bg-surface border border-border-light rounded-md p-3 cursor-grab relative transition-shadow hover:border-border hover:shadow-sm active:cursor-grabbing"
+     id="board-card-<%= card.id %>"
+     data-sort-id="<%= card.id %>"
+     data-card-id="<%= card.id %>"
+     data-action="click->board#openCard">
+  <% if card.color.present? %>
+    <%
+      color_class = case card.color
+      when "red" then "bg-error"
+      when "orange" then "bg-warning"
+      when "yellow" then "bg-[#f5c542]"
+      when "green" then "bg-success"
+      when "blue" then "bg-accent"
+      when "purple" then "bg-[#af52de]"
+      end
+    %>
+    <div class="h-[3px] rounded-sm mb-2 <%= color_class %>"></div>
+  <% end %>
+  <div class="text-sm font-medium text-text-primary leading-normal"><%= card.title %></div>
+  <% if card.description.present? %>
+    <div class="text-xs text-text-secondary mt-1 line-clamp-2"><%= card.description %></div>
+  <% end %>
+  <% if card.due_date.present? || card.assigned_user.present? || comments_count > 0 || attachments_count > 0 %>
+    <div class="flex items-center gap-2 mt-2 flex-wrap">
+      <% if card.due_date.present? %>
+        <%
+          due_class = if card.due_date < Date.current
+            "text-error bg-error-light"
+          elsif card.due_date <= Date.current + 2
+            "text-warning bg-warning-light"
+          else
+            "text-text-tertiary bg-background-secondary"
+          end
+        %>
+        <span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-sm <%= due_class %>">
+          <%= render "shared/icon", name: "calendar", size: 10 %>
+          <%= card.due_date.strftime("%b %-d") %>
+        </span>
+      <% end %>
+      <% if comments_count > 0 %>
+        <span class="inline-flex items-center gap-[0.1875rem] text-xs text-text-tertiary">
+          <%= render "shared/icon", name: "message-square-text", size: 10 %>
+          <%= comments_count %>
+        </span>
+      <% end %>
+      <% if attachments_count > 0 %>
+        <span class="inline-flex items-center gap-[0.1875rem] text-xs text-text-tertiary">
+          <%= render "shared/icon", name: "paperclip", size: 10 %>
+          <%= attachments_count %>
+        </span>
+      <% end %>
+      <% if card.assigned_user.present? %>
+        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-accent-light text-accent text-[0.5625rem] font-semibold ml-auto"
+              title="<%= card.assigned_user.name %>">
+          <%= card.assigned_user.name&.chars&.first&.upcase %>
+        </span>
+      <% end %>
+    </div>
+  <% end %>
+</div>

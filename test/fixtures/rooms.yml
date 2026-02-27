@@ -1,0 +1,4 @@
+team_standup:
+  tool: my_room
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>

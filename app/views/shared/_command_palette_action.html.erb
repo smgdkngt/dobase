@@ -1,0 +1,11 @@
+<button type="button"
+        class="command-palette-item w-full text-left"
+        data-command-palette-target="item"
+        data-action="click->command-palette#triggerAction"
+        data-name="<%= description.downcase %>"
+        data-type="action"
+        data-hotkey-trigger="<%= key %>">
+  <%= render "shared/icon", name: icon, size: 18, class: "text-text-secondary" %>
+  <span class="flex-1 truncate"><%= description %></span>
+  <kbd class="shortcut-key"><%= key %></kbd>
+</button>

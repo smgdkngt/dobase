@@ -1,0 +1,67 @@
+<%#
+  Empty State component - USE THIS FOR ALL EMPTY STATES
+
+  Required:
+    title: Main message
+
+  Options:
+    description: Secondary descriptive text
+    icon: Icon name (default: none)
+    action_text: Button text
+    action_href: Button link
+    action_icon: Button icon
+    size: :sm (default), :md, :lg
+
+  Examples:
+    render "components/empty_state", title: "No messages", description: "Your inbox is empty", icon: "inbox"
+    render "components/empty_state", title: "No tools yet", action_text: "Create your first tool", action_href: new_tool_path, action_icon: "plus"
+    render "components/empty_state", title: "Not Found", icon: "file-x", size: :lg
+%>
+<%
+  size = local_assigns.fetch(:size, :sm)
+
+  container_padding = case size
+    when :lg then "py-16 px-8"
+    when :md then "py-12 px-6"
+    else "py-12"
+  end
+
+  icon_size = case size
+    when :lg then 64
+    when :md then 48
+    else 24
+  end
+
+  icon_container = case size
+    when :lg then "mb-6"
+    when :md then "mb-4"
+    else "w-12 h-12 rounded-full bg-background-secondary mb-3"
+  end
+
+  title_class = case size
+    when :lg then "text-2xl font-semibold mb-2"
+    when :md then "text-xl font-semibold mb-2"
+    else "text-sm font-medium mb-1"
+  end
+
+  desc_class = case size
+    when :lg, :md then "text-text-secondary"
+    else "text-xs text-text-tertiary"
+  end
+%>
+<div class="flex flex-col items-center justify-center text-center <%= container_padding %>">
+  <% if local_assigns[:icon] %>
+    <div class="flex items-center justify-center text-text-tertiary <%= icon_container %>">
+      <%= render "shared/icon", name: icon, size: icon_size %>
+    </div>
+  <% end %>
+  <div class="text-text-primary <%= title_class %>"><%= title %></div>
+  <% if local_assigns[:description] %>
+    <div class="<%= desc_class %>"><%= description %></div>
+  <% end %>
+  <% if local_assigns[:action_text] && local_assigns[:action_href] %>
+    <div class="mt-4">
+      <%= render "components/button", text: action_text, href: action_href, icon: local_assigns[:action_icon], variant: :primary %>
+    </div>
+  <% end %>
+</div>

@@ -1,0 +1,45 @@
+<% content_for :title, "Set New Password - #{app_name}" %>
+
+<div class="w-full max-w-sm">
+  <div class="text-center mb-8">
+    <img src="<%= app_logo_path %>" alt="<%= app_name %>" class="w-16 h-16 mx-auto mb-4">
+    <h1 class="text-2xl font-semibold text-text-primary">Set new password</h1>
+    <p class="text-text-secondary mt-1">Enter your new password below</p>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <%= form_with url: password_path(params[:token]), method: :put, class: "space-y-4" do |f| %>
+        <div>
+          <label for="password" class="label">New Password</label>
+          <%= f.password_field :password,
+            class: "input",
+            placeholder: "At least 8 characters",
+            required: true,
+            autofocus: true,
+            autocomplete: "new-password",
+            maxlength: 72
+          %>
+          <p class="help-text">Must be at least 8 characters</p>
+        </div>
+
+        <div>
+          <label for="password_confirmation" class="label">Confirm New Password</label>
+          <%= f.password_field :password_confirmation,
+            class: "input",
+            placeholder: "Confirm your new password",
+            required: true,
+            autocomplete: "new-password",
+            maxlength: 72
+          %>
+        </div>
+
+        <%= render "components/button", text: "Reset Password", full_width: true %>
+      <% end %>
+    </div>
+  </div>
+
+  <p class="text-center text-sm text-text-secondary mt-6">
+    <%= link_to "Back to sign in", login_path, class: "text-accent hover:underline font-medium" %>
+  </p>
+</div>

@@ -1,0 +1,50 @@
+<%= turbo_frame_tag "profile-form" do %>
+  <div class="space-y-8 text-center">
+    <div>
+      <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-accent/10 text-accent mb-3">
+        <%= render "shared/icon", name: "lock", size: 24 %>
+      </div>
+      <h3 class="text-lg font-semibold text-text-primary">Set up two-factor authentication</h3>
+      <p class="text-sm text-text-secondary mt-1">Secure your account with an authenticator app</p>
+    </div>
+
+    <div>
+      <p class="text-sm text-text-primary mb-3">1. Scan this code with your authenticator app</p>
+      <%# White background required for QR code readability in dark mode %>
+      <div class="inline-flex justify-center bg-white rounded-lg p-4">
+        <%= @qr_svg.html_safe %>
+      </div>
+      <details class="mt-2">
+        <summary class="text-xs text-text-tertiary cursor-pointer hover:text-text-secondary">
+          Can't scan? Enter key manually
+        </summary>
+        <code class="block mt-2 px-3 py-2 bg-background-secondary rounded text-xs font-mono text-text-primary break-all select-all max-w-xs mx-auto">
+          <%= @otp_secret %>
+        </code>
+      </details>
+    </div>
+
+    <%= form_with url: two_factor_setup_path, method: :post, data: { turbo_frame: "profile-form" } do |f| %>
+      <div>
+        <p class="text-sm text-text-primary mb-3">2. Enter the 6-digit code to verify</p>
+        <%= f.text_field :code,
+          class: "input text-center tracking-widest max-w-[200px] mx-auto",
+          placeholder: "000000",
+          required: true,
+          autocomplete: "one-time-code",
+          inputmode: "numeric",
+          maxlength: 6
+        %>
+      </div>
+
+      <div class="flex gap-2 justify-end pt-6">
+        <%= render "components/button",
+          text: "Cancel",
+          variant: :secondary,
+          href: edit_profile_path(tab: "security"),
+          data: { turbo_frame: "profile-form" } %>
+        <%= render "components/button", text: "Verify and enable" %>
+      </div>
+    <% end %>
+  </div>
+<% end %>

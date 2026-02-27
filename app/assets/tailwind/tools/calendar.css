@@ -1,0 +1,117 @@
+/* Calendar tool - only what can't be done in ERB with Tailwind */
+
+@layer components {
+  /* Layout - no Tailwind equivalent for explicit track definitions */
+  .calendar-layout {
+    @apply flex flex-col h-full overflow-hidden;
+  }
+
+  /* Week grid container */
+  .calendar-week-container {
+    @apply bg-surface overflow-auto flex-1 min-h-0;
+  }
+
+  .week-grid {
+    @apply min-w-max;
+  }
+
+  /* Header */
+  .week-header {
+    @apply sticky top-0 z-10 grid bg-surface;
+    grid-template-columns: 64px repeat(7, minmax(140px, 1fr));
+  }
+
+  .week-header-cell {
+    @apply flex flex-col items-center justify-center p-3 border-r border-border-light;
+  }
+
+  .week-header-cell.time-label-cell {
+    @apply bg-surface;
+  }
+
+  .week-header-cell.today {
+    @apply bg-accent-light;
+  }
+
+  /* All-day events row */
+  .all-day-row {
+    @apply sticky top-[52px] z-10 grid bg-surface border-b border-border-light;
+    grid-template-columns: 64px 1fr;
+    min-height: 32px;
+  }
+
+  .all-day-label {
+    @apply flex items-start justify-end pr-2 pt-1.5 bg-surface border-r border-border-light;
+  }
+
+  .all-day-events-grid {
+    @apply grid relative;
+    grid-template-columns: repeat(7, minmax(140px, 1fr));
+    grid-auto-rows: 22px;
+    gap: 2px 0;
+    padding: 4px 0;
+  }
+
+  .all-day-grid-cell {
+    @apply border-r border-border-light;
+    grid-row: 1 / -1;
+  }
+
+  .all-day-event-span {
+    @apply flex items-center px-2 cursor-pointer z-10;
+    @apply transition-opacity hover:opacity-90;
+    margin: 0 2px;
+  }
+
+  /* Week body */
+  .week-body {
+    @apply grid;
+    grid-template-columns: 64px 1fr;
+  }
+
+  /* Time labels */
+  .time-labels {
+    @apply bg-surface border-r border-border-light sticky left-0 z-5;
+  }
+
+  .time-label {
+    @apply flex items-start justify-end pr-2 pt-1;
+    height: 60px;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+
+  /* Day columns */
+  .week-columns {
+    @apply grid;
+    grid-template-columns: repeat(7, minmax(140px, 1fr));
+  }
+
+  .week-column {
+    @apply relative border-r border-border-light;
+  }
+
+  .week-column.today {
+    @apply bg-accent-light/30;
+  }
+
+  /* Hour slots */
+  .hour-slot {
+    @apply border-b border-border-light cursor-pointer;
+    @apply transition-colors hover:bg-accent/5 active:bg-accent/10;
+    height: 60px;
+  }
+
+  /* Provider card selection */
+  .provider-card {
+    @apply block;
+  }
+
+  .provider-card input:checked + .provider-card-content {
+    @apply bg-accent-light border-accent;
+  }
+
+  .provider-card-content {
+    @apply flex flex-col items-center p-4 border-2 border-border-light rounded-lg;
+    @apply transition-all hover:border-accent/50;
+  }
+}

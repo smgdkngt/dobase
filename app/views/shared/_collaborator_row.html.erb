@@ -1,0 +1,28 @@
+<div class="collaborator-row" id="collaborator-<%= collaborator.id %>">
+  <div class="collaborator-info">
+    <%= render "shared/avatar", user: collaborator.user, size: :sm %>
+    <div>
+      <div class="collaborator-name">
+        <%= collaborator.user.name %>
+        <% if collaborator.role == "owner" %>
+          <span class="text-xs text-text-tertiary ml-1">(owner)</span>
+        <% end %>
+      </div>
+      <div class="collaborator-email"><%= collaborator.user.email_address %></div>
+    </div>
+  </div>
+  <% if tool.owned_by?(current_user) && collaborator.role != "owner" %>
+    <div class="flex items-center gap-2">
+      <%= button_to tool_collaborator_path(tool, collaborator),
+            method: :patch,
+            class: "collaborator-remove" do %>
+        Make owner
+      <% end %>
+      <%= button_to tool_collaborator_path(tool, collaborator),
+            method: :delete,
+            class: "collaborator-remove" do %>
+        Remove
+      <% end %>
+    </div>
+  <% end %>
+</div>

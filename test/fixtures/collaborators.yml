@@ -1,0 +1,53 @@
+# Owner collaborator records for all tools (mirrors after_create :add_creator_as_owner)
+# Fixtures bypass model callbacks, so we create these explicitly.
+
+one_project_board:
+  tool: project_board
+  user: one
+  role: owner
+
+one_shared_board:
+  tool: shared_board
+  user: one
+  role: owner
+
+one_my_docs:
+  tool: my_docs
+  user: one
+  role: owner
+
+one_my_calendar:
+  tool: my_calendar
+  user: one
+  role: owner
+
+two_other_calendar:
+  tool: other_calendar
+  user: two
+  role: owner
+
+one_my_files:
+  tool: my_files
+  user: one
+  role: owner
+
+one_my_mail:
+  tool: my_mail
+  user: one
+  role: owner
+
+one_my_room:
+  tool: my_room
+  user: one
+  role: owner
+
+one_my_todos:
+  tool: my_todos
+  user: one
+  role: owner
+
+# User two as collaborator on shared_board (for multi-user testing)
+two_shared_board:
+  tool: shared_board
+  user: two
+  role: collaborator

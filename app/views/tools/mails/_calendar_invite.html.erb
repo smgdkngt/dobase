@@ -1,0 +1,199 @@
+<%#
+  Calendar Invite Card Component
+
+  Required:
+    invite: Calendars::Invite object
+    tool: Current tool instance
+
+  Shows:
+    - Meeting details (summary, date/time, duration, location)
+    - Organizer information
+    - Status badge (pending/accepted/declined)
+    - Action buttons for pending invites (accept/decline)
+%>
+<div class="border border-accent/20 rounded-lg bg-accent/5 overflow-hidden">
+  <!-- Header -->
+  <div class="px-4 py-3 bg-accent/10 border-b border-accent/20 flex items-center gap-3">
+    <%= render "shared/icon", name: "calendar", size: 20, class: "text-accent" %>
+    <div class="flex-1">
+      <h3 class="font-medium text-text-primary">Calendar Invitation</h3>
+    </div>
+    <% if invite.accepted? %>
+      <%= render "components/badge", text: "Accepted", variant: :success %>
+    <% elsif invite.declined? %>
+      <%= render "components/badge", text: "Declined", variant: :muted %>
+    <% elsif invite.pending? %>
+      <%= render "components/badge", text: "Pending", variant: :warning %>
+    <% end %>
+  </div>
+
+  <!-- Meeting Details -->
+  <div class="px-4 py-4 space-y-3">
+    <!-- Title -->
+    <div>
+      <h4 class="text-lg font-semibold text-text-primary">
+        <%= invite.summary %>
+      </h4>
+    </div>
+
+    <!-- Date & Time -->
+    <div class="flex items-start gap-2 text-sm">
+      <%= render "shared/icon", name: "clock", size: 16, class: "text-text-secondary mt-0.5" %>
+      <div class="text-text-primary">
+        <% if invite.all_day %>
+          <p>
+            <%= invite.starts_at.strftime("%A, %B %d, %Y") %>
+            <% if invite.starts_at.to_date != invite.ends_at.to_date %>
+              - <%= invite.ends_at.strftime("%A, %B %d, %Y") %>
+            <% end %>
+          </p>
+          <p class="text-text-secondary">All day</p>
+        <% else %>
+          <p><%= invite.starts_at.strftime("%A, %B %d, %Y") %></p>
+          <p class="text-text-secondary">
+            <%= invite.starts_at.strftime("%I:%M %p") %> - <%= invite.ends_at.strftime("%I:%M %p") %>
+            <% if invite.duration_display %>
+              (<%= invite.duration_display %>)
+            <% end %>
+          </p>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Location -->
+    <% if invite.location.present? %>
+      <div class="flex items-start gap-2 text-sm">
+        <%= render "shared/icon", name: "map-pin", size: 16, class: "text-text-secondary mt-0.5" %>
+        <div class="text-text-primary">
+          <%= invite.location %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Organizer -->
+    <% if invite.organizer_name.present? || invite.organizer_email.present? %>
+      <div class="flex items-start gap-2 text-sm">
+        <%= render "shared/icon", name: "user", size: 16, class: "text-text-secondary mt-0.5" %>
+        <div class="text-text-primary">
+          <% if invite.organizer_name.present? %>
+            <span class="font-medium"><%= invite.organizer_name %></span>
+            <% if invite.organizer_email.present? %>
+              <span class="text-text-secondary">(<%= invite.organizer_email %>)</span>
+            <% end %>
+          <% else %>
+            <%= invite.organizer_email %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Description -->
+    <% if invite.description.present? %>
+      <div class="pt-2 border-t border-border-light">
+        <p class="text-sm text-text-secondary whitespace-pre-wrap"><%= invite.description %></p>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Actions for Pending Invites -->
+  <% if invite.pending? %>
+    <%
+      # Find calendar tools the user has access to
+      calendar_tools = current_user.accessible_tools
+        .joins(:calendar_account)
+        .where.not(calendar_accounts: { id: nil })
+        .includes(calendar_account: :calendars)
+
+      # Get enabled calendars from all calendar tools
+      available_calendars = calendar_tools.flat_map do |ct|
+        ct.calendar_account.calendars.enabled.map { |cal| [ct, cal] }
+      end
+    %>
+
+    <% if available_calendars.any? %>
+      <div class="px-4 py-3 bg-bg-light border-t border-border-light">
+        <%
+          # Use the first calendar tool as the target (or let user choose)
+          default_calendar_tool, default_calendar = available_calendars.first
+
+          # Build a mapping of calendar_id => tool_id for the form action switcher
+          calendar_to_tool_map = available_calendars.map { |ct, cal| [cal.id, ct.id] }.to_h
+        %>
+        <%= form_with url: tool_calendar_invites_path(default_calendar_tool),
+                      method: :post,
+                      class: "space-y-3",
+                      data: {
+                        controller: "calendar-invite-form",
+                        calendar_invite_form_calendar_map_value: calendar_to_tool_map.to_json,
+                        calendar_invite_form_invite_id_value: invite.id
+                      } do |f| %>
+          <%= f.hidden_field :invite_id, value: invite.id %>
+
+          <!-- Calendar Selection (if multiple calendars) -->
+          <% if available_calendars.size > 1 %>
+            <div>
+              <label class="block text-sm font-medium text-text-primary mb-1">
+                Add to calendar
+              </label>
+              <select name="calendar_id"
+                      class="input w-full text-sm"
+                      data-calendar-invite-form-target="calendarSelect"
+                      data-action="change->calendar-invite-form#updateFormAction">
+                <% available_calendars.each do |calendar_tool, calendar| %>
+                  <option value="<%= calendar.id %>">
+                    <%= calendar_tool.name %> - <%= calendar.name %>
+                  </option>
+                <% end %>
+              </select>
+            </div>
+          <% else %>
+            <%= f.hidden_field :calendar_id, value: default_calendar.id %>
+            <div class="text-sm text-text-secondary">
+              Will be added to: <span class="font-medium text-text-primary"><%= default_calendar_tool.name %> - <%= default_calendar.name %></span>
+            </div>
+          <% end %>
+
+          <!-- Action Buttons -->
+          <div class="flex items-center gap-2">
+            <%= render "components/button",
+                text: "Add to Calendar",
+                icon: "calendar-plus",
+                variant: :primary,
+                size: :sm,
+                type: :submit %>
+            <%= render "components/button",
+                text: "Decline",
+                variant: :secondary,
+                size: :sm,
+                href: tool_calendar_invite_path(default_calendar_tool, invite),
+                method: :delete,
+                data: { turbo_confirm: "Decline this invitation?" } %>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="px-4 py-3 bg-bg-light border-t border-border-light">
+        <p class="text-sm text-text-secondary mb-3">
+          No calendar configured. Set up a calendar tool to accept this invitation.
+        </p>
+        <%= render "components/button",
+            text: "Decline",
+            variant: :secondary,
+            size: :sm,
+            href: tool_calendar_invite_path(tool, invite),
+            method: :delete,
+            data: { turbo_confirm: "Decline this invitation?" } %>
+      </div>
+    <% end %>
+  <% elsif invite.accepted? && invite.created_event.present? && invite.added_to_calendar.present? %>
+    <!-- Link to Event -->
+    <div class="px-4 py-3 bg-bg-light border-t border-border-light">
+      <%= render "components/button",
+          text: "View in Calendar",
+          icon: "external-link",
+          variant: :secondary,
+          size: :sm,
+          href: tool_calendar_event_path(invite.added_to_calendar.account.tool, invite.created_event) %>
+    </div>
+  <% end %>
+</div>

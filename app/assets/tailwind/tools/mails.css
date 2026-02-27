@@ -1,0 +1,111 @@
+/* Mail tool - only what can't be done in ERB with Tailwind */
+
+@layer components {
+  /* Grid layouts - no Tailwind equivalent for explicit track definitions */
+  .mail-layout {
+    @apply grid h-screen overflow-hidden;
+    grid-template-rows: auto 1fr;
+    grid-template-columns: 320px 1fr;
+  }
+
+  .mail-content {
+    @apply bg-surface grid overflow-hidden;
+    grid-template-rows: auto 1fr auto;
+  }
+
+  .compose-layout {
+    @apply grid h-screen bg-surface;
+    grid-template-rows: 52px auto 1fr auto auto;
+  }
+
+  /* Compose editor: borderless, fills available space like docs editor */
+  rhino-editor.compose-editor {
+    @apply flex flex-col h-full;
+    --rhino-border-color: transparent;
+    --rhino-button-active-border-color: var(--color-accent);
+  }
+  rhino-editor.compose-editor [role="toolbar"] {
+    @apply shrink-0 border-b border-border-light px-4 py-2;
+  }
+  rhino-editor.compose-editor .trix-content {
+    @apply flex-1 px-4 py-4 w-full text-sm;
+    border: none;
+    border-radius: 0;
+    min-height: 100%;
+  }
+
+  /* Selected state with color-mix - no Tailwind equivalent */
+  .mail-list-item.selected {
+    @apply border-l-accent;
+    background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+  }
+}
+
+/* Responsive: Mobile */
+@media (max-width: 1023px) {
+  /* Single column layout on mobile */
+  .mail-layout {
+    grid-template-columns: 1fr;
+  }
+
+  /* Default: show list, hide content */
+  .mail-layout > .mail-content {
+    @apply hidden;
+  }
+
+  /* When detail is open: hide list, show content */
+  .mail-layout.mail-detail-open > .mail-list-panel {
+    @apply hidden;
+  }
+
+  .mail-layout.mail-detail-open > .mail-content {
+    @apply grid;
+  }
+
+  /* Topbar: wrap into two rows */
+  .mail-topbar {
+    @apply flex-wrap py-2;
+  }
+
+  /* Account info takes full first row */
+  .mail-topbar > .mail-topbar-account {
+    @apply border-r-0 border-b border-border-light pb-2 mr-0 pr-0 w-full;
+  }
+
+  /* Search wraps to second row */
+  .mail-topbar > .search-form {
+    @apply flex-1 min-w-0;
+  }
+
+  /* Hide sync indicator text, keep dot + button */
+  .mail-topbar .mail-sync-text {
+    @apply hidden;
+  }
+
+  /* Actions on first row */
+  .mail-topbar > .mail-topbar-actions {
+    @apply ml-auto order-first;
+  }
+
+  /* Detail header: actions on second row */
+  .mail-detail-header {
+    @apply flex-wrap gap-2 py-2;
+  }
+
+  .mail-detail-header > h1 {
+    @apply w-full whitespace-normal order-1;
+  }
+
+  .mail-detail-header > a:first-child {
+    @apply order-0;
+  }
+
+  .mail-detail-header > div:last-child {
+    @apply w-full order-2 flex-wrap;
+  }
+
+  /* Hide "select a message" empty state on mobile */
+  .mail-layout:not(.mail-detail-open) > .mail-content {
+    @apply hidden;
+  }
+}

@@ -1,0 +1,45 @@
+<dialog class="modal-dialog max-w-md"
+        data-controller="command-palette"
+        data-keyboard-shortcuts-target="commandPalette">
+  <div class="p-3">
+    <input type="text" placeholder="Jump to..."
+           class="input w-full"
+           autocomplete="off"
+           data-command-palette-target="input"
+           data-action="input->command-palette#filter keydown->command-palette#navigate">
+  </div>
+  <div class="max-h-80 overflow-y-auto pb-2" data-command-palette-target="results">
+    <% if content_for?(:command_palette_actions) %>
+      <div class="px-4 py-1.5">
+        <span class="text-xs font-semibold text-text-tertiary uppercase tracking-wider">Actions</span>
+      </div>
+      <%= content_for(:command_palette_actions) %>
+      <div class="border-t border-border-light my-1"></div>
+    <% end %>
+    <%
+      group_lookup = {}
+      current_user.sidebar_groups.includes(:tools).each do |group|
+        group.tools.each { |tool| group_lookup[tool.id] = group.name }
+      end
+    %>
+    <div class="px-4 py-1.5">
+      <span class="text-xs font-semibold text-text-tertiary uppercase tracking-wider">Tools</span>
+    </div>
+    <% current_user.accessible_tools.includes(:tool_type).order(:name).each do |tool| %>
+      <% group_name = group_lookup[tool.id] %>
+      <a href="<%= tool_path(tool) %>"
+         class="command-palette-item"
+         data-command-palette-target="item"
+         data-name="<%= tool.name.downcase %>"
+         data-type="<%= [tool.tool_type.name, group_name].compact.join(" ").downcase %>">
+        <% if tool.emoji_icon %>
+          <span class="shrink-0 text-base leading-none" aria-hidden="true"><%= tool.emoji_icon %></span>
+        <% else %>
+          <%= render "shared/icon", name: tool.display_icon, size: 18, class: "text-text-secondary" %>
+        <% end %>
+        <span class="flex-1 truncate"><%= tool.display_name %><% if group_name %> <span class="text-xs text-text-tertiary">in <%= group_name %></span><% end %></span>
+        <span class="text-xs text-text-tertiary"><%= tool.tool_type.name %></span>
+      </a>
+    <% end %>
+  </div>
+</dialog>

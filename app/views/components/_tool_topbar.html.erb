@@ -1,0 +1,36 @@
+<%#
+  Tool Topbar component - USE THIS FOR ALL TOOL PAGE HEADERS
+
+  Required:
+    title: Page/tool title
+
+  Options:
+    tool: Tool instance (for context)
+    back_path: Path for back button (optional)
+    title_html: Custom HTML for title area (optional, replaces title)
+
+  Yields:
+    &block: Additional content (buttons, search, tabs) rendered in the actions area
+
+  Examples:
+    render "components/tool_topbar", title: @tool.name, tool: @tool do
+      render "components/button", text: "Add Column", icon: "plus", size: :sm, variant: :secondary
+    end
+%>
+<div class="tool-topbar">
+  <div class="flex items-center gap-2">
+    <% if local_assigns[:back_path] %>
+      <%= link_to back_path, class: "p-1.5 -ml-1.5 text-text-tertiary hover:text-text-primary rounded-lg hover:bg-background-secondary transition-colors" do %>
+        <%= render "shared/icon", name: "arrow-left", size: 18 %>
+      <% end %>
+    <% end %>
+    <% if local_assigns[:title_html] %>
+      <%= title_html %>
+    <% elsif local_assigns[:title] %>
+      <h1 class="tool-topbar-title"><%= title %></h1>
+    <% end %>
+  </div>
+  <div class="tool-topbar-actions">
+    <%= yield if block_given? %>
+  </div>
+</div>

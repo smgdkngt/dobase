@@ -1,0 +1,55 @@
+<% content_for :title, "Add Tool - #{app_name}" %>
+<% content_for :page_title, "Add Tool" %>
+
+<div class="p-6">
+<div class="max-w-xl">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="text-lg font-semibold">Create a new tool</h2>
+    </div>
+    <div class="card-body">
+      <%= form_with model: @tool, url: tools_path do |f| %>
+        <%= render "shared/error_flash", object: @tool %>
+
+        <div class="mb-4">
+          <label for="tool_tool_type_id" class="label">Tool Type</label>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <% @tool_types.each do |tool_type| %>
+              <label class="relative cursor-pointer">
+                <%= f.radio_button :tool_type_id, tool_type.id, class: "peer sr-only" %>
+                <div class="card peer-checked:border-accent peer-checked:ring-2 peer-checked:ring-accent/20 hover:border-border transition-colors">
+                  <div class="card-body py-4 text-center">
+                    <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center mx-auto mb-2">
+                      <%= render "shared/icon", name: tool_type.icon, size: 20, class: "text-accent" %>
+                    </div>
+                    <span class="text-sm font-medium"><%= tool_type.name %></span>
+                  </div>
+                </div>
+              </label>
+            <% end %>
+          </div>
+          <% if @tool.errors[:tool_type].any? %>
+            <p class="error-text"><%= @tool.errors[:tool_type].first %></p>
+          <% end %>
+        </div>
+
+        <div class="mb-4">
+          <label for="tool_name" class="label">Name</label>
+          <%= f.text_field :name,
+            class: "input #{@tool.errors[:name].any? ? 'input-error' : ''}",
+            placeholder: "My Project Tasks",
+            required: true,
+            autofocus: @tool.tool_type_id.present?
+          %>
+          <p class="help-text">Give your tool a descriptive name</p>
+        </div>
+
+        <div class="flex items-center justify-end gap-3">
+          <%= render "components/button", text: "Cancel", href: root_path, variant: :secondary %>
+          <%= render "components/button", text: "Create Tool" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+</div>

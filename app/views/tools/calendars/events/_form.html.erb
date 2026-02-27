@@ -1,0 +1,222 @@
+<%#
+  Shared form partial for creating and editing events
+%>
+<%
+  is_new = event.new_record?
+  form_url = is_new ? tool_calendar_events_path(tool) : tool_calendar_event_path(tool, event)
+  form_method = is_new ? :post : :patch
+  modal_id = local_assigns[:modal_id]
+%>
+
+<%= form_with model: event, url: form_url, method: form_method, data: { turbo_frame: "_top" } do |f| %>
+  <%= render "shared/error_flash", object: event %>
+
+  <!-- Summary -->
+  <div class="mb-4">
+    <label for="calendar_event_summary" class="label">Event Title</label>
+    <%= f.text_field :summary,
+      class: "input #{event.errors[:summary].any? ? 'input-error' : ''}",
+      placeholder: "Team meeting, Lunch with client...",
+      required: true,
+      autofocus: true
+    %>
+  </div>
+
+  <!-- Calendar Selection -->
+  <div class="mb-4">
+    <label for="calendar_event_calendar_id" class="label">Calendar</label>
+    <%= f.select :calendar_id,
+      calendars.map { |c| [c.name, c.id] },
+      {},
+      class: "input",
+      required: true
+    %>
+  </div>
+
+  <!-- Date and Time -->
+  <div class="mb-4">
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label for="calendar_event_start_time" class="label">Start</label>
+        <%= f.datetime_local_field :start_time,
+          class: "input",
+          required: true,
+          data: { calendar_target: "startTimeInput" }
+        %>
+      </div>
+      <div>
+        <label for="calendar_event_end_time" class="label">End</label>
+        <%= f.datetime_local_field :end_time,
+          class: "input",
+          required: true,
+          data: { calendar_target: "endTimeInput" }
+        %>
+      </div>
+    </div>
+  </div>
+
+  <!-- All Day Checkbox -->
+  <div class="mb-4">
+    <label class="flex items-center gap-3 cursor-pointer">
+      <%= f.check_box :all_day, class: "w-4 h-4 rounded border-border text-accent focus:ring-accent/20" %>
+      <span class="text-sm text-text-primary">All day event</span>
+    </label>
+  </div>
+
+  <!-- Recurrence -->
+  <div class="mb-4" data-controller="recurrence-form"
+       data-recurrence-form-frequency-value="<%= event.recurrence_frequency || 'none' %>">
+    <label class="label">Repeat</label>
+
+    <%= f.select :recurrence_frequency,
+      [["Does not repeat", "none"], ["Daily", "daily"], ["Weekly", "weekly"],
+       ["Monthly", "monthly"], ["Yearly", "yearly"]],
+      {},
+      class: "input",
+      data: { action: "change->recurrence-form#frequencyChanged" }
+    %>
+
+    <div class="mt-3 space-y-3 <%= 'hidden' if event.recurrence_frequency.blank? || event.recurrence_frequency == 'none' %>"
+         data-recurrence-form-target="optionsSection">
+
+      <!-- Interval -->
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-text-secondary">Every</span>
+        <%= f.number_field :recurrence_interval,
+          value: event.recurrence_interval || 1,
+          min: 1, max: 99,
+          class: "input w-20"
+        %>
+        <span class="text-sm text-text-secondary" data-recurrence-form-target="intervalUnit">
+          <%= { "daily" => "day(s)", "weekly" => "week(s)", "monthly" => "month(s)", "yearly" => "year(s)" }[event.recurrence_frequency] %>
+        </span>
+      </div>
+
+      <!-- Weekly: Day of week checkboxes -->
+      <div data-recurrence-form-target="weeklyOptions"
+           class="<%= 'hidden' unless event.recurrence_frequency == 'weekly' %>">
+        <span class="text-sm text-text-secondary mb-1.5 block">On days</span>
+        <div class="flex gap-1">
+          <% [["MO", "M"], ["TU", "T"], ["WE", "W"], ["TH", "T"], ["FR", "F"], ["SA", "S"], ["SU", "S"]].each do |abbr, letter| %>
+            <% checked = Array(event.recurrence_days_of_week).include?(abbr) %>
+            <label class="flex items-center justify-center w-9 h-9 rounded-full border cursor-pointer text-sm font-medium transition-colors
+                          <%= checked ? 'bg-accent text-white border-accent' : 'border-border text-text-secondary hover:border-accent/50' %>">
+              <%= check_box_tag "calendars_event[recurrence_days_of_week][]", abbr, checked,
+                    class: "sr-only",
+                    id: "recurrence_day_#{abbr}",
+                    data: { action: "change->recurrence-form#toggleDayButton" } %>
+              <%= letter %>
+            </label>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Monthly: By day of month or by weekday -->
+      <%
+        week_num = event.starts_at ? ((event.starts_at.day - 1) / 7) + 1 : 1
+        ordinals = { 1 => "1st", 2 => "2nd", 3 => "3rd", 4 => "4th", 5 => "5th" }
+        wday_name = event.starts_at ? event.starts_at.strftime("%A") : "day"
+        monthly_dow_label = "The #{ordinals[week_num] || "#{week_num}th"} #{wday_name}"
+      %>
+      <div data-recurrence-form-target="monthlyOptions"
+           class="<%= 'hidden' unless event.recurrence_frequency == 'monthly' %>">
+        <span class="text-sm text-text-secondary mb-1.5 block">Repeat by</span>
+        <div class="space-y-2">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <%= f.radio_button :recurrence_monthly_by, "day_of_month",
+              class: "w-4 h-4 text-accent focus:ring-accent/20" %>
+            <span class="text-sm text-text-primary">Day of the month</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <%= f.radio_button :recurrence_monthly_by, "day_of_week",
+              class: "w-4 h-4 text-accent focus:ring-accent/20" %>
+            <span class="text-sm text-text-primary"><%= monthly_dow_label %></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- End condition -->
+      <div>
+        <span class="text-sm text-text-secondary mb-1.5 block">Ends</span>
+        <div class="space-y-2">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <%= f.radio_button :recurrence_end_type, "never",
+              class: "w-4 h-4 text-accent focus:ring-accent/20",
+              data: { action: "change->recurrence-form#endTypeChanged" } %>
+            <span class="text-sm text-text-primary">Never</span>
+          </label>
+
+          <div class="flex items-center gap-2">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <%= f.radio_button :recurrence_end_type, "count",
+                class: "w-4 h-4 text-accent focus:ring-accent/20",
+                data: { action: "change->recurrence-form#endTypeChanged" } %>
+              <span class="text-sm text-text-primary">After</span>
+            </label>
+            <div data-recurrence-form-target="endCountField"
+                 class="flex items-center gap-1 <%= 'hidden' unless event.recurrence_end_type == 'count' %>">
+              <%= f.number_field :recurrence_count,
+                value: event.recurrence_count || 10,
+                min: 1, max: 999,
+                class: "input w-20" %>
+              <span class="text-sm text-text-secondary">times</span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <%= f.radio_button :recurrence_end_type, "until",
+                class: "w-4 h-4 text-accent focus:ring-accent/20",
+                data: { action: "change->recurrence-form#endTypeChanged" } %>
+              <span class="text-sm text-text-primary">On date</span>
+            </label>
+            <div data-recurrence-form-target="endUntilField"
+                 class="<%= 'hidden' unless event.recurrence_end_type == 'until' %>">
+              <%= f.date_field :recurrence_until,
+                value: event.recurrence_until,
+                class: "input" %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Location -->
+  <div class="mb-4">
+    <label for="calendar_event_location" class="label">Location</label>
+    <%= f.text_field :location,
+      class: "input",
+      placeholder: "Meeting room, address..."
+    %>
+  </div>
+
+  <!-- Description -->
+  <div class="mb-4">
+    <label for="calendar_event_description" class="label">Description</label>
+    <%= f.text_area :description,
+      class: "input",
+      rows: 4,
+      placeholder: "Add notes, agenda items..."
+    %>
+  </div>
+
+  <!-- Form Actions -->
+  <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-border-light">
+    <% if modal_id %>
+      <%= render "components/button",
+          text: "Cancel",
+          variant: :secondary,
+          type: :button,
+          data: { action: "click->modal#close" } %>
+    <% else %>
+      <%= render "components/button",
+          text: "Cancel",
+          variant: :secondary,
+          href: tool_calendar_path(tool) %>
+    <% end %>
+    <%= render "components/button",
+        text: is_new ? "Create Event" : "Save Changes",
+        icon: "calendar" %>
+  </div>
+<% end %>

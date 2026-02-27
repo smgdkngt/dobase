@@ -1,0 +1,114 @@
+inbox_unread:
+  account: primary
+  message_id: "<msg-001@example.com>"
+  subject: Welcome to Dobase
+  from_address: sender@example.com
+  from_name: Friendly Sender
+  to_addresses: '["testuser@example.com"]'
+  body_plain: "Welcome to Dobase! We hope you enjoy the platform."
+  body_html: "<p>Welcome to Dobase! We hope you enjoy the platform.</p>"
+  folder: INBOX
+  read: false
+  starred: false
+  archived: false
+  trashed: false
+  thread_id: thread-001
+  uid: 101
+  sent_at: <%= 1.hour.ago.to_fs(:db) %>
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+inbox_read:
+  account: primary
+  message_id: "<msg-002@example.com>"
+  subject: Your weekly report
+  from_address: reports@example.com
+  from_name: Reports Bot
+  to_addresses: '["testuser@example.com"]'
+  body_plain: "Here is your weekly report summary."
+  folder: INBOX
+  read: true
+  starred: false
+  archived: false
+  trashed: false
+  thread_id: thread-002
+  uid: 102
+  sent_at: <%= 2.hours.ago.to_fs(:db) %>
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+starred_message:
+  account: primary
+  message_id: "<msg-003@example.com>"
+  subject: Important info
+  from_address: boss@example.com
+  from_name: The Boss
+  to_addresses: '["testuser@example.com"]'
+  body_plain: "Please review this ASAP."
+  folder: INBOX
+  read: true
+  starred: true
+  archived: false
+  trashed: false
+  thread_id: thread-003
+  uid: 103
+  sent_at: <%= 1.day.ago.to_fs(:db) %>
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+sent_message:
+  account: primary
+  message_id: "<msg-004@example.com>"
+  subject: "Re: Weekly report"
+  from_address: testuser@example.com
+  from_name: Test User
+  to_addresses: '["reports@example.com"]'
+  body_plain: "Thanks for the report."
+  folder: Sent
+  read: true
+  starred: false
+  archived: false
+  trashed: false
+  thread_id: thread-002
+  uid: 104
+  sent_at: <%= 1.hour.ago.to_fs(:db) %>
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+trashed_message:
+  account: primary
+  message_id: "<msg-005@example.com>"
+  subject: Old spam
+  from_address: spam@example.com
+  from_name: Spammer
+  to_addresses: '["testuser@example.com"]'
+  body_plain: "Buy stuff now!"
+  folder: INBOX
+  read: true
+  starred: false
+  archived: false
+  trashed: true
+  thread_id: thread-005
+  uid: 105
+  sent_at: <%= 3.days.ago.to_fs(:db) %>
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+archived_message:
+  account: primary
+  message_id: "<msg-006@example.com>"
+  subject: Archived conversation
+  from_address: colleague@example.com
+  from_name: Colleague
+  to_addresses: '["testuser@example.com"]'
+  body_plain: "This has been archived."
+  folder: INBOX
+  read: true
+  starred: false
+  archived: true
+  trashed: false
+  thread_id: thread-006
+  uid: 106
+  sent_at: <%= 5.days.ago.to_fs(:db) %>
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>

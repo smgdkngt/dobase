@@ -1,0 +1,131 @@
+<% content_for :title, "#{@tool.name} - #{app_name}" %>
+<% content_for :page_title, "" %>
+
+<% content_for :command_palette_actions do %>
+  <%= render "shared/command_palette_action", key: "n", description: "New event", icon: "plus" %>
+  <%= render "shared/command_palette_action", key: "t", description: "Go to today", icon: "clock-arrow-down" %>
+<% end %>
+
+<% content_for :keyboard_shortcuts do %>
+  <div>
+    <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Calendar</h3>
+    <div class="shortcut-list">
+      <%= render "shared/shortcut_row", key: "n", description: "New event" %>
+      <%= render "shared/shortcut_row", key: "t", description: "Go to today" %>
+      <%= render "shared/shortcut_row", key: "\u2318\u2190", description: "Previous week" %>
+      <%= render "shared/shortcut_row", key: "\u2318\u2192", description: "Next week" %>
+    </div>
+  </div>
+<% end %>
+<% content_for :head do %>
+  <meta name="turbo-refresh-method" content="morph">
+  <meta name="turbo-refresh-scroll" content="preserve">
+<% end %>
+
+<div class="calendar-layout"
+     data-controller="calendar"
+     data-calendar-tool-id-value="<%= @tool.id %>"
+     data-calendar-week-start-value="<%= @week_start.iso8601 %>">
+
+  <%
+    week_end = @week_start + 6.days
+    if @week_start.month == week_end.month
+      month_title = @week_start.strftime("%B %Y")
+    elsif @week_start.year == week_end.year
+      month_title = "#{@week_start.strftime("%b")} – #{week_end.strftime("%b %Y")}"
+    else
+      month_title = "#{@week_start.strftime("%b %Y")} – #{week_end.strftime("%b %Y")}"
+    end
+    is_current_week = @week_start == Date.current.beginning_of_week(:monday)
+  %>
+  <div class="tool-topbar flex-wrap gap-2">
+    <!-- Left: Month and year -->
+    <div class="flex-1 flex items-center gap-2">
+      <h1 class="tool-topbar-title"><%= month_title %></h1>
+    </div>
+
+    <!-- Center: Week navigation pill -->
+    <%= render "components/nav_pill" do %>
+      <%= render "components/nav_pill_button", icon: "chevron-left", title: "Previous week (\u2318\u2190)", data: { controller: "hotkey", action: "calendar#previousWeek", hotkey: "Mod+ArrowLeft" } %>
+      <%= render "components/nav_pill_button", icon: "clock-arrow-down", title: "Today (t)", data: { controller: "hotkey", action: "calendar#goToToday", hotkey: "t" } %>
+      <%= render "components/nav_pill_button", icon: "plus", title: "New event (n)", data: { controller: "hotkey", action: "calendar#newEvent", hotkey: "n" } %>
+      <%= render "components/nav_pill_button", icon: "calendar-days", title: "Pick a week", data: { action: "calendar#openWeekPicker" } %>
+      <%= render "components/nav_pill_button", icon: "chevron-right", title: "Next week (\u2318\u2192)", data: { controller: "hotkey", action: "calendar#nextWeek", hotkey: "Mod+ArrowRight" } %>
+      <input type="week"
+             value="<%= @week_start.strftime("%G-W%V") %>"
+             class="absolute opacity-0 pointer-events-none"
+             data-action="change->calendar#jumpToWeek"
+             data-calendar-target="weekInput">
+    <% end %>
+
+    <!-- Right: Sync status -->
+    <div class="flex-1 flex items-center gap-3 justify-end">
+      <% if @calendar_account && !@calendar_account.local? %>
+        <div class="flex items-center gap-2"
+             data-controller="sync-status"
+             data-sync-status-url-value="<%= tool_calendar_sync_path(@tool) %>"
+             data-sync-status-syncing-value="<%= @calendar_account.syncing? %>">
+          <div class="w-1.5 h-1.5 rounded-full <%= @calendar_account.synced? ? 'bg-success' : (@calendar_account.sync_error? ? 'bg-error' : 'bg-warning') %>"
+               data-sync-status-target="indicator"></div>
+          <span class="text-xs text-text-tertiary" data-sync-status-target="status">
+            <% if @calendar_account.syncing? %>
+              Syncing...
+            <% elsif @calendar_account.last_synced_at %>
+              <%= time_ago_in_words(@calendar_account.last_synced_at) %>
+            <% else %>
+              Not synced
+            <% end %>
+          </span>
+          <%= render "components/icon_button",
+              icon: "refresh-cw",
+              title: "Sync now",
+              size: :sm,
+              href: tool_calendar_sync_path(@tool),
+              method: :post,
+              icon_class: @calendar_account.syncing? ? "animate-spin" : nil,
+              data: { sync_status_target: "button", action: "click->sync-status#sync" } %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Week grid -->
+  <div class="calendar-week-container" id="calendar-week-container" data-calendar-target="grid">
+    <%= render "tools/calendars/week_grid",
+        week_start: @week_start,
+        events: @events,
+        calendars: @calendars %>
+  </div>
+
+  <!-- New Event Modal -->
+  <%
+    # Default new event: first calendar, current time rounded to next hour, 1 hour duration
+    default_calendar = @calendars.find(&:enabled?) || @calendars.first
+    now = Time.current
+    default_start = now.change(min: 0) + 1.hour
+    default_end = default_start + 1.hour
+    new_event = Calendars::Event.new(
+      calendar: default_calendar,
+      start_time: default_start,
+      end_time: default_end
+    )
+  %>
+  <%= render "shared/modal", id: "new-event-modal", title: "New Event", size: :lg,
+        data: { calendar_target: "newEventDialog" } do %>
+    <div data-calendar-target="newEventModal">
+      <%= render "tools/calendars/events/form",
+          event: new_event,
+          calendars: @calendars,
+          tool: @tool,
+          modal_id: "new-event-modal" %>
+    </div>
+  <% end %>
+
+  <!-- Event Details Modal -->
+  <%= render "shared/modal", id: "event-details-modal", title: "Event Details", size: :lg,
+        data: { calendar_target: "eventDetailDialog" } do %>
+    <div data-calendar-target="eventModal">
+      <!-- Content loaded dynamically -->
+    </div>
+  <% end %>
+</div>

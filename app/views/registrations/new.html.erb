@@ -1,0 +1,77 @@
+<% content_for :title, "Sign Up - #{app_name}" %>
+
+<div class="w-full max-w-sm">
+  <div class="text-center mb-8">
+    <img src="<%= app_logo_path %>" alt="<%= app_name %>" class="w-16 h-16 mx-auto mb-4">
+    <h1 class="text-2xl font-semibold text-text-primary">Create your account</h1>
+    <p class="text-text-secondary mt-1">Get started with <%= app_name %></p>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <%= form_with model: @user, url: signup_path, method: :post do |f| %>
+        <%= render "shared/error_flash", object: @user %>
+
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <div>
+            <label for="user_first_name" class="label">First Name</label>
+            <%= f.text_field :first_name,
+              class: "input #{@user.errors[:first_name].any? ? 'input-error' : ''}",
+              placeholder: "John",
+              required: true,
+              autofocus: true,
+              autocomplete: "given-name"
+            %>
+          </div>
+          <div>
+            <label for="user_last_name" class="label">Last Name</label>
+            <%= f.text_field :last_name,
+              class: "input #{@user.errors[:last_name].any? ? 'input-error' : ''}",
+              placeholder: "Doe",
+              required: true,
+              autocomplete: "family-name"
+            %>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label for="user_email_address" class="label">Email</label>
+          <%= f.email_field :email_address,
+            class: "input #{@user.errors[:email_address].any? ? 'input-error' : ''}",
+            placeholder: "you@example.com",
+            required: true,
+            autocomplete: "email"
+          %>
+        </div>
+
+        <div class="mb-4">
+          <label for="user_password" class="label">Password</label>
+          <%= f.password_field :password,
+            class: "input #{@user.errors[:password].any? ? 'input-error' : ''}",
+            placeholder: "At least 8 characters",
+            required: true,
+            autocomplete: "new-password"
+          %>
+          <p class="help-text">Must be at least 8 characters</p>
+        </div>
+
+        <div class="mb-6">
+          <label for="user_password_confirmation" class="label">Confirm Password</label>
+          <%= f.password_field :password_confirmation,
+            class: "input",
+            placeholder: "Confirm your password",
+            required: true,
+            autocomplete: "new-password"
+          %>
+        </div>
+
+        <%= render "components/button", text: "Create Account", full_width: true %>
+      <% end %>
+    </div>
+  </div>
+
+  <p class="text-center text-sm text-text-secondary mt-6">
+    Already have an account?
+    <%= link_to "Sign in", login_path, class: "text-accent hover:underline font-medium" %>
+  </p>
+</div>

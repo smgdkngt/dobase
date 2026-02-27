@@ -1,0 +1,24 @@
+<div class="flex items-center justify-between py-2 opacity-75" id="invitation-<%= invitation.id %>">
+  <div class="collaborator-info">
+    <%= render "shared/avatar", initials: invitation.email[0].upcase, size: :sm %>
+    <div>
+      <div class="collaborator-name">
+        <%= invitation.email %>
+        <span class="inline-block text-[0.625rem] font-semibold text-warning bg-warning-light px-1.5 py-px rounded-full ml-1.5 uppercase tracking-wide">Pending</span>
+      </div>
+      <div class="collaborator-email">Invited <%= time_ago_in_words(invitation.created_at) %> ago</div>
+    </div>
+  </div>
+  <div class="flex gap-1 shrink-0">
+    <%= button_to tool_resend_invitation_path(tool, invitation),
+          method: :post,
+          class: "text-xs text-accent bg-transparent border-none cursor-pointer px-2 py-1 rounded-sm hover:bg-accent-light disabled:opacity-50 disabled:cursor-default" do %>
+      Resend
+    <% end %>
+    <%= button_to tool_cancel_invitation_path(tool, invitation),
+          method: :delete,
+          class: "collaborator-remove" do %>
+      Cancel
+    <% end %>
+  </div>
+</div>

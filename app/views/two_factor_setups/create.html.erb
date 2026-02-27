@@ -1,0 +1,34 @@
+<%= turbo_frame_tag "profile-form" do %>
+  <div class="space-y-6">
+    <div class="text-center">
+      <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-success/10 text-success mb-3">
+        <%= render "shared/icon", name: "check", size: 24 %>
+      </div>
+      <h3 class="text-lg font-semibold text-text-primary">Two-factor authentication enabled</h3>
+      <p class="text-sm text-text-secondary mt-1">Save these recovery codes in a safe place</p>
+    </div>
+
+    <div class="bg-background-secondary rounded-lg p-4">
+      <p class="text-sm text-text-secondary mb-3">
+        Use these codes to sign in if you lose access to your authenticator app. Each code can only be used once.
+      </p>
+      <div class="grid grid-cols-2 gap-2">
+        <% @recovery_codes.each do |code| %>
+          <code class="px-3 py-2 bg-surface rounded text-sm font-mono text-text-primary text-center select-all"><%= code %></code>
+        <% end %>
+      </div>
+      <button type="button"
+              class="btn btn-primary btn-sm w-full mt-3"
+              onclick="navigator.clipboard.writeText('<%= @recovery_codes.join('\n') %>'); this.textContent = 'Copied!'; setTimeout(() => this.textContent = 'Copy all codes', 2000)">
+        Copy all codes
+      </button>
+    </div>
+
+    <div class="flex justify-end">
+      <%= render "components/button",
+        text: "Done",
+        href: edit_profile_path(tab: "security"),
+        data: { turbo_frame: "profile-form" } %>
+    </div>
+  </div>
+<% end %>

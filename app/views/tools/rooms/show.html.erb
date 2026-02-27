@@ -1,0 +1,98 @@
+<% content_for(:title) { "#{@tool.name} - #{app_name}" } %>
+
+<div class="tool-layout flex flex-col h-full overflow-hidden"
+     data-controller="room"
+     data-room-token-url-value="<%= tool_room_tokens_path(@tool) %>"
+     data-room-user-name-value="<%= current_user.name %>">
+
+  <%= render "components/tool_topbar", title: @tool.name, tool: @tool do %>
+    <div class="flex items-center gap-1.5 text-sm text-text-secondary">
+      <%= render "shared/icon", name: "users", size: 14, class: "text-text-tertiary" %>
+      <span data-room-target="participantCount">0 participants</span>
+    </div>
+  <% end %>
+
+  <%# Pre-join state %>
+  <div class="flex-1 flex flex-col items-center justify-center" data-room-target="preJoin">
+    <%= render "components/empty_state",
+          icon: "video",
+          title: "Video Room",
+          description: "Join to start a video call with collaborators",
+          size: :md %>
+    <div class="mt-6">
+      <%= render "components/button",
+            text: "Join Room",
+            variant: :primary,
+            icon: "video",
+            type: :button,
+            data: { action: "click->room#join" } %>
+    </div>
+  </div>
+
+  <%# In-call state %>
+  <div class="hidden flex-1 flex flex-col overflow-hidden relative" data-room-target="inCall">
+    <%# Video grid (remote participants) %>
+    <div class="flex-1 grid gap-2 p-4 overflow-hidden auto-rows-fr"
+         style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));"
+         data-room-target="videoGrid">
+    </div>
+
+    <%# Local camera PiP %>
+    <div class="absolute bottom-16 right-4 w-44 rounded-lg overflow-hidden shadow-lg border border-white/10 z-10"
+         data-room-target="localVideo">
+      <video class="w-full aspect-video object-cover bg-background-secondary" autoplay playsinline muted></video>
+    </div>
+
+    <%# Controls bar %>
+    <div class="flex items-center justify-center gap-2 px-4 py-3 bg-surface border-t border-border-light">
+      <%= render "components/icon_button",
+            icon: "mic",
+            title: "Toggle microphone",
+            data: {
+              room_target: "micButton",
+              action: "click->room#toggleMic"
+            } %>
+
+      <%= render "components/icon_button",
+            icon: "video",
+            title: "Toggle camera",
+            data: {
+              room_target: "cameraButton",
+              action: "click->room#toggleCamera"
+            } %>
+
+      <%= render "components/icon_button",
+            icon: "monitor",
+            title: "Toggle screen share",
+            data: {
+              room_target: "screenButton",
+              action: "click->room#toggleScreen"
+            } %>
+
+      <%= render "components/button",
+            text: "Leave",
+            variant: :danger,
+            icon: "log-out",
+            type: :button,
+            data: { action: "click->room#leave" } %>
+    </div>
+  </div>
+
+  <%# Participant tile template %>
+  <template data-room-target="participantTemplate">
+    <div class="relative bg-background-secondary rounded-xl overflow-hidden" data-participant-id="">
+      <video class="hidden w-full h-full object-cover" data-video autoplay playsinline muted></video>
+      <div class="absolute inset-0 flex flex-col items-center justify-center gap-3" data-placeholder>
+        <div class="w-16 h-16 rounded-full bg-background-tertiary flex items-center justify-center text-xl font-semibold text-text-primary" data-initials></div>
+        <span class="text-sm text-text-secondary" data-name></span>
+      </div>
+      <div class="absolute bottom-2 left-2 flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/50 backdrop-blur-sm">
+        <span class="text-xs font-medium text-white" data-name></span>
+        <span class="hidden text-white/80" data-muted-icon>
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="2" x2="22" y1="2" y2="22"/><path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2"/><path d="M5 10v2a7 7 0 0 0 12 5"/><path d="M15 9.34V5a3 3 0 0 0-5.68-1.33"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+        </span>
+      </div>
+    </div>
+  </template>
+
+</div>

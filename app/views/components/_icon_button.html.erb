@@ -1,0 +1,74 @@
+<%#
+  Icon Button component - USE THIS FOR ALL ICON-ONLY TOOLBAR BUTTONS
+
+  Required:
+    icon: Icon name
+    title: Tooltip/accessibility label (REQUIRED)
+
+  Options:
+    variant: :ghost (default), :danger, :accent
+    size: :sm, :md (default)
+    group: :left, :middle, :right (for grouped buttons)
+    href: If provided, renders as link_to
+    method: HTTP method for link
+    data: Data attributes hash
+    class: Additional CSS classes
+    icon_class: Additional CSS classes for the icon
+    disabled: true to disable
+    turbo_confirm: Confirmation message
+    type: :button (default), :submit
+    name: Input name for submit buttons
+    value: Input value for submit buttons
+
+  Examples:
+    render "components/icon_button", icon: "settings", title: "Settings"
+    render "components/icon_button", icon: "trash-2", title: "Delete", variant: :danger
+    render "components/icon_button", icon: "refresh-cw", title: "Sync", icon_class: "animate-spin"
+    render "components/icon_button", icon: "x", title: "Close", data: { action: "click->modal#close" }
+    render "components/icon_button", icon: "send", title: "Send", variant: :accent, type: :submit
+    render "components/icon_button", icon: "reply", title: "Reply", group: :left
+%>
+<%
+  variant ||= :ghost
+  size ||= :md
+
+  icon_size = size == :sm ? 14 : 16
+
+  classes = ["icon-btn"]
+  classes << "icon-btn-danger" if variant == :danger
+  classes << "icon-btn-accent" if variant == :accent
+  classes << "icon-btn-sm" if size == :sm
+  classes << "icon-btn-group-left" if local_assigns[:group] == :left
+  classes << "icon-btn-group-middle" if local_assigns[:group] == :middle
+  classes << "icon-btn-group-right" if local_assigns[:group] == :right
+  classes << local_assigns[:class] if local_assigns[:class]
+  classes = classes.reject(&:blank?).join(" ")
+
+  data_attrs = local_assigns[:data] || {}
+  data_attrs[:turbo_confirm] = turbo_confirm if local_assigns[:turbo_confirm]
+  data_attrs[:turbo_method] = local_assigns[:method] if local_assigns[:method]
+%>
+
+<%
+  icon_content = render("shared/icon", name: icon, size: icon_size, class: local_assigns[:icon_class])
+
+  html_options = {
+    class: classes,
+    title: title,
+    data: data_attrs.presence
+  }.compact
+%>
+
+<% if local_assigns[:href] %>
+  <%= link_to icon_content, local_assigns[:href], **html_options %>
+<% else %>
+  <%
+    html_options.merge!(
+      type: local_assigns[:type] || :button,
+      disabled: local_assigns[:disabled] || nil,
+      name: local_assigns[:name],
+      value: local_assigns[:value]
+    ).compact!
+  %>
+  <%= tag.button(**html_options) { icon_content } %>
+<% end %>

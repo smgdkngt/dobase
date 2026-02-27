@@ -1,0 +1,14 @@
+<div class="flex items-center gap-2 py-1.5 group" id="card-attachment-<%= attachment.id %>">
+  <%= render "shared/icon", name: "file", size: 14, class: "flex-shrink-0 text-text-tertiary" %>
+  <% if attachment.file.attached? %>
+    <%= link_to attachment.filename.truncate(30), rails_blob_path(attachment.file, disposition: "attachment"), target: "_blank", rel: "noopener" %>
+  <% else %>
+    <span><%= attachment.filename.truncate(30) %></span>
+  <% end %>
+  <span class="text-xs text-text-tertiary ml-auto"><%= attachment.human_readable_size %></span>
+  <%= button_to tool_board_card_attachment_path(card.column.board.tool, card, attachment),
+        method: :delete,
+        class: "opacity-0 group-hover:opacity-100 p-1 text-text-tertiary hover:text-error bg-transparent border-none cursor-pointer" do %>
+    <%= render "shared/icon", name: "x", size: 12 %>
+  <% end %>
+</div>

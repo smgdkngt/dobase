@@ -1,0 +1,94 @@
+<% content_for(:title) { "#{@file.name} - #{@tool.name} - #{app_name}" } %>
+
+<div class="tool-layout grid grid-rows-[auto_1fr] grid-cols-1 md:grid-cols-[1fr_280px] h-full overflow-hidden" data-controller="file-preview" data-file-preview-file-id-value="<%= @file.id %>" data-file-preview-tool-id-value="<%= @tool.id %>">
+  <%# Header %>
+  <div class="col-span-full flex items-center gap-2 sm:gap-4 px-3 sm:px-6 py-3 border-b border-border-light">
+    <%= render "components/back_link", href: tool_files_path(@tool, folder_id: @file.folder_id) %>
+
+    <h1 class="flex-1 text-lg font-semibold truncate"><%= @file.name %></h1>
+
+    <div class="flex items-center gap-2">
+      <% if @file.share %>
+        <%= render "components/button",
+            text: "Shared",
+            icon: "link",
+            size: :sm,
+            variant: :ghost,
+            type: :button,
+            data: { action: "file-preview#manageShare" } %>
+      <% else %>
+        <%= render "components/button",
+            text: "Share",
+            icon: "share",
+            size: :sm,
+            variant: :ghost,
+            type: :button,
+            data: { action: "file-preview#createShare" } %>
+      <% end %>
+      <%= link_to tool_files_item_download_path(@tool, @file), class: "btn btn-sm btn-primary" do %>
+        <%= render "shared/icon", name: "download", size: 16 %>
+        <span>Download</span>
+      <% end %>
+      <%= button_to tool_files_item_path(@tool, @file), method: :delete, class: "icon-btn icon-btn-sm", title: "Delete", data: { turbo_confirm: "Delete this file?" } do %>
+        <%= render "shared/icon", name: "trash-2", size: 16 %>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Content %>
+  <div class="flex items-center justify-center p-4 sm:p-8 bg-background-secondary overflow-auto">
+    <%= render "components/media_preview", file: @file, download_path: tool_files_item_download_path(@tool, @file) %>
+  </div>
+
+  <%# Sidebar %>
+  <div class="p-4 sm:p-6 border-t md:border-t-0 md:border-l border-border-light overflow-y-auto">
+    <h3 class="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-4">Details</h3>
+    <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+      <dt class="text-text-tertiary">Type</dt>
+      <dd class="text-text-primary break-words"><%= @file.content_type || "Unknown" %></dd>
+
+      <dt class="text-text-tertiary">Size</dt>
+      <dd class="text-text-primary break-words"><%= @file.human_file_size %></dd>
+
+      <dt class="text-text-tertiary">Created</dt>
+      <dd class="text-text-primary break-words"><%= @file.created_at.strftime("%b %-d, %Y at %-I:%M %p") %></dd>
+
+      <dt class="text-text-tertiary">Modified</dt>
+      <dd class="text-text-primary break-words"><%= @file.updated_at.strftime("%b %-d, %Y at %-I:%M %p") %></dd>
+
+      <% if @file.folder %>
+        <dt class="text-text-tertiary">Location</dt>
+        <dd class="text-text-primary break-words"><%= @file.folder.breadcrumbs.map(&:name).join(" / ") %></dd>
+      <% end %>
+    </dl>
+
+    <% if @file.share %>
+      <h3 class="text-sm font-semibold text-text-secondary uppercase tracking-wide mt-6 mb-4">Sharing</h3>
+      <div class="bg-accent-light p-3 rounded-lg">
+        <p class="flex items-center gap-2 text-sm">
+          <%= render "shared/icon", name: "link", size: 14 %>
+          Public link active
+        </p>
+        <% if @file.share.expires_at %>
+          <p class="text-xs text-text-tertiary">
+            Expires <%= @file.share.expires_at.strftime("%b %-d, %Y") %>
+          </p>
+        <% end %>
+        <p class="text-xs text-text-tertiary">
+          Downloaded <%= pluralize(@file.share.download_count, "time") %>
+        </p>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Share dialog %>
+  <dialog class="modal-dialog max-w-sm" data-file-preview-target="shareDialog">
+    <div class="modal-header">
+      <h2>Share File</h2>
+      <%= render "components/icon_button", icon: "x", title: "Close", size: :sm, data: { action: "file-preview#closeShareDialog" } %>
+    </div>
+    <div class="modal-body">
+      <%= render "tools/files/shares/form", share: @file.share, shareable: @file, share_url: tool_files_item_share_path(@tool, @file) %>
+    </div>
+  </dialog>
+</div>

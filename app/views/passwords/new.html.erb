@@ -1,0 +1,34 @@
+<% content_for :title, "Reset Password - #{app_name}" %>
+
+<div class="w-full max-w-sm">
+  <div class="text-center mb-8">
+    <img src="<%= app_logo_path %>" alt="<%= app_name %>" class="w-16 h-16 mx-auto mb-4">
+    <h1 class="text-2xl font-semibold text-text-primary">Reset your password</h1>
+    <p class="text-text-secondary mt-1">We'll send you a reset link</p>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <%= form_with url: passwords_path, method: :post, class: "space-y-4" do |f| %>
+        <div>
+          <label for="email_address" class="label">Email</label>
+          <%= f.email_field :email_address,
+            class: "input",
+            placeholder: "you@example.com",
+            required: true,
+            autofocus: true,
+            autocomplete: "email",
+            value: params[:email_address]
+          %>
+        </div>
+
+        <%= render "components/button", text: "Send Reset Link", full_width: true %>
+      <% end %>
+    </div>
+  </div>
+
+  <p class="text-center text-sm text-text-secondary mt-6">
+    Remember your password?
+    <%= link_to "Sign in", login_path, class: "text-accent hover:underline font-medium" %>
+  </p>
+</div>

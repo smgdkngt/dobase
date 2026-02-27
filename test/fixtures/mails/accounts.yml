@@ -1,0 +1,20 @@
+<% encryptor = ActiveSupport::MessageEncryptor.new(Rails.application.secret_key_base[0, 32]) %>
+
+primary:
+  tool: my_mail
+  email_address: testuser@example.com
+  display_name: Test User
+  imap_host: imap.example.com
+  imap_port: 993
+  imap_ssl: true
+  smtp_host: smtp.example.com
+  smtp_port: 587
+  smtp_auth: plain
+  smtp_tls: true
+  username: testuser@example.com
+  encrypted_password: <%= encryptor.encrypt_and_sign("testpassword") %>
+  sync_status: synced
+  last_synced_at: <%= 5.minutes.ago.to_fs(:db) %>
+  synced_folders: '["INBOX","Sent","Archive","Receipts"]'
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>

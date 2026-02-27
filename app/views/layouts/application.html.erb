@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= content_for(:title) || app_name %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="<%= app_name %>">
+    <meta name="mobile-web-app-capable" content="yes">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <meta name="turbo-refresh-method" content="morph">
+    <meta name="turbo-refresh-scroll" content="preserve">
+    <meta name="view-transition" content="same-origin">
+
+    <%= yield :head %>
+
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+
+    <%= stylesheet_link_tag "rhino-editor", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body class="bg-background text-text-primary" data-controller="keyboard-shortcuts">
+    <%= render "shared/flash" %>
+    <% if user_signed_in? %>
+      <div data-controller="mobile-sidebar">
+        <%# Mobile header %>
+        <header class="mobile-header">
+          <button type="button" class="flex items-center justify-center w-8 h-8 -ml-1 rounded-lg text-text-secondary hover:text-text-primary hover:bg-sidebar-hover transition-colors" data-action="click->mobile-sidebar#toggle">
+            <%= render "shared/icon", name: "menu", size: 20 %>
+          </button>
+          <div class="flex items-center gap-1.5">
+            <img src="<%= app_logo_path %>" alt="<%= app_name %>" class="w-6 h-6">
+            <span class="text-sm font-semibold text-text-primary"><%= app_name %></span>
+          </div>
+          <div class="w-8"></div>
+        </header>
+
+        <%# Sidebar overlay %>
+        <div class="sidebar-overlay" data-mobile-sidebar-target="overlay" data-action="click->mobile-sidebar#close"></div>
+
+        <%= render "shared/sidebar" %>
+        <main class="main-content">
+          <%= yield %>
+        </main>
+      </div>
+      <button data-controller="hotkey" data-hotkey="Mod+k" data-action="click->keyboard-shortcuts#openCommandPalette" hidden>Command palette</button>
+      <%= render "shared/command_palette" %>
+      <%= render "shared/keyboard_shortcuts_dialog" %>
+    <% else %>
+      <main class="min-h-screen flex items-center justify-center bg-background-secondary">
+        <%= yield %>
+      </main>
+    <% end %>
+  </body>
+</html>

@@ -1,0 +1,77 @@
+/* Board tool - only what can't be done in ERB with Tailwind */
+
+/* Reorder mode animation */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-0.4deg); }
+  50% { transform: rotate(0.4deg); }
+}
+
+@layer components {
+  /* Reorder mode - complex state selectors */
+  .reorder-mode .board-column {
+    @apply cursor-grab outline-2 outline-accent outline -outline-offset-2;
+    animation: wiggle 0.25s ease-in-out infinite;
+  }
+  .reorder-mode .board-column:nth-child(even) { animation-delay: 0.125s; }
+  .reorder-mode .board-column:active { @apply cursor-grabbing; animation: none; }
+  .reorder-mode .board-column-cards { @apply pointer-events-none opacity-50; }
+  .reorder-mode .board-add-card { @apply hidden; }
+
+  /* Scrollbar styling */
+  .board-column-cards {
+    scrollbar-width: thin;
+  }
+
+  /* Column sizing */
+  .board-column {
+    @apply min-w-[300px] max-w-[300px];
+  }
+
+  /* Collapsed columns */
+  .board-column-collapsed-strip {
+    @apply hidden;
+  }
+
+  .board-column-expanded {
+    @apply flex flex-col flex-1 min-h-0;
+  }
+
+  .board-column.collapsed {
+    @apply min-w-10 max-w-10 cursor-pointer;
+  }
+
+  .board-column.collapsed .board-column-collapsed-strip {
+    @apply flex flex-col items-center py-3 gap-2;
+  }
+
+  .board-column.collapsed .board-column-expanded {
+    @apply hidden;
+  }
+
+  .board-column-collapsed-name {
+    @apply text-[0.8125rem] font-semibold uppercase tracking-wide whitespace-nowrap text-text-primary;
+    writing-mode: vertical-rl;
+  }
+
+  .board-column-collapsed-count {
+    @apply text-xs text-text-tertiary bg-background-tertiary rounded-full px-2 py-0.5 min-w-5 text-center;
+  }
+
+  /* Archived cards */
+  .board-card-archived {
+    @apply opacity-50;
+  }
+
+  /* Card hover lift — a physical sense of picking something up */
+  [data-card-id] {
+    transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+  }
+  [data-card-id]:hover {
+    transform: translateY(-1px);
+    @apply shadow-md;
+  }
+  [data-card-id]:active {
+    transform: translateY(0);
+    @apply shadow-sm;
+  }
+}

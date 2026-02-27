@@ -1,0 +1,95 @@
+<%# Locals: message %>
+<% if message.body_html.present? %>
+  <%
+    allowed_tags = %w[
+      p br div span a strong b em i u ul ol li
+      h1 h2 h3 h4 h5 h6 blockquote pre code
+      table thead tbody tfoot tr th td caption col colgroup
+      img hr center font
+      header footer section article figure figcaption
+      abbr address details summary mark small sub sup dl dt dd
+      style
+    ]
+
+    allowed_attributes = %w[
+      href alt title src
+      style class id dir lang
+      width height align valign
+      bgcolor color border
+      cellpadding cellspacing colspan rowspan
+    ]
+
+    sanitized = sanitize(message.body_html,
+      tags: allowed_tags,
+      attributes: allowed_attributes
+    )
+
+    # Strip any on* event handler attributes that slipped through
+    sanitized = sanitized.gsub(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/i, "")
+
+    # Strip remote images: replace src with blank, track if any were found
+    has_remote_images = sanitized.match?(/<img\b[^>]*?\bsrc\s*=\s*["']https?:\/\//i)
+    images_stripped = sanitized.gsub(/(<img\b[^>]*?)\bsrc\s*=\s*["']https?:\/\/[^"']*["']/i, '\1data-blocked-src=""')
+
+    base_styles = <<~CSS
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        color: #1d1d1f;
+        background: #fff;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+      }
+      a { color: #0071e3; }
+      img { max-width: 100%; height: auto; }
+      table { max-width: 100%; }
+      pre { white-space: pre-wrap; overflow-x: auto; }
+      blockquote {
+        margin: 0.5em 0;
+        padding-left: 1em;
+        border-left: 3px solid #d2d2d7;
+        color: #6e6e73;
+      }
+      @media (prefers-color-scheme: dark) {
+        body { color: #f5f5f7; background: #1c1c1e; }
+        a { color: #0a84ff; }
+        blockquote { border-left-color: #48484a; color: #a1a1a6; }
+      }
+    CSS
+
+    srcdoc_for = ->(body) {
+      "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><base target=\"_blank\"><style>#{base_styles}</style></head><body>#{body}</body></html>"
+    }
+
+    safe_srcdoc = srcdoc_for.call(images_stripped)
+    full_srcdoc = srcdoc_for.call(sanitized)
+  %>
+  <div data-controller="email-frame"
+       data-email-frame-full-srcdoc-value="<%= full_srcdoc %>">
+    <% if has_remote_images %>
+      <div class="flex items-center gap-2 px-3 py-2 mb-2 rounded-md bg-background-secondary text-xs text-text-secondary"
+           data-email-frame-target="banner">
+        <%= render "shared/icon", name: "image", size: 14, class: "text-text-tertiary shrink-0" %>
+        <span>Images are hidden to protect your privacy.</span>
+        <button type="button"
+                class="font-medium text-accent hover:underline bg-transparent border-none cursor-pointer p-0 text-xs"
+                data-action="email-frame#showImages">Show images</button>
+      </div>
+    <% end %>
+    <iframe
+      sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+      srcdoc="<%= safe_srcdoc %>"
+      data-email-frame-target="frame"
+      style="width: 100%; border: none; height: 0; overflow: hidden; display: block;"
+    ></iframe>
+  </div>
+<% elsif message.body_plain.present? %>
+  <div class="whitespace-pre-wrap text-text-primary text-sm"><%=
+    message.body_plain
+  %></div>
+<% else %>
+  <p class="text-text-tertiary italic text-sm">No content</p>
+<% end %>

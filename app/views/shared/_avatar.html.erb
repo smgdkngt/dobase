@@ -1,0 +1,46 @@
+<%#
+  Avatar component
+  Usage:
+    render "shared/avatar", user: current_user
+    render "shared/avatar", user: current_user, size: :lg
+    render "shared/avatar", initials: "JD", size: :sm
+
+  Options:
+    user: User object (will use avatar or generate initials from name)
+    initials: Custom initials (used if no user provided)
+    size: :sm, :md (default), :lg, :xl
+    class: Additional CSS classes
+%>
+<%
+  user = local_assigns[:user]
+  initials = local_assigns[:initials]
+  size = local_assigns[:size] || :md
+  extra_class = local_assigns[:class] || ""
+
+  size_classes = {
+    sm: "avatar-sm",
+    md: "avatar-md",
+    lg: "avatar-lg",
+    xl: "avatar-xl"
+  }
+
+  if user
+    if user.avatar.attached?
+      has_image = true
+      image_url = url_for(user.avatar.variant(resize_to_fill: [200, 200]))
+    else
+      has_image = false
+      initials = "#{user.first_name[0]}#{user.last_name[0]}".upcase
+    end
+  else
+    has_image = false
+    initials ||= "?"
+  end
+%>
+<div class="avatar <%= size_classes[size] %> <%= extra_class %>">
+  <% if has_image %>
+    <%= image_tag image_url, alt: user&.name || "Avatar", class: "w-full h-full object-cover" %>
+  <% else %>
+    <span><%= initials %></span>
+  <% end %>
+</div>

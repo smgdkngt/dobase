@@ -1,0 +1,401 @@
+<% content_for :title, "#{@tool.name} - #{app_name}" %>
+<% content_for :page_title, "" %>
+
+<% content_for :command_palette_actions do %>
+  <%= render "shared/command_palette_action", key: "c", description: "Compose", icon: "edit" %>
+  <%= render "shared/command_palette_action", key: "/", description: "Search", icon: "search" %>
+  <%= render "shared/command_palette_action", key: "e", description: "Archive", icon: "archive" %>
+  <%= render "shared/command_palette_action", key: "s", description: "Star / unstar", icon: "star" %>
+  <%= render "shared/command_palette_action", key: "r", description: "Reply", icon: "reply" %>
+  <%= render "shared/command_palette_action", key: "f", description: "Forward", icon: "forward" %>
+  <%= render "shared/command_palette_action", key: "#", description: "Trash", icon: "trash-2" %>
+<% end %>
+
+<% content_for :keyboard_shortcuts do %>
+  <div>
+    <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Mail</h3>
+    <div class="shortcut-list">
+      <%= render "shared/shortcut_row", key: "j", description: "Next message" %>
+      <%= render "shared/shortcut_row", key: "k", description: "Previous message" %>
+      <%= render "shared/shortcut_row", key: "o", description: "Open message" %>
+      <%= render "shared/shortcut_row", key: "c", description: "Compose" %>
+      <%= render "shared/shortcut_row", key: "/", description: "Search" %>
+      <%= render "shared/shortcut_row", key: "e", description: "Archive" %>
+      <%= render "shared/shortcut_row", key: "s", description: "Star / unstar" %>
+      <%= render "shared/shortcut_row", key: "u", description: "Mark unread" %>
+      <%= render "shared/shortcut_row", key: "#", description: "Trash" %>
+      <%= render "shared/shortcut_row", key: "r", description: "Reply" %>
+      <%= render "shared/shortcut_row", key: "a", description: "Reply all" %>
+      <%= render "shared/shortcut_row", key: "f", description: "Forward" %>
+    </div>
+  </div>
+<% end %>
+
+<div class="tool-layout mail-layout <%= 'mail-detail-open' if @selected_message %>"
+     data-controller="mail-keyboard mail-refresh"
+     data-mail-refresh-interval-value="<%= @mail_account.auto_refresh_interval || 60 %>"
+     data-mail-refresh-url-value="<%= tool_sync_path(@tool) %>">
+  <%# Hidden hotkey triggers for keyboard navigation %>
+  <button data-controller="hotkey" data-hotkey="j" data-action="click->mail-keyboard#selectNext" hidden>Next</button>
+  <button data-controller="hotkey" data-hotkey="k" data-action="click->mail-keyboard#selectPrevious" hidden>Previous</button>
+  <button data-controller="hotkey" data-hotkey="o" data-action="click->mail-keyboard#openSelected" hidden>Open</button>
+  <button data-controller="hotkey" data-hotkey="Enter" data-action="click->mail-keyboard#openSelected" hidden>Open</button>
+  <button data-controller="hotkey" data-hotkey="Escape" data-action="click->mail-keyboard#deselect" hidden>Deselect</button>
+  <!-- Top Bar -->
+  <div class="mail-topbar flex items-center px-4 py-1 min-h-[53px] gap-3 bg-surface border-b border-border-light col-span-full">
+    <h1 class="tool-topbar-title pr-4 mr-1 border-r border-border-light"><%= @tool.name %></h1>
+
+    <!-- Search -->
+    <%= render "components/search",
+        url: tool_mails_path(@tool),
+        value: params[:q],
+        placeholder: "Search emails... (/)",
+        hidden_fields: { folder: @current_folder },
+        data: { turbo_frame: "_top" },
+        input_data: { "controller": "hotkey", "hotkey": "/", "mail-keyboard-target": "search" } %>
+
+    <%
+      folder_meta = {
+        "inbox"   => { label: "Inbox",   icon: "inbox",   badge: @inbox_unread },
+        "starred" => { label: "Starred", icon: "star" },
+        "sent"    => { label: "Sent",    icon: "send" },
+        "archive" => { label: "Archive", icon: "archive" },
+        "trash"   => { label: "Trash",   icon: "trash-2", badge: @trash_count }
+      }
+      current_meta = folder_meta[@current_folder] || { label: @current_folder, icon: "folder" }
+    %>
+    <div class="relative">
+      <button type="button"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-background-secondary transition-colors"
+              popovertarget="mail-folder-menu"
+              style="anchor-name: --mail-folder-btn">
+        <%= render "shared/icon", name: current_meta[:icon], size: 16, class: "text-text-secondary" %>
+        <span><%= current_meta[:label] %></span>
+        <% if current_meta[:badge].to_i > 0 %>
+          <%= render "components/badge", text: current_meta[:badge] %>
+        <% end %>
+        <%= render "shared/icon", name: "chevron-down", size: 14, class: "text-text-tertiary" %>
+      </button>
+
+      <div id="mail-folder-menu" popover="auto" class="popover-menu" style="position-anchor: --mail-folder-btn; position-area: block-end span-inline-start">
+        <% folder_meta.each do |key, meta| %>
+          <%= link_to tool_mails_path(@tool, folder: key),
+                class: "dropdown-item flex items-center gap-2 #{@current_folder == key ? 'text-accent font-medium' : ''}" do %>
+            <%= render "shared/icon", name: meta[:icon], size: 16 %>
+            <span class="flex-1"><%= meta[:label] %></span>
+            <% if meta[:badge].to_i > 0 %>
+              <%= render "components/badge", text: meta[:badge], variant: :muted %>
+            <% end %>
+            <% if @current_folder == key %>
+              <%= render "shared/icon", name: "check", size: 14, class: "text-accent" %>
+            <% end %>
+          <% end %>
+        <% end %>
+        <% if @custom_folders.any? %>
+          <div class="dropdown-divider"></div>
+          <% @custom_folders.each do |folder| %>
+            <%= link_to tool_mails_path(@tool, folder: folder),
+                  class: "dropdown-item flex items-center gap-2 #{@current_folder == folder ? 'text-accent font-medium' : ''}" do %>
+              <%= render "shared/icon", name: "folder", size: 16 %>
+              <span class="flex-1"><%= folder %></span>
+              <% if @current_folder == folder %>
+                <%= render "shared/icon", name: "check", size: 14, class: "text-accent" %>
+              <% end %>
+            <% end %>
+          <% end %>
+        <% end %>
+        <div class="dropdown-divider"></div>
+        <button type="button"
+                class="dropdown-item flex items-center gap-2 w-full"
+                commandfor="create-folder-modal" command="show-modal"
+                popovertarget="mail-folder-menu" popovertargetaction="hide">
+          <%= render "shared/icon", name: "folder-plus", size: 16 %>
+          <span>New Folder</span>
+        </button>
+      </div>
+    </div>
+
+    <%= render "shared/modal", id: "create-folder-modal", title: "New Folder", size: :sm do %>
+      <%= form_with url: tool_folder_path(@tool), method: :post do %>
+        <%= render "components/form_field",
+            label: "Folder name",
+            name: "folder_name",
+            placeholder: "e.g. Receipts",
+            required: true,
+            autofocus: true %>
+        <div class="flex justify-end gap-2 mt-4">
+          <%= render "components/button", text: "Cancel", variant: :secondary, type: :button, data: { action: "click->modal#close" } %>
+          <%= render "components/button", text: "Create" %>
+        </div>
+      <% end %>
+    <% end %>
+
+    <div class="mail-topbar-actions flex items-center gap-2 ml-auto">
+      <div class="flex items-center gap-2 pr-3 mr-2 border-r border-border-light"
+           data-controller="sync-status"
+           data-sync-status-url-value="<%= tool_sync_path(@tool) %>"
+           data-sync-status-syncing-value="<%= @mail_account.syncing? %>">
+        <div class="w-1.5 h-1.5 rounded-full <%= @mail_account.synced? ? 'bg-success' : (@mail_account.sync_error? ? 'bg-error' : 'bg-warning') %>"
+             data-sync-status-target="indicator"></div>
+        <span class="text-xs text-text-tertiary" data-sync-status-target="status">
+          <% if @mail_account.syncing? %>
+            Syncing...
+          <% elsif @mail_account.last_synced_at %>
+            <%= time_ago_in_words(@mail_account.last_synced_at) %>
+          <% else %>
+            Not synced
+          <% end %>
+        </span>
+        <%= render "components/icon_button",
+            icon: "refresh-cw",
+            title: "Sync now",
+            size: :sm,
+            href: tool_sync_path(@tool),
+            method: :post,
+            icon_class: @mail_account.syncing? ? "animate-spin" : nil,
+            data: { sync_status_target: "button", action: "click->sync-status#sync" } %>
+      </div>
+
+      <%= render "components/button",
+          text: "Compose",
+          icon: "edit",
+          size: :sm,
+          href: new_tool_mail_path(@tool),
+          data: { controller: "hotkey", hotkey: "c" } %>
+    </div>
+  </div>
+
+  <!-- Message List -->
+  <div class="mail-list-panel bg-surface border-r border-border-light overflow-y-auto flex flex-col" data-mail-keyboard-target="list">
+    <% if @current_folder == "trash" && @trash_count > 0 %>
+      <div class="flex items-center justify-between px-3 py-2 bg-warning-light border-b border-warning text-[0.8125rem] text-warning">
+        <span>Messages in Trash are deleted forever after 30 days</span>
+        <%= button_to "Empty Trash", tool_empty_trash_path(@tool), method: :delete, class: "text-xs font-medium hover:underline", data: { turbo_confirm: "Permanently delete all messages in Trash?" } %>
+      </div>
+    <% end %>
+
+    <% if params[:q].present? %>
+      <div class="px-3 py-2 bg-accent-light border-b border-accent/20">
+        <div class="flex items-center justify-between">
+          <span class="text-xs text-accent">Search results for "<%= params[:q] %>"</span>
+          <%= link_to tool_mails_path(@tool, folder: @current_folder), class: "text-xs text-accent hover:underline" do %>
+            Clear search
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <%= form_with url: tool_bulk_path(@tool), method: :post, id: "bulk-form", data: { turbo: false } do %>
+      <input type="hidden" name="folder" value="<%= @current_folder %>">
+
+      <% if @conversations.any? %>
+        <div class="flex items-center px-3 py-0.5 min-h-9 border-b border-border-light bg-background-secondary gap-3">
+          <input type="checkbox" class="w-4 h-4 rounded accent-accent ml-[2px]" id="select-all" onchange="document.querySelectorAll('.mail-list-checkbox').forEach(cb => cb.checked = this.checked); document.getElementById('bulk-actions').classList.toggle('hidden', !this.checked)">
+          <div id="bulk-actions" class="flex items-center gap-1 hidden">
+            <% if @current_folder == "trash" %>
+              <%= render "components/icon_button", icon: "trash-2", title: "Delete forever", type: :submit, name: "action_type", value: "delete", size: :sm %>
+              <%= render "components/icon_button", icon: "rotate-ccw", title: "Restore", type: :submit, name: "action_type", value: "restore", size: :sm %>
+            <% else %>
+              <%= render "components/icon_button", icon: "archive", title: "Archive (e)", type: :submit, name: "action_type", value: "archive", size: :sm %>
+              <%= render "components/icon_button", icon: "trash-2", title: "Delete (#)", type: :submit, name: "action_type", value: "trash", size: :sm %>
+              <div class="relative">
+                <button type="button"
+                        class="icon-btn icon-btn-sm"
+                        title="Move to folder"
+                        popovertarget="bulk-move-menu"
+                        style="anchor-name: --bulk-move-btn">
+                  <%= render "shared/icon", name: "folder-input", size: 14 %>
+                </button>
+                <div id="bulk-move-menu" popover="auto" class="popover-menu"
+                     style="position-anchor: --bulk-move-btn; position-area: block-end span-inline-start">
+                  <%
+                    bulk_move_folders = [["INBOX", "inbox", "Inbox"], ["Sent", "send", "Sent"]]
+                    @custom_folders.each { |f| bulk_move_folders << [f, "folder", f] }
+                  %>
+                  <% bulk_move_folders.each do |folder_name, icon, label| %>
+                    <button type="button" class="dropdown-item flex items-center gap-2"
+                            onclick="const f=this.closest('form');f.querySelector('[name=action_type]')?.remove();const at=document.createElement('input');at.type='hidden';at.name='action_type';at.value='move_to_folder';f.appendChild(at);const tf=document.createElement('input');tf.type='hidden';tf.name='target_folder';tf.value='<%= j folder_name %>';f.appendChild(tf);f.requestSubmit();">
+                      <%= render "shared/icon", name: icon, size: 16 %>
+                      <span><%= label %></span>
+                    </button>
+                  <% end %>
+                </div>
+              </div>
+              <%= render "components/icon_button", icon: "mail-open", title: "Mark as read", type: :submit, name: "action_type", value: "mark_read", size: :sm %>
+              <%= render "components/icon_button", icon: "mail", title: "Mark as unread (u)", type: :submit, name: "action_type", value: "mark_unread", size: :sm %>
+            <% end %>
+          </div>
+          <span class="text-xs text-text-tertiary ml-auto"><%= @total_count %> messages</span>
+        </div>
+      <% end %>
+
+      <div class="flex-1 overflow-y-auto">
+        <% if @conversations.any? %>
+          <%= render partial: "tools/mails/conversation_item",
+                  collection: @conversations, as: :conversation,
+                  locals: { tool: @tool, current_folder: @current_folder, selected_message: @selected_message } %>
+
+          <% if @total_pages > 1 %>
+            <div class="p-3 flex items-center justify-center gap-2 border-t border-border-light">
+              <% if @page > 1 %>
+                <%= render "components/icon_button",
+                    icon: "chevron-left",
+                    title: "Previous page",
+                    href: tool_mails_path(@tool, folder: @current_folder, page: @page - 1, q: params[:q]) %>
+              <% end %>
+              <span class="text-xs text-text-tertiary"><%= @page %> / <%= @total_pages %></span>
+              <% if @page < @total_pages %>
+                <%= render "components/icon_button",
+                    icon: "chevron-right",
+                    title: "Next page",
+                    href: tool_mails_path(@tool, folder: @current_folder, page: @page + 1, q: params[:q]) %>
+              <% end %>
+            </div>
+          <% end %>
+        <% else %>
+          <%
+            folder_icons = { "inbox" => "inbox", "starred" => "star", "sent" => "send", "archive" => "archive", "trash" => "trash-2" }
+            folder_descriptions = { "inbox" => "Your inbox is empty", "starred" => "No starred messages", "sent" => "No sent messages", "archive" => "No archived messages", "trash" => "Trash is empty" }
+            empty_icon = folder_icons[@current_folder] || "folder"
+            empty_title = params[:q].present? ? "No results found" : "No messages"
+            empty_description = params[:q].present? ? "Try a different search term" : (folder_descriptions[@current_folder] || "No messages in #{@current_folder}")
+          %>
+          <%= render "components/empty_state",
+              icon: empty_icon,
+              title: empty_title,
+              description: empty_description %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Email Content -->
+  <% if @selected_message && @conversation_messages %>
+    <%
+      last_message = @conversation_messages.last
+      has_multiple_recipients = last_message.to_addresses_list.length > 1 || last_message.cc_addresses_list.any?
+    %>
+    <div class="mail-content">
+      <div class="mail-detail-header bg-surface border-b border-border-light px-4 py-3 flex items-center justify-between gap-4">
+        <%= link_to tool_mails_path(@tool, folder: @current_folder),
+            class: "hidden max-lg:flex items-center justify-center w-8 h-8 -ml-1 rounded-lg hover:bg-background-secondary transition-colors shrink-0" do %>
+          <%= render "shared/icon", name: "arrow-left", size: 18, class: "text-text-secondary" %>
+        <% end %>
+        <h1 class="text-base font-semibold text-text-primary whitespace-nowrap overflow-hidden text-ellipsis flex-1 min-w-0"><%= @selected_message.normalized_subject.presence || "(No subject)" %></h1>
+        <div class="flex items-center gap-1 flex-shrink-0">
+          <%= render "components/icon_button", icon: "reply", title: "Reply (r)",
+              href: new_tool_mail_path(@tool, reply_to: last_message.id),
+              data: { controller: "hotkey", hotkey: "r" } %>
+          <% if has_multiple_recipients %>
+            <%= render "components/icon_button", icon: "reply-all", title: "Reply All (a)",
+                href: new_tool_mail_path(@tool, reply_to: last_message.id, reply_all: true),
+                data: { controller: "hotkey", hotkey: "a" } %>
+          <% end %>
+          <%= render "components/icon_button", icon: "forward", title: "Forward (f)",
+              href: new_tool_mail_path(@tool, forward: last_message.id),
+              data: { controller: "hotkey", hotkey: "f" } %>
+          <span class="w-px h-4 bg-border-light mx-1"></span>
+          <% if @current_folder == "trash" %>
+            <%= render "components/icon_button", icon: "rotate-ccw", title: "Restore",
+                href: tool_mail_trash_path(@tool, @selected_message), method: :delete %>
+          <% else %>
+            <%= render "components/icon_button", icon: "archive", title: "Archive (e)",
+                href: tool_mail_archive_path(@tool, @selected_message), method: :post,
+                data: { controller: "hotkey", hotkey: "e" } %>
+          <% end %>
+          <div class="relative">
+            <button type="button"
+                    class="icon-btn icon-btn-sm"
+                    title="Move to folder"
+                    popovertarget="move-to-menu"
+                    style="anchor-name: --move-to-btn">
+              <%= render "shared/icon", name: "folder-input", size: 14 %>
+            </button>
+            <div id="move-to-menu" popover="auto" class="popover-menu"
+                 style="position-anchor: --move-to-btn; position-area: block-end span-inline-start">
+              <%
+                move_folders = [["INBOX", "inbox", "Inbox"], ["Sent", "send", "Sent"]]
+                @custom_folders.each { |f| move_folders << [f, "folder", f] }
+              %>
+              <% move_folders.each do |folder_name, icon, label| %>
+                <%= button_to tool_mail_move_path(@tool, @selected_message),
+                      class: "dropdown-item flex items-center gap-2",
+                      params: { folder: folder_name } do %>
+                  <%= render "shared/icon", name: icon, size: 16 %>
+                  <span><%= label %></span>
+                <% end %>
+              <% end %>
+            </div>
+          </div>
+          <%= render "components/icon_button",
+              icon: "star",
+              title: "Star (s)",
+              href: @selected_message.starred? ? tool_mail_star_path(@tool, @selected_message) : tool_mail_star_path(@tool, @selected_message),
+              method: @selected_message.starred? ? :delete : :post,
+              icon_class: @selected_message.starred? ? "text-warning fill-warning" : nil,
+              data: { controller: "hotkey", hotkey: "s" } %>
+          <%= render "components/icon_button",
+              icon: @selected_message.read? ? "mail" : "mail-open",
+              title: @selected_message.read? ? "Mark unread (u)" : "Mark read",
+              href: @selected_message.read? ? tool_mail_read_path(@tool, @selected_message) : tool_mail_read_path(@tool, @selected_message),
+              method: @selected_message.read? ? :delete : :post,
+              data: { controller: "hotkey", hotkey: "u" } %>
+          <% if @current_folder == "trash" %>
+            <%= render "components/icon_button", icon: "trash-2", title: "Delete forever",
+                href: tool_mails_path(@tool, @selected_message), method: :delete,
+                variant: :danger, turbo_confirm: "Permanently delete this email?",
+                data: { controller: "hotkey", hotkey: "#" } %>
+          <% else %>
+            <%= render "components/icon_button", icon: "trash-2", title: "Delete (#)",
+                href: tool_mail_trash_path(@tool, @selected_message), method: :post,
+                data: { controller: "hotkey", hotkey: "#" } %>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="overflow-y-auto p-4">
+        <% @conversation_messages.each_with_index do |msg, index| %>
+          <%= render "tools/mails/email_message",
+                email_message: msg,
+                is_last: index == @conversation_messages.length - 1 %>
+        <% end %>
+      </div>
+
+      <div class="bg-surface border-t border-border-light p-3.5">
+        <div class="flex items-center gap-2">
+          <%= link_to new_tool_mail_path(@tool, reply_to: last_message.id), class: "flex items-center gap-3 px-3.5 py-2.5 bg-background-secondary border border-border-light rounded-lg no-underline transition-all hover:border-accent hover:shadow-md flex-1" do %>
+            <div class="w-7 h-7 rounded-full bg-accent-light flex items-center justify-center">
+              <span class="text-[0.6875rem] font-semibold text-accent"><%= current_user.first_name[0]&.upcase %></span>
+            </div>
+            <span class="text-[0.8125rem] text-text-tertiary">Click to reply...</span>
+          <% end %>
+          <% if has_multiple_recipients %>
+            <%= render "components/button",
+                text: "Reply All",
+                icon: "reply-all",
+                size: :sm,
+                variant: :secondary,
+                href: new_tool_mail_path(@tool, reply_to: last_message.id, reply_all: true) %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  <% else %>
+    <div class="mail-content">
+      <div class="flex flex-col items-center justify-center h-full p-8">
+        <div class="w-16 h-16 rounded-full bg-background-tertiary flex items-center justify-center mb-5">
+          <%= render "shared/icon", name: "mail", size: 28, class: "text-text-tertiary" %>
+        </div>
+        <div class="text-base font-semibold text-text-primary mb-1.5">Select a message</div>
+        <div class="text-[0.8125rem] text-text-secondary text-center max-w-[260px]">Choose a conversation from the list to view and reply to messages</div>
+        <div class="mt-4 text-xs text-text-tertiary">
+          <span class="inline-flex items-center gap-1"><kbd class="px-1.5 py-0.5 bg-background-tertiary rounded text-text-secondary">j</kbd>/<kbd class="px-1.5 py-0.5 bg-background-tertiary rounded text-text-secondary">k</kbd> to navigate</span>
+          <span class="mx-2">&middot;</span>
+          <span class="inline-flex items-center gap-1"><kbd class="px-1.5 py-0.5 bg-background-tertiary rounded text-text-secondary">/</kbd> to search</span>
+          <span class="mx-2">&middot;</span>
+          <span class="inline-flex items-center gap-1"><kbd class="px-1.5 py-0.5 bg-background-tertiary rounded text-text-secondary">c</kbd> to compose</span>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>

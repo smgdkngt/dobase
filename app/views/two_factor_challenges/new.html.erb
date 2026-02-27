@@ -1,0 +1,44 @@
+<% content_for :title, "Verify your identity - #{app_name}" %>
+
+<div class="w-full max-w-sm">
+  <div class="text-center mb-8">
+    <img src="<%= app_logo_path %>" alt="<%= app_name %>" class="w-16 h-16 mx-auto mb-4">
+    <h1 class="text-2xl font-semibold text-text-primary">Check your authenticator app</h1>
+    <p class="text-text-secondary mt-1">Enter the 6-digit code to continue signing in</p>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <%= form_with url: two_factor_challenge_path, method: :post, class: "space-y-4" do |f| %>
+        <div>
+          <label for="code" class="label">Verification code</label>
+          <%= f.text_field :code,
+            class: "input text-center text-lg tracking-widest",
+            placeholder: "000 000",
+            required: true,
+            autofocus: true,
+            autocomplete: "one-time-code",
+            inputmode: "numeric",
+            maxlength: 8
+          %>
+        </div>
+
+        <%= render "components/button", text: "Verify", full_width: true %>
+      <% end %>
+
+      <p class="text-center text-sm text-text-tertiary mt-3">
+        Lost your device?
+        <button type="button" class="text-accent hover:underline" onclick="this.closest('.card-body').querySelector('[inputmode]').removeAttribute('inputmode'); this.closest('.card-body').querySelector('[maxlength]').setAttribute('maxlength', '20'); this.closest('p').classList.add('hidden')">
+          Use a recovery code
+        </button>
+      </p>
+    </div>
+  </div>
+
+  <p class="text-center text-sm text-text-secondary mt-6">
+    <%= link_to "Sign in with a different account", new_session_path, class: "text-accent hover:underline font-medium" %>
+  </p>
+  <p class="text-center text-xs text-text-tertiary mt-4">
+    Powered by <a href="https://dobase.co" class="hover:underline" target="_blank"><%= app_name %></a>
+  </p>
+</div>

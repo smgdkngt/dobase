@@ -1,0 +1,31 @@
+<%#
+  Tabs component - USE THIS FOR ALL TAB NAVIGATION
+
+  Required:
+    tabs: Array of tab hashes, each with:
+      - label: Tab text
+      - href: Tab link
+      - active: true if current tab
+      - icon: (optional) Icon name
+      - badge: (optional) Badge count/text
+
+  Examples:
+    render "components/tabs", tabs: [
+      { label: "Inbox", href: inbox_path, icon: "inbox", active: true, badge: 5 },
+      { label: "Sent", href: sent_path, icon: "send" },
+      { label: "Trash", href: trash_path, icon: "trash-2", badge: 3 }
+    ]
+%>
+<div class="tabs">
+  <% tabs.each do |tab| %>
+    <%= link_to tab[:href], class: "tab #{tab[:active] ? 'active' : ''}" do %>
+      <% if tab[:icon] %>
+        <%= render "shared/icon", name: tab[:icon], size: 14 %>
+      <% end %>
+      <span><%= tab[:label] %></span>
+      <% if tab[:badge].present? && tab[:badge] > 0 %>
+        <%= render "components/badge", text: tab[:badge], size: :sm %>
+      <% end %>
+    <% end %>
+  <% end %>
+</div>

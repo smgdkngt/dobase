@@ -1,0 +1,35 @@
+<%= turbo_frame_tag "notifications" do %>
+  <div class="flex items-center justify-between px-4 py-3 border-b border-border-light">
+    <h3 class="text-sm font-semibold text-text-primary">Notifications</h3>
+    <% if @notifications.any? %>
+      <div class="flex items-center gap-3">
+        <% if @notifications.any?(&:unread?) %>
+          <%= button_to notification_reads_path, method: :post,
+                class: "text-xs text-accent hover:text-accent-hover cursor-pointer bg-transparent border-none",
+                data: { notifications_target: "markAllRead", action: "notifications#markAllRead" } do %>
+            Mark all read
+          <% end %>
+        <% end %>
+        <button type="button" class="text-xs text-text-secondary hover:text-text-primary cursor-pointer bg-transparent border-none"
+                data-action="notifications#clearAll">
+          Clear all
+        </button>
+      </div>
+    <% end %>
+  </div>
+
+  <% if @notifications.any? %>
+    <div class="max-h-[400px] overflow-y-auto scrollbar-thin" data-notifications-target="list">
+      <% @notifications.each do |notification| %>
+        <%= render "notifications/notification", notification: notification %>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="px-4 py-8 text-center">
+      <div class="text-text-tertiary mb-1">
+        <%= render "shared/icon", name: "bell", size: 24, class: "mx-auto text-text-tertiary" %>
+      </div>
+      <p class="text-sm text-text-secondary">No notifications</p>
+    </div>
+  <% end %>
+<% end %>

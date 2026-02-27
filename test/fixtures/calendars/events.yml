@@ -1,0 +1,63 @@
+meeting:
+  calendar: personal
+  uid: meeting-123@dobase
+  summary: Team Meeting
+  description: Weekly team sync
+  location: Conference Room A
+  starts_at: <%= 1.day.from_now.change(hour: 10, min: 0).to_fs(:db) %>
+  ends_at: <%= 1.day.from_now.change(hour: 11, min: 0).to_fs(:db) %>
+  all_day: false
+  status: confirmed
+  etag: "etag-meeting-123"
+  remote_href: https://caldav.icloud.com/123456789/calendars/personal/meeting-123.ics
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+all_day_event:
+  calendar: personal
+  uid: vacation-456@dobase
+  summary: Vacation
+  starts_at: <%= 1.week.from_now.beginning_of_day.to_fs(:db) %>
+  ends_at: <%= 1.week.from_now.end_of_day.to_fs(:db) %>
+  all_day: true
+  status: confirmed
+  etag: "etag-vacation-456"
+  remote_href: https://caldav.icloud.com/123456789/calendars/personal/vacation-456.ics
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+multi_day_event:
+  calendar: personal
+  uid: conference-789@dobase
+  summary: Tech Conference
+  location: Convention Center
+  starts_at: <%= 2.weeks.from_now.change(hour: 9, min: 0).to_fs(:db) %>
+  ends_at: <%= 2.weeks.from_now.advance(days: 2).change(hour: 17, min: 0).to_fs(:db) %>
+  all_day: false
+  status: confirmed
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+recurring_weekly:
+  calendar: personal
+  uid: recurring-weekly@dobase
+  summary: Weekly Standup
+  starts_at: <%= 1.day.from_now.change(hour: 9, min: 0).to_fs(:db) %>
+  ends_at: <%= 1.day.from_now.change(hour: 9, min: 30).to_fs(:db) %>
+  all_day: false
+  is_recurring: true
+  rrule: "FREQ=WEEKLY;BYDAY=MO,WE,FR"
+  status: confirmed
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+work_event:
+  calendar: work
+  uid: standup-001@dobase
+  summary: Daily Standup
+  starts_at: <%= Date.tomorrow.to_time.change(hour: 9, min: 0).to_fs(:db) %>
+  ends_at: <%= Date.tomorrow.to_time.change(hour: 9, min: 15).to_fs(:db) %>
+  all_day: false
+  status: confirmed
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>

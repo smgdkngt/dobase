@@ -1,0 +1,17 @@
+<div class="flex gap-2.5 group" id="card-comment-<%= comment.id %>">
+  <div class="w-7 h-7 rounded-full bg-accent-light text-accent text-xs font-semibold flex items-center justify-center flex-shrink-0"><%= comment.user.name&.chars&.first&.upcase %></div>
+  <div class="flex-1 min-w-0">
+    <div class="flex items-center gap-2 mb-0.5">
+      <span class="text-sm font-medium text-text-primary"><%= comment.user.name %></span>
+      <span class="text-xs text-text-tertiary"><%= time_ago_in_words(comment.created_at) %> ago</span>
+    </div>
+    <div class="text-xs text-text-secondary leading-snug rich-text-content"><%= comment.body %></div>
+  </div>
+  <% if comment.user_id == current_user.id || card.column.board.tool.owned_by?(current_user) %>
+    <%= button_to tool_board_card_comment_path(card.column.board.tool, card, comment),
+          method: :delete,
+          class: "opacity-0 group-hover:opacity-100 p-1 text-text-tertiary hover:text-error bg-transparent border-none cursor-pointer" do %>
+      <%= render "shared/icon", name: "x", size: 12 %>
+    <% end %>
+  <% end %>
+</div>
