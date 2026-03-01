@@ -197,7 +197,7 @@
   }
 
   .dropdown-item {
-    @apply block w-full px-4 py-2 text-sm text-text-primary hover:bg-background-secondary text-left transition-colors;
+    @apply block w-full px-4 py-2 text-sm text-text-primary hover:bg-background-tertiary text-left transition-colors;
   }
 
   .dropdown-divider {

@@ -37,7 +37,7 @@
             size: :md %>
       </div>
     <% else %>
-      <div class="max-w-2xl mx-auto flex flex-col gap-4 <%= 'reorder-mode' if reorder_mode %>"
+      <div class="max-w-4xl mx-auto flex flex-col gap-4 <%= 'reorder-mode' if reorder_mode %>"
            <% if reorder_mode %>
            data-controller="sortable"
            data-sortable-url-value="<%= tool_todo_positions_path(@tool) %>"
