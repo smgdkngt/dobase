@@ -2,7 +2,7 @@
 <% is_selected = selected_message&.thread_id == conversation[:thread_id] %>
 <div class="mail-list-item flex items-start gap-3 px-3 py-2.5 border-b border-border-light border-l-2 border-l-transparent transition-all cursor-pointer hover:bg-background-secondary <%= 'selected' if is_selected %>" data-mail-keyboard-target="item" data-url="<%= tool_mails_path(tool, folder: current_folder, selected: conversation[:id]) %>">
   <input type="checkbox" name="message_ids[]" value="<%= conversation[:id] %>" class="mail-list-checkbox w-4 h-4 rounded accent-accent flex-shrink-0 mt-0.5" onclick="event.stopPropagation()" onchange="document.getElementById('bulk-actions').classList.toggle('hidden', !document.querySelector('.mail-list-checkbox:checked'))">
-  <%= link_to tool_mails_path(tool, folder: current_folder, selected: conversation[:id]), class: "flex-1 min-w-0 no-underline" do %>
+  <%= link_to tool_mails_path(tool, folder: current_folder, selected: conversation[:id]), class: "flex-1 min-w-0 no-underline", data: { turbo_frame: "mail-frame" } do %>
     <div class="flex items-center justify-between gap-2 mb-1">
       <div class="flex items-center gap-1.5 min-w-0 flex-1">
         <% unless conversation[:read] %>

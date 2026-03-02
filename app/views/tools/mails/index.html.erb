@@ -31,6 +31,7 @@
   </div>
 <% end %>
 
+<turbo-frame id="mail-frame" target="_top" data-turbo-action="advance">
 <div class="tool-layout mail-layout <%= 'mail-detail-open' if @selected_message %>"
      data-controller="mail-keyboard mail-refresh"
      data-mail-refresh-interval-value="<%= @mail_account.auto_refresh_interval || 60 %>"
@@ -399,3 +400,4 @@
     </div>
   <% end %>
 </div>
+</turbo-frame>

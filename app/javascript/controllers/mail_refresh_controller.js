@@ -44,7 +44,13 @@ export default class extends Controller {
         headers: { "X-CSRF-Token": csrfToken(), "Accept": "text/html" },
         credentials: "same-origin"
       })
-      if (res.ok) Turbo.visit(location.href, { action: "replace" })
+      if (res.ok) {
+        const frame = document.getElementById("mail-frame")
+        if (frame) {
+          frame.src = ""
+          frame.src = location.href
+        }
+      }
     } catch (e) {
       console.error("Mail sync failed:", e)
     } finally {

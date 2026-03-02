@@ -37,9 +37,9 @@ export default class extends Controller {
 
   navigateToItem(item) {
     if (!item) return
-    const href = item.getAttribute("href") || item.dataset.url
-    if (href) {
-      Turbo.visit(href)
+    const link = item.querySelector("a[href]")
+    if (link) {
+      link.click()
     } else {
       this.items.forEach(i => i.classList.remove("selected"))
       item.classList.add("selected")
@@ -50,8 +50,8 @@ export default class extends Controller {
   openSelected() {
     const selected = this.selectedItem
     if (!selected) return
-    const href = selected.getAttribute("href") || selected.dataset.url
-    href ? Turbo.visit(href) : selected.click()
+    const link = selected.querySelector("a[href]")
+    if (link) link.click()
   }
 
   deselect() {
