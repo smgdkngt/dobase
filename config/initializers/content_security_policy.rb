@@ -10,11 +10,15 @@ Rails.application.configure do
     policy.font_src    :self, :data
     policy.img_src     :self, :data, :https
     policy.object_src  :none
-    policy.script_src  :self
+    policy.script_src  :self, "https://ga.jspm.io", "https://cdn.jsdelivr.net"
     policy.style_src   :self, "'unsafe-inline'"
     policy.frame_src   :self
-    policy.connect_src :self
+    policy.connect_src :self, "wss://room.dobase.co"
   end
+
+  # Use a nonce for inline importmap scripts
+  config.content_security_policy_nonce_generator = ->(_request) { SecureRandom.base64(16) }
+  config.content_security_policy_nonce_directives = %w[script-src]
 
   # Report violations without enforcing the policy.
   config.content_security_policy_report_only = true
