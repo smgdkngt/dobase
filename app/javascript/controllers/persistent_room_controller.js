@@ -9,12 +9,10 @@ export default class extends Controller {
 
     this._onBeforeRender = this._handleBeforeRender.bind(this)
     this._onRender = this._handleRender.bind(this)
-    this._onBeforeVisit = this._handleBeforeVisit.bind(this)
     this._onBeforeUnload = this._handleBeforeUnload.bind(this)
 
     document.addEventListener("turbo:before-render", this._onBeforeRender)
     document.addEventListener("turbo:render", this._onRender)
-    document.addEventListener("turbo:before-visit", this._onBeforeVisit)
     window.addEventListener("beforeunload", this._onBeforeUnload)
 
     if (this._active) this._applySidebarIndicator()
@@ -23,7 +21,6 @@ export default class extends Controller {
   disconnect() {
     document.removeEventListener("turbo:before-render", this._onBeforeRender)
     document.removeEventListener("turbo:render", this._onRender)
-    document.removeEventListener("turbo:before-visit", this._onBeforeVisit)
     window.removeEventListener("beforeunload", this._onBeforeUnload)
   }
 
@@ -105,22 +102,6 @@ export default class extends Controller {
   }
 
   // ── Private ──────────────────────────────────────────────────────────
-
-  _handleBeforeVisit(event) {
-    if (!this._active || !this._roomElement) return
-
-    // Allow navigating back to the room tool
-    const url = new URL(event.detail.url, window.location.origin)
-    if (url.pathname === this._toolPath) return
-
-    // Check if the room element is in <main> (still on the room page)
-    const main = document.querySelector("main.main-content")
-    if (!main?.contains(this._roomElement)) return // Already in PiP, allow navigation
-
-    if (!confirm("You're in a video call. Navigating away will minimize your call to a small window. Continue?")) {
-      event.preventDefault()
-    }
-  }
 
   _handleBeforeRender(event) {
     if (!this._active || !this._roomElement) return
