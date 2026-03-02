@@ -2,7 +2,6 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   connect() {
-    // Restore state from DOM element (survives Turbo permanent preservation)
     this._roomElement = this.element._roomElement || null
     this._toolPath = this.element._toolPath || ""
     this._active = this.element._active || false
@@ -106,7 +105,6 @@ export default class extends Controller {
     if (!this._active) return
 
     // Protect #persistent-room and all its descendants from being morphed away
-    // (morphing doesn't respect data-turbo-permanent)
     if (this.element.contains(event.target)) {
       event.preventDefault()
     }
@@ -115,33 +113,45 @@ export default class extends Controller {
   _handleBeforeRender(event) {
     if (!this._active || !this._roomElement) return
 
+    // Skip morph renders — the morph handler takes care of those
+    if (event.detail.renderMethod === "morph") return
+
     const newBody = event.detail.newBody
     const placeholder = newBody.querySelector("[data-persistent-room-placeholder]")
+    const newContainer = newBody.querySelector("#persistent-room")
 
-    if (placeholder && this.element.contains(this._roomElement)) {
-      // Navigating BACK to the room page — restore element into the new body
+    if (placeholder) {
+      // Navigating BACK to the room page — restore full view
       this._roomElement.classList.remove("persistent-room-pip")
       this._resetPosition()
       placeholder.replaceWith(this._roomElement)
       this._removeReturnBanner()
-      this.element.hidden = true
-    } else if (!this.element.contains(this._roomElement)) {
-      // Room element is still in <main> — navigating AWAY from the room page for the first time
-      this._roomElement.classList.add("persistent-room-pip")
-      this.element.appendChild(this._roomElement)
-      this._addReturnBanner()
-      this.element.hidden = false
+      if (newContainer) newContainer.hidden = true
+    } else if (newContainer) {
+      // Navigating to or between non-room pages — put PiP in new body
+      if (!this._roomElement.classList.contains("persistent-room-pip")) {
+        this._roomElement.classList.add("persistent-room-pip")
+      }
+
+      const banner = this.element.querySelector("[data-return-banner]")
+      if (banner) newContainer.appendChild(banner)
+      newContainer.appendChild(this._roomElement)
+      newContainer.hidden = false
+      this._ensureReturnBanner(newContainer)
+
+      // Transfer state so the new controller instance picks it up
+      newContainer._roomElement = this._roomElement
+      newContainer._toolPath = this._toolPath
+      newContainer._active = true
     }
-    // When already in PiP (room inside #persistent-room), do nothing —
-    // data-turbo-permanent preserves the container automatically
   }
 
   _handleRender() {
     if (this._active) this._applySidebarIndicator()
   }
 
-  _addReturnBanner() {
-    if (this.element.querySelector("[data-return-banner]")) return
+  _ensureReturnBanner(container) {
+    if (container.querySelector("[data-return-banner]")) return
 
     const banner = document.createElement("a")
     banner.href = this._toolPath
@@ -149,7 +159,11 @@ export default class extends Controller {
     banner.className = "persistent-room-return-banner"
     banner.setAttribute("data-action", "pointerdown->persistent-room#startDrag")
     banner.innerHTML = `<span>Return to call</span><span class="persistent-room-drag-hint">Drag to move</span>`
-    this.element.insertBefore(banner, this.element.firstChild)
+    container.insertBefore(banner, container.firstChild)
+  }
+
+  _addReturnBanner() {
+    this._ensureReturnBanner(this.element)
   }
 
   _removeReturnBanner() {
