@@ -9,11 +9,8 @@ export default class extends Controller {
 
     this._onBeforeRender = this._handleBeforeRender.bind(this)
     this._onRender = this._handleRender.bind(this)
-    this._onBeforeUnload = this._handleBeforeUnload.bind(this)
-
     document.addEventListener("turbo:before-render", this._onBeforeRender)
     document.addEventListener("turbo:render", this._onRender)
-    window.addEventListener("beforeunload", this._onBeforeUnload)
 
     if (this._active) this._applySidebarIndicator()
   }
@@ -21,7 +18,6 @@ export default class extends Controller {
   disconnect() {
     document.removeEventListener("turbo:before-render", this._onBeforeRender)
     document.removeEventListener("turbo:render", this._onRender)
-    window.removeEventListener("beforeunload", this._onBeforeUnload)
   }
 
   // Called by room_controller on join
@@ -127,11 +123,6 @@ export default class extends Controller {
 
   _handleRender() {
     if (this._active) this._applySidebarIndicator()
-  }
-
-  _handleBeforeUnload(event) {
-    if (!this._active) return
-    event.preventDefault()
   }
 
   _addReturnBanner() {
