@@ -13,12 +13,29 @@ export default class extends Controller {
     "micButton",
     "cameraButton",
     "screenButton",
-    "participantTemplate"
+    "participantTemplate",
+    "audioSelect",
+    "videoSelect",
+    "previewVideo",
+    "settingsAudioSelect",
+    "settingsVideoSelect"
   ]
 
   static values = {
     tokenUrl: String,
     userName: String
+  }
+
+  connect() {
+    this.previewStream = null
+    this.#requestDeviceAccess()
+    this.#boundDeviceChange = () => this.#enumerateDevices()
+    navigator.mediaDevices?.addEventListener("devicechange", this.#boundDeviceChange)
+  }
+
+  disconnect() {
+    this.#stopPreview()
+    navigator.mediaDevices?.removeEventListener("devicechange", this.#boundDeviceChange)
   }
 
   async join() {
@@ -30,14 +47,33 @@ export default class extends Controller {
       return
     }
 
+    this.#stopPreview()
+
+    const audioDeviceId = this.hasAudioSelectTarget ? this.audioSelectTarget.value : undefined
+    const videoDeviceId = this.hasVideoSelectTarget ? this.videoSelectTarget.value : undefined
+
     this.LiveKitTrack = Track
     this.room = new Room({
-      videoCaptureDefaults: { resolution: { width: 640, height: 360, frameRate: 24 } }
+      videoCaptureDefaults: {
+        deviceId: videoDeviceId || undefined,
+        resolution: { width: 640, height: 360, frameRate: 24 }
+      },
+      audioCaptureDefaults: {
+        deviceId: audioDeviceId || undefined
+      }
     })
     this.#bindRoomEvents(RoomEvent)
 
     await this.room.connect(tokenData.url, tokenData.token)
     await this.room.localParticipant.enableCameraAndMicrophone()
+
+    // Sync settings selects with pre-join selections
+    if (this.hasSettingsAudioSelectTarget) {
+      this.#syncSelect(this.settingsAudioSelectTarget, this.audioSelectTarget)
+    }
+    if (this.hasSettingsVideoSelectTarget) {
+      this.#syncSelect(this.settingsVideoSelectTarget, this.videoSelectTarget)
+    }
 
     this.#showInCall()
     this.#renderLocalParticipant()
@@ -53,6 +89,8 @@ export default class extends Controller {
     this.#clearLocalVideo()
     this.#showPreJoin()
     this.updateParticipantCount()
+
+    this.#requestDeviceAccess()
   }
 
   toggleMic() {
@@ -77,6 +115,40 @@ export default class extends Controller {
     const isSharing = local.isScreenShareEnabled
     await local.setScreenShareEnabled(!isSharing)
     this.screenButtonTarget.classList.toggle("text-error", !isSharing)
+  }
+
+  async switchAudioDevice() {
+    if (!this.room || !this.hasSettingsAudioSelectTarget) return
+    const deviceId = this.settingsAudioSelectTarget.value
+    if (deviceId) await this.room.switchActiveDevice("audioinput", deviceId)
+  }
+
+  async switchVideoDevice() {
+    if (!this.room || !this.hasSettingsVideoSelectTarget) return
+    const deviceId = this.settingsVideoSelectTarget.value
+    if (deviceId) await this.room.switchActiveDevice("videoinput", deviceId)
+  }
+
+  async changePreviewCamera() {
+    if (!this.previewStream || !this.hasVideoSelectTarget) return
+    const deviceId = this.videoSelectTarget.value
+    if (!deviceId) return
+
+    this.previewStream.getVideoTracks().forEach(t => t.stop())
+
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: deviceId } }
+      })
+      const newTrack = newStream.getVideoTracks()[0]
+      this.previewStream.getVideoTracks().forEach(t => this.previewStream.removeTrack(t))
+      this.previewStream.addTrack(newTrack)
+      if (this.hasPreviewVideoTarget) {
+        this.previewVideoTarget.srcObject = this.previewStream
+      }
+    } catch (e) {
+      console.warn("Room: could not switch preview camera:", e)
+    }
   }
 
   updateParticipantCount() {
@@ -155,6 +227,63 @@ export default class extends Controller {
   }
 
   // ── Private ──────────────────────────────────────────────────────────────
+
+  async #requestDeviceAccess() {
+    try {
+      this.previewStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+      if (this.hasPreviewVideoTarget) {
+        this.previewVideoTarget.srcObject = this.previewStream
+      }
+    } catch (e) {
+      console.warn("Room: could not access media devices:", e)
+    }
+    await this.#enumerateDevices()
+  }
+
+  async #enumerateDevices() {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices()
+      const audioDevices = devices.filter(d => d.kind === "audioinput")
+      const videoDevices = devices.filter(d => d.kind === "videoinput")
+
+      if (this.hasAudioSelectTarget) this.#populateSelect(this.audioSelectTarget, audioDevices, "Microphone")
+      if (this.hasVideoSelectTarget) this.#populateSelect(this.videoSelectTarget, videoDevices, "Camera")
+      if (this.hasSettingsAudioSelectTarget) this.#populateSelect(this.settingsAudioSelectTarget, audioDevices, "Microphone")
+      if (this.hasSettingsVideoSelectTarget) this.#populateSelect(this.settingsVideoSelectTarget, videoDevices, "Camera")
+    } catch (e) {
+      console.warn("Room: could not enumerate devices:", e)
+    }
+  }
+
+  #populateSelect(selectEl, devices, fallbackLabel) {
+    const currentValue = selectEl.value
+    selectEl.innerHTML = ""
+    devices.forEach((device, i) => {
+      const option = document.createElement("option")
+      option.value = device.deviceId
+      option.textContent = device.label || `${fallbackLabel} ${i + 1}`
+      selectEl.appendChild(option)
+    })
+    if (currentValue && [...selectEl.options].some(o => o.value === currentValue)) {
+      selectEl.value = currentValue
+    }
+  }
+
+  #syncSelect(target, source) {
+    // Copy options and selected value from source to target
+    target.innerHTML = source.innerHTML
+    target.value = source.value
+  }
+
+  #stopPreview() {
+    if (this.previewStream) {
+      this.previewStream.getTracks().forEach(t => t.stop())
+      this.previewStream = null
+    }
+    if (this.hasPreviewVideoTarget) {
+      this.previewVideoTarget.srcObject = null
+    }
+  }
 
   #bindRoomEvents(RoomEvent) {
     this.room

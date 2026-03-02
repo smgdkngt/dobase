@@ -13,20 +13,41 @@
   <% end %>
 
   <%# Pre-join state %>
-  <div class="flex-1 flex flex-col items-center justify-center" data-room-target="preJoin">
-    <%= render "components/empty_state",
-          icon: "video",
-          title: "Video Room",
-          description: "Join to start a video call with collaborators",
-          size: :md %>
-    <div class="mt-6">
-      <%= render "components/button",
-            text: "Join Room",
-            variant: :primary,
-            icon: "video",
-            type: :button,
-            data: { action: "click->room#join" } %>
+  <div class="flex-1 flex flex-col items-center justify-center gap-6 p-6" data-room-target="preJoin">
+    <%# Camera preview %>
+    <div class="w-80 max-w-full rounded-xl overflow-hidden bg-background-secondary shadow-md">
+      <video class="w-full aspect-video object-cover bg-background-secondary"
+             data-room-target="previewVideo"
+             autoplay playsinline muted></video>
     </div>
+
+    <%# Device selectors %>
+    <div class="w-80 max-w-full flex flex-col gap-3">
+      <div class="form-field">
+        <label class="label" for="room-audio-device">
+          <%= render "shared/icon", name: "mic", size: 14, class: "inline-block align-[-2px] mr-1 text-text-tertiary" %>
+          Microphone
+        </label>
+        <select id="room-audio-device" class="input" data-room-target="audioSelect"></select>
+      </div>
+
+      <div class="form-field">
+        <label class="label" for="room-video-device">
+          <%= render "shared/icon", name: "video", size: 14, class: "inline-block align-[-2px] mr-1 text-text-tertiary" %>
+          Camera
+        </label>
+        <select id="room-video-device" class="input"
+                data-room-target="videoSelect"
+                data-action="change->room#changePreviewCamera"></select>
+      </div>
+    </div>
+
+    <%= render "components/button",
+          text: "Join Room",
+          variant: :primary,
+          icon: "video",
+          type: :button,
+          data: { action: "click->room#join" } %>
   </div>
 
   <%# In-call state %>
@@ -68,6 +89,36 @@
               room_target: "screenButton",
               action: "click->room#toggleScreen"
             } %>
+
+      <button type="button"
+              class="icon-btn"
+              title="Device settings"
+              popovertarget="room-device-settings"
+              style="anchor-name: --room-settings-btn">
+        <%= render "shared/icon", name: "settings", size: 16 %>
+      </button>
+
+      <%# Device settings popover %>
+      <div id="room-device-settings"
+           popover="auto"
+           class="popover-menu w-72 p-4 m-0 inset-auto"
+           style="position-anchor: --room-settings-btn; position-area: block-start span-inline-end">
+        <div class="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-3">Device Settings</div>
+        <div class="flex flex-col gap-3">
+          <div class="form-field">
+            <label class="label" for="room-settings-audio">Microphone</label>
+            <select id="room-settings-audio" class="input"
+                    data-room-target="settingsAudioSelect"
+                    data-action="change->room#switchAudioDevice"></select>
+          </div>
+          <div class="form-field">
+            <label class="label" for="room-settings-video">Camera</label>
+            <select id="room-settings-video" class="input"
+                    data-room-target="settingsVideoSelect"
+                    data-action="change->room#switchVideoDevice"></select>
+          </div>
+        </div>
+      </div>
 
       <%= render "components/button",
             text: "Leave",
