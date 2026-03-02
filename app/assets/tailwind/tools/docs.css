@@ -53,10 +53,10 @@ rhino-editor.document-editor .trix-content,
 
   pre {
     @apply bg-background-secondary rounded-lg px-4 py-3 text-sm leading-normal overflow-x-auto;
-  }
 
-  pre code {
-    @apply bg-transparent p-0 text-sm;
+    * {
+      @apply m-0 p-0 text-sm leading-normal bg-transparent;
+    }
   }
 
   code {
