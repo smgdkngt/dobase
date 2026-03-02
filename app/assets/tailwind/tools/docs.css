@@ -51,6 +51,18 @@ rhino-editor.document-editor .trix-content,
   h3 { @apply text-xl; }
   h4 { @apply text-lg; }
 
+  pre {
+    @apply bg-background-secondary rounded-lg px-4 py-3 text-sm leading-normal overflow-x-auto;
+  }
+
+  pre code {
+    @apply bg-transparent p-0 text-sm;
+  }
+
+  code {
+    @apply bg-background-secondary rounded px-1.5 py-0.5 text-sm;
+  }
+
   blockquote {
     @apply border-l-2 border-border pl-4 text-text-secondary italic;
   }
