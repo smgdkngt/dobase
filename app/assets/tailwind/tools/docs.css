@@ -1,21 +1,32 @@
 /* Docs tool styles */
 
-/* Rhino editor customizations for document editing */
+/* Rhino editor customizations for document editing.
+   The toolbar lives in shadow DOM — use ::part() to style it.
+   The .trix-content element is slotted (light DOM) — regular CSS works. */
 rhino-editor.document-editor {
-  @apply h-full overflow-y-auto;
+  @apply flex flex-col h-full;
+  overflow: hidden;
   --rhino-border-color: transparent;
   --rhino-button-active-border-color: var(--color-accent);
 }
 
-rhino-editor.document-editor [role="toolbar"] {
-  @apply sticky top-0 z-10 border-b border-border-light px-4 py-2 bg-background-secondary;
+rhino-editor.document-editor::part(toolbar) {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--color-border-light);
+  padding: 0.5rem 1rem;
+  background-color: var(--color-background-secondary);
+}
+
+rhino-editor.document-editor::part(editor-wrapper) {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 rhino-editor.document-editor .trix-content {
   @apply max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 w-full;
   border: none;
   border-radius: 0;
-  min-height: 100%;
 }
 
 /* Rich text content styling — scoped to docs tool (editor and viewer) */
