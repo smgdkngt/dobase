@@ -33,6 +33,14 @@ bin/brakeman --quiet       # Security static analysis
 bin/ci                     # Full CI pipeline (setup, lint, audit, tests, seeds)
 ```
 
+## Deployment
+
+```bash
+kamal deploy -d dobase     # Deploy to production (requires -d dobase destination flag)
+```
+
+The `config/deploy.yml` contains open-source placeholder values. Real production config lives in `config/deploy.dobase.yml` (the Kamal destination file). Always use `-d dobase` when deploying.
+
 **Tailwind CSS** must be rebuilt after stylesheet changes:
 ```bash
 bundle exec tailwindcss -i ./app/assets/tailwind/application.css -o ./app/assets/builds/application.css

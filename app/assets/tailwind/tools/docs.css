@@ -52,15 +52,32 @@ rhino-editor.document-editor .trix-content,
   h4 { @apply text-lg; }
 
   pre {
-    @apply bg-background-secondary rounded-lg px-4 py-3 text-sm leading-normal overflow-x-auto;
+    @apply bg-background-secondary rounded-lg px-4 text-sm leading-normal overflow-x-auto;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
 
     * {
       @apply m-0 p-0 text-sm leading-normal bg-transparent;
     }
   }
 
+  /* Consecutive pre elements: merge into one visual block */
+  pre + pre {
+    @apply mt-0 rounded-t-none;
+    padding-top: 0;
+  }
+
+  pre:has(+ pre) {
+    @apply mb-0 rounded-b-none;
+    padding-bottom: 0;
+  }
+
   code {
     @apply bg-background-secondary rounded px-1.5 py-0.5 text-sm;
+  }
+
+  pre code {
+    @apply bg-transparent p-0;
   }
 
   blockquote {

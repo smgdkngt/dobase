@@ -28,9 +28,10 @@ export default class extends Controller {
 
   connect() {
     this.previewStream = null
-    this.#requestDeviceAccess()
     this.#boundDeviceChange = () => this.#enumerateDevices()
     navigator.mediaDevices?.addEventListener("devicechange", this.#boundDeviceChange)
+    // Enumerate first (may get devices without labels), then request access for preview + labels
+    this.#enumerateDevices().then(() => this.#requestDeviceAccess())
   }
 
   disconnect() {
@@ -55,17 +56,21 @@ export default class extends Controller {
     this.LiveKitTrack = Track
     this.room = new Room({
       videoCaptureDefaults: {
-        deviceId: videoDeviceId || undefined,
         resolution: { width: 640, height: 360, frameRate: 24 }
-      },
-      audioCaptureDefaults: {
-        deviceId: audioDeviceId || undefined
       }
     })
     this.#bindRoomEvents(RoomEvent)
 
     await this.room.connect(tokenData.url, tokenData.token)
-    await this.room.localParticipant.enableCameraAndMicrophone()
+
+    // Enable camera and mic with explicitly selected devices
+    const camOptions = { resolution: { width: 640, height: 360, frameRate: 24 } }
+    if (videoDeviceId) camOptions.deviceId = videoDeviceId
+    const micOptions = {}
+    if (audioDeviceId) micOptions.deviceId = audioDeviceId
+
+    await this.room.localParticipant.setCameraEnabled(true, camOptions)
+    await this.room.localParticipant.setMicrophoneEnabled(true, micOptions)
 
     // Sync settings selects with pre-join selections
     if (this.hasSettingsAudioSelectTarget) {
