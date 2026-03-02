@@ -28,15 +28,15 @@ export default class extends Controller {
 
   connect() {
     this.previewStream = null
-    this.#boundDeviceChange = () => this.#enumerateDevices()
-    navigator.mediaDevices?.addEventListener("devicechange", this.#boundDeviceChange)
+    this._boundDeviceChange = () => this._enumerateDevices()
+    navigator.mediaDevices?.addEventListener("devicechange", this._boundDeviceChange)
     // Enumerate first (may get devices without labels), then request access for preview + labels
-    this.#enumerateDevices().then(() => this.#requestDeviceAccess())
+    this._enumerateDevices().then(() => this._requestDeviceAccess())
   }
 
   disconnect() {
-    this.#stopPreview()
-    navigator.mediaDevices?.removeEventListener("devicechange", this.#boundDeviceChange)
+    this._stopPreview()
+    navigator.mediaDevices?.removeEventListener("devicechange", this._boundDeviceChange)
   }
 
   async join() {
@@ -48,7 +48,7 @@ export default class extends Controller {
       return
     }
 
-    this.#stopPreview()
+    this._stopPreview()
 
     const audioDeviceId = this.hasAudioSelectTarget ? this.audioSelectTarget.value : undefined
     const videoDeviceId = this.hasVideoSelectTarget ? this.videoSelectTarget.value : undefined
@@ -59,7 +59,7 @@ export default class extends Controller {
         resolution: { width: 640, height: 360, frameRate: 24 }
       }
     })
-    this.#bindRoomEvents(RoomEvent)
+    this._bindRoomEvents(RoomEvent)
 
     await this.room.connect(tokenData.url, tokenData.token)
 
@@ -74,15 +74,15 @@ export default class extends Controller {
 
     // Sync settings selects with pre-join selections
     if (this.hasSettingsAudioSelectTarget) {
-      this.#syncSelect(this.settingsAudioSelectTarget, this.audioSelectTarget)
+      this._syncSelect(this.settingsAudioSelectTarget, this.audioSelectTarget)
     }
     if (this.hasSettingsVideoSelectTarget) {
-      this.#syncSelect(this.settingsVideoSelectTarget, this.videoSelectTarget)
+      this._syncSelect(this.settingsVideoSelectTarget, this.videoSelectTarget)
     }
 
-    this.#showInCall()
-    this.#renderLocalParticipant()
-    this.#renderExistingParticipants()
+    this._showInCall()
+    this._renderLocalParticipant()
+    this._renderExistingParticipants()
     this.updateParticipantCount()
   }
 
@@ -91,11 +91,11 @@ export default class extends Controller {
     this.room = null
 
     this.videoGridTarget.innerHTML = ""
-    this.#clearLocalVideo()
-    this.#showPreJoin()
+    this._clearLocalVideo()
+    this._showPreJoin()
     this.updateParticipantCount()
 
-    this.#requestDeviceAccess()
+    this._requestDeviceAccess()
   }
 
   toggleMic() {
@@ -233,7 +233,7 @@ export default class extends Controller {
 
   // ── Private ──────────────────────────────────────────────────────────────
 
-  async #requestDeviceAccess() {
+  async _requestDeviceAccess() {
     try {
       this.previewStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
       if (this.hasPreviewVideoTarget) {
@@ -242,25 +242,25 @@ export default class extends Controller {
     } catch (e) {
       console.warn("Room: could not access media devices:", e)
     }
-    await this.#enumerateDevices()
+    await this._enumerateDevices()
   }
 
-  async #enumerateDevices() {
+  async _enumerateDevices() {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices()
       const audioDevices = devices.filter(d => d.kind === "audioinput")
       const videoDevices = devices.filter(d => d.kind === "videoinput")
 
-      if (this.hasAudioSelectTarget) this.#populateSelect(this.audioSelectTarget, audioDevices, "Microphone")
-      if (this.hasVideoSelectTarget) this.#populateSelect(this.videoSelectTarget, videoDevices, "Camera")
-      if (this.hasSettingsAudioSelectTarget) this.#populateSelect(this.settingsAudioSelectTarget, audioDevices, "Microphone")
-      if (this.hasSettingsVideoSelectTarget) this.#populateSelect(this.settingsVideoSelectTarget, videoDevices, "Camera")
+      if (this.hasAudioSelectTarget) this._populateSelect(this.audioSelectTarget, audioDevices, "Microphone")
+      if (this.hasVideoSelectTarget) this._populateSelect(this.videoSelectTarget, videoDevices, "Camera")
+      if (this.hasSettingsAudioSelectTarget) this._populateSelect(this.settingsAudioSelectTarget, audioDevices, "Microphone")
+      if (this.hasSettingsVideoSelectTarget) this._populateSelect(this.settingsVideoSelectTarget, videoDevices, "Camera")
     } catch (e) {
       console.warn("Room: could not enumerate devices:", e)
     }
   }
 
-  #populateSelect(selectEl, devices, fallbackLabel) {
+  _populateSelect(selectEl, devices, fallbackLabel) {
     const currentValue = selectEl.value
     selectEl.innerHTML = ""
     devices.forEach((device, i) => {
@@ -274,13 +274,13 @@ export default class extends Controller {
     }
   }
 
-  #syncSelect(target, source) {
+  _syncSelect(target, source) {
     // Copy options and selected value from source to target
     target.innerHTML = source.innerHTML
     target.value = source.value
   }
 
-  #stopPreview() {
+  _stopPreview() {
     if (this.previewStream) {
       this.previewStream.getTracks().forEach(t => t.stop())
       this.previewStream = null
@@ -290,7 +290,7 @@ export default class extends Controller {
     }
   }
 
-  #bindRoomEvents(RoomEvent) {
+  _bindRoomEvents(RoomEvent) {
     this.room
       .on(RoomEvent.ParticipantConnected, (participant) => {
         this.renderParticipant(participant)
@@ -318,23 +318,23 @@ export default class extends Controller {
       })
       .on(RoomEvent.TrackMuted, (pub, participant) => {
         if (participant.identity !== this.room?.localParticipant?.identity) {
-          this.#updateMutedState(participant.identity, pub.kind, true)
+          this._updateMutedState(participant.identity, pub.kind, true)
         }
       })
       .on(RoomEvent.TrackUnmuted, (pub, participant) => {
         if (participant.identity !== this.room?.localParticipant?.identity) {
-          this.#updateMutedState(participant.identity, pub.kind, false)
+          this._updateMutedState(participant.identity, pub.kind, false)
         }
       })
       .on(RoomEvent.Disconnected, () => {
         this.videoGridTarget.innerHTML = ""
-        this.#clearLocalVideo()
-        this.#showPreJoin()
+        this._clearLocalVideo()
+        this._showPreJoin()
         this.updateParticipantCount()
       })
   }
 
-  #renderExistingParticipants() {
+  _renderExistingParticipants() {
     this.room.remoteParticipants.forEach((participant) => {
       this.renderParticipant(participant)
       participant.trackPublications.forEach((pub) => {
@@ -345,7 +345,7 @@ export default class extends Controller {
     })
   }
 
-  #renderLocalParticipant() {
+  _renderLocalParticipant() {
     const local = this.room.localParticipant
     const videoEl = this.localVideoTarget.querySelector("video")
     local.trackPublications.forEach((pub) => {
@@ -355,12 +355,12 @@ export default class extends Controller {
     })
   }
 
-  #clearLocalVideo() {
+  _clearLocalVideo() {
     const videoEl = this.localVideoTarget.querySelector("video")
     if (videoEl) videoEl.srcObject = null
   }
 
-  #updateMutedState(identity, kind, muted) {
+  _updateMutedState(identity, kind, muted) {
     const audioKind = this.LiveKitTrack?.Kind?.Audio ?? "audio"
     if (kind !== audioKind) return
     const tile = this.videoGridTarget.querySelector(`[data-participant-id="${identity}"]`)
@@ -368,12 +368,12 @@ export default class extends Controller {
     mutedIcon?.classList.toggle("hidden", !muted)
   }
 
-  #showInCall() {
+  _showInCall() {
     this.preJoinTarget.classList.add("hidden")
     this.inCallTarget.classList.remove("hidden")
   }
 
-  #showPreJoin() {
+  _showPreJoin() {
     this.inCallTarget.classList.add("hidden")
     this.preJoinTarget.classList.remove("hidden")
   }
