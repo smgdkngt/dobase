@@ -3,6 +3,8 @@
   /* Sidebar */
   .sidebar {
     @apply fixed left-0 top-0 bottom-0 w-[var(--sidebar-width)] bg-sidebar-bg border-r border-border-light flex flex-col;
+    padding-left: env(safe-area-inset-left);
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   .sidebar-item {
@@ -128,6 +130,8 @@
   .main-content {
     @apply min-h-screen;
     margin-left: var(--sidebar-width);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   /* Full-height tool layouts */
@@ -137,8 +141,10 @@
 
   /* Mobile header */
   .mobile-header {
-    @apply fixed top-0 left-0 right-0 h-11 bg-sidebar-bg border-b border-border-light
+    @apply fixed top-0 left-0 right-0 bg-sidebar-bg border-b border-border-light
            items-center justify-between px-3 z-40 hidden;
+    height: calc(2.75rem + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
   }
 
   .sidebar-overlay {
@@ -174,11 +180,14 @@
   }
 
   .main-content {
-    @apply ml-0! pt-11;
+    @apply ml-0!;
+    padding-top: calc(2.75rem + env(safe-area-inset-top));
   }
 
   .main-content:has(> .tool-layout) {
-    @apply h-[calc(100dvh-2.75rem)]! min-h-0! mt-11 pt-0;
+    height: calc(100dvh - 2.75rem - env(safe-area-inset-top)) !important;
+    margin-top: calc(2.75rem + env(safe-area-inset-top));
+    @apply min-h-0! pt-0;
   }
 
   .tool-topbar {

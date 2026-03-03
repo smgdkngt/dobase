@@ -15,3 +15,8 @@ document.addEventListener("turbo:before-morph-element", (event) => {
     event.target.hidePopover()
   }
 })
+
+// Register service worker for PWA support
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/service-worker.js", { scope: "/" })
+}

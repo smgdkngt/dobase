@@ -1,0 +1,123 @@
+<!doctype html>
+
+<html lang="en">
+
+  <head>
+
+    <title>You're offline</title>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <meta name="robots" content="noindex, nofollow">
+
+    <style>
+
+      *, *::before, *::after {
+        box-sizing: border-box;
+      }
+
+      * {
+        margin: 0;
+      }
+
+      html {
+        font-size: 16px;
+      }
+
+      body {
+        background: #ffffff;
+        color: #1d1d1f;
+        display: grid;
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Aptos, Roboto, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        font-size: clamp(1rem, 2.5vw, 2rem);
+        -webkit-font-smoothing: antialiased;
+        font-style: normal;
+        font-weight: 400;
+        letter-spacing: -0.0025em;
+        line-height: 1.4;
+        min-height: 100dvh;
+        place-items: center;
+        text-rendering: optimizeLegibility;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      .offline-icon {
+        color: #6e6e73;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #1c1c1e;
+          color: #f5f5f7;
+        }
+
+        .offline-icon {
+          color: #a1a1a6;
+        }
+      }
+
+      a {
+        color: inherit;
+        font-weight: 700;
+        text-decoration: underline;
+        text-underline-offset: 0.0925em;
+      }
+
+      b, strong {
+        font-weight: 700;
+      }
+
+      main {
+        display: grid;
+        gap: 1em;
+        padding: 2em;
+        place-items: center;
+        text-align: center;
+      }
+
+      main header {
+        width: min(100%, 4em);
+      }
+
+      main header svg {
+        height: auto;
+        max-width: 100%;
+        width: 100%;
+      }
+
+      main article {
+        width: min(100%, 30em);
+      }
+
+      main article p {
+        font-size: 75%;
+      }
+
+      main article br {
+        display: none;
+
+        @media(min-width: 48em) {
+          display: inline;
+        }
+      }
+
+    </style>
+
+  </head>
+
+  <body>
+
+    <!-- This file lives in public/offline.html -->
+
+    <main>
+      <header>
+        <svg class="offline-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.82a15 15 0 0 1 4.17-2.65"/><path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76"/><path d="M16.85 11.25a10 10 0 0 1 2.22 1.68"/><path d="M5 13a10 10 0 0 1 5.24-2.76"/><circle cx="12" cy="20" r="1" fill="currentColor" stroke="none"/></svg>
+      </header>
+      <article>
+        <p><strong>You're offline.</strong><br> Check your internet connection and try again.</p>
+      </article>
+    </main>
+
+  </body>
+
+</html>
