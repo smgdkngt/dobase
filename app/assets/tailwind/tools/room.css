@@ -29,7 +29,7 @@
 
   /* Compact topbar in PiP — acts as drag handle */
   [data-room-mode-value="pip"] .tool-topbar {
-    @apply px-2! py-0.5! min-h-0! gap-1 cursor-grab select-none;
+    @apply px-2! py-1! min-h-0! gap-1 cursor-grab select-none;
   }
 
   [data-room-mode-value="pip"] .tool-topbar:active {
@@ -68,7 +68,7 @@
 
   /* Compact controls bar in PiP */
   [data-room-mode-value="pip"] [data-room-target="inCall"] > :last-child {
-    @apply py-0.5 px-2 gap-0.5;
+    @apply py-0.5! px-2! gap-0.5;
   }
 
   /* ── Sidebar "in call" indicator ───────────────────────────────── */
