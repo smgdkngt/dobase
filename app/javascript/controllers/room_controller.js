@@ -134,33 +134,33 @@ export default class extends Controller {
   async leave() {
     const wasOnRoomPage = window.location.pathname === this.toolPathValue
 
-    await this.room?.disconnect()
+    // Stop all local media tracks (camera/mic) explicitly
+    if (this.room) {
+      this.room.localParticipant.trackPublications.forEach((pub) => {
+        pub.track?.stop()
+      })
+      await this.room.disconnect()
+    }
     this.room = null
 
     // Clear DOM-stored state
     delete this.element._liveKitRoom
     delete this.element._liveKitTrack
 
-    // Clear mode, hide container, stop listening
+    // Clear UI state
     this.modeValue = ""
     this._stopNavigationListener()
-    const container = document.getElementById("persistent-room")
-    if (container) container.hidden = true
     this._removeSidebarIndicator()
 
-    this.videoGridTarget.innerHTML = ""
-    this._clearLocalVideo()
-    this._showPreJoin()
-    this.updateParticipantCount()
+    // Remove element from persistent container (prevents stale re-init opening camera)
+    const container = document.getElementById("persistent-room")
+    if (container) container.hidden = true
+    this.element.remove()
 
-    // Reload room page to get fresh pre-join render
-    // (element is stuck in hidden #persistent-room, server duplicate was hidden)
+    // On room page: reload for fresh pre-join view
     if (wasOnRoomPage) {
       Turbo.visit(this.toolPathValue, { action: "replace" })
-      return
     }
-
-    this._requestDeviceAccess()
   }
 
   toggleMic() {
