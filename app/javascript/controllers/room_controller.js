@@ -41,10 +41,20 @@ export default class extends Controller {
       return
     }
 
-    // Server-rendered duplicate — persistent room has the real element
+    // Server-rendered duplicate — persistent room has the real element.
+    // Swap this placeholder with the real room element so the call resumes.
     const persistentCtrl = this._persistentRoomController()
     if (persistentCtrl?.active && persistentCtrl.roomElement !== this.element) {
       this._isDuplicate = true
+      const realEl = persistentCtrl.roomElement
+      realEl.classList.remove("persistent-room-pip")
+      realEl.style.left = ""
+      realEl.style.top = ""
+      realEl.style.right = ""
+      realEl.style.bottom = ""
+      this.element.replaceWith(realEl)
+      persistentCtrl.element.querySelector("[data-return-banner]")?.remove()
+      persistentCtrl.element.hidden = true
       return
     }
 
