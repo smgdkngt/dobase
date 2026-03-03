@@ -77,14 +77,13 @@
       </div>
 
       <%# Local camera PiP %>
-      <div class="absolute bottom-4 right-4 w-44 rounded-lg overflow-hidden shadow-lg border border-white/10 z-10"
-           data-room-target="localVideo">
-        <video class="w-full aspect-video object-cover bg-background-secondary" autoplay playsinline muted></video>
+      <div class="room-local-video" data-room-target="localVideo">
+        <video class="room-local-video-feed" autoplay playsinline muted></video>
       </div>
     </div>
 
     <%# Controls bar %>
-    <div class="flex items-center justify-center gap-2 px-4 py-3 bg-surface border-t border-border-light">
+    <div class="room-controls">
       <%= render "components/icon_button",
             icon: "mic",
             title: "Toggle microphone",

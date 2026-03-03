@@ -4,6 +4,24 @@
     aspect-ratio: 16 / 9;
   }
 
+  /* ── Local video ─────────────────────────────────────────────── */
+
+  .room-local-video {
+    @apply absolute bottom-4 right-4 w-44 rounded-lg overflow-hidden
+           shadow-lg border border-white/10 z-10;
+  }
+
+  .room-local-video-feed {
+    @apply w-full aspect-video object-cover bg-background-secondary;
+  }
+
+  /* ── Controls bar ────────────────────────────────────────────── */
+
+  .room-controls {
+    @apply flex items-center justify-center gap-2 px-4 py-3
+           bg-surface border-t border-border-light;
+  }
+
   /* ── Room mode: full ───────────────────────────────────────────── */
 
   [data-room-mode-value="full"] {
@@ -17,7 +35,7 @@
   /* ── Room mode: PiP ────────────────────────────────────────────── */
 
   [data-room-mode-value="pip"] {
-    @apply fixed bottom-4 right-4 z-30 w-52 h-auto! rounded-md overflow-hidden!
+    @apply fixed bottom-4 right-4 z-30 w-52 rounded-md overflow-hidden
            shadow-lg border border-border-light bg-surface;
   }
 
@@ -29,7 +47,7 @@
 
   /* Compact topbar in PiP — acts as drag handle */
   [data-room-mode-value="pip"] .tool-topbar {
-    @apply px-2! py-1! min-h-0! gap-1 cursor-grab select-none;
+    @apply px-2 py-1 min-h-0 gap-1 cursor-grab select-none;
   }
 
   [data-room-mode-value="pip"] .tool-topbar:active {
@@ -37,7 +55,7 @@
   }
 
   [data-room-mode-value="pip"] .tool-topbar-title {
-    @apply text-xs!;
+    @apply text-xs;
   }
 
   [data-room-mode-value="pip"] .tool-topbar-actions {
@@ -57,18 +75,17 @@
     @apply flex-none h-auto overflow-hidden;
   }
 
-  [data-room-mode-value="pip"] [data-room-target="localVideo"] {
-    @apply w-[50px]! h-[50px]! rounded-md! border-none! shadow-none!
-           overflow-hidden! right-1! bottom-1!;
+  [data-room-mode-value="pip"] .room-local-video {
+    @apply w-[50px] h-[50px] rounded-md border-none shadow-none
+           overflow-hidden right-1 bottom-1;
   }
 
-  [data-room-mode-value="pip"] [data-room-target="localVideo"] video {
-    @apply w-full! h-full! object-cover aspect-auto!;
+  [data-room-mode-value="pip"] .room-local-video-feed {
+    @apply w-full h-full object-cover aspect-auto;
   }
 
-  /* Compact controls bar in PiP */
-  [data-room-mode-value="pip"] [data-room-target="inCall"] > :last-child {
-    @apply py-0.5! px-2! gap-0.5;
+  [data-room-mode-value="pip"] .room-controls {
+    @apply py-0.5 px-2 gap-0.5;
   }
 
   /* ── Sidebar "in call" indicator ───────────────────────────────── */
