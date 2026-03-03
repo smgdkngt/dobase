@@ -33,14 +33,14 @@
   }
 
   [data-room-mode-value="pip"] [data-room-target="localVideo"] {
-    @apply relative w-[60px] h-[60px] rounded-lg border-none shadow-none z-auto
-           overflow-hidden mx-auto my-2;
-    bottom: auto;
-    right: auto;
+    @apply relative! w-[50px]! h-[50px]! rounded-lg! border-none! shadow-none! z-auto!
+           overflow-hidden! mx-auto! my-2!;
+    bottom: auto !important;
+    right: auto !important;
   }
 
   [data-room-mode-value="pip"] [data-room-target="localVideo"] video {
-    @apply w-full h-full object-cover;
+    @apply w-full! h-full! object-cover aspect-auto!;
   }
 
   /* Compact controls bar in PiP */
