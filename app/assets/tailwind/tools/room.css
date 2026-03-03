@@ -21,11 +21,36 @@
            shadow-lg border border-border-light bg-surface;
   }
 
-  [data-room-mode-value="pip"] .tool-topbar,
   [data-room-mode-value="pip"] [data-room-target="preJoin"],
   [data-room-mode-value="pip"] [data-room-target="videoGrid"],
   [data-room-mode-value="pip"] [data-room-target="emptyState"] {
     @apply hidden;
+  }
+
+  /* Compact topbar in PiP — acts as drag handle */
+  [data-room-mode-value="pip"] .tool-topbar {
+    @apply px-2! py-1! gap-1 cursor-grab select-none;
+  }
+
+  [data-room-mode-value="pip"] .tool-topbar:active {
+    @apply cursor-grabbing;
+  }
+
+  [data-room-mode-value="pip"] .tool-topbar-title {
+    @apply text-xs!;
+  }
+
+  [data-room-mode-value="pip"] .tool-topbar-actions {
+    @apply hidden;
+  }
+
+  /* Grip handle — only visible in PiP */
+  .pip-grip-handle {
+    @apply hidden text-text-tertiary;
+  }
+
+  [data-room-mode-value="pip"] .pip-grip-handle {
+    @apply flex;
   }
 
   [data-room-mode-value="pip"] [data-room-target="inCall"] {

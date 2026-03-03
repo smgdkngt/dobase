@@ -199,6 +199,30 @@ export default class extends Controller {
     if (deviceId) await this.room.switchActiveDevice("videoinput", deviceId)
   }
 
+  startDrag(event) {
+    if (this.modeValue !== "pip") return
+    event.preventDefault()
+
+    const rect = this.element.getBoundingClientRect()
+    this._dragOffsetX = event.clientX - rect.left
+    this._dragOffsetY = event.clientY - rect.top
+
+    this._onPointerMove = (e) => {
+      const x = Math.max(0, Math.min(e.clientX - this._dragOffsetX, window.innerWidth - this.element.offsetWidth))
+      const y = Math.max(0, Math.min(e.clientY - this._dragOffsetY, window.innerHeight - this.element.offsetHeight))
+      this.element.style.left = `${x}px`
+      this.element.style.top = `${y}px`
+      this.element.style.right = "auto"
+      this.element.style.bottom = "auto"
+    }
+    this._onPointerUp = () => {
+      document.removeEventListener("pointermove", this._onPointerMove)
+      document.removeEventListener("pointerup", this._onPointerUp)
+    }
+    document.addEventListener("pointermove", this._onPointerMove)
+    document.addEventListener("pointerup", this._onPointerUp)
+  }
+
   async changePreviewCamera() {
     if (!this.previewStream || !this.hasVideoSelectTarget) return
     const deviceId = this.videoSelectTarget.value
@@ -320,12 +344,21 @@ export default class extends Controller {
   _updateMode() {
     const onRoomPage = window.location.pathname === this.toolPathValue
     this.modeValue = onRoomPage ? "full" : "pip"
-    // Hide server-rendered duplicate when returning to room page
     if (onRoomPage) {
+      // Reset drag position
+      this._resetPosition()
+      // Hide server-rendered duplicate
       for (const el of document.querySelectorAll("[data-persistent-room-placeholder]")) {
         if (el !== this.element) el.hidden = true
       }
     }
+  }
+
+  _resetPosition() {
+    this.element.style.left = ""
+    this.element.style.top = ""
+    this.element.style.right = ""
+    this.element.style.bottom = ""
   }
 
   _applySidebarIndicator() {

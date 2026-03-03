@@ -7,12 +7,18 @@
      data-room-tool-path-value="<%= tool_room_path(@tool) %>"
      data-persistent-room-placeholder>
 
-  <%= render "components/tool_topbar", title: @tool.name, tool: @tool do %>
-    <div class="flex items-center gap-1.5 text-sm text-text-secondary">
-      <%= render "shared/icon", name: "users", size: 14, class: "text-text-tertiary" %>
-      <span data-room-target="participantCount">0 participants</span>
+  <div class="tool-topbar" data-action="pointerdown->room#startDrag">
+    <div class="flex items-center gap-2">
+      <span class="pip-grip-handle"><%= render "shared/icon", name: "grip-vertical", size: 14 %></span>
+      <h1 class="tool-topbar-title"><%= @tool.name %></h1>
     </div>
-  <% end %>
+    <div class="tool-topbar-actions">
+      <div class="flex items-center gap-1.5 text-sm text-text-secondary">
+        <%= render "shared/icon", name: "users", size: 14, class: "text-text-tertiary" %>
+        <span data-room-target="participantCount">0 participants</span>
+      </div>
+    </div>
+  </div>
 
   <%# Pre-join state %>
   <div class="flex-1 flex flex-col items-center justify-center gap-6 p-6" data-room-target="preJoin">
