@@ -213,7 +213,9 @@ app/assets/tailwind/
 └── tools/             # Tool-specific styles (board.css, docs.css, etc.)
 ```
 
-**Cascade layer note:** Tailwind v4 puts component styles in `@layer components`. Lexxy's CSS is unlayered. To override Lexxy, use `!important` via Tailwind's `!` suffix (e.g., `border-none!`).
+**Cascade layer note:** Tailwind v4 puts component styles in `@layer components`. Unlayered styles (Tailwind utility classes in ERB, Lexxy CSS) always beat `@layer components` rules regardless of specificity. This means:
+- **Never use inline Tailwind utility classes on elements whose styles need to be overridden by `@layer components` CSS.** Instead, use semantic CSS classes (e.g., `.room-controls` instead of `flex items-center gap-2 px-4 py-3`) so that both the base style and mode-specific overrides live in the same layer and cascade normally.
+- To override Lexxy specifically, use `!important` via Tailwind's `!` suffix (e.g., `border-none!`).
 
 **Responsive breakpoint:** The sidebar hides at `<1024px` (`@media (max-width: 1023px)` in CSS, `max-lg:` in Tailwind utilities). Use `@media` blocks in CSS only for compound/child selectors (`.sidebar.open`, `.mail-layout > .mail-content`) that can't be expressed as Tailwind utilities. Use `max-lg:` prefix in ERB for simple single-element responsive styles.
 
@@ -297,5 +299,7 @@ link_to content, href, **html_options
 - Board deep-linking: `?card=ID` URL param auto-opens card detail modal on board page load. Notification URLs use this pattern (`tool_board_path(tool, card: card.id)`)
 - Tabs with URL persistence: `tabs_controller` reads `?tab=` query param to restore active tab across redirects. Always include `tab:` param in redirects that should preserve tab state.
 - Turbo frames in modals: Forms inside `<dialog>` should use turbo frames to update content in-place (e.g., share link appearing after creation). Use `turbo_frame: "_top"` on actions that should close the modal via full-page navigation (e.g., delete/destroy).
+- `data-turbo-permanent` elements must live **outside `<main>`** to survive Turbo navigations — Turbo replaces `<main>` content on visit. Place them as siblings of `<main>` in the layout.
+- Prefer CSS-driven state over JS DOM manipulation when possible. For example, use `body:has([data-some-value="active"])` to conditionally show/hide elements elsewhere in the page, rather than querying the DOM from a Stimulus controller. CSS `:has()` selectors are powerful for cross-component state.
 - Tool layout CSS: Use `auto` for topbar grid rows (not fixed px values) so they size naturally from the `tool-topbar` component. Avoid duplicate borders between adjacent elements (topbar `border-b` + content `border-t`).
 - Icons: New icons must be added to `app/views/shared/_icon.html.erb` hash — SVG paths from Lucide
