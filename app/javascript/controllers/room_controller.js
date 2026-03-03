@@ -7,6 +7,8 @@ export default class extends Controller {
   static targets = [
     "preJoin",
     "inCall",
+    "inAnotherCall",
+    "activeRoomLink",
     "videoGrid",
     "emptyState",
     "localVideo",
@@ -50,8 +52,21 @@ export default class extends Controller {
     const existingRoom = container?.querySelector("[data-controller~='room']")
     if (existingRoom && existingRoom !== this.element && existingRoom._liveKitRoom) {
       this._isDuplicate = true
-      this.element.hidden = true
-      // The existing controller's connect() handles mode switching
+
+      // Same room: hide this duplicate (the persistent one handles mode switching)
+      if (existingRoom.dataset.roomToolPathValue === this.toolPathValue) {
+        this.element.hidden = true
+        return
+      }
+
+      // Different room: show "in another call" state
+      this.preJoinTarget.classList.add("hidden")
+      if (this.hasInAnotherCallTarget) {
+        this.inAnotherCallTarget.classList.remove("hidden")
+        if (this.hasActiveRoomLinkTarget) {
+          this.activeRoomLinkTarget.href = existingRoom.dataset.roomToolPathValue
+        }
+      }
       return
     }
 
