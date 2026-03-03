@@ -35,11 +35,11 @@ module Tools
       assert_includes response.body, "Archived conversation"
     end
 
-    test "index with selected param shows message detail and marks read" do
+    test "show renders message detail and marks read" do
       msg = mails_messages(:inbox_unread)
       assert_not msg.read
 
-      get tool_mails_path(@tool, selected: msg.id)
+      get tool_mail_path(@tool, msg)
       assert_response :success
       assert_includes response.body, "Welcome to Dobase"
       assert msg.reload.read

@@ -45,11 +45,9 @@ export default class extends Controller {
         credentials: "same-origin"
       })
       if (res.ok) {
-        const frame = document.getElementById("mail-frame")
-        if (frame) {
-          frame.src = ""
-          frame.src = location.href
-        }
+        // Use Turbo Drive visit to refresh the page — data-turbo-permanent
+        // preserves the persistent room PiP during the visit
+        Turbo.visit(location.href, { action: "replace" })
       }
     } catch (e) {
       console.error("Mail sync failed:", e)

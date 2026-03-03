@@ -20,44 +20,18 @@ module Tools
 
       @mail_account = @tool.mail_account
       @current_folder = params[:folder] || "inbox"
-      @inbox_unread = @mail_account.messages.inbox.not_archived.unread.count
-      @trash_count = @mail_account.messages.trashed.count
-      @custom_folders = @mail_account.custom_folders
-
-      base_scope = case @current_folder
-      when "sent"    then @mail_account.messages.sent
-      when "starred" then @mail_account.messages.starred
-      when "trash"   then @mail_account.messages.trashed
-      when "archive" then @mail_account.messages.archived.not_trashed
-      when "inbox"   then @mail_account.messages.inbox.not_archived
-      else                @mail_account.messages.where(folder: @current_folder).not_trashed
-      end
-
-      base_scope = base_scope.search(params[:q]) if params[:q].present?
-      @conversations = fetch_conversations(base_scope)
-
-      if params[:selected].present?
-        @selected_message = @mail_account.messages.find_by(id: params[:selected])
-        if @selected_message
-          @conversation_messages = @selected_message.conversation.to_a
-          @selected_message.conversation.unread.find_each(&:mark_as_read!)
-        end
-      end
-
-      respond_to do |format|
-        format.html
-        format.turbo_stream
-      end
+      load_index_data
     end
 
     def show
-      @mail_account = @tool.mail_account
+      @selected_message = @message
+      @current_folder = params[:folder] || "inbox"
       @conversation_messages = @message.conversation.to_a
       @message.conversation.unread.find_each(&:mark_as_read!)
 
-      respond_to do |format|
-        format.html { redirect_to tool_mails_path(@tool, selected: @message.id) }
-        format.turbo_stream
+      unless turbo_frame_request?
+        load_index_data
+        render :index
       end
     end
 
@@ -128,6 +102,24 @@ module Tools
     def set_message
       @mail_account = @tool.mail_account
       @message = @mail_account.messages.find(params[:id])
+    end
+
+    def load_index_data
+      @inbox_unread = @mail_account.messages.inbox.not_archived.unread.count
+      @trash_count = @mail_account.messages.trashed.count
+      @custom_folders = @mail_account.custom_folders
+
+      base_scope = case @current_folder
+      when "sent"    then @mail_account.messages.sent
+      when "starred" then @mail_account.messages.starred
+      when "trash"   then @mail_account.messages.trashed
+      when "archive" then @mail_account.messages.archived.not_trashed
+      when "inbox"   then @mail_account.messages.inbox.not_archived
+      else                @mail_account.messages.where(folder: @current_folder).not_trashed
+      end
+
+      base_scope = base_scope.search(params[:q]) if params[:q].present?
+      @conversations = fetch_conversations(base_scope)
     end
 
     def fetch_conversations(scope)

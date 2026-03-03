@@ -7,6 +7,17 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = ["list", "item"]
 
+  connect() {
+    this._onFrameLoad = this._handleFrameLoad.bind(this)
+    const frame = document.getElementById("mail-content")
+    if (frame) frame.addEventListener("turbo:frame-load", this._onFrameLoad)
+  }
+
+  disconnect() {
+    const frame = document.getElementById("mail-content")
+    if (frame) frame.removeEventListener("turbo:frame-load", this._onFrameLoad)
+  }
+
   get items() {
     return this.hasListTarget
       ? [...this.listTarget.querySelectorAll("[data-mail-keyboard-target='item']")]
@@ -37,14 +48,16 @@ export default class extends Controller {
 
   navigateToItem(item) {
     if (!item) return
+    // Update visual selection immediately
+    this.items.forEach(i => i.classList.remove("selected"))
+    item.classList.add("selected")
+    item.scrollIntoView({ block: "nearest", behavior: "smooth" })
+
+    // Mark as read visually (the server marks it read, but the list doesn't re-render)
+    this._markItemRead(item)
+
     const link = item.querySelector("a[href]")
-    if (link) {
-      link.click()
-    } else {
-      this.items.forEach(i => i.classList.remove("selected"))
-      item.classList.add("selected")
-      item.scrollIntoView({ block: "nearest", behavior: "smooth" })
-    }
+    if (link) link.click()
   }
 
   openSelected() {
@@ -57,5 +70,20 @@ export default class extends Controller {
   deselect() {
     this.items.forEach(item => item.classList.remove("selected"))
     document.activeElement?.blur()
+  }
+
+  // Toggle mobile detail view when mail-content frame loads
+  _handleFrameLoad() {
+    this.element.classList.add("mail-detail-open")
+  }
+
+  // Remove unread indicators from a conversation item (dot, bold from/subject)
+  _markItemRead(item) {
+    const dot = item.querySelector(".bg-accent.rounded-full.w-2.h-2")
+    if (dot) dot.remove()
+
+    item.querySelectorAll(".font-semibold, .font-medium").forEach(el => {
+      el.classList.remove("font-semibold", "font-medium")
+    })
   }
 }
