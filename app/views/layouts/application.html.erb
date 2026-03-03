@@ -45,8 +45,8 @@
         <%= render "shared/sidebar" %>
         <main class="main-content">
           <%= yield %>
-          <div id="persistent-room" data-turbo-permanent hidden></div>
         </main>
+        <div id="persistent-room" data-turbo-permanent hidden></div>
       </div>
       <button data-controller="hotkey" data-hotkey="Mod+k" data-action="click->keyboard-shortcuts#openCommandPalette" hidden>Command palette</button>
       <%= render "shared/command_palette" %>
