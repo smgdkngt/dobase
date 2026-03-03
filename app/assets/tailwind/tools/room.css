@@ -57,7 +57,8 @@
 
   [data-room-mode-value="pip"] [data-room-target="preJoin"],
   [data-room-mode-value="pip"] [data-room-target="videoGrid"],
-  [data-room-mode-value="pip"] [data-room-target="emptyState"] {
+  [data-room-mode-value="pip"] [data-room-target="emptyState"],
+  [data-room-mode-value="pip"] .room-in-another-call {
     @apply hidden;
   }
 
