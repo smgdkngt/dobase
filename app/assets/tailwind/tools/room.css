@@ -17,7 +17,7 @@
   /* ── Room mode: PiP ────────────────────────────────────────────── */
 
   [data-room-mode-value="pip"] {
-    @apply fixed bottom-4 right-4 z-30 w-52 h-auto! rounded-lg overflow-hidden!
+    @apply fixed bottom-4 right-4 z-30 w-52 h-auto! rounded-md overflow-hidden!
            shadow-lg border border-border-light bg-surface;
   }
 
@@ -29,7 +29,7 @@
 
   /* Compact topbar in PiP — acts as drag handle */
   [data-room-mode-value="pip"] .tool-topbar {
-    @apply px-2! py-1! gap-1 cursor-grab select-none;
+    @apply px-2! py-0.5! gap-1 cursor-grab select-none;
   }
 
   [data-room-mode-value="pip"] .tool-topbar:active {
@@ -68,7 +68,7 @@
 
   /* Compact controls bar in PiP */
   [data-room-mode-value="pip"] [data-room-target="inCall"] > :last-child {
-    @apply py-1.5 px-2 gap-0.5;
+    @apply py-1 px-2 gap-0.5;
   }
 
   /* ── Sidebar "in call" indicator ───────────────────────────────── */

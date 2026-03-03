@@ -9,7 +9,6 @@
 
   <div class="tool-topbar" data-action="pointerdown->room#startDrag">
     <div class="flex items-center gap-2">
-      <span class="pip-grip-handle"><%= render "shared/icon", name: "grip-vertical", size: 14 %></span>
       <h1 class="tool-topbar-title"><%= @tool.name %></h1>
     </div>
     <div class="tool-topbar-actions">
@@ -18,6 +17,7 @@
         <span data-room-target="participantCount">0 participants</span>
       </div>
     </div>
+    <span class="pip-grip-handle"><%= render "shared/icon", name: "grip-vertical", size: 14 %></span>
   </div>
 
   <%# Pre-join state %>
