@@ -59,7 +59,7 @@ export default class extends Controller {
     this.previewStream = null
     this._boundDeviceChange = () => this._enumerateDevices()
     navigator.mediaDevices?.addEventListener("devicechange", this._boundDeviceChange)
-    this._enumerateDevices().then(() => this._requestDeviceAccess())
+    this._requestDeviceAccess()
   }
 
   disconnect() {
