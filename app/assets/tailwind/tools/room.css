@@ -4,6 +4,12 @@
     aspect-ratio: 16 / 9;
   }
 
+  /* ── Room layout ──────────────────────────────────────────────── */
+
+  .room-layout {
+    @apply flex flex-col h-full overflow-hidden;
+  }
+
   /* ── In-call layout ───────────────────────────────────────────── */
 
   .room-in-call {
@@ -45,7 +51,7 @@
   /* ── Room mode: PiP ────────────────────────────────────────────── */
 
   [data-room-mode-value="pip"] {
-    @apply fixed bottom-4 right-4 z-30 w-52 rounded-md overflow-hidden
+    @apply fixed bottom-4 right-4 z-30 w-52 h-auto rounded-md overflow-hidden
            shadow-lg border border-border-light bg-surface;
   }
 

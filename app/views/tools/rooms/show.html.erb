@@ -1,6 +1,6 @@
 <% content_for(:title) { "#{@tool.name} - #{app_name}" } %>
 
-<div class="tool-layout flex flex-col h-full overflow-hidden"
+<div class="tool-layout room-layout"
      data-controller="room"
      data-room-token-url-value="<%= tool_room_tokens_path(@tool) %>"
      data-room-user-name-value="<%= current_user.name %>"
