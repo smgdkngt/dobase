@@ -54,12 +54,12 @@
   }
 
   [data-room-mode-value="pip"] [data-room-target="inCall"] {
-    @apply flex-none h-auto overflow-hidden relative pt-14;
+    @apply flex-none h-auto overflow-hidden;
   }
 
   [data-room-mode-value="pip"] [data-room-target="localVideo"] {
-    @apply absolute! w-[50px]! h-[50px]! rounded-md! border-none! shadow-none! z-10!
-           overflow-hidden! right-1! top-1!;
+    @apply w-[50px]! h-[50px]! rounded-md! border-none! shadow-none!
+           overflow-hidden! right-1! bottom-1!;
   }
 
   [data-room-mode-value="pip"] [data-room-target="localVideo"] video {

@@ -60,24 +60,27 @@
 
   <%# In-call state %>
   <div class="hidden flex-1 flex flex-col overflow-hidden relative" data-room-target="inCall">
-    <%# Video grid (remote participants) %>
-    <div class="flex-1 grid gap-2 p-4 overflow-hidden auto-rows-fr hidden"
-         style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));"
-         data-room-target="videoGrid">
-    </div>
-
-    <%# Empty state (alone in call) %>
-    <div class="flex-1 flex flex-col items-center justify-center text-center p-6" data-room-target="emptyState">
-      <div class="w-16 h-16 rounded-full bg-background-secondary flex items-center justify-center mb-4">
-        <%= render "shared/icon", name: "users", size: 28, class: "text-text-tertiary" %>
+    <%# Content area (relative wrapper for local video overlay) %>
+    <div class="flex-1 relative overflow-hidden">
+      <%# Video grid (remote participants) %>
+      <div class="h-full grid gap-2 p-4 overflow-hidden auto-rows-fr hidden"
+           style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));"
+           data-room-target="videoGrid">
       </div>
-      <p class="text-sm text-text-secondary">Waiting for others to join...</p>
-    </div>
 
-    <%# Local camera PiP %>
-    <div class="absolute bottom-16 right-4 w-44 rounded-lg overflow-hidden shadow-lg border border-white/10 z-10"
-         data-room-target="localVideo">
-      <video class="w-full aspect-video object-cover bg-background-secondary" autoplay playsinline muted></video>
+      <%# Empty state (alone in call) %>
+      <div class="h-full flex flex-col items-center justify-center text-center p-6" data-room-target="emptyState">
+        <div class="w-16 h-16 rounded-full bg-background-secondary flex items-center justify-center mb-4">
+          <%= render "shared/icon", name: "users", size: 28, class: "text-text-tertiary" %>
+        </div>
+        <p class="text-sm text-text-secondary">Waiting for others to join...</p>
+      </div>
+
+      <%# Local camera PiP %>
+      <div class="absolute bottom-4 right-4 w-44 rounded-lg overflow-hidden shadow-lg border border-white/10 z-10"
+           data-room-target="localVideo">
+        <video class="w-full aspect-video object-cover bg-background-secondary" autoplay playsinline muted></video>
+      </div>
     </div>
 
     <%# Controls bar %>
