@@ -118,15 +118,18 @@ export default class extends Controller {
 
     const placeholder = newBody.querySelector("[data-persistent-room-placeholder]")
 
-    if (placeholder && this.element.contains(this._roomElement)) {
-      // Navigating BACK to the room page — restore element into the new body
-      this._roomElement.classList.remove("persistent-room-pip")
-      this._resetPosition()
+    if (placeholder) {
+      // Navigating TO the room page — restore element into the new body
+      if (this.element.contains(this._roomElement)) {
+        // Coming from PiP
+        this._roomElement.classList.remove("persistent-room-pip")
+        this._resetPosition()
+      }
       placeholder.replaceWith(this._roomElement)
       this._removeReturnBanner()
       this.element.hidden = true
     } else if (!this.element.contains(this._roomElement)) {
-      // Room element is still in <main> — navigating AWAY from the room page
+      // Room element is in <main> — navigating AWAY from the room page
       this._roomElement.classList.add("persistent-room-pip")
       this.element.appendChild(this._roomElement)
       this._addReturnBanner()

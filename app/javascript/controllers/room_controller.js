@@ -8,6 +8,7 @@ export default class extends Controller {
     "preJoin",
     "inCall",
     "videoGrid",
+    "emptyState",
     "localVideo",
     "participantCount",
     "micButton",
@@ -36,6 +37,7 @@ export default class extends Controller {
       this._renderLocalParticipant()
       this._renderExistingParticipants()
       this.updateParticipantCount()
+      this._updateEmptyState()
       return
     }
 
@@ -113,6 +115,7 @@ export default class extends Controller {
     this._renderLocalParticipant()
     this._renderExistingParticipants()
     this.updateParticipantCount()
+    this._updateEmptyState()
   }
 
   leave() {
@@ -214,11 +217,13 @@ export default class extends Controller {
     if (initialsEl) initialsEl.textContent = this.initials(participant.name || identity)
 
     this.videoGridTarget.appendChild(clone)
+    this._updateEmptyState()
   }
 
   removeParticipant(identity) {
     const tile = this.videoGridTarget.querySelector(`[data-participant-id="${identity}"]`)
     tile?.remove()
+    this._updateEmptyState()
   }
 
   attachTrack(track, identity) {
@@ -406,6 +411,13 @@ export default class extends Controller {
     const tile = this.videoGridTarget.querySelector(`[data-participant-id="${identity}"]`)
     const mutedIcon = tile?.querySelector("[data-muted-icon]")
     mutedIcon?.classList.toggle("hidden", !muted)
+  }
+
+  _updateEmptyState() {
+    if (!this.hasEmptyStateTarget) return
+    const hasRemote = this.videoGridTarget.querySelector("[data-participant-id]")
+    this.emptyStateTarget.classList.toggle("hidden", !!hasRemote)
+    this.videoGridTarget.classList.toggle("hidden", !hasRemote)
   }
 
   _showInCall() {

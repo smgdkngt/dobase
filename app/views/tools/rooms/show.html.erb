@@ -55,9 +55,17 @@
   <%# In-call state %>
   <div class="hidden flex-1 flex flex-col overflow-hidden relative" data-room-target="inCall">
     <%# Video grid (remote participants) %>
-    <div class="flex-1 grid gap-2 p-4 overflow-hidden auto-rows-fr"
+    <div class="flex-1 grid gap-2 p-4 overflow-hidden auto-rows-fr hidden"
          style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));"
          data-room-target="videoGrid">
+    </div>
+
+    <%# Empty state (alone in call) %>
+    <div class="flex-1 flex flex-col items-center justify-center text-center p-6" data-room-target="emptyState">
+      <div class="w-16 h-16 rounded-full bg-background-secondary flex items-center justify-center mb-4">
+        <%= render "shared/icon", name: "users", size: 28, class: "text-text-tertiary" %>
+      </div>
+      <p class="text-sm text-text-secondary">Waiting for others to join...</p>
     </div>
 
     <%# Local camera PiP %>

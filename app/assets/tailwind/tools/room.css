@@ -13,7 +13,8 @@
 
   .persistent-room-pip .tool-topbar,
   .persistent-room-pip [data-room-target="preJoin"],
-  .persistent-room-pip [data-room-target="videoGrid"] {
+  .persistent-room-pip [data-room-target="videoGrid"],
+  .persistent-room-pip [data-room-target="emptyState"] {
     @apply hidden;
   }
 
