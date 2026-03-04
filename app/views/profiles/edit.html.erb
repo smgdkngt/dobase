@@ -30,6 +30,12 @@
               turbo_confirm: "Are you sure you want to delete your account? All your data will be permanently removed. This cannot be undone.",
               data: { turbo_frame: "_top", turbo_confirm_button: "Delete account" } %>
       </div>
+      <%= link_to profile_path,
+            class: "tab tab-danger w-full justify-start lg:hidden",
+            data: { turbo_method: :delete, turbo_confirm: "Are you sure you want to delete your account? All your data will be permanently removed. This cannot be undone.", turbo_confirm_button: "Delete account", turbo_frame: "_top" } do %>
+        <%= render "shared/icon", name: "trash-2", size: 16 %>
+        <span>Delete</span>
+      <% end %>
     </div>
 
     <%# Panel content %>
@@ -88,19 +94,6 @@
           </div>
         <% end %>
 
-        <%# Danger actions — shown on mobile only %>
-        <div class="lg:hidden pt-4 mt-4 border-t border-border-light">
-          <%= render "components/button",
-                text: "Delete account",
-                variant: :ghost,
-                icon: "trash-2",
-                size: :sm,
-                class: "text-error w-full justify-start",
-                href: profile_path,
-                method: :delete,
-                turbo_confirm: "Are you sure you want to delete your account? All your data will be permanently removed. This cannot be undone.",
-                data: { turbo_frame: "_top", turbo_confirm_button: "Delete account" } %>
-        </div>
       </div>
 
       <%# Security panel %>

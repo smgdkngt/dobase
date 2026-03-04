@@ -245,6 +245,10 @@
     @apply flex-1 justify-center! px-3! py-2! whitespace-nowrap;
   }
 
+  .edit-modal-tabs .tab-danger {
+    @apply text-error hover:text-error hover:bg-error/10;
+  }
+
   .edit-modal-content {
     @apply h-[55vh]! px-4! pt-4!;
   }
