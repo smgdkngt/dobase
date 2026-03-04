@@ -39,7 +39,7 @@
         <% end %>
       </button>
 
-      <div class="mt-auto pt-2 border-t border-border-light flex flex-col gap-1">
+      <div class="mt-auto pt-2 border-t border-border-light flex flex-col gap-1 max-lg:hidden">
         <% can_leave = !@tool.owned_by?(current_user) || @tool.collaborators.owners.count > 1 %>
         <% if can_leave %>
           <%= render "components/button",
@@ -98,6 +98,35 @@
             <%= render "components/button", text: "Save Changes" %>
           </div>
         <% end %>
+
+        <%# Danger actions — shown on mobile only (hidden in sidebar on desktop) %>
+        <div class="lg:hidden flex flex-col gap-1 pt-4 mt-4 border-t border-border-light">
+          <% can_leave = !@tool.owned_by?(current_user) || @tool.collaborators.owners.count > 1 %>
+          <% if can_leave %>
+            <%= render "components/button",
+                  text: "Leave tool",
+                  variant: :ghost,
+                  icon: "log-out",
+                  size: :sm,
+                  class: "text-error w-full justify-start",
+                  href: leave_tool_collaborators_path(@tool),
+                  method: :delete,
+                  turbo_confirm: "Are you sure you want to leave #{@tool.name}?",
+                  data: { turbo_frame: "_top" } %>
+          <% end %>
+          <% if @tool.owned_by?(current_user) %>
+            <%= render "components/button",
+                  text: "Delete tool",
+                  variant: :ghost,
+                  icon: "trash-2",
+                  size: :sm,
+                  class: "text-error w-full justify-start",
+                  href: tool_path(@tool),
+                  method: :delete,
+                  turbo_confirm: "Are you sure you want to delete this tool? This action cannot be undone.",
+                  data: { turbo_frame: "_top" } %>
+          <% end %>
+        </div>
       </div>
 
       <% if is_mail_tool && mail_account %>
