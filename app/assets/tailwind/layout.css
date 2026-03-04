@@ -246,7 +246,7 @@
   }
 
   .edit-modal-content {
-    @apply h-[55vh]! pl-0! pt-4!;
+    @apply h-[55vh]! px-4! pt-4!;
   }
 }
 
