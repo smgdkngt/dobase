@@ -51,10 +51,10 @@
       <dd class="text-text-primary break-words"><%= @file.human_file_size %></dd>
 
       <dt class="text-text-tertiary">Created</dt>
-      <dd class="text-text-primary break-words"><%= @file.created_at.strftime("%b %-d, %Y at %-I:%M %p") %></dd>
+      <dd class="text-text-primary break-words"><%= @file.created_at.strftime("%b %-d, %Y at %-I:%M %p") %><%= " by #{@file.created_by.name}" if @file.created_by && @file.created_by != current_user %></dd>
 
       <dt class="text-text-tertiary">Modified</dt>
-      <dd class="text-text-primary break-words"><%= @file.updated_at.strftime("%b %-d, %Y at %-I:%M %p") %></dd>
+      <dd class="text-text-primary break-words"><%= @file.updated_at.strftime("%b %-d, %Y at %-I:%M %p") %><%= " by #{@file.updated_by.name}" if @file.updated_by && @file.updated_by != current_user %></dd>
 
       <% if @file.folder %>
         <dt class="text-text-tertiary">Location</dt>

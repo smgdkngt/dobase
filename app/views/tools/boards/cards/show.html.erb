@@ -356,7 +356,9 @@
         Delete card
       <% end %>
     </div>
-    <span class="text-xs text-text-tertiary">Saved automatically</span>
+    <% if (text = attribution_text(@card)) %>
+      <span class="text-xs text-text-tertiary"><%= text %></span>
+    <% end %>
   </div>
 
 </div>

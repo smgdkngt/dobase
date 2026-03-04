@@ -43,4 +43,23 @@ module ApplicationHelper
     else "monitor"
     end
   end
+
+  # Returns attribution text like "Created by Alice · Edited by Bob"
+  # Only includes names that differ from current_user.
+  def attribution_text(record)
+    parts = []
+
+    created = record.created_by
+    updated = record.updated_by
+
+    if created && created != current_user
+      parts << "Created by #{created.name}"
+    end
+
+    if updated && updated != current_user && updated != created
+      parts << "Edited by #{updated.name}"
+    end
+
+    parts.join(" · ").presence
+  end
 end

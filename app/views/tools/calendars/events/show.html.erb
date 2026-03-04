@@ -50,6 +50,10 @@
     </div>
   <% end %>
 
+  <% if (text = attribution_text(@event)) %>
+    <p class="text-xs text-text-tertiary mt-2"><%= text %></p>
+  <% end %>
+
   <!-- Actions -->
   <div class="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-border-light">
     <%= render "components/button",

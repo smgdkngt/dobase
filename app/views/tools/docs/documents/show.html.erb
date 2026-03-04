@@ -18,9 +18,10 @@
         <%= @locked_by&.name %> is editing
       </span>
 
-      <span class="hidden sm:inline text-sm text-text-tertiary <%= 'hidden' if @locked_by || !@document.updated_by %>"
+      <% show_edited = @document.updated_by && @document.updated_by != current_user %>
+      <span class="hidden sm:inline text-sm text-text-tertiary <%= 'hidden' if @locked_by || !show_edited %>"
             data-document-viewer-target="editedStatus">
-        <% if @document.updated_by %>
+        <% if show_edited %>
           Edited <%= time_ago_in_words(@document.last_edited_at || @document.updated_at) %> ago
           by <%= @document.updated_by.name %>
         <% end %>

@@ -26,7 +26,7 @@
       <div class="p-3 border-t border-border-light">
         <h3 class="font-medium text-sm truncate group-hover:text-accent"><%= document.title %></h3>
         <p class="text-xs text-text-tertiary mt-1 truncate">
-          Edited <%= time_ago_in_words(document.updated_at) %> ago
+          Edited <%= time_ago_in_words(document.updated_at) %> ago<%= " by #{document.updated_by.name}" if document.updated_by && document.updated_by != current_user %>
         </p>
       </div>
     <% end %>
@@ -53,7 +53,7 @@
         <p class="text-xs text-text-tertiary truncate mt-0.5"><%= document.preview_text(length: 100) %></p>
       </div>
       <div class="text-xs text-text-tertiary flex-shrink-0">
-        <%= time_ago_in_words(document.updated_at) %> ago
+        <%= time_ago_in_words(document.updated_at) %> ago<%= " by #{document.updated_by.name}" if document.updated_by && document.updated_by != current_user %>
       </div>
     <% end %>
   </div>
