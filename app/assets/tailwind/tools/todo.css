@@ -69,9 +69,6 @@
            text-text-tertiary opacity-0 group-hover:opacity-100 transition-opacity;
     touch-action: none;
   }
-  .todo-drag-handle svg {
-    pointer-events: none;
-  }
 
   /* Completed item */
   .todo-item-completed {
