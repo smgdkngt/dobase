@@ -184,7 +184,7 @@ class ImapSyncService
 
     from = envelope.from&.first
     from_address = from ? "#{from.mailbox}@#{from.host}" : nil
-    from_name = safe_utf8(from&.name)
+    from_name = decode_rfc2047(from&.name)
 
     to_list = (envelope.to || []).map { |addr| "#{addr.mailbox}@#{addr.host}" }
     cc_list = (envelope.cc || []).map { |addr| "#{addr.mailbox}@#{addr.host}" }
@@ -215,7 +215,7 @@ class ImapSyncService
     email.assign_attributes(
       folder: folder_name,
       uid: uid,
-      subject: safe_utf8(envelope.subject),
+      subject: decode_rfc2047(envelope.subject),
       from_address: from_address,
       from_name: from_name,
       to_addresses: to_list.to_json,
@@ -407,6 +407,18 @@ class ImapSyncService
   def find_sent_folder_from_list(folders)
     sent_names = [ "Sent", "INBOX.Sent", "[Gmail]/Sent Mail", "Sent Messages", "Sent Items" ]
     sent_names.find { |name| folders.include?(name) }
+  end
+
+  def decode_rfc2047(str)
+    return nil if str.nil?
+    decoded = if str.match?(/=\?[^?]+\?[BQbq]\?[^?]+\?=/)
+      Mail::Encodings.value_decode(str)
+    else
+      str
+    end
+    safe_utf8(decoded)
+  rescue
+    safe_utf8(str)
   end
 
   def safe_utf8(str)

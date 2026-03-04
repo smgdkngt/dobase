@@ -94,6 +94,7 @@
 
   .mail-detail-header > h1 {
     @apply w-full whitespace-normal order-1;
+    overflow-wrap: anywhere;
   }
 
   .mail-detail-header > a:first-child {
