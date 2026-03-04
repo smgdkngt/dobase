@@ -27,6 +27,16 @@ module Docs
       content.to_plain_text.squish.truncate(length)
     end
 
+    # HTML preview for grid cards — truncates to a safe length and replaces
+    # <a> tags with <span> to avoid invalid nested links inside link_to blocks.
+    # Loofah (Rails dependency) closes any tags broken by the truncation.
+    def preview_html
+      return "" if content.body.blank?
+
+      html = content.body.to_s.gsub(%r{<a\b[^>]*>}i, "<span>").gsub(%r{</a>}i, "</span>")
+      Loofah.fragment(html[0, 1500]).to_s.html_safe
+    end
+
     def broadcast_content_update
       DocumentChannel.broadcast_to(self, {
         type: "content_updated",

@@ -206,7 +206,8 @@
 
   /* Modal (<dialog>) */
   .modal-dialog {
-    @apply w-full m-auto bg-surface rounded-xl shadow-xl p-0 border-0 max-h-[90vh] overflow-hidden;
+    @apply w-full m-auto bg-surface rounded-xl shadow-xl p-0 border-0 overflow-hidden;
+    max-height: calc(90vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   }
 
   .modal-dialog[open] {

@@ -6,7 +6,7 @@
       <div class="aspect-[4/3] bg-background p-4 overflow-hidden relative">
         <% if document.content.present? %>
           <div class="document-view pointer-events-none origin-top-left scale-[0.4] w-[250%]">
-            <%= document.content %>
+            <%= document.preview_html %>
           </div>
         <% else %>
           <div class="h-full flex items-center justify-center">

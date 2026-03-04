@@ -45,6 +45,13 @@
     }
   }
 
+  /* Always show group actions on touch devices */
+  @media (hover: none) {
+    .sidebar-group-actions .sidebar-context-btn {
+      @apply opacity-100;
+    }
+  }
+
   .sidebar-context-btn {
     @apply p-0.5 rounded hover:bg-background-tertiary text-text-tertiary
            hover:text-text-primary transition-colors cursor-pointer;
@@ -64,9 +71,17 @@
     transition: opacity 150ms ease, transform 150ms ease;
   }
 
-  /* Only reveal gear on hover for pointer devices — touch devices use long-press or settings */
+  /* Only reveal gear on hover for pointer devices */
   @media (hover: hover) {
     .sidebar-tool-item:hover .sidebar-tool-menu-btn {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* Always show gear on touch devices */
+  @media (hover: none) {
+    .sidebar-tool-menu-btn {
       opacity: 1;
       transform: translateX(0);
     }
@@ -210,11 +225,13 @@
 
   /* Modal adjustments */
   .modal-dialog {
-    @apply max-w-[95vw]! max-h-[85vh] m-4;
+    @apply max-w-[95vw]! m-4;
+    max-height: calc(85vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   }
 
   .modal-body {
-    @apply max-h-[calc(85vh-60px)] overflow-y-auto;
+    max-height: calc(85vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 60px);
+    @apply overflow-y-auto;
   }
 
   /* Edit modal: horizontal tabs on mobile */
