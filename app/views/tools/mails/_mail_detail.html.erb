@@ -9,7 +9,7 @@
       class: "hidden max-lg:flex items-center justify-center w-8 h-8 -ml-1 rounded-lg hover:bg-background-secondary transition-colors shrink-0" do %>
     <%= render "shared/icon", name: "arrow-left", size: 18, class: "text-text-secondary" %>
   <% end %>
-  <h1 class="text-base font-semibold text-text-primary whitespace-nowrap overflow-hidden text-ellipsis flex-1 min-w-0"><%= @selected_message.normalized_subject.presence || "(No subject)" %></h1>
+  <h1 class="text-base font-semibold text-text-primary flex-1 min-w-0"><%= @selected_message.normalized_subject.presence || "(No subject)" %></h1>
   <div class="flex items-center gap-1 flex-shrink-0">
     <%= render "components/icon_button", icon: "reply", title: "Reply (r)",
         href: new_tool_mail_path(@tool, reply_to: last_message.id),
