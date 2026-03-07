@@ -53,18 +53,6 @@
     <%= render "shared/flash" %>
     <% if user_signed_in? %>
       <div data-controller="mobile-sidebar">
-        <%# Mobile header %>
-        <header class="mobile-header">
-          <button type="button" class="flex items-center justify-center w-8 h-8 -ml-1 rounded-lg text-text-secondary hover:text-text-primary hover:bg-sidebar-hover transition-colors" data-action="click->mobile-sidebar#toggle">
-            <%= render "shared/icon", name: "menu", size: 20 %>
-          </button>
-          <div class="flex items-center gap-1.5">
-            <img src="<%= app_logo_path %>" alt="<%= app_name %>" class="w-6 h-6">
-            <span class="text-sm font-semibold text-text-primary"><%= app_name %></span>
-          </div>
-          <div class="w-8"></div>
-        </header>
-
         <%# Sidebar overlay %>
         <div class="sidebar-overlay" data-mobile-sidebar-target="overlay" data-action="click->mobile-sidebar#close"></div>
 
@@ -72,6 +60,42 @@
         <main class="main-content">
           <%= yield %>
         </main>
+
+        <%# Mobile bottom bar — only visible < 1024px %>
+        <nav class="mobile-bottom-bar">
+          <button type="button"
+                  class="mobile-bottom-bar-item"
+                  popovertarget="sidebar-user-menu"
+                  style="anchor-name: --mobile-user-btn">
+            <%= render "shared/avatar", user: current_user, size: :sm %>
+          </button>
+
+          <button type="button"
+                  class="mobile-bottom-bar-center"
+                  data-action="click->mobile-sidebar#toggle">
+            <img src="<%= app_logo_path %>" alt="<%= app_name %>" class="w-6 h-6">
+            <span><%= app_name %></span>
+          </button>
+
+          <div class="relative"
+               data-controller="notifications"
+               data-notifications-user-id-value="<%= current_user.id %>"
+               data-notifications-unread-count-value="<%= current_user.notifications.unread.count %>">
+            <button type="button"
+                    class="mobile-bottom-bar-item"
+                    popovertarget="sidebar-notifications"
+                    style="anchor-name: --mobile-notifications-btn"
+                    data-notifications-target="trigger"
+                    data-action="click->notifications#togglePopover">
+              <%= render "shared/icon", name: "bell", size: 20 %>
+              <span class="absolute -top-0.5 -right-0.5 badge badge-sm hidden"
+                    data-notifications-target="badge">
+                <%= current_user.notifications.unread.count %>
+              </span>
+            </button>
+          </div>
+        </nav>
+
         <div id="persistent-room" data-turbo-permanent hidden></div>
       </div>
       <button data-controller="hotkey" data-hotkey="Mod+k" data-action="click->keyboard-shortcuts#openCommandPalette" hidden>Command palette</button>

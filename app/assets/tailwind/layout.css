@@ -160,14 +160,6 @@
     @apply h-dvh overflow-hidden p-0;
   }
 
-  /* Mobile header */
-  .mobile-header {
-    @apply fixed top-0 left-0 right-0 bg-sidebar-bg border-b border-border-light
-           items-center justify-between px-3 z-40 hidden;
-    height: calc(2.75rem + env(safe-area-inset-top));
-    padding-top: env(safe-area-inset-top);
-  }
-
   .sidebar-overlay {
     @apply fixed inset-0 bg-black/50 z-40 opacity-0 pointer-events-none transition-opacity duration-300;
   }
@@ -180,37 +172,94 @@
     @apply hidden items-center justify-center w-8 h-8 rounded-lg
            text-text-secondary hover:text-text-primary hover:bg-sidebar-hover transition-colors;
   }
+
+  /* ── Mobile Bottom Bar ── */
+  .mobile-bottom-bar {
+    @apply fixed left-0 right-0 z-50 hidden items-center justify-between;
+    bottom: 0;
+    margin: 0 0.75rem calc(0.75rem + env(safe-area-inset-bottom));
+    padding: 0.375rem 0.5rem;
+    border-radius: 1rem;
+    background: color-mix(in srgb, var(--color-sidebar-bg) 75%, transparent);
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08),
+                inset 0 0.5px 0 rgba(255, 255, 255, 0.2);
+    border: 0.5px solid color-mix(in srgb, var(--color-border-light) 60%, transparent);
+  }
+
+  .mobile-bottom-bar-center {
+    @apply flex items-center gap-2 px-4 py-2 rounded-xl
+           text-sm font-semibold text-text-primary cursor-pointer;
+  }
+
+  .mobile-bottom-bar-center:active {
+    @apply bg-sidebar-hover/50;
+  }
+
+  .mobile-bottom-bar-item {
+    @apply flex items-center justify-center w-10 h-10 rounded-xl
+           text-text-secondary cursor-pointer;
+  }
+
+  .mobile-bottom-bar-item:active {
+    @apply bg-sidebar-hover/50;
+  }
 }
 
 /* Responsive: Mobile */
 @media (max-width: 1023px) {
-  .mobile-header {
+  /* ── Bottom bar visible ── */
+  .mobile-bottom-bar {
     @apply flex!;
   }
 
+  /* ── Sidebar becomes bottom sheet ── */
   .sidebar {
-    @apply z-50 -translate-x-full transition-transform duration-300 ease-in-out;
+    @apply z-50 top-auto bottom-0 inset-x-0 w-full max-h-[75vh]
+           border-r-0 rounded-t-2xl translate-y-full
+           pt-0 pl-0 transition-transform duration-300 ease-in-out;
+    background: color-mix(in srgb, var(--color-sidebar-bg) 92%, transparent);
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    padding-bottom: calc(var(--mobile-bottom-bar-height) + 1.5rem + env(safe-area-inset-bottom));
   }
 
   .sidebar.open {
-    @apply translate-x-0;
+    @apply translate-y-0;
   }
 
   .sidebar-close-btn {
     @apply flex!;
   }
 
+  /* Hide sidebar bottom bar on mobile — avatar & notifications are in the mobile bottom bar */
+  .sidebar-bottom-bar {
+    @apply hidden!;
+  }
+
+  /* ── Main content ── */
   .main-content {
     @apply ml-0!;
-    padding-top: calc(2.75rem + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: calc(var(--mobile-bottom-bar-height) + 1.5rem + env(safe-area-inset-bottom));
   }
 
   .main-content:has(> .tool-layout) {
-    height: calc(100dvh - 2.75rem - env(safe-area-inset-top)) !important;
-    margin-top: calc(2.75rem + env(safe-area-inset-top));
-    @apply min-h-0! pt-0;
+    height: 100dvh !important;
+    @apply min-h-0! pt-0 pb-0;
   }
 
+  /* ── Re-anchor popovers to mobile bottom bar buttons ── */
+  .sidebar-user-popover {
+    position-anchor: --mobile-user-btn;
+  }
+
+  .sidebar-notifications-popover {
+    position-anchor: --mobile-notifications-btn;
+  }
+
+  /* ── Tool topbar ── */
   .tool-topbar {
     @apply px-3 gap-2 flex-wrap;
   }

@@ -107,50 +107,51 @@
   </nav>
 
   <%# ── Bottom bar ── %>
-  <div class="sidebar-bottom-bar"
-       data-controller="notifications"
+  <div data-controller="notifications"
        data-notifications-user-id-value="<%= current_user.id %>"
        data-notifications-unread-count-value="<%= current_user.notifications.unread.count %>">
-
-    <%# User menu trigger — avatar with name %>
-    <button type="button"
-            class="sidebar-user-btn"
-            popovertarget="sidebar-user-menu"
-            style="anchor-name: --sidebar-user-btn">
-      <%= render "shared/avatar", user: current_user, size: :sm %>
-      <span class="sidebar-user-name"><%= current_user.first_name %></span>
-    </button>
-
-    <%# Notifications %>
-    <div class="relative flex-shrink-0">
+    <div class="sidebar-bottom-bar">
+      <%# User menu trigger — avatar with name %>
       <button type="button"
-              class="sidebar-add-btn relative"
-              popovertarget="sidebar-notifications"
-              style="anchor-name: --sidebar-notifications-btn"
-              data-controller="hotkey"
-              data-hotkey="b"
-              data-notifications-target="trigger"
-              data-action="click->notifications#togglePopover"
-              title="Notifications (b)">
-        <%= render "shared/icon", name: "bell", size: 16 %>
-        <span class="absolute -top-0.5 -right-0.5 badge badge-sm hidden"
-              data-notifications-target="badge">
-          <%= current_user.notifications.unread.count %>
-        </span>
+              class="sidebar-user-btn"
+              popovertarget="sidebar-user-menu"
+              style="anchor-name: --sidebar-user-btn">
+        <%= render "shared/avatar", user: current_user, size: :sm %>
+        <span class="sidebar-user-name"><%= current_user.first_name %></span>
       </button>
-      <div id="sidebar-notifications" popover="auto" class="popover-menu sidebar-notifications-popover w-80"
-           data-notifications-target="popover">
-        <%= turbo_frame_tag "notifications", src: notifications_path, loading: :lazy do %>
-          <div class="px-4 py-8 text-center">
-            <div class="text-text-tertiary animate-spin">
-              <%= render "shared/icon", name: "loader-2", size: 20, class: "mx-auto" %>
-            </div>
-          </div>
-        <% end %>
+
+      <%# Notifications %>
+      <div class="relative flex-shrink-0">
+        <button type="button"
+                class="sidebar-add-btn relative"
+                popovertarget="sidebar-notifications"
+                style="anchor-name: --sidebar-notifications-btn"
+                data-controller="hotkey"
+                data-hotkey="b"
+                data-notifications-target="trigger"
+                data-action="click->notifications#togglePopover"
+                title="Notifications (b)">
+          <%= render "shared/icon", name: "bell", size: 16 %>
+          <span class="absolute -top-0.5 -right-0.5 badge badge-sm hidden"
+                data-notifications-target="badge">
+            <%= current_user.notifications.unread.count %>
+          </span>
+        </button>
       </div>
     </div>
 
-    <%# Add menu popover — triggered from the logo bar button above %>
+    <%# Popovers — outside bottom bar so they work when it's hidden on mobile %>
+    <div id="sidebar-notifications" popover="auto" class="popover-menu sidebar-notifications-popover w-80"
+         data-notifications-target="popover">
+      <%= turbo_frame_tag "notifications", src: notifications_path, loading: :lazy do %>
+        <div class="px-4 py-8 text-center">
+          <div class="text-text-tertiary animate-spin">
+            <%= render "shared/icon", name: "loader-2", size: 20, class: "mx-auto" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
     <div id="sidebar-add-menu" popover="auto" class="popover-menu sidebar-add-popover">
       <button type="button" class="dropdown-item flex items-center gap-2"
               commandfor="new-tool-modal" command="show-modal">
@@ -164,7 +165,6 @@
       <% end %>
     </div>
 
-    <%# User menu popover %>
     <div id="sidebar-user-menu" popover="auto" class="popover-menu sidebar-user-popover">
       <div class="px-4 py-3 border-b border-border-light">
         <p class="text-sm font-semibold text-text-primary truncate"><%= current_user.name %></p>

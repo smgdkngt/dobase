@@ -90,6 +90,7 @@
   --sidebar-width: 240px;
   --sidebar-collapsed-width: 64px;
   --topbar-height: 52px;
+  --mobile-bottom-bar-height: 3.5rem;
 }
 
 /* Base styles */
