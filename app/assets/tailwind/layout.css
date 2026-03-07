@@ -246,7 +246,8 @@
   }
 
   .main-content:has(> .tool-layout) {
-    height: 100dvh !important;
+    height: calc(100dvh - env(safe-area-inset-top) - var(--mobile-bottom-bar-height) - 1.5rem - env(safe-area-inset-bottom)) !important;
+    margin-top: env(safe-area-inset-top);
     @apply min-h-0! pt-0 pb-0;
   }
 
