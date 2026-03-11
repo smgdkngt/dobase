@@ -13,7 +13,7 @@ Rails.application.configure do
     policy.script_src  :self, "https://ga.jspm.io", "https://cdn.jsdelivr.net"
     policy.style_src   :self, "'unsafe-inline'"
     policy.frame_src   :self
-    policy.connect_src :self, "wss://room.dobase.co"
+    policy.connect_src :self, *[ENV["LIVEKIT_URL"]&.sub(%r{^https?://}, "wss://")].compact
   end
 
   # Use a nonce for inline importmap scripts
