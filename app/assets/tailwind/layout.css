@@ -159,7 +159,7 @@
 
   /* Main content */
   .main-content {
-    @apply min-h-screen;
+    @apply min-h-screen bg-background;
     margin-left: var(--sidebar-width);
     padding-right: env(safe-area-inset-right);
     padding-bottom: env(safe-area-inset-bottom);
@@ -330,6 +330,17 @@
 
   .edit-modal-content {
     @apply h-[55vh]! px-4! pt-4!;
+  }
+}
+
+/* PWA standalone mode on desktop: top border to separate title bar from content */
+@media (display-mode: standalone) and (min-width: 1024px) {
+  .sidebar {
+    border-top: 1px solid var(--color-border-light);
+  }
+
+  .main-content {
+    border-top: 1px solid var(--color-border-light);
   }
 }
 
