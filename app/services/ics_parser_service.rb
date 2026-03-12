@@ -236,11 +236,26 @@ class IcsParserService
       rule = rule.until(parsed_until) if parsed_until
     end
 
-    # By day (for weekly)
+    # By day (BYDAY — handles weekly days and monthly nth-weekday)
     byday = extract_rrule_param(rrule, :by_day) || extract_rrule_param(rrule, :byday)
     if byday.present?
-      days = Array(byday).map { |d| day_symbol(d) }.compact
-      rule = rule.day(*days) if days.any?
+      ordinal_days, plain_days = Array(byday).partition { |d| d.to_s =~ /^-?\d+[A-Z]{2}$/ }
+
+      # Ordinal days like "1TH" (1st Thursday) → day_of_week for monthly rules
+      if ordinal_days.any?
+        ordinal_days.each do |d|
+          d.to_s =~ /^(-?\d+)([A-Z]{2})$/
+          week_num = $1.to_i
+          day_sym = day_symbol($2)
+          rule = rule.day_of_week(day_sym => [week_num]) if day_sym
+        end
+      end
+
+      # Plain days like "MO", "TH" → day for weekly rules
+      if plain_days.any?
+        days = plain_days.map { |d| day_symbol(d) }.compact
+        rule = rule.day(*days) if days.any?
+      end
     end
 
     # By month day

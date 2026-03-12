@@ -3,7 +3,8 @@
 class ApplicationController < ActionController::Base
   include Authentication
 
-  allow_browser versions: :modern
+  # Requires Popover API, CSS Anchor Positioning, and Invoker Commands (commandfor)
+  allow_browser versions: { safari: 26.2, chrome: 135, firefox: 144, opera: 117, ie: false }
 
   rescue_from ActiveRecord::RecordNotFound, with: :record_not_found
 
