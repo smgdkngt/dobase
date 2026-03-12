@@ -21,6 +21,7 @@ export default class extends Controller {
   disconnect() {
     if (dragInProgress) return
     this.sortable?.destroy()
+    this.sortable = null
   }
 
   enabledValueChanged(enabled) {
@@ -55,7 +56,12 @@ export default class extends Controller {
   }
 
   onEnd(evt) {
-    dragInProgress = false
+    // Defer resetting dragInProgress until after MutationObserver callbacks
+    // have been processed. SortableJS DOM cleanup (ghost removal, class changes)
+    // triggers Stimulus disconnect/connect via MutationObserver. If we reset
+    // dragInProgress synchronously, those callbacks see it as false and
+    // incorrectly destroy card sortable instances inside moved columns.
+    requestAnimationFrame(() => { dragInProgress = false })
 
     if (evt.from !== evt.to) {
       this.dispatch("move", {
