@@ -91,7 +91,7 @@ group :test do
   gem "webmock"
 end
 
-gem "noticed", "~> 2.2"
+gem "noticed", "~> 3.0"
 
 # TOTP two-factor authentication
 gem "rotp", "~> 6.3"
