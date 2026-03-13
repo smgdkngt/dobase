@@ -29,6 +29,7 @@ class TodoAssignmentNotifier < Noticed::Event
       {
         id: id,
         type: "TodoAssignmentNotifier",
+        tool_id: event.params[:tool]&.id,
         message: message,
         url: url,
         icon: icon_name,

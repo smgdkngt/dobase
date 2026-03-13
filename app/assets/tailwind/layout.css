@@ -62,6 +62,12 @@
     @apply select-none;
   }
 
+  /* Unread activity dot */
+  .sidebar-tool-item[data-unread]::after {
+    @apply w-1.5 h-1.5 rounded-full bg-accent shrink-0;
+    content: "";
+  }
+
   .sidebar-tool-menu-btn {
     @apply flex items-center justify-center w-5 h-5 rounded
            text-text-tertiary hover:text-text-primary hover:bg-background-tertiary

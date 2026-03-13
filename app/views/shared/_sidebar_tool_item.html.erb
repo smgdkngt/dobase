@@ -1,12 +1,16 @@
 <%
   instance = local_assigns[:instance]
+  unread_tool_ids = local_assigns[:unread_tool_ids] || Set.new
   is_active = current_page?(tool_path(instance)) ||
     (request.path.include?("/tools/#{instance.id}/"))
   emoji = instance.emoji_icon
+  has_unread = !is_active && unread_tool_ids.include?(instance.id)
 %>
 <a href="<%= tool_path(instance) %>"
    class="sidebar-tool-item group/tool sidebar-item <%= is_active ? 'sidebar-item-active' : '' %>"
    data-sort-id="<%= instance.id %>"
+   data-tool-id="<%= instance.id %>"
+   <%= 'data-unread' if has_unread %>
    data-action="click->mobile-sidebar#navigate">
   <% if emoji %>
     <span class="shrink-0 text-base leading-none" aria-hidden="true"><%= emoji %></span>

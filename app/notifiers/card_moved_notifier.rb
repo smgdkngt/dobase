@@ -30,6 +30,7 @@ class CardMovedNotifier < Noticed::Event
       {
         id: id,
         type: "CardMovedNotifier",
+        tool_id: event.params[:tool]&.id,
         message: message,
         url: url,
         icon: icon_name,

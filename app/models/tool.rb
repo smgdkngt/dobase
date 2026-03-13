@@ -51,6 +51,83 @@ class Tool < ApplicationRecord
     emoji_icon ? nil : tool_type.icon
   end
 
+  # Returns a Set of tool IDs that have activity since the user last visited.
+  # Skips mail (has its own unread badge) and room (no async content).
+  def self.unread_tool_ids_for(user)
+    collabs = Collaborator.where(user_id: user.id).pluck(:tool_id, :last_seen_at).to_h
+    tool_ids = collabs.keys
+    return Set.new if tool_ids.empty?
+
+    # Exclude mail and room tools
+    skip_slugs = %w[mail room]
+    skip_ids = Tool.where(id: tool_ids).joins(:tool_type).where(tool_types: { slug: skip_slugs }).pluck(:id)
+    candidate_ids = tool_ids - skip_ids
+    return Set.new if candidate_ids.empty?
+
+    unread = Set.new
+
+    # Chat messages
+    Chats::Chat.where(tool_id: candidate_ids)
+      .joins(:messages)
+      .group(:tool_id)
+      .maximum("chat_messages.created_at")
+      .each do |tid, max_at|
+        ts = collabs[tid]
+        unread << tid if max_at && (ts.nil? || max_at > ts)
+      end
+
+    # Board cards (cards → columns → boards)
+    Boards::Board.where(tool_id: candidate_ids)
+      .joins(columns: :cards)
+      .group("boards.tool_id")
+      .maximum("cards.created_at")
+      .each do |tid, max_at|
+        ts = collabs[tid]
+        unread << tid if max_at && (ts.nil? || max_at > ts)
+      end
+
+    # Documents
+    Docs::Document.where(tool_id: candidate_ids)
+      .group(:tool_id)
+      .maximum(:updated_at)
+      .each do |tid, max_at|
+        ts = collabs[tid]
+        unread << tid if max_at && (ts.nil? || max_at > ts)
+      end
+
+    # Files
+    Files::Item.where(tool_id: candidate_ids)
+      .group(:tool_id)
+      .maximum(:created_at)
+      .each do |tid, max_at|
+        ts = collabs[tid]
+        unread << tid if max_at && (ts.nil? || max_at > ts)
+      end
+
+    # Todos
+    Todos::Item.joins(:list)
+      .where(todo_lists: { tool_id: candidate_ids })
+      .group("todo_lists.tool_id")
+      .maximum("todo_items.updated_at")
+      .each do |tid, max_at|
+        ts = collabs[tid]
+        unread << tid if max_at && (ts.nil? || max_at > ts)
+      end
+
+    # Calendar events (events → calendars via calendar_id → accounts via calendar_account_id)
+    Calendars::Event
+      .joins(calendar: :account)
+      .where(calendar_accounts: { tool_id: candidate_ids })
+      .group("calendar_accounts.tool_id")
+      .maximum("calendar_events.updated_at")
+      .each do |tid, max_at|
+        ts = collabs[tid]
+        unread << tid if max_at && (ts.nil? || max_at > ts)
+      end
+
+    unread
+  end
+
   private
 
   def boards_tool?

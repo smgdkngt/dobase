@@ -29,6 +29,7 @@
   <%# ── Navigation ── %>
   <nav class="flex-1 py-2 overflow-y-auto scrollbar-thin" data-sidebar-target="nav">
     <% if defined?(current_user) && current_user %>
+      <% unread_tool_ids = Tool.unread_tool_ids_for(current_user) %>
       <%# ── Ungrouped Tools ── %>
       <% ungrouped = current_user.ungrouped_tools %>
       <% if ungrouped.any? || current_user.sidebar_groups.any? %>
@@ -39,7 +40,7 @@
              data-sortable-enabled-value="false"
              data-group-id="ungrouped">
           <% ungrouped.each do |instance| %>
-            <%= render "shared/sidebar_tool_item", instance: instance %>
+            <%= render "shared/sidebar_tool_item", instance: instance, unread_tool_ids: unread_tool_ids %>
           <% end %>
         </div>
       <% end %>
@@ -104,7 +105,7 @@
               <% group.memberships.each do |membership| %>
                 <% instance = membership.tool %>
                 <% next unless instance&.accessible_by?(current_user) %>
-                <%= render "shared/sidebar_tool_item", instance: instance %>
+                <%= render "shared/sidebar_tool_item", instance: instance, unread_tool_ids: unread_tool_ids %>
               <% end %>
             </div>
           </div>

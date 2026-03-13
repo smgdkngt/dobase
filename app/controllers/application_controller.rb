@@ -29,5 +29,11 @@ class ApplicationController < ActionController::Base
     return unless request.path.start_with?("/tools")
 
     current_user.update_column(:last_visited_path, request.path)
+
+    tool_id = request.path.match(%r{/tools/(\d+)})&.[](1)
+    if tool_id
+      Collaborator.where(user_id: current_user.id, tool_id: tool_id)
+                  .update_all(last_seen_at: Time.current)
+    end
   end
 end

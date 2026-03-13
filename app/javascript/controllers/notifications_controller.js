@@ -27,6 +27,14 @@ export default class extends Controller {
     this.unreadCountValue += 1
     this.updateBadge()
 
+    // Show activity dot on sidebar tool item
+    if (data.tool_id) {
+      const toolItem = document.querySelector(`[data-tool-id="${data.tool_id}"]`)
+      if (toolItem && !toolItem.classList.contains("sidebar-item-active")) {
+        toolItem.setAttribute("data-unread", "")
+      }
+    }
+
     // If the popover is open, prepend the notification to the list
     if (this.hasListTarget) {
       const item = this.buildNotificationHTML(data)

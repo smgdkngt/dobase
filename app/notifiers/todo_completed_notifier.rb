@@ -29,6 +29,7 @@ class TodoCompletedNotifier < Noticed::Event
       {
         id: id,
         type: "TodoCompletedNotifier",
+        tool_id: event.params[:tool]&.id,
         message: message,
         url: url,
         icon: icon_name,

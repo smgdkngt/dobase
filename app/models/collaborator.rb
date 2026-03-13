@@ -10,4 +10,8 @@ class Collaborator < ApplicationRecord
   validates :user_id, uniqueness: { scope: :tool_id, message: "is already a collaborator" }
 
   scope :owners, -> { where(role: "owner") }
+
+  def touch_last_seen!
+    update_column(:last_seen_at, Time.current)
+  end
 end

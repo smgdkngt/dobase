@@ -28,6 +28,7 @@ class ChatMessageNotifier < Noticed::Event
       {
         id: id,
         type: "ChatMessageNotifier",
+        tool_id: event.params[:tool]&.id,
         message: message,
         url: url,
         icon: icon_name,
