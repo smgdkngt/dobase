@@ -46,7 +46,7 @@ gem "thruster", require: false
 gem "image_processing", "~> 1.2"
 
 # Create zip files for folder downloads
-gem "rubyzip", "~> 2.3"
+gem "rubyzip", "~> 3.2"
 
 # iCalendar parsing and generation
 gem "icalendar"
