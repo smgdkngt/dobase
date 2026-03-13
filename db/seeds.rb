@@ -91,7 +91,7 @@ if ENV["SEED_DEMO"]
     owner: sophie,
     tool_type: ToolType.find_by!(slug: "boards")
   )
-  add_collaborators(launch_board_tool, [marcus, priya, jake])
+  add_collaborators(launch_board_tool, [ marcus, priya, jake ])
 
   board = launch_board_tool.board
   board.columns.destroy_all
@@ -144,27 +144,27 @@ if ENV["SEED_DEMO"]
     owner: sophie,
     tool_type: ToolType.find_by!(slug: "chat")
   )
-  add_collaborators(chat_tool, [marcus, priya, jake])
+  add_collaborators(chat_tool, [ marcus, priya, jake ])
 
   chat = chat_tool.chat
   base_time = 2.hours.ago
 
   messages = [
-    [sophie, "Good morning team! Big day — we got our first wholesale inquiry from a space tourism company"],
-    [marcus, "Wait WHAT?! Which one??"],
-    [sophie, "Galactic Adventures. They want to stock our snacks on their suborbital flights!"],
-    [priya, "That's amazing!! Do they know we haven't actually launched yet? Asking for a friend"],
-    [sophie, "They saw our Instagram teaser. Apparently their CEO is a sucker for everything bagel flavor"],
-    [jake, "Their website is built on WordPress though. Should I be worried about the partnership?"],
-    [marcus, "Jake, not everything is about the tech stack"],
-    [jake, "I'm just saying, if they can't handle a website, can they handle orbit?"],
-    [priya, "I just finished the packaging mockups by the way. Sending to the printer today"],
-    [sophie, "Can you share them in Team Files? I want Marcus to review before we print"],
-    [marcus, "Already reviewed! The 'Cosmic Crunch' bag looks incredible. Only note: can we make the astronaut on the back look less terrified?"],
-    [priya, "That's not terror, that's the face you make when you eat really good snacks in zero gravity"],
-    [jake, "I deployed the store to staging btw. Everything works except the checkout — turns out Stripe doesn't have a 'pay in space credits' option"],
-    [sophie, "Regular Earth money is fine for now, Jake"],
-    [marcus, "Team standup at 2pm? I want to sync on the launch timeline. We're T-minus 3 weeks!"],
+    [ sophie, "Good morning team! Big day — we got our first wholesale inquiry from a space tourism company" ],
+    [ marcus, "Wait WHAT?! Which one??" ],
+    [ sophie, "Galactic Adventures. They want to stock our snacks on their suborbital flights!" ],
+    [ priya, "That's amazing!! Do they know we haven't actually launched yet? Asking for a friend" ],
+    [ sophie, "They saw our Instagram teaser. Apparently their CEO is a sucker for everything bagel flavor" ],
+    [ jake, "Their website is built on WordPress though. Should I be worried about the partnership?" ],
+    [ marcus, "Jake, not everything is about the tech stack" ],
+    [ jake, "I'm just saying, if they can't handle a website, can they handle orbit?" ],
+    [ priya, "I just finished the packaging mockups by the way. Sending to the printer today" ],
+    [ sophie, "Can you share them in Team Files? I want Marcus to review before we print" ],
+    [ marcus, "Already reviewed! The 'Cosmic Crunch' bag looks incredible. Only note: can we make the astronaut on the back look less terrified?" ],
+    [ priya, "That's not terror, that's the face you make when you eat really good snacks in zero gravity" ],
+    [ jake, "I deployed the store to staging btw. Everything works except the checkout — turns out Stripe doesn't have a 'pay in space credits' option" ],
+    [ sophie, "Regular Earth money is fine for now, Jake" ],
+    [ marcus, "Team standup at 2pm? I want to sync on the launch timeline. We're T-minus 3 weeks!" ]
   ]
 
   messages.each_with_index do |(user, body), i|
@@ -181,7 +181,7 @@ if ENV["SEED_DEMO"]
     owner: sophie,
     tool_type: ToolType.find_by!(slug: "todos")
   )
-  add_collaborators(tasks_tool, [marcus, priya])
+  add_collaborators(tasks_tool, [ marcus, priya ])
 
   # Rename the auto-created default list
   pre_launch = tasks_tool.todo_lists.first
@@ -214,7 +214,7 @@ if ENV["SEED_DEMO"]
     owner: sophie,
     tool_type: ToolType.find_by!(slug: "docs")
   )
-  add_collaborators(docs_tool, [marcus, priya])
+  add_collaborators(docs_tool, [ marcus, priya ])
 
   doc1 = docs_tool.documents.create!(title: "Brand Guidelines", created_by: sophie, updated_by: priya, last_edited_at: 1.day.ago)
   doc1.update!(content: <<~HTML)
@@ -272,7 +272,7 @@ if ENV["SEED_DEMO"]
     owner: sophie,
     tool_type: ToolType.find_by!(slug: "files")
   )
-  add_collaborators(files_tool, [marcus, priya, jake])
+  add_collaborators(files_tool, [ marcus, priya, jake ])
 
   brand_folder = files_tool.file_folders.create!(name: "Brand Assets", position: 0, created_by: priya, updated_by: priya)
   recipes_folder = files_tool.file_folders.create!(name: "Recipes", position: 1, created_by: sophie, updated_by: sophie)
@@ -289,17 +289,17 @@ if ENV["SEED_DEMO"]
   # Generate a minimal valid PNG with a solid color (no dependencies needed)
   def create_png_data(r, g, b, width: 100, height: 100)
     require "zlib"
-    raw_data = (0...height).map { "\x00" + ([r, g, b].pack("C3") * width) }.join
+    raw_data = (0...height).map { "\x00" + ([ r, g, b ].pack("C3") * width) }.join
     compressed = Zlib::Deflate.deflate(raw_data)
 
     png = "\x89PNG\r\n\x1A\n".b
     # IHDR chunk
-    ihdr_data = [width, height, 8, 2, 0, 0, 0].pack("NNCCCCC")
-    png << [13].pack("N") << "IHDR" << ihdr_data << [Zlib.crc32("IHDR" + ihdr_data)].pack("N")
+    ihdr_data = [ width, height, 8, 2, 0, 0, 0 ].pack("NNCCCCC")
+    png << [ 13 ].pack("N") << "IHDR" << ihdr_data << [ Zlib.crc32("IHDR" + ihdr_data) ].pack("N")
     # IDAT chunk
-    png << [compressed.bytesize].pack("N") << "IDAT" << compressed << [Zlib.crc32("IDAT" + compressed)].pack("N")
+    png << [ compressed.bytesize ].pack("N") << "IDAT" << compressed << [ Zlib.crc32("IDAT" + compressed) ].pack("N")
     # IEND chunk
-    png << [0].pack("N") << "IEND" << [Zlib.crc32("IEND")].pack("N")
+    png << [ 0 ].pack("N") << "IEND" << [ Zlib.crc32("IEND") ].pack("N")
     png
   end
 
@@ -528,7 +528,7 @@ if ENV["SEED_DEMO"]
     owner: sophie,
     tool_type: ToolType.find_by!(slug: "room")
   )
-  add_collaborators(room_tool, [marcus, priya, jake])
+  add_collaborators(room_tool, [ marcus, priya, jake ])
 
   puts "  Created Standup Room"
 
@@ -540,7 +540,7 @@ if ENV["SEED_DEMO"]
     owner: sophie,
     tool_type: ToolType.find_by!(slug: "boards")
   )
-  add_collaborators(ideas_tool, [marcus])
+  add_collaborators(ideas_tool, [ marcus ])
 
   ideas_board = ideas_tool.board
   ideas_board.columns.destroy_all
@@ -860,7 +860,7 @@ if ENV["SEED_DEMO"]
     owner: sophie,
     tool_type: ToolType.find_by!(slug: "todos")
   )
-  add_collaborators(recipes_tool, [priya])
+  add_collaborators(recipes_tool, [ priya ])
 
   recipe_list = recipes_tool.todo_lists.first
   recipe_list.update!(title: "Recipe Development", created_by: sophie, updated_by: sophie)

@@ -1,0 +1,10 @@
+{
+  "ignored_warnings": [
+    {
+      "fingerprint": "ea2c0d95c7968387ec77139408b3d52ea42f1a1ce89afbcb3610b6fb086605b2",
+      "note": "False positive: integer count rendered through badge component"
+    }
+  ],
+  "updated": "2026-03-13",
+  "brakeman_version": "8.0.4"
+}

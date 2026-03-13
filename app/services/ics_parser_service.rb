@@ -247,7 +247,7 @@ class IcsParserService
           d.to_s =~ /^(-?\d+)([A-Z]{2})$/
           week_num = $1.to_i
           day_sym = day_symbol($2)
-          rule = rule.day_of_week(day_sym => [week_num]) if day_sym
+          rule = rule.day_of_week(day_sym => [ week_num ]) if day_sym
         end
       end
 
