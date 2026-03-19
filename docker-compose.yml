@@ -1,19 +1,24 @@
 services:
   web:
-    build: .
+    image: ghcr.io/smgdkngt/dobase:latest
     ports:
       - "3000:80"
     environment:
-      - RAILS_MASTER_KEY=${RAILS_MASTER_KEY}
-      - RAILS_ENV=production
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
       - APP_NAME=${APP_NAME:-Dobase}
       - APP_HOST=${APP_HOST:-localhost:3000}
+      - APP_FROM_EMAIL=${APP_FROM_EMAIL:-notifications@dobase.co}
+      - SMTP_ADDRESS=${SMTP_ADDRESS:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
     volumes:
       - storage:/rails/storage
     restart: unless-stopped
 
   # Optional: LiveKit server for the Room (video) tool.
-  # Uncomment to enable video conferencing.
+  # Uncomment and add LIVEKIT_URL/LIVEKIT_API_KEY/LIVEKIT_API_SECRET
+  # to the web environment above to enable video conferencing.
   #
   # livekit:
   #   image: livekit/livekit-server:latest

@@ -3,7 +3,10 @@
 
 # This Dockerfile is designed for production, not development. Use with Kamal or build'n'run by hand:
 # docker build -t dobase .
-# docker run -d -p 80:80 -e RAILS_MASTER_KEY=<value from config/master.key> --name dobase dobase
+# docker run -d -p 80:80 -e SECRET_KEY_BASE=<your-secret> --name dobase dobase
+#
+# Or pull the pre-built image:
+# docker run -d -p 80:80 -e SECRET_KEY_BASE=<your-secret> ghcr.io/smgdkngt/dobase:latest
 
 # For a containerized dev environment, see Dev Containers: https://guides.rubyonrails.org/getting_started_with_devcontainer.html
 
@@ -56,6 +59,13 @@ RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 
 # Final stage for app image
 FROM base
+
+# Image metadata
+ARG OCI_DESCRIPTION
+LABEL org.opencontainers.image.description="${OCI_DESCRIPTION}"
+ARG OCI_SOURCE
+LABEL org.opencontainers.image.source="${OCI_SOURCE}"
+LABEL org.opencontainers.image.licenses="O'Saasy"
 
 # Run and own only the runtime files as a non-root user for security
 RUN groupadd --system --gid 1000 rails && \
