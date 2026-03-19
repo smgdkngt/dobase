@@ -10,6 +10,12 @@ class RegistrationsController < ApplicationController
   end
 
   def create
+    unless verify_altcha
+      @user = User.new(user_params)
+      flash.now[:alert] = "Please complete the verification."
+      return render :new, status: :unprocessable_entity
+    end
+
     @user = User.new(user_params)
 
     if @user.save
@@ -26,6 +32,20 @@ class RegistrationsController < ApplicationController
   end
 
   private
+
+  def verify_altcha
+    payload = params[:altcha]
+    return false if payload.blank?
+
+    parsed = JSON.parse(Base64.decode64(payload), symbolize_names: true)
+    Altcha.verify_solution(parsed, altcha_hmac_key)
+  rescue JSON::ParserError, ArgumentError
+    false
+  end
+
+  def altcha_hmac_key
+    Rails.application.secret_key_base.first(32)
+  end
 
   def user_params
     params.require(:user).permit(:first_name, :last_name, :email_address, :password, :password_confirmation)

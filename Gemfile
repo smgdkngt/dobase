@@ -96,3 +96,6 @@ gem "noticed", "~> 3.0"
 # TOTP two-factor authentication
 gem "rotp", "~> 6.3"
 gem "rqrcode", "~> 3.0"
+
+# ALTCHA proof-of-work spam protection
+gem "altcha"

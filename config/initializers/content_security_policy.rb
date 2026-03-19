@@ -10,7 +10,7 @@ Rails.application.configure do
     policy.font_src    :self, :data
     policy.img_src     :self, :data, :https
     policy.object_src  :none
-    policy.script_src  :self, "https://ga.jspm.io", "https://cdn.jsdelivr.net"
+    policy.script_src  :self, "https://ga.jspm.io", "https://cdn.jsdelivr.net", "https://eu.altcha.org"
     policy.style_src   :self, "'unsafe-inline'"
     policy.frame_src   :self
     policy.connect_src :self, *[ ENV["LIVEKIT_URL"]&.sub(%r{^https?://}, "wss://") ].compact

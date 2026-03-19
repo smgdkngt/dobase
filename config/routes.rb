@@ -15,6 +15,7 @@ Rails.application.routes.draw do
   delete "logout", to: "sessions#destroy"
   get "signup", to: "registrations#new"
   post "signup", to: "registrations#create"
+  get "altcha/challenge", to: "altcha#challenge"
 
   scope "login" do
     resource :two_factor_challenge, only: %i[new create], path: "verify"
