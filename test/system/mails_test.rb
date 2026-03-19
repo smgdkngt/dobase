@@ -108,12 +108,14 @@ class MailsTest < ApplicationSystemTestCase
   # Click an element and retry if the expected condition isn't met.
   # Turbo method links sometimes fail to fire in headless Chrome.
   def click_with_retry(selector, retries: 3, &condition)
+    wait_for_turbo
     (retries + 1).times do |attempt|
       find(selector).click
-      assert_db_change(condition, timeout: 3)
+      assert_db_change(condition, timeout: 5)
       return
     rescue RuntimeError
       raise if attempt == retries
+      sleep 0.5
     end
   end
 
