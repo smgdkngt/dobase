@@ -351,9 +351,22 @@
 }
 
 /* PWA standalone mode: flush bottom bar like native iOS tab bar */
+/* Use vh instead of dvh — iOS standalone reports dvh as if Safari's toolbar still exists */
 @media (display-mode: standalone) and (max-width: 1023px) {
   :root {
     --mobile-bar-clearance: calc(var(--mobile-bottom-bar-height) + env(safe-area-inset-bottom));
+  }
+
+  .main-content {
+    min-height: 100vh;
+  }
+
+  .main-content:has(> .tool-layout) {
+    height: calc(100vh - env(safe-area-inset-top)) !important;
+  }
+
+  .main-content:has(> .tool-layout-anchored) {
+    height: calc(100vh - env(safe-area-inset-top) - var(--mobile-bar-clearance)) !important;
   }
 
   .mobile-bottom-bar {
