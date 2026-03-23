@@ -35,6 +35,8 @@ ghcr.io/smgdkngt/dobase:latest
 
 That's it. Once takes care of the rest — including SSL, persistent storage, and automatic backups. Works on any Linux server, cloud VPS, or even a Raspberry Pi.
 
+All tools work out of the box except the Room (video) tool, which requires an external [LiveKit](https://livekit.io) server. Once runs a single container per app, so LiveKit needs to run separately — either via [LiveKit Cloud](https://livekit.io/cloud) or as a standalone Docker container. See [Video conferencing](#video-conferencing-livekit) for setup.
+
 ### Docker
 
 ```bash
