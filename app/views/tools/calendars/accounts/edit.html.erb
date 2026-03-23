@@ -47,6 +47,29 @@
             </div>
           </div>
 
+          <!-- Calendars -->
+          <% calendars = @calendar_account.calendars.by_position %>
+          <% if calendars.any? %>
+            <div class="mb-6">
+              <h3 class="text-sm font-semibold text-text-primary mb-3">Calendars</h3>
+              <div class="border border-border-light rounded-lg divide-y divide-border-light">
+                <% calendars.each do |calendar| %>
+                  <div class="flex items-center gap-3 px-3 py-2.5">
+                    <div class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: <%= calendar.color %>"></div>
+                    <span class="text-sm flex-1"><%= calendar.name %></span>
+                    <% if calendar.read_only? %>
+                      <span class="text-xs text-text-tertiary bg-background-secondary px-2 py-0.5 rounded-full">Read-only</span>
+                    <% end %>
+                    <% if !calendar.enabled? %>
+                      <span class="text-xs text-text-tertiary bg-background-secondary px-2 py-0.5 rounded-full">Disabled</span>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+              <p class="help-text mt-1.5">Read-only calendars are synced but you cannot create events on them.</p>
+            </div>
+          <% end %>
+
           <div class="flex items-center justify-between gap-3">
             <div>
               <%= button_to "Delete Account",
