@@ -104,7 +104,14 @@ Email sending requires SMTP configuration. Without it, all other features work f
 
 The Room tool requires a [LiveKit](https://livekit.io) server. All other tools work without it.
 
-You can run LiveKit alongside Dobase — either as a separate Docker container or as a Kamal accessory. LiveKit needs its own domain for WebSocket connections (browsers connect directly to it).
+LiveKit runs as a separate container — browsers connect to it directly via WebSocket, so it needs its own public URL.
+
+| Method | How to run LiveKit |
+|--------|--------------------|
+| **Docker Compose** | Uncomment the `livekit` service in `docker-compose.yml` |
+| **Docker** | Run `docker run -d -p 7880:7880 -p 7881:7881 -e LIVEKIT_KEYS=key:secret livekit/livekit-server` |
+| **Kamal** | Uncomment the `livekit` accessory in `config/deploy.yml` |
+| **Once** | Run LiveKit separately, or use [LiveKit Cloud](https://livekit.io/cloud) |
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
