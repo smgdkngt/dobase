@@ -24,14 +24,9 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
-  # Assume all access to the app is happening through a SSL-terminating reverse proxy.
-  config.assume_ssl = true
-
-  # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
-  config.force_ssl = true
-
-  # Skip http-to-https redirect for the default health check endpoint.
-  config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
+  # SSL is enabled unless DISABLE_SSL is set (Once sets this automatically on localhost).
+  config.assume_ssl = ENV["DISABLE_SSL"].blank?
+  config.force_ssl = ENV["DISABLE_SSL"].blank?
 
   # Log to STDOUT with the current request id as a default log tag.
   config.log_tags = [ :request_id ]
