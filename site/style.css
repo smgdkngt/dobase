@@ -620,15 +620,6 @@ img, svg {
 }
 
 .deploy-text a {
-  color: var(--text);
-  font-weight: 600;
-  text-decoration: underline;
-  text-decoration-color: var(--accent);
-  text-underline-offset: 2px;
-  transition: color 150ms ease;
-}
-
-.deploy-text a:hover {
   color: var(--accent);
 }
 
