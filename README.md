@@ -4,6 +4,8 @@ An open-source, self-hosted workspace with installable tools. Add a mail client,
 
 Built with Ruby on Rails 8.1, Hotwire, and Tailwind CSS.
 
+![Dobase — Kanban board](site/screenshots/board-launch.png)
+
 ## Tools
 
 | Tool | Description |
@@ -21,7 +23,19 @@ Built with Ruby on Rails 8.1, Hotwire, and Tailwind CSS.
 
 Dobase runs as a single Docker container. Everything — web server, background jobs, database — is included.
 
-### Quick start
+### Install with Once
+
+The easiest way to self-host Dobase is with [Once](https://once.com) by 37signals. Once handles installation, updates, backups, and SSL — all from a simple terminal dashboard.
+
+Point Once at:
+
+```
+ghcr.io/smgdkngt/dobase:latest
+```
+
+That's it. Once takes care of the rest — including SSL, persistent storage, and automatic backups. Works on any Linux server, cloud VPS, or even a Raspberry Pi.
+
+### Docker
 
 ```bash
 docker run -d \
@@ -35,7 +49,15 @@ Visit `http://localhost` and sign up.
 
 ### Docker Compose
 
-For a persistent setup, create a `docker-compose.yml`:
+For a persistent setup with all options, clone the repo and use the included `docker-compose.yml`:
+
+```bash
+git clone https://github.com/smgdkngt/dobase.git
+cd dobase
+SECRET_KEY_BASE=$(openssl rand -hex 64) docker compose up -d
+```
+
+Or create your own `docker-compose.yml`:
 
 ```yaml
 services:
@@ -54,10 +76,6 @@ volumes:
   storage:
 ```
 
-```bash
-docker compose up -d
-```
-
 ### Configuration
 
 | Variable | Default | Purpose |
@@ -67,21 +85,51 @@ docker compose up -d
 | `APP_HOST` | `localhost:3000` | Host for mailer URLs |
 | `APP_LOGO_PATH` | `/icon.svg` | Logo path (sidebar, auth pages) |
 | `APP_FROM_EMAIL` | `notifications@dobase.co` | Sender address for emails |
-| `SMTP_ADDRESS` | — | SMTP server for sending emails |
-| `SMTP_PORT` | `587` | SMTP port |
-| `SMTP_USERNAME` | — | SMTP username |
-| `SMTP_PASSWORD` | — | SMTP password |
-| `LIVEKIT_URL` | — | LiveKit server URL (only for the Room tool) |
-| `LIVEKIT_API_KEY` | — | LiveKit API key |
-| `LIVEKIT_API_SECRET` | — | LiveKit API secret |
+| `DISABLE_SSL` | — | Set to `true` for non-TLS deployments (Once sets this automatically on localhost) |
+
+#### Email (SMTP)
 
 Email sending requires SMTP configuration. Without it, all other features work fine — invitation and notification emails just won't be sent.
 
-LiveKit is only needed for the Room (video) tool. All other tools work without it.
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `SMTP_ADDRESS` | — | SMTP server hostname |
+| `SMTP_PORT` | `587` | SMTP port |
+| `SMTP_USERNAME` | — | SMTP username |
+| `SMTP_PASSWORD` | — | SMTP password |
 
-### Once
+#### Video conferencing (LiveKit)
 
-Dobase is compatible with [Once](https://once.com) by 37signals. Point Once at `ghcr.io/smgdkngt/dobase:latest` and it handles the rest.
+The Room tool requires a [LiveKit](https://livekit.io) server. All other tools work without it.
+
+You can run LiveKit alongside Dobase — either as a separate Docker container or as a Kamal accessory. LiveKit needs its own domain for WebSocket connections (browsers connect directly to it).
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `LIVEKIT_URL` | — | **Public** WebSocket URL browsers connect to (e.g. `wss://room.your-domain.com`) |
+| `LIVEKIT_API_KEY` | — | LiveKit API key |
+| `LIVEKIT_API_SECRET` | — | LiveKit API secret |
+
+Example with Docker Compose (uncomment in `docker-compose.yml`):
+
+```yaml
+livekit:
+  image: livekit/livekit-server:latest
+  ports:
+    - "7880:7880"
+    - "7881:7881"
+  environment:
+    - LIVEKIT_KEYS=your-api-key:your-api-secret
+  restart: unless-stopped
+```
+
+Then add to the web service environment:
+
+```yaml
+- LIVEKIT_URL=wss://room.your-domain.com
+- LIVEKIT_API_KEY=your-api-key
+- LIVEKIT_API_SECRET=your-api-secret
+```
 
 ### Storage & backups
 
@@ -112,6 +160,16 @@ bin/dev
 ```
 
 The app runs at `http://localhost:3000`.
+
+### Demo data
+
+Seed the database with a fictional company ("Moonshot Snacks") to explore all tools:
+
+```bash
+SEED_DEMO=1 bin/rails db:seed
+```
+
+Log in as `sophie@moonshot-snacks.com` / `password123`.
 
 ### Commands
 
