@@ -10,6 +10,10 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
 
     # Disable external requests by default
     WebMock.disable_net_connect!
+
+    # Stub write-test probes used during calendar discovery
+    stub_request(:put, /\.ics$/).to_return(status: 201)
+    stub_request(:delete, /\.ics$/).to_return(status: 204)
   end
 
   teardown do

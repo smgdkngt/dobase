@@ -284,17 +284,15 @@ class CaldavSyncService
       ctag = resp.at_xpath(".//*[local-name()='getctag']")&.text
       sync_token = resp.at_xpath(".//*[local-name()='sync-token']")&.text
 
-      privileges = resp.xpath(".//*[local-name()='current-user-privilege-set']//*[local-name()='privilege']/*").map(&:name)
-      read_only = privileges.any? && !privileges.include?("write")
-
+      resolved_url = resolve_url(href)
       calendars << {
         remote_id: href,
-        remote_url: resolve_url(href),
+        remote_url: resolved_url,
         name: displayname || File.basename(href),
         color: normalize_color(color),
         ctag: ctag,
         sync_token: sync_token,
-        read_only: read_only
+        read_only: !calendar_writable?(resolved_url)
       }
     end
 
@@ -471,6 +469,26 @@ class CaldavSyncService
     calendar.update!(sync_token: sync_token, ctag: ctag)
   end
 
+  def calendar_writable?(calendar_url)
+    test_uid = SecureRandom.uuid.upcase
+    url = "#{calendar_url}#{test_uid}.ics"
+    body = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//WriteTest//EN\r\nBEGIN:VEVENT\r\nUID:#{test_uid}\r\nDTSTAMP:#{Time.current.utc.strftime('%Y%m%dT%H%M%SZ')}\r\nDTSTART:#{1.day.from_now.utc.strftime('%Y%m%dT%H%M%SZ')}\r\nDTEND:#{(1.day.from_now + 1.hour).utc.strftime('%Y%m%dT%H%M%SZ')}\r\nSUMMARY:Write test\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+
+    response = http_client.put(url) do |req|
+      req.headers["Content-Type"] = "text/calendar; charset=utf-8"
+      req.body = body
+    end
+
+    if response.success?
+      http_client.delete(url) rescue nil
+      true
+    else
+      false
+    end
+  rescue
+    false
+  end
+
   def build_icalendar(event)
     cal = Icalendar::Calendar.new
     cal.prodid = "-//#{Rails.application.config.x.app.name}//Calendar//EN"
@@ -570,7 +588,6 @@ class CaldavSyncService
           <x:calendar-color/>
           <cs:getctag/>
           <d:sync-token/>
-          <d:current-user-privilege-set/>
         </d:prop>
       </d:propfind>
     XML

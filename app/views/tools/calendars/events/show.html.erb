@@ -20,6 +20,9 @@
   <div class="mb-4 flex items-center gap-2">
     <div class="w-3 h-3 rounded-full" style="background-color: <%= @calendar.color %>"></div>
     <span class="text-sm text-text-secondary"><%= @calendar.name %></span>
+    <% if @calendar.read_only? %>
+      <span class="text-xs text-text-tertiary">(read-only)</span>
+    <% end %>
   </div>
 
   <!-- Recurrence -->
