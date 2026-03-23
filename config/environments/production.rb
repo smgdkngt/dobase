@@ -24,7 +24,7 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
-  # SSL is enabled unless DISABLE_SSL is set (Once sets this automatically on localhost).
+  # SSL is enabled unless DISABLE_SSL is set (ONCE sets this automatically on localhost).
   config.assume_ssl = ENV["DISABLE_SSL"].blank?
   config.force_ssl = ENV["DISABLE_SSL"].blank?
 

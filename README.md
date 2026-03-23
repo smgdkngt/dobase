@@ -23,19 +23,19 @@ Built with Ruby on Rails 8.1, Hotwire, and Tailwind CSS.
 
 Dobase runs as a single Docker container. Everything — web server, background jobs, database — is included.
 
-### Install with Once
+### Install with ONCE
 
-The easiest way to self-host Dobase is with [Once](https://once.com) by 37signals. Once handles installation, updates, backups, and SSL — all from a simple terminal dashboard.
+The easiest way to self-host Dobase is with [ONCE](https://once.com) by 37signals. ONCE handles installation, updates, backups, and SSL — all from a simple terminal dashboard.
 
-Point Once at:
+Point ONCE at:
 
 ```
 ghcr.io/smgdkngt/dobase:latest
 ```
 
-That's it. Once takes care of the rest — including SSL, persistent storage, and automatic backups. Works on any Linux server, cloud VPS, or even a Raspberry Pi.
+That's it. ONCE takes care of the rest — including SSL, persistent storage, and automatic backups. Works on any Linux server, cloud VPS, or even a Raspberry Pi.
 
-All tools work out of the box except the Room (video) tool, which requires an external [LiveKit](https://livekit.io) server. Once runs a single container per app, so LiveKit needs to run separately — either via [LiveKit Cloud](https://livekit.io/cloud) or as a standalone Docker container. See [Video conferencing](#video-conferencing-livekit) for setup.
+All tools work out of the box except the Room (video) tool, which requires an external [LiveKit](https://livekit.io) server. ONCE runs a single container per app, so LiveKit needs to run separately — either via [LiveKit Cloud](https://livekit.io/cloud) or as a standalone Docker container. See [Video conferencing](#video-conferencing-livekit) for setup.
 
 ### Deploy with Kamal
 
@@ -112,7 +112,7 @@ volumes:
 | `APP_HOST` | `localhost:3000` | Host for mailer URLs |
 | `APP_LOGO_PATH` | `/icon.svg` | Logo path (sidebar, auth pages) |
 | `APP_FROM_EMAIL` | `notifications@dobase.co` | Sender address for emails |
-| `DISABLE_SSL` | — | Set to `true` for non-TLS deployments (Once sets this automatically on localhost) |
+| `DISABLE_SSL` | — | Set to `true` for non-TLS deployments (ONCE sets this automatically on localhost) |
 
 #### Email (SMTP)
 
@@ -136,7 +136,7 @@ LiveKit runs as a separate container — browsers connect to it directly via Web
 | **Docker Compose** | Uncomment the `livekit` service in `docker-compose.yml` |
 | **Docker** | Run `docker run -d -p 7880:7880 -p 7881:7881 -e LIVEKIT_KEYS=key:secret livekit/livekit-server` |
 | **Kamal** | Uncomment the `livekit` accessory in `config/deploy.yml` |
-| **Once** | Run LiveKit separately, or use [LiveKit Cloud](https://livekit.io/cloud) |
+| **ONCE** | Run LiveKit separately, or use [LiveKit Cloud](https://livekit.io/cloud) |
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
