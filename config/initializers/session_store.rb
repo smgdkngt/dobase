@@ -2,5 +2,4 @@
 
 Rails.application.config.session_store :cookie_store,
   key: "_#{Rails.application.config.x.app.name.parameterize}_session",
-  same_site: :lax,
-  secure: Rails.env.production?
+  same_site: :lax
