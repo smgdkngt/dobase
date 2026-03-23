@@ -20,7 +20,7 @@ module Tools
       end
 
       def new
-        @calendars = @calendar_account.calendars.enabled.by_position
+        @calendars = writable_calendars
         @calendar = default_calendar
         @event = @calendar.events.build(
           starts_at: parse_start_time(params[:starts_at]),
@@ -29,7 +29,7 @@ module Tools
       end
 
       def create
-        @calendars = @calendar_account.calendars.enabled.by_position
+        @calendars = writable_calendars
         @calendar = find_calendar(event_params[:calendar_id])
         @event = @calendar.events.build(event_params.except(:calendar_id))
         @event.uid = generate_uid
@@ -46,7 +46,7 @@ module Tools
       end
 
       def edit
-        @calendars = @calendar_account.calendars.enabled.by_position
+        @calendars = writable_calendars
         @event.load_recurrence_for_form
         render layout: false if turbo_frame_request?
       end
@@ -94,9 +94,13 @@ module Tools
         @calendar = @event.calendar
       end
 
+      def writable_calendars
+        @calendar_account.calendars.enabled.writable.by_position
+      end
+
       def default_calendar
-        @calendar_account.calendars.find_by(is_default: true) ||
-          @calendar_account.calendars.enabled.first
+        writable_calendars.find_by(is_default: true) ||
+          writable_calendars.first
       end
 
       def find_calendar(calendar_id)

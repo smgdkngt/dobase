@@ -11,6 +11,7 @@ module Calendars
     validates :name, presence: true
 
     scope :enabled, -> { where(enabled: true) }
+    scope :writable, -> { where(read_only: false) }
     scope :by_position, -> { order(position: :asc) }
 
     before_save :ensure_single_default, if: -> { is_default_changed? && is_default? }

@@ -284,13 +284,17 @@ class CaldavSyncService
       ctag = resp.at_xpath(".//*[local-name()='getctag']")&.text
       sync_token = resp.at_xpath(".//*[local-name()='sync-token']")&.text
 
+      privileges = resp.xpath(".//*[local-name()='current-user-privilege-set']//*[local-name()='privilege']/*").map(&:name)
+      read_only = privileges.any? && !privileges.include?("write")
+
       calendars << {
         remote_id: href,
         remote_url: resolve_url(href),
         name: displayname || File.basename(href),
         color: normalize_color(color),
         ctag: ctag,
-        sync_token: sync_token
+        sync_token: sync_token,
+        read_only: read_only
       }
     end
 
@@ -311,7 +315,8 @@ class CaldavSyncService
         sync_token: is_new ? cal_data[:sync_token] : calendar.sync_token,
         position: is_new ? index : calendar.position,
         enabled: is_new ? true : calendar.enabled,
-        is_default: is_new && index == 0
+        is_default: is_new && index == 0,
+        read_only: cal_data.fetch(:read_only, false)
       )
       calendar.save!
     end
@@ -565,6 +570,7 @@ class CaldavSyncService
           <x:calendar-color/>
           <cs:getctag/>
           <d:sync-token/>
+          <d:current-user-privilege-set/>
         </d:prop>
       </d:propfind>
     XML

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_12_120752) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_23_124250) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -83,6 +83,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_12_120752) do
     t.boolean "is_default", default: false
     t.string "name", null: false
     t.integer "position", default: 0
+    t.boolean "read_only", default: false, null: false
     t.string "remote_id", null: false
     t.string "remote_url"
     t.string "sync_token"
