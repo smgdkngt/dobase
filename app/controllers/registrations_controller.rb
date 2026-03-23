@@ -34,7 +34,7 @@ class RegistrationsController < ApplicationController
   private
 
   def verify_altcha
-    payload = params[:altcha]
+    payload = params[:altcha].presence || params.dig(:user, :altcha)
     return false if payload.blank?
 
     parsed = JSON.parse(Base64.decode64(payload), symbolize_names: true)
