@@ -16,3 +16,9 @@ production:
   notification_digest:
     class: NotificationDigestJob
     schedule: every hour at minute 0
+  sync_all_emails:
+    class: SyncAllEmailsJob
+    schedule: every 5 minutes
+  sync_all_calendars:
+    class: SyncAllCalendarsJob
+    schedule: every 15 minutes
