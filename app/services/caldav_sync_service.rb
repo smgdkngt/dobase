@@ -284,15 +284,13 @@ class CaldavSyncService
       ctag = resp.at_xpath(".//*[local-name()='getctag']")&.text
       sync_token = resp.at_xpath(".//*[local-name()='sync-token']")&.text
 
-      resolved_url = resolve_url(href)
       calendars << {
         remote_id: href,
-        remote_url: resolved_url,
+        remote_url: resolve_url(href),
         name: displayname || File.basename(href),
         color: normalize_color(color),
         ctag: ctag,
-        sync_token: sync_token,
-        read_only: !calendar_writable?(resolved_url)
+        sync_token: sync_token
       }
     end
 
@@ -313,8 +311,7 @@ class CaldavSyncService
         sync_token: is_new ? cal_data[:sync_token] : calendar.sync_token,
         position: is_new ? index : calendar.position,
         enabled: is_new ? true : calendar.enabled,
-        is_default: is_new && index == 0,
-        read_only: cal_data.fetch(:read_only, false)
+        is_default: is_new && index == 0
       )
       calendar.save!
     end
@@ -467,26 +464,6 @@ class CaldavSyncService
     ctag = doc.at_xpath("//*[local-name()='getctag']")&.text
 
     calendar.update!(sync_token: sync_token, ctag: ctag)
-  end
-
-  def calendar_writable?(calendar_url)
-    test_uid = SecureRandom.uuid.upcase
-    url = "#{calendar_url}#{test_uid}.ics"
-    body = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//WriteTest//EN\r\nBEGIN:VEVENT\r\nUID:#{test_uid}\r\nDTSTAMP:#{Time.current.utc.strftime('%Y%m%dT%H%M%SZ')}\r\nDTSTART:#{1.day.from_now.utc.strftime('%Y%m%dT%H%M%SZ')}\r\nDTEND:#{(1.day.from_now + 1.hour).utc.strftime('%Y%m%dT%H%M%SZ')}\r\nSUMMARY:Write test\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
-
-    response = http_client.put(url) do |req|
-      req.headers["Content-Type"] = "text/calendar; charset=utf-8"
-      req.body = body
-    end
-
-    if response.success?
-      http_client.delete(url) rescue nil
-      true
-    else
-      false
-    end
-  rescue
-    false
   end
 
   def build_icalendar(event)

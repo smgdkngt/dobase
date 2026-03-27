@@ -10,11 +10,6 @@ class SyncCalendarsJob < ApplicationJob
     account.mark_syncing!
 
     service = CaldavSyncService.new(account)
-
-    # Always rediscover calendars to pick up new/deleted calendars
-    service.discover_calendars
-
-    # Sync all enabled calendars
     service.sync_all_calendars
 
     account.mark_synced!
