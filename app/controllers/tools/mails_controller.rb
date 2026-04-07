@@ -118,7 +118,13 @@ module Tools
       when "sent"    then @mail_account.messages.sent
       when "starred" then @mail_account.messages.starred
       when "trash"   then @mail_account.messages.trashed
-      when "archive" then @mail_account.messages.archived.not_trashed
+      when "archive"
+        archive_folder = @mail_account.archive_folder.presence
+        if archive_folder
+          @mail_account.messages.not_trashed.where(archived: true).or(@mail_account.messages.not_trashed.where(folder: archive_folder))
+        else
+          @mail_account.messages.archived.not_trashed
+        end
       when "inbox"   then @mail_account.messages.inbox.not_archived
       else                @mail_account.messages.where(folder: @current_folder).not_trashed
       end

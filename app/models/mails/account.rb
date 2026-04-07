@@ -25,7 +25,8 @@ module Mails
 
     def custom_folders
       return [] if synced_folders.blank?
-      JSON.parse(synced_folders).reject { |f| f.in?(BUILT_IN_FOLDERS) }
+      excluded = BUILT_IN_FOLDERS + [ archive_folder.presence ].compact
+      JSON.parse(synced_folders).reject { |f| f.in?(excluded) }
     rescue JSON::ParserError
       []
     end
