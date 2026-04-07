@@ -155,8 +155,8 @@ module Mails
         return
       end
 
-      # No threading headers — group by normalized subject
-      self.thread_id = Digest::MD5.hexdigest("#{mail_account_id}:#{normalized_subject.downcase}")
+      # No threading headers — use own message_id so replies referencing it will match
+      self.thread_id = message_id.presence || Digest::MD5.hexdigest("#{mail_account_id}:#{normalized_subject.downcase}")
     end
   end
 end
