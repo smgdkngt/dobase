@@ -94,6 +94,26 @@ trashed_message:
   created_at: <%= Time.current.to_fs(:db) %>
   updated_at: <%= Time.current.to_fs(:db) %>
 
+draft_message:
+  account: primary
+  message_id: "<draft-001@local>"
+  subject: Draft email
+  from_address: testuser@example.com
+  from_name: Test User
+  to_addresses: '["recipient@example.com"]'
+  body_plain: "This is a draft message."
+  body_html: "<p>This is a draft message.</p>"
+  folder: Drafts
+  draft: true
+  read: true
+  starred: false
+  archived: false
+  trashed: false
+  thread_id: thread-draft-001
+  sent_at: <%= 30.minutes.ago.to_fs(:db) %>
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
 archived_message:
   account: primary
   message_id: "<msg-006@example.com>"

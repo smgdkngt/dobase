@@ -2,15 +2,45 @@
 <% content_for :page_title, "" %>
 
 <%= form_with url: tool_mails_path(@tool), method: :post, class: "compose-layout", data: { controller: "compose" } do %>
+  <% if @draft %>
+    <%= hidden_field_tag :draft_id, @draft.id %>
+  <% end %>
+  <% if @in_reply_to.present? %>
+    <%= hidden_field_tag :in_reply_to, @in_reply_to %>
+  <% end %>
   <!-- Top Bar -->
   <div class="flex items-center px-4 gap-3 bg-surface border-b border-border-light">
     <%= link_to tool_mails_path(@tool), class: "flex items-center justify-center w-8 h-8 rounded-lg hover:bg-background-tertiary transition-colors" do %>
       <%= render "shared/icon", name: "arrow-left", size: 18, class: "text-text-secondary" %>
     <% end %>
-    <span class="text-sm font-semibold text-text-primary">New Message</span>
+    <span class="text-sm font-semibold text-text-primary"><%= @draft ? "Edit Draft" : "New Message" %></span>
 
     <div class="flex items-center gap-2 ml-auto">
-      <%= render "components/button", text: "Discard", variant: :ghost, size: :sm, href: tool_mails_path(@tool), data: { action: "click->compose#discard" } %>
+      <% if @draft %>
+        <%= link_to "Discard", tool_mail_path(@tool, @draft), class: "btn btn-ghost btn-sm",
+            data: { action: "click->compose#discard", turbo_method: :delete, turbo_confirm: "Delete this draft?" } %>
+      <% else %>
+        <%= render "components/button", text: "Discard", variant: :ghost, size: :sm, href: tool_mails_path(@tool), data: { action: "click->compose#discard" } %>
+      <% end %>
+      <% if @draft %>
+        <%= render "components/button",
+            text: "Save Draft",
+            icon: "file-pen",
+            variant: :secondary,
+            size: :sm,
+            type: :submit,
+            formaction: tool_mail_draft_path(@tool, @draft),
+            name: "_method",
+            value: "patch" %>
+      <% else %>
+        <%= render "components/button",
+            text: "Save Draft",
+            icon: "file-pen",
+            variant: :secondary,
+            size: :sm,
+            type: :submit,
+            formaction: tool_mail_drafts_path(@tool) %>
+      <% end %>
       <%= render "components/button", text: "Send", icon: "send", size: :sm, type: :submit %>
     </div>
   </div>
@@ -96,9 +126,8 @@
   </div>
 
   <!-- Attachments Area -->
-  <div class="bg-surface border-t border-border-light px-4 py-2" data-compose-target="attachmentsArea">
-    <div class="flex flex-wrap gap-2" data-compose-target="attachmentsList"></div>
-  </div>
+  <div class="flex flex-wrap gap-2 bg-surface border-t border-border-light px-4 py-2 empty:hidden"
+       data-compose-target="attachmentsList"></div>
 
   <!-- Bottom Bar -->
   <div class="flex items-center px-4 py-3 bg-surface border-t border-border-light gap-3">

@@ -57,6 +57,7 @@
     <%
       folder_meta = {
         "inbox"   => { label: "Inbox",   icon: "inbox",   badge: @inbox_unread },
+        "drafts"  => { label: "Drafts",  icon: "file-pen", badge: @drafts_count },
         "starred" => { label: "Starred", icon: "star" },
         "sent"    => { label: "Sent",    icon: "send" },
         "archive" => { label: "Archive", icon: "archive" },
@@ -254,8 +255,8 @@
           <% end %>
         <% else %>
           <%
-            folder_icons = { "inbox" => "inbox", "starred" => "star", "sent" => "send", "archive" => "archive", "trash" => "trash-2" }
-            folder_descriptions = { "inbox" => "Your inbox is empty", "starred" => "No starred messages", "sent" => "No sent messages", "archive" => "No archived messages", "trash" => "Trash is empty" }
+            folder_icons = { "inbox" => "inbox", "drafts" => "file-pen", "starred" => "star", "sent" => "send", "archive" => "archive", "trash" => "trash-2" }
+            folder_descriptions = { "inbox" => "Your inbox is empty", "drafts" => "No drafts", "starred" => "No starred messages", "sent" => "No sent messages", "archive" => "No archived messages", "trash" => "Trash is empty" }
             empty_icon = folder_icons[@current_folder] || "folder"
             empty_title = params[:q].present? ? "No results found" : "No messages"
             empty_description = params[:q].present? ? "Try a different search term" : (folder_descriptions[@current_folder] || "No messages in #{@current_folder}")

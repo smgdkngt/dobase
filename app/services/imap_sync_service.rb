@@ -108,6 +108,40 @@ class ImapSyncService
     sync_folders
   end
 
+  def save_draft(message)
+    raw = build_raw_email(message)
+    drafts_folder = find_drafts_folder
+
+    connect do |imap|
+      # Delete old draft from server if it exists
+      if message.uid.present? && drafts_folder
+        imap.select(drafts_folder)
+        imap.uid_store(message.uid, "+FLAGS", [ :Deleted ])
+        imap.expunge
+      end
+
+      # Upload new version
+      if drafts_folder
+        imap.append(drafts_folder, raw, [ :Draft, :Seen ])
+        # Get the UID of the just-appended message
+        imap.select(drafts_folder)
+        uids = imap.uid_search([ "HEADER", "Message-ID", message.message_id ])
+        message.update_column(:uid, uids.last) if uids.any?
+      end
+    end
+  rescue StandardError => e
+    Rails.logger.error("Failed to save draft to IMAP: #{e.message}")
+  end
+
+  def delete_draft(uid)
+    drafts_folder = find_drafts_folder
+    return unless drafts_folder && uid.present?
+
+    delete_message(uid, folder: drafts_folder)
+  rescue StandardError => e
+    Rails.logger.error("Failed to delete draft from IMAP: #{e.message}")
+  end
+
   def delete_message(uid, folder:)
     connect do |imap|
       imap.select(folder)
@@ -423,6 +457,35 @@ class ImapSyncService
   def find_sent_folder_from_list(folders)
     sent_names = [ "Sent", "INBOX.Sent", "[Gmail]/Sent Mail", "Sent Messages", "Sent Items" ]
     sent_names.find { |name| folders.include?(name) }
+  end
+
+  def find_drafts_folder
+    connect do |imap|
+      folders = imap.list("", "*").map(&:name)
+      drafts_names = [ "Drafts", "INBOX.Drafts", "[Gmail]/Drafts", "Draft" ]
+      drafts_names.find { |name| folders.include?(name) }
+    end
+  end
+
+  def build_raw_email(message)
+    mail = Mail.new
+    mail.message_id = message.message_id
+    mail.from = message.from_address
+    mail.to = JSON.parse(message.to_addresses || "[]")
+    mail.cc = JSON.parse(message.cc_addresses || "[]") if message.cc_addresses.present?
+    mail.subject = message.subject
+    mail.date = message.sent_at || Time.current
+    mail.in_reply_to = message.in_reply_to if message.in_reply_to.present?
+
+    if message.body_html.present?
+      mail.html_part = Mail::Part.new(content_type: "text/html; charset=UTF-8", body: message.body_html)
+      mail.text_part = Mail::Part.new(content_type: "text/plain; charset=UTF-8", body: message.body_plain || "") if message.body_plain.present?
+    else
+      mail.body = message.body_plain || ""
+      mail.content_type = "text/plain; charset=UTF-8"
+    end
+
+    mail.to_s
   end
 
   def decode_rfc2047(str)

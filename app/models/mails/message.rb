@@ -25,11 +25,12 @@ module Mails
       )
     }
 
-    scope :inbox, -> { where(folder: "INBOX").not_trashed }
-    scope :sent, -> { where(folder: "Sent").not_trashed }
+    scope :not_draft, -> { where(draft: false) }
+    scope :inbox, -> { where(folder: "INBOX").not_trashed.not_draft }
+    scope :sent, -> { where(folder: "Sent").not_trashed.not_draft }
     scope :drafts, -> { where(draft: true).not_trashed }
     scope :unread, -> { where(read: false) }
-    scope :starred, -> { where(starred: true).not_trashed }
+    scope :starred, -> { where(starred: true).not_trashed.not_draft }
 
     scope :in_thread, ->(thread_id) { where(thread_id: thread_id).order(sent_at: :asc) }
 

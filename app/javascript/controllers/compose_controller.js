@@ -1,11 +1,13 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["to", "bccField", "fileInput", "attachmentsList", "attachmentsArea"]
+  static targets = ["to", "bccField", "fileInput", "attachmentsList"]
 
   connect() {
     this.files = []
     this._submitting = false
+    this._savedDraft = !!this.element.querySelector("input[name='draft_id']")
+    this._snapshot = this._formSnapshot()
     this._beforeUnload = (e) => {
       if (this._hasContent() && !this._submitting) {
         e.preventDefault()
@@ -31,12 +33,23 @@ export default class extends Controller {
   }
 
   _hasContent() {
+    // Draft saved and no changes since — nothing to lose
+    if (this._savedDraft && this._formSnapshot() === this._snapshot) return false
+
     const form = this.element
     const to = form.querySelector("input[name='to']")?.value?.trim()
     const subject = form.querySelector("input[name='subject']")?.value?.trim()
     const bodyHtml = form.querySelector("input[name='body']")?.value || ""
     const bodyText = bodyHtml.replace(/<[^>]*>/g, "").trim()
     return !!(to || subject || bodyText)
+  }
+
+  _formSnapshot() {
+    const form = this.element
+    const to = form.querySelector("input[name='to']")?.value || ""
+    const subject = form.querySelector("input[name='subject']")?.value || ""
+    const body = form.querySelector("input[name='body']")?.value || ""
+    return `${to}|${subject}|${body}`
   }
 
   discard() {

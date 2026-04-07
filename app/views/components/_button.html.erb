@@ -20,6 +20,7 @@
     loading: true to show spinner and disable button
     full_width: true for w-full
     form: Form ID for submit buttons outside forms
+    formaction: Override form action URL for this submit button
     name: Input name for submit buttons
     value: Input value for submit buttons
     turbo_confirm: Confirmation message
@@ -93,6 +94,7 @@
       type: type,
       disabled: is_disabled || nil,
       form: local_assigns[:form],
+      formaction: local_assigns[:formaction],
       name: local_assigns[:name],
       value: local_assigns[:value],
       commandfor: local_assigns[:commandfor],

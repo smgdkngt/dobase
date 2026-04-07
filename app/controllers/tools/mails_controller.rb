@@ -25,6 +25,11 @@ module Tools
     end
 
     def show
+      if @message.draft?
+        redirect_to new_tool_mail_path(@tool, draft_id: @message.id)
+        return
+      end
+
       @selected_message = @message
       @current_folder = params[:folder] || "inbox"
       @conversation_messages = @message.conversation.to_a
@@ -38,6 +43,21 @@ module Tools
 
     def new
       @mail_account = @tool.mail_account
+
+      if params[:draft_id].present?
+        @draft = @mail_account.messages.drafts.find_by(id: params[:draft_id])
+      elsif params[:reply_to].present?
+        original = @mail_account.messages.find_by(id: params[:reply_to])
+        @draft = @mail_account.messages.drafts.find_by(in_reply_to: original.message_id) if original
+      end
+
+      if @draft
+        @to = @draft.to_addresses_list.join(", ")
+        @cc = @draft.cc_addresses_list.join(", ")
+        @subject = @draft.subject || ""
+        @body = @draft.body_html || @draft.body_plain || ""
+        @in_reply_to = @draft.in_reply_to
+      end
     end
 
     def create
@@ -71,6 +91,14 @@ module Tools
         attachments: params[:attachments]
       )
 
+      if params[:draft_id].present?
+        draft = @mail_account.messages.drafts.find_by(id: params[:draft_id])
+        if draft
+          ImapSyncService.new(@mail_account).delete_draft(draft.uid)
+          draft.destroy
+        end
+      end
+
       redirect_to tool_mails_path(@tool, folder: "sent"), notice: "Email sent successfully."
     rescue SmtpSendService::SendError => e
       flash.now[:alert] = e.message
@@ -79,6 +107,13 @@ module Tools
     end
 
     def destroy
+      if @message.draft?
+        ImapSyncService.new(@tool.mail_account).delete_draft(@message.uid)
+        @message.destroy
+        redirect_to tool_mails_path(@tool, folder: "drafts"), notice: "Draft deleted."
+        return
+      end
+
       folder = params[:folder] || (@message.trashed? ? "trash" : "inbox")
       next_msg = find_next_message(@message, folder)
       if @message.trashed?
@@ -112,21 +147,23 @@ module Tools
     def load_index_data
       @inbox_unread = @mail_account.messages.inbox.not_archived.unread.count
       @trash_count = @mail_account.messages.trashed.count
+      @drafts_count = @mail_account.messages.drafts.count
       @custom_folders = @mail_account.custom_folders
 
       base_scope = case @current_folder
       when "sent"    then @mail_account.messages.sent
       when "starred" then @mail_account.messages.starred
       when "trash"   then @mail_account.messages.trashed
+      when "drafts"  then @mail_account.messages.drafts
       when "archive"
         archive_folder = @mail_account.archive_folder.presence
         if archive_folder
-          @mail_account.messages.not_trashed.where(archived: true).or(@mail_account.messages.not_trashed.where(folder: archive_folder))
+          @mail_account.messages.not_trashed.not_draft.where(archived: true).or(@mail_account.messages.not_trashed.not_draft.where(folder: archive_folder))
         else
-          @mail_account.messages.archived.not_trashed
+          @mail_account.messages.archived.not_trashed.not_draft
         end
       when "inbox"   then @mail_account.messages.inbox.not_archived
-      else                @mail_account.messages.where(folder: @current_folder).not_trashed
+      else                @mail_account.messages.where(folder: @current_folder).not_trashed.not_draft
       end
 
       base_scope = base_scope.search(params[:q]) if params[:q].present?
@@ -154,6 +191,7 @@ module Tools
           has_attachments: thread_messages.with_attachments.any?,
           count: thread_messages.count,
           unread_count: thread_messages.unread.count,
+          draft: latest.draft?,
           participants: thread_messages.pluck(:from_name, :from_address).uniq.map { |n, a| n.presence || a }.first(3)
         }
       end
@@ -178,6 +216,7 @@ module Tools
       if params[:reply_to].present?
         original = @tool.mail_account.messages.find_by(id: params[:reply_to])
         if original
+          @in_reply_to = original.message_id
           @to = original.from_address
           @subject = "Re: #{original.normalized_subject}" unless @subject.present?
           @body = build_reply_body(original) unless @body.present?
