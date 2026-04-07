@@ -303,6 +303,8 @@
     @apply flex flex-col;
     --rhino-border-color: transparent;
     --rhino-button-active-border-color: var(--color-accent);
+    --rhino-button-text-color: var(--color-text-secondary);
+    --rhino-toolbar-text-color: var(--color-text-secondary);
   }
 
   .rich-text-input rhino-editor [role="toolbar"] {

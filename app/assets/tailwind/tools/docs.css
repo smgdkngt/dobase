@@ -8,6 +8,8 @@ rhino-editor.document-editor {
   overflow: hidden;
   --rhino-border-color: transparent;
   --rhino-button-active-border-color: var(--color-accent);
+  --rhino-button-text-color: var(--color-text-secondary);
+  --rhino-toolbar-text-color: var(--color-text-secondary);
 }
 
 rhino-editor.document-editor::part(toolbar) {

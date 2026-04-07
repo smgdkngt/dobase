@@ -23,6 +23,8 @@
     @apply flex flex-col h-full;
     --rhino-border-color: transparent;
     --rhino-button-active-border-color: var(--color-accent);
+    --rhino-button-text-color: var(--color-text-secondary);
+    --rhino-toolbar-text-color: var(--color-text-secondary);
   }
   rhino-editor.compose-editor [role="toolbar"] {
     @apply shrink-0 border-b border-border-light px-4 py-2;
