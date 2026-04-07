@@ -19,6 +19,9 @@ module Tools
 
         notice = case action
         when "trash"
+          messages.where.not(uid: nil).find_each do |message|
+            ImapSyncJob.perform_later(@mail_account.id, "delete_message", message.uid, message.folder || "INBOX")
+          end
           messages.update_all(trashed: true, archived: false)
           "#{messages.count} email(s) moved to trash."
         when "archive"
@@ -51,7 +54,11 @@ module Tools
             "Invalid folder name."
           end
         when "delete"
-          count = messages.where(trashed: true).destroy_all.count
+          trashed = messages.where(trashed: true)
+          trashed.where.not(uid: nil).find_each do |message|
+            ImapSyncJob.perform_later(@mail_account.id, "delete_message", message.uid, message.folder || "INBOX")
+          end
+          count = trashed.destroy_all.count
           "#{count} email(s) permanently deleted."
         else
           "Unknown action."
