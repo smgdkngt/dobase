@@ -15,6 +15,7 @@ module Tools
         folder = params[:folder] || "inbox"
         next_msg = find_next_message(@message, folder)
         @message.update!(archived: true)
+        sync_imap(:mark_as_read)
         redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Email archived.")
       end
 
@@ -22,6 +23,7 @@ module Tools
       def destroy
         next_msg = find_next_message(@message, "archive")
         @message.update!(archived: false)
+        sync_imap(:mark_as_unread)
         redirect_to_next_mail_or_fallback(next_msg, folder: "archive", notice: "Email unarchived.")
       end
 
@@ -33,6 +35,11 @@ module Tools
 
       def set_message
         @message = @tool.mail_account.messages.find(params[:mail_id])
+      end
+
+      def sync_imap(action)
+        return unless @message.uid.present?
+        ImapSyncJob.perform_later(@tool.mail_account.id, action.to_s, @message.uid, @message.folder || "INBOX")
       end
     end
   end

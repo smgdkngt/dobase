@@ -12,12 +12,14 @@ module Tools
       # POST /tools/:tool_id/mails/:mail_id/read
       def create
         @message.mark_as_read!
+        sync_imap(:mark_as_read)
         redirect_back fallback_location: tool_mails_path(@tool)
       end
 
       # DELETE /tools/:tool_id/mails/:mail_id/read
       def destroy
         @message.mark_as_unread!
+        sync_imap(:mark_as_unread)
         redirect_back fallback_location: tool_mails_path(@tool)
       end
 
@@ -29,6 +31,11 @@ module Tools
 
       def set_message
         @message = @tool.mail_account.messages.find(params[:mail_id])
+      end
+
+      def sync_imap(action)
+        return unless @message.uid.present?
+        ImapSyncJob.perform_later(@tool.mail_account.id, action.to_s, @message.uid, @message.folder || "INBOX")
       end
     end
   end

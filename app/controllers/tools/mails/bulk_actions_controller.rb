@@ -25,6 +25,9 @@ module Tools
           messages.update_all(trashed: true, archived: false)
           "#{messages.count} email(s) moved to trash."
         when "archive"
+          messages.where.not(uid: nil).find_each do |message|
+            ImapSyncJob.perform_later(@mail_account.id, "mark_as_read", message.uid, message.folder || "INBOX")
+          end
           messages.update_all(archived: true)
           "#{messages.count} email(s) archived."
         when "mark_read"

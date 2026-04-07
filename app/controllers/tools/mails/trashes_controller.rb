@@ -28,7 +28,11 @@ module Tools
 
       # DELETE /tools/:tool_id/mails/trash (empty trash)
       def destroy_all
-        count = @tool.mail_account.messages.trashed.destroy_all.count
+        trashed = @tool.mail_account.messages.trashed
+        trashed.where.not(uid: nil).find_each do |message|
+          ImapSyncJob.perform_later(@tool.mail_account.id, "delete_message", message.uid, message.folder || "INBOX")
+        end
+        count = trashed.destroy_all.count
         redirect_to tool_mails_path(@tool, folder: "trash"), notice: "#{count} email(s) permanently deleted."
       end
 
