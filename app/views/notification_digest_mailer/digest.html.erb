@@ -1,51 +1,38 @@
-<h2 style="margin: 0 0 20px; font-size: 18px; font-weight: 600; color: #1a1a1a;">
-  <%= @notifications.size %> new <%= "notification".pluralize(@notifications.size) %>
-</h2>
-
-<%
-  grouped = @notifications.group_by { |n| n.event.params[:tool]&.name || "General" }
-%>
+<% grouped = @notifications.group_by { |n| n.event.params[:tool]&.name } %>
+<% show_groups = grouped.keys.compact.size > 1 %>
 
 <% grouped.each do |tool_name, notifications| %>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
-    <tr>
-      <td style="padding: 8px 12px; background: #f5f5f7; border-radius: 6px;">
-        <span style="font-size: 12px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">
-          <%= tool_name %>
-        </span>
-      </td>
-    </tr>
-    <% notifications.each do |notification| %>
+  <% if show_groups && tool_name %>
+    <p style="margin: 16px 0 6px; font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.5px;">
+      <%= tool_name %>
+    </p>
+  <% end %>
+  <% notifications.each do |notification| %>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 2px;">
       <tr>
-        <td style="padding: 10px 12px; border-bottom: 1px solid #f0f0f0;">
-          <p style="margin: 0 0 2px; font-size: 14px; color: #333;">
+        <td style="padding: 10px 14px; background: #f8f8fa; border-radius: 8px;">
+          <p style="margin: 0; font-size: 14px; color: #333; line-height: 1.4;">
             <%= notification.message %>
           </p>
           <%
             params = notification.event.params
             preview = nil
-
-            # Extract preview text from comment/message body
             if params[:comment].respond_to?(:body)
-              preview = ActionController::Base.helpers.strip_tags(params[:comment].body.to_s).squish.truncate(120)
+              preview = ActionController::Base.helpers.strip_tags(params[:comment].body.to_s).squish.truncate(100)
             elsif params[:chat_message].respond_to?(:body)
-              preview = ActionController::Base.helpers.strip_tags(params[:chat_message].body.to_s).squish.truncate(120)
+              preview = ActionController::Base.helpers.strip_tags(params[:chat_message].body.to_s).squish.truncate(100)
             end
           %>
           <% if preview.present? %>
-            <p style="margin: 4px 0 0; font-size: 13px; color: #888; font-style: italic;">
-              &ldquo;<%= preview %>&rdquo;
-            </p>
+            <p style="margin: 4px 0 0; font-size: 13px; color: #777;">&ldquo;<%= preview %>&rdquo;</p>
           <% end %>
-          <a href="<%= absolute_url(notification.url) %>" style="font-size: 12px; color: #4F46E5; text-decoration: none;">
-            View &rarr;
-          </a>
+          <a href="<%= absolute_url(notification.url) %>" style="display: inline-block; margin-top: 6px; font-size: 12px; color: #4F46E5; text-decoration: none;">View &rarr;</a>
         </td>
       </tr>
-    <% end %>
-  </table>
+    </table>
+  <% end %>
 <% end %>
 
-<p style="margin: 16px 0 0; font-size: 12px; color: #aaa;">
-  You can change digest frequency in your <a href="<%= absolute_url('/profile/edit') %>" style="color: #999;">profile settings</a>.
+<p style="margin: 20px 0 0; font-size: 12px; color: #aaa;">
+  <a href="<%= absolute_url('/profile/edit') %>" style="color: #999; text-decoration: underline;">Change digest frequency</a>
 </p>
