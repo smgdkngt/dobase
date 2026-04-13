@@ -68,8 +68,8 @@
 
   [data-room-mode-value="pip"] [data-room-target="videoGrid"] {
     @apply grid! gap-0 p-0 absolute inset-0 overflow-hidden;
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 1fr !important;
   }
 
   [data-room-mode-value="pip"] [data-participant-id] {
