@@ -44,7 +44,7 @@
     <link rel="apple-touch-startup-image" href="/apple-splash-750-1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
     <link rel="apple-touch-startup-image" href="/apple-splash-640-1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
 
-    <script async defer src="https://eu.altcha.org/js/latest/altcha.min.js" type="module"></script>
+    <script async defer src="/altcha.min.js" type="module"></script>
     <%= stylesheet_link_tag "rhino-editor", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
@@ -52,8 +52,8 @@
 
   <body class="bg-background-secondary text-text-primary" data-controller="keyboard-shortcuts">
     <%= render "shared/turbo_confirm_dialog" %>
-    <%= render "shared/flash" %>
     <% if user_signed_in? %>
+      <%= render "shared/flash" %>
       <div data-controller="mobile-sidebar">
         <%# Sidebar overlay %>
         <div class="sidebar-overlay" data-mobile-sidebar-target="overlay" data-action="click->mobile-sidebar#close"></div>

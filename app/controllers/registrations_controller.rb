@@ -11,6 +11,7 @@ class RegistrationsController < ApplicationController
       return
     end
     @user = User.new
+    @first_user = User.none?
   end
 
   def create
@@ -19,7 +20,7 @@ class RegistrationsController < ApplicationController
       return
     end
 
-    unless verify_altcha
+    unless User.none? || verify_altcha
       @user = User.new(user_params)
       flash.now[:alert] = "Please complete the verification."
       return render :new, status: :unprocessable_entity

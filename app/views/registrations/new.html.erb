@@ -9,6 +9,7 @@
 
   <div class="card">
     <div class="card-body">
+      <%= render "shared/flash", position: :inline %>
       <%= form_with model: @user, url: signup_path, method: :post do |f| %>
         <%= render "shared/error_flash", object: @user %>
 
@@ -65,9 +66,11 @@
           %>
         </div>
 
-        <div class="mb-6">
-          <altcha-widget challengeurl="/altcha/challenge" name="altcha"></altcha-widget>
-        </div>
+        <% unless @first_user %>
+          <div class="mb-6">
+            <altcha-widget challengeurl="/altcha/challenge" name="altcha"></altcha-widget>
+          </div>
+        <% end %>
 
         <%= render "components/button", text: "Create Account", full_width: true %>
       <% end %>
