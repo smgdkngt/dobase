@@ -1,5 +1,9 @@
+<% unless turbo_frame_request? %>
+  <div class="p-6"><div class="max-w-3xl mx-auto card overflow-hidden">
+    <div class="card-header"><h2 class="text-lg font-semibold">Profile</h2></div>
+<% end %>
 <%= turbo_frame_tag "profile-form" do %>
-  <div data-controller="tabs" data-tabs-default-value="profile" class="edit-modal-layout flex -m-5 h-[500px]">
+  <div data-controller="tabs" data-tabs-default-value="<%= params[:tab] || 'profile' %>" class="edit-modal-layout flex <%= turbo_frame_request? ? '-m-5 h-[500px]' : '' %>">
     <%# Vertical tab navigation %>
     <div class="edit-modal-tabs flex flex-col gap-1 w-44 flex-shrink-0 p-4 border-r border-border-light bg-background-secondary/50">
       <button type="button" class="tab w-full justify-start" data-tabs-target="tab" data-tab="profile" data-action="click->tabs#select">
@@ -238,4 +242,7 @@
       </div>
     </div>
   </div>
+<% end %>
+<% unless turbo_frame_request? %>
+  </div></div>
 <% end %>
