@@ -27,6 +27,7 @@ class ApplicationController < ActionController::Base
     return unless request.get? && response.successful?
     return if request.xhr? || turbo_frame_request?
     return unless request.path.start_with?("/tools")
+    return if request.path.match?(%r{/sync\b})
 
     current_user.update_column(:last_visited_path, request.path)
 
