@@ -10,7 +10,7 @@ Built with Ruby on Rails 8.1, Hotwire, and Tailwind CSS.
 
 | Tool | Description |
 |------|-------------|
-| **Mail** | IMAP/SMTP email client with rich text compose, contacts, and conversations |
+| **Mail** | IMAP/SMTP email client with rich text compose, drafts, contacts, and conversations |
 | **Board** | Kanban boards with columns, cards, comments, and attachments |
 | **Docs** | Rich text documents with collaborative editing |
 | **Chat** | Real-time messaging with typing indicators, replies, and file sharing |
@@ -113,6 +113,7 @@ volumes:
 | `APP_LOGO_PATH` | `/icon.svg` | Logo path (sidebar, auth pages) |
 | `APP_FROM_EMAIL` | `notifications@dobase.co` | Sender address for emails |
 | `DISABLE_SSL` | — | Set to `true` for non-TLS deployments (ONCE sets this automatically on localhost) |
+| `OPEN_REGISTRATION` | — | Set to `true` to allow public signup (default: invite-only) |
 
 #### Email (SMTP)
 
