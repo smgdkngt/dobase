@@ -186,8 +186,7 @@
         <p class="text-xs text-text-tertiary truncate mt-0.5"><%= current_user.email_address %></p>
       </div>
       <button type="button" class="dropdown-item flex items-center gap-2"
-              commandfor="profile-modal" command="show-modal"
-              popovertarget="sidebar-user-menu" popovertargetaction="hide">
+              commandfor="profile-modal" command="show-modal">
         <%= render "shared/icon", name: "user", size: 16 %>
         <span>Profile</span>
       </button>
