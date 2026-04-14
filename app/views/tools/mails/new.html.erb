@@ -8,6 +8,11 @@
   <% if @in_reply_to.present? %>
     <%= hidden_field_tag :in_reply_to, @in_reply_to %>
   <% end %>
+  <% if @forward_attachments&.any? %>
+    <% @forward_attachments.each do |att| %>
+      <%= hidden_field_tag "forward_attachment_ids[]", att.id %>
+    <% end %>
+  <% end %>
   <!-- Top Bar -->
   <div class="flex items-center px-4 gap-3 bg-surface border-b border-border-light">
     <%= link_to tool_mails_path(@tool), class: "flex items-center justify-center w-8 h-8 rounded-lg hover:bg-background-tertiary transition-colors" do %>
@@ -127,7 +132,17 @@
 
   <!-- Attachments Area -->
   <div class="flex flex-wrap gap-2 bg-surface border-t border-border-light px-4 py-2 empty:hidden"
-       data-compose-target="attachmentsList"></div>
+       data-compose-target="attachmentsList">
+    <% if @forward_attachments&.any? %>
+      <% @forward_attachments.each do |att| %>
+        <div class="compose-attachment-item">
+          <%= render "shared/icon", name: "paperclip", size: 14 %>
+          <span><%= att.filename %></span>
+          <span class="compose-attachment-size"><%= att.human_file_size %></span>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
 
   <!-- Bottom Bar -->
   <div class="flex items-center px-4 py-3 bg-surface border-t border-border-light gap-3">

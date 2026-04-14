@@ -80,6 +80,15 @@ module Tools
       body_html = params[:body]
       body_plain = ActionController::Base.helpers.strip_tags(body_html)&.gsub(/\s+/, " ")&.strip
 
+      all_attachments = Array(params[:attachments])
+
+      # Include forwarded attachments (Active Storage blobs)
+      if params[:forward_attachment_ids].present?
+        Mails::Attachment.where(id: params[:forward_attachment_ids]).each do |att|
+          all_attachments << att.file.blob if att.file.attached?
+        end
+      end
+
       service = SmtpSendService.new(@mail_account)
       service.send_email(
         to: to,
@@ -88,7 +97,7 @@ module Tools
         subject: params[:subject],
         body: body_plain,
         body_html: body_html,
-        attachments: params[:attachments]
+        attachments: all_attachments.presence
       )
 
       if params[:draft_id].present?
@@ -233,6 +242,7 @@ module Tools
         if original
           @subject = "Fwd: #{original.normalized_subject}" unless @subject.present?
           @body = build_forward_body(original) unless @body.present?
+          @forward_attachments = original.attachments.select { |a| a.file.attached? }
         end
       end
     end
