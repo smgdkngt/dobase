@@ -1,5 +1,18 @@
-<%# Flash messages component %>
+<%#
+  Flash messages — renders alerts, notices, etc.
+
+  Options:
+    position:    :toast (default) — fixed bottom-right toast
+                 :inline — inline within the form/page
+    dismissable: true (default for toast), false (default for inline)
+  Usage:
+    render "shared/flash"                                  # toast
+    render "shared/flash", position: :inline               # inline, no dismiss
+    render "shared/flash", position: :inline, dismissable: true
+%>
 <%
+  position = local_assigns.fetch(:position, :toast)
+  dismissable = local_assigns.fetch(:dismissable, position == :toast)
   flash_config = {
     "notice"  => { css: "flash-notice",  icon: "info" },
     "success" => { css: "flash-success", icon: "check-circle" },
@@ -7,18 +20,22 @@
     "error"   => { css: "flash-alert",   icon: "alert-circle" },
     "warning" => { css: "flash-warning", icon: "alert-circle" }
   }
-  default_config = { css: "flash-notice", icon: "info" }
+  has_messages = flash.any? { |type, _| flash_config[type.to_s] }
+  wrapper_class = position == :toast ? "fixed bottom-6 right-6 z-[9999] max-w-sm" : "mb-4"
 %>
-<% if flash.any? %>
-  <div class="fixed bottom-6 right-6 z-[9999] max-w-sm flex flex-col gap-2" data-controller="flash">
+<% if position == :toast || has_messages %>
+  <div id="flash" class="flex flex-col gap-2 <%= wrapper_class %>" data-controller="flash">
     <% flash.each do |type, message| %>
-      <% cfg = flash_config[type.to_s] || default_config %>
-      <div class="flash <%= cfg[:css] %>" data-flash-target="message" data-action="click->flash#dismiss" role="alert">
+      <% cfg = flash_config[type.to_s] %>
+      <% next unless cfg %>
+      <div class="flash <%= cfg[:css] %>" data-flash-target="message" <% if dismissable %>data-action="click->flash#dismiss"<% end %> role="alert">
         <%= render "shared/icon", name: cfg[:icon], size: 18 %>
         <span class="flex-1"><%= message %></span>
-        <button type="button" class="ml-2 opacity-70 hover:opacity-100" data-action="click->flash#dismiss">
-          <%= render "shared/icon", name: "x", size: 16 %>
-        </button>
+        <% if dismissable %>
+          <button type="button" class="ml-2 opacity-70 hover:opacity-100" data-action="click->flash#dismiss">
+            <%= render "shared/icon", name: "x", size: 16 %>
+          </button>
+        <% end %>
       </div>
     <% end %>
   </div>

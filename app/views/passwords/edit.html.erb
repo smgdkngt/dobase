@@ -9,6 +9,7 @@
 
   <div class="card">
     <div class="card-body">
+      <%= render "shared/flash", position: :inline %>
       <%= form_with url: password_path(params[:token]), method: :put, class: "space-y-4" do |f| %>
         <div>
           <label for="password" class="label">New Password</label>

@@ -9,6 +9,7 @@
 
   <div class="card">
     <div class="card-body">
+      <%= render "shared/flash", position: :inline %>
       <%= form_with url: session_path, method: :post, class: "space-y-4" do |f| %>
         <div>
           <label for="email_address" class="label">Email</label>
