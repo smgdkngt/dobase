@@ -69,10 +69,11 @@ docker run -d \
   -p 80:80 \
   -v dobase_storage:/rails/storage \
   -e SECRET_KEY_BASE=$(openssl rand -hex 64) \
+  -e DISABLE_SSL=true \
   ghcr.io/smgdkngt/dobase:latest
 ```
 
-Visit `http://localhost` and sign up.
+Visit `http://localhost` and sign up. Remove `DISABLE_SSL=true` when running behind a TLS proxy or with a domain.
 
 ### Docker Compose
 
