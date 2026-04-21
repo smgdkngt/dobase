@@ -203,17 +203,19 @@ class ImapSyncService
     primary_folder = folder_name.in?(%w[INBOX Sent])
 
     if primary_folder
-      # INBOX/Sent: fetch all messages (these folders are typically small)
-      uids = imap.uid_search([ "ALL" ])
+      all_server_uids = (imap.uid_search([ "ALL" ]) || []).sort
+      reconcile_local_messages(folder_name, all_server_uids)
+
+      existing_uids = @account.messages.where(folder: folder_name).where.not(uid: nil).pluck(:uid)
+      new_uids = all_server_uids - existing_uids
+      # Re-fetch the most recent existing messages too, so flag changes (read/starred) made in other clients get picked up.
+      recent_existing = (all_server_uids & existing_uids).last(limit)
+      uids = (new_uids + recent_existing).uniq.sort
     else
-      # Other folders: only fetch recent messages to avoid syncing huge history
       since_date = 3.months.ago.strftime("%d-%b-%Y")
-      uids = imap.uid_search([ "SINCE", since_date ])
+      uids = ((imap.uid_search([ "SINCE", since_date ]) || []).sort).last(limit)
     end
     return if uids.empty?
-
-    # Take the most recent UIDs (highest = newest)
-    uids = uids.sort.last(limit)
 
     messages = imap.uid_fetch(uids, [ "UID", "ENVELOPE", "FLAGS", "INTERNALDATE", "BODY.PEEK[]", "BODYSTRUCTURE" ])
     return unless messages
@@ -221,6 +223,16 @@ class ImapSyncService
     messages.each do |msg|
       save_email(imap, msg, folder_name)
     end
+  end
+
+  def reconcile_local_messages(folder_name, server_uids)
+    # Remove local messages that no longer exist on the server in this folder.
+    # Skip trashed/archived/draft rows — those are kept intentionally in other views.
+    scope = @account.messages
+      .where(folder: folder_name, trashed: false, archived: false, draft: false)
+      .where.not(uid: nil)
+    stale = server_uids.any? ? scope.where.not(uid: server_uids) : scope
+    stale.destroy_all
   end
 
   def save_email(imap, msg, folder_name)
