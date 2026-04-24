@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_07_072525) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_24_053342) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -61,7 +61,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_07_072525) do
     t.string "calendar_home_set_url"
     t.datetime "created_at", null: false
     t.string "display_name"
-    t.text "encrypted_password", null: false
+    t.text "encrypted_password"
     t.datetime "last_synced_at"
     t.string "principal_url"
     t.string "provider"
@@ -69,7 +69,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_07_072525) do
     t.string "sync_status", default: "pending"
     t.bigint "tool_id", null: false
     t.datetime "updated_at", null: false
-    t.string "username", null: false
+    t.string "username"
     t.index ["tool_id"], name: "index_calendar_accounts_on_tool_id", unique: true
   end
 
