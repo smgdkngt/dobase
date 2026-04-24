@@ -20,6 +20,8 @@ class DeleteCalendarEventJob < ApplicationJob
     return unless remote_href.present?
 
     account = calendar.account
+    return unless account # Local calendar — nothing to delete remotely
+
     service = CaldavSyncService.new(account)
 
     # Build a minimal event-like object for the delete method

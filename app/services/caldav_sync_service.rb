@@ -56,8 +56,6 @@ class CaldavSyncService
   end
 
   def test_connection
-    return true if @account.local?
-
     response = propfind(@account.caldav_url, depth: 0, body: propfind_current_user_principal_xml)
     raise AuthenticationError, "Authentication failed" if response.status == 401
     raise ConnectionError, "Connection failed: #{response.status}" unless response.success?
@@ -67,7 +65,6 @@ class CaldavSyncService
   end
 
   def discover_calendars
-    return if @account.local?
     principal_url = discover_principal_url
     raise SyncError, "Could not discover principal URL" unless principal_url
 
@@ -79,8 +76,6 @@ class CaldavSyncService
   end
 
   def sync_all_calendars
-    return if @account.local?
-
     @account.calendars.enabled.find_each do |calendar|
       sync_calendar(calendar)
     rescue SyncError => e
@@ -89,7 +84,6 @@ class CaldavSyncService
   end
 
   def sync_calendar(calendar)
-    return if @account.local?
     if calendar.sync_token.present? && !ctag_changed?(calendar)
       delta_sync(calendar)
     else
@@ -121,8 +115,6 @@ class CaldavSyncService
   end
 
   def create_event(event)
-    return if event.calendar.local?
-
     calendar = event.calendar
     ics_data = build_icalendar(event)
     url = "#{calendar.remote_url}#{event.uid}.ics"
@@ -141,8 +133,6 @@ class CaldavSyncService
   end
 
   def update_event(event)
-    return if event.calendar.local?
-
     url = event.remote_href.presence || "#{event.calendar.remote_url}#{event.uid}.ics"
     ics_data = build_icalendar(event)
 
@@ -158,7 +148,6 @@ class CaldavSyncService
   end
 
   def delete_event(event)
-    return if event.calendar.local?
     return unless event.remote_href.present?
 
     response = http_client.delete(event.remote_href) do |req|
@@ -172,7 +161,6 @@ class CaldavSyncService
   end
 
   def update_calendar(calendar)
-    return if calendar.local?
     return unless calendar.remote_url.present?
 
     response = proppatch(calendar.remote_url, calendar_proppatch_xml(calendar))

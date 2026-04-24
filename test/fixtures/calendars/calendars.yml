@@ -1,4 +1,5 @@
 personal:
+  tool: my_calendar
   account: icloud_account
   remote_id: /123456789/calendars/personal/
   remote_url: https://caldav.icloud.com/123456789/calendars/personal/
@@ -13,6 +14,7 @@ personal:
   updated_at: <%= Time.current.to_fs(:db) %>
 
 work:
+  tool: my_calendar
   account: icloud_account
   remote_id: /123456789/calendars/work/
   remote_url: https://caldav.icloud.com/123456789/calendars/work/
@@ -27,6 +29,7 @@ work:
   updated_at: <%= Time.current.to_fs(:db) %>
 
 disabled_calendar:
+  tool: my_calendar
   account: icloud_account
   remote_id: /123456789/calendars/disabled/
   remote_url: https://caldav.icloud.com/123456789/calendars/disabled/

@@ -4,11 +4,14 @@ module Calendars
   class Calendar < ApplicationRecord
     self.table_name = "calendar_calendars"
 
-    belongs_to :account, class_name: "Calendars::Account", foreign_key: "calendar_account_id"
+    belongs_to :tool
+    belongs_to :account, class_name: "Calendars::Account", foreign_key: "calendar_account_id", optional: true
     has_many :events, class_name: "Calendars::Event", foreign_key: "calendar_id", dependent: :destroy
 
-    validates :remote_id, presence: true, uniqueness: { scope: :calendar_account_id }, unless: -> { account&.local? }
+    validates :remote_id, presence: true, uniqueness: { scope: :calendar_account_id }, if: :account
     validates :name, presence: true
+
+    before_validation :infer_tool_from_account, if: -> { tool.nil? && account }
 
     scope :enabled, -> { where(enabled: true) }
     scope :writable, -> { where(read_only: false) }
@@ -23,18 +26,18 @@ module Calendars
       color.presence || DEFAULT_COLOR
     end
 
-    def local?
-      account&.local?
-    end
-
     private
 
+    def infer_tool_from_account
+      self.tool = account.tool
+    end
+
     def ensure_single_default
-      account&.calendars&.where&.not(id: id)&.update_all(is_default: false)
+      tool.calendars.where.not(id: id).update_all(is_default: false)
     end
 
     def should_sync_to_caldav?
-      !local? && remote_url.present? && (saved_change_to_name? || saved_change_to_color?)
+      account.present? && remote_url.present? && (saved_change_to_name? || saved_change_to_color?)
     end
 
     def sync_to_caldav

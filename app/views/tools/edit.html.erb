@@ -262,17 +262,16 @@
               <h3 class="text-sm font-semibold text-text-primary mb-3">Account Type</h3>
               <div class="flex items-center gap-3 p-3 bg-background-secondary rounded-lg">
                 <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                  <%= render "shared/icon", name: calendar_account.local? ? "calendar" : "cloud", size: 20, class: "text-accent" %>
+                  <%= render "shared/icon", name: "cloud", size: 20, class: "text-accent" %>
                 </div>
                 <div>
                   <span class="font-medium capitalize"><%= calendar_account.provider %></span>
-                  <p class="text-xs text-text-secondary"><%= calendar_account.local? ? "Events stored locally" : "Synced via CalDAV" %></p>
+                  <p class="text-xs text-text-secondary">Synced via CalDAV</p>
                 </div>
               </div>
             </div>
 
-            <% unless calendar_account.local? %>
-              <%# CalDAV Settings %>
+            <%# CalDAV Settings %>
               <div class="mb-5">
                 <h3 class="text-sm font-semibold text-text-primary mb-3">CalDAV Settings</h3>
                 <div class="mb-3">
@@ -313,7 +312,6 @@
                   <p class="text-xs text-error mt-2"><%= calendar_account.sync_error %></p>
                 <% end %>
               </div>
-            <% end %>
 
             <%# Calendars list %>
             <% calendars = calendar_account.calendars.by_position %>

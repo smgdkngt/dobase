@@ -12,14 +12,10 @@ module Calendars
 
     accepts_nested_attributes_for :calendars
 
-    validates :username, presence: true, unless: :local?
-    validates :encrypted_password, presence: true, unless: :local?
+    validates :username, presence: true
+    validates :encrypted_password, presence: true
 
-    PROVIDERS = %w[fastmail icloud nextcloud google custom local].freeze
-
-    def local?
-      provider == "local"
-    end
+    PROVIDERS = %w[fastmail icloud nextcloud google custom].freeze
 
     private
 

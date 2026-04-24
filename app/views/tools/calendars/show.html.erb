@@ -60,7 +60,7 @@
 
     <!-- Right: Sync status -->
     <div class="flex-1 flex items-center gap-3 justify-end">
-      <% if @calendar_account && !@calendar_account.local? %>
+      <% if @calendar_account %>
         <div class="flex items-center gap-2"
              data-controller="sync-status"
              data-sync-status-url-value="<%= tool_calendar_sync_path(@tool) %>"

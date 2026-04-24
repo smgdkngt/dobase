@@ -14,10 +14,8 @@ module Tools
       end
 
       def create
-        @calendar_account = @tool.build_calendar_account(calendar_account_params)
-
-        if @calendar_account.local?
-          create_local_account
+        if params.dig(:calendars_account, :provider) == "local"
+          create_local_calendar
         else
           create_caldav_account
         end
@@ -71,25 +69,21 @@ module Tools
         )
       end
 
-      def create_local_account
-        @calendar_account.sync_status = "synced"
-
-        if @calendar_account.save
-          # Create a default calendar for local accounts
-          @calendar_account.calendars.create!(
-            name: @tool.name,
-            color: "#3b82f6",
-            enabled: true,
-            is_default: true,
-            position: 0
-          )
-          redirect_to tool_calendar_path(@tool), notice: "Calendar created successfully."
-        else
-          render :new, status: :unprocessable_entity
-        end
+      def create_local_calendar
+        @tool.calendars.create!(
+          name: @tool.name,
+          color: "#3b82f6",
+          enabled: true,
+          is_default: true,
+          position: 0,
+          remote_id: nil
+        )
+        redirect_to tool_calendar_path(@tool), notice: "Calendar created successfully."
       end
 
       def create_caldav_account
+        @calendar_account = @tool.build_calendar_account(calendar_account_params)
+
         if @calendar_account.save
           SyncCalendarsJob.perform_later(@calendar_account.id)
           redirect_to tool_calendar_path(@tool), notice: "Calendar account connected successfully."

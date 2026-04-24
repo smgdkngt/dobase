@@ -12,6 +12,8 @@ class PushEventJob < ApplicationJob
     return unless event
 
     account = event.calendar.account
+    return unless account # Local calendar — nothing to push
+
     service = CaldavSyncService.new(account)
 
     case action.to_sym

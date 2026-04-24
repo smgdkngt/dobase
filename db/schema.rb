@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_07_072525) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_24_052321) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -74,7 +74,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_07_072525) do
   end
 
   create_table "calendar_calendars", force: :cascade do |t|
-    t.bigint "calendar_account_id", null: false
+    t.bigint "calendar_account_id"
     t.string "color"
     t.datetime "created_at", null: false
     t.string "ctag"
@@ -84,12 +84,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_07_072525) do
     t.string "name", null: false
     t.integer "position", default: 0
     t.boolean "read_only", default: false, null: false
-    t.string "remote_id", null: false
+    t.string "remote_id"
     t.string "remote_url"
     t.string "sync_token"
+    t.integer "tool_id", null: false
     t.datetime "updated_at", null: false
     t.index ["calendar_account_id", "remote_id"], name: "index_calendar_calendars_on_calendar_account_id_and_remote_id", unique: true
     t.index ["calendar_account_id"], name: "index_calendar_calendars_on_calendar_account_id"
+    t.index ["tool_id"], name: "index_calendar_calendars_on_tool_id"
   end
 
   create_table "calendar_events", force: :cascade do |t|
@@ -598,6 +600,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_07_072525) do
   add_foreign_key "boards", "tools"
   add_foreign_key "calendar_accounts", "tools"
   add_foreign_key "calendar_calendars", "calendar_accounts"
+  add_foreign_key "calendar_calendars", "tools"
   add_foreign_key "calendar_events", "calendar_calendars", column: "calendar_id"
   add_foreign_key "calendar_events", "users", column: "created_by_id"
   add_foreign_key "calendar_events", "users", column: "updated_by_id"

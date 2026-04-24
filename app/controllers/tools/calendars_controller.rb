@@ -6,11 +6,11 @@ module Tools
 
     before_action :set_tool
     before_action -> { authorize_tool_access!(@tool) }
-    before_action :require_calendar_account
+    before_action :require_calendar_setup
 
     def show
       @calendar_account = @tool.calendar_account
-      @calendars = @calendar_account.calendars.enabled.by_position
+      @calendars = @tool.calendars.enabled.by_position
 
       # Calculate week range
       @week_start = parse_week_start(params[:week_start])
@@ -34,13 +34,13 @@ module Tools
       @tool = Tool.find(params[:tool_id])
     end
 
-    def require_calendar_account
-      unless @tool.calendar_account
-        if @tool.owned_by?(current_user)
-          redirect_to new_tool_calendar_account_path(@tool)
-        else
-          redirect_to tool_path(@tool), alert: "Calendar account not configured."
-        end
+    def require_calendar_setup
+      return if @tool.calendar_account || @tool.calendars.any?
+
+      if @tool.owned_by?(current_user)
+        redirect_to new_tool_calendar_account_path(@tool)
+      else
+        redirect_to tool_path(@tool), alert: "Calendar account not configured."
       end
     end
 
@@ -58,9 +58,9 @@ module Tools
       range_start = start_date.beginning_of_day
       range_end = end_date.end_of_day
 
-      base_events = @calendar_account.events
+      base_events = Calendars::Event
         .joins(:calendar)
-        .where(calendar_calendars: { enabled: true })
+        .where(calendar_calendars: { tool_id: @tool.id, enabled: true })
         .by_start
 
       events = []

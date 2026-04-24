@@ -8,6 +8,7 @@ class Tool < ApplicationRecord
   has_many :invitations, dependent: :destroy
   has_one :mail_account, class_name: "Mails::Account", dependent: :destroy
   has_one :calendar_account, class_name: "Calendars::Account", dependent: :destroy
+  has_many :calendars, class_name: "Calendars::Calendar", dependent: :destroy
   has_one :board, class_name: "Boards::Board", dependent: :destroy
   has_one :chat, class_name: "Chats::Chat", dependent: :destroy
   has_many :sidebar_memberships, class_name: "Sidebar::Membership", dependent: :destroy
@@ -114,11 +115,11 @@ class Tool < ApplicationRecord
         unread << tid if max_at && (ts.nil? || max_at > ts)
       end
 
-    # Calendar events (events → calendars via calendar_id → accounts via calendar_account_id)
+    # Calendar events (events → calendars → tool)
     Calendars::Event
-      .joins(calendar: :account)
-      .where(calendar_accounts: { tool_id: candidate_ids })
-      .group("calendar_accounts.tool_id")
+      .joins(:calendar)
+      .where(calendar_calendars: { tool_id: candidate_ids })
+      .group("calendar_calendars.tool_id")
       .maximum("calendar_events.updated_at")
       .each do |tid, max_at|
         ts = collabs[tid]

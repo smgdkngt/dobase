@@ -5,8 +5,7 @@ class SyncCalendarPropertiesJob < ApplicationJob
 
   def perform(calendar_id)
     calendar = Calendars::Calendar.find_by(id: calendar_id)
-    return unless calendar
-    return if calendar.local?
+    return unless calendar&.account
 
     service = CaldavSyncService.new(calendar.account)
     service.update_calendar(calendar)
