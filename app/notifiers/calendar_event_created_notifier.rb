@@ -13,7 +13,7 @@ class CalendarEventCreatedNotifier < Noticed::Event
       creator = event.params[:creator]
       cal_event = event.params[:event]
       date = cal_event&.start_time&.strftime("%b %-d") || "a date"
-      "#{creator&.name || 'Someone'} created #{cal_event&.title || 'an event'} on #{date}"
+      "#{creator&.name || 'Someone'} created #{cal_event&.summary || 'an event'} on #{date}"
     end
 
     def url
