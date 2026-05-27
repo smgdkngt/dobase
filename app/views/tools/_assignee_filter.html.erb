@@ -1,0 +1,44 @@
+<%#
+  Assignee filter chip bar. Rebuilds the current URL with a different
+  ?assignee= param, so it works on any tool view that supports the filter.
+
+  Locals:
+    collaborators — array of User
+    current       — current assignee filter param (nil / "me" / "unassigned" / id-string)
+%>
+<%
+  current_str  = current.presence
+  current_id   = current_str =~ /\A\d+\z/ ? current_str.to_i : nil
+  active_all   = current_str.blank?
+  active_me    = current_str == "me"
+  active_unset = current_str == "unassigned"
+%>
+<div class="assignee-filter">
+  <%= link_to "All",
+        url_for(assignee: nil),
+        class: "tab #{'active' if active_all}",
+        data: { turbo_action: "replace" } %>
+
+  <%= link_to url_for(assignee: "me"),
+        class: "tab #{'active' if active_me}",
+        data: { turbo_action: "replace" } do %>
+    <%= render "shared/avatar", user: current_user, size: :sm %>
+    <span>Me</span>
+  <% end %>
+
+  <% collaborators.reject { |u| u == current_user }.each do |user| %>
+    <%= link_to url_for(assignee: user.id),
+          class: "tab #{'active' if current_id == user.id}",
+          data: { turbo_action: "replace" } do %>
+      <%= render "shared/avatar", user: user, size: :sm %>
+      <span><%= user.name %></span>
+    <% end %>
+  <% end %>
+
+  <%= link_to url_for(assignee: "unassigned"),
+        class: "tab #{'active' if active_unset}",
+        data: { turbo_action: "replace" } do %>
+    <%= render "shared/icon", name: "user", size: 14 %>
+    <span>Unassigned</span>
+  <% end %>
+</div>

@@ -15,6 +15,8 @@ module Boards
 
     scope :active, -> { where(archived_at: nil) }
     scope :archived, -> { where.not(archived_at: nil) }
+    scope :assigned_to, ->(user) { where(assigned_user: user) }
+    scope :unassigned, -> { where(assigned_user_id: nil) }
 
     def archived? = archived_at.present?
 

@@ -44,5 +44,37 @@ module Tools
 
       assert_redirected_to new_session_path
     end
+
+    test "assignee=me shows only cards assigned to current_user" do
+      cards(:first_task).update!(assigned_user: users(:one))
+      cards(:second_task).update!(assigned_user: users(:two))
+
+      get tool_board_path(@tool, assignee: "me")
+
+      assert_response :success
+      assert_includes response.body, cards(:first_task).title
+      refute_includes response.body, cards(:second_task).title
+    end
+
+    test "assignee=unassigned shows only cards without an assignee" do
+      cards(:first_task).update!(assigned_user: users(:one))
+
+      get tool_board_path(@tool, assignee: "unassigned")
+
+      assert_response :success
+      refute_includes response.body, cards(:first_task).title
+      assert_includes response.body, cards(:second_task).title
+    end
+
+    test "assignee=<id> shows only cards assigned to that user" do
+      cards(:first_task).update!(assigned_user: users(:two))
+      cards(:second_task).update!(assigned_user: users(:one))
+
+      get tool_board_path(@tool, assignee: users(:two).id)
+
+      assert_response :success
+      assert_includes response.body, cards(:first_task).title
+      refute_includes response.body, cards(:second_task).title
+    end
   end
 end

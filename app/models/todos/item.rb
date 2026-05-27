@@ -17,6 +17,8 @@ module Todos
     scope :recently_completed, -> { where(completed_at: 24.hours.ago..) }
     scope :completed_hidden, -> { where(completed_at: ...24.hours.ago) }
     scope :visible, -> { pending.or(recently_completed) }
+    scope :assigned_to, ->(user) { where(assigned_user: user) }
+    scope :unassigned, -> { where(assigned_user_id: nil) }
 
     def completed? = completed_at.present?
   end

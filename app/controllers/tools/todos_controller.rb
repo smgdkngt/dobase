@@ -10,6 +10,7 @@ module Tools
     def show
       @lists = @tool.todo_lists.includes(items: [ :assigned_user, :comments, :attachments ]).order(:position)
       @collaborators = @tool.users
+      @assignee_filter = params[:assignee]
     end
 
     private

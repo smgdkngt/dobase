@@ -1,8 +1,10 @@
 <%
   reorder_mode ||= false
-  pending_items = list.items.pending.order(:position).to_a
-  recently_completed_items = list.items.recently_completed.order(:position).to_a
-  completed_hidden_count = list.items.completed_hidden.count
+  assignee_filter ||= nil
+  pending_items = filter_by_assignee(list.items.pending.order(:position).to_a, assignee_filter)
+  recently_completed_items = filter_by_assignee(list.items.recently_completed.order(:position).to_a, assignee_filter)
+  completed_hidden_items = filter_by_assignee(list.items.completed_hidden.order(:position).to_a, assignee_filter)
+  completed_hidden_count = completed_hidden_items.size
   pending_count = pending_items.size
 %>
 <div class="border border-border rounded-lg"
@@ -61,7 +63,7 @@
         <span data-todo-target="completedToggleLabel" data-list-id="<%= list.id %>"><%= completed_hidden_count %> completed</span>
       </button>
       <div class="hidden flex-col gap-0.5" data-todo-target="completedSection" data-list-id="<%= list.id %>">
-        <% list.items.completed_hidden.order(:position).each do |item| %>
+        <% completed_hidden_items.each do |item| %>
           <%= render "tools/todos/item", item: item, tool: tool %>
         <% end %>
       </div>

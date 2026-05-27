@@ -127,6 +127,19 @@
     @apply bg-background-tertiary text-text-primary font-medium;
   }
 
+  /* Assignee filter chip bar */
+  .assignee-filter {
+    @apply flex flex-wrap items-center gap-1.5;
+  }
+
+  .assignee-filter .tab {
+    @apply gap-1.5;
+  }
+
+  .assignee-filter .avatar-sm {
+    @apply w-5 h-5 text-[0.625rem];
+  }
+
   /* Search Form */
   .search-form {
     @apply flex items-center gap-2 px-3 py-1.5 bg-background-secondary border border-border-light rounded-lg transition-all;

@@ -27,6 +27,12 @@
     <%= render "components/button", text: "Add List", icon: "plus", size: :sm, variant: :secondary, type: :button, commandfor: "add-list-modal", command: "show-modal", data: { controller: "hotkey", hotkey: "n" } %>
   <% end %>
 
+  <% unless reorder_mode || @lists.empty? %>
+    <div class="px-4 pt-3 pb-1 max-w-4xl mx-auto w-full">
+      <%= render "tools/assignee_filter", collaborators: @collaborators, current: @assignee_filter %>
+    </div>
+  <% end %>
+
   <div class="tool-scroll-area flex-1 overflow-y-auto p-4 pt-6">
     <% if @lists.empty? %>
       <div class="flex items-center justify-center h-full">
@@ -45,7 +51,7 @@
            <% end %>>
         <%= render partial: "tools/todos/list",
               collection: @lists, as: :list,
-              locals: { tool: @tool, reorder_mode: reorder_mode } %>
+              locals: { tool: @tool, reorder_mode: reorder_mode, assignee_filter: @assignee_filter } %>
       </div>
     <% end %>
   </div>

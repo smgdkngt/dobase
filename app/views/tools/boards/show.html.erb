@@ -27,6 +27,12 @@
     <%= render "components/button", text: "Add Column", icon: "plus", size: :sm, variant: :secondary, type: :button, commandfor: "add-column-modal", command: "show-modal", data: { controller: "hotkey", hotkey: "n" } %>
   <% end %>
 
+  <% unless reorder_mode %>
+    <div class="px-4 pt-3 pb-1">
+      <%= render "tools/assignee_filter", collaborators: @collaborators, current: @assignee_filter %>
+    </div>
+  <% end %>
+
   <div class="tool-scroll-area flex gap-4 flex-1 overflow-x-auto overflow-y-hidden p-4 items-stretch <%= 'reorder-mode' if reorder_mode %>"
        <% if reorder_mode %>
        data-controller="sortable"
@@ -35,7 +41,7 @@
        <% end %>>
     <%= render partial: "tools/boards/column",
           collection: @columns, as: :column,
-          locals: { tool: @tool, reorder_mode: reorder_mode } %>
+          locals: { tool: @tool, reorder_mode: reorder_mode, assignee_filter: @assignee_filter } %>
   </div>
 
   <%# Card detail dialog — larger two-column layout %>

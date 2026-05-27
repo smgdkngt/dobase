@@ -11,6 +11,7 @@ module Tools
       @board = @tool.board
       @columns = @board.columns.includes(cards: [ :assigned_user, :comments, :attachments ]).order(:position)
       @collaborators = @tool.users
+      @assignee_filter = params[:assignee]
     end
 
     private

@@ -52,5 +52,25 @@ module Boards
       assert_nil card.assigned_user
       assert card.valid?
     end
+
+    test "assigned_to scopes to cards owned by the given user" do
+      card = cards(:first_task)
+      card.update!(assigned_user: users(:one))
+
+      assigned = Boards::Card.assigned_to(users(:one))
+
+      assert_includes assigned, card
+      refute_includes Boards::Card.assigned_to(users(:two)), card
+    end
+
+    test "unassigned scopes to cards with no assignee" do
+      cards(:first_task).update!(assigned_user: users(:one))
+      orphan = cards(:second_task)
+
+      unassigned = Boards::Card.unassigned
+
+      assert_includes unassigned, orphan
+      refute_includes unassigned, cards(:first_task)
+    end
   end
 end

@@ -1,5 +1,6 @@
 <%
-  active_cards = column.cards.active
+  assignee_filter ||= nil
+  active_cards = filter_by_assignee(column.cards.active.to_a, assignee_filter)
   archived_cards = column.cards.archived
   active_count = active_cards.size
   archived_count = archived_cards.size

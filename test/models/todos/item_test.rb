@@ -48,5 +48,25 @@ module Todos
       assert visible.include?(todo_items(:recently_completed))
       assert_not visible.include?(todo_items(:old_completed))
     end
+
+    test "assigned_to scopes to items owned by the given user" do
+      item = todo_items(:pending_one)
+      item.update!(assigned_user: users(:two))
+
+      assigned = Todos::Item.assigned_to(users(:two))
+
+      assert_includes assigned, item
+      refute_includes Todos::Item.assigned_to(users(:one)), item
+    end
+
+    test "unassigned scopes to items with no assignee" do
+      todo_items(:pending_one).update!(assigned_user: users(:one))
+      orphan = todo_items(:pending_two)
+
+      unassigned = Todos::Item.unassigned
+
+      assert_includes unassigned, orphan
+      refute_includes unassigned, todo_items(:pending_one)
+    end
   end
 end
