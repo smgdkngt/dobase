@@ -127,25 +127,17 @@
     @apply bg-background-tertiary text-text-primary font-medium;
   }
 
-  /* Assignee filter chip bar */
+  /* Assignee filter dropdown */
   .assignee-filter {
-    @apply flex flex-wrap items-center gap-1.5;
+    @apply relative inline-block;
   }
 
   .assignee-filter .tab {
     @apply gap-1.5;
   }
 
-  .assignee-filter .tab-avatar {
-    @apply px-1 py-1;
-  }
-
   .assignee-filter .avatar-sm {
     @apply w-5 h-5 text-[0.625rem];
-  }
-
-  .assignee-filter-divider {
-    @apply mx-1 w-px h-5 bg-border;
   }
 
   /* Search Form */
