@@ -132,9 +132,13 @@
     @apply relative inline-block;
   }
 
-  /* Slightly smaller avatar inside the trigger button so it lines up with the
-     label text without blowing up the button height. */
-  .assignee-filter > .btn .avatar-sm {
+  /* Fixed-size leading slot keeps the trigger button height constant whether
+     the active filter shows an avatar (img) or an icon. */
+  .assignee-filter-trigger-leading {
+    @apply inline-flex items-center justify-center w-5 h-5 flex-shrink-0;
+  }
+
+  .assignee-filter-trigger-leading .avatar-sm {
     @apply w-5 h-5 text-[0.625rem];
   }
 

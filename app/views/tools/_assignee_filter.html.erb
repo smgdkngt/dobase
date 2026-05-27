@@ -27,11 +27,13 @@
           commandfor="assignee-filter-menu"
           command="toggle-popover"
           style="anchor-name: --assignee-filter">
-    <% if trigger_avatar %>
-      <%= render "shared/avatar", user: trigger_avatar, size: :sm %>
-    <% else %>
-      <%= render "shared/icon", name: current_str == "unassigned" ? "user" : "users", size: 14 %>
-    <% end %>
+    <span class="assignee-filter-trigger-leading">
+      <% if trigger_avatar %>
+        <%= render "shared/avatar", user: trigger_avatar, size: :sm %>
+      <% else %>
+        <%= render "shared/icon", name: current_str == "unassigned" ? "user" : "users", size: 14 %>
+      <% end %>
+    </span>
     <span><%= label %></span>
     <%= render "shared/icon", name: "chevron-down", size: 12, class: "text-text-tertiary" %>
   </button>
