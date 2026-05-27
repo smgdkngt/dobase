@@ -12,6 +12,7 @@
   active_all   = current_str.blank?
   active_me    = current_str == "me"
   active_unset = current_str == "unassigned"
+  others       = collaborators.reject { |u| u == current_user }
 %>
 <div class="assignee-filter">
   <%= link_to "All",
@@ -26,19 +27,25 @@
     <span>Me</span>
   <% end %>
 
-  <% collaborators.reject { |u| u == current_user }.each do |user| %>
-    <%= link_to url_for(assignee: user.id),
-          class: "tab #{'active' if current_id == user.id}",
-          data: { turbo_action: "replace" } do %>
-      <%= render "shared/avatar", user: user, size: :sm %>
-      <span><%= user.name %></span>
-    <% end %>
-  <% end %>
-
   <%= link_to url_for(assignee: "unassigned"),
         class: "tab #{'active' if active_unset}",
+        title: "Unassigned",
         data: { turbo_action: "replace" } do %>
     <%= render "shared/icon", name: "user", size: 14 %>
     <span>Unassigned</span>
+  <% end %>
+
+  <% if others.any? %>
+    <span class="assignee-filter-divider" aria-hidden="true"></span>
+
+    <% others.each do |user| %>
+      <%= link_to url_for(assignee: user.id),
+            class: "tab tab-avatar #{'active' if current_id == user.id}",
+            title: user.name,
+            "aria-label": "Assigned to #{user.name}",
+            data: { turbo_action: "replace" } do %>
+        <%= render "shared/avatar", user: user, size: :sm %>
+      <% end %>
+    <% end %>
   <% end %>
 </div>
