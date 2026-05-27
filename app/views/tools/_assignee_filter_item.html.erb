@@ -1,0 +1,28 @@
+<%#
+  Single row in the assignee filter dropdown. Locals:
+    href     — target URL
+    label    — visible text
+    user     — User to render as avatar (optional)
+    icon     — icon name for the leading slot when no user (optional)
+    selected — whether to show a check mark
+%>
+<%
+  user ||= nil
+  icon ||= nil
+%>
+<%= link_to href,
+      class: "assignee-filter-item #{'is-selected' if selected}",
+      data: { turbo_action: "replace" },
+      commandfor: "assignee-filter-menu", command: "hide-popover" do %>
+  <span class="assignee-filter-item-leading">
+    <% if user %>
+      <%= render "shared/avatar", user: user, size: :sm %>
+    <% elsif icon %>
+      <%= render "shared/icon", name: icon, size: 14, class: "text-text-tertiary" %>
+    <% end %>
+  </span>
+  <span class="assignee-filter-item-label"><%= label %></span>
+  <% if selected %>
+    <%= render "shared/icon", name: "check", size: 14, class: "text-accent flex-shrink-0" %>
+  <% end %>
+<% end %>

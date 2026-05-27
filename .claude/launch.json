@@ -1,0 +1,31 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "rails",
+      "runtimeExecutable": "bin/rails",
+      "runtimeArgs": ["server", "-p", "3010"],
+      "port": 3010
+    },
+    {
+      "name": "tailwind",
+      "runtimeExecutable": "bundle",
+      "runtimeArgs": [
+        "exec",
+        "tailwindcss",
+        "-i",
+        "./app/assets/tailwind/application.css",
+        "-o",
+        "./app/assets/builds/tailwind.css",
+        "--watch=always"
+      ]
+    },
+    {
+      "name": "dev",
+      "runtimeExecutable": "bin/dev",
+      "runtimeArgs": [],
+      "env": { "PORT": "3010" },
+      "port": 3010
+    }
+  ]
+}

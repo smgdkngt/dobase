@@ -132,12 +132,28 @@
     @apply relative inline-block;
   }
 
-  .assignee-filter .tab {
-    @apply gap-1.5;
+  /* Slightly smaller avatar inside the trigger button so it lines up with the
+     label text without blowing up the button height. */
+  .assignee-filter > .btn .avatar-sm {
+    @apply w-5 h-5 text-[0.625rem];
   }
 
-  .assignee-filter .avatar-sm {
-    @apply w-5 h-5 text-[0.625rem];
+  /* Dropdown rows: fixed-width leading slot keeps every avatar/icon visually
+     aligned regardless of whether the leading element is an avatar or an icon. */
+  .assignee-filter-item {
+    @apply flex items-center gap-2.5 px-3 py-1.5 text-sm text-text-primary hover:bg-background-tertiary transition-colors;
+  }
+
+  .assignee-filter-item.is-selected {
+    @apply font-medium;
+  }
+
+  .assignee-filter-item-leading {
+    @apply inline-flex items-center justify-center w-6 h-6 flex-shrink-0;
+  }
+
+  .assignee-filter-item-label {
+    @apply flex-1 truncate;
   }
 
   /* Search Form */

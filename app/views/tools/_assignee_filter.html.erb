@@ -11,83 +11,61 @@
   current_id   = current_str =~ /\A\d+\z/ ? current_str.to_i : nil
   active_user  = current_id ? collaborators.find { |u| u.id == current_id } : nil
 
-  label, leading_icon, leading_avatar = case current_str
-  when nil, ""      then [ "All assignees", "users", nil ]
-  when "me"         then [ "Me",            nil,     current_user ]
-  when "unassigned" then [ "Unassigned",    "user",  nil ]
+  label, trigger_avatar = case current_str
+  when nil, ""      then [ "All assignees", nil ]
+  when "me"         then [ "Me",            current_user ]
+  when "unassigned" then [ "Unassigned",    nil ]
   else
-    active_user ? [ active_user.name, nil, active_user ] : [ "All assignees", "users", nil ]
+    active_user ? [ active_user.name, active_user ] : [ "All assignees", nil ]
   end
 
   is_filtered = current_str.present?
 %>
 <div class="assignee-filter">
   <button type="button"
-          class="tab <%= 'active' if is_filtered %>"
+          class="btn btn-secondary btn-sm <%= 'is-active' if is_filtered %>"
           commandfor="assignee-filter-menu"
           command="toggle-popover"
           style="anchor-name: --assignee-filter">
-    <% if leading_avatar %>
-      <%= render "shared/avatar", user: leading_avatar, size: :sm %>
-    <% elsif leading_icon %>
-      <%= render "shared/icon", name: leading_icon, size: 14 %>
+    <% if trigger_avatar %>
+      <%= render "shared/avatar", user: trigger_avatar, size: :sm %>
+    <% else %>
+      <%= render "shared/icon", name: current_str == "unassigned" ? "user" : "users", size: 14 %>
     <% end %>
     <span><%= label %></span>
-    <%= render "shared/icon", name: "chevron-down", size: 12 %>
+    <%= render "shared/icon", name: "chevron-down", size: 12, class: "text-text-tertiary" %>
   </button>
 
   <div id="assignee-filter-menu" popover="auto"
        class="popover-menu max-h-72 overflow-y-auto"
        style="position-anchor: --assignee-filter; top: anchor(bottom); left: anchor(left); min-width: anchor-size(width);">
-    <%= link_to url_for(assignee: nil),
-          class: "dropdown-item flex items-center gap-2.5 #{'font-medium' if current_str.blank?}",
-          data: { turbo_action: "replace" },
-          commandfor: "assignee-filter-menu", command: "hide-popover" do %>
-      <%= render "shared/icon", name: "users", size: 14, class: "text-text-tertiary flex-shrink-0" %>
-      <span class="flex-1">All assignees</span>
-      <% if current_str.blank? %>
-        <%= render "shared/icon", name: "check", size: 13, class: "text-accent flex-shrink-0" %>
-      <% end %>
-    <% end %>
+    <%= render "tools/assignee_filter_item",
+          href: url_for(assignee: nil),
+          label: "All assignees",
+          icon: "users",
+          selected: current_str.blank? %>
 
-    <%= link_to url_for(assignee: "me"),
-          class: "dropdown-item flex items-center gap-2.5 #{'font-medium' if current_str == 'me'}",
-          data: { turbo_action: "replace" },
-          commandfor: "assignee-filter-menu", command: "hide-popover" do %>
-      <%= render "shared/avatar", user: current_user, size: :sm %>
-      <span class="flex-1">Me</span>
-      <% if current_str == "me" %>
-        <%= render "shared/icon", name: "check", size: 13, class: "text-accent flex-shrink-0" %>
-      <% end %>
-    <% end %>
+    <%= render "tools/assignee_filter_item",
+          href: url_for(assignee: "me"),
+          label: "Me",
+          user: current_user,
+          selected: current_str == "me" %>
 
-    <%= link_to url_for(assignee: "unassigned"),
-          class: "dropdown-item flex items-center gap-2.5 #{'font-medium' if current_str == 'unassigned'}",
-          data: { turbo_action: "replace" },
-          commandfor: "assignee-filter-menu", command: "hide-popover" do %>
-      <div class="w-6 h-6 rounded-full bg-background-tertiary flex items-center justify-center flex-shrink-0">
-        <%= render "shared/icon", name: "user", size: 12, class: "text-text-tertiary" %>
-      </div>
-      <span class="flex-1">Unassigned</span>
-      <% if current_str == "unassigned" %>
-        <%= render "shared/icon", name: "check", size: 13, class: "text-accent flex-shrink-0" %>
-      <% end %>
-    <% end %>
+    <%= render "tools/assignee_filter_item",
+          href: url_for(assignee: "unassigned"),
+          label: "Unassigned",
+          icon: "user",
+          selected: current_str == "unassigned" %>
 
     <% others = collaborators.reject { |u| u == current_user } %>
     <% if others.any? %>
       <div class="dropdown-divider"></div>
       <% others.each do |user| %>
-        <%= link_to url_for(assignee: user.id),
-              class: "dropdown-item flex items-center gap-2.5 #{'font-medium' if current_id == user.id}",
-              data: { turbo_action: "replace" },
-              commandfor: "assignee-filter-menu", command: "hide-popover" do %>
-          <%= render "shared/avatar", user: user, size: :sm %>
-          <span class="flex-1 truncate"><%= user.name %></span>
-          <% if current_id == user.id %>
-            <%= render "shared/icon", name: "check", size: 13, class: "text-accent flex-shrink-0" %>
-          <% end %>
-        <% end %>
+        <%= render "tools/assignee_filter_item",
+              href: url_for(assignee: user.id),
+              label: user.name,
+              user: user,
+              selected: current_id == user.id %>
       <% end %>
     <% end %>
   </div>
