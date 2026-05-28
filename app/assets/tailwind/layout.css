@@ -128,10 +128,10 @@
   /* Quick jump pill — full-width search-like trigger that opens the command palette */
   .sidebar-jump-pill {
     @apply flex items-center gap-2 w-full px-3 py-1.5 rounded-lg
-           bg-background-secondary border border-border-light
-           text-sm text-text-tertiary
-           hover:bg-sidebar-hover hover:text-text-secondary
-           active:bg-sidebar-active transition-colors cursor-pointer;
+           bg-surface border border-border
+           text-sm text-text-secondary
+           hover:border-text-tertiary hover:text-text-primary
+           active:bg-background-tertiary transition-colors cursor-pointer;
   }
 
   .sidebar-jump-pill-label {
