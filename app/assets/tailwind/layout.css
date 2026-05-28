@@ -125,6 +125,23 @@
            active:bg-sidebar-active transition-colors cursor-pointer flex-shrink-0;
   }
 
+  /* Quick jump pill — full-width search-like trigger that opens the command palette */
+  .sidebar-jump-pill {
+    @apply flex items-center gap-2 w-full px-3 py-1.5 rounded-lg
+           bg-background-secondary border border-border-light
+           text-sm text-text-tertiary
+           hover:bg-sidebar-hover hover:text-text-secondary
+           active:bg-sidebar-active transition-colors cursor-pointer;
+  }
+
+  .sidebar-jump-pill-label {
+    @apply flex-1 text-left truncate;
+  }
+
+  .sidebar-jump-pill-kbd {
+    @apply flex-shrink-0;
+  }
+
   /* Bottom bar — avatar + name left, bell right */
   .sidebar-bottom-bar {
     @apply border-t border-border-light px-2 py-2 flex items-center gap-1;

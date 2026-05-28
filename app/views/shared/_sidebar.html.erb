@@ -26,6 +26,18 @@
     </button>
   </div>
 
+  <%# ── Quick jump pill ── %>
+  <div class="px-2 py-2 border-b border-border-light">
+    <button type="button"
+            class="sidebar-jump-pill"
+            data-action="click->keyboard-shortcuts#openCommandPalette"
+            title="Jump to a tool or action (⌘K)">
+      <%= render "shared/icon", name: "search", size: 14, class: "text-text-tertiary flex-shrink-0" %>
+      <span class="sidebar-jump-pill-label">Jump to…</span>
+      <kbd class="shortcut-key sidebar-jump-pill-kbd">⌘K</kbd>
+    </button>
+  </div>
+
   <%# ── Navigation ── %>
   <nav class="flex-1 py-2 overflow-y-auto scrollbar-thin" data-sidebar-target="nav">
     <% if defined?(current_user) && current_user %>
