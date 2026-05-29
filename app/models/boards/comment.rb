@@ -17,7 +17,7 @@ module Boards
 
     def notify_collaborators
       tool = card.column.board.tool
-      recipients = tool.users.where.not(id: user_id)
+      recipients = tool.notifiable_users.where.not(id: user_id)
       return if recipients.none?
 
       CardCommentNotifier.with(comment: self, commenter: user, card: card, tool: tool).deliver(recipients)

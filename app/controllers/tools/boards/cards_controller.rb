@@ -73,6 +73,8 @@ module Tools
         return if @card.assigned_user_id == current_user.id
 
         assignee = User.find(@card.assigned_user_id)
+        return if @tool.muted_by?(assignee)
+
         CardAssignmentNotifier.with(card: @card, assigner: current_user, tool: @tool).deliver(assignee)
         assignee.prune_notifications!
       end
@@ -83,6 +85,8 @@ module Tools
         return if @card.assigned_user_id == current_user.id
 
         assignee = User.find(@card.assigned_user_id)
+        return if @tool.muted_by?(assignee)
+
         CardMovedNotifier.with(card: @card, mover: current_user, tool: @tool, column: @card.column).deliver(assignee)
         assignee.prune_notifications!
       end

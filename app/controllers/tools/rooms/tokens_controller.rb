@@ -29,7 +29,7 @@ module Tools
       end
 
       def broadcast_room_activity
-        @tool.users.where.not(id: current_user.id).find_each do |user|
+        @tool.notifiable_users.where.not(id: current_user.id).find_each do |user|
           ActionCable.server.broadcast("notifications:#{user.id}", {
             tool_id: @tool.id
           })

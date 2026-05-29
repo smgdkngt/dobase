@@ -35,6 +35,16 @@ class Tool < ApplicationRecord
     collaborators.exists?(user_id: user.id)
   end
 
+  def muted_by?(user)
+    collaborators.muted.exists?(user_id: user.id)
+  end
+
+  # Users who currently want notifications from this tool. Excludes anyone
+  # who has muted the tool. Used by notifier call sites.
+  def notifiable_users
+    User.joins(:collaborations).where(collaborations: { tool_id: id, muted_at: nil })
+  end
+
   # Matches emoji at the start of the name (including compound emoji with ZWJ, skin tones, variation selectors)
   LEADING_EMOJI_REGEX = /\A(\p{Extended_Pictographic}[\u{FE0F}\u{200D}\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Emoji_Component}]*)\s*/
 
@@ -54,7 +64,7 @@ class Tool < ApplicationRecord
   # Returns a Set of tool IDs that have activity since the user last visited.
   # Skips mail (has its own unread badge) and room (no async content).
   def self.unread_tool_ids_for(user)
-    collabs = Collaborator.where(user_id: user.id).pluck(:tool_id, :last_seen_at).to_h
+    collabs = Collaborator.where(user_id: user.id, muted_at: nil).pluck(:tool_id, :last_seen_at).to_h
     tool_ids = collabs.keys
     return Set.new if tool_ids.empty?
 

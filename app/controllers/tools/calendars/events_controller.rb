@@ -154,7 +154,7 @@ module Tools
       end
 
       def notify_event_created
-        recipients = @tool.users.where.not(id: current_user.id)
+        recipients = @tool.notifiable_users.where.not(id: current_user.id)
         return if recipients.none?
 
         CalendarEventCreatedNotifier.with(event: @event, creator: current_user, tool: @tool).deliver(recipients)

@@ -65,7 +65,7 @@ module Chats
 
     def notify_collaborators
       tool = chat.tool
-      recipients = tool.users.where.not(id: user_id)
+      recipients = tool.notifiable_users.where.not(id: user_id)
       return if recipients.none?
 
       ChatMessageNotifier.with(message: self, sender: user, tool: tool).deliver(recipients)

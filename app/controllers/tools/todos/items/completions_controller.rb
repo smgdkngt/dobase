@@ -44,6 +44,8 @@ module Tools
           return if @item.assigned_user_id == current_user.id
 
           assignee = User.find(@item.assigned_user_id)
+          return if @tool.muted_by?(assignee)
+
           TodoCompletedNotifier.with(item: @item, completer: current_user, tool: @tool).deliver(assignee)
           assignee.prune_notifications!
         end

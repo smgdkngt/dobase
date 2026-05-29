@@ -47,6 +47,8 @@ Rails.application.routes.draw do
         delete :leave, on: :collection
       end
 
+      resource :mute, only: %i[create destroy]
+
       resource :board, only: :show do
         scope module: :boards do
           resources :columns, only: %i[create update destroy]

@@ -86,7 +86,7 @@ module Tools
       end
 
       def notify_document_created
-        recipients = @tool.users.where.not(id: current_user.id)
+        recipients = @tool.notifiable_users.where.not(id: current_user.id)
         return if recipients.none?
 
         DocumentCreatedNotifier.with(document: @document, creator: current_user, tool: @tool).deliver(recipients)

@@ -59,6 +59,38 @@ class NotificationTest < ActiveSupport::TestCase
     assert_respond_to @user_one, :notifications
   end
 
+  test "muted collaborator does not receive chat notifications" do
+    chat = Chats::Chat.create!(tool: @tool)
+    collaborators(:two_shared_board).mute!
+
+    assert_no_difference -> { @user_two.notifications.count } do
+      Chats::Message.create!(chat: chat, user: @user_one, body: "Hello!")
+    end
+  end
+
+  test "muted collaborator does not receive card comment notifications" do
+    board = boards(:shared)
+    column = board.columns.create!(name: "Test", position: 0)
+    card = column.cards.create!(title: "Shared card", position: 0)
+    collaborators(:two_shared_board).mute!
+
+    assert_no_difference -> { @user_two.notifications.count } do
+      Boards::Comment.create!(card: card, user: @user_one, body: "Nice work!")
+    end
+  end
+
+  test "muted tool is excluded from unread_tool_ids_for" do
+    board = boards(:shared)
+    column = board.columns.create!(name: "Test", position: 0)
+    column.cards.create!(title: "Fresh card", position: 0)
+
+    refute_nil Tool.unread_tool_ids_for(@user_two).find { |id| id == @tool.id }
+
+    collaborators(:two_shared_board).mute!
+
+    assert_nil Tool.unread_tool_ids_for(@user_two).find { |id| id == @tool.id }
+  end
+
   test "notifications are destroyed with user" do
     user = User.create!(first_name: "Temp", last_name: "User", email_address: "temp@example.com", password: "password123")
 

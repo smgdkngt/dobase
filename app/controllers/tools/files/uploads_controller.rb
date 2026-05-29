@@ -53,7 +53,7 @@ module Tools
       end
 
       def notify_uploads
-        recipients = @tool.users.where.not(id: current_user.id)
+        recipients = @tool.notifiable_users.where.not(id: current_user.id)
         return if recipients.none?
 
         FileUploadedNotifier.with(file: @tool.file_items.last, uploader: current_user, tool: @tool).deliver(recipients)

@@ -17,7 +17,7 @@ module Todos
 
     def notify_collaborators
       tool = item.list.tool
-      recipients = tool.users.where.not(id: user_id)
+      recipients = tool.notifiable_users.where.not(id: user_id)
       return if recipients.none?
 
       TodoCommentNotifier.with(comment: self, commenter: user, item: item, tool: tool).deliver(recipients)

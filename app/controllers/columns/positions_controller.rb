@@ -37,6 +37,8 @@ module Columns
         next if card.assigned_user_id == current_user.id
 
         assignee = User.find(card.assigned_user_id)
+        next if @tool.muted_by?(assignee)
+
         CardMovedNotifier.with(card: card, mover: current_user, tool: @tool, column: @column).deliver(assignee)
         assignee.prune_notifications!
       end
