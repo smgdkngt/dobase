@@ -186,13 +186,13 @@
       </div>
     <% end %>
 
-    <%= form_with url: tool_bulk_path(@tool), method: :post, id: "bulk-form" do %>
+    <%= form_with url: tool_bulk_path(@tool), method: :post, id: "bulk-form", data: { controller: "mail-bulk" } do %>
       <input type="hidden" name="folder" value="<%= @current_folder %>">
 
       <% if @conversations.any? %>
         <div class="flex items-center px-3 py-0.5 min-h-9 border-b border-border-light bg-background-secondary gap-3">
-          <input type="checkbox" class="w-4 h-4 rounded accent-accent ml-[2px]" id="select-all" onchange="document.querySelectorAll('.mail-list-checkbox').forEach(cb => cb.checked = this.checked); document.getElementById('bulk-actions').classList.toggle('hidden', !this.checked)">
-          <div id="bulk-actions" class="flex items-center gap-1 hidden">
+          <input type="checkbox" class="w-4 h-4 rounded accent-accent ml-[2px]" data-mail-bulk-target="selectAll" data-action="change->mail-bulk#toggleAll">
+          <div class="flex items-center gap-1 hidden" data-mail-bulk-target="actions">
             <% if @current_folder == "trash" %>
               <%= render "components/icon_button", icon: "trash-2", title: "Delete forever", type: :submit, name: "action_type", value: "delete", size: :sm %>
               <%= render "components/icon_button", icon: "rotate-ccw", title: "Restore", type: :submit, name: "action_type", value: "restore", size: :sm %>
@@ -215,7 +215,7 @@
                   %>
                   <% bulk_move_folders.each do |folder_name, icon, label| %>
                     <button type="button" class="dropdown-item flex items-center gap-2"
-                            onclick="const f=this.closest('form');f.querySelector('[name=action_type]')?.remove();const at=document.createElement('input');at.type='hidden';at.name='action_type';at.value='move_to_folder';f.appendChild(at);const tf=document.createElement('input');tf.type='hidden';tf.name='target_folder';tf.value='<%= j folder_name %>';f.appendChild(tf);f.requestSubmit();">
+                            data-action="mail-bulk#moveToFolder" data-folder="<%= folder_name %>">
                       <%= render "shared/icon", name: icon, size: 16 %>
                       <span><%= label %></span>
                     </button>

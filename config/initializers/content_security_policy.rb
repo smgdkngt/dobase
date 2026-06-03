@@ -21,6 +21,7 @@ Rails.application.configure do
   config.content_security_policy_nonce_generator = ->(_request) { SecureRandom.base64(16) }
   config.content_security_policy_nonce_directives = %w[script-src]
 
-  # Report violations without enforcing the policy.
-  config.content_security_policy_report_only = true
+  # Enforce the policy: inline event handlers and non-nonced inline scripts are
+  # blocked, so a DOM-XSS sink can't execute injected JavaScript.
+  config.content_security_policy_report_only = false
 end
