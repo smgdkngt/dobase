@@ -8,7 +8,7 @@
       <p class="text-sm text-text-secondary mt-1">Save these recovery codes in a safe place</p>
     </div>
 
-    <div class="bg-background-secondary rounded-lg p-4">
+    <div class="bg-background-secondary rounded-lg p-4" data-controller="clipboard">
       <p class="text-sm text-text-secondary mb-3">
         Use these codes to sign in if you lose access to your authenticator app. Each code can only be used once.
       </p>
@@ -17,9 +17,11 @@
           <code class="px-3 py-2 bg-surface rounded text-sm font-mono text-text-primary text-center select-all"><%= code %></code>
         <% end %>
       </div>
+      <textarea class="hidden" data-clipboard-target="source"><%= @recovery_codes.join("\n") %></textarea>
       <button type="button"
               class="btn btn-primary btn-sm w-full mt-3"
-              onclick="navigator.clipboard.writeText('<%= @recovery_codes.join('\n') %>'); this.textContent = 'Copied!'; setTimeout(() => this.textContent = 'Copy all codes', 2000)">
+              data-clipboard-target="button"
+              data-action="clipboard#copy">
         Copy all codes
       </button>
     </div>

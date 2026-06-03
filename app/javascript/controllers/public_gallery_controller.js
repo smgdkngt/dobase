@@ -46,11 +46,21 @@ export default class extends Controller {
 
   showImage() {
     const img = this.images[this.currentIndex]
-    this.lightboxContentTarget.innerHTML = `<img src="${img.url}" alt="${img.name}">`
-    this.lightboxInfoTarget.innerHTML = `
-      <span class="font-medium">${img.name}</span>
-      <span class="opacity-70 text-sm">${this.currentIndex + 1} / ${this.images.length}</span>
-    `
+
+    this.lightboxContentTarget.replaceChildren()
+    const imgEl = document.createElement("img")
+    imgEl.src = img.url
+    imgEl.alt = img.name
+    this.lightboxContentTarget.appendChild(imgEl)
+
+    this.lightboxInfoTarget.replaceChildren()
+    const nameSpan = document.createElement("span")
+    nameSpan.className = "font-medium"
+    nameSpan.textContent = img.name
+    const countSpan = document.createElement("span")
+    countSpan.className = "opacity-70 text-sm"
+    countSpan.textContent = `${this.currentIndex + 1} / ${this.images.length}`
+    this.lightboxInfoTarget.append(nameSpan, countSpan)
   }
 
   handleKeydown(event) {

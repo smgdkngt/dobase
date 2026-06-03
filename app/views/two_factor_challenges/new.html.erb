@@ -8,7 +8,7 @@
   </div>
 
   <div class="card">
-    <div class="card-body">
+    <div class="card-body" data-controller="recovery-code">
       <%= form_with url: two_factor_challenge_path, method: :post, class: "space-y-4" do |f| %>
         <div>
           <label for="code" class="label">Verification code</label>
@@ -19,16 +19,17 @@
             autofocus: true,
             autocomplete: "one-time-code",
             inputmode: "numeric",
-            maxlength: 8
+            maxlength: 8,
+            data: { recovery_code_target: "field" }
           %>
         </div>
 
         <%= render "components/button", text: "Verify", full_width: true %>
       <% end %>
 
-      <p class="text-center text-sm text-text-tertiary mt-3">
+      <p class="text-center text-sm text-text-tertiary mt-3" data-recovery-code-target="prompt">
         Lost your device?
-        <button type="button" class="text-accent hover:underline" onclick="this.closest('.card-body').querySelector('[inputmode]').removeAttribute('inputmode'); this.closest('.card-body').querySelector('[maxlength]').setAttribute('maxlength', '20'); this.closest('p').classList.add('hidden')">
+        <button type="button" class="text-accent hover:underline" data-action="recovery-code#reveal">
           Use a recovery code
         </button>
       </p>
