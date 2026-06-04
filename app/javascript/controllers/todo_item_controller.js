@@ -7,7 +7,8 @@ export default class extends Controller {
     "titleDisplay", "titleInput",
     "descriptionDisplay", "descriptionEdit",
     "dueDateInput",
-    "assigneeLabel"
+    "assigneeLabel",
+    "recurrenceLabel"
   ]
 
   // ── Completion toggle ──
@@ -83,6 +84,19 @@ export default class extends Controller {
     }
 
     this._save({ assigned_user_id: userId || null })
+  }
+
+  // ── Recurrence ──
+
+  setRecurrence(event) {
+    const rule = event.currentTarget.dataset.recurrenceRule
+    const label = event.currentTarget.dataset.recurrenceLabel || "Never"
+
+    if (this.hasRecurrenceLabelTarget) {
+      this.recurrenceLabelTarget.textContent = label
+    }
+
+    this._save({ recurrence_rule: rule || null })
   }
 
   // ── Attachment ──

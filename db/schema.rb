@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_29_075006) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_04_072019) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -526,6 +526,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_29_075006) do
     t.text "description"
     t.date "due_date"
     t.integer "position", default: 0, null: false
+    t.string "recurrence_rule"
     t.string "title", null: false
     t.integer "todo_list_id", null: false
     t.datetime "updated_at", null: false

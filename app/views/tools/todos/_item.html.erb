@@ -30,7 +30,7 @@
         <%= item.assigned_user.name&.chars&.first&.upcase %>
       </span>
     <% end %>
-    <% if has_description || comments_count > 0 || attachments_count > 0 %>
+    <% if has_description || comments_count > 0 || attachments_count > 0 || item.recurring? %>
       <span class="inline-flex items-center gap-1.5 text-text-tertiary shrink-0">
         <% if has_description %>
           <%= render "shared/icon", name: "align-left", size: 12 %>
@@ -45,6 +45,11 @@
           <span class="inline-flex items-center gap-0.5">
             <%= render "shared/icon", name: "paperclip", size: 12 %>
             <span class="text-xs"><%= attachments_count %></span>
+          </span>
+        <% end %>
+        <% if item.recurring? %>
+          <span class="inline-flex items-center" title="<%= item.recurrence_description %>">
+            <%= render "shared/icon", name: "repeat", size: 12 %>
           </span>
         <% end %>
       </span>

@@ -83,6 +83,16 @@ module Tools
         assert_response :success
       end
 
+      test "update sets and clears the recurrence rule" do
+        patch tool_todo_item_path(@tool, @item), params: { item: { recurrence_rule: "weekly" } }, as: :json
+        assert_response :success
+        assert_equal "weekly", @item.reload.recurrence_rule
+
+        patch tool_todo_item_path(@tool, @item), params: { item: { recurrence_rule: nil } }, as: :json
+        assert_response :success
+        assert_nil @item.reload.recurrence_rule
+      end
+
       test "requires authentication" do
         sign_out
 

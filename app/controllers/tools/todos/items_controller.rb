@@ -64,7 +64,7 @@ module Tools
       end
 
       def item_params
-        params.require(:item).permit(:title, :description, :due_date, :assigned_user_id)
+        params.require(:item).permit(:title, :description, :due_date, :assigned_user_id, :recurrence_rule)
       end
 
       def notify_assignment(previous_assigned_user_id)

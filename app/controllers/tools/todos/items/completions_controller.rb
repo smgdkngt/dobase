@@ -13,6 +13,7 @@ module Tools
         # POST /tools/:tool_id/todo/items/:item_id/completion
         def create
           @item.update!(completed_at: Time.current)
+          @item.spawn_next_instance! if @item.recurring?
           notify_completion
           respond_to do |format|
             format.html { redirect_to tool_todo_path(@tool) }

@@ -68,5 +68,81 @@ module Todos
       assert_includes unassigned, orphan
       refute_includes unassigned, todo_items(:pending_one)
     end
+
+    test "recurrence_rule must be one of the allowed values" do
+      item = todo_items(:pending_one)
+
+      %w[daily weekly monthly].each do |rule|
+        item.recurrence_rule = rule
+        assert item.valid?, "#{rule} should be a valid recurrence rule"
+      end
+
+      item.recurrence_rule = "hourly"
+      refute item.valid?
+      assert_includes item.errors[:recurrence_rule], "is not included in the list"
+    end
+
+    test "recurring? reflects the presence of a recurrence_rule" do
+      item = todo_items(:pending_one)
+
+      refute item.recurring?
+
+      item.update!(recurrence_rule: "weekly")
+
+      assert item.recurring?
+    end
+
+    test "spawn_next_instance creates a new item with the schedule advanced" do
+      item = todo_items(:pending_one)
+      item.update!(recurrence_rule: "daily", due_date: Date.current, assigned_user: users(:one))
+
+      new_item = nil
+      assert_difference -> { item.list.items.count }, 1 do
+        new_item = item.spawn_next_instance!
+      end
+
+      assert_equal item.title, new_item.title
+      assert_equal item.list, new_item.list
+      assert_equal users(:one), new_item.assigned_user
+      assert_equal "daily", new_item.recurrence_rule
+      assert_equal Date.current + 1.day, new_item.due_date
+      assert_nil new_item.completed_at
+    end
+
+    test "spawn_next_instance rolls the due_date forward by the rule's interval" do
+      item = todo_items(:pending_one)
+      anchor = Date.new(2026, 1, 15)
+
+      { "daily" => anchor + 1.day, "weekly" => anchor + 1.week, "monthly" => anchor + 1.month }.each do |rule, expected|
+        item.update!(recurrence_rule: rule, due_date: anchor)
+        assert_equal expected, item.spawn_next_instance!.due_date,
+          "#{rule} should advance due_date to #{expected}"
+      end
+    end
+
+    test "spawn_next_instance leaves due_date nil when the item had none" do
+      item = todo_items(:pending_one)
+      item.update!(recurrence_rule: "weekly", due_date: nil)
+
+      assert_nil item.spawn_next_instance!.due_date
+    end
+
+    test "spawn_next_instance does nothing for non-recurring items" do
+      item = todo_items(:pending_one)
+      assert_nil item.recurrence_rule
+
+      assert_no_difference -> { item.list.items.count } do
+        assert_nil item.spawn_next_instance!
+      end
+    end
+
+    test "spawn_next_instance copies the rich-text description" do
+      item = todo_items(:pending_one)
+      item.update!(recurrence_rule: "daily", description: "<p>Take out the trash</p>")
+
+      new_item = item.spawn_next_instance!
+
+      assert_includes new_item.description.body.to_s, "Take out the trash"
+    end
   end
 end

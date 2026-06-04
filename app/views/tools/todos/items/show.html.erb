@@ -250,6 +250,44 @@
           </label>
         </div>
 
+        <div class="h-px bg-border-light"></div>
+
+        <%# ── Repeats ─────────────────────────────────────────────────── %>
+        <div class="p-3">
+          <p class="text-xs font-medium text-text-tertiary px-1 mb-1">Repeats</p>
+          <div class="relative">
+            <button type="button"
+                    class="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-background-tertiary transition-colors select-none group w-full"
+                    commandfor="item-recurrence-menu"
+                    command="toggle-popover"
+                    style="anchor-name: --item-recurrence">
+              <div class="w-6 h-6 rounded-md bg-background-tertiary flex items-center justify-center flex-shrink-0">
+                <%= render "shared/icon", name: "repeat", size: 13, class: @item.recurring? ? 'text-accent' : 'text-text-tertiary' %>
+              </div>
+              <span class="text-sm flex-1 text-left <%= @item.recurring? ? 'text-text-primary font-medium' : 'text-text-tertiary' %>"
+                    data-todo-item-target="recurrenceLabel"><%= @item.recurrence_description || "Never" %></span>
+              <%= render "shared/icon", name: "chevron-down", size: 12, class: "text-text-tertiary flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" %>
+            </button>
+            <div id="item-recurrence-menu" popover="auto"
+                 class="popover-menu"
+                 style="position-anchor: --item-recurrence; top: anchor(bottom); left: anchor(left); width: anchor-size(width);">
+              <% [["", "Never"], ["daily", "Daily"], ["weekly", "Weekly"], ["monthly", "Monthly"]].each do |value, label| %>
+                <button type="button"
+                        class="flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-left hover:bg-background-tertiary transition-colors"
+                        data-action="click->todo-item#setRecurrence"
+                        data-recurrence-rule="<%= value %>"
+                        data-recurrence-label="<%= label %>"
+                        commandfor="item-recurrence-menu" command="hide-popover">
+                  <span class="flex-1 <%= value.blank? && @item.recurrence_rule.blank? || value == @item.recurrence_rule ? 'font-medium' : '' %>"><%= label %></span>
+                  <% if (value.blank? && @item.recurrence_rule.blank?) || value == @item.recurrence_rule %>
+                    <%= render "shared/icon", name: "check", size: 13, class: "text-accent flex-shrink-0" %>
+                  <% end %>
+                </button>
+              <% end %>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
