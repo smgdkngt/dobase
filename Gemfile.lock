@@ -107,7 +107,7 @@ GEM
     childprocess (5.1.0)
       logger (~> 1.5)
     chunky_png (1.4.0)
-    concurrent-ruby (1.3.6)
+    concurrent-ruby (1.3.7)
     connection_pool (3.0.2)
     crack (1.0.1)
       bigdecimal
@@ -165,7 +165,7 @@ GEM
       bigdecimal
       rake (~> 13.3)
     hashdiff (1.2.1)
-    i18n (1.14.8)
+    i18n (1.15.2)
       concurrent-ruby (~> 1.0)
     icalendar (2.12.3)
       base64
@@ -187,13 +187,13 @@ GEM
     jbuilder (2.15.1)
       actionview (>= 7.0.0)
       activesupport (>= 7.0.0)
-    json (2.19.8)
+    json (2.19.9)
     json-schema (6.2.0)
       addressable (~> 2.8)
       bigdecimal (>= 3.1, < 5)
     jwt (2.10.3)
       base64
-    kamal (2.11.0)
+    kamal (2.12.0)
       activesupport (>= 7.0)
       base64 (~> 0.2)
       bcrypt_pbkdf (~> 1.0)
@@ -250,7 +250,7 @@ GEM
       net-ssh (>= 5.0.0, < 8.0.0)
     net-smtp (0.5.1)
       net-protocol
-    net-ssh (7.3.1)
+    net-ssh (7.3.2)
     nio4r (2.7.5)
     nokogiri (1.19.3-aarch64-linux-gnu)
       racc (~> 1.4)
@@ -550,7 +550,7 @@ CHECKSUMS
   capybara (3.40.0) sha256=42dba720578ea1ca65fd7a41d163dd368502c191804558f6e0f71b391054aeef
   childprocess (5.1.0) sha256=9a8d484be2fd4096a0e90a0cd3e449a05bc3aa33f8ac9e4d6dcef6ac1455b6ec
   chunky_png (1.4.0) sha256=89d5b31b55c0cf4da3cf89a2b4ebc3178d8abe8cbaf116a1dba95668502fdcfe
-  concurrent-ruby (1.3.6) sha256=6b56837e1e7e5292f9864f34b69c5a2cbc75c0cf5338f1ce9903d10fa762d5ab
+  concurrent-ruby (1.3.7) sha256=4412caec3a5ea2e5fdc52076724c071a81f2c0593d83b2ac8cbb8ca63b3151b0
   connection_pool (3.0.2) sha256=33fff5ba71a12d2aa26cb72b1db8bba2a1a01823559fb01d29eb74c286e62e0a
   crack (1.0.1) sha256=ff4a10390cd31d66440b7524eb1841874db86201d5b70032028553130b6d4c7e
   crass (1.0.6) sha256=dc516022a56e7b3b156099abc81b6d2b08ea1ed12676ac7a5657617f012bd45d
@@ -582,7 +582,7 @@ CHECKSUMS
   google-protobuf (4.34.0-x86_64-linux-gnu) sha256=bbb333fbe79c16f35a2e2154cf29f3ce26f60390dba286b339861206d5435ef9
   google-protobuf (4.34.0-x86_64-linux-musl) sha256=0b75858a388b17e73aa4176df2e722762dbc92551b7075fdc562d33c1c6de0b0
   hashdiff (1.2.1) sha256=9c079dbc513dfc8833ab59c0c2d8f230fa28499cc5efb4b8dd276cf931457cd1
-  i18n (1.14.8) sha256=285778639134865c5e0f6269e0b818256017e8cde89993fdfcbfb64d088824a5
+  i18n (1.15.2) sha256=00f9eb62412fe593b2a65a97daa75300d37abb8f7202ec748e94b6d46a9dd1b5
   icalendar (2.12.3) sha256=37dea76c36f5b21dd745bcd3cb53e7bacfbb4ad0a8d9c2a1c0aa9d39af83c850
   ice_cube (0.17.0) sha256=32deb45dda4b4acc53505c2f581f6d32b5afc04d29b9004769944a0df5a5fcbe
   image_processing (2.0.2) sha256=d0cf990f862d64efb1a14916044bf4b5bb2bccc7e235022413cde46019799cfa
@@ -590,10 +590,10 @@ CHECKSUMS
   io-console (0.8.2) sha256=d6e3ae7a7cc7574f4b8893b4fca2162e57a825b223a177b7afa236c5ef9814cc
   irb (1.18.0) sha256=de9454a0703a54704b9811a5ef31a60c86949fbf4013fcf244fabc7c775248e3
   jbuilder (2.15.1) sha256=2430bec28fb0cebacb5875b1009cf9d8bc3c303ccb810c4c8b062a4b51457637
-  json (2.19.8) sha256=6354310fd76ef69b87d5bd1f38b40d730613baf90b6803d2d0a48f618d32dfaa
+  json (2.19.9) sha256=9b9025b7cdddafa38d316eca0b2358488e42d417045c1b90d216a9fefe46b79a
   json-schema (6.2.0) sha256=e8bff46ed845a22c1ab2bd0d7eccf831c01fe23bb3920caa4c74db4306813666
   jwt (2.10.3) sha256=e4d9352fbc7309b1a7448c7dd713dfe4d8c47077af80759cdbed8f878ea0b484
-  kamal (2.11.0) sha256=1408864425e0dec7e0a14d712a3b13f614e9f3a425b7661d3f9d287a51d7dd75
+  kamal (2.12.0) sha256=c51d1ab085e515470f98d0c0f043637122b5ebf76e8b610cb1fbbed0b7f9b8fa
   language_server-protocol (3.17.0.5) sha256=fd1e39a51a28bf3eec959379985a72e296e9f9acfce46f6a79d31ca8760803cc
   launchy (3.1.1) sha256=72b847b5cc961589dde2c395af0108c86ff0119f42d4648d25b5440ebb10059e
   letter_opener (1.10.0) sha256=2ff33f2e3b5c3c26d1959be54b395c086ca6d44826e8bf41a14ff96fdf1bdbb2
@@ -615,7 +615,7 @@ CHECKSUMS
   net-scp (4.1.0) sha256=a99b0b92a1e5d360b0de4ffbf2dc0c91531502d3d4f56c28b0139a7c093d1a5d
   net-sftp (4.0.0) sha256=65bb91c859c2f93b09826757af11b69af931a3a9155050f50d1b06d384526364
   net-smtp (0.5.1) sha256=ed96a0af63c524fceb4b29b0d352195c30d82dd916a42f03c62a3a70e5b70736
-  net-ssh (7.3.1) sha256=229d518b429211bebd89151e2a12febff0631138513ac259953aa7b7cd42b53b
+  net-ssh (7.3.2) sha256=65029e213c380e20e5fd92ece663934ab0a0fe888e0cd7cc6a5b664074362dd4
   nio4r (2.7.5) sha256=6c90168e48fb5f8e768419c93abb94ba2b892a1d0602cb06eef16d8b7df1dca1
   nokogiri (1.19.3-aarch64-linux-gnu) sha256=46b89e5d7b9e844c2ee360794240c6ea2a4e6fa0c5892a4ed487db621224b639
   nokogiri (1.19.3-aarch64-linux-musl) sha256=8392dfdcd21be7a94dbbe9ccc138dea01b97b24cb2dc02a114ca98bfb1d9a0b7
