@@ -288,9 +288,19 @@ export default class extends Controller {
       }
       if (placeholder) placeholder.classList.add("hidden")
     } else if (track.kind === (this.LiveKitTrack?.Kind?.Audio ?? "audio")) {
-      const audioEl = track.attach()
-      audioEl.autoplay = true
-      tile.appendChild(audioEl)
+      // Reuse the existing audio element on reconnect (turbo navigation re-runs
+      // attachTrack via _renderExistingParticipants). track.attach() with no
+      // argument creates a fresh element every call, so without this guard each
+      // tool switch would stack another <audio> playing the same stream.
+      const existing = tile.querySelector(`audio[data-audio-sid="${track.sid}"]`)
+      if (existing) {
+        track.attach(existing)
+      } else {
+        const audioEl = track.attach()
+        audioEl.dataset.audioSid = track.sid
+        audioEl.autoplay = true
+        tile.appendChild(audioEl)
+      }
     }
   }
 
@@ -307,7 +317,7 @@ export default class extends Controller {
       }
       if (placeholder) placeholder.classList.remove("hidden")
     } else if (track.kind === (this.LiveKitTrack?.Kind?.Audio ?? "audio")) {
-      track.detach()
+      track.detach().forEach((el) => el.remove())
     }
   }
 
