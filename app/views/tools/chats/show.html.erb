@@ -196,7 +196,7 @@
                 placeholder: "Type a message...",
                 submit_on_enter: true,
                 buttons: %w[bold italic code],
-                mentions: @tool.users,
+                mentions: @tool.users.where.not(id: current_user.id),
                 data: {
                   action: "rich-text-input:input->chat#typing"
                 } do %>

@@ -42,8 +42,26 @@ export function createMentionSuggestion({ users, onStateChange }) {
 
       const position = (rect) => {
         if (!rect) return
-        dropdown.style.left = `${rect.left}px`
-        dropdown.style.top = `${rect.bottom + 4}px`
+        const margin = 8
+        const { width, height } = dropdown.getBoundingClientRect()
+        const vw = window.innerWidth || document.documentElement.clientWidth || 0
+        const vh = window.innerHeight || document.documentElement.clientHeight || 0
+
+        // Prefer below the caret; flip above when it would overflow the bottom.
+        let top = rect.bottom + 4
+        if (vh && top + height > vh - margin) {
+          top = Math.max(margin, rect.top - height - 4)
+        }
+
+        // Clamp horizontally so the menu never spills past either edge. Only
+        // clamp when the viewport width is known — otherwise anchor at the caret.
+        let left = rect.left
+        if (vw) {
+          left = Math.min(Math.max(margin, rect.left), Math.max(margin, vw - width - margin))
+        }
+
+        dropdown.style.left = `${left}px`
+        dropdown.style.top = `${top}px`
       }
 
       const pick = (index) => {
