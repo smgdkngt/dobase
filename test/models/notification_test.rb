@@ -32,6 +32,56 @@ class NotificationTest < ActiveSupport::TestCase
     end
   end
 
+  test "mentioning a collaborator sends a mention notification instead of the generic one" do
+    chat = Chats::Chat.create!(tool: @tool)
+    body = %(<p>hey <span data-id="#{@user_two.id}" class="mention">@User Two</span></p>)
+
+    assert_difference -> { @user_two.notifications.count }, 1 do
+      Chats::Message.create!(chat: chat, user: @user_one, body: body)
+    end
+
+    assert_equal "MentionNotifier", @user_two.notifications.order(:created_at).last.event.type
+  end
+
+  test "a mentioned user is not double-notified with the generic chat notifier" do
+    chat = Chats::Chat.create!(tool: @tool)
+    body = %(<p><span data-id="#{@user_two.id}" class="mention">@User Two</span> ping</p>)
+
+    assert_difference -> { @user_two.notifications.count }, 1 do
+      Chats::Message.create!(chat: chat, user: @user_one, body: body)
+    end
+
+    types = @user_two.notifications.map { |n| n.event.type }
+    refute_includes types, "ChatMessageNotifier"
+  end
+
+  test "non-mentioned collaborators still get the generic notification" do
+    third = User.create!(first_name: "Third", last_name: "User", email_address: "third@example.com", password: "password123")
+    @tool.collaborators.create!(user: third, role: "collaborator")
+    chat = Chats::Chat.create!(tool: @tool)
+    body = %(<p><span data-id="#{@user_two.id}" class="mention">@User Two</span> hi</p>)
+
+    Chats::Message.create!(chat: chat, user: @user_one, body: body)
+
+    assert_equal "MentionNotifier", @user_two.notifications.order(:created_at).last.event.type
+    assert_equal "ChatMessageNotifier", third.notifications.order(:created_at).last.event.type
+  end
+
+  test "card comment mention links to the card and notifies the mentioned user" do
+    board = boards(:shared)
+    column = board.columns.create!(name: "Test", position: 0)
+    card = column.cards.create!(title: "Shared card", position: 0)
+    body = %(<p><span data-id="#{@user_two.id}" class="mention">@User Two</span> look</p>)
+
+    assert_difference -> { @user_two.notifications.count }, 1 do
+      Boards::Comment.create!(card: card, user: @user_one, body: body)
+    end
+
+    notification = @user_two.notifications.order(:created_at).last
+    assert_equal "MentionNotifier", notification.event.type
+    assert_includes notification.event.params[:url], "card=#{card.id}"
+  end
+
   test "card assignment notifies assignee" do
     card = cards(:first_task)
 

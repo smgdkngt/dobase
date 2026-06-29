@@ -114,7 +114,7 @@
             <div class="flex gap-2.5">
               <%= render "shared/avatar", user: current_user, size: :sm %>
               <div class="flex-1">
-                <%= render "components/rich_text_input", name: "body", placeholder: "Write a comment..." do %>
+                <%= render "components/rich_text_input", name: "body", placeholder: "Write a comment...", mentions: @collaborators do %>
                   <%= render "components/icon_button",
                         icon: "send",
                         title: "Post comment",

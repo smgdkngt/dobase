@@ -363,6 +363,25 @@
     li { @apply my-0; }
     blockquote { @apply border-l-2 border-border pl-2 text-text-secondary italic my-0.5; }
     h1, h2, h3, h4 { @apply font-semibold text-inherit my-0.5; }
+    .mention { @apply text-accent bg-accent-light rounded px-1 py-px font-medium no-underline; }
+  }
+
+  /* @-mention pill inside the editor's contenteditable */
+  rhino-editor .mention {
+    @apply text-accent bg-accent-light rounded px-1 py-px font-medium;
+  }
+
+  /* @-mention autocomplete dropdown (positioned fixed at the caret) */
+  .mention-suggestion {
+    @apply fixed z-50 min-w-44 max-h-60 overflow-y-auto py-1;
+  }
+
+  .mention-suggestion-item {
+    @apply flex w-full items-center px-3 py-1.5 text-sm text-left text-text-primary hover:bg-background-tertiary transition-colors cursor-pointer;
+  }
+
+  .mention-suggestion-item[data-active] {
+    @apply bg-background-tertiary;
   }
 
   /* Chat empty state: hide when messages exist */

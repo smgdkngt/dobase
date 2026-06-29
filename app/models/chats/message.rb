@@ -14,6 +14,8 @@ module Chats
     has_many :replies, class_name: "Chats::Message", foreign_key: :reply_to_id, dependent: :nullify
     has_many :read_receipts_as_last_read, class_name: "Chats::ReadReceipt", foreign_key: :last_read_message_id, dependent: :nullify
 
+    include Mentionable
+
     has_rich_text :body
     has_many_attached :files
 
@@ -65,11 +67,23 @@ module Chats
 
     def notify_collaborators
       tool = chat.tool
-      recipients = tool.notifiable_users.where.not(id: user_id)
-      return if recipients.none?
+      audience = tool.notifiable_users.where.not(id: user_id)
+      return if audience.none?
 
-      ChatMessageNotifier.with(message: self, sender: user, tool: tool).deliver(recipients)
-      recipients.each(&:prune_notifications!)
+      mentioned = mentioned_users_in(tool, excluding: user).to_a
+      mentioned_ids = mentioned.map(&:id)
+
+      generic = audience.where.not(id: mentioned_ids)
+      ChatMessageNotifier.with(message: self, sender: user, tool: tool).deliver(generic) if generic.exists?
+
+      if mentioned.any?
+        MentionNotifier.with(
+          mentioner: user, tool: tool, context: "a chat message",
+          url: Rails.application.routes.url_helpers.tool_chat_path(tool)
+        ).deliver(mentioned)
+      end
+
+      audience.each(&:prune_notifications!)
     end
 
     def validate_file_count

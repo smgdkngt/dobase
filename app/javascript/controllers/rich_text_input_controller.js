@@ -1,12 +1,15 @@
 import { Controller } from "@hotwired/stimulus"
+import { Mention } from "rhino-editor"
+import { createMentionSuggestion } from "services/mention_suggestion"
 
 // Wraps a <rhino-editor> with form helpers:
-// enter-to-submit, typing event dispatch, toolbar configuration, and clearing after submit.
+// enter-to-submit, typing event dispatch, toolbar configuration, mentions, and clearing after submit.
 export default class extends Controller {
   static targets = ["editor"]
   static values = {
     submitOnEnter: { type: Boolean, default: false },
-    buttons: { type: Array, default: [] }
+    buttons: { type: Array, default: [] },
+    mentions: { type: Array, default: [] }
   }
 
   connect() {
@@ -18,6 +21,10 @@ export default class extends Controller {
 
     if (this.buttonsValue.length > 0) {
       this._configureToolbar()
+    }
+
+    if (this.mentionsValue.length > 0) {
+      this._configureMentions()
     }
 
     // Start the deferred editor after options are set
@@ -43,6 +50,9 @@ export default class extends Controller {
 
   _onKeydown = (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
+      // Let the mention dropdown claim Enter to pick a candidate.
+      if (this.mentionActive) return
+
       const toolbar = this.editorTarget.querySelector("[role='toolbar']")
       if (toolbar?.querySelector("[popover]:popover-open, dialog[open]")) return
 
@@ -52,6 +62,19 @@ export default class extends Controller {
         this.editorTarget.closest("form")?.requestSubmit()
       }
     }
+  }
+
+  _configureMentions() {
+    const users = this.mentionsValue
+    this.editorTarget.addExtensions(
+      Mention.configure({
+        HTMLAttributes: { class: "mention" },
+        suggestion: createMentionSuggestion({
+          users,
+          onStateChange: (active) => { this.mentionActive = active }
+        })
+      })
+    )
   }
 
   _configureToolbar() {

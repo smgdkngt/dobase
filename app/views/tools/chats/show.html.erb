@@ -196,6 +196,7 @@
                 placeholder: "Type a message...",
                 submit_on_enter: true,
                 buttons: %w[bold italic code],
+                mentions: @tool.users,
                 data: {
                   action: "rich-text-input:input->chat#typing"
                 } do %>
