@@ -28,6 +28,9 @@ class ApplicationController < ActionController::Base
     return if request.xhr? || turbo_frame_request?
     return unless request.path.start_with?("/tools")
     return if request.path.match?(%r{/sync\b})
+    # Don't treat a file download as a navigational page — otherwise the
+    # dashboard would redirect straight back into the download on every visit.
+    return if response.headers["Content-Disposition"].to_s.start_with?("attachment")
 
     current_user.update_column(:last_visited_path, request.path)
 

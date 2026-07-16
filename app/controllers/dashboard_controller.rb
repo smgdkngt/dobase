@@ -2,14 +2,19 @@
 
 class DashboardController < ApplicationController
   def index
-    # Redirect to last visited tool path if still accessible
-    if current_user.last_visited_path&.start_with?("/tools")
-      tool_id = current_user.last_visited_path[/\/tools\/(\d+)/, 1]
+    # Redirect to last visited tool path if it's a navigational page the user
+    # can still reach. Skip download endpoints — a stale one would otherwise
+    # bounce the user straight into a file download on every visit.
+    last_path = current_user.last_visited_path
+    if last_path&.start_with?("/tools") && !last_path.match?(%r{/download\z})
+      tool_id = last_path[/\/tools\/(\d+)/, 1]
       if tool_id && current_user.accessible_tools.exists?(id: tool_id)
-        redirect_to current_user.last_visited_path and return
+        redirect_to last_path and return
       else
         current_user.update_column(:last_visited_path, nil)
       end
+    elsif last_path.present?
+      current_user.update_column(:last_visited_path, nil)
     end
 
     # Otherwise redirect to the first available tool
