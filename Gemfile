@@ -61,7 +61,7 @@ gem "ice_cube"
 gem "faraday"
 
 # LiveKit video conferencing token generation
-gem "livekit-server-sdk", "~> 0.8", require: "livekit"
+gem "livekit-server-sdk", "~> 1.0", require: "livekit"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem

@@ -187,7 +187,7 @@ GEM
     jbuilder (2.15.1)
       actionview (>= 7.0.0)
       activesupport (>= 7.0.0)
-    json (2.20.0)
+    json (2.21.1)
     jwt (2.10.3)
       base64
     kamal (2.12.0)
@@ -209,7 +209,8 @@ GEM
     letter_opener (1.10.0)
       launchy (>= 2.2, < 4)
     lint_roller (1.1.0)
-    livekit-server-sdk (0.9.0)
+    livekit-server-sdk (1.0.0)
+      faraday (>= 2.0, < 3.0)
       google-protobuf (~> 4.30, >= 4.30.2)
       jwt (>= 2.2.3, < 3.0)
       twirp (~> 1.13, >= 1.13.1)
@@ -491,7 +492,7 @@ DEPENDENCIES
   jbuilder
   kamal
   letter_opener
-  livekit-server-sdk (~> 0.8)
+  livekit-server-sdk (~> 1.0)
   mail
   noticed (~> 3.0)
   propshaft
@@ -585,14 +586,14 @@ CHECKSUMS
   io-console (0.8.2) sha256=d6e3ae7a7cc7574f4b8893b4fca2162e57a825b223a177b7afa236c5ef9814cc
   irb (1.18.0) sha256=de9454a0703a54704b9811a5ef31a60c86949fbf4013fcf244fabc7c775248e3
   jbuilder (2.15.1) sha256=2430bec28fb0cebacb5875b1009cf9d8bc3c303ccb810c4c8b062a4b51457637
-  json (2.20.0) sha256=9362bc6e55a952b056abf9167cf053358181c904cb70cd6eee0808ea830fc32b
+  json (2.21.1) sha256=13a43df75d95641443f5702dff350f237164a9d811ff0f2c2800d4d980220583
   jwt (2.10.3) sha256=e4d9352fbc7309b1a7448c7dd713dfe4d8c47077af80759cdbed8f878ea0b484
   kamal (2.12.0) sha256=c51d1ab085e515470f98d0c0f043637122b5ebf76e8b610cb1fbbed0b7f9b8fa
   language_server-protocol (3.17.0.5) sha256=fd1e39a51a28bf3eec959379985a72e296e9f9acfce46f6a79d31ca8760803cc
   launchy (3.1.1) sha256=72b847b5cc961589dde2c395af0108c86ff0119f42d4648d25b5440ebb10059e
   letter_opener (1.10.0) sha256=2ff33f2e3b5c3c26d1959be54b395c086ca6d44826e8bf41a14ff96fdf1bdbb2
   lint_roller (1.1.0) sha256=2c0c845b632a7d172cb849cc90c1bce937a28c5c8ccccb50dfd46a485003cc87
-  livekit-server-sdk (0.9.0) sha256=0629269fdfea8f9016c9a660bc79f87b7a5738a0bf1ba7f5562b21b95712d8ac
+  livekit-server-sdk (1.0.0) sha256=4c1fad92003e5174549874ea5d97aa26ffbb95d9af7be9c0e6060635ce4a5666
   logger (1.7.0) sha256=196edec7cc44b66cfb40f9755ce11b392f21f7967696af15d274dde7edff0203
   loofah (2.25.1) sha256=d436c73dbd0c1147b16c4a41db097942d217303e1f7728704b37e4df9f6d2e04
   mail (2.9.1) sha256=06574eca475253d6c18145dd70af80d0eb970182d55053497c5f4d797ea160e8
