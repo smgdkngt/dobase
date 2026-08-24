@@ -49,7 +49,7 @@ gem "image_processing", "~> 2.0"
 gem "ruby-vips"
 
 # Create zip files for folder downloads
-gem "rubyzip", "~> 3.3"
+gem "rubyzip", "~> 3.5"
 
 # iCalendar parsing and generation
 gem "icalendar"
