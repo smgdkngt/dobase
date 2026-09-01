@@ -122,7 +122,7 @@ GEM
     ed25519 (1.4.0)
     erb (6.0.7)
     erubi (1.13.1)
-    et-orbi (1.4.1)
+    et-orbi (1.4.2)
       tzinfo
     faraday (2.14.3)
       faraday-net_http (>= 2.0, < 3.5)
@@ -143,25 +143,25 @@ GEM
       raabro (~> 1.4)
     globalid (1.4.0)
       activesupport (>= 6.1)
-    google-protobuf (4.36.0)
+    google-protobuf (4.36.1)
       bigdecimal
       rake (~> 13.3)
-    google-protobuf (4.36.0-aarch64-linux-gnu)
+    google-protobuf (4.36.1-aarch64-linux-gnu)
       bigdecimal
       rake (~> 13.3)
-    google-protobuf (4.36.0-aarch64-linux-musl)
+    google-protobuf (4.36.1-aarch64-linux-musl)
       bigdecimal
       rake (~> 13.3)
-    google-protobuf (4.36.0-arm64-darwin)
+    google-protobuf (4.36.1-arm64-darwin)
       bigdecimal
       rake (~> 13.3)
-    google-protobuf (4.36.0-x86_64-darwin)
+    google-protobuf (4.36.1-x86_64-darwin)
       bigdecimal
       rake (~> 13.3)
-    google-protobuf (4.36.0-x86_64-linux-gnu)
+    google-protobuf (4.36.1-x86_64-linux-gnu)
       bigdecimal
       rake (~> 13.3)
-    google-protobuf (4.36.0-x86_64-linux-musl)
+    google-protobuf (4.36.1-x86_64-linux-musl)
       bigdecimal
       rake (~> 13.3)
     hashdiff (1.2.1)
@@ -557,7 +557,7 @@ CHECKSUMS
   ed25519 (1.4.0) sha256=16e97f5198689a154247169f3453ef4cfd3f7a47481fde0ae33206cdfdcac506
   erb (6.0.7) sha256=c5ca6dc25b0ef974a44dc8f59fe847577122483b1968a38dec305c60bf91ee92
   erubi (1.13.1) sha256=a082103b0885dbc5ecf1172fede897f9ebdb745a4b97a5e8dc63953db1ee4ad9
-  et-orbi (1.4.1) sha256=007e2685b1d873415a7587ef889336c6dcdf8a47fc9c9a63547582b21660a11b
+  et-orbi (1.4.2) sha256=bb555dae668419cb24caa2a293a170e58be6d4df1e017c51f5030bdc133cd20c
   faraday (2.14.3) sha256=1882247e6766615c8220b4392bf1d27f6ebb63d8e28267587cef1fb0bf37f278
   faraday-net_http (3.4.4) sha256=0e78af151747ed1b00f33e25973b4bc220d7f16c00c39676817c8b12331eb588
   ffi (1.17.4-aarch64-linux-gnu) sha256=b208f06f91ffd8f5e1193da3cae3d2ccfc27fc36fba577baf698d26d91c080df
@@ -570,13 +570,13 @@ CHECKSUMS
   ffi (1.17.4-x86_64-linux-musl) sha256=3fdf9888483de005f8ef8d1cf2d3b20d86626af206cbf780f6a6a12439a9c49e
   fugit (1.13.0) sha256=a4f093fce740da52f216740a5041e2a594ea763cdb89e8b2754ca4399634ab18
   globalid (1.4.0) sha256=037f12fbf1d9d7a014d501c2d5c77356fd4ddd96d7a7991d6700bba96706f427
-  google-protobuf (4.36.0) sha256=2132fb002366b85a57fbb796333e2cb1f969126e05f9af32149709ba3fd397b5
-  google-protobuf (4.36.0-aarch64-linux-gnu) sha256=3fa22004853b83297d8ad4ca5c9adc8aea5e6da7b4caadf5577cb9da3eefe63f
-  google-protobuf (4.36.0-aarch64-linux-musl) sha256=6392f5e7cc5366203349f268c98e39f29c2ef9766ebbdb434819d7edb085a12c
-  google-protobuf (4.36.0-arm64-darwin) sha256=be182aac1cf55ccbbd27ec5a94d5b012069075f5c879d65423d33e6b2dec86f5
-  google-protobuf (4.36.0-x86_64-darwin) sha256=6cb938760546ee5ce57d04ed358ea10d0278b6f1ddea35e100c278f429afc25b
-  google-protobuf (4.36.0-x86_64-linux-gnu) sha256=8c253f7cb7647cdf1f54fc3f215e151206b5159e03d74fe29b8599264903de2b
-  google-protobuf (4.36.0-x86_64-linux-musl) sha256=d6c510ff9743b3dcde6acdea06512e4e4ecf53246e5c5b689879861e05d4738a
+  google-protobuf (4.36.1) sha256=893ac9d66b36b6ea50da5418f856bc7c2d2072099a578aeefc2d7757dcab6a77
+  google-protobuf (4.36.1-aarch64-linux-gnu) sha256=3883fa1b0e99221f68f4a8511bc4fb1888897dcb6cc8bf2805c92c16fc99b499
+  google-protobuf (4.36.1-aarch64-linux-musl) sha256=6da393554ecc96168ae6ddf663392bf8ce4e4fce7c18fda348882ce2e97d6a87
+  google-protobuf (4.36.1-arm64-darwin) sha256=4d82184f4582dfa123f9793cd7a73beca9b0d3f0d3717948c4120b6cc0d50f2d
+  google-protobuf (4.36.1-x86_64-darwin) sha256=e92bf3c90c0a9c410cbe430cf366190b1b9b5b2b784f6195a43a178c2ef7e338
+  google-protobuf (4.36.1-x86_64-linux-gnu) sha256=e735a3f3d6596b1010013c2030778bc030770e659106fe7e4ae0f07631b551cb
+  google-protobuf (4.36.1-x86_64-linux-musl) sha256=ae2712b7960e8b1f96d52fef8c2c0dc1cd230f2be13e48492dad0aa2a6a7cf03
   hashdiff (1.2.1) sha256=9c079dbc513dfc8833ab59c0c2d8f230fa28499cc5efb4b8dd276cf931457cd1
   i18n (1.15.2) sha256=00f9eb62412fe593b2a65a97daa75300d37abb8f7202ec748e94b6d46a9dd1b5
   icalendar (2.12.4) sha256=acf9b8b166dad4679b8be2cc3202260896c199ab7302f748c760c97e9d32e3a2
