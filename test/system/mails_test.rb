@@ -58,6 +58,17 @@ class MailsTest < ApplicationSystemTestCase
     click_with_retry("[title='Star (s)']") { message.reload.starred? }
   end
 
+  test "starring an HTML email keeps its body visible" do
+    message = mails_messages(:inbox_unread)
+    visit tool_mail_path(@tool, message)
+
+    assert_selector("iframe[data-email-frame-target=frame]") { |frame| frame.evaluate_script("this.offsetHeight") > 0 }
+    click_with_retry("[title='Star (s)']") { message.reload.starred? }
+
+    assert_selector "[title='Star (s)'] .fill-warning"
+    assert_selector("iframe[data-email-frame-target=frame]") { |frame| frame.evaluate_script("this.offsetHeight") > 0 }
+  end
+
   test "archiving a message" do
     message = mails_messages(:inbox_unread)
     visit tool_mail_path(@tool, message)
@@ -74,6 +85,26 @@ class MailsTest < ApplicationSystemTestCase
     assert_text "Welcome to Dobase! We hope you enjoy the platform.", wait: 5
 
     click_with_retry("[title='Delete (#)']") { message.reload.trashed? }
+  end
+
+  test "accepting a calendar invite into a calendar from another calendar tool" do
+    team_tool = Tool.create!(name: "Team Calendar", tool_type: tool_types(:calendar), owner: @user)
+    launches = Calendars::Account.create!(tool: team_tool, provider: "local").calendars.create!(name: "Launches", remote_id: "local-launches")
+    message = mails_messages(:starred_message)
+    starts_at = 1.week.from_now.change(hour: 14)
+    invite = message.calendar_invites.create!(uid: "tasting@example.com", method: "REQUEST", summary: "Tasting session",
+                                              starts_at: starts_at, ends_at: starts_at + 1.hour)
+
+    visit tool_mail_path(@tool, message)
+    select "Team Calendar - Launches", from: "Add to calendar"
+    click_on "Add to Calendar"
+
+    assert_text "Invite accepted and added to calendar."
+    assert_equal launches, invite.reload.added_to_calendar
+
+    click_on "View in Calendar"
+    assert_current_path tool_calendar_path(team_tool, week_start: starts_at.to_date)
+    assert_text "Tasting session"
   end
 
   test "bulk select and archive" do

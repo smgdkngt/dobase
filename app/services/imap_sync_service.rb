@@ -300,9 +300,15 @@ class ImapSyncService
     end
 
     # Detect and create calendar invites for new emails
-    if is_new_email
-      MailInviteDetectorService.new(email).detect_and_create_invite
-    end
+    detect_calendar_invite(email) if is_new_email
+  end
+
+  # The email is already saved; a broken invite must not stop the rest of the batch from syncing.
+  def detect_calendar_invite(email)
+    MailInviteDetectorService.new(email).detect_and_create_invite
+  rescue StandardError => e
+    Rails.logger.error("Failed to detect calendar invite for email #{email.id}: #{e.class}: #{e.message}")
+    nil
   end
 
   def parse_message_body(raw_message)

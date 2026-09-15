@@ -7,6 +7,8 @@ export default class extends Controller {
   frameTargetConnected(iframe) {
     this.loadHandler = () => this.resize(iframe)
     iframe.addEventListener("load", this.loadHandler)
+    // A Turbo morph refresh (e.g. after starring) resets the inline height to 0 without reloading the frame
+    iframe.addEventListener("turbo:morph-element", this.loadHandler)
 
     // srcdoc may already be loaded by the time Stimulus connects
     if (iframe.contentDocument && iframe.contentDocument.body) {
@@ -15,7 +17,10 @@ export default class extends Controller {
   }
 
   frameTargetDisconnected(iframe) {
-    if (this.loadHandler) iframe.removeEventListener("load", this.loadHandler)
+    if (this.loadHandler) {
+      iframe.removeEventListener("load", this.loadHandler)
+      iframe.removeEventListener("turbo:morph-element", this.loadHandler)
+    }
     if (this.observer) {
       this.observer.disconnect()
       this.observer = null

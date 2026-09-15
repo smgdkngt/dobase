@@ -37,6 +37,13 @@ module CalendarsHelper
     end
   end
 
+  # Calendars a mail invite can be added to: enabled, writable, and in a calendar tool the user can access
+  def invite_target_calendars
+    @invite_target_calendars ||= Calendars::Calendar.enabled.writable
+      .joins(:account).where(calendar_accounts: { tool_id: current_user.accessible_tools.select(:id) })
+      .includes(account: :tool).order(:calendar_account_id, :position).to_a
+  end
+
   def event_color_classes(event)
     color = event.calendar.color_hex
     # Return inline style for custom colors

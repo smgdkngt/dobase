@@ -80,6 +80,20 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert ::Mails::Message.exists?(sent_id), "Sent message should not be touched by INBOX reconciliation"
   end
 
+  # --- Calendar invites -------------------------------------------------------
+  # save_email has already stored the email by the time invites are detected,
+  # so a broken invite must not raise and abort the rest of the batch.
+
+  test "an invite that fails to load does not raise out of the sync" do
+    email = mails_messages(:inbox_unread)
+    attachment = email.attachments.create!(filename: "invite.ics", content_type: "text/calendar")
+    attachment.file.attach(io: StringIO.new("BEGIN:VCALENDAR"), filename: "invite.ics", content_type: "text/calendar")
+    attachment.file.blob.service.delete(attachment.file.blob.key)
+
+    assert_nothing_raised { @service.send(:detect_calendar_invite, email) }
+    assert_empty email.calendar_invites
+  end
+
   # --- Sent folder detection --------------------------------------------------
 
   test "find_sent_folder_from_list prefers plain Sent" do

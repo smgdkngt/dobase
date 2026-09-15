@@ -7,6 +7,7 @@
 
   Options:
     type: :text (default), :email, :password, :search, :number, :date, :textarea, :select
+    id: Input id (defaults to name; pass one when the field can appear more than once on a page)
     value: Current field value
     placeholder: Placeholder text
     required: true if required
@@ -55,9 +56,11 @@
 %>
 
 <%
+  field_id = local_assigns[:id] || name
+
   shared_options = {
     name: name,
-    id: name,
+    id: field_id,
     class: input_classes,
     placeholder: local_assigns[:placeholder],
     required: local_assigns[:required] || nil,
@@ -68,7 +71,7 @@
 %>
 
 <div class="form-field">
-  <%= tag.label label, for: name, class: "label" %>
+  <%= tag.label label, for: field_id, class: "label" %>
 
   <% case type %>
   <% when :textarea %>
