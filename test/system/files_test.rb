@@ -115,8 +115,7 @@ class FilesTest < ApplicationSystemTestCase
     Dir.mktmpdir do |downloads|
       page.driver.browser.download_path = downloads
 
-      find("[data-item-type='folder'][data-item-id='#{file_folders(:documents).id}']").click
-      find("[data-item-type='file'][data-item-id='#{file_items(:readme).id}']").click(:meta)
+      select_items file_folders(:documents), file_items(:readme)
       assert_text "2 selected"
 
       click_on "Download"
@@ -127,6 +126,88 @@ class FilesTest < ApplicationSystemTestCase
     end
   end
 
+  test "deleting the selection from the toolbar after confirming" do
+    documents, readme, report = file_folders(:documents), file_items(:readme), file_items(:report)
+    visit tool_files_path(@tool)
+    wait_for_turbo
+
+    select_items documents, readme
+    click_on "Delete"
+    within "dialog#turbo-confirm-dialog" do
+      assert_text "Delete 2 items and everything in them?"
+      click_on "Cancel"
+    end
+
+    assert_selector item_selector(readme)
+    assert_text "2 selected"
+
+    click_on "Delete"
+    within("dialog#turbo-confirm-dialog") { click_on "Delete" }
+
+    assert_no_selector item_selector(readme)
+    assert_no_selector item_selector(documents)
+    assert_no_text "2 selected"
+    assert_not ::Files::Folder.exists?(documents.id)
+    assert_not ::Files::Item.exists?(report.id)
+
+    # The deleted items don't linger in the selection
+    find(item_selector(file_folders(:photos))).click(:meta)
+    assert_text "1 selected"
+  end
+
+  test "the context menu deletes just the item when it isn't selected" do
+    documents, readme = file_folders(:documents), file_items(:readme)
+    visit tool_files_path(@tool)
+    wait_for_turbo
+
+    select_items documents
+    find(item_selector(readme)).right_click
+    assert_text "1 selected"
+    within("[data-file-context-menu-target='menu']") { click_on "Delete" }
+
+    within "dialog#turbo-confirm-dialog" do
+      assert_text "Delete readme.txt?"
+      click_on "Delete"
+    end
+
+    assert_no_selector item_selector(readme)
+    assert_selector item_selector(documents)
+    assert ::Files::Folder.exists?(documents.id)
+  end
+
+  test "the context menu deletes the whole selection when the item is part of it" do
+    documents, readme = file_folders(:documents), file_items(:readme)
+    visit tool_files_path(@tool)
+    wait_for_turbo
+
+    select_items documents, readme
+    find(item_selector(readme)).right_click
+    assert_text "2 selected"
+    within("[data-file-context-menu-target='menu']") { click_on "Delete" }
+
+    within "dialog#turbo-confirm-dialog" do
+      assert_text "Delete 2 items and everything in them?"
+      click_on "Delete"
+    end
+
+    assert_no_selector item_selector(readme)
+    assert_no_selector item_selector(documents)
+  end
+
+  test "Escape clears the selection" do
+    readme = file_items(:readme)
+    visit tool_files_path(@tool)
+    wait_for_turbo
+
+    select_items readme
+    assert_text "1 selected"
+
+    page.send_keys :escape
+
+    assert_no_text "1 selected"
+    assert_no_selector "#{item_selector(readme)}.ring-accent"
+  end
+
   private
 
   # Chrome saves to a .crdownload file and renames it once the download is done.
@@ -135,6 +216,17 @@ class FilesTest < ApplicationSystemTestCase
     sleep 0.2 until File.exist?(path) || Time.now > deadline
     assert File.exist?(path), "Expected #{File.basename(path)} to be downloaded"
     path
+  end
+
+  def item_selector(record)
+    type = record.is_a?(::Files::Folder) ? "folder" : "file"
+    "[data-item-type='#{type}'][data-item-id='#{record.id}']"
+  end
+
+  # Clicks the first item and Cmd-clicks the others onto the selection.
+  def select_items(first, *others)
+    find(item_selector(first)).click
+    others.each { |record| find(item_selector(record)).click(:meta) }
   end
 
   def open_context_menu(file)

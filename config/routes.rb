@@ -84,6 +84,7 @@ Rails.application.routes.draw do
           end
           resources :uploads, only: :create
           resource :download, only: :create
+          resource :deletion, only: :create
         end
       end
 
