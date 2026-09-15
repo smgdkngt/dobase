@@ -31,8 +31,11 @@
       <%= render "components/nav_pill" do %>
         <%= render "components/nav_pill_button", icon: "x", title: "Deselect all", data: { action: "file-selection#clear" } %>
         <span class="px-1 text-sm font-medium" data-file-selection-target="bulkCount">0 selected</span>
-        <%= render "components/nav_pill_button", icon: "download", title: "Download", data: { action: "files#bulkDownload" } %>
+        <%= render "components/nav_pill_button", icon: "download", title: "Download", data: { action: "file-selection#download" } %>
         <%= render "components/nav_pill_button", icon: "trash-2", title: "Delete", data: { action: "files#bulkDelete" } %>
+      <% end %>
+      <%= form_with url: tool_files_download_path(@tool), html: { hidden: true },
+          data: { turbo: false, file_selection_target: "downloadForm", action: "formdata->file-selection#appendSelection" } do %>
       <% end %>
     </div>
 

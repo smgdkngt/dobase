@@ -88,11 +88,6 @@ export default class extends Controller {
 
   // ── Bulk actions ──
 
-  bulkDownload() {
-    // Delegate to selection controller to get selected items
-    this.dispatch("requestDownload")
-  }
-
   bulkDelete() {
     this.#deleteItems()
   }

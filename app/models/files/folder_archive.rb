@@ -40,22 +40,31 @@ module Files
     private
 
     def files
-      Files::Item.joins(:file_blob).where(tool_id: folder.tool_id, folder_id: folder_paths.keys)
+      Files::Item.joins(:file_blob).where(tool_id: tool_id, folder_id: folder_paths.keys)
     end
 
     # Where each folder of the tree goes inside the zip, by folder id. Takes one
     # query per level and skips folders it has already seen, so a tree that loops
     # back on itself still ends.
     def folder_paths
-      @folder_paths ||= { folder.id => "" }.tap do |paths|
-        parent_ids = [ folder.id ]
+      @folder_paths ||= top_folder_paths.tap do |paths|
+        parent_ids = paths.keys
 
         while parent_ids.any?
-          children = Files::Folder.where(tool_id: folder.tool_id, parent_id: parent_ids).where.not(id: paths.keys).pluck(:id, :parent_id, :name)
+          children = Files::Folder.where(tool_id: tool_id, parent_id: parent_ids).where.not(id: paths.keys).pluck(:id, :parent_id, :name)
           children.each { |id, parent_id, name| paths[id] = "#{paths[parent_id]}#{name}/" }
           parent_ids = children.map(&:first)
         end
       end
+    end
+
+    # The folders the walk starts from, by id, with their place in the zip.
+    def top_folder_paths
+      { folder.id => "" }
+    end
+
+    def tool_id
+      folder.tool_id
     end
   end
 end

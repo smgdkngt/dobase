@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 // Handles file/folder selection (single, multi, shift-select)
 export default class extends Controller {
-  static targets = ["item", "bulkToolbar", "bulkCount"]
+  static targets = ["item", "bulkToolbar", "bulkCount", "downloadForm"]
 
   connect() {
     this.selectedItems = new Set()
@@ -64,6 +64,18 @@ export default class extends Controller {
       else if (type === "folder") folders.push(itemId)
     })
     return { files, folders }
+  }
+
+  // Downloads the whole selection with one request: browsers block or ask about
+  // several downloads started by a single click
+  download() {
+    if (this.selectedItems.size > 0) this.downloadFormTarget.requestSubmit()
+  }
+
+  appendSelection(event) {
+    const { files, folders } = this.getSelected()
+    files.forEach(id => event.formData.append("file_ids[]", id))
+    folders.forEach(id => event.formData.append("folder_ids[]", id))
   }
 
   // Private
