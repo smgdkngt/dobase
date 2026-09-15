@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_15_082010) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_15_084811) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -617,8 +617,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_15_082010) do
   add_foreign_key "calendar_events", "calendar_calendars", column: "calendar_id"
   add_foreign_key "calendar_events", "users", column: "created_by_id"
   add_foreign_key "calendar_events", "users", column: "updated_by_id"
-  add_foreign_key "calendar_invites", "calendar_calendars", column: "added_to_calendar_id"
-  add_foreign_key "calendar_invites", "calendar_events", column: "created_event_id"
+  add_foreign_key "calendar_invites", "calendar_calendars", column: "added_to_calendar_id", on_delete: :nullify
+  add_foreign_key "calendar_invites", "calendar_events", column: "created_event_id", on_delete: :nullify
   add_foreign_key "calendar_invites", "mail_messages"
   add_foreign_key "card_attachments", "cards"
   add_foreign_key "cards", "columns"
