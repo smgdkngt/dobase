@@ -20,19 +20,33 @@ module Calendars
     scope :upcoming, -> { where("starts_at > ?", Time.current).order(starts_at: :asc) }
 
     def duration_display
-      return nil unless starts_at && ends_at
+      return nil unless starts_at && ends_at && ends_at > starts_at
 
       minutes = ((ends_at - starts_at) / 60).to_i
 
       if minutes < 60
-        "#{minutes} minutes"
+        "#{minutes} #{"minute".pluralize(minutes)}"
       elsif minutes < 1440
         hours = minutes / 60.0
-        hours == hours.to_i ? "#{hours.to_i} hours" : "#{hours.round(1)} hours"
+        hours = hours == hours.to_i ? hours.to_i : hours.round(1)
+        "#{hours} #{"hour".pluralize(hours)}"
       else
         days = minutes / 1440.0
-        days == days.to_i ? "#{days.to_i} days" : "#{days.round(1)} days"
+        days = days == days.to_i ? days.to_i : days.round(1)
+        "#{days} #{"day".pluralize(days)}"
       end
+    end
+
+    # All-day events end at midnight after their last day (DTEND is exclusive)
+    def last_day
+      return nil unless ends_at
+
+      all_day? ? (ends_at - 1.day).to_date : ends_at.to_date
+    end
+
+    # An attendee answering the user's own invitation, so there is nothing to accept
+    def reply?
+      method == "REPLY"
     end
 
     def accepted?

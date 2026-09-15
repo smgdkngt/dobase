@@ -76,6 +76,26 @@ class MailsTest < ApplicationSystemTestCase
     click_with_retry("[title='Delete (#)']") { message.reload.trashed? }
   end
 
+  test "accepting a calendar invite into a calendar from another calendar tool" do
+    team_tool = Tool.create!(name: "Team Calendar", tool_type: tool_types(:calendar), owner: @user)
+    launches = Calendars::Account.create!(tool: team_tool, provider: "local").calendars.create!(name: "Launches", remote_id: "local-launches")
+    message = mails_messages(:starred_message)
+    starts_at = 1.week.from_now.change(hour: 14)
+    invite = message.calendar_invites.create!(uid: "tasting@example.com", method: "REQUEST", summary: "Tasting session",
+                                              starts_at: starts_at, ends_at: starts_at + 1.hour)
+
+    visit tool_mail_path(@tool, message)
+    select "Team Calendar - Launches", from: "Add to calendar"
+    click_on "Add to Calendar"
+
+    assert_text "Invite accepted and added to calendar."
+    assert_equal launches, invite.reload.added_to_calendar
+
+    click_on "View in Calendar"
+    assert_current_path tool_calendar_path(team_tool, week_start: starts_at.to_date)
+    assert_text "Tasting session"
+  end
+
   test "bulk select and archive" do
     visit tool_mails_path(@tool)
 

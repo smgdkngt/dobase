@@ -51,6 +51,54 @@ module Tools
       assert_redirected_to new_tool_mail_path(@tool, draft_id: draft.id)
     end
 
+    test "show offers to add a pending invite to the user's writable calendars" do
+      msg = mails_messages(:inbox_unread)
+      invite = msg.calendar_invites.create!(uid: "planning@example.com", method: "REQUEST", summary: "Quarterly planning",
+                                            starts_at: Time.utc(2026, 10, 1, 9), ends_at: Time.utc(2026, 10, 1, 10))
+      calendars_accounts(:icloud_account).calendars.create!(name: "Holidays", remote_id: "/holidays/", read_only: true)
+      calendars_accounts(:pending_account).calendars.create!(name: "Theirs", remote_id: "/theirs/")
+
+      get tool_mail_path(@tool, msg)
+
+      assert_response :success
+      assert_select "h4", text: "Quarterly planning"
+      assert_select "form[action=?] input[name=invite_id][value=?]", tool_calendar_invites_path(tools(:my_calendar)), invite.id.to_s
+      assert_equal [ "My Calendar - Personal", "My Calendar - Work" ], css_select("select[name=calendar_id] option").map(&:text)
+    end
+
+    test "show leaves out replies to the user's own invitations" do
+      msg = mails_messages(:inbox_unread)
+      msg.calendar_invites.create!(uid: "planning@example.com", method: "REPLY", summary: "Quarterly planning",
+                                   starts_at: Time.utc(2026, 10, 1, 9), ends_at: Time.utc(2026, 10, 1, 10))
+
+      get tool_mail_path(@tool, msg)
+
+      assert_response :success
+      assert_select "h3", text: "Calendar Invitation", count: 0
+    end
+
+    test "show links an accepted invite to its week in the calendar" do
+      msg = mails_messages(:inbox_unread)
+      msg.calendar_invites.create!(uid: "planning@example.com", method: "REQUEST", summary: "Quarterly planning", status: "accepted",
+                                   starts_at: Time.utc(2026, 10, 1, 9), ends_at: Time.utc(2026, 10, 1, 10),
+                                   added_to_calendar: calendars_calendars(:personal), created_event: calendars_events(:meeting))
+
+      get tool_mail_path(@tool, msg)
+
+      assert_select "a[href=?]", tool_calendar_path(tools(:my_calendar), week_start: "2026-10-01"), text: "View in Calendar"
+      assert_select "select[name=calendar_id]", count: 0
+    end
+
+    test "show still renders a message whose invite has no title or times" do
+      msg = mails_messages(:inbox_unread)
+      msg.calendar_invites.create!(uid: "untimed@example.com", method: "REQUEST", summary: "")
+
+      get tool_mail_path(@tool, msg)
+
+      assert_response :success
+      assert_select "h4", text: "(No title)"
+    end
+
     test "create with an invalid address shows the compose form again" do
       post tool_mails_path(@tool), params: { to: "not-an-address", subject: "Hi", body: "<p>Hi</p>" }
       assert_response :unprocessable_entity

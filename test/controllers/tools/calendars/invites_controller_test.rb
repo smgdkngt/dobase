@@ -20,11 +20,14 @@ module Tools
         @own_invite.update!(attendees_json: attendees.to_json)
         calendar = calendars_calendars(:personal)
 
+        email_url = tool_mail_url(tools(:my_mail), mails_messages(:inbox_unread))
+
         assert_difference -> { calendar.events.count }, 1 do
-          post tool_calendar_invites_path(@calendar_tool), params: { invite_id: @own_invite.id, calendar_id: calendar.id }
+          post tool_calendar_invites_path(@calendar_tool), params: { invite_id: @own_invite.id, calendar_id: calendar.id },
+                                                           headers: { "HTTP_REFERER" => email_url }
         end
 
-        assert_redirected_to tool_calendar_path(@calendar_tool)
+        assert_redirected_to email_url
         event = calendar.events.find_by!(uid: @own_invite.uid)
         assert_equal [ "Planning session", attendees ], [ event.summary, event.attendees ]
         @own_invite.reload

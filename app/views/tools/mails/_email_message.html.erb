@@ -25,6 +25,15 @@
   </button>
   <div data-collapse-target="content" class="<%= is_last ? '' : 'hidden' %>">
     <div class="px-4 pb-4 pl-[4.25rem]">
+      <% invitations = email_message.calendar_invites.reject(&:reply?) %>
+      <% if invitations.any? %>
+        <div class="mb-4 space-y-3">
+          <% invitations.each do |invite| %>
+            <%= render "tools/mails/calendar_invite", invite: invite %>
+          <% end %>
+        </div>
+      <% end %>
+
       <%= render "tools/mails/email_body", message: email_message %>
 
       <% if email_message.attachments.any? %>
