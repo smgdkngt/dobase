@@ -46,6 +46,16 @@ module Calendars
       assert calendar.valid?
     end
 
+    test "local calendars don't need a remote_id, even several in one account" do
+      tool = Tool.create!(name: "Local Calendar", tool_type: tool_types(:calendar), owner: users(:one))
+      account = Calendars::Account.create!(tool: tool, provider: "local")
+
+      account.calendars.create!(name: "Personal")
+      account.calendars.create!(name: "Work")
+
+      assert_equal [ nil, nil ], account.calendars.pluck(:remote_id)
+    end
+
     test "validates name presence" do
       calendar = Calendars::Calendar.new(
         account: calendars_accounts(:icloud_account),

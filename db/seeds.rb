@@ -729,14 +729,11 @@ if ENV["SEED_DEMO"]
   cal_account = Calendars::Account.create!(
     tool: calendar_tool,
     provider: "local",
-    username: "local",
-    password: "local",
     sync_status: "synced"
   )
 
   cal = cal_account.calendars.create!(
     name: "Moonshot Calendar",
-    remote_id: "local-moonshot",
     color: "#ff6b35",
     enabled: true,
     is_default: true,
