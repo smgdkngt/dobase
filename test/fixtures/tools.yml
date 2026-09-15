@@ -60,3 +60,18 @@ my_todos:
   owner: one
   created_at: <%= Time.current.to_fs(:db) %>
   updated_at: <%= Time.current.to_fs(:db) %>
+
+# Tools user one has no access to (for authorization tests)
+other_mail:
+  name: Other Mail
+  tool_type: mail
+  owner: two
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>
+
+other_todos:
+  name: Other Todos
+  tool_type: todos
+  owner: two
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>

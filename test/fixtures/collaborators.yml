@@ -46,6 +46,16 @@ one_my_todos:
   user: one
   role: owner
 
+two_other_mail:
+  tool: other_mail
+  user: two
+  role: owner
+
+two_other_todos:
+  tool: other_todos
+  user: two
+  role: owner
+
 # User two as collaborator on shared_board (for multi-user testing)
 two_shared_board:
   tool: shared_board

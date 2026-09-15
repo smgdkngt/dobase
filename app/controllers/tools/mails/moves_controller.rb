@@ -7,6 +7,8 @@ module Tools
       include FolderValidation
       include NextMailNavigation
 
+      allow_access_tokens
+
       before_action :set_tool
       before_action -> { authorize_tool_access!(@tool) }
       before_action :set_message
@@ -16,7 +18,10 @@ module Tools
         target_folder = params[:folder].to_s.strip
 
         unless valid_folder_name?(target_folder)
-          redirect_back fallback_location: tool_mails_path(@tool), alert: "Invalid folder name."
+          respond_to do |format|
+            format.html { redirect_back fallback_location: tool_mails_path(@tool), alert: "Invalid folder name." }
+            format.json { render json: { errors: [ "Invalid folder name" ] }, status: :unprocessable_entity }
+          end
           return
         end
 
@@ -30,7 +35,10 @@ module Tools
           ImapSyncJob.perform_later(@tool.mail_account.id, "move_to_folder", @message.uid, source_folder, target_folder)
         end
 
-        redirect_to_next_mail_or_fallback(next_msg, folder: current_folder, notice: "Moved to #{target_folder}.")
+        respond_to do |format|
+          format.html { redirect_to_next_mail_or_fallback(next_msg, folder: current_folder, notice: "Moved to #{target_folder}.") }
+          format.json { render "tools/mails/message" }
+        end
       end
 
       private
@@ -40,7 +48,7 @@ module Tools
       end
 
       def set_message
-        @message = @tool.mail_account.messages.find(params[:mail_id])
+        @message = ::Mails::Message.where(account: @tool.mail_account).find(params[:mail_id])
       end
     end
   end

@@ -23,11 +23,12 @@ module Chats
 
     def mark_as_read_for!(user)
       last_message = messages.order(created_at: :desc).first
-      receipt = read_receipts.find_or_initialize_by(user: user)
-      receipt.update!(
-        last_read_message: last_message,
-        last_read_at: Time.current
-      )
+      read_receipts.find_or_initialize_by(user: user).tap do |receipt|
+        receipt.update!(
+          last_read_message: last_message,
+          last_read_at: Time.current
+        )
+      end
     end
   end
 end

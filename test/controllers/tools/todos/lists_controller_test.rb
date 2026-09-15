@@ -63,7 +63,7 @@ module Tools
 
         post tool_todo_lists_path(@tool), params: { title: "New" }, as: :json
 
-        assert_redirected_to new_session_path
+        assert_response :unauthorized
       end
     end
   end

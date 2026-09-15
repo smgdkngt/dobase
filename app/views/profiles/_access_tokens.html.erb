@@ -1,0 +1,73 @@
+<%# locals: (access_tokens:, access_token: AccessToken.new, created_token: nil) %>
+<%= turbo_frame_tag "access-tokens" do %>
+  <h3 class="text-sm font-semibold text-text-primary mb-1">Access tokens</h3>
+  <p class="text-xs text-text-tertiary mb-4">
+    Tokens let scripts, the <code>dobase</code> command-line tool and AI assistants work in your tools on your behalf.
+    They can't change your account, connected mail or calendar accounts, or who a tool is shared with.
+  </p>
+
+  <% if created_token %>
+    <div class="p-3 mb-4 rounded-lg bg-success/10 border border-success/20" data-controller="clipboard">
+      <p class="text-sm font-medium text-text-primary">Copy your new token now</p>
+      <p class="text-xs text-text-tertiary mb-2">It won't be shown again. Treat it like a password.</p>
+      <div class="flex gap-2">
+        <input type="text" readonly value="<%= created_token %>" class="input flex-1 font-mono text-xs" aria-label="New access token" data-clipboard-target="source">
+        <%= render "components/button", text: "Copy", variant: :secondary, size: :sm, type: :button, data: { action: "clipboard#copy", clipboard_target: "button" } %>
+      </div>
+    </div>
+  <% end %>
+
+  <%= form_with url: profile_access_tokens_path, class: "mb-6" do %>
+    <div class="grid grid-cols-[1fr_auto] gap-3 max-lg:grid-cols-1">
+      <%= render "components/form_field",
+            label: "Name",
+            name: "name",
+            value: access_token.name,
+            required: true,
+            placeholder: "e.g. Claude on my laptop",
+            error: access_token.errors[:name].first %>
+      <%= render "components/form_field",
+            label: "Permission",
+            name: "permission",
+            type: :select,
+            value: access_token.permission,
+            options: [ [ "Read only", "read" ], [ "Read and write", "write" ] ] %>
+    </div>
+    <div class="flex justify-end mt-3">
+      <%= render "components/button", text: "Create token", icon: "plus", size: :sm %>
+    </div>
+  <% end %>
+
+  <% if access_tokens.any? %>
+    <div class="space-y-3">
+      <% access_tokens.each do |token| %>
+        <div class="flex items-start gap-3 p-3 rounded-lg bg-background-secondary">
+          <div class="flex-shrink-0 mt-0.5 text-text-secondary">
+            <%= render "shared/icon", name: "key-round", size: 16 %>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <p class="text-sm font-medium text-text-primary truncate"><%= token.name %></p>
+              <%= render "components/badge", text: token.write? ? "Read and write" : "Read only", variant: token.write? ? :warning : :muted, size: :sm %>
+            </div>
+            <p class="text-xs text-text-tertiary">
+              Created <%= time_ago_in_words(token.created_at) %> ago
+              &middot;
+              <%= token.last_used_at ? "Last used #{time_ago_in_words(token.last_used_at)} ago" : "Never used" %>
+            </p>
+          </div>
+          <%= render "components/icon_button",
+                icon: "x",
+                title: "Revoke token",
+                size: :sm,
+                variant: :danger,
+                href: profile_access_token_path(token),
+                method: :delete,
+                data: { turbo_frame: "profile-form", turbo_confirm: "Revoke this token? Anything using it will stop working.", turbo_confirm_button: "Revoke" } %>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <%= render "components/empty_state", title: "No access tokens", description: "Create one to use Dobase from the command line.", icon: "key-round" %>
+  <% end %>
+<% end %>

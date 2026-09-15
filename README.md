@@ -19,6 +19,22 @@ Built with Ruby on Rails 8.1, Hotwire, and Tailwind CSS.
 | **Calendar** | CalDAV-compatible calendar with recurring events and local mode |
 | **Room** | Video conferencing powered by LiveKit |
 
+## API and command line
+
+Everything in your tools is also reachable through a JSON API. Create a
+personal access token under **Profile → API**; tokens are read-only or
+read-and-write and can't touch account settings. See [docs/api](docs/api/README.md).
+
+The [`dobase` CLI](cli/README.md) is built on that API and doubles as a Claude
+Code skill, so an AI assistant can read your board, add todos or draft a reply
+for you:
+
+```bash
+dobase login https://dobase.example.com
+dobase card list "Product Launch"
+dobase todo create "Launch Tasks" "Book the venue" --due tomorrow --assignee me
+```
+
 ## Self-hosting
 
 Dobase runs as a single Docker container. Everything — web server, background jobs, database — is included.

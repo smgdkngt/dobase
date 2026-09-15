@@ -132,3 +132,22 @@ archived_message:
   sent_at: <%= 5.days.ago.to_fs(:db) %>
   created_at: <%= Time.current.to_fs(:db) %>
   updated_at: <%= Time.current.to_fs(:db) %>
+
+other_inbox:
+  account: other
+  message_id: "<msg-other-001@example.com>"
+  subject: Board meeting invite
+  from_address: chair@example.com
+  from_name: Chair
+  to_addresses: '["two@example.com"]'
+  body_plain: "Confidential agenda attached."
+  folder: INBOX
+  read: false
+  starred: false
+  archived: false
+  trashed: false
+  thread_id: thread-other-001
+  uid: 901
+  sent_at: <%= 1.hour.ago.to_fs(:db) %>
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>

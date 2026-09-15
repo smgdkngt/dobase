@@ -47,6 +47,25 @@ module Boards
       assert_equal user, card.reload.assigned_user
     end
 
+    test "can only be assigned to a collaborator on the board" do
+      card = cards(:first_task)
+
+      assert_not card.update(assigned_user: users(:two))
+      assert_includes card.errors[:assigned_user], "must be a collaborator on this tool"
+
+      tools(:project_board).collaborators.create!(user: users(:two), role: "collaborator")
+      assert card.update(assigned_user: users(:two))
+    end
+
+    test "an assignee who left the board doesn't block other edits" do
+      card = cards(:first_task)
+      collaborator = tools(:project_board).collaborators.create!(user: users(:two), role: "collaborator")
+      card.update!(assigned_user: users(:two))
+      collaborator.destroy
+
+      assert card.reload.update(title: "Renamed")
+    end
+
     test "assigned_user is optional" do
       card = cards(:first_task)
       assert_nil card.assigned_user

@@ -5,6 +5,8 @@ module Tools
     class ContactsController < ApplicationController
       include ToolAuthorization
 
+      allow_access_tokens
+
       before_action :set_tool
       before_action -> { authorize_tool_access!(@tool) }
       before_action :require_mail_account
@@ -52,7 +54,7 @@ module Tools
 
       def require_mail_account
         @mail_account = @tool.mail_account
-        head :not_found unless @mail_account
+        render json: { error: "Mail account not configured" }, status: :not_found unless @mail_account
       end
     end
   end

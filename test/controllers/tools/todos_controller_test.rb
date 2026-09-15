@@ -37,6 +37,7 @@ module Tools
     end
 
     test "assignee=me shows only items assigned to current_user" do
+      @tool.collaborators.create!(user: users(:two), role: "collaborator")
       todo_items(:pending_one).update!(assigned_user: users(:one))
       todo_items(:pending_two).update!(assigned_user: users(:two))
 

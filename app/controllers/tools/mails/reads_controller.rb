@@ -5,6 +5,8 @@ module Tools
     class ReadsController < ApplicationController
       include ToolAuthorization
 
+      allow_access_tokens
+
       before_action :set_tool
       before_action -> { authorize_tool_access!(@tool) }
       before_action :set_message
@@ -13,14 +15,14 @@ module Tools
       def create
         @message.mark_as_read!
         sync_imap(:mark_as_read)
-        redirect_back fallback_location: tool_mails_path(@tool)
+        respond_with_message
       end
 
       # DELETE /tools/:tool_id/mails/:mail_id/read
       def destroy
         @message.mark_as_unread!
         sync_imap(:mark_as_unread)
-        redirect_back fallback_location: tool_mails_path(@tool)
+        respond_with_message
       end
 
       private
@@ -30,12 +32,19 @@ module Tools
       end
 
       def set_message
-        @message = @tool.mail_account.messages.find(params[:mail_id])
+        @message = ::Mails::Message.where(account: @tool.mail_account).find(params[:mail_id])
       end
 
       def sync_imap(action)
         return unless @message.uid.present?
         ImapSyncJob.perform_later(@tool.mail_account.id, action.to_s, @message.uid, @message.folder || "INBOX")
+      end
+
+      def respond_with_message
+        respond_to do |format|
+          format.html { redirect_back fallback_location: tool_mails_path(@tool) }
+          format.json { render "tools/mails/message" }
+        end
       end
     end
   end

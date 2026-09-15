@@ -45,6 +45,18 @@ module Tools
       assert msg.reload.read
     end
 
+    test "show redirects drafts to the compose form" do
+      draft = mails_messages(:draft_message)
+      get tool_mail_path(@tool, draft)
+      assert_redirected_to new_tool_mail_path(@tool, draft_id: draft.id)
+    end
+
+    test "create with an invalid address shows the compose form again" do
+      post tool_mails_path(@tool), params: { to: "not-an-address", subject: "Hi", body: "<p>Hi</p>" }
+      assert_response :unprocessable_entity
+      assert_includes response.body, "Invalid email address: not-an-address"
+    end
+
     test "index with search query filters messages" do
       get tool_mails_path(@tool, q: "Welcome")
       assert_response :success
@@ -74,6 +86,42 @@ module Tools
       sign_out
       get tool_mails_path(@tool)
       assert_redirected_to new_session_path
+    end
+
+    test "create forwards attachments from this account only" do
+      own_attachment = attachment_on(mails_messages(:inbox_read), "report.pdf")
+      foreign_attachment = attachment_on(mails_messages(:other_inbox), "agenda.pdf")
+
+      deliveries = capture_sent_mail do
+        post tool_mails_path(@tool), params: {
+          to: "friend@example.com", subject: "Fwd: files", body: "<p>See attached</p>",
+          forward_attachment_ids: [ own_attachment.id, foreign_attachment.id ]
+        }
+      end
+
+      assert_redirected_to tool_mails_path(@tool, folder: "sent")
+      assert_equal 1, deliveries.size
+      assert_equal [ own_attachment.file.blob ], deliveries.first[:attachments]
+    end
+
+    private
+
+    def attachment_on(message, filename)
+      message.attachments.create!(filename: filename, content_type: "application/pdf", file_size: 6).tap do |attachment|
+        attachment.file.attach(io: StringIO.new("%PDF-1"), filename: filename, content_type: "application/pdf")
+      end
+    end
+
+    # Records what would have been sent instead of talking to an SMTP server.
+    def capture_sent_mail
+      deliveries = []
+      SmtpSendService.alias_method :send_email_without_capture, :send_email
+      SmtpSendService.define_method(:send_email) { |**options| deliveries << options }
+      yield
+      deliveries
+    ensure
+      SmtpSendService.alias_method :send_email, :send_email_without_capture
+      SmtpSendService.remove_method :send_email_without_capture
     end
   end
 end

@@ -5,9 +5,13 @@ module Tools
     class DocumentsController < ApplicationController
       include ToolAuthorization
 
+      # Opening the editor takes the document's lock, which only the browser editor keeps alive.
+      allow_access_tokens only: %i[show create update destroy]
+
       before_action :set_tool
       before_action :set_document, only: %i[show edit update destroy]
       before_action -> { authorize_tool_access!(@tool) }
+      before_action :refuse_while_someone_else_is_editing, only: %i[update destroy]
 
       def show
         @locked_by = @document.locked? ? @document.locked_by : nil
@@ -40,12 +44,18 @@ module Tools
           updated_by: current_user,
           last_edited_at: Time.current
         )
+        # The browser starts from an untitled, empty document; API clients can send a title and content.
+        @document.assign_attributes(params.fetch(:docs_document, {}).permit(:title, :content))
 
-        if @document.save
-          notify_document_created
-          redirect_to edit_tool_docs_document_path(@tool, @document)
-        else
-          redirect_to tool_docs_path(@tool), alert: "Could not create document."
+        respond_to do |format|
+          if @document.save
+            notify_document_created
+            format.html { redirect_to edit_tool_docs_document_path(@tool, @document) }
+            format.json { render :show, status: :created }
+          else
+            format.html { redirect_to tool_docs_path(@tool), alert: "Could not create document." }
+            format.json { render json: { errors: @document.errors.full_messages }, status: :unprocessable_entity }
+          end
         end
       end
 
@@ -58,7 +68,7 @@ module Tools
           if @document.save
             @document.broadcast_content_update
             format.html { redirect_to edit_tool_docs_document_path(@tool, @document) }
-            format.json { render json: { saved: true, updated_at: @document.updated_at } }
+            format.json { render :show }
           else
             format.html { render :edit, status: :unprocessable_entity }
             format.json { render json: { errors: @document.errors.full_messages }, status: :unprocessable_entity }
@@ -68,7 +78,11 @@ module Tools
 
       def destroy
         @document.destroy
-        redirect_to tool_docs_path(@tool), notice: "Document deleted."
+
+        respond_to do |format|
+          format.html { redirect_to tool_docs_path(@tool), notice: "Document deleted." }
+          format.json { head :no_content }
+        end
       end
 
       private
@@ -83,6 +97,18 @@ module Tools
 
       def document_params
         params.require(:docs_document).permit(:title, :content)
+      end
+
+      # Whoever holds the lock has the document open in the editor, which autosaves
+      # over any change made in the meantime. Their own saves go through.
+      def refuse_while_someone_else_is_editing
+        return unless @document.locked? && @document.locked_by_id != current_user.id
+
+        message = "#{@document.locked_by&.name || 'Someone'} is editing this document"
+        respond_to do |format|
+          format.html { redirect_to tool_docs_document_path(@tool, @document), alert: message }
+          format.json { render json: { error: message }, status: :conflict }
+        end
       end
 
       def notify_document_created

@@ -1,9 +1,19 @@
 # frozen_string_literal: true
 
 class ProfilesController < ApplicationController
+  allow_access_tokens only: :show
+
+  def show
+    respond_to do |format|
+      format.html { redirect_to edit_profile_path }
+      format.json { @user = current_user }
+    end
+  end
+
   def edit
     @user = current_user
     @sessions = current_user.sessions.order(created_at: :desc)
+    @access_tokens = current_user.access_tokens.newest_first
   end
 
   def update
@@ -13,6 +23,7 @@ class ProfilesController < ApplicationController
       redirect_to root_path, notice: "Profile updated."
     else
       @sessions = current_user.sessions.order(created_at: :desc)
+      @access_tokens = current_user.access_tokens.newest_first
       render :edit, status: :unprocessable_entity
     end
   end

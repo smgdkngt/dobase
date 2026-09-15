@@ -38,7 +38,7 @@ module Tools
               params: { column_ids: [ columns(:todo).id ] },
               as: :json
 
-        assert_redirected_to new_session_path
+        assert_response :unauthorized
       end
     end
   end

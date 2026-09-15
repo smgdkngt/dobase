@@ -12,7 +12,7 @@ module Columns
 
     test "create adds new card to column" do
       assert_difference "Boards::Card.count", 1 do
-        post column_cards_path(@column), params: { title: "New Card" }
+        post column_cards_path(@column), params: { card: { title: "New Card" } }
       end
 
       assert_redirected_to tool_board_path(@tool)
@@ -24,7 +24,7 @@ module Columns
     test "create assigns next position" do
       initial_max = @column.cards.maximum(:position)
 
-      post column_cards_path(@column), params: { title: "New Card" }
+      post column_cards_path(@column), params: { card: { title: "New Card" } }
 
       card = Boards::Card.last
       assert_equal initial_max + 1, card.position
@@ -33,7 +33,7 @@ module Columns
     test "requires authentication" do
       sign_out
 
-      post column_cards_path(@column), params: { title: "New Card" }
+      post column_cards_path(@column), params: { card: { title: "New Card" } }
 
       assert_redirected_to new_session_path
     end

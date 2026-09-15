@@ -6,28 +6,28 @@ module Tools
       class CompletionsController < ApplicationController
         include ToolAuthorization
 
+        allow_access_tokens
+
         before_action :set_tool
         before_action -> { authorize_tool_access!(@tool) }
         before_action :set_item
 
         # POST /tools/:tool_id/todo/items/:item_id/completion
+        # Completing an item twice changes nothing, so a retry can't spawn a
+        # second copy of a recurring item.
         def create
-          @item.update!(completed_at: Time.current)
-          @item.spawn_next_instance! if @item.recurring?
-          notify_completion
-          respond_to do |format|
-            format.html { redirect_to tool_todo_path(@tool) }
-            format.json { render json: { success: true, completed_at: @item.completed_at } }
+          unless @item.completed?
+            @item.update!(completed_at: Time.current)
+            @item.spawn_next_instance! if @item.recurring?
+            notify_completion
           end
+          respond_with_item
         end
 
         # DELETE /tools/:tool_id/todo/items/:item_id/completion
         def destroy
           @item.update!(completed_at: nil)
-          respond_to do |format|
-            format.html { redirect_to tool_todo_path(@tool) }
-            format.json { render json: { success: true } }
-          end
+          respond_with_item
         end
 
         private
@@ -40,12 +40,17 @@ module Tools
           @item = ::Todos::Item.joins(:list).where(todo_lists: { tool_id: @tool.id }).find(params[:item_id])
         end
 
-        def notify_completion
-          return unless @item.assigned_user_id.present?
-          return if @item.assigned_user_id == current_user.id
+        def respond_with_item
+          respond_to do |format|
+            format.html { redirect_to tool_todo_path(@tool) }
+            format.json { render "tools/todos/items/show" }
+          end
+        end
 
-          assignee = User.find(@item.assigned_user_id)
-          return if @tool.muted_by?(assignee)
+        def notify_completion
+          assignee = @item.assigned_user
+          return if assignee.nil? || assignee == current_user
+          return if @tool.muted_by?(assignee) || !@tool.accessible_by?(assignee)
 
           TodoCompletedNotifier.with(item: @item, completer: current_user, tool: @tool).deliver(assignee)
           assignee.prune_notifications!

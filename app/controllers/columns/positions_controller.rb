@@ -9,7 +9,7 @@ module Columns
     before_action -> { authorize_tool_access!(@tool) }
 
     def update
-      card_ids = params[:card_ids]
+      card_ids = board_card_ids
       # Find cards that are moving TO this column from a different one
       moved_cards = Boards::Card.where(id: card_ids).where.not(column_id: @column.id).to_a
 
@@ -29,6 +29,13 @@ module Columns
 
     def set_tool
       @tool = @column.board.tool
+    end
+
+    # The requested card ids, in order, limited to cards already on this board.
+    # Ids of cards on other boards are dropped rather than moved over.
+    def board_card_ids
+      requested = Array(params[:card_ids]).map(&:to_i)
+      requested & @column.board.cards.where(id: requested).ids
     end
 
     def notify_card_moves(moved_cards)

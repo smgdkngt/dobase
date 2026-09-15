@@ -28,3 +28,10 @@ old_completed:
   completed_at: <%= 3.days.ago.to_fs(:db) %>
   created_at: <%= Time.current.to_fs(:db) %>
   updated_at: <%= Time.current.to_fs(:db) %>
+
+other_item:
+  list: other_list
+  title: Private item
+  position: 0
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>

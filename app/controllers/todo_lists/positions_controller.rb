@@ -9,7 +9,7 @@ module TodoLists
     before_action -> { authorize_tool_access!(@tool) }
 
     def update
-      params[:item_ids].each_with_index do |id, index|
+      tool_item_ids.each_with_index do |id, index|
         ::Todos::Item.where(id: id).update_all(todo_list_id: @list.id, position: index)
       end
       render json: { success: true }
@@ -23,6 +23,13 @@ module TodoLists
 
     def set_tool
       @tool = @list.tool
+    end
+
+    # The requested item ids, in order, limited to items in this tool's lists.
+    # Ids of items from other tools are dropped rather than moved over.
+    def tool_item_ids
+      requested = Array(params[:item_ids]).map(&:to_i)
+      requested & ::Todos::Item.joins(:list).where(todo_lists: { tool_id: @tool.id }, id: requested).ids
     end
   end
 end

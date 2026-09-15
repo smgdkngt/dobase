@@ -6,6 +6,9 @@ module Tools
       include ToolAuthorization
       include NextMailNavigation
 
+      # No access tokens: trashing deletes the message on the mail server right
+      # away, and emptying the trash deletes it for good.
+
       before_action :set_tool
       before_action -> { authorize_tool_access!(@tool) }
       before_action :set_message, only: %i[create destroy]
@@ -16,14 +19,22 @@ module Tools
         next_msg = find_next_message(@message, folder)
         @message.update!(trashed: true, archived: false)
         sync_delete_to_imap(@message)
-        redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Email moved to trash.")
+
+        respond_to do |format|
+          format.html { redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Email moved to trash.") }
+          format.json { render "tools/mails/message" }
+        end
       end
 
       # DELETE /tools/:tool_id/mails/:mail_id/trash
       def destroy
         next_msg = find_next_message(@message, "trash")
         @message.update!(trashed: false)
-        redirect_to_next_mail_or_fallback(next_msg, folder: "trash", notice: "Email restored.")
+
+        respond_to do |format|
+          format.html { redirect_to_next_mail_or_fallback(next_msg, folder: "trash", notice: "Email restored.") }
+          format.json { render "tools/mails/message" }
+        end
       end
 
       # DELETE /tools/:tool_id/mails/trash (empty trash)
@@ -43,7 +54,7 @@ module Tools
       end
 
       def set_message
-        @message = @tool.mail_account.messages.find(params[:mail_id])
+        @message = ::Mails::Message.where(account: @tool.mail_account).find(params[:mail_id])
       end
 
       def sync_delete_to_imap(message)

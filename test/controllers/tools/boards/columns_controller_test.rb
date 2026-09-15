@@ -64,7 +64,7 @@ module Tools
 
         post tool_board_columns_path(@tool), params: { name: "New" }, as: :json
 
-        assert_redirected_to new_session_path
+        assert_response :unauthorized
       end
     end
   end

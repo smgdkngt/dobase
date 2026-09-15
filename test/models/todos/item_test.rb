@@ -51,6 +51,7 @@ module Todos
 
     test "assigned_to scopes to items owned by the given user" do
       item = todo_items(:pending_one)
+      tools(:my_todos).collaborators.create!(user: users(:two), role: "collaborator")
       item.update!(assigned_user: users(:two))
 
       assigned = Todos::Item.assigned_to(users(:two))
@@ -109,6 +110,34 @@ module Todos
       assert_nil new_item.completed_at
     end
 
+    test "can only be assigned to a collaborator on the tool" do
+      item = todo_items(:pending_one)
+
+      assert_not item.update(assigned_user: users(:two))
+      assert_includes item.errors[:assigned_user], "must be a collaborator on this tool"
+
+      tools(:my_todos).collaborators.create!(user: users(:two), role: "collaborator")
+      assert item.update(assigned_user: users(:two))
+    end
+
+    test "an assignee who left the tool doesn't block other edits" do
+      item = todo_items(:pending_one)
+      collaborator = tools(:my_todos).collaborators.create!(user: users(:two), role: "collaborator")
+      item.update!(assigned_user: users(:two))
+      collaborator.destroy
+
+      assert item.reload.update(title: "Renamed")
+    end
+
+    test "spawn_next_instance leaves the new item unassigned when the assignee left the tool" do
+      item = todo_items(:pending_one)
+      collaborator = tools(:my_todos).collaborators.create!(user: users(:two), role: "collaborator")
+      item.update!(recurrence_rule: "daily", assigned_user: users(:two))
+      collaborator.destroy
+
+      assert_nil item.reload.spawn_next_instance!.assigned_user
+    end
+
     test "spawn_next_instance rolls the due_date forward by the rule's interval" do
       item = todo_items(:pending_one)
       anchor = Date.new(2026, 1, 15)
@@ -133,6 +162,15 @@ module Todos
 
       assert_no_difference -> { item.list.items.count } do
         assert_nil item.spawn_next_instance!
+      end
+    end
+
+    test "notify_assignee skips assignees who aren't on the tool" do
+      item = todo_items(:pending_one)
+      item.assigned_user = users(:two)
+
+      assert_no_difference -> { Noticed::Notification.count } do
+        item.notify_assignee(users(:one))
       end
     end
 

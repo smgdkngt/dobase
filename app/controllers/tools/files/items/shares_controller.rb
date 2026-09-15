@@ -6,13 +6,27 @@ module Tools
       class SharesController < ApplicationController
         include ToolAuthorization
 
+        # Tokens can see a public link but not create or remove one: a link made
+        # with a leaked token would outlive revoking it.
+        allow_access_tokens only: :show
+
         before_action :set_tool
-        before_action :set_file
         before_action -> { authorize_tool_access!(@tool) }
+        before_action :set_file
 
         def show
           @share = @file.share
-          render partial: "tools/files/shares/form", locals: { share: @share, shareable: @file, share_url: tool_files_item_share_path(@tool, @file) }, layout: false
+
+          respond_to do |format|
+            format.html { render partial: "tools/files/shares/form", locals: { share: @share, shareable: @file, share_url: tool_files_item_share_path(@tool, @file) }, layout: false }
+            format.json do
+              if @share
+                render :show
+              else
+                render json: { error: "This file has no share link" }, status: :not_found
+              end
+            end
+          end
         end
 
         def create

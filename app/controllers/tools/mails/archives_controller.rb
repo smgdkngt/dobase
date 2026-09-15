@@ -6,6 +6,8 @@ module Tools
       include ToolAuthorization
       include NextMailNavigation
 
+      allow_access_tokens
+
       before_action :set_tool
       before_action -> { authorize_tool_access!(@tool) }
       before_action :set_message
@@ -16,7 +18,11 @@ module Tools
         next_msg = find_next_message(@message, folder)
         @message.update!(archived: true)
         sync_archive_to_imap
-        redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Email archived.")
+
+        respond_to do |format|
+          format.html { redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Email archived.") }
+          format.json { render "tools/mails/message" }
+        end
       end
 
       # DELETE /tools/:tool_id/mails/:mail_id/archive
@@ -24,7 +30,11 @@ module Tools
         next_msg = find_next_message(@message, "archive")
         @message.update!(archived: false)
         sync_unarchive_to_imap
-        redirect_to_next_mail_or_fallback(next_msg, folder: "archive", notice: "Email unarchived.")
+
+        respond_to do |format|
+          format.html { redirect_to_next_mail_or_fallback(next_msg, folder: "archive", notice: "Email unarchived.") }
+          format.json { render "tools/mails/message" }
+        end
       end
 
       private
@@ -34,7 +44,7 @@ module Tools
       end
 
       def set_message
-        @message = @tool.mail_account.messages.find(params[:mail_id])
+        @message = ::Mails::Message.where(account: @tool.mail_account).find(params[:mail_id])
       end
 
       def sync_archive_to_imap

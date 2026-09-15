@@ -5,6 +5,14 @@ module Tools
     class EventsController < ApplicationController
       include ToolAuthorization
 
+      # Recurrence fields besides recurrence_frequency.
+      RECURRENCE_FIELDS = %w[
+        recurrence_interval recurrence_days_of_week recurrence_monthly_by
+        recurrence_end_type recurrence_count recurrence_until
+      ].freeze
+
+      allow_access_tokens only: %i[show create update destroy]
+
       before_action :set_tool
       before_action -> { authorize_tool_access!(@tool) }
       before_action :set_calendar_account
@@ -16,6 +24,7 @@ module Tools
             render layout: false if request.headers["X-Requested-With"] == "XMLHttpRequest"
           end
           format.turbo_stream
+          format.json
         end
       end
 
@@ -30,18 +39,25 @@ module Tools
 
       def create
         @calendars = writable_calendars
-        @calendar = find_calendar(event_params[:calendar_id])
+        @calendar = find_calendar(event_params[:calendar_id].presence || default_calendar&.id)
         @event = @calendar.events.build(event_params.except(:calendar_id))
         @event.uid = generate_uid
         @event.created_by = current_user
         @event.updated_by = current_user
 
-        if @event.save
+        if calendar_accepts_event? && @event.save
           PushEventJob.perform_later(@event.id, :create)
           notify_event_created
-          redirect_to tool_calendar_path(@tool), notice: "Event created successfully.", status: :see_other
+
+          respond_to do |format|
+            format.html { redirect_to tool_calendar_path(@tool), notice: "Event created successfully.", status: :see_other }
+            format.json { render :show, status: :created }
+          end
         else
-          render :new, status: :unprocessable_entity
+          respond_to do |format|
+            format.html { render :new, status: :unprocessable_entity }
+            format.json { render json: { errors: @event.errors.full_messages }, status: :unprocessable_entity }
+          end
         end
       end
 
@@ -53,11 +69,22 @@ module Tools
 
       def update
         @calendars = @calendar_account.calendars.enabled.by_position
-        if @event.update(event_params.merge(updated_by: current_user))
+        @event.load_recurrence_for_form if partial_recurrence_update?
+        @event.assign_attributes(event_params.except(:calendar_id).merge(updated_by: current_user))
+        @event.calendar = find_calendar(event_params[:calendar_id]) if event_params[:calendar_id].present?
+
+        if calendar_accepts_event? && @event.save
           PushEventJob.perform_later(@event.id, :update)
-          redirect_to tool_calendar_path(@tool), notice: "Event updated successfully.", status: :see_other
+
+          respond_to do |format|
+            format.html { redirect_to tool_calendar_path(@tool), notice: "Event updated successfully.", status: :see_other }
+            format.json { render :show }
+          end
         else
-          render :edit, status: :unprocessable_entity
+          respond_to do |format|
+            format.html { render :edit, status: :unprocessable_entity }
+            format.json { render json: { errors: @event.errors.full_messages }, status: :unprocessable_entity }
+          end
         end
       end
 
@@ -75,7 +102,10 @@ module Tools
         # Push delete to CalDAV server
         DeleteCalendarEventJob.perform_later(event_data)
 
-        redirect_to tool_calendar_path(@tool), notice: "Event deleted successfully.", status: :see_other
+        respond_to do |format|
+          format.html { redirect_to tool_calendar_path(@tool), notice: "Event deleted successfully.", status: :see_other }
+          format.json { head :no_content }
+        end
       end
 
       private
@@ -86,7 +116,13 @@ module Tools
 
       def set_calendar_account
         @calendar_account = @tool.calendar_account
-        redirect_to new_tool_calendar_account_path(@tool), alert: "Please configure your calendar account first." unless @calendar_account
+        return if @calendar_account
+
+        if request.format.json?
+          render json: { error: "Calendar account not configured" }, status: :not_found
+        else
+          redirect_to new_tool_calendar_account_path(@tool), alert: "Please configure your calendar account first."
+        end
       end
 
       def set_event
@@ -105,6 +141,29 @@ module Tools
 
       def find_calendar(calendar_id)
         @calendar_account.calendars.find(calendar_id)
+      end
+
+      # Events can only be added to, or moved to, an enabled calendar that the
+      # server accepts writes to.
+      def calendar_accepts_event?
+        return true unless @event.new_record? || @event.calendar_id_changed?
+
+        if @event.calendar.read_only?
+          @event.errors.add(:calendar, "is read-only")
+        elsif !@event.calendar.enabled?
+          @event.errors.add(:calendar, "is disabled")
+        end
+
+        @event.errors.none?
+      end
+
+      # The edit form always sends the whole recurrence. An update without a
+      # recurrence_frequency that moves the start or changes part of the
+      # recurrence starts from the current recurrence, so the series is rebuilt
+      # around the change instead of keeping a schedule for the old start.
+      def partial_recurrence_update?
+        @event.is_recurring? && !event_params.key?(:recurrence_frequency) &&
+          (event_params.key?(:start_time) || event_params.keys.intersect?(RECURRENCE_FIELDS))
       end
 
       def event_params

@@ -6,6 +6,8 @@ module Tools
       class AttachmentsController < ApplicationController
         include ToolAuthorization
 
+        allow_access_tokens
+
         before_action :set_tool
         before_action -> { authorize_tool_access!(@tool) }
         before_action :set_item
@@ -21,23 +23,33 @@ module Tools
           end
 
           if file.size > MAX_ATTACHMENT_SIZE
-            redirect_to tool_todo_item_path(@tool, @item), alert: "File too large (max 25 MB)."
+            respond_to do |format|
+              format.html { redirect_to tool_todo_item_path(@tool, @item), alert: "File too large (max 25 MB)." }
+              format.json { render json: { errors: [ "File too large (max 25 MB)" ] }, status: :unprocessable_entity }
+            end
             return
           end
 
-          attachment = @item.attachments.create!(
+          @attachment = @item.attachments.create!(
             filename: file.original_filename,
             content_type: file.content_type,
             file_size: file.size
           )
-          attachment.file.attach(file)
+          @attachment.file.attach(file)
 
-          redirect_to tool_todo_item_path(@tool, @item)
+          respond_to do |format|
+            format.html { redirect_to tool_todo_item_path(@tool, @item) }
+            format.json { render :show, status: :created }
+          end
         end
 
         def destroy
           @attachment.destroy!
-          redirect_to tool_todo_item_path(@tool, @item)
+
+          respond_to do |format|
+            format.html { redirect_to tool_todo_item_path(@tool, @item) }
+            format.json { head :no_content }
+          end
         end
 
         private

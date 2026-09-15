@@ -25,6 +25,10 @@
           <%= render "components/badge", text: @sessions.count, size: :sm %>
         <% end %>
       </button>
+      <button type="button" class="tab w-full justify-start" data-tabs-target="tab" data-tab="api" data-action="click->tabs#select">
+        <%= render "shared/icon", name: "key-round", size: 16 %>
+        <span>API</span>
+      </button>
 
       <div class="mt-auto pt-2 border-t border-border-light flex flex-col gap-1 max-lg:hidden">
         <%= render "components/button",
@@ -239,6 +243,11 @@
             </div>
           <% end %>
         </div>
+      </div>
+
+      <%# API panel %>
+      <div data-tabs-target="panel" data-tab="api" class="hidden">
+        <%= render "profiles/access_tokens", access_tokens: @access_tokens %>
       </div>
     </div>
   </div>
