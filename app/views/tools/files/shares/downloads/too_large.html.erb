@@ -1,0 +1,8 @@
+<% content_for(:title) { "Too Large to Download" } %>
+<%= render "components/empty_state",
+    icon: "archive",
+    title: "Too Large to Download",
+    description: "#{@share.shareable.name} is too large to download as a zip. Zips are limited to #{number_to_human_size(Files::FolderArchive::MAX_BYTES)} and #{number_with_delimiter(Files::FolderArchive::MAX_FILES)} files. Please contact the person who shared it with you.",
+    action_text: "Back to Folder",
+    action_href: share_path(@share.token),
+    size: :lg %>

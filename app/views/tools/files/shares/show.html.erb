@@ -14,7 +14,7 @@
       size: :lg %>
 <% elsif @password_required %>
   <% content_for(:title) { "Password Required" } %>
-  <%= render "password_form" %>
+  <%= render "tools/files/shares/password_form" %>
 <% elsif @share.folder? %>
   <%= render "folder" %>
 <% else %>

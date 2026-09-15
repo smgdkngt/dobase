@@ -15,14 +15,6 @@ module Tools
           @file = @share.shareable
         end
       end
-
-      private
-
-      def set_share
-        @share = ::Files::Share.find_by!(token: params[:token])
-      rescue ActiveRecord::RecordNotFound
-        render :not_found, status: :not_found
-      end
     end
   end
 end

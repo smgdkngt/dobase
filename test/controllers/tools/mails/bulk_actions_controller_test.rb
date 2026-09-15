@@ -51,6 +51,35 @@ module Tools
         post tool_bulk_path(@tool), params: { message_ids: [], action_type: "archive" }
         assert_redirected_to tool_mails_path(@tool)
       end
+
+      test "acts on up to the maximum number of messages" do
+        ids = [ @msg1.id, *unknown_ids(BulkActionsController::MAX_MESSAGES - 1) ]
+
+        assert_enqueued_jobs 1, only: ImapSyncJob do
+          post tool_bulk_path(@tool), params: { message_ids: ids, action_type: "archive" }
+        end
+
+        assert @msg1.reload.archived
+      end
+
+      test "refuses more than the maximum number of messages" do
+        ids = [ @msg1.id, *unknown_ids(BulkActionsController::MAX_MESSAGES) ]
+
+        assert_no_enqueued_jobs do
+          post tool_bulk_path(@tool), params: { message_ids: ids, action_type: "archive" }
+        end
+
+        assert_redirected_to tool_mails_path(@tool)
+        assert_equal "Select up to #{BulkActionsController::MAX_MESSAGES} emails at a time.", flash[:alert]
+        assert_not @msg1.reload.archived
+      end
+
+      private
+
+      def unknown_ids(count)
+        first = ::Mails::Message.maximum(:id) + 1
+        (first...first + count).to_a
+      end
     end
   end
 end
