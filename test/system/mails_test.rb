@@ -58,6 +58,17 @@ class MailsTest < ApplicationSystemTestCase
     click_with_retry("[title='Star (s)']") { message.reload.starred? }
   end
 
+  test "starring an HTML email keeps its body visible" do
+    message = mails_messages(:inbox_unread)
+    visit tool_mail_path(@tool, message)
+
+    assert_selector("iframe[data-email-frame-target=frame]") { |frame| frame.evaluate_script("this.offsetHeight") > 0 }
+    click_with_retry("[title='Star (s)']") { message.reload.starred? }
+
+    assert_selector "[title='Star (s)'] .fill-warning"
+    assert_selector("iframe[data-email-frame-target=frame]") { |frame| frame.evaluate_script("this.offsetHeight") > 0 }
+  end
+
   test "archiving a message" do
     message = mails_messages(:inbox_unread)
     visit tool_mail_path(@tool, message)

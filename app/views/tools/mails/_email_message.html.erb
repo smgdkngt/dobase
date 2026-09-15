@@ -12,7 +12,7 @@
         <% end %>
         <span class="text-xs text-text-tertiary ml-auto"><%= email_message.sent_at&.strftime(email_message.sent_at&.year == Date.today.year ? "%b %d, %I:%M %p" : "%b %d, %Y, %I:%M %p") %></span>
       </div>
-      <div class="text-xs text-text-tertiary mt-0.5" data-collapse-target="preview">
+      <div class="text-xs text-text-tertiary mt-0.5 <%= 'hidden' if is_last %>" data-collapse-target="preview">
         To: <%= email_message.to_addresses_list.join(", ").truncate(50) %>
         <% if email_message.cc_addresses_list.any? %>
           &middot; Cc: <%= email_message.cc_addresses_list.join(", ").truncate(30) %>
