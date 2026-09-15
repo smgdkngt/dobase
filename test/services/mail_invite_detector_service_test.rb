@@ -41,6 +41,28 @@ class MailInviteDetectorServiceTest < ActiveSupport::TestCase
     ], invite.attendees
   end
 
+  test "keeps non-ASCII text from an .ics attachment" do
+    attach_ics <<~ICS
+      BEGIN:VCALENDAR
+      VERSION:2.0
+      PRODID:-//Test//Test//EN
+      METHOD:REQUEST
+      BEGIN:VEVENT
+      UID:koffie-456@example.com
+      DTSTART:20261002T140000Z
+      DTEND:20261002T150000Z
+      SUMMARY:Koffie bij Café de Jaren
+      ORGANIZER;CN=José García:mailto:jose@example.com
+      END:VEVENT
+      END:VCALENDAR
+    ICS
+
+    invite = MailInviteDetectorService.new(@message).detect_and_create_invite.reload
+
+    assert_equal [ "Koffie bij Café de Jaren", "José García" ], [ invite.summary, invite.organizer_name ]
+    assert_includes invite.raw_icalendar, "Café de Jaren"
+  end
+
   private
     def attach_ics(ics)
       attachment = @message.attachments.create!(filename: "invite.ics", content_type: "text/calendar", file_size: ics.bytesize)

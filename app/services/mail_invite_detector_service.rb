@@ -25,7 +25,8 @@ class MailInviteDetectorService
     end
 
     if calendar_attachment&.file&.attached?
-      return calendar_attachment.file.download
+      # Active Storage hands back binary; iCalendar data is UTF-8 (RFC 5545)
+      return calendar_attachment.file.download.force_encoding(Encoding::UTF_8).scrub
     end
 
     # If no attachment, try to parse from raw message body
