@@ -24,6 +24,10 @@ module Tools
           end
           messages.update_all(trashed: true, archived: false)
           "#{messages.count} email(s) moved to trash."
+        when "restore"
+          # Local only, like TrashesController#destroy: trashing already expunged these on the IMAP server.
+          count = messages.trashed.update_all(trashed: false)
+          "#{count} email(s) restored."
         when "archive"
           archive_folder = @mail_account.archive_folder.presence
           messages.where.not(uid: nil).find_each do |message|
