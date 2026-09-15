@@ -21,7 +21,11 @@ Rails.application.routes.draw do
     resource :two_factor_challenge, only: %i[new create], path: "verify"
   end
 
-  resource :profile, only: %i[edit update destroy]
+  resource :profile, only: %i[show edit update destroy] do
+    scope module: :profiles do
+      resources :access_tokens, only: %i[create destroy]
+    end
+  end
   resource :two_factor_setup, only: %i[new create destroy]
 
   # Notifications
@@ -58,6 +62,7 @@ Rails.application.routes.draw do
               resources :comments, only: %i[create destroy]
               resources :attachments, only: %i[create destroy]
               resource :archive, only: %i[create destroy]
+              resource :position, only: :update
             end
           end
         end
@@ -139,6 +144,7 @@ Rails.application.routes.draw do
               resources :comments, only: %i[create destroy]
               resources :attachments, only: %i[create destroy]
               resource :completion, only: %i[create destroy]
+              resource :position, only: :update
             end
           end
         end

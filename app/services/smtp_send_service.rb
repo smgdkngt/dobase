@@ -71,6 +71,15 @@ class SmtpSendService
   end
 
   def send_email(to:, subject:, body:, body_html: nil, cc: nil, bcc: nil, attachments: nil)
+    mail = deliver(to: to, subject: subject, body: body, body_html: body_html, cc: cc, bcc: bcc, attachments: attachments)
+    file_sent_email(mail, to: to, subject: subject, body: body, body_html: body_html, cc: cc, bcc: bcc, attachments: attachments)
+
+    true
+  end
+
+  private
+
+  def deliver(to:, subject:, body:, body_html:, cc:, bcc:, attachments:)
     mail = build_mail(to: to, subject: subject, body: body, body_html: body_html, cc: cc, bcc: bcc, attachments: attachments)
 
     smtp = build_smtp
@@ -84,17 +93,21 @@ class SmtpSendService
       server.send_message(mail.to_s, @account.email_address, recipients)
     end
 
-    record_contacts(to: to, cc: cc, bcc: bcc)
-    save_sent_email(mail, to: to, subject: subject, body: body, body_html: body_html, cc: cc, bcc: bcc, attachments: attachments)
-
-    true
+    mail
   rescue Net::SMTPError => e
     raise SendError, "Failed to send email: #{e.message}"
   rescue StandardError => e
     raise SendError, "Error: #{e.message}"
   end
 
-  private
+  # The email has gone out by now. Failing to keep contacts or the sent copy is
+  # reported, not raised: callers would otherwise think the send failed and try again.
+  def file_sent_email(mail, **email)
+    record_contacts(to: email[:to], cc: email[:cc], bcc: email[:bcc])
+    save_sent_email(mail, **email)
+  rescue StandardError => error
+    Rails.error.report(error, context: { mail_account_id: @account.id, message_id: mail.message_id })
+  end
 
   def build_smtp
     smtp = Net::SMTP.new(@account.smtp_host, @account.smtp_port)
@@ -155,8 +168,9 @@ class SmtpSendService
 
   def extract_attachment_data(attachment)
     case attachment
-    when ActionDispatch::Http::UploadedFile, Rack::Test::UploadedFile
-      # Uploaded file from form
+    when ActionDispatch::Http::UploadedFile
+      # Uploaded file from form. Read twice: for the email and for the sent copy.
+      attachment.rewind
       [
         attachment.original_filename,
         attachment.read,
@@ -189,6 +203,7 @@ class SmtpSendService
     else
       # Try to handle file-like objects with read method
       if attachment.respond_to?(:read) && attachment.respond_to?(:original_filename)
+        attachment.rewind if attachment.respond_to?(:rewind)
         [
           attachment.original_filename,
           attachment.read,
@@ -233,7 +248,7 @@ class SmtpSendService
   end
 
   def save_sent_email(mail, to:, subject:, body:, body_html:, cc:, bcc:, attachments:)
-    email = @account.emails.create!(
+    email = @account.messages.create!(
       message_id: mail.message_id,
       folder: "Sent",
       subject: subject,

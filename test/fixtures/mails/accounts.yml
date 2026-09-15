@@ -18,3 +18,14 @@ primary:
   synced_folders: '["INBOX","Sent","Archive","Receipts"]'
   created_at: <%= Time.current.to_fs(:db) %>
   updated_at: <%= Time.current.to_fs(:db) %>
+
+other:
+  tool: other_mail
+  email_address: two@example.com
+  imap_host: imap.example.com
+  smtp_host: smtp.example.com
+  username: two@example.com
+  encrypted_password: <%= encryptor.encrypt_and_sign("otherpassword") %>
+  sync_status: synced
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>

@@ -6,6 +6,8 @@ module Tools
       class ArchivesController < ApplicationController
         include ToolAuthorization
 
+        allow_access_tokens
+
         before_action :set_tool
         before_action -> { authorize_tool_access!(@tool) }
         before_action :set_card
@@ -13,13 +15,13 @@ module Tools
         # POST /tools/:tool_id/board/cards/:card_id/archive
         def create
           @card.update!(archived_at: Time.current)
-          redirect_to tool_board_path(@tool)
+          respond_with_card
         end
 
         # DELETE /tools/:tool_id/board/cards/:card_id/archive
         def destroy
           @card.update!(archived_at: nil)
-          redirect_to tool_board_path(@tool)
+          respond_with_card
         end
 
         private
@@ -30,6 +32,13 @@ module Tools
 
         def set_card
           @card = @tool.board.cards.find(params[:card_id])
+        end
+
+        def respond_with_card
+          respond_to do |format|
+            format.html { redirect_to tool_board_path(@tool) }
+            format.json { render "tools/boards/cards/show" }
+          end
         end
       end
     end

@@ -5,12 +5,18 @@ module Tools
     class ReadsController < ApplicationController
       include ToolAuthorization
 
+      allow_access_tokens
+
       before_action :set_tool
       before_action -> { authorize_tool_access!(@tool) }
 
       def create
-        @tool.chat.mark_as_read_for!(current_user)
-        head :ok
+        @read_receipt = @tool.chat.mark_as_read_for!(current_user)
+
+        respond_to do |format|
+          format.any { head :ok }
+          format.json { render :show }
+        end
       end
 
       private

@@ -143,6 +143,12 @@ module Calendars
       starts_at.to_date != ends_at.to_date
     end
 
+    # The copies Tools::CalendarsController makes for each occurrence of a
+    # recurring event answer true.
+    def occurrence?
+      false
+    end
+
     private
 
     DAY_SYMBOLS = { "SU" => :sunday, "MO" => :monday, "TU" => :tuesday,
@@ -231,12 +237,13 @@ module Calendars
       end
 
       if recurrence_frequency == "monthly"
-        if recurrence_monthly_by == "day_of_month"
-          parts << "BYMONTHDAY=#{starts_at.day}"
-        else
+        # Same default as build_monthly_rule: the day of the month.
+        if recurrence_monthly_by == "day_of_week"
           week_num = ((starts_at.day - 1) / 7) + 1
           day_abbr = WDAY_TO_ABBR[starts_at.wday]
           parts << "BYDAY=#{week_num}#{day_abbr}"
+        else
+          parts << "BYMONTHDAY=#{starts_at.day}"
         end
       end
 

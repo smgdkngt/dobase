@@ -6,14 +6,25 @@ module Tools
       class CommentsController < ApplicationController
         include ToolAuthorization
 
+        allow_access_tokens
+
         before_action :set_tool
         before_action -> { authorize_tool_access!(@tool) }
         before_action :set_item
         before_action :set_comment, only: :destroy
 
         def create
-          @item.comments.create!(user: current_user, body: params[:body])
-          redirect_to tool_todo_item_path(@tool, @item)
+          @comment = @item.comments.new(user: current_user, body: params[:body])
+
+          respond_to do |format|
+            if @comment.save
+              format.html { redirect_to tool_todo_item_path(@tool, @item) }
+              format.json { render :show, status: :created }
+            else
+              format.html { redirect_to tool_todo_item_path(@tool, @item) }
+              format.json { render json: { errors: @comment.errors.full_messages }, status: :unprocessable_entity }
+            end
+          end
         end
 
         def destroy
@@ -22,7 +33,11 @@ module Tools
           end
 
           @comment.destroy!
-          redirect_to tool_todo_item_path(@tool, @item)
+
+          respond_to do |format|
+            format.html { redirect_to tool_todo_item_path(@tool, @item) }
+            format.json { head :no_content }
+          end
         end
 
         private

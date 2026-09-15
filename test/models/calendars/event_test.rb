@@ -296,6 +296,17 @@ module Calendars
       assert_match(/BYDAY=3MO/, event.rrule)
     end
 
+    test "monthly recurrence without a repeat-by choice repeats on the day of the month" do
+      event = build_event(
+        starts_at: Time.zone.local(2026, 2, 16, 10, 0),
+        ends_at: Time.zone.local(2026, 2, 16, 11, 0),
+        recurrence_frequency: "monthly"
+      )
+      assert event.valid?
+      assert_equal "FREQ=MONTHLY;BYMONTHDAY=16", event.rrule
+      assert_equal [ 16, 16 ], IceCube::Schedule.from_yaml(event.recurrence_schedule).first(2).map(&:day)
+    end
+
     test "builds yearly recurrence" do
       event = build_event(recurrence_frequency: "yearly", recurrence_interval: 1, recurrence_end_type: "never")
       assert event.valid?

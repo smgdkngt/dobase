@@ -108,6 +108,17 @@ module Tools
         assert_response :success
       end
 
+      test "update cannot assign someone who isn't on the board" do
+        outsider = users(:two)
+
+        assert_no_difference -> { outsider.notifications.count } do
+          patch tool_board_card_path(@tool, @card), params: { card: { assigned_user_id: outsider.id } }, as: :json
+        end
+
+        assert_response :unprocessable_entity
+        assert_nil @card.reload.assigned_user
+      end
+
       test "requires authentication" do
         sign_out
 

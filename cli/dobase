@@ -1,0 +1,10 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Command-line client for the Dobase API. Run `dobase help` to get started.
+# Needs Ruby 3.1+ and nothing else; symlink this file anywhere on your PATH.
+
+$LOAD_PATH.unshift File.expand_path("lib", __dir__)
+require "dobase/cli"
+
+exit Dobase::CLI.new(ARGV).run

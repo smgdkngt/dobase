@@ -83,6 +83,17 @@ module Tools
         assert_response :success
       end
 
+      test "update cannot assign someone who isn't on the tool" do
+        outsider = users(:two)
+
+        assert_no_difference -> { outsider.notifications.count } do
+          patch tool_todo_item_path(@tool, @item), params: { item: { assigned_user_id: outsider.id } }, as: :json
+        end
+
+        assert_response :unprocessable_entity
+        assert_nil @item.reload.assigned_user
+      end
+
       test "update sets and clears the recurrence rule" do
         patch tool_todo_item_path(@tool, @item), params: { item: { recurrence_rule: "weekly" } }, as: :json
         assert_response :success

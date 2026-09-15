@@ -12,7 +12,7 @@ module TodoLists
 
     test "create adds item to list" do
       assert_difference "::Todos::Item.count", 1 do
-        post todo_list_items_path(@list), params: { title: "New item" }
+        post todo_list_items_path(@list), params: { item: { title: "New item" } }
       end
 
       assert_redirected_to tool_todo_path(@tool)
@@ -25,7 +25,7 @@ module TodoLists
     test "create assigns next position" do
       initial_max = @list.items.maximum(:position)
 
-      post todo_list_items_path(@list), params: { title: "New item" }
+      post todo_list_items_path(@list), params: { item: { title: "New item" } }
 
       item = ::Todos::Item.last
       assert_equal initial_max + 1, item.position
@@ -34,7 +34,7 @@ module TodoLists
     test "requires authentication" do
       sign_out
 
-      post todo_list_items_path(@list), params: { title: "New" }
+      post todo_list_items_path(@list), params: { item: { title: "New" } }
 
       assert_redirected_to new_session_path
     end

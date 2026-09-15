@@ -5,19 +5,25 @@ module Tools
     class CardsController < ApplicationController
       include ToolAuthorization
 
+      allow_access_tokens
+
       before_action :set_tool
       before_action -> { authorize_tool_access!(@tool) }
       before_action :set_card
 
       def show
-        @collaborators = @tool.users
-        render layout: false
+        respond_to do |format|
+          format.html do
+            @collaborators = @tool.users
+            render layout: false
+          end
+          format.json
+        end
       end
 
       def update
-        previous_assigned_user_id = @card.assigned_user_id
         if @card.update(card_params.merge(updated_by: current_user))
-          notify_assignment(previous_assigned_user_id)
+          @card.notify_assignee(current_user) if @card.assigned_user_id_previously_changed?
           respond_to do |format|
             format.html do
               if request.headers["Turbo-Frame"] == "card-detail-content"
@@ -26,7 +32,7 @@ module Tools
                 redirect_to tool_board_path(@tool)
               end
             end
-            format.json { render json: { success: true } }
+            format.json { render :show }
           end
         else
           respond_to do |format|
@@ -34,7 +40,7 @@ module Tools
               @collaborators = @tool.users
               render :show, layout: false, status: :unprocessable_entity
             end
-            format.json { render json: { errors: @card.errors }, status: :unprocessable_entity }
+            format.json { render json: { errors: @card.errors.full_messages }, status: :unprocessable_entity }
           end
         end
       end
@@ -43,7 +49,7 @@ module Tools
         if @card.destroy
           respond_to do |format|
             format.html { redirect_to tool_board_path(@tool) }
-            format.json { render json: { success: true } }
+            format.json { head :no_content }
           end
         else
           respond_to do |format|
@@ -65,30 +71,6 @@ module Tools
 
       def card_params
         params.require(:card).permit(:title, :description, :color, :due_date, :assigned_user_id)
-      end
-
-      def notify_assignment(previous_assigned_user_id)
-        return unless @card.assigned_user_id.present?
-        return if @card.assigned_user_id == previous_assigned_user_id
-        return if @card.assigned_user_id == current_user.id
-
-        assignee = User.find(@card.assigned_user_id)
-        return if @tool.muted_by?(assignee)
-
-        CardAssignmentNotifier.with(card: @card, assigner: current_user, tool: @tool).deliver(assignee)
-        assignee.prune_notifications!
-      end
-
-      def notify_card_moved
-        return unless @card.column_id_previously_changed?
-        return unless @card.assigned_user_id.present?
-        return if @card.assigned_user_id == current_user.id
-
-        assignee = User.find(@card.assigned_user_id)
-        return if @tool.muted_by?(assignee)
-
-        CardMovedNotifier.with(card: @card, mover: current_user, tool: @tool, column: @card.column).deliver(assignee)
-        assignee.prune_notifications!
       end
     end
   end

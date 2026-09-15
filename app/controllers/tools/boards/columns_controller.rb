@@ -5,6 +5,8 @@ module Tools
     class ColumnsController < ApplicationController
       include ToolAuthorization
 
+      allow_access_tokens
+
       before_action :set_tool
       before_action -> { authorize_tool_access!(@tool) }
       before_action :set_board
@@ -12,10 +14,16 @@ module Tools
 
       def create
         position = @board.columns.maximum(:position).to_i + 1
-        @column = @board.columns.create!(name: params[:name] || "New Column", position: position, created_by: current_user, updated_by: current_user)
+        @column = @board.columns.new(name: params[:name] || "New Column", position: position, created_by: current_user, updated_by: current_user)
+
         respond_to do |format|
-          format.html { redirect_to tool_board_path(@tool) }
-          format.json { render json: { id: @column.id, name: @column.name } }
+          if @column.save
+            format.html { redirect_to tool_board_path(@tool) }
+            format.json { render :show, status: :created }
+          else
+            format.html { redirect_to tool_board_path(@tool), alert: @column.errors.full_messages.to_sentence }
+            format.json { render json: { errors: @column.errors.full_messages }, status: :unprocessable_entity }
+          end
         end
       end
 
@@ -23,15 +31,20 @@ module Tools
         if params.key?(:collapsed)
           @column.update!(collapsed: params[:collapsed], updated_by: current_user)
           head :ok
+        elsif @column.update(name: params[:name], updated_by: current_user)
+          render :show, formats: :json
         else
-          @column.update!(name: params[:name], updated_by: current_user)
-          render json: { id: @column.id, name: @column.name }
+          render json: { errors: @column.errors.full_messages }, status: :unprocessable_entity
         end
       end
 
       def destroy
         @column.destroy!
-        redirect_to tool_board_path(@tool)
+
+        respond_to do |format|
+          format.html { redirect_to tool_board_path(@tool) }
+          format.json { head :no_content }
+        end
       end
 
       private

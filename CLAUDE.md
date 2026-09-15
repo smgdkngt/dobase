@@ -132,6 +132,19 @@ resources :cards do
 end
 ```
 
+### JSON API & CLI
+
+The API is the web app answering JSON: same routes and controllers, `respond_to` with `format.json` and jbuilder views next to the HTML ones. Docs live in `docs/api/`; keep them in sync when changing an endpoint.
+
+- **Auth**: personal access tokens (`AccessToken`, created under Profile → API, SHA-256 digest stored). `Authorization: Bearer` requests authenticate by token only, skip CSRF, and don't touch `last_visited_path`/`last_seen_at`. `Current.user` works for both sessions and tokens.
+- **Opt-in per controller**: token requests get `403` unless the action calls `allow_access_tokens` (optionally `only:`/`except:`). Never allow tokens on account, credential (mail/calendar accounts), sharing/collaborator or whole-tool deletion actions, or on anything that deletes data outside Dobase (mail trash expunges on the IMAP server).
+- **Read tokens** may only `GET`/`HEAD`.
+- **Conventions**: create → `render :show, status: :created`; update/state change → `render :show`; destroy → `head :no_content`; validation errors → `{ errors: full_messages }` (422); other errors → `{ error: "..." }`. Unauthenticated JSON → 401, `RecordNotFound` → 404 JSON, denied tool access → 403 JSON. Rich text renders through `shared/rich_text` (plain + `_html`), users through `users/user`/`users/optional_user`. GET JSON must not mark things read.
+- **Gotcha**: `wrap_parameters` is on for JSON — a flat param named like the controller's singular (e.g. `position` in a `PositionsController`) gets wrapped; use `wrap_parameters false`.
+- **Tests**: `api_headers(user, permission:)` from `test/test_helpers/api_test_helper.rb`; API tests live in `test/controllers/**/*_api_test.rb`.
+
+`cli/` holds the `dobase` command-line client (plain Ruby, stdlib only — no gems) and its Claude Code skill (`cli/SKILL.md`). Commands are declared per tool in `cli/lib/dobase/commands/*.rb` with `command "noun verb", summary, args:, flags:`; `dobase help` is generated from those. `test/cli/dobase_cli_test.rb` loads every command. When adding an endpoint the CLI should use, add the command, update `cli/SKILL.md` if it changes how an agent should behave, and smoke-test against `bin/dev` with `DOBASE_URL`/`DOBASE_TOKEN`.
+
 ### Real-time (ActionCable)
 
 - **ChatChannel** — messaging, typing indicators, presence

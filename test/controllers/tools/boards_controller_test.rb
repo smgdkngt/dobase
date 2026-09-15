@@ -46,6 +46,7 @@ module Tools
     end
 
     test "assignee=me shows only cards assigned to current_user" do
+      @tool.collaborators.create!(user: users(:two), role: "collaborator")
       cards(:first_task).update!(assigned_user: users(:one))
       cards(:second_task).update!(assigned_user: users(:two))
 
@@ -67,6 +68,7 @@ module Tools
     end
 
     test "assignee=<id> shows only cards assigned to that user" do
+      @tool.collaborators.create!(user: users(:two), role: "collaborator")
       cards(:first_task).update!(assigned_user: users(:two))
       cards(:second_task).update!(assigned_user: users(:one))
 

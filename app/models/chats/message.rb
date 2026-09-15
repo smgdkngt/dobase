@@ -39,12 +39,18 @@ module Chats
     validate :validate_file_content_types
     validate :validate_reply_to_belongs_to_same_chat
 
-    scope :recent, -> { order(created_at: :desc) }
+    scope :recent, -> { order(created_at: :desc, id: :desc) }
     scope :chronological, -> { order(created_at: :asc) }
-    scope :with_associations, -> { includes(:user, :rich_text_body, :files_attachments, reply_to: [ :user, :rich_text_body ]) }
+    scope :with_associations, -> { includes(:user, :rich_text_body, files_attachments: :blob, reply_to: [ :user, :rich_text_body ]) }
+    # Messages sent before `message`, to page back through a chat.
+    scope :before, ->(message) { where(created_at: ...message.created_at).or(where(created_at: message.created_at, id: ...message.id)) }
 
     def has_files?
       files.attached?
+    end
+
+    def preview_text(length: 100)
+      body.to_plain_text.squish.truncate(length)
     end
 
     def image_files

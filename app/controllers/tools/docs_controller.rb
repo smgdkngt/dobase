@@ -4,15 +4,23 @@ module Tools
   class DocsController < ApplicationController
     include ToolAuthorization
 
+    allow_access_tokens
+
     before_action :set_tool
     before_action -> { authorize_tool_access!(@tool) }
 
     def show
-      @documents = @tool.documents.includes(:updated_by, :locked_by).ordered
-      @view_mode = params[:view].presence_in(%w[grid list]) || cookies[:docs_view] || "grid"
+      @documents = @tool.documents.with_rich_text_content.includes(:updated_by, :locked_by).ordered
 
-      if params[:view].present? && params[:view] != cookies[:docs_view]
-        cookies[:docs_view] = { value: params[:view], expires: 1.year.from_now }
+      respond_to do |format|
+        format.html do
+          @view_mode = params[:view].presence_in(%w[grid list]) || cookies[:docs_view] || "grid"
+
+          if params[:view].present? && params[:view] != cookies[:docs_view]
+            cookies[:docs_view] = { value: params[:view], expires: 1.year.from_now }
+          end
+        end
+        format.json
       end
     end
 

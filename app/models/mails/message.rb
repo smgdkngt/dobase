@@ -62,6 +62,18 @@ module Mails
       body_html.presence || body_plain
     end
 
+    # The text part, or the text of the HTML part for HTML-only messages. Drafts
+    # are written as HTML and their text part is a flattened copy, so they use the HTML.
+    def plain_text_body
+      if body_html.present? && (body_plain.blank? || draft?)
+        fragment = Loofah.html5_fragment(body_html)
+        fragment.css("style, script, title").each(&:remove)
+        fragment.to_text(encode_special_chars: false).gsub(/\n{3,}/, "\n\n").strip
+      else
+        body_plain.to_s
+      end
+    end
+
     def display_from
       from_name.presence || from_address
     end

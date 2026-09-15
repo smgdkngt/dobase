@@ -4,6 +4,13 @@ module Tools
   class CalendarsController < ApplicationController
     include ToolAuthorization
 
+    # The longest date range the JSON API returns; any three calendar months fit.
+    MAX_RANGE_DAYS = 92
+
+    class InvalidDateRange < StandardError; end
+
+    allow_access_tokens
+
     before_action :set_tool
     before_action -> { authorize_tool_access!(@tool) }
     before_action :require_calendar_account
@@ -12,19 +19,10 @@ module Tools
       @calendar_account = @tool.calendar_account
       @calendars = @calendar_account.calendars.enabled.by_position
 
-      # Calculate week range
-      @week_start = parse_week_start(params[:week_start])
-      @week_end = @week_start + 6.days
-
-      # Fetch events for the week
-      @events = fetch_events_for_range(@week_start, @week_end)
-
-      # Group events by day
-      @events_by_day = group_events_by_day(@events, @week_start, @week_end)
-
       respond_to do |format|
-        format.html
-        format.turbo_stream
+        format.html { load_week }
+        format.turbo_stream { load_week }
+        format.json { load_date_range }
       end
     end
 
@@ -35,13 +33,49 @@ module Tools
     end
 
     def require_calendar_account
-      unless @tool.calendar_account
-        if @tool.owned_by?(current_user)
-          redirect_to new_tool_calendar_account_path(@tool)
-        else
-          redirect_to tool_path(@tool), alert: "Calendar account not configured."
-        end
+      return if @tool.calendar_account
+
+      if request.format.json?
+        render json: { error: "Calendar account not configured" }, status: :not_found
+      elsif @tool.owned_by?(current_user)
+        redirect_to new_tool_calendar_account_path(@tool)
+      else
+        redirect_to tool_path(@tool), alert: "Calendar account not configured."
       end
+    end
+
+    def load_week
+      # Calculate week range
+      @week_start = parse_week_start(params[:week_start])
+      @week_end = @week_start + 6.days
+
+      # Fetch events for the week
+      @events = fetch_events_for_range(@week_start, @week_end)
+
+      # Group events by day
+      @events_by_day = group_events_by_day(@events, @week_start, @week_end)
+    end
+
+    # start_date through end_date (inclusive), by default today and the six days after.
+    def load_date_range
+      @start_date = date_param(:start_date) || Date.current
+      @end_date = date_param(:end_date) || @start_date + 6.days
+
+      if @end_date < @start_date
+        raise InvalidDateRange, "end_date can't be before start_date"
+      elsif (@end_date - @start_date).to_i >= MAX_RANGE_DAYS
+        raise InvalidDateRange, "The date range can't be longer than #{MAX_RANGE_DAYS} days"
+      end
+
+      @events = fetch_events_for_range(@start_date, @end_date)
+    rescue InvalidDateRange => error
+      render json: { error: error.message }, status: :unprocessable_entity
+    end
+
+    def date_param(name)
+      Date.iso8601(params[name].to_s) if params[name].present?
+    rescue Date::Error
+      raise InvalidDateRange, "#{name} must be a date like #{Date.current.iso8601}"
     end
 
     def parse_week_start(week_param)

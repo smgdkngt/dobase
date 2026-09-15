@@ -56,7 +56,26 @@ module Columns
             params: { card_ids: [ cards(:first_task).id ] },
             as: :json
 
-      assert_redirected_to new_session_path
+      assert_response :unauthorized
+    end
+
+    test "cannot pull cards from a board the user has no access to" do
+      sign_in_as users(:two)
+      own_column = boards(:shared).columns.create!(name: "Mine", position: 0)
+      own_card = own_column.cards.create!(title: "My card", position: 3)
+      foreign_card = cards(:first_task)
+      foreign_card.update!(assigned_user: users(:one))
+
+      assert_no_difference -> { users(:one).notifications.count } do
+        patch column_positions_path(own_column),
+              params: { card_ids: [ foreign_card.id, own_card.id ] },
+              as: :json
+      end
+
+      assert_response :success
+      assert_equal columns(:todo), foreign_card.reload.column
+      assert_equal 0, foreign_card.position
+      assert_equal 0, own_card.reload.position
     end
   end
 end

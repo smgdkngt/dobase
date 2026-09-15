@@ -5,12 +5,14 @@ module Tools
     class DraftsController < ApplicationController
       include ToolAuthorization
 
+      allow_access_tokens
+
       before_action :set_tool
       before_action -> { authorize_tool_access!(@tool) }
       before_action :set_mail_account
       before_action :set_draft, only: :update
 
-      # POST /tools/:tool_id/mails/draft
+      # POST /tools/:tool_id/mails/drafts
       def create
         @draft = @mail_account.messages.new(draft_params)
         @draft.draft = true
@@ -23,22 +25,34 @@ module Tools
 
         if @draft.save
           SyncDraftJob.perform_later(@draft.id)
-          redirect_to new_tool_mail_path(@tool, draft_id: @draft.id), notice: "Draft saved.", status: :see_other
+          respond_to do |format|
+            format.html { redirect_to new_tool_mail_path(@tool, draft_id: @draft.id), notice: "Draft saved.", status: :see_other }
+            format.json { render :show, status: :created }
+          end
         else
-          redirect_to new_tool_mail_path(@tool), alert: "Could not save draft.", status: :see_other
+          respond_to do |format|
+            format.html { redirect_to new_tool_mail_path(@tool), alert: "Could not save draft.", status: :see_other }
+            format.json { render json: { errors: @draft.errors.full_messages }, status: :unprocessable_entity }
+          end
         end
       end
 
-      # PATCH /tools/:tool_id/mails/draft
+      # PATCH /tools/:tool_id/mails/drafts/:id
       def update
         @draft.assign_attributes(draft_params)
         @draft.sent_at = Time.current
 
         if @draft.save
           SyncDraftJob.perform_later(@draft.id)
-          redirect_to new_tool_mail_path(@tool, draft_id: @draft.id), notice: "Draft saved.", status: :see_other
+          respond_to do |format|
+            format.html { redirect_to new_tool_mail_path(@tool, draft_id: @draft.id), notice: "Draft saved.", status: :see_other }
+            format.json { render :show }
+          end
         else
-          redirect_to new_tool_mail_path(@tool, draft_id: @draft.id), alert: "Could not save draft.", status: :see_other
+          respond_to do |format|
+            format.html { redirect_to new_tool_mail_path(@tool, draft_id: @draft.id), alert: "Could not save draft.", status: :see_other }
+            format.json { render json: { errors: @draft.errors.full_messages }, status: :unprocessable_entity }
+          end
         end
       end
 
@@ -50,27 +64,35 @@ module Tools
 
       def set_mail_account
         @mail_account = @tool.mail_account
-        redirect_to new_tool_mails_account_path(@tool), alert: "Please configure your mail account first." unless @mail_account
+        return if @mail_account
+
+        respond_to do |format|
+          format.html { redirect_to new_tool_mails_account_path(@tool), alert: "Please configure your mail account first." }
+          format.json { render json: { error: "Mail account not configured" }, status: :not_found }
+        end
       end
 
       def set_draft
         @draft = @mail_account.messages.drafts.find(params[:id])
       end
 
+      # Only the fields that were sent: the compose form sends all of them, API
+      # clients may send just the ones they change.
       def draft_params
-        to = params[:to].to_s.split(/,\s*/).reject(&:blank?)
-        cc = params[:cc].to_s.split(/,\s*/).reject(&:blank?)
-        body_html = params[:body]
-        body_plain = ActionController::Base.helpers.strip_tags(body_html)&.gsub(/\s+/, " ")&.strip
+        attributes = {}
+        attributes[:to_addresses] = address_list(params[:to]).to_json if params.key?(:to)
+        attributes[:cc_addresses] = address_list(params[:cc]).presence&.to_json if params.key?(:cc)
+        attributes[:subject] = params[:subject] if params.key?(:subject)
+        if params.key?(:body)
+          attributes[:body_html] = params[:body]
+          attributes[:body_plain] = ActionController::Base.helpers.strip_tags(params[:body])&.gsub(/\s+/, " ")&.strip
+        end
+        attributes[:in_reply_to] = params[:in_reply_to] if params.key?(:in_reply_to)
+        attributes
+      end
 
-        {
-          to_addresses: to.to_json,
-          cc_addresses: cc.presence&.to_json,
-          subject: params[:subject],
-          body_html: body_html,
-          body_plain: body_plain,
-          in_reply_to: params[:in_reply_to]
-        }
+      def address_list(value)
+        value.to_s.split(/,\s*/).reject(&:blank?)
       end
     end
   end

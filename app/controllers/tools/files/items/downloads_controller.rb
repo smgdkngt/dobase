@@ -6,9 +6,11 @@ module Tools
       class DownloadsController < ApplicationController
         include ToolAuthorization
 
+        allow_access_tokens
+
         before_action :set_tool
-        before_action :set_file
         before_action -> { authorize_tool_access!(@tool) }
+        before_action :set_file
 
         def show
           send_file_download(@file)

@@ -4,6 +4,8 @@ module Tools
   class BoardsController < ApplicationController
     include ToolAuthorization
 
+    allow_access_tokens
+
     before_action :set_tool
     before_action -> { authorize_tool_access!(@tool) }
 

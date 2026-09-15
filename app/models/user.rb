@@ -3,6 +3,7 @@
 class User < ApplicationRecord
   has_secure_password
   has_many :sessions, dependent: :destroy
+  has_many :access_tokens, dependent: :destroy
 
   has_many :owned_tools, class_name: "Tool", foreign_key: :owner_id, dependent: :destroy
   has_many :collaborations, class_name: "Collaborator", dependent: :destroy

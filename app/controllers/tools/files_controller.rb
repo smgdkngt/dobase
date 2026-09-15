@@ -4,6 +4,8 @@ module Tools
   class FilesController < ApplicationController
     include ToolAuthorization
 
+    allow_access_tokens
+
     before_action :set_tool
     before_action -> { authorize_tool_access!(@tool) }
     before_action :set_folder, only: :show
@@ -11,12 +13,18 @@ module Tools
     def show
       @folders = current_folders.ordered
       @files = current_files.ordered
-      @ancestors = @folder&.breadcrumbs || []
-      @view_mode = params[:view].presence_in(%w[grid list]) || cookies[:files_view] || "grid"
 
-      # Save preference to cookie if changed via URL param
-      if params[:view].present? && params[:view] != cookies[:files_view]
-        cookies[:files_view] = { value: params[:view], expires: 1.year.from_now }
+      respond_to do |format|
+        format.html do
+          @ancestors = @folder&.breadcrumbs || []
+          @view_mode = params[:view].presence_in(%w[grid list]) || cookies[:files_view] || "grid"
+
+          # Save preference to cookie if changed via URL param
+          if params[:view].present? && params[:view] != cookies[:files_view]
+            cookies[:files_view] = { value: params[:view], expires: 1.year.from_now }
+          end
+        end
+        format.json
       end
     end
 

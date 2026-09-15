@@ -13,7 +13,7 @@ module Tools
       # POST /tools/:tool_id/calendar/invites
       # Accept an invite and create event
       def create
-        @invite = ::Calendars::Invite.find(params[:invite_id] || params[:id])
+        @invite = accessible_invites.find(params[:invite_id] || params[:id])
         @calendar = find_target_calendar
 
         # Create event from invite
@@ -64,7 +64,14 @@ module Tools
       end
 
       def set_invite
-        @invite = ::Calendars::Invite.find(params[:id])
+        @invite = accessible_invites.find(params[:id])
+      end
+
+      # Invites arrive by mail, so they belong to whoever can open the mail tool
+      # that received them. The calendar tool in the URL says nothing about that.
+      def accessible_invites
+        ::Calendars::Invite.joins(mail_message: :account)
+          .where(mail_accounts: { tool_id: current_user.accessible_tools.select(:id) })
       end
 
       def find_target_calendar

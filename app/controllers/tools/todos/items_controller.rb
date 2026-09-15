@@ -5,19 +5,25 @@ module Tools
     class ItemsController < ApplicationController
       include ToolAuthorization
 
+      allow_access_tokens
+
       before_action :set_tool
       before_action -> { authorize_tool_access!(@tool) }
       before_action :set_item
 
       def show
-        @collaborators = @tool.users
-        render layout: false
+        respond_to do |format|
+          format.html do
+            @collaborators = @tool.users
+            render layout: false
+          end
+          format.json
+        end
       end
 
       def update
-        previous_assigned_user_id = @item.assigned_user_id
         if @item.update(item_params.merge(updated_by: current_user))
-          notify_assignment(previous_assigned_user_id)
+          @item.notify_assignee(current_user) if @item.assigned_user_id_previously_changed?
           respond_to do |format|
             format.html do
               if request.headers["Turbo-Frame"] == "item-detail-content"
@@ -26,7 +32,7 @@ module Tools
                 redirect_to tool_todo_path(@tool)
               end
             end
-            format.json { render json: { success: true } }
+            format.json { render :show }
           end
         else
           respond_to do |format|
@@ -34,7 +40,7 @@ module Tools
               @collaborators = @tool.users
               render :show, layout: false, status: :unprocessable_entity
             end
-            format.json { render json: { errors: @item.errors }, status: :unprocessable_entity }
+            format.json { render json: { errors: @item.errors.full_messages }, status: :unprocessable_entity }
           end
         end
       end
@@ -43,7 +49,7 @@ module Tools
         if @item.destroy
           respond_to do |format|
             format.html { redirect_to tool_todo_path(@tool) }
-            format.json { render json: { success: true } }
+            format.json { head :no_content }
           end
         else
           respond_to do |format|
@@ -65,18 +71,6 @@ module Tools
 
       def item_params
         params.require(:item).permit(:title, :description, :due_date, :assigned_user_id, :recurrence_rule)
-      end
-
-      def notify_assignment(previous_assigned_user_id)
-        return unless @item.assigned_user_id.present?
-        return if @item.assigned_user_id == previous_assigned_user_id
-        return if @item.assigned_user_id == current_user.id
-
-        assignee = User.find(@item.assigned_user_id)
-        return if @tool.muted_by?(assignee)
-
-        TodoAssignmentNotifier.with(item: @item, assigner: current_user, tool: @tool).deliver(assignee)
-        assignee.prune_notifications!
       end
     end
   end

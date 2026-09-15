@@ -5,17 +5,24 @@ module Tools
     class ItemsController < ApplicationController
       include ToolAuthorization
 
+      allow_access_tokens
+      # API clients send name and folder_id at the top level; the web sends them under file.
+      wrap_parameters :file, include: %i[name folder_id]
+
       before_action :set_tool
-      before_action :set_file
       before_action -> { authorize_tool_access!(@tool) }
+      before_action :set_file
 
       def show
-        @siblings = (@file.folder&.files || @tool.file_items.roots).ordered.where.not(id: @file.id)
+        respond_to do |format|
+          format.html { @siblings = (@file.folder&.files || @tool.file_items.roots).ordered.where.not(id: @file.id) }
+          format.json
+        end
       end
 
       def update
-        if @file.update(file_params)
-          render json: { id: @file.id, name: @file.name }
+        if @file.update(file_params.merge(updated_by: current_user))
+          render :show, formats: :json
         else
           render json: { errors: @file.errors.full_messages }, status: :unprocessable_entity
         end
@@ -41,8 +48,11 @@ module Tools
         @file = @tool.file_items.find(params[:id])
       end
 
+      # A file can only move into a folder of this tool. A blank folder_id is the top level.
       def file_params
-        params.require(:file).permit(:name, :folder_id)
+        params.require(:file).permit(:name, :folder_id).tap do |permitted|
+          permitted[:folder_id] = @tool.file_folders.find(permitted[:folder_id]).id if permitted[:folder_id].present?
+        end
       end
     end
   end

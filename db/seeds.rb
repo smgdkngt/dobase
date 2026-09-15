@@ -174,14 +174,14 @@ if ENV["SEED_DEMO"]
   puts "  Created Team Chat with #{chat.messages.count} messages"
 
   # ---------------------------------------------------------------------------
-  # 3. Launch Tasks — Todos (Sophie, Marcus, Priya)
+  # 3. Launch Tasks — Todos (Sophie, Marcus, Priya, Jake)
   # ---------------------------------------------------------------------------
   tasks_tool = Tool.create!(
     name: "Launch Tasks",
     owner: sophie,
     tool_type: ToolType.find_by!(slug: "todos")
   )
-  add_collaborators(tasks_tool, [ marcus, priya ])
+  add_collaborators(tasks_tool, [ marcus, priya, jake ])
 
   # Rename the auto-created default list
   pre_launch = tasks_tool.todo_lists.first

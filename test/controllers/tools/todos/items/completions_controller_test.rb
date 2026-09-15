@@ -35,7 +35,7 @@ module Tools
 
           post tool_todo_item_completion_path(@tool, @item), as: :json
 
-          assert_redirected_to new_session_path
+          assert_response :unauthorized
         end
 
         test "completing a recurring item spawns the next instance in the same list" do

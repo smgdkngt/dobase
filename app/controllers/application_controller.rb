@@ -19,11 +19,17 @@ class ApplicationController < ActionController::Base
   end
 
   def record_not_found
-    redirect_to root_path, alert: "That item no longer exists."
+    if request.format.json?
+      render json: { error: "Not found" }, status: :not_found
+    else
+      redirect_to root_path, alert: "That item no longer exists."
+    end
   end
 
   def track_last_visited_path
     return unless current_user
+    # API clients reading a tool shouldn't clear the user's activity dots.
+    return if Current.access_token
     return unless request.get? && response.successful?
     return if request.xhr? || turbo_frame_request?
     return unless request.path.start_with?("/tools")

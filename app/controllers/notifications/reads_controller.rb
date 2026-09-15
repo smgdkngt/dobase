@@ -2,11 +2,16 @@
 
 module Notifications
   class ReadsController < ApplicationController
-    def create
-      notification = current_user.notifications.find(params[:notification_id])
-      notification.mark_as_read!
+    allow_access_tokens
 
-      head :ok
+    def create
+      @notification = current_user.notifications.find(params[:notification_id])
+      @notification.mark_as_read!
+
+      respond_to do |format|
+        format.any { head :ok }
+        format.json { render "notifications/show" }
+      end
     end
   end
 end

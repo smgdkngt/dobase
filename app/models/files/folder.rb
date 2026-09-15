@@ -15,6 +15,7 @@ module Files
 
     validates :name, presence: true
     validate :depth_limit
+    validate :parent_outside_own_subtree, on: :update, if: :parent_id_changed?
 
     before_save :set_depth
 
@@ -47,6 +48,13 @@ module Files
     def depth_limit
       if parent && parent.depth >= MAX_DEPTH - 1
         errors.add(:base, "Maximum folder depth of #{MAX_DEPTH} reached")
+      end
+    end
+
+    # Moving a folder into itself or one of its subfolders would cut it off from the tree.
+    def parent_outside_own_subtree
+      if parent && parent.breadcrumbs.include?(self)
+        errors.add(:base, "A folder can't be moved into itself or one of its subfolders")
       end
     end
   end

@@ -5,6 +5,9 @@ module Tools
     include ToolAuthorization
     include NextMailNavigation
 
+    # The compose form and deleting mail for good stay in the browser.
+    allow_access_tokens only: %i[index show create]
+
     before_action :set_tool
     before_action -> { authorize_tool_access!(@tool) }
     before_action :require_mail_account, except: [ :index ]
@@ -15,8 +18,17 @@ module Tools
 
     def index
       if @tool.mail_account.nil?
-        redirect_to new_tool_mails_account_path(@tool) and return if @tool.owned_by?(current_user)
-        redirect_to tool_path(@tool), alert: "Mail account not configured." and return
+        respond_to do |format|
+          format.html do
+            if @tool.owned_by?(current_user)
+              redirect_to new_tool_mails_account_path(@tool)
+            else
+              redirect_to tool_path(@tool), alert: "Mail account not configured."
+            end
+          end
+          format.json { render_mail_account_not_configured }
+        end
+        return
       end
 
       @mail_account = @tool.mail_account
@@ -25,19 +37,26 @@ module Tools
     end
 
     def show
-      if @message.draft?
-        redirect_to new_tool_mail_path(@tool, draft_id: @message.id)
-        return
-      end
+      respond_to do |format|
+        format.html do
+          if @message.draft?
+            redirect_to new_tool_mail_path(@tool, draft_id: @message.id)
+          else
+            @selected_message = @message
+            @current_folder = params[:folder] || "inbox"
+            @conversation_messages = @message.conversation.to_a
+            @message.conversation.unread.find_each(&:mark_as_read!)
 
-      @selected_message = @message
-      @current_folder = params[:folder] || "inbox"
-      @conversation_messages = @message.conversation.to_a
-      @message.conversation.unread.find_each(&:mark_as_read!)
-
-      unless turbo_frame_request?
-        load_index_data
-        render :index
+            unless turbo_frame_request?
+              load_index_data
+              render :index
+            end
+          end
+        end
+        # Reading through the API leaves the conversation unread; it has its own read endpoints.
+        format.json do
+          @conversation_messages = @message.conversation.includes(:calendar_invites, attachments: { file_attachment: :blob })
+        end
       end
     end
 
@@ -71,9 +90,7 @@ module Tools
       invalid = all_addresses.reject { |a| a.match?(URI::MailTo::EMAIL_REGEXP) }
 
       if invalid.any?
-        flash.now[:alert] = "Invalid email address: #{invalid.first}"
-        build_compose_defaults
-        render :new, status: :unprocessable_entity
+        render_send_error "Invalid email address: #{invalid.first}"
         return
       end
 
@@ -82,9 +99,9 @@ module Tools
 
       all_attachments = Array(params[:attachments])
 
-      # Include forwarded attachments (Active Storage blobs)
+      # Include forwarded attachments (Active Storage blobs), only from this account's own mail
       if params[:forward_attachment_ids].present?
-        Mails::Attachment.where(id: params[:forward_attachment_ids]).each do |att|
+        @mail_account.attachments.where(id: params[:forward_attachment_ids]).each do |att|
           all_attachments << att.file.blob if att.file.attached?
         end
       end
@@ -108,11 +125,12 @@ module Tools
         end
       end
 
-      redirect_to tool_mails_path(@tool, folder: "sent"), notice: "Email sent successfully."
+      respond_to do |format|
+        format.html { redirect_to tool_mails_path(@tool, folder: "sent"), notice: "Email sent successfully." }
+        format.json { render json: { to: to, cc: cc.to_a, bcc: bcc.to_a, subject: params[:subject] }, status: :created }
+      end
     rescue SmtpSendService::SendError => e
-      flash.now[:alert] = e.message
-      build_compose_defaults
-      render :new, status: :unprocessable_entity
+      render_send_error e.message
     end
 
     def destroy
@@ -144,7 +162,25 @@ module Tools
 
     def require_mail_account
       unless @tool.mail_account
-        redirect_to new_tool_mails_account_path(@tool), alert: "Please configure your mail account first."
+        respond_to do |format|
+          format.html { redirect_to new_tool_mails_account_path(@tool), alert: "Please configure your mail account first." }
+          format.json { render_mail_account_not_configured }
+        end
+      end
+    end
+
+    def render_mail_account_not_configured
+      render json: { error: "Mail account not configured" }, status: :not_found
+    end
+
+    def render_send_error(message)
+      respond_to do |format|
+        format.html do
+          flash.now[:alert] = message
+          build_compose_defaults
+          render :new, status: :unprocessable_entity
+        end
+        format.json { render json: { errors: [ message ] }, status: :unprocessable_entity }
       end
     end
 
