@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 // Handles file/folder selection (single, multi, shift-select)
 export default class extends Controller {
-  static targets = ["item", "bulkToolbar", "bulkCount", "downloadForm"]
+  static targets = ["item", "bulkToolbar", "bulkCount", "downloadForm", "deleteForm"]
 
   connect() {
     this.selectedItems = new Set()
@@ -72,6 +72,26 @@ export default class extends Controller {
     if (this.selectedItems.size > 0) this.downloadFormTarget.requestSubmit()
   }
 
+  // Opening the menu of an item outside the selection selects just that item,
+  // so the menu acts on what's highlighted
+  selectForMenu(event) {
+    const item = event.currentTarget.closest("[data-file-selection-target='item']")
+    if (!item) return
+
+    this.#singleSelect(item, this.#getItemId(item))
+    this.lastSelectedIndex = this.itemTargets.indexOf(item)
+    this.#updateToolbar()
+    this.dispatch("changed", { detail: { selected: this.selectedItems } })
+  }
+
+  delete() {
+    const items = this.itemTargets.filter(item => this.selectedItems.has(this.#getItemId(item)))
+    if (items.length === 0) return
+
+    this.deleteFormTarget.dataset.turboConfirm = this._deleteConfirmation(items)
+    this.deleteFormTarget.requestSubmit()
+  }
+
   appendSelection(event) {
     const { files, folders } = this.getSelected()
     files.forEach(id => event.formData.append("file_ids[]", id))
@@ -79,6 +99,16 @@ export default class extends Controller {
   }
 
   // Private
+
+  _deleteConfirmation(items) {
+    const withFolders = items.some(item => item.dataset.itemType === "folder")
+
+    if (items.length === 1) {
+      const name = items[0].querySelector("[data-item-name]").textContent.trim()
+      return withFolders ? `Delete ${name} and everything in it?` : `Delete ${name}?`
+    }
+    return withFolders ? `Delete ${items.length} items and everything in them?` : `Delete ${items.length} files?`
+  }
 
   #rangeSelect(index, event) {
     event.preventDefault()

@@ -63,11 +63,6 @@ export default class extends Controller {
     this.dispatch("action", { detail: { action: "share", item: this.currentItem } })
   }
 
-  delete() {
-    this.close()
-    this.dispatch("action", { detail: { action: "delete", item: this.currentItem } })
-  }
-
   // Private
 
   #positionAt(x, y) {

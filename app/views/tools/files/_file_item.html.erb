@@ -15,7 +15,7 @@
      data-item-id="<%= file.id %>"
      data-item-url="<%= tool_files_item_path(tool, file) %>"
      draggable="true"
-     data-action="click->file-selection#select click->file-drag#recordClick dblclick->files#openItem contextmenu->file-context-menu#show dragstart->file-drag#dragStart dragend->file-drag#dragEnd">
+     data-action="click->file-selection#select click->file-drag#recordClick dblclick->files#openItem contextmenu->file-selection#selectForMenu contextmenu->file-context-menu#show dragstart->file-drag#dragStart dragend->file-drag#dragEnd">
   <% if file.image? && file.file.attached? %>
     <div class="<%= icon_base %> <%= icon_size %> overflow-hidden">
       <%= image_tag url_for(file.file), class: "w-full h-full object-cover" %>
@@ -46,7 +46,7 @@
       </span>
     <% end %>
     <button type="button" class="p-1 rounded text-text-tertiary hover:bg-background-tertiary hover:text-text-primary transition-all <%= 'opacity-0 group-hover:opacity-100' if view_mode == 'grid' %>"
-            data-action="click->file-context-menu#showFromButton:stop">
+            data-action="click->file-selection#selectForMenu click->file-context-menu#showFromButton:stop">
       <%= render "shared/icon", name: "more-vertical", size: 16 %>
     </button>
   </div>

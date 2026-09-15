@@ -20,8 +20,8 @@
      data-controller="files file-selection file-context-menu file-upload file-drag"
      data-files-tool-id-value="<%= @tool.id %>"
      data-file-drag-tool-id-value="<%= @tool.id %>"
-     data-action="file-context-menu:action->files#handleContextAction file-selection:changed->file-drag#selectionChanged">
-  <button data-controller="hotkey" data-hotkey="Escape" data-action="click->files#clearSelection" hidden>Clear selection</button>
+     data-action="file-context-menu:action->files#handleContextAction file-selection:changed->file-drag#selectionChanged turbo:morph@document->file-selection#clear">
+  <button data-controller="hotkey" data-hotkey="Escape" data-action="click->file-selection#clear click->file-context-menu#close" hidden>Clear selection</button>
   <%# Topbar %>
   <div class="tool-topbar">
     <h1 class="tool-topbar-title"><%= @tool.name %></h1>
@@ -32,10 +32,13 @@
         <%= render "components/nav_pill_button", icon: "x", title: "Deselect all", data: { action: "file-selection#clear" } %>
         <span class="px-1 text-sm font-medium" data-file-selection-target="bulkCount">0 selected</span>
         <%= render "components/nav_pill_button", icon: "download", title: "Download", data: { action: "file-selection#download" } %>
-        <%= render "components/nav_pill_button", icon: "trash-2", title: "Delete", data: { action: "files#bulkDelete" } %>
+        <%= render "components/nav_pill_button", icon: "trash-2", title: "Delete", data: { action: "file-selection#delete" } %>
       <% end %>
       <%= form_with url: tool_files_download_path(@tool), html: { hidden: true },
           data: { turbo: false, file_selection_target: "downloadForm", action: "formdata->file-selection#appendSelection" } do %>
+      <% end %>
+      <%= form_with url: tool_files_deletion_path(@tool), html: { hidden: true },
+          data: { file_selection_target: "deleteForm", turbo_confirm_button: "Delete", action: "formdata->file-selection#appendSelection" } do %>
       <% end %>
     </div>
 
@@ -151,7 +154,7 @@
     </button>
     <div class="h-px bg-border-light my-1 mx-2"></div>
     <button type="button" class="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-left text-error hover:bg-error-light transition-colors"
-            data-action="file-context-menu#delete">
+            data-action="file-context-menu#close file-selection#delete">
       <%= render "shared/icon", name: "trash-2", size: 16 %>
       Delete
     </button>

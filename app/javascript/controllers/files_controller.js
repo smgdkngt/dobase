@@ -37,9 +37,6 @@ export default class extends Controller {
       case "share":
         this.#showShareDialog(item)
         break
-      case "delete":
-        this.#deleteItems()
-        break
     }
   }
 
@@ -86,21 +83,7 @@ export default class extends Controller {
     this.renameDialogTarget.close()
   }
 
-  // ── Bulk actions ──
-
-  bulkDelete() {
-    this.#deleteItems()
-  }
-
-  bulkCancel() {
-    this.dispatch("clearSelection")
-  }
-
   // ── Private ──
-
-  clearSelection() {
-    this.dispatch("clearSelection")
-  }
 
   #downloadItem(item) {
     const type = item.dataset.itemType
@@ -129,12 +112,6 @@ export default class extends Controller {
     const frame = this.shareDialogTarget.querySelector("turbo-frame")
     if (frame) frame.src = url
     this.shareDialogTarget.showModal()
-  }
-
-  async #deleteItems() {
-    // This would need coordination with selection controller
-    // For now, dispatch an event that the selection controller can handle
-    this.dispatch("requestDelete")
   }
 
   get #csrfToken() {
