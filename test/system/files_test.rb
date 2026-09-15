@@ -105,7 +105,37 @@ class FilesTest < ApplicationSystemTestCase
     assert_nil file.reload.share, "Expected share to be removed"
   end
 
+  test "downloading a selection of a folder and a file as one zip" do
+    file_items(:readme).file.attach(io: StringIO.new("read me first"), filename: "readme.txt", content_type: "text/plain")
+    file_items(:report).file.attach(io: StringIO.new("quarterly numbers"), filename: "report.pdf", content_type: "application/pdf")
+
+    visit tool_files_path(@tool)
+    wait_for_turbo
+
+    Dir.mktmpdir do |downloads|
+      page.driver.browser.download_path = downloads
+
+      find("[data-item-type='folder'][data-item-id='#{file_folders(:documents).id}']").click
+      find("[data-item-type='file'][data-item-id='#{file_items(:readme).id}']").click(:meta)
+      assert_text "2 selected"
+
+      click_on "Download"
+
+      zip = wait_for_download(File.join(downloads, "My Files.zip"))
+      entries = Zip::File.open(zip) { |archive| archive.entries.to_h { |entry| [ entry.name, entry.get_input_stream.read ] } }
+      assert_equal({ "Documents/report.pdf" => "quarterly numbers", "readme.txt" => "read me first" }, entries)
+    end
+  end
+
   private
+
+  # Chrome saves to a .crdownload file and renames it once the download is done.
+  def wait_for_download(path, timeout: 10)
+    deadline = Time.now + timeout
+    sleep 0.2 until File.exist?(path) || Time.now > deadline
+    assert File.exist?(path), "Expected #{File.basename(path)} to be downloaded"
+    path
+  end
 
   def open_context_menu(file)
     item = find("[data-item-type='file'][data-item-id='#{file.id}']")
