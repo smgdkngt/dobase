@@ -114,8 +114,9 @@ class BoardsTest < ApplicationSystemTestCase
     within ".board-column", match: :first do
       click_on "Add card"
 
-      fill_in "title", with: "My New Card"
-      find("textarea[name='title']").native.send_keys(:return)
+      title_input = find("textarea[name='card[title]']")
+      title_input.fill_in with: "My New Card"
+      title_input.native.send_keys(:return)
     end
 
     assert_text "My New Card"
