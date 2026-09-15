@@ -208,6 +208,17 @@ module Tools
       assert_equal({ "report.pdf" => "quarterly numbers", "Subfolder/notes.txt" => "nested notes" }, entries)
     end
 
+    test "folder download of a folder too large to zip answers 413 with the reason" do
+      @report.file.attach(io: StringIO.new("quarterly numbers"), filename: "report.pdf", content_type: "application/pdf")
+
+      stub_const(::Files::FolderArchive, :MAX_FILES, 0) do
+        get tool_files_folder_download_path(@tool, @documents), headers: @headers
+      end
+
+      assert_response :content_too_large
+      assert_equal "Documents is too large to download as a zip. Zips are limited to 1 GB and 0 files.", response.parsed_body["error"]
+    end
+
     test "folders can be created, renamed and deleted with their contents" do
       subfolder = file_folders(:nested_folder)
 

@@ -45,6 +45,11 @@ class Tool < ApplicationRecord
     User.joins(:collaborations).where(collaborations: { tool_id: id, muted_at: nil })
   end
 
+  # Notification events about this tool. Every notifier passes the tool as a param.
+  def notification_events
+    Noticed::Event.where("json_extract(noticed_events.params, '$.tool._aj_globalid') = ?", to_global_id.to_s)
+  end
+
   # Matches emoji at the start of the name (including compound emoji with ZWJ, skin tones, variation selectors)
   LEADING_EMOJI_REGEX = /\A(\p{Extended_Pictographic}[\u{FE0F}\u{200D}\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Emoji_Component}]*)\s*/
 
@@ -157,8 +162,7 @@ class Tool < ApplicationRecord
   end
 
   def cleanup_notifications
-    gid = to_global_id.to_s
-    event_ids = Noticed::Event.where("json_extract(params, '$.tool._aj_globalid') = ?", gid).pluck(:id)
+    event_ids = notification_events.pluck(:id)
     return if event_ids.empty?
 
     Noticed::Notification.where(event_id: event_ids).delete_all

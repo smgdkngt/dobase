@@ -115,7 +115,8 @@ to the top level. A folder of another tool is `404`. Returns the file.
 - `DELETE /tools/:tool_id/files/folders/:id` deletes the folder with everything
   in it, and returns `204`.
 - `GET /tools/:tool_id/files/folders/:folder_id/download` sends a zip of the
-  folder, subfolders included.
+  folder, subfolders included. Zips are limited to 1 GB and 1,000 files; a
+  larger folder is `413` with an `error` saying so.
 
 ## Share links
 

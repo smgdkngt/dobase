@@ -6,14 +6,22 @@ module Tools
       include ToolAuthorization
       include FolderValidation
 
+      # Each selected message can queue an IMAP job. Select-all in the mail list only covers the current page.
+      MAX_MESSAGES = 200
+
       before_action :set_tool
       before_action -> { authorize_tool_access!(@tool) }
 
       # POST /tools/:tool_id/mails/bulk
       def create
         @mail_account = @tool.mail_account
-        message_ids = params[:message_ids] || []
+        message_ids = Array.wrap(params[:message_ids])
         action = params[:action_type]
+
+        if message_ids.size > MAX_MESSAGES
+          redirect_back fallback_location: tool_mails_path(@tool), alert: "Select up to #{MAX_MESSAGES} emails at a time."
+          return
+        end
 
         messages = @mail_account.messages.where(id: message_ids)
 

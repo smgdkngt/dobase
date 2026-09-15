@@ -43,4 +43,23 @@ class CollaboratorTest < ActiveSupport::TestCase
 
     refute_includes Collaborator.unmuted, @collaborator
   end
+
+  test "destroying a collaborator deletes their notifications about the tool" do
+    removed = @collaborator.user
+    about_tool = ChatMessageNotifier.with(message: "hi", sender: users(:one), tool: @collaborator.tool).deliver(removed)
+    elsewhere = ChatMessageNotifier.with(message: "hi", sender: users(:one), tool: tools(:other_calendar)).deliver(removed)
+
+    @collaborator.destroy
+
+    assert_equal [ elsewhere ], removed.notifications.map(&:event)
+    assert Noticed::Event.exists?(about_tool.id)
+  end
+
+  test "destroying a collaborator keeps other people's notifications about the tool" do
+    event = ChatMessageNotifier.with(message: "hi", sender: @collaborator.user, tool: @collaborator.tool).deliver([ users(:one), @collaborator.user ])
+
+    @collaborator.destroy
+
+    assert_equal [ event ], users(:one).notifications.map(&:event)
+  end
 end
