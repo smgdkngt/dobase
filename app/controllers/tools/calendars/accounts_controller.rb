@@ -74,15 +74,18 @@ module Tools
       def create_local_account
         @calendar_account.sync_status = "synced"
 
-        if @calendar_account.save
-          # Create a default calendar for local accounts
-          @calendar_account.calendars.create!(
+        # Create the account and its default calendar together, so a failure can't leave an account without one
+        saved = @calendar_account.transaction do
+          @calendar_account.save && @calendar_account.calendars.create!(
             name: @tool.name,
             color: "#3b82f6",
             enabled: true,
             is_default: true,
             position: 0
           )
+        end
+
+        if saved
           redirect_to tool_calendar_path(@tool), notice: "Calendar created successfully."
         else
           render :new, status: :unprocessable_entity
