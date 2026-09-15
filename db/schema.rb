@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_14_145901) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_15_082010) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -140,6 +140,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_14_145901) do
   create_table "calendar_invites", force: :cascade do |t|
     t.bigint "added_to_calendar_id"
     t.boolean "all_day", default: false
+    t.text "attendees_json"
     t.datetime "created_at", null: false
     t.bigint "created_event_id"
     t.string "description"
