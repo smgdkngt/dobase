@@ -53,6 +53,30 @@ module Files
       assert_equal [ "Subfolder/notes.txt", "report.pdf" ], zip_contents(@documents).keys.sort
     end
 
+    test "names that aren't safe paths become plain file names" do
+      upload "../../escape.txt", "up", folder: @documents
+      upload "/etc/passwd", "root", folder: @documents
+      @subfolder.update_columns(name: "..")
+
+      names = zip_contents(@documents).keys
+
+      assert_includes names, "..-..-escape.txt"
+      assert_includes names, "-etc-passwd"
+      assert_includes names, "_/notes.txt"
+      assert names.none? { |name| name.start_with?("/") || name.split("/").include?("..") }, names.inspect
+    end
+
+    test "files with the same name get numbered instead of overwriting each other" do
+      upload "report.pdf", "second copy", folder: @documents
+      upload "REPORT.pdf", "third copy", folder: @documents
+
+      contents = zip_contents(@documents)
+
+      assert_equal "quarterly numbers", contents["report.pdf"]
+      assert_equal [ "REPORT (3).pdf", "report (2).pdf" ], (contents.keys - [ "report.pdf", "Subfolder/notes.txt" ]).sort
+      assert_equal [ "quarterly numbers", "second copy", "third copy" ], contents.values_at("report.pdf", "report (2).pdf", "REPORT (3).pdf").sort
+    end
+
     test "finishes when a folder tree loops back on itself" do
       @documents.update_column(:parent_id, @subfolder.id)
 

@@ -45,6 +45,31 @@ module Tools
       assert msg.reload.read
     end
 
+    test "show keeps remote content out of an email until the reader asks for it" do
+      msg = mails_messages(:inbox_unread)
+      msg.update!(body_html: %(<style>body { background: url(https://tracker.example/open.gif) }</style><p>Hi</p><img src="https://tracker.example/pixel.gif">))
+
+      get tool_mail_path(@tool, msg)
+
+      assert_includes response.body, "Images are hidden"
+      shown = css_select("iframe[data-email-frame-target='frame']").first["srcdoc"]
+      assert_includes shown, %(content="default-src 'none'; img-src data: cid:;)
+      assert_not_includes shown, "https://tracker.example/pixel.gif"
+
+      on_request = css_select("[data-email-frame-full-srcdoc-value]").first["data-email-frame-full-srcdoc-value"]
+      assert_not_includes on_request, "Content-Security-Policy"
+      assert_includes on_request, "https://tracker.example/pixel.gif"
+    end
+
+    test "show offers to load images when only CSS pulls in remote content" do
+      msg = mails_messages(:inbox_unread)
+      msg.update!(body_html: %(<style>body { background: url('https://tracker.example/open.gif') }</style><p>Hi</p>))
+
+      get tool_mail_path(@tool, msg)
+
+      assert_includes response.body, "Images are hidden"
+    end
+
     test "show redirects drafts to the compose form" do
       draft = mails_messages(:draft_message)
       get tool_mail_path(@tool, draft)

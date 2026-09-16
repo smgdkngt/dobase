@@ -23,7 +23,7 @@ module Files
     end
 
     def top_folder_paths
-      @folders.to_h { |folder| [ folder.id, "#{folder.name}/" ] }
+      @folders.to_h { |folder| [ folder.id, "#{path_segment(folder.name)}/" ] }
     end
 
     def tool_id

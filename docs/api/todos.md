@@ -122,7 +122,7 @@ delete your own comments, and owners can delete anyone's.
 
 `POST /tools/:tool_id/todo/items/:item_id/attachments` as `multipart/form-data`
 with a `file` field (25 MB max) returns `201` and the attachment. `download_url`
-is a signed link that needs no token. `DELETE .../attachments/:id` returns `204`.
+is a signed link that needs no token and works for a day. `DELETE .../attachments/:id` returns `204`.
 
 ## Lists
 

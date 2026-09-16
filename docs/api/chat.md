@@ -46,7 +46,7 @@
 - `reply_to` is the message this one answers, with a short plain-text preview,
   or `null`.
 - `edited_at` is set once a message has been edited.
-- `download_url` is a signed link that needs no token.
+- `download_url` is a signed link that needs no token and works for a day.
 
 Reading the chat doesn't mark it read. [Mark it read](#mark-as-read) when you
 have dealt with the messages.
