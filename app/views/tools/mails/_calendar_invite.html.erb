@@ -23,6 +23,8 @@
       <%= render "components/badge", text: "Declined", variant: :muted %>
     <% elsif invite.pending? %>
       <%= render "components/badge", text: "Pending", variant: :warning %>
+    <% elsif invite.cancelled? %>
+      <%= render "components/badge", text: "Cancelled", variant: :error %>
     <% end %>
   </div>
 
@@ -160,6 +162,19 @@
         </p>
       </div>
     <% end %>
+  <% elsif invite.cancelled? %>
+    <div class="px-4 py-3 bg-background-secondary border-t border-border-light flex flex-wrap items-center gap-3">
+      <p class="text-sm text-text-secondary">This event has been cancelled.</p>
+      <% if (accepted = invite.method == "CANCEL" && invite.accepted_invitation) && (calendar_tool = accepted.added_to_calendar&.account&.tool) %>
+        <p class="text-sm text-text-secondary">It's still in your calendar.</p>
+        <%= render "components/button",
+            text: "View in Calendar",
+            icon: "external-link",
+            variant: :secondary,
+            size: :sm,
+            href: tool_calendar_path(calendar_tool, week_start: accepted.starts_at&.to_date) %>
+      <% end %>
+    </div>
   <% elsif invite.accepted? && invite.created_event_id && (calendar_tool = invite.added_to_calendar&.account&.tool) %>
     <!-- Link to the event's week in the calendar -->
     <div class="px-4 py-3 bg-background-secondary border-t border-border-light">

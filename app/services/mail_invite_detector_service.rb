@@ -1,8 +1,11 @@
 # frozen_string_literal: true
 
 class MailInviteDetectorService
-  def initialize(message)
+  # calendar_data: an invitation that isn't an attachment, like the inline
+  # text/calendar part Outlook sends, found while the message was parsed
+  def initialize(message, calendar_data: nil)
     @message = message
+    @calendar_data = calendar_data
   end
 
   def detect_and_create_invite
@@ -29,29 +32,7 @@ class MailInviteDetectorService
       return calendar_attachment.file.download.force_encoding(Encoding::UTF_8).scrub
     end
 
-    # If no attachment, try to parse from raw message body
-    # Some email clients embed calendar data directly in the message
-    if @message.respond_to?(:raw_message) && @message.raw_message.present?
-      mail = Mail.read_from_string(@message.raw_message)
-
-      # Look for text/calendar parts
-      mail.parts.each do |part|
-        if part.content_type&.include?("text/calendar")
-          return part.decoded
-        end
-
-        # Check nested parts (multipart/alternative, etc.)
-        if part.multipart?
-          part.parts.each do |nested|
-            if nested.content_type&.include?("text/calendar")
-              return nested.decoded
-            end
-          end
-        end
-      end
-    end
-
-    nil
+    @calendar_data.presence
   end
 
   def create_or_update_invite(parsed)
@@ -84,6 +65,8 @@ class MailInviteDetectorService
     )
 
     invite.save!
+    # A cancelled event can't be accepted from its earlier invitations anymore
+    invite.same_event_invitations.where(status: %w[pending tentative]).update_all(status: "cancelled") if invite.cancelled?
     invite
   rescue ActiveRecord::RecordInvalid => e
     Rails.logger.error("Failed to create calendar invite: #{e.message}")

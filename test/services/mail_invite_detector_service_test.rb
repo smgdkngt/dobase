@@ -63,6 +63,49 @@ class MailInviteDetectorServiceTest < ActiveSupport::TestCase
     assert_includes invite.raw_icalendar, "Café de Jaren"
   end
 
+  test "a cancellation is saved and closes the earlier invitation" do
+    pending = mails_messages(:inbox_read).calendar_invites.create!(uid: "standup-9@example.com", method: "REQUEST", status: "pending", summary: "Standup")
+    attach_ics <<~ICS
+      BEGIN:VCALENDAR
+      VERSION:2.0
+      PRODID:-//Test//Test//EN
+      METHOD:CANCEL
+      BEGIN:VEVENT
+      UID:standup-9@example.com
+      DTSTART:20261001T090000Z
+      DTEND:20261001T093000Z
+      SUMMARY:Standup
+      STATUS:CANCELLED
+      END:VEVENT
+      END:VCALENDAR
+    ICS
+
+    invite = MailInviteDetectorService.new(@message).detect_and_create_invite
+
+    assert_equal [ "CANCEL", "cancelled" ], [ invite.method, invite.status ]
+    assert pending.reload.cancelled?
+  end
+
+  test "finds an invitation that came inline instead of as an attachment" do
+    ics = <<~ICS
+      BEGIN:VCALENDAR
+      VERSION:2.0
+      PRODID:-//Microsoft Corporation//Outlook 16.0 MIMEDIR//EN
+      METHOD:REQUEST
+      BEGIN:VEVENT
+      UID:inline-1@example.com
+      DTSTART:20261002T130000Z
+      DTEND:20261002T140000Z
+      SUMMARY:Budget review
+      END:VEVENT
+      END:VCALENDAR
+    ICS
+
+    invite = MailInviteDetectorService.new(@message, calendar_data: ics).detect_and_create_invite
+
+    assert_equal [ "inline-1@example.com", "Budget review", "pending" ], [ invite.uid, invite.summary, invite.status ]
+  end
+
   private
     def attach_ics(ics)
       attachment = @message.attachments.create!(filename: "invite.ics", content_type: "text/calendar", file_size: ics.bytesize)

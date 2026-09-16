@@ -170,6 +170,29 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_equal [ "photo.png" ], email.attachments.map(&:filename)
   end
 
+  test "an invitation sent inline, the way Outlook does, is found" do
+    mail = Mail.new(from: "olivia@example.com", to: "me@example.com", subject: "Invitation: Budget review", message_id: "<outlook-invite@example.com>")
+    mail.text_part = Mail::Part.new(content_type: "text/plain; charset=UTF-8", body: "You're invited")
+    mail.add_part Mail::Part.new(content_type: "text/calendar; charset=UTF-8; method=REQUEST", body: <<~ICS)
+      BEGIN:VCALENDAR
+      VERSION:2.0
+      METHOD:REQUEST
+      BEGIN:VEVENT
+      UID:outlook-1@example.com
+      DTSTART:20261002T130000Z
+      DTEND:20261002T140000Z
+      SUMMARY:Budget review
+      END:VEVENT
+      END:VCALENDAR
+    ICS
+
+    @service.send(:save_email, fetch_data(4, mail.to_s), "INBOX")
+
+    email = @account.messages.find_by!(message_id: "outlook-invite@example.com")
+    assert_empty email.attachments
+    assert_equal [ "outlook-1@example.com" ], email.calendar_invites.map(&:uid)
+  end
+
   test "an attachment over the size limit is skipped, the email is still saved" do
     stub_const(ImapSyncService, :MAX_ATTACHMENT_SIZE, 10) do
       @service.send(:save_email, fetch_data(9, report_mail.to_s), "INBOX")
