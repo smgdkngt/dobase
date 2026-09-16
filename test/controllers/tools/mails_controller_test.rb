@@ -96,6 +96,22 @@ module Tools
       assert_select "span", text: "3 messages"
     end
 
+    test "the compose form is titled after what it's for" do
+      message = mails_messages(:inbox_read)
+      {
+        new_tool_mail_path(@tool) => "New Message",
+        new_tool_mail_path(@tool, reply_to: message.id) => "Reply",
+        new_tool_mail_path(@tool, reply_to: message.id, reply_all: true) => "Reply All",
+        new_tool_mail_path(@tool, forward: message.id) => "Forward",
+        new_tool_mail_path(@tool, draft_id: mails_messages(:draft_message).id) => "Edit Draft"
+      }.each do |path, heading|
+        get path
+
+        assert_select "h1", heading
+        assert_select "title", "#{heading} - My Mail - #{Rails.application.config.x.app.name}"
+      end
+    end
+
     test "show redirects drafts to the compose form" do
       draft = mails_messages(:draft_message)
       get tool_mail_path(@tool, draft)
@@ -226,6 +242,7 @@ module Tools
 
       assert_response :unprocessable_entity
       assert_select "input[name=in_reply_to][value=?]", original.message_id
+      assert_select "h1", "Reply"
     end
 
     test "index with search query filters messages" do

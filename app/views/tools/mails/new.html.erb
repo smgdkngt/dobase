@@ -1,4 +1,5 @@
-<% content_for :title, "Compose - #{@tool.name} - #{app_name}" %>
+<% heading = @draft ? "Edit Draft" : @heading %>
+<% content_for :title, "#{heading} - #{@tool.name} - #{app_name}" %>
 <% content_for :page_title, "" %>
 
 <%= form_with url: tool_mails_path(@tool), method: :post, multipart: true, class: "compose-layout", data: { controller: "compose" } do %>
@@ -18,7 +19,7 @@
     <%= link_to tool_mails_path(@tool), class: "flex items-center justify-center w-8 h-8 rounded-lg hover:bg-background-tertiary transition-colors" do %>
       <%= render "shared/icon", name: "arrow-left", size: 18, class: "text-text-secondary" %>
     <% end %>
-    <span class="text-sm font-semibold text-text-primary"><%= @draft ? "Edit Draft" : "New Message" %></span>
+    <h1 class="text-sm font-semibold text-text-primary"><%= heading %></h1>
 
     <div class="flex items-center gap-2 ml-auto">
       <% if @draft %>

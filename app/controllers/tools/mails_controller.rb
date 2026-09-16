@@ -276,10 +276,12 @@ module Tools
       @subject = params[:subject] || ""
       @body = params[:body] || ""
       @in_reply_to = params[:in_reply_to]
+      @heading = @in_reply_to.present? ? "Reply" : "New Message"
 
       if params[:reply_to].present?
         original = @tool.mail_account.messages.find_by(id: params[:reply_to])
         if original
+          @heading = params[:reply_all] ? "Reply All" : "Reply"
           @in_reply_to = original.message_id
           @to = original.from_address
           @subject = "Re: #{original.normalized_subject}" unless @subject.present?
@@ -295,6 +297,7 @@ module Tools
       elsif params[:forward].present?
         original = @tool.mail_account.messages.find_by(id: params[:forward])
         if original
+          @heading = "Forward"
           @subject = "Fwd: #{original.normalized_subject}" unless @subject.present?
           @body = build_forward_body(original) unless @body.present?
           @forward_attachments = original.attachments.select { |a| a.file.attached? }
