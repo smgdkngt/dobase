@@ -189,7 +189,9 @@ Rails.application.routes.draw do
     resources :shares, only: :show, param: :token, path: "", controller: "tools/files/shares" do
       scope module: "tools/files/shares" do
         resource :download, only: :show
-        resources :files, only: :show
+        resources :files, only: :show do
+          resource :download, only: :show, module: :files
+        end
       end
     end
   end
