@@ -10,27 +10,13 @@ module Tools
 
     before_action :set_tool
     before_action -> { authorize_tool_access!(@tool) }
-    before_action :require_mail_account, except: [ :index ]
+    before_action :require_mail_account
     before_action :set_message, only: [ :show, :destroy ]
     before_action :build_compose_defaults, only: [ :new ]
 
     PER_PAGE = 30
 
     def index
-      if @tool.mail_account.nil?
-        respond_to do |format|
-          format.html do
-            if @tool.owned_by?(current_user)
-              redirect_to new_tool_mails_account_path(@tool)
-            else
-              redirect_to tool_path(@tool), alert: "Mail account not configured."
-            end
-          end
-          format.json { render_mail_account_not_configured }
-        end
-        return
-      end
-
       @mail_account = @tool.mail_account
       @current_folder = params[:folder] || "inbox"
       load_index_data
@@ -160,12 +146,19 @@ module Tools
       @tool = Tool.find(params[:tool_id])
     end
 
+    # Owners connect the account; everyone else waits for them
     def require_mail_account
-      unless @tool.mail_account
-        respond_to do |format|
-          format.html { redirect_to new_tool_mails_account_path(@tool), alert: "Please configure your mail account first." }
-          format.json { render_mail_account_not_configured }
+      return if @tool.mail_account
+
+      respond_to do |format|
+        format.html do
+          if @tool.owned_by?(current_user)
+            redirect_to new_tool_mails_account_path(@tool)
+          else
+            render "tools/account_not_connected"
+          end
         end
+        format.json { render_mail_account_not_configured }
       end
     end
 

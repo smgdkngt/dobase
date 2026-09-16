@@ -230,6 +230,27 @@ module Tools
       tool_no_mail = Tool.create!(name: "Empty Mail", tool_type: tool_types(:mail), owner: users(:one))
       get tool_mails_path(tool_no_mail)
       assert_redirected_to new_tool_mails_account_path(tool_no_mail)
+
+      get new_tool_mail_path(tool_no_mail)
+      assert_redirected_to new_tool_mails_account_path(tool_no_mail)
+    end
+
+    test "collaborators see that the owner hasn't connected a mail account yet" do
+      tool = Tool.create!(name: "Team Mail", tool_type: tool_types(:mail), owner: users(:one), sidebar_position: -1)
+      tool.collaborators.create!(user: users(:two), role: "collaborator")
+      sign_in_as users(:two)
+
+      get root_path
+      3.times { follow_redirect! if response.redirect? }
+
+      assert_response :success
+      assert_equal tool_mails_path(tool), path
+      assert_select "h1", "Team Mail"
+      assert_select "div", text: "The owner of Team Mail hasn't connected a mail account yet. Once they have, the mail shows up here."
+
+      get new_tool_mail_path(tool)
+      assert_response :success
+      assert_select "div", text: /hasn't connected a mail account yet/
     end
 
     test "destroy from inbox trashes message" do
