@@ -21,6 +21,19 @@ module Tools
         assert_not @tool.reload.calendar_account.local?
       end
 
+      test "the account settings have no delete button that would submit them instead" do
+        tool = calendars_accounts(:icloud_account).tool
+
+        get edit_tool_calendar_account_path(tool)
+
+        assert_response :success
+        assert_select "form[action=?]", tool_calendar_account_path(tool) do
+          assert_select "input[name='_method']", count: 1
+          assert_select "button", text: "Save Changes"
+          assert_select "button", text: "Delete Account", count: 0
+        end
+      end
+
       test "creating a local account adds a default calendar named after the tool" do
         post tool_calendar_account_path(@tool), params: { calendars_account: { provider: "local" } }
 
