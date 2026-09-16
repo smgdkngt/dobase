@@ -132,7 +132,7 @@ class CaldavSyncService
       req.body = ics_data
     end
 
-    raise SyncError, "Failed to create event: #{response.status}" unless response.success?
+    check_change!(response, "Failed to create event")
 
     event.update!(
       etag: response.headers["etag"]&.gsub('"', ""),
@@ -152,7 +152,7 @@ class CaldavSyncService
       req.body = ics_data
     end
 
-    raise SyncError, "Failed to update event: #{response.status}" unless response.success?
+    check_change!(response, "Failed to update event")
 
     event.update!(etag: response.headers["etag"]&.gsub('"', ""))
   end
@@ -165,10 +165,8 @@ class CaldavSyncService
       req.headers["If-Match"] = %("#{event.etag}") if event.etag.present?
     end
 
-    # 204 No Content or 404 Not Found are both acceptable
-    unless response.success? || response.status == 404
-      raise SyncError, "Failed to delete event: #{response.status}"
-    end
+    # 404: the event is gone already
+    check_change!(response, "Failed to delete event") unless response.status == 404
   end
 
   def update_calendar(calendar)
@@ -193,14 +191,32 @@ class CaldavSyncService
     end
   end
 
+  # Network trouble raises ConnectionError, which the jobs that send changes try again
+  class NetworkErrors < Faraday::Middleware
+    def call(env)
+      super
+    rescue Faraday::ConnectionFailed, Faraday::TimeoutError => e
+      raise ConnectionError, "Connection failed: #{e.message}"
+    end
+  end
+
   def http_client
     @http_client ||= Faraday.new do |f|
+      f.use NetworkErrors
       f.use RemoteHostCheck
       f.request :authorization, :basic, @account.username, @account.password
       f.options.timeout = 30
       f.options.open_timeout = 10
       f.adapter Faraday.default_adapter
     end
+  end
+
+  # A server error may pass, so it counts as a connection error and the change is sent again later
+  def check_change!(response, failure)
+    return if response.success?
+
+    error = response.status >= 500 ? ConnectionError : SyncError
+    raise error, "#{failure}: #{response.status}"
   end
 
   def propfind(url, depth: 0, body: nil)

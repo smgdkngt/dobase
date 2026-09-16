@@ -3,6 +3,8 @@
 class PushEventJob < ApplicationJob
   queue_as :default
 
+  retry_on CaldavSyncService::ConnectionError, wait: :polynomially_longer, attempts: 5
+
   def perform(event_id, action)
     event = Calendars::Event.find_by(id: event_id)
 
