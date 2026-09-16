@@ -13,7 +13,7 @@
   </div>
 
   <div class="flex justify-center gap-4">
-    <%= link_to share_download_path(@share.token), class: "btn btn-primary btn-lg" do %>
+    <%= link_to share_download_path(@share.token), class: "btn btn-primary btn-lg", data: { turbo: false } do %>
       <%= render "shared/icon", name: "download", size: 20 %>
       <span>Download</span>
     <% end %>
