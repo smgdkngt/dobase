@@ -15,12 +15,15 @@ class InvitationAcceptancesController < ApplicationController
   end
 
   def create
-    if authenticated?
+    if !authenticated?
+      redirect_to_authentication
+    elsif @invitation.for?(current_user)
       @invitation.accept!(current_user)
       redirect_to tool_path(@invitation.tool),
                   notice: "You are now a collaborator on #{@invitation.tool.name}!"
     else
-      redirect_to_authentication
+      redirect_to invitation_acceptance_path(token: @invitation.token),
+                  alert: "This invitation is for #{@invitation.email}. Sign in with that address to accept it."
     end
   end
 

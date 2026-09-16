@@ -28,8 +28,15 @@
         </p>
 
         <div class="flex flex-col gap-2">
-          <%= form_with url: invitation_acceptance_path(token: @invitation.token) do %>
-            <%= render "components/button", text: "Accept Invitation", full_width: true %>
+          <% if @invitation.for?(current_user) %>
+            <%= form_with url: invitation_acceptance_path(token: @invitation.token) do %>
+              <%= render "components/button", text: "Accept Invitation", full_width: true %>
+            <% end %>
+          <% else %>
+            <p class="text-sm text-text-secondary mb-2">
+              This invitation is for <strong><%= @invitation.email %></strong>, and you're signed in as
+              <%= current_user.email_address %>. Sign in with <%= @invitation.email %> to accept it.
+            </p>
           <% end %>
           <%= render "components/button",
                 text: "Decline",
