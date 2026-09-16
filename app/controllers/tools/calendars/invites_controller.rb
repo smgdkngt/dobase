@@ -19,7 +19,7 @@ module Tools
         # Create event from invite
         @event = @calendar.events.build(
           uid: @invite.uid,
-          summary: @invite.summary,
+          summary: @invite.summary.presence || ::Calendars::Event::UNTITLED,
           description: @invite.description,
           location: @invite.location,
           starts_at: @invite.starts_at,

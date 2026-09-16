@@ -226,6 +226,37 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     assert calendar.events.exists?(uid: "server-event")
   end
 
+  test "an untitled or invalid event doesn't hold up the sync" do
+    personal = calendars_calendars(:personal)
+    work = calendars_calendars(:work)
+    [ personal, work ].each { |calendar| calendar.update!(sync_token: nil, ctag: nil) }
+
+    stub_request(:report, personal.remote_url).to_return(status: 207, body: calendar_query_response([
+      { uid: "untitled", ics: <<~ICS },
+        BEGIN:VCALENDAR
+        VERSION:2.0
+        BEGIN:VEVENT
+        UID:untitled
+        DTSTART:20301008T140000Z
+        DTEND:20301008T150000Z
+        END:VEVENT
+        END:VCALENDAR
+      ICS
+      { uid: "backwards", summary: "Ends before it starts", starts_at: 2.hours.from_now, ends_at: 1.hour.from_now },
+      { uid: "fine", summary: "Fine" }
+    ]))
+    stub_request(:report, work.remote_url)
+      .to_return(status: 207, body: calendar_query_response([ { uid: "planning", summary: "Planning" } ]))
+    stub_request(:propfind, /caldav\.icloud\.com/).to_return(status: 207, body: sync_token_response)
+
+    @service.sync_all_calendars
+
+    assert_equal "(No title)", personal.events.find_by!(uid: "untitled").summary
+    assert_equal [ "fine", "untitled" ], personal.events.order(:uid).pluck(:uid)
+    assert work.events.exists?(uid: "planning")
+    assert_equal "https://caldav.icloud.com/sync/token-updated", personal.reload.sync_token
+  end
+
   test "delta_sync handles deleted events" do
     calendar = calendars_calendars(:personal)
     event = calendar.events.create!(
@@ -502,7 +533,7 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
       starts_at = (event[:starts_at] || 1.hour.from_now).strftime("%Y%m%dT%H%M%SZ")
       ends_at = (event[:ends_at] || 2.hours.from_now).strftime("%Y%m%dT%H%M%SZ")
 
-      ics = <<~ICS
+      ics = event[:ics] || <<~ICS
         BEGIN:VCALENDAR
         VERSION:2.0
         PRODID:-//Test//Test//EN

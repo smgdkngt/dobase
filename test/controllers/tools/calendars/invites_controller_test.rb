@@ -35,6 +35,16 @@ module Tools
         assert_enqueued_with job: PushEventJob, args: [ event.id, :create ]
       end
 
+      test "accepting an invite without a title adds an untitled event" do
+        @own_invite.update!(summary: nil)
+        calendar = calendars_calendars(:personal)
+
+        post tool_calendar_invites_path(@calendar_tool), params: { invite_id: @own_invite.id, calendar_id: calendar.id }
+
+        assert_equal "(No title)", calendar.events.find_by!(uid: @own_invite.uid).summary
+        assert_equal "accepted", @own_invite.reload.status
+      end
+
       test "cannot accept an invite from mail the user has no access to" do
         assert_no_difference -> { ::Calendars::Event.count } do
           post tool_calendar_invites_path(@calendar_tool),

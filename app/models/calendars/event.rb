@@ -5,6 +5,9 @@ module Calendars
     include Trackable
     self.table_name = "calendar_events"
 
+    # The title of synced events and invitations that come without one (SUMMARY is optional in iCalendar)
+    UNTITLED = "(No title)"
+
     belongs_to :calendar, class_name: "Calendars::Calendar"
     has_one :account, through: :calendar
 

@@ -460,11 +460,12 @@ class CaldavSyncService
     events
   end
 
+  # An event Dobase can't take is skipped, so it doesn't hold up the rest of the calendar
   def save_event(calendar, event_data)
     event = calendar.events.find_or_initialize_by(uid: event_data[:uid])
 
     event.assign_attributes(
-      summary: event_data[:summary],
+      summary: event_data[:summary].presence || Calendars::Event::UNTITLED,
       description: event_data[:description],
       location: event_data[:location],
       starts_at: event_data[:starts_at],
@@ -482,8 +483,11 @@ class CaldavSyncService
       raw_icalendar: event_data[:raw_icalendar]
     )
 
-    event.save!
-    event
+    return if event.save
+
+    Rails.logger.warn("Skipping event #{event.uid} in calendar #{calendar.id}: #{event.errors.full_messages.to_sentence}")
+    # Left among the calendar's events, the unsaved event would fail the calendar's next save
+    calendar.events.reset
   end
 
   def update_calendar_sync_token(calendar)
