@@ -9,11 +9,7 @@ class ToolsTest < ApplicationSystemTestCase
   end
 
   test "deleting a tool asks with a Delete button" do
-    visit tool_path(@tool)
-    wait_for_turbo
-    wait_for_stimulus "sidebar"
-    # The settings gear only shows on hover
-    find("[data-action~='click->sidebar#editTool'][data-tool-id='#{@tool.id}']", visible: :all).execute_script("this.click()")
+    open_tool_settings
 
     within "dialog#edit-tool-modal[open]" do
       click_on "Delete"
@@ -29,7 +25,31 @@ class ToolsTest < ApplicationSystemTestCase
     assert Tool.exists?(@tool.id)
   end
 
+  test "cancelling keeps the tool, even after an earlier confirmation on the page" do
+    open_tool_settings
+    # What an earlier Confirm leaves on the dialog, which stays in the page across morph refreshes
+    page.execute_script("document.getElementById('turbo-confirm-dialog').returnValue = 'confirm'")
+
+    within "dialog#edit-tool-modal[open]" do
+      click_on "Delete"
+    end
+    within "dialog#turbo-confirm-dialog" do
+      click_on "Cancel"
+    end
+
+    assert_not page.has_current_path?(root_path, wait: 2)
+    assert Tool.exists?(@tool.id)
+  end
+
   private
+
+  def open_tool_settings
+    visit tool_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "sidebar"
+    # The settings gear only shows on hover
+    find("[data-action~='click->sidebar#editTool'][data-tool-id='#{@tool.id}']", visible: :all).execute_script("this.click()")
+  end
 
   def sign_in_as(user)
     visit new_session_path
