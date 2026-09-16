@@ -184,8 +184,18 @@ class CaldavSyncService
 
   private
 
+  # Checks the host of every request, including URLs that came from the server's responses
+  class RemoteHostCheck < Faraday::Middleware
+    def on_request(env)
+      RemoteHost.verify!(env.url.host)
+    rescue RemoteHost::Forbidden => e
+      raise ConnectionError, e.message
+    end
+  end
+
   def http_client
     @http_client ||= Faraday.new do |f|
+      f.use RemoteHostCheck
       f.request :authorization, :basic, @account.username, @account.password
       f.options.timeout = 30
       f.options.open_timeout = 10
@@ -207,6 +217,11 @@ class CaldavSyncService
 
   def make_webdav_request(method, url, body, extra_headers = {})
     uri = URI.parse(url)
+    begin
+      RemoteHost.verify!(uri.host)
+    rescue RemoteHost::Forbidden => e
+      raise ConnectionError, e.message
+    end
     http = Net::HTTP.new(uri.host, uri.port)
     if uri.scheme == "https"
       http.use_ssl = true

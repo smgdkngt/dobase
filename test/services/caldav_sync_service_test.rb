@@ -245,6 +245,21 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
 
   # Event push tests
 
+  test "a calendar server on a local address isn't contacted" do
+    @account.update!(caldav_url: "http://169.254.169.254/latest/")
+
+    error = assert_raises(CaldavSyncService::ConnectionError) { @service.test_connection }
+    assert_match "local address", error.message
+  end
+
+  test "an event isn't pushed to a local address the server pointed at" do
+    calendar = calendars_calendars(:personal)
+    calendar.update!(remote_url: "http://127.0.0.1/calendars/personal/")
+    event = calendar.events.create!(uid: "pushed@dobase", summary: "Pushed", starts_at: 1.hour.from_now, ends_at: 2.hours.from_now)
+
+    assert_raises(CaldavSyncService::ConnectionError) { @service.create_event(event) }
+  end
+
   test "create_event pushes event to server" do
     calendar = calendars_calendars(:personal)
     event = calendar.events.create!(

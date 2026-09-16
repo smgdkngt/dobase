@@ -180,6 +180,13 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_empty email.attachments
   end
 
+  test "a server on a local address isn't contacted" do
+    @account.update!(imap_host: "127.0.0.1")
+
+    error = assert_raises(ImapSyncService::ConnectionError) { @service.test_connection }
+    assert_match "local address", error.message
+  end
+
   test "a folder net-imap can't parse doesn't stop the sync" do
     @service.define_singleton_method(:connect) do
       raise Net::IMAP::ResponseParseError, "unexpected NIL (expected QUOTED or LITERAL)"
