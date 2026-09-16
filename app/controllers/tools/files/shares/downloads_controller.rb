@@ -6,6 +6,7 @@ module Tools
       class DownloadsController < ApplicationController
         include ShareAuthentication
         include FolderArchiveDownload
+        include FileItemDownload
 
         def show
           if @share.folder?
@@ -16,11 +17,7 @@ module Tools
             send_folder_archive archive
           else
             @share.increment_download!
-            file = @share.shareable
-            send_data file.file.download,
-                      filename: file.name,
-                      type: file.content_type,
-                      disposition: "attachment"
+            send_file_item @share.shareable
           end
         end
       end

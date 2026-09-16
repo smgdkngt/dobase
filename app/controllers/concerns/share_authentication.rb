@@ -46,6 +46,17 @@ module ShareAuthentication
     "share_#{@share.id}_authenticated_at"
   end
 
+  # Pages and downloads inside a shared folder don't exist for a shared file.
+  def require_folder_share
+    render_share_not_found unless @share.folder?
+  end
+
+  # A public visitor gets the share's own "not found" page, not a redirect to sign in.
+  def render_share_not_found
+    @share_not_found = true
+    render "tools/files/shares/show", status: :not_found
+  end
+
   # Nothing behind a link is served until the share exists, hasn't expired and,
   # if it has a password, has been unlocked. The share page says which one it is.
   def require_unlocked_share

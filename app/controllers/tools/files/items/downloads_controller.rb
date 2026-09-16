@@ -5,6 +5,7 @@ module Tools
     module Items
       class DownloadsController < ApplicationController
         include ToolAuthorization
+        include FileItemDownload
 
         allow_access_tokens
 
@@ -13,7 +14,7 @@ module Tools
         before_action :set_file
 
         def show
-          send_file_download(@file)
+          send_file_item(@file)
         end
 
         private
@@ -24,13 +25,6 @@ module Tools
 
         def set_file
           @file = @tool.file_items.find(params[:item_id])
-        end
-
-        def send_file_download(file)
-          send_data file.file.download,
-                    filename: file.name,
-                    type: file.content_type,
-                    disposition: "attachment"
         end
       end
     end

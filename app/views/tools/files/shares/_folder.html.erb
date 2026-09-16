@@ -87,7 +87,7 @@
       </div>
       <div class="hidden" data-public-gallery-target="images">
         <% @images.each do |img| %>
-          <span data-url="<%= url_for(img.file) %>" data-name="<%= img.name %>" data-download="<%= share_download_path(@share.token) %>"></span>
+          <span data-url="<%= url_for(img.file) %>" data-name="<%= img.name %>" data-download="<%= share_file_download_path(@share.token, img) %>"></span>
         <% end %>
       </div>
     </div>

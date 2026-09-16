@@ -6,9 +6,13 @@ module Tools
       class FilesController < ApplicationController
         include ShareAuthentication
 
+        before_action :require_folder_share
+
         def show
           @folder = @share.shareable
-          @file = @folder.files.find(params[:id])
+          @file = @folder.files.find_by(id: params[:id])
+          return render_share_not_found unless @file
+
           @images = @folder.image_files
           @current_index = @images.index(@file)
         end

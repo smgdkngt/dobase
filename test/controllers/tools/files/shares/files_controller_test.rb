@@ -19,6 +19,28 @@ module Tools
           assert_includes response.body, @file.name
         end
 
+        test "the file page downloads that file, not the whole folder" do
+          get share_file_path(@share.token, @file)
+
+          assert_select "a[href='#{share_file_download_path(@share.token, @file)}']", text: /Download/
+          assert_select "a[href='#{share_download_path(@share.token)}']", count: 0
+        end
+
+        test "a file that isn't in the shared folder shows the share's not found page" do
+          get share_file_path(@share.token, file_items(:readme))
+
+          assert_response :not_found
+          assert_includes response.body, "Not Found"
+        end
+
+        test "a shared file has no file pages" do
+          file_share = ::Files::Share.create!(shareable: @file, created_by: users(:one))
+
+          get share_file_path(file_share.token, @file)
+
+          assert_response :not_found
+        end
+
         test "an expired folder link hides its files" do
           @share.update!(expires_at: 1.day.ago)
 
