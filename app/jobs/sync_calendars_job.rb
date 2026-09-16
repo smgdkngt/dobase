@@ -3,13 +3,17 @@
 class SyncCalendarsJob < ApplicationJob
   queue_as :default
 
-  def perform(calendar_account_id)
+  # Recurring syncs don't look for new calendars (a few requests every 15 minutes for
+  # something that rarely changes), unless the account has none yet. A sync someone
+  # asked for, or a newly connected account, does.
+  def perform(calendar_account_id, discover: false)
     account = Calendars::Account.find_by(id: calendar_account_id)
     return unless account
 
     account.mark_syncing!
 
     service = CaldavSyncService.new(account)
+    service.discover_calendars if discover || account.calendars.none?
     service.sync_all_calendars
 
     account.mark_synced!
