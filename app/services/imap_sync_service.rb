@@ -301,15 +301,24 @@ class ImapSyncService
     end
 
     # Detect and create calendar invites for new emails
-    detect_calendar_invite(email) if is_new_email
+    detect_calendar_invite(email, calendar_data_of(parsed_mail)) if is_new_email
   end
 
   # The email is already saved; a broken invite must not stop the rest of the batch from syncing.
-  def detect_calendar_invite(email)
-    MailInviteDetectorService.new(email).detect_and_create_invite
+  def detect_calendar_invite(email, calendar_data = nil)
+    MailInviteDetectorService.new(email, calendar_data: calendar_data).detect_and_create_invite
   rescue StandardError => e
     Rails.logger.error("Failed to detect calendar invite for email #{email.id}: #{e.class}: #{e.message}")
     nil
+  end
+
+  # Outlook sends invitations as an inline text/calendar part without a file name,
+  # so they aren't saved as attachments
+  def calendar_data_of(mail)
+    return unless mail
+
+    parts = mail.multipart? ? mail.all_parts : [ mail ]
+    parts.find { |part| part.mime_type == "text/calendar" }&.decoded
   end
 
   def parse_message_body(raw_message)

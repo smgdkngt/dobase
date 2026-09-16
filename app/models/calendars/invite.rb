@@ -10,7 +10,7 @@ module Calendars
 
     validates :uid, presence: true, uniqueness: { scope: :mail_message_id }
 
-    STATUSES = %w[pending accepted declined tentative].freeze
+    STATUSES = %w[pending accepted declined tentative cancelled].freeze
     METHODS = %w[REQUEST REPLY CANCEL PUBLISH].freeze
 
     validates :status, inclusion: { in: STATUSES }, allow_nil: true
@@ -59,6 +59,22 @@ module Calendars
 
     def pending?
       status == "pending"
+    end
+
+    def cancelled?
+      status == "cancelled"
+    end
+
+    # Invitations for the same event that arrived in the same mailbox
+    def same_event_invitations
+      self.class.joins(:mail_message)
+        .where(uid: uid, mail_messages: { mail_account_id: mail_message.mail_account_id })
+        .where.not(id: id)
+    end
+
+    # For a cancellation: the earlier invitation that was added to a calendar, if any
+    def accepted_invitation
+      same_event_invitations.where(status: "accepted").where.not(created_event_id: nil).first
     end
 
     def attendees

@@ -91,6 +91,24 @@ module Tools
       assert_equal [ "My Calendar - Personal", "My Calendar - Work" ], css_select("select[name=calendar_id] option").map(&:text)
     end
 
+    test "show marks a cancelled invitation and points to the event still in the calendar" do
+      calendar = calendars_calendars(:personal)
+      starts_at = Time.utc(2026, 10, 1, 9)
+      event = calendar.events.create!(uid: "standup@example.com", summary: "Standup", starts_at: starts_at, ends_at: starts_at + 1.hour)
+      mails_messages(:inbox_read).calendar_invites.create!(uid: "standup@example.com", method: "REQUEST", status: "accepted", summary: "Standup",
+                                                           starts_at: starts_at, ends_at: starts_at + 1.hour, added_to_calendar: calendar, created_event: event)
+      msg = mails_messages(:inbox_unread)
+      msg.calendar_invites.create!(uid: "standup@example.com", method: "CANCEL", status: "cancelled", summary: "Standup",
+                                   starts_at: starts_at, ends_at: starts_at + 1.hour)
+
+      get tool_mail_path(@tool, msg)
+
+      assert_response :success
+      assert_includes response.body, "This event has been cancelled."
+      assert_select "a[href=?]", tool_calendar_path(tools(:my_calendar), week_start: starts_at.to_date), text: /View in Calendar/
+      assert_select "input[name=invite_id]", count: 0
+    end
+
     test "show leaves out replies to the user's own invitations" do
       msg = mails_messages(:inbox_unread)
       msg.calendar_invites.create!(uid: "planning@example.com", method: "REPLY", summary: "Quarterly planning",
