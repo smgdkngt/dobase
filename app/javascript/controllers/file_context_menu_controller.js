@@ -5,11 +5,14 @@ export default class extends Controller {
   static targets = ["menu"]
 
   connect() {
-    document.addEventListener("click", this.#closeOnClickOutside.bind(this))
+    // Keep the bound function: removeEventListener needs the same one, or every
+    // visit to the page would leave another document listener behind
+    this.closeOnClickOutside = this.#closeOnClickOutside.bind(this)
+    document.addEventListener("click", this.closeOnClickOutside)
   }
 
   disconnect() {
-    document.removeEventListener("click", this.#closeOnClickOutside.bind(this))
+    document.removeEventListener("click", this.closeOnClickOutside)
   }
 
   show(event) {
