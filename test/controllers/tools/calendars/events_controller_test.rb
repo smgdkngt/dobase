@@ -21,6 +21,19 @@ module Tools
         assert_enqueued_with job: PushEventJob, args: [ @meeting.id, :update ]
       end
 
+      test "a failed update offers only calendars that take events" do
+        calendars_calendars(:work).update!(read_only: true)
+
+        patch tool_calendar_event_path(@tool, @meeting), params: {
+          calendars_event: { summary: "Backwards", start_time: "2030-01-08T15:00", end_time: "2030-01-08T14:00" }
+        }
+
+        assert_response :unprocessable_entity
+        assert_select "select[name='calendars_event[calendar_id]'] option" do |options|
+          assert_equal [ "", "Personal" ], options.map(&:text)
+        end
+      end
+
       test "update can't move an event to a calendar of another tool" do
         foreign_calendar = calendars_accounts(:pending_account).calendars.create!(name: "Theirs", remote_id: "/theirs/")
 

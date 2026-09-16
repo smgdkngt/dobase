@@ -47,6 +47,16 @@ module Tools
       assert_equal({ "Holiday" => "grid-column: 2 / span 1", "Trip" => "grid-column: 4 / span 4" }, spans)
     end
 
+    test "the new event form offers only calendars that take new events" do
+      @personal.update!(read_only: true)
+
+      get tool_calendar_path(@tool)
+
+      assert_select "#new-event-modal select[name='calendars_event[calendar_id]'] option" do |options|
+        assert_equal [ [ "", nil ], [ "Work", "selected" ] ], options.map { |option| [ option.text, option["selected"] ] }
+      end
+    end
+
     test "week view sends owners without an account to the account setup" do
       tool = Tool.create!(name: "Unconnected", tool_type: tool_types(:calendar), owner: users(:one))
 
