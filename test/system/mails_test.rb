@@ -108,6 +108,24 @@ class MailsTest < ApplicationSystemTestCase
     assert_text "Tasting session"
   end
 
+  test "sending to a contact picked from the suggestions" do
+    visit new_tool_mail_path(@tool)
+    wait_for_stimulus "email-autocomplete"
+
+    deliveries = capture_smtp_deliveries do
+      find("input[data-compose-target='to']").set("Friendly")
+      find("button[data-email='sender@example.com']").click
+      assert_selector "[data-controller='email-autocomplete']", text: "Friendly Sender"
+      assert_equal "sender@example.com", find("input[name='to']", visible: :hidden).value
+
+      find("input[name='subject']").set("Hello")
+      click_on "Send"
+      assert_text "Email sent successfully."
+    end
+
+    assert_equal [ "sender@example.com" ], deliveries.sole[:recipients]
+  end
+
   test "bulk select and archive" do
     visit tool_mails_path(@tool)
 

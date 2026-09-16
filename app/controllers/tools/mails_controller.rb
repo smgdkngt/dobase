@@ -86,8 +86,7 @@ module Tools
       cc = params[:cc].presence&.split(/,\s*/)&.reject(&:blank?)
       bcc = params[:bcc].presence&.split(/,\s*/)&.reject(&:blank?)
 
-      all_addresses = [ *to, *cc, *bcc ]
-      invalid = all_addresses.reject { |a| a.match?(URI::MailTo::EMAIL_REGEXP) }
+      invalid = [ *to, *cc, *bcc ].reject { |recipient| valid_recipient?(recipient) }
 
       if invalid.any?
         render_send_error "Invalid email address: #{invalid.first}"
@@ -171,6 +170,13 @@ module Tools
 
     def render_mail_account_not_configured
       render json: { error: "Mail account not configured" }, status: :not_found
+    end
+
+    # An address, or a name with an address: "Ann Lee <ann@example.com>"
+    def valid_recipient?(recipient)
+      Mail::Address.new(recipient).address.to_s.match?(URI::MailTo::EMAIL_REGEXP)
+    rescue Mail::Field::ParseError
+      false
     end
 
     def render_send_error(message)

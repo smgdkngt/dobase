@@ -3,28 +3,11 @@
 require "test_helper"
 
 class SmtpSendServiceTest < ActiveSupport::TestCase
-  # Records what would have gone over SMTP, so no test talks to a mail server.
-  class FakeSmtp
-    attr_reader :deliveries
-
-    def initialize
-      @deliveries = []
-    end
-
-    def start(*)
-      yield self
-    end
-
-    def send_message(message, from, recipients)
-      @deliveries << { message: message, from: from, recipients: recipients }
-    end
-  end
-
   setup do
     @account = mails_accounts(:primary)
     @service = SmtpSendService.new(@account)
 
-    smtp = @smtp = FakeSmtp.new
+    smtp = @smtp = SmtpTestHelper::FakeSmtp.new
     @service.define_singleton_method(:build_smtp) { smtp }
   end
 
@@ -44,6 +27,22 @@ class SmtpSendServiceTest < ActiveSupport::TestCase
     assert_equal [ "colleague@example.com" ], sent.cc_addresses_list
     assert_equal "<p>Hi there</p>", sent.body_html
     assert_equal [ "colleague@example.com", "friend@example.com" ], @account.contacts.pluck(:email_address).sort
+  end
+
+  test "recipients keep their names in the headers, and only their addresses go to the mail server" do
+    @service.send_email(to: [ "Friendly Sender <sender@example.com>" ], cc: [ "Reports Bot <reports@example.com>" ],
+      bcc: [ "Archive <archive@example.com>" ], subject: "Hello", body: "Hi")
+
+    delivery = @smtp.deliveries.sole
+    assert_equal [ "sender@example.com", "reports@example.com", "archive@example.com" ], delivery[:recipients]
+    assert_match "To: Friendly Sender <sender@example.com>", delivery[:message]
+    assert_match "Cc: Reports Bot <reports@example.com>", delivery[:message]
+    assert_no_match "archive@example.com", delivery[:message]
+
+    sent = @account.messages.find_by!(subject: "Hello")
+    assert_equal [ "sender@example.com" ], sent.to_addresses_list
+    assert_equal [ "reports@example.com" ], sent.cc_addresses_list
+    assert_equal "Friendly Sender", @account.contacts.find_by!(email_address: "sender@example.com").name
   end
 
   test "a failure after delivery is reported, not raised as a failed send" do

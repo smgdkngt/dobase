@@ -89,8 +89,8 @@ class SmtpSendService
       @account.password,
       @account.smtp_auth.to_sym
     ) do |server|
-      recipients = Array(to) + Array(cc).compact + Array(bcc).compact
-      server.send_message(mail.to_s, @account.email_address, recipients)
+      # The addresses of To, Cc and Bcc, without the names the headers may give them
+      server.send_message(mail.to_s, @account.email_address, mail.smtp_envelope_to)
     end
 
     mail
@@ -232,31 +232,24 @@ class SmtpSendService
     end
   end
 
+  # "Ann Lee <ann@example.com>" is ["ann@example.com", "Ann Lee"], "ann@example.com" is ["ann@example.com", nil]
   def parse_email_address(address)
-    return [ nil, nil ] if address.blank?
-
-    address = address.to_s.strip
-
-    # Handle "Name <email@example.com>" format
-    if address =~ /\A(.+?)\s*<(.+?)>\z/
-      name = Regexp.last_match(1).strip.gsub(/\A["']|["']\z/, "")
-      email = Regexp.last_match(2).strip
-      [ email, name ]
-    else
-      # Just an email address
-      [ address, nil ]
-    end
+    parsed = Mail::Address.new(address.to_s.strip)
+    [ parsed.address, parsed.display_name ]
+  rescue Mail::Field::ParseError
+    [ nil, nil ]
   end
 
-  def save_sent_email(mail, to:, subject:, body:, body_html:, cc:, bcc:, attachments:)
+  def save_sent_email(mail, subject:, body:, body_html:, attachments:, **)
     email = @account.messages.create!(
       message_id: mail.message_id,
       folder: "Sent",
       subject: subject,
       from_address: @account.email_address,
       from_name: @account.display_name,
-      to_addresses: Array(to).to_json,
-      cc_addresses: Array(cc).compact.to_json,
+      # Addresses without names, like the mail that syncs in
+      to_addresses: Array(mail.to).to_json,
+      cc_addresses: Array(mail.cc).to_json,
       body_plain: body,
       body_html: body_html,
       read: true,

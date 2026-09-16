@@ -179,8 +179,9 @@ only those and returns the draft. Drafts are deleted in the browser.
 { "to": "rachel@northstarvc.com", "cc": "", "bcc": "", "subject": "Re: Seed Round Follow-up", "body": "<p>Thursday at 2pm works. See you then!</p>" }
 ```
 
-`to`, `cc` and `bcc` are comma-separated addresses, and `body` is HTML. It
-returns `201` with the recipients and subject, and a copy goes into Sent:
+`to`, `cc` and `bcc` are comma-separated addresses, and `body` is HTML. An
+address can have a name in front of it, as in `Rachel Kim <rachel@northstarvc.com>`.
+It returns `201` with the recipients and subject, and a copy goes into Sent:
 
 ```json
 { "to": ["rachel@northstarvc.com"], "cc": [], "bcc": [], "subject": "Re: Seed Round Follow-up" }

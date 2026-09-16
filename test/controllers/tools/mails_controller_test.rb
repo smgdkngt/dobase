@@ -166,6 +166,27 @@ module Tools
       assert_includes response.body, "Invalid email address: not-an-address"
     end
 
+    test "create sends to recipients written with their name" do
+      deliveries = capture_smtp_deliveries do
+        post tool_mails_path(@tool), params: {
+          to: "Friendly Sender <sender@example.com>", cc: "Reports Bot <reports@example.com>, boss@example.com", subject: "Hello", body: "<p>Hi</p>"
+        }
+      end
+
+      assert_redirected_to tool_mails_path(@tool, folder: "sent")
+      assert_equal [ "sender@example.com", "reports@example.com", "boss@example.com" ], deliveries.sole[:recipients]
+      assert_match "To: Friendly Sender <sender@example.com>", deliveries.sole[:message]
+    end
+
+    test "create refuses a name without a valid address" do
+      [ "Friendly Sender <sender>", "Friendly Sender <sender@example.com" ].each do |recipient|
+        post tool_mails_path(@tool), params: { to: recipient, subject: "Hi", body: "<p>Hi</p>" }
+
+        assert_response :unprocessable_entity
+        assert_includes response.body, "Invalid email address: #{ERB::Util.html_escape(recipient)}"
+      end
+    end
+
     test "index with search query filters messages" do
       get tool_mails_path(@tool, q: "Welcome")
       assert_response :success
