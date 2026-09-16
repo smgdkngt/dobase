@@ -149,11 +149,13 @@ Each of these returns `200` and the message (the fields above):
 
 Read, star, archive and move changes are copied to the mail server in the
 background. Archiving moves the message to the account's archive folder if it
-has one, and otherwise only marks it read on the server.
+has one, and otherwise only marks it read on the server. Unarchiving moves it
+from the archive folder back to the inbox, or marks it unread when there's no
+archive folder.
 
-The `folder` to move to is a folder name on the server: `INBOX`, `Sent` or one
-of the `custom_folders`. An invalid name returns `422` with
-`{"errors": ["Invalid folder name"]}`.
+The `folder` to move to is `INBOX`, `Sent` (the server's sent folder, whatever
+the server calls it) or one of the `custom_folders`. An invalid name returns
+`422` with `{"errors": ["Invalid folder name"]}`.
 
 ## Drafts
 
