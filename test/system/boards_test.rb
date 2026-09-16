@@ -127,12 +127,10 @@ class BoardsTest < ApplicationSystemTestCase
 
   def open_card(card)
     wait_for_turbo
-    # Card detail loads via fetch — retry click if dialog doesn't open
-    3.times do
-      find("[data-card-id='#{card.id}']").click
-      break if page.has_selector?("dialog[open] [data-controller='board-card']", wait: 5)
-    end
-    assert_selector "dialog[open] [data-controller='board-card']"
+    wait_for_stimulus "board"
+    find("[data-card-id='#{card.id}']").click
+    # The card's details are fetched before the dialog opens
+    assert_selector "dialog[open] [data-controller='board-card']", wait: 10
   end
 
   def sign_in_as(user)

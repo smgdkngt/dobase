@@ -5,6 +5,21 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
 
   private
 
+  # Controllers register asynchronously after Turbo has loaded the page (each one is a
+  # separate module import), so on a slow machine a click can land before its action is
+  # wired up. Wait until the controller is connected on the first matching element.
+  def wait_for_stimulus(identifier, selector = "[data-controller~='#{identifier}']")
+    page.document.synchronize(10) do
+      connected = page.evaluate_script(<<~JS)
+        (() => {
+          const element = document.querySelector(#{selector.to_json})
+          return Boolean(element && window.Stimulus?.getControllerForElementAndIdentifier(element, #{identifier.to_json}))
+        })()
+      JS
+      raise Capybara::ExpectationNotMet, "Stimulus controller #{identifier} isn't connected on #{selector}" unless connected
+    end
+  end
+
   # Wait for Turbo to finish navigating/submitting before proceeding.
   # Uses aria-busy (set by Turbo) and custom data attributes (set in application.js).
   # See: https://island94.org/2026/03/a-bulletproof-wait_for_turbo-test-helper

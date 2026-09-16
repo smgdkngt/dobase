@@ -107,6 +107,6 @@ jobs:
         uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: screenshots
+          name: screenshots-attempt-${{ github.run_attempt }}
           path: ${{ github.workspace }}/tmp/screenshots
           if-no-files-found: ignore
