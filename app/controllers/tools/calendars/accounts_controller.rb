@@ -94,7 +94,7 @@ module Tools
 
       def create_caldav_account
         if @calendar_account.save
-          SyncCalendarsJob.perform_later(@calendar_account.id)
+          SyncCalendarsJob.perform_later(@calendar_account.id, discover: true)
           redirect_to tool_calendar_path(@tool), notice: "Calendar account connected successfully."
         else
           render :new, status: :unprocessable_entity

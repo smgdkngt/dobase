@@ -21,7 +21,7 @@ module Tools
         end
 
         @tool.calendar_account.mark_syncing!
-        SyncCalendarsJob.perform_later(@tool.calendar_account.id)
+        SyncCalendarsJob.perform_later(@tool.calendar_account.id, discover: true)
 
         respond_to do |format|
           format.turbo_stream { head :ok }

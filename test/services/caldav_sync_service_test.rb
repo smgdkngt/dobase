@@ -64,6 +64,34 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     assert @account.calendars.count >= initial_count
   end
 
+  test "server responses can't pull local files in through XML entities" do
+    Tempfile.create("caldav-secret") do |file|
+      file.write("very-secret-value")
+      file.flush
+      stub_request(:propfind, "https://caldav.icloud.com/123456789/calendars/").to_return(status: 207, body: <<~XML)
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE d:multistatus [<!ENTITY secret SYSTEM "file://#{file.path}">]>
+        <d:multistatus xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+          <d:response>
+            <d:href>/123456789/calendars/leak/</d:href>
+            <d:propstat>
+              <d:prop>
+                <d:resourcetype><d:collection/><c:calendar/></d:resourcetype>
+                <d:displayname>&secret;</d:displayname>
+              </d:prop>
+              <d:status>HTTP/1.1 200 OK</d:status>
+            </d:propstat>
+          </d:response>
+        </d:multistatus>
+      XML
+
+      calendars = @service.send(:list_calendars, "https://caldav.icloud.com/123456789/calendars/")
+
+      assert_equal [ "/123456789/calendars/leak/" ], calendars.map { |calendar| calendar[:remote_id] }
+      assert_not_includes calendars.inspect, "very-secret-value"
+    end
+  end
+
   test "discover_calendars preserves existing calendar sync_token" do
     existing = calendars_calendars(:personal)
     original_sync_token = existing.sync_token

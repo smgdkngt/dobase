@@ -614,7 +614,9 @@ class CaldavSyncService
   end
 
   def parse_xml(body)
-    Nokogiri::XML(body) { |config| config.nonet.noent }
+    # Responses come from a server the user chose. Never substitute entities: with
+    # `noent`, a <!ENTITY x SYSTEM "file:///..."> would read files off this machine.
+    Nokogiri::XML(body) { |config| config.nonet }
   end
 
   def sync_collection_xml(sync_token)
