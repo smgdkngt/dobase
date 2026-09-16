@@ -59,6 +59,30 @@ module Columns
       assert_response :unauthorized
     end
 
+    test "reordering with a filter on keeps the hidden cards in place" do
+      first, second = cards(:first_task), cards(:second_task)
+      third = @column.cards.create!(title: "Third in To Do", position: 2)
+
+      # The filter hides the second card: only the first and third were shown
+      patch column_positions_path(@column), params: { card_ids: [ third.id, first.id ] }, as: :json
+
+      assert_response :success
+      assert_equal [ third, first, second ], @column.cards.order(:position).to_a
+      assert_equal [ 0, 1, 2 ], @column.cards.order(:position).pluck(:position)
+    end
+
+    test "a card's assignee who has left the board isn't told it moved" do
+      card = cards(:third_task)
+      card.update_column(:assigned_user_id, users(:two).id)
+
+      assert_no_difference -> { users(:two).notifications.count } do
+        patch column_positions_path(@column), params: { card_ids: [ card.id, cards(:first_task).id ] }, as: :json
+      end
+
+      assert_response :success
+      assert_equal @column, card.reload.column
+    end
+
     test "cannot pull cards from a board the user has no access to" do
       sign_in_as users(:two)
       own_column = boards(:shared).columns.create!(name: "Mine", position: 0)

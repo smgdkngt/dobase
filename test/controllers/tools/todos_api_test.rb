@@ -327,6 +327,17 @@ module Tools
       assert ::Todos::Comment.exists?(comment.id)
     end
 
+    test "several files can be attached at once" do
+      files = %w[one.txt two.txt].map { |name| Rack::Test::UploadedFile.new(StringIO.new(name), "text/plain", original_filename: name) }
+      sign_in_as @user
+
+      assert_difference -> { @item.attachments.count }, 2 do
+        post tool_todo_item_attachments_path(@tool, @item), params: { files: files }
+      end
+
+      assert_redirected_to tool_todo_item_path(@tool, @item)
+    end
+
     test "attachments can be uploaded and removed" do
       file = Rack::Test::UploadedFile.new(StringIO.new("hello"), "text/plain", original_filename: "notes.txt")
 

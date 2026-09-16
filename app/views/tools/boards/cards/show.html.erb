@@ -290,7 +290,7 @@
             <%= form_with url: tool_board_card_attachments_path(@tool, @card), multipart: true, class: "inline", data: { turbo_frame: "card-detail-content" } do %>
               <label class="text-xs font-medium text-accent hover:text-accent-hover cursor-pointer transition-colors">
                 + Add
-                <input type="file" name="file" multiple class="hidden"
+                <input type="file" name="files[]" multiple class="hidden"
                        data-action="change->board-card#submitAttachment">
               </label>
             <% end %>
