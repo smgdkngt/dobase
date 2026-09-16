@@ -247,9 +247,10 @@
             <%# Auto-refresh %>
             <div class="mb-5">
               <h3 class="text-sm font-semibold text-text-primary mb-3">Auto-refresh</h3>
+              <%# Unset means the mail page's default of a minute %>
               <%= f.select :auto_refresh_interval,
                 [["Disabled", 0], ["30 seconds", 30], ["1 minute", 60], ["2 minutes", 120], ["5 minutes", 300]],
-                {}, class: "input" %>
+                { selected: mail_account.auto_refresh_interval || 60 }, class: "input" %>
             </div>
 
             <%# Sync Status %>
