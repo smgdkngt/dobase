@@ -34,6 +34,7 @@ class MailsTest < ApplicationSystemTestCase
 
   test "navigating to starred folder" do
     visit tool_mails_path(@tool)
+    wait_for_turbo
 
     find("button[popovertarget='mail-folder-menu']").click
 

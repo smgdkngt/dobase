@@ -16,13 +16,10 @@ module Tools
         MAX_ATTACHMENT_SIZE = 25.megabytes
 
         def create
-          file = params[:file]
+          files = uploaded_files
+          head :unprocessable_entity and return if files.empty?
 
-          unless file.is_a?(ActionDispatch::Http::UploadedFile)
-            head :unprocessable_entity and return
-          end
-
-          if file.size > MAX_ATTACHMENT_SIZE
+          if files.any? { |file| file.size > MAX_ATTACHMENT_SIZE }
             respond_to do |format|
               format.html { redirect_to tool_board_card_path(@tool, @card), alert: "File too large (max 25 MB)." }
               format.json { render json: { errors: [ "File too large (max 25 MB)" ] }, status: :unprocessable_entity }
@@ -30,12 +27,7 @@ module Tools
             return
           end
 
-          @attachment = @card.attachments.create!(
-            filename: file.original_filename,
-            content_type: file.content_type,
-            file_size: file.size
-          )
-          @attachment.file.attach(file)
+          @attachment = files.map { |file| attach(file) }.last
 
           respond_to do |format|
             format.html { redirect_to tool_board_card_path(@tool, @card) }
@@ -53,6 +45,17 @@ module Tools
         end
 
         private
+
+        # The browser sends files[] (several can be picked at once), the API a single file
+        def uploaded_files
+          Array(params[:files].presence || params[:file]).grep(ActionDispatch::Http::UploadedFile)
+        end
+
+        def attach(file)
+          @card.attachments.create!(filename: file.original_filename, content_type: file.content_type, file_size: file.size).tap do |attachment|
+            attachment.file.attach(file)
+          end
+        end
 
         def set_tool
           @tool = Tool.find(params[:tool_id])

@@ -201,7 +201,7 @@
             <%= form_with url: tool_todo_item_attachments_path(@tool, @item), multipart: true, class: "inline", data: { turbo_frame: "item-detail-content" } do %>
               <label class="text-xs font-medium text-accent hover:text-accent-hover cursor-pointer transition-colors">
                 + Add
-                <input type="file" name="file" class="hidden"
+                <input type="file" name="files[]" multiple class="hidden"
                        data-action="change->todo-item#submitAttachment">
               </label>
             <% end %>

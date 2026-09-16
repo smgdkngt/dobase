@@ -205,6 +205,19 @@ module Tools
       assert response.parsed_body["download_url"].present?
     end
 
+    test "several files can be attached at once" do
+      files = %w[one.txt two.txt].map { |name| Rack::Test::UploadedFile.new(StringIO.new(name), "text/plain", original_filename: name) }
+
+      sign_in_as @user
+
+      assert_difference -> { @card.attachments.count }, 2 do
+        post tool_board_card_attachments_path(@tool, @card), params: { files: files }
+      end
+
+      assert_redirected_to tool_board_card_path(@tool, @card)
+      assert_equal %w[one.txt two.txt], @card.attachments.order(:id).pluck(:filename)
+    end
+
     test "columns can be created, renamed and deleted" do
       post tool_board_columns_path(@tool), params: { name: "Review" }, headers: @headers, as: :json
       assert_response :created

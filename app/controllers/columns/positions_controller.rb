@@ -13,7 +13,7 @@ module Columns
       # Find cards that are moving TO this column from a different one
       moved_cards = Boards::Card.where(id: card_ids).where.not(column_id: @column.id).to_a
 
-      card_ids.each_with_index do |id, index|
+      column_order(card_ids).each_with_index do |id, index|
         Boards::Card.where(id: id).update_all(column_id: @column.id, position: index)
       end
 
@@ -38,13 +38,20 @@ module Columns
       requested & @column.board.cards.where(id: requested).ids
     end
 
+    # With the assignee filter on, the request only lists the cards that were shown.
+    # The column's other cards keep their places: each stays after the card it followed.
+    def column_order(requested)
+      current = @column.cards.order(:position, :id).ids
+      KeepHiddenInPlace.call(current, requested)
+    end
+
     def notify_card_moves(moved_cards)
       moved_cards.each do |card|
         next unless card.assigned_user_id.present?
         next if card.assigned_user_id == current_user.id
 
-        assignee = User.find(card.assigned_user_id)
-        next if @tool.muted_by?(assignee)
+        assignee = User.find_by(id: card.assigned_user_id)
+        next if assignee.nil? || !@tool.accessible_by?(assignee) || @tool.muted_by?(assignee)
 
         CardMovedNotifier.with(card: card, mover: current_user, tool: @tool, column: @column).deliver(assignee)
         assignee.prune_notifications!

@@ -9,7 +9,7 @@ module TodoLists
     before_action -> { authorize_tool_access!(@tool) }
 
     def update
-      tool_item_ids.each_with_index do |id, index|
+      list_order(tool_item_ids).each_with_index do |id, index|
         ::Todos::Item.where(id: id).update_all(todo_list_id: @list.id, position: index)
       end
       render json: { success: true }
@@ -23,6 +23,12 @@ module TodoLists
 
     def set_tool
       @tool = @list.tool
+    end
+
+    # With the assignee filter on, the request only lists the items that were shown.
+    # The list's other items keep their places: each stays after the item it followed.
+    def list_order(requested)
+      KeepHiddenInPlace.call(@list.items.order(:position, :id).ids, requested)
     end
 
     # The requested item ids, in order, limited to items in this tool's lists.

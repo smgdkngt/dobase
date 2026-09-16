@@ -20,6 +20,20 @@ module TodoLists
       assert_equal 1, todo_items(:pending_one).position
     end
 
+    test "reordering with a filter on keeps the hidden items in place" do
+      list = todo_lists(:backlog)
+      first = list.items.create!(title: "First", position: 0)
+      hidden = list.items.create!(title: "Hidden", position: 1)
+      last = list.items.create!(title: "Last", position: 2)
+
+      # The filter hides the middle item: only the first and last were shown
+      patch todo_list_positions_path(list), params: { item_ids: [ last.id, first.id ] }, as: :json
+
+      assert_response :success
+      assert_equal [ last, first, hidden ], list.items.reload.to_a
+      assert_equal [ 0, 1, 2 ], list.items.map(&:position)
+    end
+
     test "cannot pull items from a tool the user has no access to" do
       foreign_item = todo_items(:other_item)
 
