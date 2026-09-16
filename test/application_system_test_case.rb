@@ -7,6 +7,13 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
     options.add_preference("profile.password_manager_leak_detection", false)
   end
 
+  # When the service worker installed on the first page takes control of it, Chrome drops
+  # the next click now and then. The tests don't need it.
+  setup do
+    page.driver.browser.execute_cdp("Page.addScriptToEvaluateOnNewDocument",
+      source: "navigator.serviceWorker.register = () => Promise.resolve()")
+  end
+
   private
 
   # Controllers register asynchronously after Turbo has loaded the page (each one is a
