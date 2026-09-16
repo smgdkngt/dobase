@@ -88,6 +88,14 @@ module Tools
       assert_includes response.body, "Images are hidden"
     end
 
+    test "the list says how many messages it has" do
+      get tool_mails_path(@tool, folder: "trash")
+      assert_select "span", text: "1 message"
+
+      get tool_mails_path(@tool)
+      assert_select "span", text: "3 messages"
+    end
+
     test "show redirects drafts to the compose form" do
       draft = mails_messages(:draft_message)
       get tool_mail_path(@tool, draft)
