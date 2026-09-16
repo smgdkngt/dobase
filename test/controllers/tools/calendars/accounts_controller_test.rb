@@ -34,6 +34,16 @@ module Tools
         end
       end
 
+      test "an account isn't saved without a CalDAV address" do
+        account = calendars_accounts(:icloud_account)
+
+        patch tool_calendar_account_path(account.tool), params: { calendars_account: { caldav_url: " " } }
+
+        assert_response :unprocessable_entity
+        assert_select ".flash-error", text: "CalDAV URL can't be blank"
+        assert_equal "https://caldav.icloud.com/", account.reload.caldav_url
+      end
+
       test "creating a local account adds a default calendar named after the tool" do
         post tool_calendar_account_path(@tool), params: { calendars_account: { provider: "local" } }
 

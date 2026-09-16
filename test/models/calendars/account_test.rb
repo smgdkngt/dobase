@@ -40,6 +40,29 @@ module Calendars
       assert_includes account.errors[:encrypted_password], "can't be blank"
     end
 
+    test "a CalDAV account needs an http or https address" do
+      account = calendars_accounts(:icloud_account)
+
+      [ "", "caldav.example.com", "ftp://caldav.example.com/", "https://", "https://caldav example.com/" ].each do |url|
+        account.caldav_url = url
+        assert_not account.valid?, url.inspect
+        assert_predicate account.errors[:caldav_url], :any?, url.inspect
+      end
+
+      account.caldav_url = "  https://caldav.example.com/dav/ "
+      assert account.valid?
+      assert_equal "https://caldav.example.com/dav/", account.caldav_url
+    end
+
+    test "an account saved without a proper address can still record its syncs" do
+      account = calendars_accounts(:icloud_account)
+      account.update_columns(caldav_url: "")
+
+      account.mark_sync_error!("Connection failed")
+
+      assert_equal "error", account.reload.sync_status
+    end
+
     test "local account saves without username or password" do
       tool = Tool.create!(
         name: "Local-only calendar",
