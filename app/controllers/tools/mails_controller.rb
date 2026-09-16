@@ -178,6 +178,7 @@ module Tools
         format.html do
           flash.now[:alert] = message
           build_compose_defaults
+          @unsent = true
           render :new, status: :unprocessable_entity
         end
         format.json { render json: { errors: [ message ] }, status: :unprocessable_entity }

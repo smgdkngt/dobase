@@ -2,20 +2,20 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["to", "bccField", "fileInput", "attachmentsList"]
+  static values = { unsent: Boolean }
 
   connect() {
     this.files = []
     this._submitting = false
-    this._savedDraft = !!this.element.querySelector("input[name='draft_id']")
-    this._snapshot = this._formSnapshot()
+    this._snapshot = null
     this._beforeUnload = (e) => {
-      if (this._hasContent() && !this._submitting) {
+      if (this._hasChanges() && !this._submitting) {
         e.preventDefault()
         e.returnValue = ""
       }
     }
     this._beforeVisit = (e) => {
-      if (this._hasContent() && !this._submitting) {
+      if (this._hasChanges() && !this._submitting) {
         if (!confirm("You have an unsent message. Discard it?")) {
           e.preventDefault()
         }
@@ -32,24 +32,29 @@ export default class extends Controller {
     document.removeEventListener("turbo:before-visit", this._beforeVisit)
   }
 
-  _hasContent() {
-    // Draft saved and no changes since — nothing to lose
-    if (this._savedDraft && this._formSnapshot() === this._snapshot) return false
+  // Changes count from when someone first reaches for the form, before their input lands.
+  // What a reply, forward or draft starts with isn't an edit, and neither is the editor
+  // putting that body in its own HTML once it has started.
+  startEditing() {
+    this._snapshot ??= this._formSnapshot()
+  }
 
-    const form = this.element
-    const to = form.querySelector("input[name='to']")?.value?.trim()
-    const subject = form.querySelector("input[name='subject']")?.value?.trim()
-    const bodyHtml = form.querySelector("input[name='body']")?.value || ""
-    const bodyText = bodyHtml.replace(/<[^>]*>/g, "").trim()
-    return !!(to || subject || bodyText)
+  // A send that failed comes back to this same form (a morph), which still holds the message
+  submitEnded(event) {
+    if (!event.detail.success) this._submitting = false
+  }
+
+  // A form that came back from a failed send holds a message that hasn't gone out
+  _hasChanges() {
+    if (this.unsentValue) return true
+    return this._snapshot !== null && this._formSnapshot() !== this._snapshot
   }
 
   _formSnapshot() {
-    const form = this.element
-    const to = form.querySelector("input[name='to']")?.value || ""
-    const subject = form.querySelector("input[name='subject']")?.value || ""
-    const body = form.querySelector("input[name='body']")?.value || ""
-    return `${to}|${subject}|${body}`
+    const form = new FormData(this.element)
+    const fields = ["to", "cc", "bcc", "subject", "body"].map(name => form.get(name))
+    const files = form.getAll("attachments[]").map(file => file.name)
+    return JSON.stringify([...fields, ...files])
   }
 
   discard() {

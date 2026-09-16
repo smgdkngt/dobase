@@ -2,7 +2,14 @@
 <% content_for :title, "#{heading} - #{@tool.name} - #{app_name}" %>
 <% content_for :page_title, "" %>
 
-<%= form_with url: tool_mails_path(@tool), method: :post, multipart: true, class: "compose-layout", data: { controller: "compose" } do %>
+<%= form_with url: tool_mails_path(@tool), method: :post, multipart: true, class: "compose-layout",
+      data: {
+        controller: "compose",
+        compose_unsent_value: @unsent,
+        action: "pointerdown->compose#startEditing:capture keydown->compose#startEditing:capture " \
+                "beforeinput->compose#startEditing:capture dragenter->compose#startEditing:capture " \
+                "turbo:submit-end->compose#submitEnded"
+      } do %>
   <% if @draft %>
     <%= hidden_field_tag :draft_id, @draft.id %>
   <% end %>

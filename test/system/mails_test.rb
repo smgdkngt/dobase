@@ -169,6 +169,38 @@ class MailsTest < ApplicationSystemTestCase
     assert_db_change(-> { draft.reload.subject == "Plans for Friday" })
   end
 
+  test "leaving a reply or forward only asks to discard it once it has been changed" do
+    message = mails_messages(:inbox_read)
+    visit new_tool_mail_path(@tool, reply_to: message.id)
+    wait_for_compose_editor
+    wait_for_turbo
+
+    click_on "Project Board"
+    assert_current_path tool_board_path(tools(:project_board))
+
+    visit new_tool_mail_path(@tool, forward: message.id)
+    wait_for_compose_editor
+    find("rhino-editor [contenteditable]").send_keys("FYI")
+    assert_selector "rhino-editor [contenteditable]", text: "FYI"
+    wait_for_turbo
+
+    dismiss_confirm("You have an unsent message. Discard it?") { click_on "Project Board" }
+    assert_current_path new_tool_mail_path(@tool, forward: message.id)
+  end
+
+  test "leaving a message that failed to send asks to discard it" do
+    visit new_tool_mail_path(@tool)
+    wait_for_compose_editor
+    add_recipient "not-an-address"
+    click_on "Send"
+    assert_text "Invalid email address: not-an-address"
+    wait_for_compose_editor
+    wait_for_turbo
+
+    dismiss_confirm("You have an unsent message. Discard it?") { click_on "Project Board" }
+    assert_selector "input[name='to'][value='not-an-address']", visible: :hidden
+  end
+
   test "bulk select and archive" do
     visit tool_mails_path(@tool)
 
@@ -221,6 +253,16 @@ class MailsTest < ApplicationSystemTestCase
   end
 
   private
+
+  # The editor takes the prefilled body, and typing, once it has started. Headless Chrome
+  # can drop input that arrives before the page has shown a frame, so wait for two.
+  def wait_for_compose_editor
+    wait_for_stimulus "compose"
+    page.document.synchronize do
+      raise Capybara::ExpectationNotMet, "The editor hasn't started" unless evaluate_script("document.querySelector('rhino-editor').hasInitialized")
+    end
+    page.evaluate_async_script("requestAnimationFrame(() => requestAnimationFrame(arguments[0]))")
+  end
 
   def add_recipient(address)
     find("input[data-compose-target='to']").set(address).send_keys(:enter)
