@@ -252,6 +252,22 @@ class MailsTest < ApplicationSystemTestCase
     assert_db_change(-> { account.reload.syncing? })
   end
 
+  test "mail settings that can't be saved show what to fix" do
+    open_mail_settings
+    within "dialog#edit-tool-modal[open]" do
+      click_on "Email"
+      find_field("mails_account[imap_host]").set("   ")
+      click_on "Save Changes"
+    end
+
+    assert_text "Imap host can't be blank"
+    find_field("mails_account[imap_host]").set("imap.fixed.example.com")
+    click_on "Save Changes"
+
+    assert_text "Mail account updated successfully."
+    assert_equal "imap.fixed.example.com", @tool.mail_account.reload.imap_host
+  end
+
   private
 
   # The editor takes the prefilled body, and typing, once it has started. Headless Chrome
@@ -271,6 +287,14 @@ class MailsTest < ApplicationSystemTestCase
   def text_file(name, content)
     @files ||= Dir.mktmpdir
     File.join(@files, name).tap { |path| File.write(path, content) }
+  end
+
+  def open_mail_settings
+    visit tool_mails_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "sidebar"
+    # The settings gear only shows on hover
+    find("[data-action~='click->sidebar#editTool'][data-tool-id='#{@tool.id}']", visible: :all).execute_script("this.click()")
   end
 
   # Click an element and retry if the expected condition isn't met.

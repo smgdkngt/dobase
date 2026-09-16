@@ -28,7 +28,8 @@ module Tools
         if @mail_account.update(mail_account_params)
           redirect_to tool_mails_path(@tool), notice: "Mail account updated successfully."
         else
-          render :edit, status: :unprocessable_entity
+          # The mail account is edited in the tool's settings
+          render "tools/edit", status: :unprocessable_entity
         end
       end
 
