@@ -9,6 +9,10 @@ class MailsTest < ApplicationSystemTestCase
     sign_in_as(@user)
   end
 
+  teardown do
+    FileUtils.rm_rf(@files) if @files
+  end
+
   test "viewing inbox shows messages" do
     visit tool_mails_path(@tool)
 
@@ -126,6 +130,45 @@ class MailsTest < ApplicationSystemTestCase
     assert_equal [ "sender@example.com" ], deliveries.sole[:recipients]
   end
 
+  test "attachments go out with the email, however many times files are picked" do
+    visit new_tool_mail_path(@tool)
+    wait_for_stimulus "compose"
+
+    deliveries = capture_smtp_deliveries do
+      add_recipient "friend@example.com"
+      find("input[name='subject']").set("Numbers")
+      attach_file "attachments[]", text_file("report.txt", "numbers"), make_visible: true
+      attach_file "attachments[]", text_file("notes.txt", "more numbers"), make_visible: true
+      assert_text "report.txt"
+      assert_text "notes.txt"
+
+      click_on "Send"
+      assert_text "Email sent successfully."
+    end
+
+    assert_match "report.txt", deliveries.sole[:message]
+    assert_match "notes.txt", deliveries.sole[:message]
+    sent = @tool.mail_account.messages.sent.find_by!(subject: "Numbers")
+    assert_equal [ "notes.txt", "report.txt" ], sent.attachments.pluck(:filename).sort
+  end
+
+  test "saving a draft, and saving it again" do
+    visit new_tool_mail_path(@tool)
+    wait_for_stimulus "compose"
+
+    add_recipient "friend@example.com"
+    find("input[name='subject']").set("Plans")
+    click_on "Save Draft"
+    assert_text "Draft saved."
+    draft = @tool.mail_account.messages.drafts.find_by!(subject: "Plans")
+    assert_equal [ "friend@example.com" ], draft.to_addresses_list
+
+    wait_for_stimulus "compose"
+    find("input[name='subject']").set("Plans for Friday")
+    click_on "Save Draft"
+    assert_db_change(-> { draft.reload.subject == "Plans for Friday" })
+  end
+
   test "bulk select and archive" do
     visit tool_mails_path(@tool)
 
@@ -178,6 +221,15 @@ class MailsTest < ApplicationSystemTestCase
   end
 
   private
+
+  def add_recipient(address)
+    find("input[data-compose-target='to']").set(address).send_keys(:enter)
+  end
+
+  def text_file(name, content)
+    @files ||= Dir.mktmpdir
+    File.join(@files, name).tap { |path| File.write(path, content) }
+  end
 
   # Click an element and retry if the expected condition isn't met.
   # Turbo method links sometimes fail to fire in headless Chrome.

@@ -1,7 +1,7 @@
 <% content_for :title, "Compose - #{@tool.name} - #{app_name}" %>
 <% content_for :page_title, "" %>
 
-<%= form_with url: tool_mails_path(@tool), method: :post, class: "compose-layout", data: { controller: "compose" } do %>
+<%= form_with url: tool_mails_path(@tool), method: :post, multipart: true, class: "compose-layout", data: { controller: "compose" } do %>
   <% if @draft %>
     <%= hidden_field_tag :draft_id, @draft.id %>
   <% end %>

@@ -66,10 +66,12 @@ export default class extends Controller {
     }
   }
 
+  // Picking files again replaces what the input holds, so put back the ones picked before
   handleFiles(event) {
     const newFiles = Array.from(event.target.files)
     this.files.push(...newFiles)
     this.renderAttachments()
+    this.updateFileInput()
   }
 
   removeFile(event) {
