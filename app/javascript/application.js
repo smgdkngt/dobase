@@ -57,6 +57,9 @@ Turbo.config.forms.confirm = (message, element, submitter) => {
   const confirmBtn = dialog.querySelector("button[value='confirm']")
   confirmBtn.textContent = confirmButtonLabel(element, submitter)
 
+  // Cancel, Escape and clicking outside close the dialog without setting a return value,
+  // and the dialog survives morph refreshes, so clear what an earlier Confirm left behind
+  dialog.returnValue = ""
   dialog.showModal()
 
   return new Promise((resolve) => {
