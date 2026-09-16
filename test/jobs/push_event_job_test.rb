@@ -21,6 +21,19 @@ class PushEventJobTest < ActiveJob::TestCase
     end
   end
 
+  test "moves an event that changed calendars on the server too" do
+    old_href = @event.remote_href
+    work = calendars_calendars(:work)
+    @event.update!(calendar: work)
+    created = stub_request(:put, "#{work.remote_url}#{@event.uid}.ics").to_return(status: 201)
+    deleted = stub_request(:delete, old_href).to_return(status: 204)
+
+    PushEventJob.perform_now(@event.id, :move)
+
+    assert_requested created
+    assert_requested deleted
+  end
+
   test "marks the calendar read-only when the server refuses changes" do
     stub_request(:put, @event.remote_href).to_return(status: 403)
 

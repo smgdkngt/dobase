@@ -74,7 +74,7 @@ module Tools
         @event.calendar = find_calendar(event_params[:calendar_id]) if event_params[:calendar_id].present?
 
         if calendar_accepts_event? && @event.save
-          PushEventJob.perform_later(@event.id, :update)
+          PushEventJob.perform_later(@event.id, @event.saved_change_to_calendar_id? ? :move : :update)
 
           respond_to do |format|
             format.html { redirect_to tool_calendar_path(@tool), notice: "Event updated successfully.", status: :see_other }

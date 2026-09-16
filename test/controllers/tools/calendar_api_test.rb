@@ -236,7 +236,7 @@ module Tools
       assert_equal [ "Dentist (moved)", "2030-01-09T10:00:00.000+01:00", "2030-01-09T11:30:00.000+01:00" ], body.values_at("summary", "starts_at", "ends_at")
       assert_equal "Work", body.dig("calendar", "name")
       assert_equal @work, event.reload.calendar
-      assert_enqueued_with job: PushEventJob, args: [ event.id, :update ]
+      assert_enqueued_with job: PushEventJob, args: [ event.id, :move ]
     end
 
     test "update refuses to move an event to a read-only calendar" do

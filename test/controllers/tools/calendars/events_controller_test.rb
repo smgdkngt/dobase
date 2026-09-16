@@ -18,6 +18,15 @@ module Tools
 
         assert_redirected_to tool_calendar_path(@tool)
         assert_equal [ "Renamed", calendars_calendars(:work) ], [ @meeting.reload.summary, @meeting.calendar ]
+        assert_enqueued_with job: PushEventJob, args: [ @meeting.id, :move ]
+      end
+
+      test "an update in the same calendar pushes the change" do
+        patch tool_calendar_event_path(@tool, @meeting), params: {
+          calendars_event: { calendar_id: @meeting.calendar_id, summary: "Renamed" }
+        }
+
+        assert_redirected_to tool_calendar_path(@tool)
         assert_enqueued_with job: PushEventJob, args: [ @meeting.id, :update ]
       end
 

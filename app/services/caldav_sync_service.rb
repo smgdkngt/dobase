@@ -157,16 +157,28 @@ class CaldavSyncService
     event.update!(etag: response.headers["etag"]&.gsub('"', ""))
   end
 
+  # Creates the event in the calendar it moved to, then deletes it from the one it was in. Its
+  # remote_href and etag still belong to the old calendar until then.
+  def move_event(event)
+    return if event.calendar.local?
+
+    old_href, old_etag = event.remote_href, event.etag
+    create_event(event)
+    return if old_href.blank? || old_href == event.remote_href
+
+    begin
+      delete_resource(old_href, old_etag)
+    rescue SyncError, ConnectionError => e
+      # Trying the move again would lose track of the old copy, so it stays until someone deletes it
+      Rails.logger.warn("Moved event #{event.uid}, but couldn't delete it from #{old_href}: #{e.message}")
+    end
+  end
+
   def delete_event(event)
     return if event.calendar.local?
     return unless event.remote_href.present?
 
-    response = http_client.delete(event.remote_href) do |req|
-      req.headers["If-Match"] = %("#{event.etag}") if event.etag.present?
-    end
-
-    # 404: the event is gone already
-    check_change!(response, "Failed to delete event") unless response.status == 404
+    delete_resource(event.remote_href, event.etag)
   end
 
   def update_calendar(calendar)
@@ -209,6 +221,15 @@ class CaldavSyncService
       f.options.open_timeout = 10
       f.adapter Faraday.default_adapter
     end
+  end
+
+  def delete_resource(href, etag)
+    response = http_client.delete(href) do |req|
+      req.headers["If-Match"] = %("#{etag}") if etag.present?
+    end
+
+    # 404: the event is gone already
+    check_change!(response, "Failed to delete event") unless response.status == 404
   end
 
   # A server error may pass, so it counts as a connection error and the change is sent again later
@@ -538,8 +559,36 @@ class CaldavSyncService
     vevent.dtstamp = Icalendar::Values::DateTime.new(Time.current.utc)
 
     cal.add_event(vevent)
+    keep_exceptions(cal, vevent, event) if event.is_recurring? && event.rrule.present?
     cal.publish
     cal.to_ical
+  end
+
+  # Dobase doesn't edit the occurrences a synced series skips (EXDATE) or adds (RDATE), nor the
+  # ones changed on their own (a VEVENT with a RECURRENCE-ID), so they're sent back as they came,
+  # with the time zones they use. Once the series starts at another time they no longer fit.
+  def keep_exceptions(cal, vevent, event)
+    original = Icalendar::Calendar.parse(event.raw_icalendar.to_s).first
+    return unless original
+
+    same_event = original.events.select { |component| component.uid.to_s == event.uid }
+    series = same_event.find { |component| component.recurrence_id.nil? }
+    return unless series && same_start?(series, event)
+
+    vevent.exdate = series.exdate
+    vevent.rdate = series.rdate
+    same_event.select(&:recurrence_id).each { |occurrence| cal.add_event(occurrence) }
+    original.timezones.each { |timezone| cal.add_timezone(timezone) }
+  rescue Icalendar::Parser::ParseError, ArgumentError => e
+    Rails.logger.warn("Couldn't keep the exceptions of event #{event.uid}: #{e.message}")
+  end
+
+  def same_start?(series, event)
+    if event.all_day?
+      series.dtstart.is_a?(Icalendar::Values::Date) && series.dtstart.to_date == event.first_day
+    else
+      !series.dtstart.is_a?(Icalendar::Values::Date) && series.dtstart.to_time == event.starts_at
+    end
   end
 
   def resolve_url(href)

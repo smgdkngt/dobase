@@ -21,6 +21,8 @@ class PushEventJob < ApplicationJob
       service.create_event(event)
     when :update
       service.update_event(event)
+    when :move
+      service.move_event(event)
     when :delete
       service.delete_event(event)
     else
