@@ -10,7 +10,8 @@
   all_day = event.all_day? && event.starts_at && event.ends_at
 %>
 
-<%= form_with model: event, url: form_url, method: form_method, data: { turbo_frame: "_top" } do |f| %>
+<%# In the event details modal the form stays in its frame, so a failed save shows its errors there %>
+<%= form_with model: event, url: form_url, method: form_method do |f| %>
   <%= render "shared/error_flash", object: event %>
 
   <!-- Summary -->
@@ -217,7 +218,8 @@
       <%= render "components/button",
           text: "Cancel",
           variant: :secondary,
-          href: tool_calendar_path(tool) %>
+          href: tool_calendar_path(tool),
+          data: { turbo_frame: "_top" } %>
     <% end %>
     <%= render "components/button",
         text: is_new ? "Create Event" : "Save Changes",

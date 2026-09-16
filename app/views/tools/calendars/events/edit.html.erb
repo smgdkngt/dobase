@@ -8,6 +8,6 @@
         event: @event,
         calendars: @calendars,
         tool: @tool,
-        modal_id: "event-details-modal" %>
+        modal_id: ("event-details-modal" if turbo_frame_request?) %>
   </div>
 <% end %>

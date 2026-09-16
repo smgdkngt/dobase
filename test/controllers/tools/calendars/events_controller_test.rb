@@ -34,6 +34,14 @@ module Tools
         end
       end
 
+      test "the edit form cancels by closing the event dialog, or on its own page by going back to the calendar" do
+        get edit_tool_calendar_event_path(@tool, @meeting), headers: { "Turbo-Frame" => "event_modal_content" }
+        assert_select "form:not([data-turbo-frame]) button[type=button][data-action='click->modal#close']", text: "Cancel"
+
+        get edit_tool_calendar_event_path(@tool, @meeting)
+        assert_select "a[href='#{tool_calendar_path(@tool)}'][data-turbo-frame='_top']", text: "Cancel"
+      end
+
       test "update can't move an event to a calendar of another tool" do
         foreign_calendar = calendars_accounts(:pending_account).calendars.create!(name: "Theirs", remote_id: "/theirs/")
 

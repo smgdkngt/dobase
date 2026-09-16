@@ -21,6 +21,27 @@ class CalendarsTest < ApplicationSystemTestCase
     end
   end
 
+  test "a failed save shows its errors in the event dialog, and Cancel closes it" do
+    event = calendars_calendars(:personal).events.create!(uid: "dentist@dobase", summary: "Dentist",
+      starts_at: Time.utc(2030, 1, 8, 14), ends_at: Time.utc(2030, 1, 8, 15))
+    visit tool_calendar_path(@tool, week_start: "2030-01-07")
+    wait_for_turbo
+    wait_for_stimulus "calendar"
+
+    find("[data-event-id='#{event.id}']").click
+    within("dialog#event-details-modal[open]") do
+      click_on "Edit"
+      find_field("calendars_event[end_time]").set(Time.utc(2030, 1, 8, 13))
+      click_on "Save Changes"
+      assert_text "Ends at must be after starts_at"
+      click_on "Cancel"
+    end
+
+    assert_no_selector "dialog#event-details-modal[open]"
+    assert_selector "[data-event-id='#{event.id}']", text: "Dentist"
+    assert_equal Time.utc(2030, 1, 8, 15), event.reload.ends_at
+  end
+
   private
 
   def in_browser_time_zone(zone)
