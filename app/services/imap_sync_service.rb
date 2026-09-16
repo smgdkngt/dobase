@@ -117,8 +117,7 @@ class ImapSyncService
       # Delete old draft from server if it exists
       if message.uid.present? && drafts_folder
         imap.select(drafts_folder)
-        imap.uid_store(message.uid, "+FLAGS", [ :Deleted ])
-        imap.expunge
+        remove_from_folder(imap, message.uid)
       end
 
       # Upload new version
@@ -146,8 +145,7 @@ class ImapSyncService
   def delete_message(uid, folder:)
     connect do |imap|
       select_folder(imap, folder)
-      imap.uid_store(uid, "+FLAGS", [ :Deleted ])
-      imap.expunge
+      remove_from_folder(imap, uid)
     end
   rescue StandardError => e
     Rails.logger.error("Failed to delete email #{uid} from #{folder}: #{e.message}")
@@ -158,8 +156,7 @@ class ImapSyncService
       source, destination = server_folder_names(imap, source_folder, destination_folder)
       imap.select(source)
       imap.uid_copy(uid, destination)
-      imap.uid_store(uid, "+FLAGS", [ :Deleted ])
-      imap.expunge
+      remove_from_folder(imap, uid)
     end
   rescue StandardError => e
     Rails.logger.error("Failed to move email #{uid} from #{source_folder} to #{destination_folder}: #{e.message}")
@@ -176,8 +173,7 @@ class ImapSyncService
       next if uids.empty?
 
       imap.uid_copy(uids, destination)
-      imap.uid_store(uids, "+FLAGS", [ :Deleted ])
-      imap.expunge
+      remove_from_folder(imap, uids)
     end
   rescue StandardError => e
     Rails.logger.error("Failed to move email #{message_id} from #{source_folder} to #{destination_folder}: #{e.message}")
@@ -400,6 +396,18 @@ class ImapSyncService
 
   def select_folder(imap, folder)
     imap.select(server_folder_names(imap, folder).first)
+  end
+
+  # A plain EXPUNGE removes every message flagged \Deleted in the folder, also ones another
+  # mail client flagged without removing them. UID EXPUNGE removes only these messages.
+  def remove_from_folder(imap, uids)
+    imap.uid_store(uids, "+FLAGS", [ :Deleted ])
+
+    if imap.capable?("UIDPLUS") || imap.capable?("IMAP4rev2")
+      imap.uid_expunge(uids)
+    else
+      imap.expunge
+    end
   end
 
   # Sent mail is kept in "Sent" here, whatever the server calls its sent folder

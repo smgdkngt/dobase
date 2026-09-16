@@ -194,6 +194,57 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_empty server.stored
   end
 
+  # --- Removing mail from a folder ----------------------------------------------
+  # A plain EXPUNGE also removes messages that other mail clients flagged \Deleted.
+
+  test "deleting a message removes only that message when the server supports UIDPLUS" do
+    server = FakeImapServer.new(capabilities: %w[IMAP4REV1 UIDPLUS])
+
+    connect_to_imap(server) { @service.delete_message(101, folder: "INBOX") }
+
+    assert_equal [ [ 101, "+FLAGS", [ :Deleted ] ] ], server.stored
+    assert_equal [ 101 ], server.expunged
+  end
+
+  test "deleting a message falls back to a plain expunge on servers without UIDPLUS" do
+    server = FakeImapServer.new(capabilities: %w[IMAP4REV1])
+
+    connect_to_imap(server) { @service.delete_message(101, folder: "INBOX") }
+
+    assert_equal [ :all ], server.expunged
+  end
+
+  test "IMAP4rev2 servers remove only the deleted message too" do
+    server = FakeImapServer.new(capabilities: %w[IMAP4REV2])
+
+    connect_to_imap(server) { @service.delete_message(101, folder: "INBOX") }
+
+    assert_equal [ 101 ], server.expunged
+  end
+
+  test "moving mail removes only the moved messages from the folder they leave" do
+    server = FakeImapServer.new(folders: [ "INBOX", "Receipts", "Archive" ], message_ids: { [ "Archive", "<msg-006@example.com>" ] => [ 12, 13 ] })
+
+    connect_to_imap(server) do
+      @service.move_to_folder(101, source_folder: "INBOX", destination_folder: "Receipts")
+      @service.move_to_folder_by_message_id("msg-006@example.com", source_folder: "Archive", destination_folder: "INBOX")
+    end
+
+    assert_equal [ 101, [ 12, 13 ] ], server.expunged
+  end
+
+  test "saving a draft again removes only its old copy" do
+    draft = mails_messages(:draft_message)
+    draft.update_column(:uid, 55)
+    server = FakeImapServer.new(folders: [ "INBOX", "Drafts" ], message_ids: { [ "Drafts", draft.message_id ] => [ 56 ] })
+
+    connect_to_imap(server) { @service.save_draft(draft) }
+
+    assert_equal [ 55 ], server.expunged
+    assert_equal [ [ "Drafts", [ :Draft, :Seen ] ] ], server.appended
+    assert_equal 56, draft.reload.uid
+  end
+
   # --- UTF-8 safety -----------------------------------------------------------
   # IMAP servers regularly return non-UTF-8 bytes; the service must not crash.
 

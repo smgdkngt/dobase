@@ -5,19 +5,27 @@ require "net/imap"
 # An IMAP server for tests. It lists its folders, finds messages by Message-ID
 # and records what it's asked to do. `connect_to_imap` sends connections to it.
 class FakeImapServer
-  attr_reader :selected, :searched, :stored, :copied, :lists
+  attr_reader :selected, :searched, :stored, :copied, :appended, :expunged, :lists
 
   # message_ids: { [folder, "<message-id>"] => [uid, ...] }
-  def initialize(folders: [ "INBOX" ], message_ids: {})
+  def initialize(folders: [ "INBOX" ], message_ids: {}, capabilities: %w[IMAP4REV1 UIDPLUS])
     @folders = folders
     @message_ids = message_ids
-    @selected, @searched, @stored, @copied, @lists = [], [], [], [], 0
+    @capabilities = capabilities
+    @selected, @searched, @stored, @copied, @appended, @expunged, @lists = [], [], [], [], [], [], 0
   end
 
   def login(_username, _password) = nil
   def logout = nil
   def disconnect = nil
-  def expunge = nil
+
+  def capable?(capability) = @capabilities.include?(capability.to_s.upcase)
+
+  # A plain EXPUNGE is recorded as :all, a UID EXPUNGE as its UIDs
+  def expunge = @expunged << :all
+  def uid_expunge(uids) = @expunged << uids
+
+  def append(folder, _message, flags) = @appended << [ folder, flags ]
 
   def list(_reference, _pattern)
     @lists += 1
