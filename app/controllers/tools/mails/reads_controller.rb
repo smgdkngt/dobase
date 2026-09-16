@@ -12,16 +12,15 @@ module Tools
       before_action :set_message
 
       # POST /tools/:tool_id/mails/:mail_id/read
+      # The message copies the change to the mail server itself
       def create
         @message.mark_as_read!
-        sync_imap(:mark_as_read)
         respond_with_message
       end
 
       # DELETE /tools/:tool_id/mails/:mail_id/read
       def destroy
         @message.mark_as_unread!
-        sync_imap(:mark_as_unread)
         respond_with_message
       end
 
@@ -33,11 +32,6 @@ module Tools
 
       def set_message
         @message = ::Mails::Message.where(account: @tool.mail_account).find(params[:mail_id])
-      end
-
-      def sync_imap(action)
-        return unless @message.uid.present?
-        ImapSyncJob.perform_later(@tool.mail_account.id, action.to_s, @message.uid, @message.folder || "INBOX")
       end
 
       def respond_with_message
