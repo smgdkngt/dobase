@@ -16,3 +16,6 @@ pin "@rails/actioncable", to: "actioncable.esm.js"
 # Rhino Editor (TipTap-based rich text, replaces Trix)
 pin "rhino-editor", to: "rhino-editor.js", preload: true
 pin "@rails/activestorage", to: "activestorage.esm.js"
+
+# Video calls (Room tool); only the room controller imports it, so it isn't preloaded
+pin "livekit-client", preload: false # @2.22.3
