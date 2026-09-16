@@ -134,27 +134,97 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_includes result, "�"
   end
 
-  # --- RFC 2047 filename decoding ---------------------------------------------
+  # --- Fetching and attachments -------------------------------------------------
+  # Attachments come from the downloaded message itself. Some servers send
+  # BODYSTRUCTUREs that net-imap can't parse, which failed the whole sync.
 
-  test "decode_filename returns plain ASCII filenames unchanged" do
-    assert_equal "report.pdf", @service.send(:decode_filename, "report.pdf")
+  test "fetches messages without asking for BODYSTRUCTURE" do
+    imap = FakeImap.new(uids: [ 7 ], messages: [ fetch_data(7, report_mail.to_s) ])
+
+    @service.send(:fetch_recent_emails, imap, "Projects", 50)
+
+    assert_equal [ "UID", "ENVELOPE", "FLAGS", "INTERNALDATE", "BODY.PEEK[]" ], imap.fetched_attrs
+    assert @account.messages.exists?(folder: "Projects", uid: 7)
   end
 
-  test "decode_filename decodes RFC 2047 Q-encoded filenames" do
-    encoded = "=?UTF-8?Q?caf=C3=A9.pdf?="
-    assert_equal "café.pdf", @service.send(:decode_filename, encoded)
+  test "saves attachments from the downloaded message, with decoded names" do
+    @service.send(:save_email, fetch_data(9, report_mail.to_s), "INBOX")
+
+    email = @account.messages.find_by!(message_id: "report-9@example.com")
+    assert email.has_attachments
+    attachment = email.attachments.sole
+    assert_equal [ "café.pdf", "application/pdf", 16 ], [ attachment.filename, attachment.content_type, attachment.file_size ]
+    assert_equal "%PDF-1.4 numbers", attachment.file.download
+    assert_equal "See the numbers attached.", email.body_plain.strip
   end
 
-  test "decode_filename decodes RFC 2047 B-encoded filenames" do
-    encoded = "=?UTF-8?B?Y2Fmw6kucGRm?=" # base64 of "café.pdf"
-    assert_equal "café.pdf", @service.send(:decode_filename, encoded)
+  test "inline parts only count as attachments when they have a file name" do
+    mail = Mail.new(from: "ann@example.com", to: "me@example.com", subject: "Pictures", message_id: "<pictures-3@example.com>")
+    mail.html_part = Mail::Part.new(content_type: "text/html; charset=UTF-8", body: "<p>Look</p>")
+    mail.add_part Mail::Part.new(content_type: "image/png", content_disposition: "inline", content_id: "<logo>", body: "PNG-unnamed")
+    mail.add_part Mail::Part.new(content_type: "image/png", content_disposition: "inline; filename=photo.png", body: "PNG-named")
+
+    @service.send(:save_email, fetch_data(3, mail.to_s), "INBOX")
+
+    email = @account.messages.find_by!(message_id: "pictures-3@example.com")
+    assert_equal [ "photo.png" ], email.attachments.map(&:filename)
   end
 
-  test "decode_filename returns nil for nil" do
-    assert_nil @service.send(:decode_filename, nil)
+  test "an attachment over the size limit is skipped, the email is still saved" do
+    stub_const(ImapSyncService, :MAX_ATTACHMENT_SIZE, 10) do
+      @service.send(:save_email, fetch_data(9, report_mail.to_s), "INBOX")
+    end
+
+    email = @account.messages.find_by!(message_id: "report-9@example.com")
+    assert email.has_attachments
+    assert_empty email.attachments
+  end
+
+  test "a folder net-imap can't parse doesn't stop the sync" do
+    @service.define_singleton_method(:connect) do
+      raise Net::IMAP::ResponseParseError, "unexpected NIL (expected QUOTED or LITERAL)"
+    end
+
+    assert_nothing_raised { @service.sync_folder("Projects") }
   end
 
   private
+    class FakeImap
+      attr_reader :fetched_attrs
+
+      def initialize(uids:, messages:)
+        @uids = uids
+        @messages = messages
+      end
+
+      def uid_search(_criteria) = @uids
+
+      def uid_fetch(_uids, attrs)
+        @fetched_attrs = attrs
+        @messages
+      end
+    end
+
+    def report_mail
+      Mail.new do
+        from "Ann <ann@example.com>"
+        to "me@example.com"
+        subject "Report"
+        message_id "<report-9@example.com>"
+        text_part { body "See the numbers attached." }
+        add_file filename: "café.pdf", content: "%PDF-1.4 numbers"
+      end
+    end
+
+    def fetch_data(uid, raw)
+      message_id = Mail.new(raw).message_id
+      envelope = Net::IMAP::Envelope.new(
+        nil, "Test", [ Net::IMAP::Address.new("Ann", nil, "ann", "example.com") ], nil, nil,
+        [ Net::IMAP::Address.new(nil, nil, "me", "example.com") ], nil, nil, nil, "<#{message_id}>"
+      )
+      Net::IMAP::FetchData.new(1, { "UID" => uid, "ENVELOPE" => envelope, "FLAGS" => [], "INTERNALDATE" => Time.current, "BODY[]" => raw })
+    end
+
     def reconcile(folder, server_uids)
       @service.send(:reconcile_local_messages, folder, server_uids)
     end

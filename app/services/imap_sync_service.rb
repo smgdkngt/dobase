@@ -68,8 +68,9 @@ class ImapSyncService
       imap.select(folder_name)
       fetch_recent_emails(imap, folder_name, limit)
     end
-  rescue Net::IMAP::NoResponseError => e
-    Rails.logger.warn("Could not sync folder #{folder_name}: #{e.message}")
+  # A folder the server can't open, or whose messages net-imap can't parse, shouldn't stop the other folders from syncing
+  rescue Net::IMAP::NoResponseError, Net::IMAP::ResponseParseError => e
+    Rails.logger.warn("Could not sync folder #{folder_name}: #{e.class}: #{e.message}")
   end
 
   def mark_as_read(uid, folder: "INBOX")
@@ -217,11 +218,13 @@ class ImapSyncService
     end
     return if uids.empty?
 
-    messages = imap.uid_fetch(uids, [ "UID", "ENVELOPE", "FLAGS", "INTERNALDATE", "BODY.PEEK[]", "BODYSTRUCTURE" ])
+    # No BODYSTRUCTURE: attachments are read from the full message. Some servers send
+    # BODYSTRUCTUREs with NIL where a string belongs, and net-imap then drops the connection.
+    messages = imap.uid_fetch(uids, [ "UID", "ENVELOPE", "FLAGS", "INTERNALDATE", "BODY.PEEK[]" ])
     return unless messages
 
     messages.each do |msg|
-      save_email(imap, msg, folder_name)
+      save_email(msg, folder_name)
     end
   end
 
@@ -235,14 +238,13 @@ class ImapSyncService
     stale.destroy_all
   end
 
-  def save_email(imap, msg, folder_name)
+  def save_email(msg, folder_name)
     envelope = msg.attr["ENVELOPE"]
     return unless envelope
 
     message_id = (envelope.message_id || "#{msg.attr['UID']}@#{@account.imap_host}").delete("<>")
     uid = msg.attr["UID"]
     flags = msg.attr["FLAGS"] || []
-    body_structure = msg.attr["BODYSTRUCTURE"]
 
     from = envelope.from&.first
     from_address = from ? "#{from.mailbox}@#{from.host}" : nil
@@ -267,8 +269,7 @@ class ImapSyncService
     references_val = parsed_mail&.references rescue nil
     references_str = Array(references_val).join(" ") if references_val
 
-    # Detect attachments from BODYSTRUCTURE
-    attachment_parts = extract_attachment_parts(body_structure)
+    attachment_parts = parsed_mail ? attachment_parts_of(parsed_mail) : []
     has_attachments = attachment_parts.any?
 
     email = @account.messages.find_or_initialize_by(message_id: message_id)
@@ -294,9 +295,9 @@ class ImapSyncService
     )
     email.save!
 
-    # Download attachments for new emails, or existing ones missing attachments
+    # Save attachments for new emails, or existing ones missing attachments
     if has_attachments && (is_new_email || email.attachments.empty?)
-      download_attachments(imap, uid, email, attachment_parts)
+      save_attachments(email, attachment_parts)
     end
 
     # Detect and create calendar invites for new emails
@@ -335,136 +336,27 @@ class ImapSyncService
     { plain: raw_message, html: nil, mail: nil }
   end
 
-  def extract_attachment_parts(body_structure, part_number = nil)
-    attachments = []
-    return attachments unless body_structure
-
-    if body_structure.is_a?(Net::IMAP::BodyTypeMultipart)
-      # Multipart message - iterate through parts
-      body_structure.parts.each_with_index do |part, index|
-        # Build the part number (1-indexed for IMAP)
-        current_part = part_number ? "#{part_number}.#{index + 1}" : (index + 1).to_s
-        attachments.concat(extract_attachment_parts(part, current_part))
-      end
-    elsif body_structure.is_a?(Net::IMAP::BodyTypeBasic) || body_structure.is_a?(Net::IMAP::BodyTypeText)
-      # Single part - check if it's an attachment
-      disposition = body_structure.disposition
-      if attachment_disposition?(disposition) || inline_with_filename?(disposition)
-        filename = extract_filename(body_structure)
-        if filename.present?
-          attachments << {
-            part_number: part_number || "1",
-            filename: filename,
-            content_type: "#{body_structure.media_type}/#{body_structure.subtype}".downcase,
-            size: body_structure.size || 0,
-            encoding: body_structure.encoding
-          }
-        end
-      end
-    end
-
-    attachments
-  end
-
-  def attachment_disposition?(disposition)
-    return false unless disposition
-    disposition.dsp_type&.downcase == "attachment"
-  end
-
-  def inline_with_filename?(disposition)
-    return false unless disposition
-    return false unless disposition.dsp_type&.downcase == "inline"
-    disposition.param&.key?("FILENAME") || disposition.param&.key?("filename")
-  end
-
-  def extract_filename(body_structure)
-    # Try disposition parameters first
-    if body_structure.disposition&.param
-      filename = body_structure.disposition.param["FILENAME"] ||
-                 body_structure.disposition.param["filename"]
-      return decode_filename(filename) if filename
-    end
-
-    # Fall back to body parameters
-    if body_structure.param
-      filename = body_structure.param["NAME"] || body_structure.param["name"]
-      return decode_filename(filename) if filename
-    end
-
-    nil
-  end
-
-  def decode_filename(filename)
-    return nil unless filename
-
-    # Handle RFC 2047 encoded filenames
-    if filename =~ /=\?([^?]+)\?([BQ])\?([^?]+)\?=/i
-      charset, encoding, text = $1, $2, $3
-      begin
-        if encoding.upcase == "B"
-          text = Base64.decode64(text)
-        elsif encoding.upcase == "Q"
-          text = text.gsub("_", " ").unpack1("M")
-        end
-        text.force_encoding(charset).encode("UTF-8")
-      rescue
-        filename
-      end
-    else
-      filename
+  # The parts a mail client lists as attachments: marked "attachment", or inline with a
+  # file name (like pasted images). Parts without a disposition belong to the body.
+  def attachment_parts_of(mail)
+    parts = mail.multipart? ? mail.all_parts : [ mail ]
+    parts.select do |part|
+      part.attachment? && part.header[:content_disposition]&.disposition_type.to_s.downcase.in?(%w[attachment inline])
     end
   end
 
-  def download_attachments(imap, uid, email, attachment_parts)
-    attachment_parts.each do |part_info|
-      next if part_info[:size] > MAX_ATTACHMENT_SIZE
+  def save_attachments(email, parts)
+    parts.each do |part|
+      content = part.decoded
+      next if content.bytesize > MAX_ATTACHMENT_SIZE
 
-      begin
-        # Fetch the specific part
-        fetch_key = "BODY.PEEK[#{part_info[:part_number]}]"
-        data = imap.uid_fetch(uid, fetch_key)&.first
-        next unless data
-
-        raw_content = data.attr["BODY[#{part_info[:part_number]}]"]
-        next unless raw_content
-
-        # Decode the content based on encoding
-        content = decode_attachment_content(raw_content, part_info[:encoding])
-        next unless content
-
-        # Create attachment record
-        attachment = email.attachments.create!(
-          filename: part_info[:filename],
-          content_type: part_info[:content_type],
-          file_size: content.bytesize
-        )
-
-        # Attach the file using Active Storage
-        attachment.file.attach(
-          io: StringIO.new(content),
-          filename: part_info[:filename],
-          content_type: part_info[:content_type]
-        )
-      rescue StandardError => e
-        Rails.logger.error("Failed to download attachment #{part_info[:filename]} for email #{email.id}: #{e.message}")
-      end
+      filename = safe_utf8(part.filename)
+      content_type = part.mime_type || "application/octet-stream"
+      attachment = email.attachments.create!(filename: filename, content_type: content_type, file_size: content.bytesize)
+      attachment.file.attach(io: StringIO.new(content), filename: filename, content_type: content_type)
+    rescue StandardError => e
+      Rails.logger.error("Failed to save attachment #{part.filename} for email #{email.id}: #{e.message}")
     end
-  end
-
-  def decode_attachment_content(raw_content, encoding)
-    case encoding&.upcase
-    when "BASE64"
-      Base64.decode64(raw_content)
-    when "QUOTED-PRINTABLE"
-      raw_content.unpack1("M")
-    when "7BIT", "8BIT", "BINARY", nil
-      raw_content
-    else
-      raw_content
-    end
-  rescue StandardError => e
-    Rails.logger.error("Failed to decode attachment content: #{e.message}")
-    nil
   end
 
   def find_sent_folder(imap)
