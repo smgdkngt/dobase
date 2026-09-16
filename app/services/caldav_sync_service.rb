@@ -522,16 +522,13 @@ class CaldavSyncService
     end
 
     if event.organizer_email.present?
-      organizer = Icalendar::Values::CalAddress.new("mailto:#{event.organizer_email}")
-      organizer.cn = event.organizer_name if event.organizer_name.present?
-      vevent.organizer = organizer
+      vevent.organizer = Icalendar::Values::CalAddress.new("mailto:#{event.organizer_email}",
+        { "cn" => event.organizer_name.presence }.compact)
     end
 
     event.attendees.each do |attendee|
-      addr = Icalendar::Values::CalAddress.new("mailto:#{attendee['email']}")
-      addr.cn = attendee["name"] if attendee["name"].present?
-      addr.partstat = attendee["status"]&.upcase || "NEEDS-ACTION"
-      vevent.append_attendee(addr)
+      vevent.append_attendee Icalendar::Values::CalAddress.new("mailto:#{attendee["email"]}",
+        { "cn" => attendee["name"].presence, "partstat" => attendee["status"].presence&.upcase || "NEEDS-ACTION" }.compact)
     end
 
     vevent.dtstamp = Icalendar::Values::DateTime.new(Time.current.utc)

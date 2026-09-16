@@ -334,6 +334,30 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     assert_requested stub
   end
 
+  test "update_event sends the organizer and attendees" do
+    event = calendars_events(:meeting)
+    event.update!(organizer_email: "rachel@example.com", organizer_name: "Rachel Kim", attendees: [
+      { "email" => "rachel@example.com", "name" => "Rachel Kim", "status" => "accepted" },
+      { "email" => "sophie@example.com", "name" => nil, "status" => nil }
+    ])
+    sent = nil
+    stub_request(:put, event.remote_href).to_return do |request|
+      sent = request.body
+      { status: 204, headers: { "ETag" => '"with-attendees"' } }
+    end
+
+    @service.update_event(event)
+
+    vevent = Icalendar::Calendar.parse(sent).sole.events.sole
+    assert_equal [ "mailto:rachel@example.com", [ "Rachel Kim" ] ], [ vevent.organizer.to_s, vevent.organizer.ical_params["cn"] ]
+    attendees = vevent.attendee.map { |attendee| [ attendee.to_s, attendee.ical_params["cn"], attendee.ical_params["partstat"] ] }
+    assert_equal [
+      [ "mailto:rachel@example.com", [ "Rachel Kim" ], [ "ACCEPTED" ] ],
+      [ "mailto:sophie@example.com", nil, [ "NEEDS-ACTION" ] ]
+    ], attendees
+    assert_equal "with-attendees", event.reload.etag
+  end
+
   test "delete_event removes event from server" do
     event = calendars_events(:meeting)
 
