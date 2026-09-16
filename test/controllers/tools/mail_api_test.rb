@@ -77,6 +77,37 @@ module Tools
       assert_equal tool_mail_url(@tool, message, folder: "inbox"), welcome["url"]
     end
 
+    test "index sums up a conversation of several messages" do
+      original = mails_messages(:inbox_unread)
+      @tool.mail_account.messages.create!(message_id: "reply-1@example.com", thread_id: original.thread_id, folder: "INBOX",
+        subject: "Re: Welcome to Dobase", from_name: "Colleague", from_address: "colleague@example.com",
+        sent_at: 1.minute.from_now, read: true, starred: true, has_attachments: true)
+
+      get tool_mails_path(@tool), headers: @headers
+
+      welcome = response.parsed_body["conversations"].first
+      assert_equal original.thread_id, welcome["thread_id"]
+      assert_equal "Colleague", welcome["from"]
+      assert_equal [ false, true, true ], welcome.values_at("read", "starred", "has_attachments")
+      assert_equal [ 2, 1 ], welcome.values_at("messages_count", "unread_count")
+      assert_equal [ "Colleague", "Friendly Sender" ], welcome["participants"]
+      assert_equal 3, response.parsed_body["total_count"]
+    end
+
+    test "index pages through conversations, newest first" do
+      31.times do |index|
+        @tool.mail_account.messages.create!(message_id: "bulk-#{index}@example.com", folder: "INBOX", subject: "Bulk #{index}",
+          from_address: "bulk@example.com", sent_at: (index + 1).days.ago)
+      end
+
+      get tool_mails_path(@tool, page: 2), headers: @headers
+
+      body = response.parsed_body
+      assert_equal [ 2, 2, 34 ], body.values_at("page", "total_pages", "total_count")
+      assert_equal 4, body["conversations"].size
+      assert_equal "Bulk 30", body["conversations"].last["subject"]
+    end
+
     test "index filters by folder and search" do
       get tool_mails_path(@tool, folder: "sent"), headers: @headers
       assert_equal [ "Weekly report" ], response.parsed_body["conversations"].map { |conversation| conversation["subject"] }

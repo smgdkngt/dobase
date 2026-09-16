@@ -215,40 +215,58 @@ module Tools
       @conversations = fetch_conversations(base_scope)
     end
 
+    # A page of conversations. The folder's threads are summed up in one query and
+    # paginated, and only the messages of the threads on the page are loaded.
     def fetch_conversations(scope)
-      thread_ids = scope.select(:thread_id).distinct.pluck(:thread_id)
+      threads = thread_summaries(scope)
 
-      conversations = thread_ids.filter_map do |thread_id|
-        thread_messages = scope.where(thread_id: thread_id).order(sent_at: :desc)
-        latest = thread_messages.first
+      @total_count = threads.size
+      @total_pages = (@total_count / PER_PAGE.to_f).ceil
+      @page = (params[:page] || 1).to_i.clamp(1, [ @total_pages, 1 ].max)
+
+      threads = threads.slice((@page - 1) * PER_PAGE, PER_PAGE) || []
+      messages = scope.where(thread_id: threads.map(&:thread_id)).order(sent_at: :desc).group_by(&:thread_id)
+
+      threads.filter_map do |thread|
+        thread_messages = messages[thread.thread_id]
+        latest = thread_messages&.first
         next unless latest
 
         {
           id: latest.id,
-          thread_id: thread_id,
+          thread_id: thread.thread_id,
           subject: latest.normalized_subject.presence || "(No subject)",
           from: latest.display_from,
           from_address: latest.from_address,
           preview: latest.preview,
           sent_at: latest.sent_at,
-          read: thread_messages.unread.none?,
-          starred: thread_messages.starred.any?,
-          has_attachments: thread_messages.with_attachments.any?,
-          count: thread_messages.count,
-          unread_count: thread_messages.unread.count,
+          read: thread.unread_count.zero?,
+          starred: thread.starred,
+          has_attachments: thread.has_attachments,
+          count: thread.count,
+          unread_count: thread.unread_count,
           draft: latest.draft?,
-          participants: thread_messages.pluck(:from_name, :from_address).uniq.map { |n, a| n.presence || a }.first(3)
+          participants: thread_messages.map { |message| [ message.from_name, message.from_address ] }.uniq.map { |name, address| name.presence || address }.first(3)
         }
       end
+    end
 
-      @page = (params[:page] || 1).to_i
-      conversations = conversations.sort_by { |c| c[:sent_at] || Time.at(0) }.reverse
+    ThreadSummary = Data.define(:thread_id, :latest_at, :count, :unread_count, :starred, :has_attachments)
 
-      @total_count = conversations.size
-      @total_pages = (@total_count / PER_PAGE.to_f).ceil
-      @page = [ [ @page, 1 ].max, [ @total_pages, 1 ].max ].min
+    # One row per thread in the folder, newest first. The flags match the
+    # unread, starred and with_attachments scopes.
+    def thread_summaries(scope)
+      rows = scope.group(:thread_id).pluck(
+        :thread_id,
+        Arel.sql("MAX(mail_messages.sent_at)"),
+        Arel.sql("COUNT(*)"),
+        Arel.sql("SUM(CASE WHEN mail_messages.read = 0 THEN 1 ELSE 0 END)"),
+        Arel.sql("MAX(CASE WHEN mail_messages.starred = 1 AND mail_messages.trashed = 0 AND mail_messages.draft = 0 THEN 1 ELSE 0 END)"),
+        Arel.sql("MAX(CASE WHEN mail_messages.has_attachments = 1 THEN 1 ELSE 0 END)")
+      )
 
-      conversations.slice((@page - 1) * PER_PAGE, PER_PAGE) || []
+      rows.map { |thread_id, latest_at, count, unread, starred, attachments| ThreadSummary.new(thread_id, latest_at, count, unread.to_i, starred == 1, attachments == 1) }
+        .sort_by { |thread| thread.latest_at.to_s }.reverse
     end
 
     def build_compose_defaults

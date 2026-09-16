@@ -35,6 +35,24 @@ module Tools
       assert_includes response.body, "Archived conversation"
     end
 
+    test "index takes the same number of queries however many conversations there are" do
+      account = @tool.mail_account
+      add_threads = ->(count, offset) do
+        count.times do |index|
+          account.messages.create!(message_id: "many-#{offset + index}@example.com", folder: "INBOX", subject: "Many #{offset + index}",
+            from_address: "many@example.com", sent_at: (offset + index).hours.ago)
+        end
+      end
+
+      add_threads.call(2, 0)
+      few = count_queries { get tool_mails_path(@tool) }
+      add_threads.call(20, 2)
+      many = count_queries { get tool_mails_path(@tool) }
+
+      assert_response :success
+      assert_equal few, many
+    end
+
     test "show renders message detail and marks read" do
       msg = mails_messages(:inbox_unread)
       assert_not msg.read
@@ -213,6 +231,13 @@ module Tools
     ensure
       SmtpSendService.alias_method :send_email, :send_email_without_capture
       SmtpSendService.remove_method :send_email_without_capture
+    end
+
+    def count_queries(&block)
+      count = 0
+      counter = ->(*, payload) { count += 1 unless payload[:cached] || payload[:name].in?(%w[SCHEMA TRANSACTION]) }
+      ActiveSupport::Notifications.subscribed(counter, "sql.active_record", &block)
+      count
     end
   end
 end
