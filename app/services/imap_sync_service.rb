@@ -75,7 +75,7 @@ class ImapSyncService
 
   def mark_as_read(uid, folder: "INBOX")
     connect do |imap|
-      imap.select(folder)
+      select_folder(imap, folder)
       imap.uid_store(uid, "+FLAGS", [ :Seen ])
     end
   rescue StandardError => e
@@ -84,7 +84,7 @@ class ImapSyncService
 
   def mark_as_unread(uid, folder: "INBOX")
     connect do |imap|
-      imap.select(folder)
+      select_folder(imap, folder)
       imap.uid_store(uid, "-FLAGS", [ :Seen ])
     end
   rescue StandardError => e
@@ -93,7 +93,7 @@ class ImapSyncService
 
   def set_starred(uid, starred, folder: "INBOX")
     connect do |imap|
-      imap.select(folder)
+      select_folder(imap, folder)
       if starred
         imap.uid_store(uid, "+FLAGS", [ :Flagged ])
       else
@@ -145,7 +145,7 @@ class ImapSyncService
 
   def delete_message(uid, folder:)
     connect do |imap|
-      imap.select(folder)
+      select_folder(imap, folder)
       imap.uid_store(uid, "+FLAGS", [ :Deleted ])
       imap.expunge
     end
@@ -155,8 +155,9 @@ class ImapSyncService
 
   def move_to_folder(uid, source_folder:, destination_folder:)
     connect do |imap|
-      imap.select(source_folder)
-      imap.uid_copy(uid, destination_folder)
+      source, destination = server_folder_names(imap, source_folder, destination_folder)
+      imap.select(source)
+      imap.uid_copy(uid, destination)
       imap.uid_store(uid, "+FLAGS", [ :Deleted ])
       imap.expunge
     end
@@ -377,6 +378,17 @@ class ImapSyncService
   def find_sent_folder(imap)
     folders = imap.list("", "*").map(&:name)
     find_sent_folder_from_list(folders)
+  end
+
+  def select_folder(imap, folder)
+    imap.select(server_folder_names(imap, folder).first)
+  end
+
+  # Sent mail is kept in "Sent" here, whatever the server calls its sent folder
+  # ("[Gmail]/Sent Mail", "Sent Messages", ...). Lists the server's folders at most once.
+  def server_folder_names(imap, *folders)
+    sent_folder = find_sent_folder(imap) if folders.include?("Sent")
+    folders.map { |folder| folder == "Sent" ? sent_folder || folder : folder }
   end
 
   def find_sent_folder_from_list(folders)

@@ -115,6 +115,54 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_nil @service.send(:find_sent_folder_from_list, %w[INBOX Trash])
   end
 
+  # Sent mail is stored in "Sent", which isn't the sent folder's name on Gmail, iCloud or Office 365
+
+  test "changes to sent mail happen in the server's sent folder" do
+    server = FolderServer.new(folders: [ "INBOX", "[Gmail]/Sent Mail", "Receipts" ])
+    connect_to(server)
+
+    @service.mark_as_read(104, folder: "Sent")
+    @service.mark_as_unread(104, folder: "Sent")
+    @service.set_starred(104, true, folder: "Sent")
+    @service.delete_message(104, folder: "Sent")
+
+    assert_equal [ "[Gmail]/Sent Mail" ] * 4, server.selected
+    assert_equal [ [ 104, "+FLAGS", [ :Seen ] ], [ 104, "-FLAGS", [ :Seen ] ], [ 104, "+FLAGS", [ :Flagged ] ], [ 104, "+FLAGS", [ :Deleted ] ] ], server.stored
+  end
+
+  test "moving mail to and from the sent folder uses the server's name, listing folders once per move" do
+    server = FolderServer.new(folders: [ "INBOX", "Sent Items" ])
+    connect_to(server)
+
+    @service.move_to_folder(104, source_folder: "Sent", destination_folder: "INBOX")
+    @service.move_to_folder(7, source_folder: "INBOX", destination_folder: "Sent")
+
+    assert_equal [ "Sent Items", "INBOX" ], server.selected
+    assert_equal [ [ 104, "INBOX" ], [ 7, "Sent Items" ] ], server.copied
+    assert_equal 2, server.lists
+  end
+
+  test "other folders are used by their own name, without listing folders" do
+    server = FolderServer.new(folders: [ "INBOX", "Sent Messages", "Receipts" ])
+    connect_to(server)
+
+    @service.mark_as_read(101, folder: "INBOX")
+    @service.move_to_folder(101, source_folder: "INBOX", destination_folder: "Receipts")
+
+    assert_equal [ "INBOX", "INBOX" ], server.selected
+    assert_equal [ [ 101, "Receipts" ] ], server.copied
+    assert_equal 0, server.lists
+  end
+
+  test "a server without a known sent folder gets the name Sent" do
+    server = FolderServer.new(folders: [ "INBOX", "Outbox" ])
+    connect_to(server)
+
+    @service.mark_as_read(104, folder: "Sent")
+
+    assert_equal [ "Sent" ], server.selected
+  end
+
   # --- UTF-8 safety -----------------------------------------------------------
   # IMAP servers regularly return non-UTF-8 bytes; the service must not crash.
 
@@ -233,6 +281,30 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
         @fetched_attrs = attrs
         @messages
       end
+    end
+
+    # Records what the service asks of a server with these folders
+    class FolderServer
+      attr_reader :selected, :stored, :copied, :lists
+
+      def initialize(folders:)
+        @folders = folders
+        @selected, @stored, @copied, @lists = [], [], [], 0
+      end
+
+      def list(_reference, _pattern)
+        @lists += 1
+        @folders.map { |name| Net::IMAP::MailboxList.new([], "/", name) }
+      end
+
+      def select(folder) = @selected << folder
+      def uid_store(uid, action, flags) = @stored << [ uid, action, flags ]
+      def uid_copy(uid, folder) = @copied << [ uid, folder ]
+      def expunge = nil
+    end
+
+    def connect_to(server)
+      @service.define_singleton_method(:connect) { |&block| block.call(server) }
     end
 
     def report_mail
