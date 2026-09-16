@@ -29,3 +29,12 @@
 
 en:
   hello: "Hello world"
+  activerecord:
+    attributes:
+      # Error messages name fields as the forms label them
+      mails/account:
+        encrypted_password: "Password"
+        imap_host: "IMAP server"
+        smtp_host: "SMTP server"
+      calendars/account:
+        encrypted_password: "Password"

@@ -298,7 +298,7 @@ class MailsTest < ApplicationSystemTestCase
       click_on "Save Changes"
     end
 
-    assert_text "Imap host can't be blank"
+    assert_text "IMAP server can't be blank"
     fill_in "IMAP Server", with: "imap.fixed.example.com"
     click_on "Save Changes"
 
