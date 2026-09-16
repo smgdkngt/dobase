@@ -2,18 +2,23 @@
 
 class ChatChannel < ApplicationCable::Channel
   def subscribed
-    @chat = Chats::Chat.find(params[:chat_id])
-    reject unless @chat.tool.accessible_by?(current_user)
-    stream_for @chat
+    chat = Chats::Chat.find_by(id: params[:chat_id])
+    reject and return unless chat&.tool&.accessible_by?(current_user)
 
-    # Broadcast user came online (with small delay to ensure subscription is ready)
+    @chat = chat
+    stream_for @chat
     transmit({ type: "welcome", user_id: current_user.id })
-    broadcast_presence("online")
+    broadcast_presence("online", hello: true)
   end
 
-  # Allow clients to request current online users
+  # Someone who just (re)connected says hello; everyone else in the chat answers with
+  # announce_presence, so both sides know who's online
   def request_presence
-    broadcast_presence("online")
+    broadcast_presence("online", hello: true) if @chat
+  end
+
+  def announce_presence
+    broadcast_presence("online") if @chat
   end
 
   def unsubscribed
@@ -24,6 +29,8 @@ class ChatChannel < ApplicationCable::Channel
   end
 
   def typing
+    return unless @chat
+
     ChatChannel.broadcast_to(
       @chat,
       {
@@ -48,14 +55,15 @@ class ChatChannel < ApplicationCable::Channel
 
   private
 
-  def broadcast_presence(status)
+  def broadcast_presence(status, hello: false)
     ChatChannel.broadcast_to(
       @chat,
       {
         type: "presence",
         user_id: current_user.id,
         user_name: current_user.name,
-        status: status
+        status: status,
+        hello: hello
       }
     )
   end
