@@ -128,7 +128,7 @@ a conversation this way doesn't mark it read.
   custom folder.
 - Attachments look like
   `{"id": 3, "filename": "agenda.pdf", "content_type": "application/pdf", "file_size": 20480, "download_url": "..."}`.
-  `download_url` is a signed link that needs no token.
+  `download_url` is a signed link that needs no token and works for a day.
 - Calendar invitations found in a message are listed under `calendar_invites`
   as `{"id", "summary", "starts_at", "ends_at", "all_day", "location", "organizer_name", "organizer_email", "status"}`.
 - Drafts have `"draft": true`, and their `url` opens them in the compose form.

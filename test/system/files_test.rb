@@ -230,17 +230,14 @@ class FilesTest < ApplicationSystemTestCase
   end
 
   def open_context_menu(file)
+    wait_for_stimulus "file-selection"
+    wait_for_stimulus "file-context-menu"
     item = find("[data-item-type='file'][data-item-id='#{file.id}']")
     # Make the menu button visible (hover CSS unreliable in headless Chrome)
     menu_btn = item.find("button[data-action*='file-context-menu#showFromButton']", visible: :all)
     page.execute_script("arguments[0].style.opacity = '1'; arguments[0].style.pointerEvents = 'auto'", menu_btn.native)
-    sleep 0.1
     menu_btn.click
-    # Retry if the menu didn't appear
-    unless page.has_selector?("[data-file-context-menu-target='menu']:not(.hidden)", wait: 2)
-      menu_btn.click
-    end
-    find("[data-file-context-menu-target='menu']", visible: true)
+    find("[data-file-context-menu-target='menu']", visible: true, wait: 10)
   end
 
   def sign_in_as(user)

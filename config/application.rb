@@ -26,5 +26,10 @@ module Dobase
 
     # Autoload app/services directory
     config.autoload_paths << Rails.root.join("app/services")
+
+    # Links to uploads (attachments, images, avatars) stop working after a day, so a link
+    # kept by someone who has since lost access to a tool, or fetched with an access token
+    # that was revoked, stops working too. Pages generate fresh links whenever they render.
+    config.active_storage.urls_expire_in = 1.day
   end
 end

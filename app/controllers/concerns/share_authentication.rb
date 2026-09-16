@@ -28,22 +28,22 @@ module ShareAuthentication
 
   SHARE_SESSION_TTL = 30.minutes
 
+  # A password-protected link stays unlocked for this browser session for a while.
+  # The password itself is posted to UnlocksController, never sent in a URL.
   def check_password
-    session_key = "share_#{@share.id}_authenticated_at"
-    authenticated_at = session[session_key]
+    authenticated_at = session[share_session_key]
+    return if authenticated_at.present? && Time.zone.parse(authenticated_at) > SHARE_SESSION_TTL.ago
 
-    if authenticated_at.present? && Time.zone.parse(authenticated_at) > SHARE_SESSION_TTL.ago
-      return
-    end
+    session.delete(share_session_key)
+    @password_required = true
+  end
 
-    session.delete(session_key)
+  def unlock_share
+    session[share_session_key] = Time.current.iso8601
+  end
 
-    if params[:password].present? && @share.authenticate(params[:password])
-      session[session_key] = Time.current.iso8601
-    else
-      @password_error = "Incorrect password" if params[:password].present?
-      @password_required = true
-    end
+  def share_session_key
+    "share_#{@share.id}_authenticated_at"
   end
 
   # Pages and downloads inside a shared folder don't exist for a shared file.
