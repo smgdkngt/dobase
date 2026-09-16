@@ -44,7 +44,7 @@ module Calendars
         ends_at: 1.hour.ago
       )
       assert_not event.valid?
-      assert_includes event.errors[:ends_at], "must be after starts_at"
+      assert_includes event.errors.full_messages, "End must be after the start"
     end
 
     test "allows ends_at equal to starts_at" do
@@ -269,7 +269,7 @@ module Calendars
       event = Time.use_zone("Amsterdam") { build_event(all_day: true, start_time: "2030-01-11 00:00", end_time: "2030-01-10 00:00") }
 
       assert_not event.valid?
-      assert_includes event.errors[:ends_at], "must be after starts_at"
+      assert_includes event.errors[:ends_at], "must be after the start"
     end
 
     test "a repeating all-day event stays on its dates after a change to summer time" do

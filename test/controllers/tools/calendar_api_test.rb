@@ -204,7 +204,7 @@ module Tools
       end
 
       assert_response :unprocessable_entity
-      assert_includes response.parsed_body["errors"], "Summary can't be blank"
+      assert_includes response.parsed_body["errors"], "Title can't be blank"
     end
 
     test "create refuses read-only and disabled calendars" do

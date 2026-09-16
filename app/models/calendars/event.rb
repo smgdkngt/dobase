@@ -345,7 +345,7 @@ module Calendars
     def ends_at_after_starts_at
       return unless starts_at && ends_at
       # An all-day event lasts a day at least
-      errors.add(:ends_at, "must be after starts_at") if all_day? ? ends_at <= starts_at : ends_at < starts_at
+      errors.add(:ends_at, "must be after the start") if all_day? ? ends_at <= starts_at : ends_at < starts_at
     end
   end
 end

@@ -33,7 +33,7 @@ class CalendarsTest < ApplicationSystemTestCase
       click_on "Edit"
       find_field("calendars_event[end_time]").set(Time.utc(2030, 1, 8, 13))
       click_on "Save Changes"
-      assert_text "Ends at must be after starts_at"
+      assert_text "End must be after the start"
       click_on "Cancel"
     end
 

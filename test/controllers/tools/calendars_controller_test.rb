@@ -102,6 +102,17 @@ module Tools
       assert_includes response.body, "Calendar is read-only"
     end
 
+    test "the event form names fields in its errors as its labels do" do
+      post tool_calendar_events_path(@tool), params: {
+        calendars_event: { calendar_id: @work.id, summary: "", start_time: "2030-01-08T15:00", end_time: "2030-01-08T14:00" }
+      }
+
+      assert_response :unprocessable_entity
+      assert_select ".flash-error", text: "Title can't be blank"
+      assert_select "label[for='calendars_event_summary']", text: "Title"
+      assert_select "label[for='calendars_event_end_time']", text: "End"
+    end
+
     test "deleting an event redirects to the calendar" do
       delete tool_calendar_event_path(@tool, @meeting)
 

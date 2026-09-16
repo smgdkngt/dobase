@@ -16,7 +16,7 @@
 
   <!-- Summary -->
   <div class="mb-4">
-    <label for="calendar_event_summary" class="label">Event Title</label>
+    <%= f.label :summary, class: "label" %>
     <%= f.text_field :summary,
       class: "input #{event.errors[:summary].any? ? 'input-error' : ''}",
       placeholder: "Team meeting, Lunch with client...",
@@ -27,7 +27,7 @@
 
   <!-- Calendar Selection -->
   <div class="mb-4">
-    <label for="calendar_event_calendar_id" class="label">Calendar</label>
+    <%= f.label :calendar_id, class: "label" %>
     <%= f.select :calendar_id,
       calendars.map { |c| [c.name, c.id] },
       {},
@@ -40,7 +40,7 @@
   <div class="mb-4">
     <div class="grid grid-cols-2 gap-4">
       <div>
-        <label for="calendar_event_start_time" class="label">Start</label>
+        <%= f.label :start_time, class: "label" %>
         <%= f.datetime_local_field :start_time,
           value: all_day ? event.first_day.beginning_of_day : event.start_time,
           class: "input",
@@ -49,7 +49,7 @@
         %>
       </div>
       <div>
-        <label for="calendar_event_end_time" class="label">End</label>
+        <%= f.label :end_time, class: "label" %>
         <%= f.datetime_local_field :end_time,
           value: all_day ? event.last_day.end_of_day.change(sec: 0) : event.end_time,
           class: "input",
@@ -189,7 +189,7 @@
 
   <!-- Location -->
   <div class="mb-4">
-    <label for="calendar_event_location" class="label">Location</label>
+    <%= f.label :location, class: "label" %>
     <%= f.text_field :location,
       class: "input",
       placeholder: "Meeting room, address..."
@@ -198,7 +198,7 @@
 
   <!-- Description -->
   <div class="mb-4">
-    <label for="calendar_event_description" class="label">Description</label>
+    <%= f.label :description, class: "label" %>
     <%= f.text_area :description,
       class: "input",
       rows: 4,
