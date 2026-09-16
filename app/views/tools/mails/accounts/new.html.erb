@@ -17,7 +17,7 @@
           <h3 class="text-sm font-semibold text-text-primary mb-3">Account Details</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label for="mail_account_email_address" class="label">Email Address</label>
+              <%= f.label :email_address, "Email Address", class: "label" %>
               <%= f.email_field :email_address,
                 class: "input #{@mail_account.errors[:email_address].any? ? 'input-error' : ''}",
                 placeholder: "you@example.com",
@@ -26,7 +26,7 @@
               %>
             </div>
             <div>
-              <label for="mail_account_display_name" class="label">Display Name</label>
+              <%= f.label :display_name, "Display Name", class: "label" %>
               <%= f.text_field :display_name,
                 class: "input",
                 placeholder: "John Doe"
@@ -41,7 +41,7 @@
           <h3 class="text-sm font-semibold text-text-primary mb-3">Credentials</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label for="mail_account_username" class="label">Username</label>
+              <%= f.label :username, "Username", class: "label" %>
               <%= f.text_field :username,
                 class: "input #{@mail_account.errors[:username].any? ? 'input-error' : ''}",
                 placeholder: "you@example.com",
@@ -50,7 +50,7 @@
               <p class="help-text">Usually your email address</p>
             </div>
             <div>
-              <label for="mail_account_password" class="label">Password</label>
+              <%= f.label :password, "Password", class: "label" %>
               <%= f.password_field :password,
                 class: "input #{@mail_account.errors[:encrypted_password].any? ? 'input-error' : ''}",
                 placeholder: "App password or password",
@@ -66,7 +66,7 @@
           <h3 class="text-sm font-semibold text-text-primary mb-3">IMAP Settings (Incoming Mail)</h3>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="md:col-span-2">
-              <label for="mail_account_imap_host" class="label">IMAP Server</label>
+              <%= f.label :imap_host, "IMAP Server", class: "label" %>
               <%= f.text_field :imap_host,
                 class: "input #{@mail_account.errors[:imap_host].any? ? 'input-error' : ''}",
                 placeholder: "imap.example.com",
@@ -74,7 +74,7 @@
               %>
             </div>
             <div>
-              <label for="mail_account_imap_port" class="label">Port</label>
+              <%= f.label :imap_port, "Port", class: "label" %>
               <%= f.number_field :imap_port,
                 class: "input",
                 value: @mail_account.imap_port || 993
@@ -94,7 +94,7 @@
           <h3 class="text-sm font-semibold text-text-primary mb-3">SMTP Settings (Outgoing Mail)</h3>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="md:col-span-2">
-              <label for="mail_account_smtp_host" class="label">SMTP Server</label>
+              <%= f.label :smtp_host, "SMTP Server", class: "label" %>
               <%= f.text_field :smtp_host,
                 class: "input #{@mail_account.errors[:smtp_host].any? ? 'input-error' : ''}",
                 placeholder: "smtp.example.com",
@@ -102,7 +102,7 @@
               %>
             </div>
             <div>
-              <label for="mail_account_smtp_port" class="label">Port</label>
+              <%= f.label :smtp_port, "Port", class: "label" %>
               <%= f.number_field :smtp_port,
                 class: "input",
                 value: @mail_account.smtp_port || 587
@@ -111,7 +111,7 @@
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
             <div>
-              <label for="mail_account_smtp_auth" class="label">Authentication</label>
+              <%= f.label :smtp_auth, "Authentication", class: "label" %>
               <%= f.select :smtp_auth,
                 [["Plain", "plain"], ["Login", "login"], ["CRAM-MD5", "cram_md5"]],
                 {},

@@ -294,12 +294,12 @@ class MailsTest < ApplicationSystemTestCase
     open_mail_settings
     within "dialog#edit-tool-modal[open]" do
       click_on "Email"
-      find_field("mails_account[imap_host]").set("   ")
+      fill_in "IMAP Server", with: "   "
       click_on "Save Changes"
     end
 
     assert_text "Imap host can't be blank"
-    find_field("mails_account[imap_host]").set("imap.fixed.example.com")
+    fill_in "IMAP Server", with: "imap.fixed.example.com"
     click_on "Save Changes"
 
     assert_text "Mail account updated successfully."

@@ -44,10 +44,34 @@ module Tools
         assert_select "[data-controller='tabs'][data-tabs-default-value='settings']"
       end
 
+      test "the labels of the mail settings point at their fields" do
+        get_settings
+
+        assert_labels_point_at_fields "[data-tabs-target='panel'][data-tab='email']"
+      end
+
+      test "the labels of the mail account setup point at their fields" do
+        tool = Tool.create!(name: "Support", tool_type: tool_types(:mail), owner: users(:one))
+
+        get new_tool_mails_account_path(tool)
+
+        assert_response :success
+        assert_labels_point_at_fields "form"
+      end
+
       private
         def get_settings
           get edit_tool_path(@tool), headers: { "Turbo-Frame" => "edit-tool-form" }
           assert_response :success
+        end
+
+        def assert_labels_point_at_fields(scope)
+          labels = css_select("#{scope} label[for]")
+          assert_operator labels.size, :>=, 9
+
+          labels.each do |label|
+            assert_select "#{scope} ##{label["for"]}", 1, "The #{label.text.strip} label points at #{label["for"]}, which isn't there"
+          end
         end
     end
   end

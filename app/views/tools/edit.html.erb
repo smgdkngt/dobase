@@ -167,11 +167,11 @@
               <h3 class="text-sm font-semibold text-text-primary mb-3">Account Details</h3>
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label for="mail_account_email_address" class="label">Email Address</label>
+                  <%= f.label :email_address, "Email Address", class: "label" %>
                   <%= f.email_field :email_address, class: "input", required: true %>
                 </div>
                 <div>
-                  <label for="mail_account_display_name" class="label">Display Name</label>
+                  <%= f.label :display_name, "Display Name", class: "label" %>
                   <%= f.text_field :display_name, class: "input", placeholder: "John Doe" %>
                 </div>
               </div>
@@ -182,11 +182,11 @@
               <h3 class="text-sm font-semibold text-text-primary mb-3">Credentials</h3>
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label for="mail_account_username" class="label">Username</label>
+                  <%= f.label :username, "Username", class: "label" %>
                   <%= f.text_field :username, class: "input", required: true %>
                 </div>
                 <div>
-                  <label for="mail_account_password" class="label">Password</label>
+                  <%= f.label :password, "Password", class: "label" %>
                   <%= f.password_field :password, class: "input", placeholder: "Leave blank to keep current" %>
                 </div>
               </div>
@@ -197,11 +197,11 @@
               <h3 class="text-sm font-semibold text-text-primary mb-3">IMAP Settings</h3>
               <div class="grid grid-cols-4 gap-3">
                 <div class="col-span-3">
-                  <label for="mail_account_imap_host" class="label">IMAP Server</label>
+                  <%= f.label :imap_host, "IMAP Server", class: "label" %>
                   <%= f.text_field :imap_host, class: "input", required: true %>
                 </div>
                 <div>
-                  <label for="mail_account_imap_port" class="label">Port</label>
+                  <%= f.label :imap_port, "Port", class: "label" %>
                   <%= f.number_field :imap_port, class: "input" %>
                 </div>
               </div>
@@ -216,17 +216,17 @@
               <h3 class="text-sm font-semibold text-text-primary mb-3">SMTP Settings</h3>
               <div class="grid grid-cols-4 gap-3">
                 <div class="col-span-3">
-                  <label for="mail_account_smtp_host" class="label">SMTP Server</label>
+                  <%= f.label :smtp_host, "SMTP Server", class: "label" %>
                   <%= f.text_field :smtp_host, class: "input", required: true %>
                 </div>
                 <div>
-                  <label for="mail_account_smtp_port" class="label">Port</label>
+                  <%= f.label :smtp_port, "Port", class: "label" %>
                   <%= f.number_field :smtp_port, class: "input" %>
                 </div>
               </div>
               <div class="grid grid-cols-2 gap-3 mt-3">
                 <div>
-                  <label for="mail_account_smtp_auth" class="label">Authentication</label>
+                  <%= f.label :smtp_auth, "Authentication", class: "label" %>
                   <%= f.select :smtp_auth, [["Plain", "plain"], ["Login", "login"], ["CRAM-MD5", "cram_md5"]], {}, class: "input" %>
                 </div>
                 <div class="flex items-end pb-2">
