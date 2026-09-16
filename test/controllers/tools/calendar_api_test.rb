@@ -256,7 +256,7 @@ module Tools
     end
 
     test "sync starts a sync and reports its status" do
-      assert_enqueued_with job: SyncCalendarsJob, args: [ calendars_accounts(:icloud_account).id ] do
+      assert_enqueued_with job: SyncCalendarsJob, args: [ calendars_accounts(:icloud_account).id, { discover: true } ] do
         post tool_calendar_sync_path(@tool), headers: @headers, as: :json
       end
 
