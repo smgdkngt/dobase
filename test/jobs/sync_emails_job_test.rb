@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "net/imap"
 
 class SyncEmailsJobTest < ActiveJob::TestCase
   setup do
@@ -17,7 +16,7 @@ class SyncEmailsJobTest < ActiveJob::TestCase
   test "a wrong password shows as a sync error instead of syncing forever" do
     @account.mark_syncing!
 
-    with_imap_server(ImapServerRejectingLogin.new) do
+    connect_to_imap(ImapServerRejectingLogin.new) do
       assert_raises(Net::IMAP::NoResponseError) { SyncEmailsJob.perform_now(@account.id) }
     end
 
@@ -36,20 +35,10 @@ class SyncEmailsJobTest < ActiveJob::TestCase
   end
 
   private
-    class ImapServerRejectingLogin
+    class ImapServerRejectingLogin < FakeImapServer
       def login(_username, _password)
         text = Net::IMAP::ResponseText.new(nil, "[AUTHENTICATIONFAILED] Invalid credentials (Failure)")
         raise Net::IMAP::NoResponseError, Net::IMAP::TaggedResponse.new("RUBY0001", "NO", text, "")
       end
-
-      def logout = nil
-      def disconnect = nil
-    end
-
-    def with_imap_server(server)
-      Net::IMAP.singleton_class.define_method(:new) { |*, **| server }
-      yield
-    ensure
-      Net::IMAP.singleton_class.remove_method(:new)
     end
 end

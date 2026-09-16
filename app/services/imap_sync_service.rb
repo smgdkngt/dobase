@@ -165,6 +165,24 @@ class ImapSyncService
     Rails.logger.error("Failed to move email #{uid} from #{source_folder} to #{destination_folder}: #{e.message}")
   end
 
+  # A moved message gets a new UID in its new folder, so mail that was moved before, like
+  # archived mail, is found by its Message-ID. The search matches parts of a header,
+  # so it's done with the angle brackets: only this whole Message-ID matches.
+  def move_to_folder_by_message_id(message_id, source_folder:, destination_folder:)
+    connect do |imap|
+      source, destination = server_folder_names(imap, source_folder, destination_folder)
+      imap.select(source)
+      uids = imap.uid_search([ "HEADER", "Message-ID", "<#{message_id.delete("<>")}>" ])
+      next if uids.empty?
+
+      imap.uid_copy(uids, destination)
+      imap.uid_store(uids, "+FLAGS", [ :Deleted ])
+      imap.expunge
+    end
+  rescue StandardError => e
+    Rails.logger.error("Failed to move email #{message_id} from #{source_folder} to #{destination_folder}: #{e.message}")
+  end
+
   def fetch_email_body(uid, folder: "INBOX")
     connect do |imap|
       imap.select(folder)

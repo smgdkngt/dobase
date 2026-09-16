@@ -63,7 +63,11 @@ module Tools
         account = @tool.mail_account
         archive_folder = account.archive_folder.presence
         if archive_folder
-          ImapSyncJob.perform_later(account.id, "move_to_folder", @message.uid, archive_folder, "INBOX")
+          # Archiving moved the message, which gave it a new UID in the archive folder. The UID we
+          # have can be another message's there, so it's moved back by its Message-ID, and the
+          # next sync gives it its new UID in the inbox.
+          ImapSyncJob.perform_later(account.id, "move_to_folder_by_message_id", nil, archive_folder, "INBOX", @message.message_id)
+          @message.update!(uid: nil)
         else
           ImapSyncJob.perform_later(account.id, "mark_as_unread", @message.uid, @message.folder || "INBOX")
         end

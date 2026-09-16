@@ -118,24 +118,26 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
   # Sent mail is stored in "Sent", which isn't the sent folder's name on Gmail, iCloud or Office 365
 
   test "changes to sent mail happen in the server's sent folder" do
-    server = FolderServer.new(folders: [ "INBOX", "[Gmail]/Sent Mail", "Receipts" ])
-    connect_to(server)
+    server = FakeImapServer.new(folders: [ "INBOX", "[Gmail]/Sent Mail", "Receipts" ])
 
-    @service.mark_as_read(104, folder: "Sent")
-    @service.mark_as_unread(104, folder: "Sent")
-    @service.set_starred(104, true, folder: "Sent")
-    @service.delete_message(104, folder: "Sent")
+    connect_to_imap(server) do
+      @service.mark_as_read(104, folder: "Sent")
+      @service.mark_as_unread(104, folder: "Sent")
+      @service.set_starred(104, true, folder: "Sent")
+      @service.delete_message(104, folder: "Sent")
+    end
 
     assert_equal [ "[Gmail]/Sent Mail" ] * 4, server.selected
     assert_equal [ [ 104, "+FLAGS", [ :Seen ] ], [ 104, "-FLAGS", [ :Seen ] ], [ 104, "+FLAGS", [ :Flagged ] ], [ 104, "+FLAGS", [ :Deleted ] ] ], server.stored
   end
 
   test "moving mail to and from the sent folder uses the server's name, listing folders once per move" do
-    server = FolderServer.new(folders: [ "INBOX", "Sent Items" ])
-    connect_to(server)
+    server = FakeImapServer.new(folders: [ "INBOX", "Sent Items" ])
 
-    @service.move_to_folder(104, source_folder: "Sent", destination_folder: "INBOX")
-    @service.move_to_folder(7, source_folder: "INBOX", destination_folder: "Sent")
+    connect_to_imap(server) do
+      @service.move_to_folder(104, source_folder: "Sent", destination_folder: "INBOX")
+      @service.move_to_folder(7, source_folder: "INBOX", destination_folder: "Sent")
+    end
 
     assert_equal [ "Sent Items", "INBOX" ], server.selected
     assert_equal [ [ 104, "INBOX" ], [ 7, "Sent Items" ] ], server.copied
@@ -143,11 +145,12 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
   end
 
   test "other folders are used by their own name, without listing folders" do
-    server = FolderServer.new(folders: [ "INBOX", "Sent Messages", "Receipts" ])
-    connect_to(server)
+    server = FakeImapServer.new(folders: [ "INBOX", "Sent Messages", "Receipts" ])
 
-    @service.mark_as_read(101, folder: "INBOX")
-    @service.move_to_folder(101, source_folder: "INBOX", destination_folder: "Receipts")
+    connect_to_imap(server) do
+      @service.mark_as_read(101, folder: "INBOX")
+      @service.move_to_folder(101, source_folder: "INBOX", destination_folder: "Receipts")
+    end
 
     assert_equal [ "INBOX", "INBOX" ], server.selected
     assert_equal [ [ 101, "Receipts" ] ], server.copied
@@ -155,12 +158,40 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
   end
 
   test "a server without a known sent folder gets the name Sent" do
-    server = FolderServer.new(folders: [ "INBOX", "Outbox" ])
-    connect_to(server)
+    server = FakeImapServer.new(folders: [ "INBOX", "Outbox" ])
 
-    @service.mark_as_read(104, folder: "Sent")
+    connect_to_imap(server) { @service.mark_as_read(104, folder: "Sent") }
 
     assert_equal [ "Sent" ], server.selected
+  end
+
+  # --- Moving mail by Message-ID ----------------------------------------------
+  # A moved message gets a new UID in its new folder, so the UID stored before the
+  # move can belong to another message there.
+
+  test "mail is found by its whole Message-ID and moved" do
+    server = FakeImapServer.new(folders: [ "INBOX", "Archive" ], message_ids: { [ "Archive", "<msg-006@example.com>" ] => [ 12 ] })
+
+    connect_to_imap(server) do
+      @service.move_to_folder_by_message_id("msg-006@example.com", source_folder: "Archive", destination_folder: "INBOX")
+    end
+
+    assert_equal [ "Archive" ], server.selected
+    assert_equal [ [ "HEADER", "Message-ID", "<msg-006@example.com>" ] ], server.searched
+    assert_equal [ [ [ 12 ], "INBOX" ] ], server.copied
+    assert_equal [ [ [ 12 ], "+FLAGS", [ :Deleted ] ] ], server.stored
+  end
+
+  test "mail that isn't in the folder anymore is left alone" do
+    server = FakeImapServer.new(folders: [ "INBOX", "Archive" ])
+
+    connect_to_imap(server) do
+      @service.move_to_folder_by_message_id("<gone@example.com>", source_folder: "Archive", destination_folder: "INBOX")
+    end
+
+    assert_equal [ [ "HEADER", "Message-ID", "<gone@example.com>" ] ], server.searched
+    assert_empty server.copied
+    assert_empty server.stored
   end
 
   # --- UTF-8 safety -----------------------------------------------------------
@@ -281,30 +312,6 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
         @fetched_attrs = attrs
         @messages
       end
-    end
-
-    # Records what the service asks of a server with these folders
-    class FolderServer
-      attr_reader :selected, :stored, :copied, :lists
-
-      def initialize(folders:)
-        @folders = folders
-        @selected, @stored, @copied, @lists = [], [], [], 0
-      end
-
-      def list(_reference, _pattern)
-        @lists += 1
-        @folders.map { |name| Net::IMAP::MailboxList.new([], "/", name) }
-      end
-
-      def select(folder) = @selected << folder
-      def uid_store(uid, action, flags) = @stored << [ uid, action, flags ]
-      def uid_copy(uid, folder) = @copied << [ uid, folder ]
-      def expunge = nil
-    end
-
-    def connect_to(server)
-      @service.define_singleton_method(:connect) { |&block| block.call(server) }
     end
 
     def report_mail
