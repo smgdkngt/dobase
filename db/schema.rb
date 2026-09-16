@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_15_115704) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_16_094500) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -439,6 +439,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_15_115704) do
     t.string "thread_id"
     t.text "to_addresses"
     t.boolean "trashed", default: false, null: false
+    t.datetime "trashed_at"
     t.integer "uid"
     t.datetime "updated_at", null: false
     t.index ["mail_account_id", "archived"], name: "index_mail_messages_on_mail_account_id_and_archived"
@@ -447,6 +448,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_15_115704) do
     t.index ["mail_account_id", "read"], name: "index_mail_messages_on_mail_account_id_and_read"
     t.index ["mail_account_id", "thread_id"], name: "index_mail_messages_on_mail_account_id_and_thread_id"
     t.index ["mail_account_id"], name: "index_mail_messages_on_mail_account_id"
+    t.index ["trashed_at"], name: "index_mail_messages_on_trashed_at"
   end
 
   create_table "noticed_events", force: :cascade do |t|

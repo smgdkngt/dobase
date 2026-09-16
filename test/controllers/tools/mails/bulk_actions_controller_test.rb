@@ -22,16 +22,19 @@ module Tools
         post tool_bulk_path(@tool), params: { message_ids: [ @msg1.id, @msg2.id ], action_type: "trash" }
         assert @msg1.reload.trashed
         assert @msg2.reload.trashed
+        assert_not_nil @msg1.trashed_at
       end
 
       test "bulk restore takes messages out of trash" do
         trashed = mails_messages(:trashed_message)
+        trashed.update_column(:trashed_at, 1.day.ago)
 
         assert_no_enqueued_jobs do
           post tool_bulk_path(@tool), params: { message_ids: [ trashed.id, @msg1.id ], action_type: "restore" }
         end
 
         assert_not trashed.reload.trashed
+        assert_nil trashed.trashed_at
         assert_equal "1 email(s) restored.", flash[:notice]
       end
 
