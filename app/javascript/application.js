@@ -43,8 +43,16 @@ document.addEventListener("click", (event) => {
 }, true)
 
 function confirmButtonLabel(element, submitter) {
-  const link = element instanceof HTMLFormElement && clickedConfirmLink?.href === element.action ? clickedConfirmLink : null
+  const link = element instanceof HTMLFormElement && submitsLink(element, clickedConfirmLink) ? clickedConfirmLink : null
   return submitter?.dataset.turboConfirmButton || element?.dataset.turboConfirmButton || link?.dataset.turboConfirmButton || "Confirm"
+}
+
+// Turbo moves the link's query string into hidden fields, so the form's action has none
+function submitsLink(form, link) {
+  if (!link) return false
+  const url = new URL(link.href)
+  url.search = ""
+  return url.href === form.action
 }
 
 // Custom confirmation dialog (replaces browser confirm())

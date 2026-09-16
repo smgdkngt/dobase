@@ -111,7 +111,7 @@ class MailsTest < ApplicationSystemTestCase
       find("body").send_keys("#")
       within("dialog#turbo-confirm-dialog[open]") do
         assert_text "Permanently delete this email?"
-        find("button[value='confirm']").click
+        click_on "Delete forever"
       end
       assert_db_change(-> { !Mails::Message.exists?(message.id) })
     end
