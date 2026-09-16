@@ -63,7 +63,7 @@
     <p class="mt-4 text-lg font-medium text-text-primary"><%= file.name %></p>
     <p class="text-text-secondary"><%= file.human_file_size %></p>
     <% if local_assigns[:download_path] %>
-      <%= link_to download_path, class: "btn btn-primary mt-4" do %>
+      <%= link_to download_path, class: "btn btn-primary mt-4", data: { turbo: false } do %>
         <%= render "shared/icon", name: "download", size: 16 %>
         <span>Download</span>
       <% end %>

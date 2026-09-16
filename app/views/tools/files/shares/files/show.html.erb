@@ -26,7 +26,7 @@
   <div class="flex items-center justify-center gap-4 p-4 bg-background-secondary rounded-xl">
     <span class="font-medium"><%= @file.name %></span>
     <span class="text-text-secondary text-sm"><%= @file.human_file_size %></span>
-    <%= link_to share_file_download_path(@share.token, @file), class: "btn btn-primary" do %>
+    <%= link_to share_file_download_path(@share.token, @file), class: "btn btn-primary", data: { turbo: false } do %>
       <%= render "shared/icon", name: "download", size: 16 %>
       <span>Download</span>
     <% end %>

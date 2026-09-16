@@ -13,7 +13,7 @@
       </p>
     </div>
     <% if @files.any? %>
-      <%= link_to share_download_path(@share.token), class: "btn btn-primary" do %>
+      <%= link_to share_download_path(@share.token), class: "btn btn-primary", data: { turbo: false } do %>
         <%= render "shared/icon", name: "download", size: 16 %>
         <span>Download All</span>
       <% end %>

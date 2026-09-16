@@ -25,7 +25,7 @@
             type: :button,
             data: { action: "file-preview#createShare" } %>
       <% end %>
-      <%= link_to tool_files_item_download_path(@tool, @file), class: "btn btn-sm btn-primary" do %>
+      <%= link_to tool_files_item_download_path(@tool, @file), class: "btn btn-sm btn-primary", data: { turbo: false } do %>
         <%= render "shared/icon", name: "download", size: 16 %>
         <span>Download</span>
       <% end %>

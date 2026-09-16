@@ -6,6 +6,8 @@
     <meta name="robots" content="noindex, nofollow">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+    <%# Share downloads are counted: no prefetch on hover %>
+    <meta name="turbo-prefetch" content="false">
 
     <%= yield :head %>
 

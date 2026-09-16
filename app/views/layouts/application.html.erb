@@ -11,6 +11,8 @@
     <meta name="theme-color" content="#2c2c2e" media="(prefers-color-scheme: dark)">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+    <%# No prefetch on hover: page visits have effects (marking mail read, the docs edit lock, activity dots) %>
+    <meta name="turbo-prefetch" content="false">
     <meta name="turbo-refresh-method" content="morph">
     <meta name="turbo-refresh-scroll" content="preserve">
     <meta name="view-transition" content="same-origin">
