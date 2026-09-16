@@ -9,9 +9,17 @@
     <div class="flex items-center gap-2 text-sm text-text-secondary">
       <%= render "shared/icon", name: "clock", size: 16 %>
       <span>
-        <%= @event.start_time.strftime("%b %d, %Y at %H:%M") %>
-        -
-        <%= @event.end_time.strftime("%H:%M") %>
+        <% if @event.all_day? %>
+          <%= @event.first_day.strftime("%b %d, %Y") %>
+          <% if @event.last_day > @event.first_day %>
+            - <%= @event.last_day.strftime("%b %d, %Y") %>
+          <% end %>
+          (all day)
+        <% else %>
+          <%= @event.start_time.strftime("%b %d, %Y at %H:%M") %>
+          -
+          <%= @event.end_time.strftime("%H:%M") %>
+        <% end %>
       </span>
     </div>
   </div>

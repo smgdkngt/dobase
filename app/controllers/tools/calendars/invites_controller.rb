@@ -41,7 +41,7 @@ module Tools
           PushEventJob.perform_later(@event.id, :create)
           # Back to the email, like declining. The calendar answers Turbo form redirects with a refresh stream,
           # which would refresh the mail page anyway instead of navigating to the calendar.
-          redirect_back fallback_location: tool_calendar_path(@tool, week_start: @event.starts_at.to_date), notice: "Invite accepted and added to calendar."
+          redirect_back fallback_location: tool_calendar_path(@tool, week_start: @event.first_day), notice: "Invite accepted and added to calendar."
         else
           redirect_back fallback_location: tool_calendar_path(@tool), alert: "Failed to create event: #{@event.errors.full_messages.join(', ')}"
         end

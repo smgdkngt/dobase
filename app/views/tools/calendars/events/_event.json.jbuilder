@@ -2,7 +2,14 @@
 calendar = local_assigns.fetch(:calendar) { event.calendar }
 creator = local_assigns.fetch(:creator) { event.created_by }
 
-json.(event, :id, :summary, :description, :location, :starts_at, :ends_at)
+json.(event, :id, :summary, :description, :location)
+if event.all_day?
+  # Like an all-day event is created: from the start of its first day to the end of its last
+  json.starts_at event.first_day.beginning_of_day
+  json.ends_at event.last_day.end_of_day
+else
+  json.(event, :starts_at, :ends_at)
+end
 json.all_day event.all_day?
 json.status event.status
 json.calendar do
@@ -30,4 +37,4 @@ json.attendees event.attendees do |attendee|
 end
 
 json.partial! "users/optional_user", key: "creator", user: creator
-json.url tool_calendar_url(tool, week_start: event.starts_at.to_date.beginning_of_week(:monday))
+json.url tool_calendar_url(tool, week_start: event.first_day.beginning_of_week(:monday))

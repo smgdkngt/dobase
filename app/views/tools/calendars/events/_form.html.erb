@@ -6,6 +6,8 @@
   form_url = is_new ? tool_calendar_events_path(tool) : tool_calendar_event_path(tool, event)
   form_method = is_new ? :post : :patch
   modal_id = local_assigns[:modal_id]
+  # An all-day event shows from the start of its first day to the end of its last, wherever it was made
+  all_day = event.all_day? && event.starts_at && event.ends_at
 %>
 
 <%= form_with model: event, url: form_url, method: form_method, data: { turbo_frame: "_top" } do |f| %>
@@ -39,6 +41,7 @@
       <div>
         <label for="calendar_event_start_time" class="label">Start</label>
         <%= f.datetime_local_field :start_time,
+          value: all_day ? event.first_day.beginning_of_day : event.start_time,
           class: "input",
           required: true,
           data: { calendar_target: "startTimeInput" }
@@ -47,6 +50,7 @@
       <div>
         <label for="calendar_event_end_time" class="label">End</label>
         <%= f.datetime_local_field :end_time,
+          value: all_day ? event.last_day.end_of_day.change(sec: 0) : event.end_time,
           class: "input",
           required: true,
           data: { calendar_target: "endTimeInput" }
@@ -113,9 +117,9 @@
 
       <!-- Monthly: By day of month or by weekday -->
       <%
-        week_num = event.starts_at ? ((event.starts_at.day - 1) / 7) + 1 : 1
+        week_num = event.starts_at ? ((event.first_day.day - 1) / 7) + 1 : 1
         ordinals = { 1 => "1st", 2 => "2nd", 3 => "3rd", 4 => "4th", 5 => "5th" }
-        wday_name = event.starts_at ? event.starts_at.strftime("%A") : "day"
+        wday_name = event.starts_at ? event.first_day.strftime("%A") : "day"
         monthly_dow_label = "The #{ordinals[week_num] || "#{week_num}th"} #{wday_name}"
       %>
       <div data-recurrence-form-target="monthlyOptions"

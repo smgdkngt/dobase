@@ -447,6 +447,18 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     assert_match(/DTSTART;VALUE=DATE:\d{8}/, ics)
   end
 
+  test "an all-day event made east of UTC is sent with its own dates" do
+    event = Time.use_zone("Amsterdam") do
+      calendars_calendars(:personal).events.create!(uid: "offsite@dobase", summary: "Offsite", all_day: true,
+        start_time: "2030-01-10 00:00", end_time: "2030-01-11 23:59:59")
+    end
+
+    ics = @service.send(:build_icalendar, event.reload)
+
+    assert_includes ics, "DTSTART;VALUE=DATE:20300110"
+    assert_includes ics, "DTEND;VALUE=DATE:20300112"
+  end
+
   # Response XML generators
 
   private

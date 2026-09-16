@@ -58,8 +58,12 @@ six days after `start_date`. The range can be 92 days at most. A longer range, a
   `pending`, `syncing`, `synced` or `error`.
 - `writable` calendars take new events: they are `enabled` and not `read_only`.
   Dobase marks a calendar read-only when its server refuses a change.
-- Events are listed in start order, from enabled calendars only. An event that
-  began before `start_date` and is still going is included.
+- Events are listed in start order, all-day events first on their day, from
+  enabled calendars only. An event that began before `start_date` and is still
+  going is included.
+- An all-day event (`all_day: true`) falls on the same dates in every time zone.
+  Its `starts_at` is the start of its first day and its `ends_at` the end of its
+  last day, in your time zone.
 - A repeating event is listed once for every occurrence that starts in the
   range. Each occurrence has `occurrence: true`, its own `starts_at` and
   `ends_at`, and the `id` of the series, which is what you show, update or
@@ -117,7 +121,8 @@ zone (`2026-09-18 14:00`), unless they carry an offset
 (`2026-09-18T14:00:00+02:00`). The other fields are `description` and `location`
 (plain text), `all_day` (`true` or `false`) and `status`. For an all-day event,
 send the start of its first day and the end of its last, e.g. `2026-10-05 00:00`
-and `2026-10-06 23:59:59`.
+and `2026-10-06 23:59:59`. Only the days count, and an end at midnight ends the
+event on the day before.
 
 `calendar_id` defaults to the default calendar. A calendar that isn't in this
 tool answers `404`, and a read-only or disabled one `422` with

@@ -6,8 +6,8 @@
 <%
   # Get the display date (the day column we're rendering in)
   current_day = local_assigns[:display_date] || event.start_time.to_date
-  day_start = current_day.to_time.beginning_of_day
-  day_end = current_day.to_time.end_of_day
+  day_start = current_day.beginning_of_day
+  day_end = current_day.end_of_day
 
   # Clip event times to this day's boundaries
   visible_start = [event.start_time, day_start].max

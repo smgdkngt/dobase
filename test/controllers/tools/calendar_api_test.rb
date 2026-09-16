@@ -106,6 +106,39 @@ module Tools
       assert_equal [ "2030-04-01T09:30:00.000+02:00" ], response.parsed_body["events"].map { |event| event["starts_at"] }
     end
 
+    test "all-day events keep their dates in every time zone" do
+      @user.update!(timezone: "Eastern Time (US & Canada)")
+      post tool_calendar_events_path(@tool), headers: @headers, as: :json, params: {
+        calendars_event: { summary: "Offsite", all_day: true, start_time: "2030-01-10 00:00", end_time: "2030-01-11 23:59:59" }
+      }
+      assert_response :created
+      assert_equal [ "2030-01-10T00:00:00.000-05:00", "2030-01-11T23:59:59.999-05:00" ], response.parsed_body.values_at("starts_at", "ends_at")
+      # As synced: DTSTART;VALUE=DATE:20300109 and DTEND;VALUE=DATE:20300110
+      @work.events.create!(uid: "holiday@test", summary: "Holiday", all_day: true, starts_at: Time.utc(2030, 1, 9), ends_at: Time.utc(2030, 1, 10))
+
+      get tool_calendar_path(@tool, start_date: "2030-01-09", end_date: "2030-01-10"), headers: @headers
+
+      assert_equal [
+        [ "Holiday", "2030-01-09T00:00:00.000-05:00", "2030-01-09T23:59:59.999-05:00" ],
+        [ "Offsite", "2030-01-10T00:00:00.000-05:00", "2030-01-11T23:59:59.999-05:00" ]
+      ], response.parsed_body["events"].map { |event| event.values_at("summary", "starts_at", "ends_at") }
+
+      @user.update!(timezone: "Amsterdam")
+      get tool_calendar_path(@tool, start_date: "2030-01-10", end_date: "2030-01-10"), headers: @headers
+
+      assert_equal [ [ "Offsite", "2030-01-10T00:00:00.000+01:00" ] ], response.parsed_body["events"].map { |event| event.values_at("summary", "starts_at") }
+    end
+
+    test "a repeating all-day event is listed on its dates after a change to summer time" do
+      create_event(@personal, "Rent", "2030-01-10 00:00", "2030-01-10 23:59:59", all_day: true,
+        recurrence_frequency: "monthly", recurrence_end_type: "never")
+
+      get tool_calendar_path(@tool, start_date: "2030-07-09", end_date: "2030-07-11"), headers: @headers
+
+      assert_equal [ [ "2030-07-10T00:00:00.000+02:00", "2030-07-10T23:59:59.999+02:00" ] ],
+        response.parsed_body["events"].map { |event| event.values_at("starts_at", "ends_at") }
+    end
+
     test "event shows a recurring event as the series" do
       standup = create_event(@personal, "Standup", "2030-01-07 09:30", "2030-01-07 09:45",
         recurrence_frequency: "daily", recurrence_end_type: "count", recurrence_count: 5, description: "Quick sync")

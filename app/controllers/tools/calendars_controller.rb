@@ -89,9 +89,6 @@ module Tools
     end
 
     def fetch_events_for_range(start_date, end_date)
-      range_start = start_date.beginning_of_day
-      range_end = end_date.end_of_day
-
       base_events = @calendar_account.events
         .joins(:calendar)
         .where(calendar_calendars: { enabled: true })
@@ -102,7 +99,7 @@ module Tools
       # Non-recurring events in range
       non_recurring = base_events
         .non_recurring
-        .in_range(range_start, range_end)
+        .during(start_date, end_date)
         .includes(:calendar)
 
       events.concat(non_recurring.to_a)
@@ -111,20 +108,26 @@ module Tools
       recurring = base_events.recurring.includes(:calendar)
 
       recurring.find_each do |event|
-        occurrences = expand_recurrence(event, range_start, range_end)
+        occurrences = expand_recurrence(event, start_date, end_date)
         events.concat(occurrences)
       end
 
-      events.sort_by(&:starts_at)
+      # All-day events first on their day
+      events.sort_by { |event| [ event.first_day, event.all_day? ? 0 : 1, event.starts_at ] }
     end
 
-    def expand_recurrence(event, range_start, range_end)
+    def expand_recurrence(event, start_date, end_date)
       return [] unless event.recurrence_schedule.present?
 
       schedule = IceCube::Schedule.from_yaml(event.recurrence_schedule)
       duration = event.ends_at - event.starts_at
 
-      occurrences = schedule.occurrences_between(range_start, range_end)
+      # Occurrences of all-day events start at midnight UTC on their dates
+      occurrences = if event.all_day?
+        schedule.occurrences_between(start_date.to_time(:utc), (end_date + 1).to_time(:utc) - 1)
+      else
+        schedule.occurrences_between(start_date.beginning_of_day, end_date.end_of_day)
+      end
 
       occurrences.map do |occurrence_start|
         # Create a virtual event object for this occurrence

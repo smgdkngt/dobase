@@ -239,6 +239,63 @@ module Calendars
       assert event.all_day?
     end
 
+    # -- All-day events --
+
+    test "an all-day event keeps the dates it was made with, west and east of UTC" do
+      [ "Eastern Time (US & Canada)", "Amsterdam" ].each do |zone|
+        event = Time.use_zone(zone) do
+          build_event(all_day: true, start_time: "2030-01-10 00:00", end_time: "2030-01-11 23:59:59").tap(&:save!)
+        end
+
+        assert_equal [ Time.utc(2030, 1, 10), Time.utc(2030, 1, 12) ], [ event.starts_at, event.ends_at ], zone
+        Time.use_zone("Tokyo") { assert_equal [ Date.new(2030, 1, 10), Date.new(2030, 1, 11) ], [ event.first_day, event.last_day ], zone }
+      end
+    end
+
+    test "an all-day event takes midnight UTC as a date, and an end at midnight as the end of the day before" do
+      Time.use_zone("Eastern Time (US & Canada)") do
+        synced = build_event(all_day: true, starts_at: Time.utc(2030, 1, 10), ends_at: Time.utc(2030, 1, 11))
+        made_here = build_event(all_day: true, start_time: "2030-01-10 00:00", end_time: "2030-01-11 00:00")
+        from_a_form = build_event(all_day: true, start_time: "2030-01-10 15:00", end_time: "2030-01-10 16:00")
+
+        [ synced, made_here, from_a_form ].each do |event|
+          assert event.valid?
+          assert_equal [ Date.new(2030, 1, 10), Date.new(2030, 1, 10) ], [ event.first_day, event.last_day ]
+        end
+      end
+    end
+
+    test "an all-day event can't end before it starts" do
+      event = Time.use_zone("Amsterdam") { build_event(all_day: true, start_time: "2030-01-11 00:00", end_time: "2030-01-10 00:00") }
+
+      assert_not event.valid?
+      assert_includes event.errors[:ends_at], "must be after starts_at"
+    end
+
+    test "a repeating all-day event stays on its dates after a change to summer time" do
+      event = Time.use_zone("Amsterdam") do
+        build_event(all_day: true, start_time: "2030-01-10 00:00", end_time: "2030-01-10 23:59",
+          recurrence_frequency: "monthly", recurrence_end_type: "until", recurrence_until: "2030-07-10").tap(&:save!)
+      end
+
+      assert_equal "FREQ=MONTHLY;BYMONTHDAY=10;UNTIL=20300710T235959Z", event.rrule
+      occurrences = IceCube::Schedule.from_yaml(event.recurrence_schedule).all_occurrences
+      assert_equal (1..7).map { |month| Time.utc(2030, month, 10) }, occurrences
+    end
+
+    test "during finds timed events by the days in the time zone and all-day events by their dates" do
+      calendar = calendars_calendars(:work)
+      Time.use_zone("Eastern Time (US & Canada)") do
+        on_the_day = build_event(calendar: calendar, all_day: true, start_time: "2030-01-10", end_time: "2030-01-10 23:59").tap(&:save!)
+        build_event(calendar: calendar, all_day: true, start_time: "2030-01-09", end_time: "2030-01-09 23:59").save!
+        build_event(calendar: calendar, all_day: true, start_time: "2030-01-11", end_time: "2030-01-11 23:59").save!
+        late = build_event(calendar: calendar, start_time: "2030-01-10 23:00", end_time: "2030-01-10 23:30").tap(&:save!)
+        build_event(calendar: calendar, start_time: "2030-01-11 00:30", end_time: "2030-01-11 01:00").save!
+
+        assert_equal [ on_the_day, late ], calendar.events.during(Date.new(2030, 1, 10), Date.new(2030, 1, 10)).by_start
+      end
+    end
+
     # -- Recurrence: building from form --
 
     test "builds daily recurrence from form" do

@@ -4,7 +4,8 @@
 %>
 <%
   days = (0..6).map { |i| week_start + i.days }
-  today = Date.today
+  week_end = days.last
+  today = Date.current
   hours = (0..23).to_a
 
   # Separate all-day and timed events
@@ -14,19 +15,7 @@
   timed_by_day = {}
   days.each do |day|
     timed_by_day[day] = timed_events.select do |event|
-      event_start = event.start_time.to_date
-      event_end = event.end_time.to_date
-      day >= event_start && day <= event_end
-    end
-  end
-
-  # For all-day events, map each day to events that span it
-  all_day_by_day = {}
-  days.each do |day|
-    all_day_by_day[day] = all_day_events.select do |event|
-      event_start = event.start_time.to_date
-      event_end = event.end_time.to_date
-      day >= event_start && day <= event_end
+      day >= event.first_day && day <= event.last_day
     end
   end
 
@@ -61,13 +50,11 @@
   <!-- All-day events row -->
   <% if has_all_day %>
     <%
-      week_end = week_start + 6.days
-
       # Calculate spans for each all-day event within this week
       # Each span: { event:, start_col: 0-6, span: 1-7, show_title: bool, is_start: bool, is_end: bool }
       all_day_spans = all_day_events.map do |event|
-        event_start = event.start_time.to_date
-        event_end = event.end_time.to_date
+        event_start = event.first_day
+        event_end = event.last_day
 
         # Clip to this week's boundaries
         visible_start = [event_start, week_start].max

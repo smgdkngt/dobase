@@ -512,8 +512,8 @@ class CaldavSyncService
     vevent.location = event.location if event.location.present?
 
     if event.all_day?
-      vevent.dtstart = Icalendar::Values::Date.new(event.starts_at.to_date)
-      vevent.dtend = Icalendar::Values::Date.new(event.ends_at.to_date)
+      vevent.dtstart = Icalendar::Values::Date.new(event.first_day)
+      vevent.dtend = Icalendar::Values::Date.new(event.last_day + 1)
     else
       vevent.dtstart = Icalendar::Values::DateTime.new(event.starts_at.utc)
       vevent.dtend = Icalendar::Values::DateTime.new(event.ends_at.utc)

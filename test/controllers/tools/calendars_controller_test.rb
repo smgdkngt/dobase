@@ -19,6 +19,34 @@ module Tools
       assert_includes response.body, "Team Meeting"
     end
 
+    test "week view shows the days in the user's time zone" do
+      users(:one).update!(timezone: "Eastern Time (US & Canada)")
+      # Tuesday 22:00 in New York until 03:00 the next morning
+      @personal.events.create!(uid: "night-shift@dobase", summary: "Night shift", starts_at: Time.utc(2030, 1, 9, 3), ends_at: Time.utc(2030, 1, 9, 8))
+
+      # Still Tuesday in New York, Wednesday in UTC
+      travel_to Time.utc(2030, 1, 9, 2) do
+        get tool_calendar_path(@tool, week_start: "2030-01-07")
+      end
+
+      assert_select ".week-header-cell.today", text: /Tue\s+8/
+      assert_match "top: 91.66", css_select(".week-column[data-date='2030-01-08'] [data-event-id]").sole["style"]
+      assert_match "top: 0.0%", css_select(".week-column[data-date='2030-01-09'] [data-event-id]").sole["style"]
+    end
+
+    test "week view shows all-day events on their dates west of UTC" do
+      users(:one).update!(timezone: "Eastern Time (US & Canada)")
+      # As synced: DTSTART;VALUE=DATE:20300108 and DTEND;VALUE=DATE:20300109
+      @personal.events.create!(uid: "holiday@dobase", summary: "Holiday", all_day: true, starts_at: Time.utc(2030, 1, 8), ends_at: Time.utc(2030, 1, 9))
+      @personal.events.create!(uid: "trip@dobase", summary: "Trip", all_day: true, starts_at: Time.utc(2030, 1, 10), ends_at: Time.utc(2030, 1, 14))
+      @personal.events.create!(uid: "next-monday@dobase", summary: "Next Monday", all_day: true, starts_at: Time.utc(2030, 1, 14), ends_at: Time.utc(2030, 1, 15))
+
+      get tool_calendar_path(@tool, week_start: "2030-01-07")
+
+      spans = css_select(".all-day-event-span").to_h { |span| [ span.text.strip, span["style"][/grid-column: [^;]+/] ] }
+      assert_equal({ "Holiday" => "grid-column: 2 / span 1", "Trip" => "grid-column: 4 / span 4" }, spans)
+    end
+
     test "week view sends owners without an account to the account setup" do
       tool = Tool.create!(name: "Unconnected", tool_type: tool_types(:calendar), owner: users(:one))
 
