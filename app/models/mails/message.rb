@@ -12,6 +12,9 @@ module Mails
 
     validates :message_id, presence: true, uniqueness: { scope: :mail_account_id }
 
+    # When a message went to the trash: the trash is emptied of messages older than 30 days
+    before_save -> { self.trashed_at = trashed? ? Time.current : nil }, if: :trashed_changed?
+
     scope :trashed, -> { where(trashed: true) }
     scope :not_trashed, -> { where(trashed: false) }
     scope :archived, -> { where(archived: true) }

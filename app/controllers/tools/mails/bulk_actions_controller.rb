@@ -30,11 +30,11 @@ module Tools
           messages.where.not(uid: nil).find_each do |message|
             ImapSyncJob.perform_later(@mail_account.id, "delete_message", message.uid, message.folder || "INBOX")
           end
-          messages.update_all(trashed: true, archived: false)
+          messages.update_all(trashed: true, trashed_at: Time.current, archived: false)
           "#{messages.count} email(s) moved to trash."
         when "restore"
           # Local only, like TrashesController#destroy: trashing already expunged these on the IMAP server.
-          count = messages.trashed.update_all(trashed: false)
+          count = messages.trashed.update_all(trashed: false, trashed_at: nil)
           "#{count} email(s) restored."
         when "archive"
           archive_folder = @mail_account.archive_folder.presence
