@@ -28,7 +28,7 @@
     sanitized = sanitized.gsub(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/i, "")
 
     # Strip remote images: replace src with blank, track if any were found
-    has_remote_images = sanitized.match?(/<img\b[^>]*?\bsrc\s*=\s*["']https?:\/\//i)
+    has_remote_images = sanitized.match?(/<img\b[^>]*?\bsrc\s*=\s*["']https?:\/\//i) || sanitized.match?(/url\(\s*["']?\s*https?:/i)
     images_stripped = sanitized.gsub(/(<img\b[^>]*?)\bsrc\s*=\s*["']https?:\/\/[^"']*["']/i, '\1data-blocked-src=""')
 
     base_styles = <<~CSS
@@ -60,11 +60,15 @@
       }
     CSS
 
-    srcdoc_for = ->(body) {
-      "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><base target=\"_blank\"><style>#{base_styles}</style></head><body>#{body}</body></html>"
+    # Until the reader asks for images, nothing loads from outside the email. CSS url()s in
+    # <style> survive sanitizing and would otherwise still work as tracking pixels.
+    remote_content_policy = %(<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: cid:; style-src 'unsafe-inline'; font-src data:">)
+
+    srcdoc_for = ->(body, policy: nil) {
+      "<!DOCTYPE html><html><head><meta charset=\"utf-8\">#{policy}<base target=\"_blank\"><style>#{base_styles}</style></head><body>#{body}</body></html>"
     }
 
-    safe_srcdoc = srcdoc_for.call(images_stripped)
+    safe_srcdoc = srcdoc_for.call(images_stripped, policy: remote_content_policy)
     full_srcdoc = srcdoc_for.call(sanitized)
   %>
   <div data-controller="email-frame"

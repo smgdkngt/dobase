@@ -29,9 +29,11 @@ module Files
     def write(path)
       require "zip"
 
+      taken = Set.new
       Zip::OutputStream.open(path) do |zip|
         files.with_attached_file.find_each do |item|
-          zip.put_next_entry("#{folder_paths[item.folder_id]}#{item.name}", nil, nil, Zip::Entry::STORED)
+          name = unique_name("#{folder_paths[item.folder_id]}#{path_segment(item.name)}", taken)
+          zip.put_next_entry(name, nil, nil, Zip::Entry::STORED)
           item.file.download { |chunk| zip << chunk }
         end
       end
@@ -52,7 +54,7 @@ module Files
 
         while parent_ids.any?
           children = Files::Folder.where(tool_id: tool_id, parent_id: parent_ids).where.not(id: paths.keys).pluck(:id, :parent_id, :name)
-          children.each { |id, parent_id, name| paths[id] = "#{paths[parent_id]}#{name}/" }
+          children.each { |id, parent_id, name| paths[id] = "#{paths[parent_id]}#{path_segment(name)}/" }
           parent_ids = children.map(&:first)
         end
       end
@@ -65,6 +67,26 @@ module Files
 
     def tool_id
       folder.tool_id
+    end
+
+    # A file or folder name as one path segment. Names come from users, and a "/", "\"
+    # or ".." in them would make the zip unpack outside the folder it's unpacked into.
+    def path_segment(name)
+      segment = name.to_s.gsub(%r{[/\\]}, "-").gsub(/[[:cntrl:]]/, "").strip
+      segment.empty? || segment.in?(%w[. ..]) ? "_" : segment
+    end
+
+    # Two files with the same name would unpack onto each other, so later ones get
+    # numbered the way file managers do. Case-insensitive, like macOS and Windows.
+    def unique_name(name, taken)
+      candidate = name
+      number = 1
+      while taken.include?(candidate.downcase)
+        number += 1
+        candidate = name.sub(/(\.[^.\/]+)?\z/) { " (#{number})#{$1}" }
+      end
+      taken << candidate.downcase
+      candidate
     end
   end
 end

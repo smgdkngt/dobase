@@ -5,9 +5,15 @@ on:
   push:
     branches: [ main ]
 
+permissions:
+  contents: read
+
 jobs:
   scan_secrets:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read # gitleaks lists a pull request's commits
     steps:
       - name: Checkout code
         uses: actions/checkout@v7

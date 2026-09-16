@@ -53,7 +53,7 @@ module Tools
 
         test "a password-protected link downloads after it is unlocked" do
           @share.update!(password: "correct horse")
-          get share_path(@share.token), params: { password: "correct horse" }
+          post share_unlock_path(@share.token), params: { password: "correct horse" }
 
           get share_download_path(@share.token)
 
