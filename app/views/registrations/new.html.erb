@@ -41,8 +41,12 @@
             class: "input #{@user.errors[:email_address].any? ? 'input-error' : ''}",
             placeholder: "you@example.com",
             required: true,
+            readonly: pending_invitation.present?,
             autocomplete: "email"
           %>
+          <% if pending_invitation %>
+            <p class="text-xs text-text-tertiary mt-1">Your invitation was sent to this address.</p>
+          <% end %>
         </div>
 
         <div class="mb-4">

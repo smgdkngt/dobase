@@ -10,7 +10,7 @@ class RegistrationsController < ApplicationController
       redirect_to login_path, alert: "Registration is by invitation only."
       return
     end
-    @user = User.new
+    @user = User.new(email_address: pending_invitation&.email)
     @first_user = User.none?
   end
 
@@ -27,6 +27,8 @@ class RegistrationsController < ApplicationController
     end
 
     @user = User.new(user_params)
+    # An invitation is for its address, so signing up through one uses that address
+    @user.email_address = pending_invitation.email if pending_invitation
 
     if @user.save
       start_new_session_for(@user)
@@ -46,8 +48,8 @@ class RegistrationsController < ApplicationController
   def registration_allowed?
     # Open registration when no users exist (first user setup)
     return true if User.none?
-    # Allow registration via invitation link
-    return true if session[:pending_invitation_token].present?
+    # Allow registration via a valid invitation link
+    return true if pending_invitation
     # Otherwise closed unless explicitly enabled
     ENV["OPEN_REGISTRATION"] == "true"
   end
@@ -57,7 +59,7 @@ class RegistrationsController < ApplicationController
     return false if payload.blank?
 
     parsed = JSON.parse(Base64.decode64(payload), symbolize_names: true)
-    Altcha.verify_solution(parsed, altcha_hmac_key)
+    Altcha::V1.verify_solution(parsed, altcha_hmac_key)
   rescue JSON::ParserError, ArgumentError
     false
   end
@@ -70,12 +72,18 @@ class RegistrationsController < ApplicationController
     params.require(:user).permit(:first_name, :last_name, :email_address, :password, :password_confirmation)
   end
 
-  def accept_pending_invitation(user)
-    token = session.delete(:pending_invitation_token)
-    return unless token
+  def pending_invitation
+    return @pending_invitation if defined?(@pending_invitation)
 
-    invitation = Invitation.find_by(token: token)
-    return unless invitation&.acceptable?
+    invitation = Invitation.find_by(token: session[:pending_invitation_token]) if session[:pending_invitation_token].present?
+    @pending_invitation = invitation if invitation&.acceptable?
+  end
+  helper_method :pending_invitation
+
+  def accept_pending_invitation(user)
+    invitation = pending_invitation
+    session.delete(:pending_invitation_token)
+    return unless invitation&.for?(user)
 
     invitation.accept!(user)
     tool_path(invitation.tool)

@@ -35,6 +35,11 @@ class Invitation < ApplicationRecord
     pending? && !expired?
   end
 
+  # An invitation is for its email address: only the account with that address may use it.
+  def for?(user)
+    user.email_address == email
+  end
+
   def accept!(user)
     transaction do
       update!(status: "accepted", accepted_at: Time.current)
