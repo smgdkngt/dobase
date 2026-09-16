@@ -177,6 +177,12 @@ class ImapSyncService
   private
 
   def connect
+    begin
+      RemoteHost.verify!(@account.imap_host)
+    rescue RemoteHost::Forbidden => e
+      raise ConnectionError, e.message
+    end
+
     ssl_options = if @account.imap_ssl
       {
         verify_mode: OpenSSL::SSL::VERIFY_PEER

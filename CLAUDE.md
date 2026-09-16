@@ -19,6 +19,8 @@ All branding is configurable via environment variables (defaults to "Dobase"):
 
 Config lives in `config/initializers/app_config.rb`. View helpers: `app_name`, `app_logo_path`.
 
+Mail (IMAP/SMTP) and calendar (CalDAV) connections go through `RemoteHost.verify!`, which refuses hosts that resolve to local addresses, and private networks unless `ALLOW_PRIVATE_NETWORK_HOSTS=true`. Tests use a fake resolver (`test/test_helper.rb`): names are public, `localhost` is local, `*.internal` is private, `*.invalid` doesn't resolve.
+
 ## Development Commands
 
 ```bash

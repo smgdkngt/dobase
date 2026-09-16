@@ -110,6 +110,7 @@ class SmtpSendService
   end
 
   def build_smtp
+    RemoteHost.verify!(@account.smtp_host)
     smtp = Net::SMTP.new(@account.smtp_host, @account.smtp_port)
 
     if @account.smtp_tls

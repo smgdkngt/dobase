@@ -79,4 +79,12 @@ class SmtpSendServiceTest < ActiveSupport::TestCase
     assert_equal 5, attachment.file_size
     assert_equal "hello", attachment.file.download
   end
+  test "a mail server on a private network isn't contacted" do
+    @account.update!(smtp_host: "mail.internal")
+
+    error = assert_raises(SmtpSendService::SendError) do
+      SmtpSendService.new(@account).send_email(to: "ann@example.com", subject: "Hi", body: "Hello")
+    end
+    assert_match "private network", error.message
+  end
 end

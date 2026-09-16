@@ -131,6 +131,7 @@ volumes:
 | `APP_FROM_EMAIL` | `notifications@dobase.co` | Sender address for emails |
 | `DISABLE_SSL` | — | Set to `true` for non-TLS deployments (ONCE sets this automatically on localhost) |
 | `OPEN_REGISTRATION` | — | Set to `true` to allow public signup (default: invite-only) |
+| `ALLOW_PRIVATE_NETWORK_HOSTS` | — | Set to `true` to let mail and calendar accounts use servers on a private network (10.x, 172.16–31.x, 192.168.x). Local addresses are always refused |
 
 #### Email (SMTP)
 

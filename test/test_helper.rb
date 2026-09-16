@@ -4,6 +4,17 @@ require "rails/test_help"
 require_relative "test_helpers/session_test_helper"
 require_relative "test_helpers/api_test_helper"
 
+# Tests never look up real host names. Names count as public servers, except
+# "localhost" and "*.internal", which resolve like a machine's own and a private network's.
+RemoteHost.resolver = ->(host) do
+  case host
+  when "localhost" then [ "127.0.0.1" ]
+  when /\.internal\z/ then [ "10.1.2.3" ]
+  when /\.invalid\z/ then []
+  else [ "203.0.113.10" ]
+  end
+end
+
 module ActiveSupport
   class TestCase
     # Run tests in parallel with specified workers
