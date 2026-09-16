@@ -78,6 +78,27 @@ class SmtpSendServiceTest < ActiveSupport::TestCase
     assert_equal 5, attachment.file_size
     assert_equal "hello", attachment.file.download
   end
+
+  test "attachments go next to the text and HTML of the email, not among them" do
+    file = Rack::Test::UploadedFile.new(StringIO.new("hello"), "text/plain", original_filename: "notes.txt")
+
+    @service.send_email(to: [ "friend@example.com" ], subject: "Notes", body: "Attached", body_html: "<p>Attached</p>", attachments: [ file ])
+
+    mail = Mail.new(@smtp.deliveries.sole[:message])
+    assert_equal "multipart/mixed", mail.mime_type
+    assert_equal [ "multipart/alternative", "text/plain" ], mail.parts.map(&:mime_type)
+    assert_equal [ "text/plain", "text/html" ], mail.parts.first.parts.map(&:mime_type)
+    assert_equal [ "notes.txt" ], mail.attachments.map(&:filename)
+    assert_equal [ "Attached", "<p>Attached</p>" ], [ mail.text_part.decoded, mail.html_part.decoded ]
+  end
+
+  test "an email without attachments has its text and HTML as alternatives" do
+    @service.send_email(to: [ "friend@example.com" ], subject: "Hello", body: "Hi", body_html: "<p>Hi</p>")
+
+    mail = Mail.new(@smtp.deliveries.sole[:message])
+    assert_equal "multipart/alternative", mail.mime_type
+    assert_equal [ "text/plain", "text/html" ], mail.parts.map(&:mime_type)
+  end
   test "a mail server on a private network isn't contacted" do
     @account.update!(smtp_host: "mail.internal")
 

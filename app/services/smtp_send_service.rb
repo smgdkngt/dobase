@@ -133,27 +133,25 @@ class SmtpSendService
     mail.date = Time.current
     mail.message_id = "<#{SecureRandom.uuid}@#{@account.smtp_host}>"
 
-    if body_html.present? || (attachments.present? && Array(attachments).any?)
-      mail.text_part = Mail::Part.new do
-        body body
-        content_type "text/plain; charset=UTF-8"
-      end
-
-      if body_html.present?
-        mail.html_part = Mail::Part.new do
-          body body_html
-          content_type "text/html; charset=UTF-8"
-        end
-      end
-
-      Array(attachments).each do |attachment|
-        add_attachment(mail, attachment)
-      end
+    if body_html.present? && attachments.present?
+      # The text and HTML are the message in two forms; attachments go next to them, not among them
+      mail.part(content_type: "multipart/alternative") { |message| add_text_and_html(message, body, body_html) }
+    elsif body_html.present? || attachments.present?
+      add_text_and_html(mail, body, body_html)
     else
       mail.body = body
     end
 
+    Array(attachments).each do |attachment|
+      add_attachment(mail, attachment)
+    end
+
     mail
+  end
+
+  def add_text_and_html(message, text, html)
+    message.text_part = Mail::Part.new(body: text, content_type: "text/plain; charset=UTF-8")
+    message.html_part = Mail::Part.new(body: html, content_type: "text/html; charset=UTF-8") if html.present?
   end
 
   def add_attachment(mail, attachment)
