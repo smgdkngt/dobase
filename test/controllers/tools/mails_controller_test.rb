@@ -187,6 +187,39 @@ module Tools
       end
     end
 
+    test "a reply goes out in the conversation it answers" do
+      original = mails_messages(:inbox_read)
+      original.update!(references: "<msg-000@example.com>")
+
+      get new_tool_mail_path(@tool, reply_to: original.id)
+      assert_select "input[name=in_reply_to][value=?]", original.message_id
+
+      deliveries = capture_smtp_deliveries do
+        post tool_mails_path(@tool), params: {
+          to: "reports@example.com", subject: "Re: Your weekly report", body: "<p>Thanks</p>", in_reply_to: original.message_id
+        }
+      end
+
+      assert_redirected_to tool_mails_path(@tool, folder: "sent")
+      assert_match "In-Reply-To: <msg-002@example.com>", deliveries.sole[:message]
+      assert_match(/References: <msg-000@example.com>\s+<msg-002@example.com>/, deliveries.sole[:message])
+
+      reply = @account.messages.sent.find_by!(subject: "Re: Your weekly report")
+      assert_equal original.message_id, reply.in_reply_to
+      assert_includes original.conversation, reply
+    end
+
+    test "a reply that can't be sent is still a reply when the form comes back" do
+      original = mails_messages(:inbox_read)
+
+      post tool_mails_path(@tool), params: {
+        to: "not-an-address", subject: "Re: Your weekly report", body: "<p>Thanks</p>", in_reply_to: original.message_id
+      }
+
+      assert_response :unprocessable_entity
+      assert_select "input[name=in_reply_to][value=?]", original.message_id
+    end
+
     test "index with search query filters messages" do
       get tool_mails_path(@tool, q: "Welcome")
       assert_response :success

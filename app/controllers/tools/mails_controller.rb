@@ -113,7 +113,8 @@ module Tools
         subject: params[:subject],
         body: body_plain,
         body_html: body_html,
-        attachments: all_attachments.presence
+        attachments: all_attachments.presence,
+        in_reply_to: params[:in_reply_to].presence
       )
 
       if params[:draft_id].present?
@@ -281,6 +282,7 @@ module Tools
       @bcc = params[:bcc] || ""
       @subject = params[:subject] || ""
       @body = params[:body] || ""
+      @in_reply_to = params[:in_reply_to]
 
       if params[:reply_to].present?
         original = @tool.mail_account.messages.find_by(id: params[:reply_to])

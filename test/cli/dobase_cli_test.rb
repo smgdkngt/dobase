@@ -103,6 +103,32 @@ class DobaseCliTest < ActiveSupport::TestCase
     assert_raises(Dobase::UsageError) { command.send(:tool_and_id, "roadmap/abc", "boards", "card") }
   end
 
+  test "replies sent from the CLI name the message they answer" do
+    responses = {
+      "/tools" => [ { "id" => 8, "name" => "Inbox", "type" => "mail" } ],
+      "/tools/8/mails/310" => { "account" => { "email_address" => "me@example.com" }, "messages" => [
+        { "id" => 310, "draft" => false, "from_address" => "ann@example.com", "to" => [ "me@example.com" ], "cc" => [],
+          "subject" => "Plans", "message_id" => "plans@example.com" }
+      ] },
+      "/tools/8/mails/312" => { "messages" => [
+        { "id" => 312, "draft" => true, "to" => [ "ann@example.com" ], "cc" => [], "subject" => "Re: Plans",
+          "body_html" => "<p>Yes</p>", "in_reply_to" => "plans@example.com" }
+      ] }
+    }
+    sent = []
+    cli = Dobase::Commands::Mail.new(config: Dobase::Config.new, out: StringIO.new, json: false, user_agent: "test")
+    cli.define_singleton_method(:get) { |path, _params = {}| responses.fetch(path) }
+    cli.define_singleton_method(:post) do |_path, body = {}|
+      sent << body
+      { "subject" => body[:subject], "to" => [ "ann@example.com" ] }
+    end
+
+    cli.invoke(Dobase::Command::DEFINITIONS["mail reply"], %w[8/310 --body Sure --send])
+    cli.invoke(Dobase::Command::DEFINITIONS["mail send"], %w[8 --draft 312])
+
+    assert_equal [ "plans@example.com", "plans@example.com" ], sent.map { |email| email[:in_reply_to] }
+  end
+
   private
 
   def command

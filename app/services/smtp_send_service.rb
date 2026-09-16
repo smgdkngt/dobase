@@ -70,17 +70,30 @@ class SmtpSendService
     raise ConnectionError, "Connection failed: #{e.message}"
   end
 
-  def send_email(to:, subject:, body:, body_html: nil, cc: nil, bcc: nil, attachments: nil)
-    mail = deliver(to: to, subject: subject, body: body, body_html: body_html, cc: cc, bcc: bcc, attachments: attachments)
-    file_sent_email(mail, to: to, subject: subject, body: body, body_html: body_html, cc: cc, bcc: bcc, attachments: attachments)
+  # A reply passes the message_id of the message it answers as in_reply_to.
+  def send_email(to:, subject:, body:, body_html: nil, cc: nil, bcc: nil, attachments: nil, in_reply_to: nil)
+    in_reply_to = in_reply_to.presence
+    email = { to: to, subject: subject, body: body, body_html: body_html, cc: cc, bcc: bcc, attachments: attachments,
+              in_reply_to: in_reply_to, references: references_for(in_reply_to) }
+
+    mail = deliver(**email)
+    file_sent_email(mail, **email)
 
     true
   end
 
   private
 
-  def deliver(to:, subject:, body:, body_html:, cc:, bcc:, attachments:)
-    mail = build_mail(to: to, subject: subject, body: body, body_html: body_html, cc: cc, bcc: bcc, attachments: attachments)
+  # The conversation up to the answered message, as far as it's known here, so mail
+  # programs and the copy in Sent file the reply with it
+  def references_for(in_reply_to)
+    return unless in_reply_to
+
+    @account.messages.find_by(message_id: in_reply_to)&.reply_references || in_reply_to
+  end
+
+  def deliver(**email)
+    mail = build_mail(**email)
 
     smtp = build_smtp
     smtp.start(
@@ -122,7 +135,7 @@ class SmtpSendService
     smtp
   end
 
-  def build_mail(to:, subject:, body:, body_html:, cc:, bcc:, attachments:)
+  def build_mail(to:, subject:, body:, body_html:, cc:, bcc:, attachments:, in_reply_to:, references:)
     mail = Mail.new
 
     mail.from = @account.display_name.present? ? "#{@account.display_name} <#{@account.email_address}>" : @account.email_address
@@ -132,6 +145,11 @@ class SmtpSendService
     mail.subject = subject
     mail.date = Time.current
     mail.message_id = "<#{SecureRandom.uuid}@#{@account.smtp_host}>"
+
+    if in_reply_to
+      mail.in_reply_to = in_reply_to
+      mail.references = references
+    end
 
     if body_html.present? && attachments.present?
       # The text and HTML are the message in two forms; attachments go next to them, not among them
@@ -238,9 +256,11 @@ class SmtpSendService
     [ nil, nil ]
   end
 
-  def save_sent_email(mail, subject:, body:, body_html:, attachments:, **)
+  def save_sent_email(mail, subject:, body:, body_html:, attachments:, in_reply_to:, references:, **)
     email = @account.messages.create!(
       message_id: mail.message_id,
+      in_reply_to: in_reply_to,
+      references: references,
       folder: "Sent",
       subject: subject,
       from_address: @account.email_address,

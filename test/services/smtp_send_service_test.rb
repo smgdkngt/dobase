@@ -20,6 +20,7 @@ class SmtpSendServiceTest < ActiveSupport::TestCase
     delivery = @smtp.deliveries.sole
     assert_equal "testuser@example.com", delivery[:from]
     assert_equal [ "friend@example.com", "colleague@example.com" ], delivery[:recipients]
+    assert_no_match(/^(In-Reply-To|References):/, delivery[:message])
 
     sent = @account.messages.find_by!(subject: "Hello")
     assert_equal "Sent", sent.folder
@@ -43,6 +44,32 @@ class SmtpSendServiceTest < ActiveSupport::TestCase
     assert_equal [ "sender@example.com" ], sent.to_addresses_list
     assert_equal [ "reports@example.com" ], sent.cc_addresses_list
     assert_equal "Friendly Sender", @account.contacts.find_by!(email_address: "sender@example.com").name
+  end
+
+  test "a reply names the message it answers and that message's ancestors, and joins its conversation" do
+    parent = mails_messages(:inbox_read)
+    parent.update!(in_reply_to: "<msg-000@example.com>")
+
+    @service.send_email(to: [ "reports@example.com" ], subject: "Re: Your weekly report", body: "Thanks", in_reply_to: parent.message_id)
+
+    message = @smtp.deliveries.sole[:message]
+    assert_match "In-Reply-To: <msg-002@example.com>", message
+    assert_match(/References: <msg-000@example.com>\s+<msg-002@example.com>/, message)
+
+    reply = @account.messages.sent.find_by!(subject: "Re: Your weekly report")
+    assert_equal [ parent.message_id, "<msg-000@example.com> <msg-002@example.com>" ], [ reply.in_reply_to, reply.references ]
+    assert_equal parent.thread_id, reply.thread_id
+  end
+
+  test "a reply to a message that isn't here still names it" do
+    @service.send_email(to: [ "friend@example.com" ], subject: "Re: Plans", body: "Yes", in_reply_to: "plans@example.com")
+
+    message = @smtp.deliveries.sole[:message]
+    assert_match "In-Reply-To: <plans@example.com>", message
+    assert_match "References: <plans@example.com>", message
+
+    reply = @account.messages.sent.find_by!(subject: "Re: Plans")
+    assert_equal [ "plans@example.com" ] * 3, [ reply.in_reply_to, reply.references, reply.thread_id ]
   end
 
   test "a failure after delivery is reported, not raised as a failed send" do
