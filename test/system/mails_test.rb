@@ -92,6 +92,44 @@ class MailsTest < ApplicationSystemTestCase
     click_with_retry("[title='Delete (#)']") { message.reload.trashed? }
   end
 
+  test "the # shortcut trashes the open message" do
+    message = mails_messages(:inbox_unread)
+    open_message(message)
+
+    connect_to_imap(FakeImapServer.new) do
+      # Typed with Shift, the way a US keyboard does it
+      find("body").send_keys("#")
+      assert_db_change(-> { message.reload.trashed? })
+    end
+  end
+
+  test "the # shortcut in the trash deletes the message for good, after asking" do
+    message = mails_messages(:trashed_message)
+    open_message(message, folder: "trash")
+
+    connect_to_imap(FakeImapServer.new) do
+      find("body").send_keys("#")
+      within("dialog#turbo-confirm-dialog[open]") do
+        assert_text "Permanently delete this email?"
+        find("button[value='confirm']").click
+      end
+      assert_db_change(-> { !Mails::Message.exists?(message.id) })
+    end
+  end
+
+  test "Trash in the command palette trashes the open message" do
+    message = mails_messages(:inbox_unread)
+    open_message(message)
+    wait_for_stimulus "keyboard-shortcuts"
+    wait_for_stimulus "command-palette"
+
+    connect_to_imap(FakeImapServer.new) do
+      find(".sidebar-jump-pill").click
+      within("dialog[data-controller='command-palette']") { find("button", text: "Trash").click }
+      assert_db_change(-> { message.reload.trashed? })
+    end
+  end
+
   test "accepting a calendar invite into a calendar from another calendar tool" do
     team_tool = Tool.create!(name: "Team Calendar", tool_type: tool_types(:calendar), owner: @user)
     launches = Calendars::Account.create!(tool: team_tool, provider: "local").calendars.create!(name: "Launches", remote_id: "local-launches")
@@ -287,6 +325,13 @@ class MailsTest < ApplicationSystemTestCase
   def text_file(name, content)
     @files ||= Dir.mktmpdir
     File.join(@files, name).tap { |path| File.write(path, content) }
+  end
+
+  def open_message(message, folder: nil)
+    visit tool_mail_path(@tool, message, folder: folder)
+    assert_text message.body_plain, wait: 5
+    wait_for_turbo
+    wait_for_stimulus "hotkey", "[data-controller~='hotkey'][title^='Delete']"
   end
 
   def open_mail_settings

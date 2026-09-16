@@ -47,8 +47,15 @@ export default class extends Controller {
   triggerAction(event) {
     const hotkey = event.currentTarget.dataset.hotkeyTrigger
     this.element.close()
-    const target = document.querySelector(`[data-hotkey="${hotkey}"]`)
+    const target = this._findHotkeyElement(hotkey)
     if (target) target.click()
+  }
+
+  // data-hotkey can list several hotkeys, separated by commas: "#,Shift+#".
+  // A comma right after a + is the comma key: "Mod+,".
+  _findHotkeyElement(hotkey) {
+    return Array.from(document.querySelectorAll("[data-hotkey]"))
+      .find(element => element.dataset.hotkey.split(/(?<!\+),/).includes(hotkey))
   }
 
   // Private
