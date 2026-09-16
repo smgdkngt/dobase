@@ -14,7 +14,9 @@ Rails.application.configure do
     policy.worker_src  :self, :blob
     policy.style_src   :self, "'unsafe-inline'"
     policy.frame_src   :self
-    policy.connect_src :self, *[ ENV["LIVEKIT_URL"]&.sub(%r{^https?://}, "wss://") ].compact
+    # LiveKit signals over WebSockets and asks the same host over HTTP(S) why a connection failed
+    livekit = ENV["LIVEKIT_URL"]
+    policy.connect_src :self, *[ livekit&.sub(%r{\Ahttp}, "ws"), livekit&.sub(%r{\Aws}, "http") ].compact.uniq
   end
 
   # Use a nonce for inline importmap scripts

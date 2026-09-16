@@ -1,8 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { api } from "services/api"
 
-const LIVEKIT_URL = "https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.esm.mjs"
-
 export default class extends Controller {
   static targets = [
     "preJoin",
@@ -71,7 +69,7 @@ export default class extends Controller {
   }
 
   async join() {
-    const { Room, RoomEvent, Track } = await import(LIVEKIT_URL)
+    const { Room, RoomEvent, Track } = await import("livekit-client")
 
     const tokenData = await api(this.tokenUrlValue, "POST")
     if (!tokenData?.token || !tokenData?.url) {
