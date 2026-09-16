@@ -34,6 +34,19 @@ document.addEventListener("turbo:before-morph-element", (event) => {
   }
 })
 
+// Links with data-turbo-method are submitted through a form Turbo generates, which
+// copies data-turbo-confirm but not data-turbo-confirm-button. Remember the link that
+// was clicked, so its button label can be used when that form asks for confirmation.
+let clickedConfirmLink = null
+document.addEventListener("click", (event) => {
+  clickedConfirmLink = event.target.closest?.("a[data-turbo-confirm]") ?? null
+}, true)
+
+function confirmButtonLabel(element, submitter) {
+  const link = element instanceof HTMLFormElement && clickedConfirmLink?.href === element.action ? clickedConfirmLink : null
+  return submitter?.dataset.turboConfirmButton || element?.dataset.turboConfirmButton || link?.dataset.turboConfirmButton || "Confirm"
+}
+
 // Custom confirmation dialog (replaces browser confirm())
 Turbo.config.forms.confirm = (message, element, submitter) => {
   const dialog = document.getElementById("turbo-confirm-dialog")
@@ -42,7 +55,7 @@ Turbo.config.forms.confirm = (message, element, submitter) => {
   dialog.querySelector("#turbo-confirm-message").textContent = message
 
   const confirmBtn = dialog.querySelector("button[value='confirm']")
-  confirmBtn.textContent = submitter?.dataset.turboConfirmButton || element?.dataset.turboConfirmButton || "Confirm"
+  confirmBtn.textContent = confirmButtonLabel(element, submitter)
 
   dialog.showModal()
 
