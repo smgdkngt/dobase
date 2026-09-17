@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { formatFileSize } from "services/file_size"
 import { api } from "services/api"
 import consumer from "channels/consumer"
 
@@ -203,17 +204,11 @@ export default class extends Controller {
         img.alt = file.name
       } else {
         container.querySelector("[data-filename]").textContent = file.name
-        container.querySelector("[data-filesize]").textContent = this.formatSize(file.size)
+        container.querySelector("[data-filesize]").textContent = formatFileSize(file.size)
       }
 
       this.filePreviewTarget.appendChild(clone)
     })
-  }
-
-  formatSize(bytes) {
-    return bytes > 1024 * 1024
-      ? `${(bytes / 1024 / 1024).toFixed(1)} MB`
-      : `${Math.round(bytes / 1024)} KB`
   }
 
   // Reply handling

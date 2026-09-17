@@ -1,4 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
+import { formatFileSize } from "services/file_size"
+
+const FILE_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>'
 
 export default class extends Controller {
   static targets = ["to", "bccField", "fileInput", "attachmentsList"]
@@ -89,17 +92,31 @@ export default class extends Controller {
   renderAttachments() {
     if (!this.hasAttachmentsListTarget) return
 
-    this.attachmentsListTarget.innerHTML = this.files.map((file, index) => `
-      <div class="compose-attachment-item">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
-          <polyline points="13 2 13 9 20 9"></polyline>
-        </svg>
-        <span>${this.truncateName(file.name, 20)}</span>
-        <span class="compose-attachment-size">${this.formatSize(file.size)}</span>
-        <button type="button" class="compose-attachment-remove" data-index="${index}" data-action="click->compose#removeFile">×</button>
-      </div>
-    `).join("")
+    this.attachmentsListTarget.replaceChildren(...this.files.map((file, index) => this.attachmentItem(file, index)))
+  }
+
+  // Built with DOM APIs, so a file's name is always text, never markup
+  attachmentItem(file, index) {
+    const item = document.createElement("div")
+    item.className = "compose-attachment-item"
+    item.insertAdjacentHTML("afterbegin", FILE_ICON)
+
+    const name = document.createElement("span")
+    name.textContent = this.truncateName(file.name, 20)
+
+    const size = document.createElement("span")
+    size.className = "compose-attachment-size"
+    size.textContent = formatFileSize(file.size)
+
+    const remove = document.createElement("button")
+    remove.type = "button"
+    remove.className = "compose-attachment-remove"
+    remove.dataset.index = index
+    remove.dataset.action = "click->compose#removeFile"
+    remove.textContent = "×"
+
+    item.append(name, size, remove)
+    return item
   }
 
   updateFileInput() {
@@ -120,11 +137,5 @@ export default class extends Controller {
       return truncatedName + "." + ext
     }
     return str.slice(0, length - 3) + "..."
-  }
-
-  formatSize(bytes) {
-    if (bytes < 1024) return bytes + " B"
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB"
-    return (bytes / (1024 * 1024)).toFixed(1) + " MB"
   }
 }

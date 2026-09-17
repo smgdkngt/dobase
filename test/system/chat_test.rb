@@ -28,6 +28,17 @@ class ChatTest < ApplicationSystemTestCase
     within("[id^='broadcast_']") { assert_selector "time", text: sent_at.in_time_zone("Tokyo").strftime("%-I:%M %p") }
   end
 
+  test "a picked file shows its size the way the rest of the app does" do
+    visit tool_chat_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "chat"
+
+    path = File.join(Dir.mktmpdir, "notes.txt").tap { |file| File.write(file, "a" * 2048) }
+    find("[data-chat-target='fileInput']", visible: :all).attach_file(path, make_visible: true)
+
+    assert_selector "[data-filesize]", text: "2 KB"
+  end
+
   test "an empty message can't be sent" do
     visit tool_chat_path(@tool)
     wait_for_turbo
