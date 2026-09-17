@@ -3,6 +3,8 @@
 class PushEventJob < ApplicationJob
   queue_as :default
 
+  retry_on CaldavSyncService::ConnectionError, wait: :polynomially_longer, attempts: 5
+
   def perform(event_id, action)
     event = Calendars::Event.find_by(id: event_id)
 
@@ -19,6 +21,8 @@ class PushEventJob < ApplicationJob
       service.create_event(event)
     when :update
       service.update_event(event)
+    when :move
+      service.move_event(event)
     when :delete
       service.delete_event(event)
     else

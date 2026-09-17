@@ -132,7 +132,7 @@ class CaldavSyncService
       req.body = ics_data
     end
 
-    raise SyncError, "Failed to create event: #{response.status}" unless response.success?
+    check_change!(response, "Failed to create event")
 
     event.update!(
       etag: response.headers["etag"]&.gsub('"', ""),
@@ -152,23 +152,33 @@ class CaldavSyncService
       req.body = ics_data
     end
 
-    raise SyncError, "Failed to update event: #{response.status}" unless response.success?
+    check_change!(response, "Failed to update event")
 
     event.update!(etag: response.headers["etag"]&.gsub('"', ""))
+  end
+
+  # Creates the event in the calendar it moved to, then deletes it from the one it was in. Its
+  # remote_href and etag still belong to the old calendar until then.
+  def move_event(event)
+    return if event.calendar.local?
+
+    old_href, old_etag = event.remote_href, event.etag
+    create_event(event)
+    return if old_href.blank? || old_href == event.remote_href
+
+    begin
+      delete_resource(old_href, old_etag)
+    rescue SyncError, ConnectionError => e
+      # Trying the move again would lose track of the old copy, so it stays until someone deletes it
+      Rails.logger.warn("Moved event #{event.uid}, but couldn't delete it from #{old_href}: #{e.message}")
+    end
   end
 
   def delete_event(event)
     return if event.calendar.local?
     return unless event.remote_href.present?
 
-    response = http_client.delete(event.remote_href) do |req|
-      req.headers["If-Match"] = %("#{event.etag}") if event.etag.present?
-    end
-
-    # 204 No Content or 404 Not Found are both acceptable
-    unless response.success? || response.status == 404
-      raise SyncError, "Failed to delete event: #{response.status}"
-    end
+    delete_resource(event.remote_href, event.etag)
   end
 
   def update_calendar(calendar)
@@ -193,14 +203,41 @@ class CaldavSyncService
     end
   end
 
+  # Network trouble raises ConnectionError, which the jobs that send changes try again
+  class NetworkErrors < Faraday::Middleware
+    def call(env)
+      super
+    rescue Faraday::ConnectionFailed, Faraday::TimeoutError => e
+      raise ConnectionError, "Connection failed: #{e.message}"
+    end
+  end
+
   def http_client
     @http_client ||= Faraday.new do |f|
+      f.use NetworkErrors
       f.use RemoteHostCheck
       f.request :authorization, :basic, @account.username, @account.password
       f.options.timeout = 30
       f.options.open_timeout = 10
       f.adapter Faraday.default_adapter
     end
+  end
+
+  def delete_resource(href, etag)
+    response = http_client.delete(href) do |req|
+      req.headers["If-Match"] = %("#{etag}") if etag.present?
+    end
+
+    # 404: the event is gone already
+    check_change!(response, "Failed to delete event") unless response.status == 404
+  end
+
+  # A server error may pass, so it counts as a connection error and the change is sent again later
+  def check_change!(response, failure)
+    return if response.success?
+
+    error = response.status >= 500 ? ConnectionError : SyncError
+    raise error, "#{failure}: #{response.status}"
   end
 
   def propfind(url, depth: 0, body: nil)
@@ -444,11 +481,12 @@ class CaldavSyncService
     events
   end
 
+  # An event Dobase can't take is skipped, so it doesn't hold up the rest of the calendar
   def save_event(calendar, event_data)
     event = calendar.events.find_or_initialize_by(uid: event_data[:uid])
 
     event.assign_attributes(
-      summary: event_data[:summary],
+      summary: event_data[:summary].presence || Calendars::Event::UNTITLED,
       description: event_data[:description],
       location: event_data[:location],
       starts_at: event_data[:starts_at],
@@ -466,8 +504,11 @@ class CaldavSyncService
       raw_icalendar: event_data[:raw_icalendar]
     )
 
-    event.save!
-    event
+    return if event.save
+
+    Rails.logger.warn("Skipping event #{event.uid} in calendar #{calendar.id}: #{event.errors.full_messages.to_sentence}")
+    # Left among the calendar's events, the unsaved event would fail the calendar's next save
+    calendar.events.reset
   end
 
   def update_calendar_sync_token(calendar)
@@ -492,11 +533,11 @@ class CaldavSyncService
     vevent.location = event.location if event.location.present?
 
     if event.all_day?
-      vevent.dtstart = Icalendar::Values::Date.new(event.starts_at.to_date)
-      vevent.dtend = Icalendar::Values::Date.new(event.ends_at.to_date)
+      vevent.dtstart = Icalendar::Values::Date.new(event.first_day)
+      vevent.dtend = Icalendar::Values::Date.new(event.last_day + 1)
     else
-      vevent.dtstart = Icalendar::Values::DateTime.new(event.starts_at.utc)
-      vevent.dtend = Icalendar::Values::DateTime.new(event.ends_at.utc)
+      vevent.dtstart = utc_value(event.starts_at)
+      vevent.dtend = utc_value(event.ends_at)
     end
 
     vevent.status = event.status.upcase if event.status.present?
@@ -506,23 +547,53 @@ class CaldavSyncService
     end
 
     if event.organizer_email.present?
-      organizer = Icalendar::Values::CalAddress.new("mailto:#{event.organizer_email}")
-      organizer.cn = event.organizer_name if event.organizer_name.present?
-      vevent.organizer = organizer
+      vevent.organizer = Icalendar::Values::CalAddress.new("mailto:#{event.organizer_email}",
+        { "cn" => event.organizer_name.presence }.compact)
     end
 
     event.attendees.each do |attendee|
-      addr = Icalendar::Values::CalAddress.new("mailto:#{attendee['email']}")
-      addr.cn = attendee["name"] if attendee["name"].present?
-      addr.partstat = attendee["status"]&.upcase || "NEEDS-ACTION"
-      vevent.append_attendee(addr)
+      vevent.append_attendee Icalendar::Values::CalAddress.new("mailto:#{attendee["email"]}",
+        { "cn" => attendee["name"].presence, "partstat" => attendee["status"].presence&.upcase || "NEEDS-ACTION" }.compact)
     end
 
-    vevent.dtstamp = Icalendar::Values::DateTime.new(Time.current.utc)
+    vevent.dtstamp = utc_value(Time.current)
 
     cal.add_event(vevent)
+    keep_exceptions(cal, vevent, event) if event.is_recurring? && event.rrule.present?
     cal.publish
     cal.to_ical
+  end
+
+  # Without the tzid, icalendar writes the time without its Z, which calendars read as local time
+  def utc_value(time)
+    Icalendar::Values::DateTime.new(time.utc, "tzid" => "UTC")
+  end
+
+  # Dobase doesn't edit the occurrences a synced series skips (EXDATE) or adds (RDATE), nor the
+  # ones changed on their own (a VEVENT with a RECURRENCE-ID), so they're sent back as they came,
+  # with the time zones they use. Once the series starts at another time they no longer fit.
+  def keep_exceptions(cal, vevent, event)
+    original = Icalendar::Calendar.parse(event.raw_icalendar.to_s).first
+    return unless original
+
+    same_event = original.events.select { |component| component.uid.to_s == event.uid }
+    series = same_event.find { |component| component.recurrence_id.nil? }
+    return unless series && same_start?(series, event)
+
+    vevent.exdate = series.exdate
+    vevent.rdate = series.rdate
+    same_event.select(&:recurrence_id).each { |occurrence| cal.add_event(occurrence) }
+    original.timezones.each { |timezone| cal.add_timezone(timezone) }
+  rescue Icalendar::Parser::ParseError, ArgumentError => e
+    Rails.logger.warn("Couldn't keep the exceptions of event #{event.uid}: #{e.message}")
+  end
+
+  def same_start?(series, event)
+    if event.all_day?
+      series.dtstart.is_a?(Icalendar::Values::Date) && series.dtstart.to_date == event.first_day
+    else
+      !series.dtstart.is_a?(Icalendar::Values::Date) && series.dtstart.to_time == event.starts_at
+    end
   end
 
   def resolve_url(href)

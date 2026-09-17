@@ -12,7 +12,7 @@ class CalendarEventCreatedNotifier < Noticed::Event
     def message
       creator = event.params[:creator]
       cal_event = event.params[:event]
-      date = cal_event&.start_time&.strftime("%b %-d") || "a date"
+      date = cal_event&.first_day&.strftime("%b %-d") || "a date"
       "#{creator&.name || 'Someone'} created #{cal_event&.summary || 'an event'} on #{date}"
     end
 

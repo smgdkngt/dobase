@@ -103,6 +103,8 @@ export default class extends Controller {
     if (this.hasStartTimeInputTarget && this.hasEndTimeInputTarget) {
       this.startTimeInputTarget.value = this.formatDateTimeLocal(startTime)
       this.endTimeInputTarget.value = this.formatDateTimeLocal(endTime)
+      // So the repeat options follow the new start
+      this.startTimeInputTarget.dispatchEvent(new Event("change", { bubbles: true }))
     }
 
     // Open the new event modal
@@ -176,15 +178,21 @@ export default class extends Controller {
   }
 
   previousWeek() {
-    const currentWeekStart = new Date(this.weekStartValue)
+    const currentWeekStart = this.parseDate(this.weekStartValue)
     currentWeekStart.setDate(currentWeekStart.getDate() - 7)
     this.navigateToWeek(currentWeekStart)
   }
 
   nextWeek() {
-    const currentWeekStart = new Date(this.weekStartValue)
+    const currentWeekStart = this.parseDate(this.weekStartValue)
     currentWeekStart.setDate(currentWeekStart.getDate() + 7)
     this.navigateToWeek(currentWeekStart)
+  }
+
+  // new Date("2026-09-14") is midnight UTC, which is the day before west of UTC
+  parseDate(value) {
+    const [year, month, day] = value.split("-").map(Number)
+    return new Date(year, month - 1, day)
   }
 
   navigateToWeek(date) {

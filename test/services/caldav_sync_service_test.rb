@@ -226,6 +226,37 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     assert calendar.events.exists?(uid: "server-event")
   end
 
+  test "an untitled or invalid event doesn't hold up the sync" do
+    personal = calendars_calendars(:personal)
+    work = calendars_calendars(:work)
+    [ personal, work ].each { |calendar| calendar.update!(sync_token: nil, ctag: nil) }
+
+    stub_request(:report, personal.remote_url).to_return(status: 207, body: calendar_query_response([
+      { uid: "untitled", ics: <<~ICS },
+        BEGIN:VCALENDAR
+        VERSION:2.0
+        BEGIN:VEVENT
+        UID:untitled
+        DTSTART:20301008T140000Z
+        DTEND:20301008T150000Z
+        END:VEVENT
+        END:VCALENDAR
+      ICS
+      { uid: "backwards", summary: "Ends before it starts", starts_at: 2.hours.from_now, ends_at: 1.hour.from_now },
+      { uid: "fine", summary: "Fine" }
+    ]))
+    stub_request(:report, work.remote_url)
+      .to_return(status: 207, body: calendar_query_response([ { uid: "planning", summary: "Planning" } ]))
+    stub_request(:propfind, /caldav\.icloud\.com/).to_return(status: 207, body: sync_token_response)
+
+    @service.sync_all_calendars
+
+    assert_equal "(No title)", personal.events.find_by!(uid: "untitled").summary
+    assert_equal [ "fine", "untitled" ], personal.events.order(:uid).pluck(:uid)
+    assert work.events.exists?(uid: "planning")
+    assert_equal "https://caldav.icloud.com/sync/token-updated", personal.reload.sync_token
+  end
+
   test "delta_sync handles deleted events" do
     calendar = calendars_calendars(:personal)
     event = calendar.events.create!(
@@ -334,6 +365,86 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     assert_requested stub
   end
 
+  test "update_event sends the organizer and attendees" do
+    event = calendars_events(:meeting)
+    event.update!(organizer_email: "rachel@example.com", organizer_name: "Rachel Kim", attendees: [
+      { "email" => "rachel@example.com", "name" => "Rachel Kim", "status" => "accepted" },
+      { "email" => "sophie@example.com", "name" => nil, "status" => nil }
+    ])
+    sent = nil
+    stub_request(:put, event.remote_href).to_return do |request|
+      sent = request.body
+      { status: 204, headers: { "ETag" => '"with-attendees"' } }
+    end
+
+    @service.update_event(event)
+
+    vevent = Icalendar::Calendar.parse(sent).sole.events.sole
+    assert_equal [ "mailto:rachel@example.com", [ "Rachel Kim" ] ], [ vevent.organizer.to_s, vevent.organizer.ical_params["cn"] ]
+    attendees = vevent.attendee.map { |attendee| [ attendee.to_s, attendee.ical_params["cn"], attendee.ical_params["partstat"] ] }
+    assert_equal [
+      [ "mailto:rachel@example.com", [ "Rachel Kim" ], [ "ACCEPTED" ] ],
+      [ "mailto:sophie@example.com", nil, [ "NEEDS-ACTION" ] ]
+    ], attendees
+    assert_equal "with-attendees", event.reload.etag
+  end
+
+  test "update_event keeps the skipped and changed occurrences of a synced repeating event" do
+    event = synced_standup
+    event.update!(summary: "Daily standup")
+
+    ics = capture_put(event.remote_href) { @service.update_event(event) }
+
+    calendar = Icalendar::Calendar.parse(ics).sole
+    series, moved = calendar.events
+    assert_equal [ "Daily standup", nil, "FREQ=DAILY;COUNT=5" ], [ series.summary, series.recurrence_id, series.rrule.first.value_ical ]
+    assert_equal [ Time.utc(2030, 1, 9, 8, 30) ], series.exdate.flatten.map { |time| time.to_time.utc }
+    assert_equal [ "Standup (moved)", Time.utc(2030, 1, 10, 8, 30) ], [ moved.summary, moved.recurrence_id.to_time.utc ]
+    assert_equal [ "Europe/Amsterdam" ], calendar.timezones.map { |timezone| timezone.tzid.to_s }
+  end
+
+  test "update_event leaves out the old exceptions once the series starts at another time" do
+    event = synced_standup
+    event.update!(starts_at: event.starts_at + 1.hour, ends_at: event.ends_at + 1.hour)
+
+    ics = capture_put(event.remote_href) { @service.update_event(event) }
+
+    series, *others = Icalendar::Calendar.parse(ics).sole.events
+    assert_empty series.exdate
+    assert_empty others
+  end
+
+  test "move_event creates the event in its new calendar and deletes it from the old one" do
+    event = calendars_events(:meeting)
+    old_href, old_etag = event.remote_href, event.etag
+    work = calendars_calendars(:work)
+    event.update!(calendar: work)
+
+    created = stub_request(:put, "#{work.remote_url}#{event.uid}.ics")
+      .with { |request| !request.headers.key?("If-Match") }
+      .to_return(status: 201, headers: { "ETag" => '"in-work"' })
+    deleted = stub_request(:delete, old_href).with(headers: { "If-Match" => %("#{old_etag}") }).to_return(status: 204)
+
+    @service.move_event(event)
+
+    assert_requested created
+    assert_requested deleted
+    assert_equal [ "#{work.remote_url}#{event.uid}.ics", "in-work" ], [ event.reload.remote_href, event.etag ]
+  end
+
+  test "a move that the old calendar refuses to let go still leaves the event in the new one" do
+    event = calendars_events(:meeting)
+    old_href = event.remote_href
+    work = calendars_calendars(:work)
+    event.update!(calendar: work)
+    stub_request(:put, "#{work.remote_url}#{event.uid}.ics").to_return(status: 201, headers: { "ETag" => '"in-work"' })
+    stub_request(:delete, old_href).to_return(status: 403)
+
+    assert_nothing_raised { @service.move_event(event) }
+
+    assert_equal "#{work.remote_url}#{event.uid}.ics", event.reload.remote_href
+  end
+
   test "delete_event removes event from server" do
     event = calendars_events(:meeting)
 
@@ -383,6 +494,19 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     assert_includes ics, "END:VCALENDAR"
   end
 
+  test "sends the times of an event in UTC" do
+    event = calendars_events(:meeting)
+
+    ics = @service.send(:build_icalendar, event)
+
+    assert_includes ics, "DTSTART:#{event.starts_at.utc.strftime('%Y%m%dT%H%M%SZ')}"
+    assert_includes ics, "DTEND:#{event.ends_at.utc.strftime('%Y%m%dT%H%M%SZ')}"
+    assert_match(/^DTSTAMP:\d{8}T\d{6}Z\r?$/, ics)
+    Time.use_zone("Tokyo") do
+      assert_equal event.starts_at, IcsParserService.new(ics).parse[:starts_at]
+    end
+  end
+
   test "builds valid icalendar for all-day event" do
     event = calendars_events(:all_day_event)
 
@@ -392,9 +516,75 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     assert_match(/DTSTART;VALUE=DATE:\d{8}/, ics)
   end
 
+  test "an all-day event made east of UTC is sent with its own dates" do
+    event = Time.use_zone("Amsterdam") do
+      calendars_calendars(:personal).events.create!(uid: "offsite@dobase", summary: "Offsite", all_day: true,
+        start_time: "2030-01-10 00:00", end_time: "2030-01-11 23:59:59")
+    end
+
+    ics = @service.send(:build_icalendar, event.reload)
+
+    assert_includes ics, "DTSTART;VALUE=DATE:20300110"
+    assert_includes ics, "DTEND;VALUE=DATE:20300112"
+  end
+
   # Response XML generators
 
   private
+
+  def capture_put(url)
+    sent = nil
+    stub_request(:put, url).to_return do |request|
+      sent = request.body
+      { status: 204, headers: { "ETag" => '"updated"' } }
+    end
+    yield
+    sent
+  end
+
+  # A daily standup that skips its third day and was moved to 11:00 on the fourth
+  def synced_standup
+    ics = <<~ICS
+      BEGIN:VCALENDAR
+      VERSION:2.0
+      PRODID:-//Example//Server//EN
+      BEGIN:VTIMEZONE
+      TZID:Europe/Amsterdam
+      BEGIN:STANDARD
+      DTSTART:19701025T030000
+      RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU
+      TZOFFSETFROM:+0200
+      TZOFFSETTO:+0100
+      END:STANDARD
+      BEGIN:DAYLIGHT
+      DTSTART:19700329T020000
+      RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU
+      TZOFFSETFROM:+0100
+      TZOFFSETTO:+0200
+      END:DAYLIGHT
+      END:VTIMEZONE
+      BEGIN:VEVENT
+      UID:standup@example.com
+      DTSTART;TZID=Europe/Amsterdam:20300107T093000
+      DTEND;TZID=Europe/Amsterdam:20300107T094500
+      RRULE:FREQ=DAILY;COUNT=5
+      EXDATE;TZID=Europe/Amsterdam:20300109T093000
+      SUMMARY:Standup
+      END:VEVENT
+      BEGIN:VEVENT
+      UID:standup@example.com
+      RECURRENCE-ID;TZID=Europe/Amsterdam:20300110T093000
+      DTSTART;TZID=Europe/Amsterdam:20300110T110000
+      DTEND;TZID=Europe/Amsterdam:20300110T111500
+      SUMMARY:Standup (moved)
+      END:VEVENT
+      END:VCALENDAR
+    ICS
+    calendar = calendars_calendars(:personal)
+    calendar.events.create!(IcsParserService.new(ics).parse.except(:method).merge(
+      is_recurring: true, etag: "standup-etag", remote_href: "#{calendar.remote_url}standup.ics"
+    ))
+  end
 
   def principal_response
     <<~XML
@@ -478,7 +668,7 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
       starts_at = (event[:starts_at] || 1.hour.from_now).strftime("%Y%m%dT%H%M%SZ")
       ends_at = (event[:ends_at] || 2.hours.from_now).strftime("%Y%m%dT%H%M%SZ")
 
-      ics = <<~ICS
+      ics = event[:ics] || <<~ICS
         BEGIN:VCALENDAR
         VERSION:2.0
         PRODID:-//Test//Test//EN

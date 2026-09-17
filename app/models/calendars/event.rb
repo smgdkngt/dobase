@@ -5,6 +5,9 @@ module Calendars
     include Trackable
     self.table_name = "calendar_events"
 
+    # The title of synced events and invitations that come without one (SUMMARY is optional in iCalendar)
+    UNTITLED = "(No title)"
+
     belongs_to :calendar, class_name: "Calendars::Calendar"
     has_one :account, through: :calendar
 
@@ -21,6 +24,7 @@ module Calendars
                   :recurrence_count,        # integer
                   :recurrence_until         # date string
 
+    before_validation :pin_all_day_to_dates, if: :all_day_times_to_pin?
     before_validation :build_recurrence_from_form, if: :recurrence_frequency_provided?
 
     validates :uid, presence: true
@@ -31,6 +35,11 @@ module Calendars
 
     scope :in_range, ->(start_date, end_date) {
       where("starts_at < ? AND ends_at > ?", end_date, start_date)
+    }
+    # Timed events on these days in the current time zone, and all-day events on these dates
+    scope :during, ->(first_day, last_day) {
+      where(all_day: [ false, nil ]).in_range(first_day.beginning_of_day, last_day.end_of_day)
+        .or(where(all_day: true).in_range(first_day.to_time(:utc), (last_day + 1).to_time(:utc)))
     }
     scope :recurring, -> { where(is_recurring: true) }
     scope :non_recurring, -> { where(is_recurring: false) }
@@ -143,6 +152,20 @@ module Calendars
       starts_at.to_date != ends_at.to_date
     end
 
+    # All-day events are about dates, not times. They run from midnight UTC on their first day
+    # to midnight UTC after their last, like dates in iCalendar, so they fall on the same days
+    # in every time zone.
+    def first_day
+      all_day? ? starts_at.utc.to_date : starts_at.to_date
+    end
+
+    # An event that ends at midnight ends on the day before
+    def last_day
+      return ends_at.utc.to_date - 1 if all_day?
+
+      ends_at == ends_at.beginning_of_day && ends_at > starts_at ? ends_at.to_date - 1 : ends_at.to_date
+    end
+
     # The copies Tools::CalendarsController makes for each occurrence of a
     # recurring event answer true.
     def occurrence?
@@ -157,14 +180,35 @@ module Calendars
                        "TH" => "Thursday", "FR" => "Friday", "SA" => "Saturday", "SU" => "Sunday" }.freeze
     WDAY_TO_ABBR = %w[SU MO TU WE TH FR SA].freeze
 
+    def all_day_times_to_pin?
+      all_day? && starts_at.present? && ends_at.present? &&
+        (will_save_change_to_all_day? || will_save_change_to_starts_at? || will_save_change_to_ends_at?)
+    end
+
+    # Takes the dates of the given times in the user's time zone. Times at midnight UTC stand for
+    # their UTC date already: that's how synced events and invitations arrive. An end at midnight
+    # is the start of the day after the event, like DTEND.
+    def pin_all_day_to_dates
+      starts, ends = [ starts_at, ends_at ].map { |time| time.utc == time.utc.midnight ? time.utc : time }
+      ends -= 1.day if ends == ends.midnight && ends > starts
+
+      self.starts_at = starts.to_date.to_time(:utc)
+      self.ends_at = (ends.to_date + 1).to_time(:utc)
+    end
+
     def recurrence_frequency_provided?
       recurrence_frequency.present?
+    end
+
+    # All-day events repeat on dates, so their schedule runs in UTC like their times
+    def recurrence_start
+      all_day? ? starts_at.utc : starts_at
     end
 
     def build_recurrence_from_form
       return clear_recurrence if recurrence_frequency == "none"
 
-      schedule = IceCube::Schedule.new(starts_at)
+      schedule = IceCube::Schedule.new(recurrence_start)
 
       rule = case recurrence_frequency
       when "daily"  then IceCube::Rule.daily(interval_value)
@@ -204,12 +248,12 @@ module Calendars
     def build_monthly_rule
       rule = IceCube::Rule.monthly(interval_value)
       if recurrence_monthly_by == "day_of_week"
-        wday = starts_at.wday
-        week_of_month = ((starts_at.day - 1) / 7) + 1
+        wday = recurrence_start.wday
+        week_of_month = ((recurrence_start.day - 1) / 7) + 1
         day_sym = Date::DAYNAMES[wday].downcase.to_sym
         rule.day_of_week(day_sym => [ week_of_month ])
       else
-        rule.day_of_month(starts_at.day)
+        rule.day_of_month(recurrence_start.day)
       end
     end
 
@@ -218,8 +262,8 @@ module Calendars
       when "count"
         rule.count(recurrence_count.to_i.clamp(1, 999))
       when "until"
-        until_date = Date.parse(recurrence_until).end_of_day
-        rule.until(until_date)
+        until_date = Date.parse(recurrence_until)
+        rule.until(all_day? ? until_date.to_time(:utc).end_of_day : until_date.end_of_day)
       else
         rule
       end
@@ -239,11 +283,11 @@ module Calendars
       if recurrence_frequency == "monthly"
         # Same default as build_monthly_rule: the day of the month.
         if recurrence_monthly_by == "day_of_week"
-          week_num = ((starts_at.day - 1) / 7) + 1
-          day_abbr = WDAY_TO_ABBR[starts_at.wday]
+          week_num = ((recurrence_start.day - 1) / 7) + 1
+          day_abbr = WDAY_TO_ABBR[recurrence_start.wday]
           parts << "BYDAY=#{week_num}#{day_abbr}"
         else
-          parts << "BYMONTHDAY=#{starts_at.day}"
+          parts << "BYMONTHDAY=#{recurrence_start.day}"
         end
       end
 
@@ -303,7 +347,8 @@ module Calendars
 
     def ends_at_after_starts_at
       return unless starts_at && ends_at
-      errors.add(:ends_at, "must be after starts_at") if ends_at < starts_at
+      # An all-day event lasts a day at least
+      errors.add(:ends_at, "must be after the start") if all_day? ? ends_at <= starts_at : ends_at < starts_at
     end
   end
 end

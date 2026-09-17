@@ -35,6 +35,7 @@ module Tools
           starts_at: parse_start_time(params[:starts_at]),
           ends_at: parse_end_time(params[:starts_at], params[:ends_at])
         )
+        @event.load_recurrence_for_form
       end
 
       def create
@@ -68,13 +69,13 @@ module Tools
       end
 
       def update
-        @calendars = @calendar_account.calendars.enabled.by_position
+        @calendars = writable_calendars
         @event.load_recurrence_for_form if partial_recurrence_update?
         @event.assign_attributes(event_params.except(:calendar_id).merge(updated_by: current_user))
         @event.calendar = find_calendar(event_params[:calendar_id]) if event_params[:calendar_id].present?
 
         if calendar_accepts_event? && @event.save
-          PushEventJob.perform_later(@event.id, :update)
+          PushEventJob.perform_later(@event.id, @event.saved_change_to_calendar_id? ? :move : :update)
 
           respond_to do |format|
             format.html { redirect_to tool_calendar_path(@tool), notice: "Event updated successfully.", status: :see_other }

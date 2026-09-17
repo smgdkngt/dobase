@@ -7,10 +7,13 @@ export default class extends Controller {
     "weeklyOptions",
     "monthlyOptions",
     "endCountField",
-    "endUntilField"
+    "endUntilField",
+    "day",
+    "weekdayLabel"
   ]
 
-  static values = { frequency: { type: String, default: "none" } }
+  // followStart: the weekly day and the monthly weekday follow the start until a day is picked
+  static values = { frequency: { type: String, default: "none" }, followStart: Boolean }
 
   connect() {
     this.updateVisibility()
@@ -25,9 +28,33 @@ export default class extends Controller {
     this.updateEndFields(event.target.value)
   }
 
+  startChanged(event) {
+    const [year, month, day] = event.target.value.split("T")[0].split("-").map(Number)
+    if (!year || !month || !day) return
+
+    const start = new Date(year, month - 1, day)
+    const ordinals = ["1st", "2nd", "3rd", "4th", "5th"]
+    const weekday = start.toLocaleDateString("en-US", { weekday: "long" })
+    if (this.hasWeekdayLabelTarget) {
+      this.weekdayLabelTarget.textContent = `The ${ordinals[Math.floor((day - 1) / 7)]} ${weekday}`
+    }
+
+    if (!this.followStartValue) return
+    const code = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"][start.getDay()]
+    this.dayTargets.forEach((checkbox) => {
+      checkbox.checked = checkbox.value === code
+      this.styleDay(checkbox)
+    })
+  }
+
   toggleDayButton(event) {
-    const label = event.target.closest("label")
-    if (event.target.checked) {
+    this.followStartValue = false
+    this.styleDay(event.target)
+  }
+
+  styleDay(checkbox) {
+    const label = checkbox.closest("label")
+    if (checkbox.checked) {
       label.classList.add("bg-accent", "text-white", "border-accent")
       label.classList.remove("border-border", "text-text-secondary", "hover:border-accent/50")
     } else {

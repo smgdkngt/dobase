@@ -99,8 +99,9 @@
 
   <!-- New Event Modal -->
   <%
-    # Default new event: first calendar, current time rounded to next hour, 1 hour duration
-    default_calendar = @calendars.find(&:enabled?) || @calendars.first
+    # New events go to a calendar the server accepts them in, starting at the next hour for an hour
+    writable_calendars = @calendars.reject(&:read_only?)
+    default_calendar = writable_calendars.find(&:is_default?) || writable_calendars.first
     now = Time.current
     default_start = now.change(min: 0) + 1.hour
     default_end = default_start + 1.hour
@@ -108,14 +109,14 @@
       calendar: default_calendar,
       start_time: default_start,
       end_time: default_end
-    )
+    ).tap(&:load_recurrence_for_form)
   %>
   <%= render "shared/modal", id: "new-event-modal", title: "New Event", size: :lg,
         data: { calendar_target: "newEventDialog" } do %>
     <div data-calendar-target="newEventModal">
       <%= render "tools/calendars/events/form",
           event: new_event,
-          calendars: @calendars,
+          calendars: writable_calendars,
           tool: @tool,
           modal_id: "new-event-modal" %>
     </div>

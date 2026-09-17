@@ -12,6 +12,41 @@ module CalendarsHelper
     end
   end
 
+  # The calendar fetches event details into its dialog, and loads the form into the dialog's frame
+  def in_event_dialog?
+    request.xhr? || turbo_frame_request?
+  end
+
+  # The shortest an event is drawn in the week grid, in minutes (an hour is 60px)
+  MIN_EVENT_MINUTES = 20
+
+  # The timed events of a day with their column, side by side where they overlap, like
+  # [[event, column, columns], ...]. Events that overlap each other, directly or through
+  # another event, share the width of the day between them.
+  def day_columns(events, day)
+    day_start, day_end = day.beginning_of_day, day.end_of_day
+    spans = events.map do |event|
+      starts = [ event.starts_at, day_start ].max
+      ends = [ event.ends_at, day_end ].min
+      # Short events take the room they're drawn in
+      [ event, starts, [ ends, starts + MIN_EVENT_MINUTES.minutes ].max ]
+    end
+
+    groups = []
+    spans.sort_by { |_, starts, ends| [ starts, -ends.to_f ] }.each do |event, starts, ends|
+      groups << { ends: ends, columns: [], events: [] } if groups.empty? || starts >= groups.last[:ends]
+      group = groups.last
+      group[:ends] = [ group[:ends], ends ].max
+
+      # The first column that's free again, where each column remembers when its last event ends
+      column = group[:columns].index { |column_ends| column_ends <= starts } || group[:columns].size
+      group[:columns][column] = ends
+      group[:events] << [ event, column ]
+    end
+
+    groups.flat_map { |group| group[:events].map { |event, column| [ event, column, group[:columns].size ] } }
+  end
+
   def format_week_header(week_start, week_end)
     if week_start.year == week_end.year
       if week_start.month == week_end.month

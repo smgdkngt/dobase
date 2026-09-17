@@ -37,4 +37,11 @@ en:
         imap_host: "IMAP server"
         smtp_host: "SMTP server"
       calendars/account:
+        caldav_url: "CalDAV URL"
         encrypted_password: "Password"
+      calendars/event:
+        summary: "Title"
+        starts_at: "Start"
+        start_time: "Start"
+        ends_at: "End"
+        end_time: "End"
