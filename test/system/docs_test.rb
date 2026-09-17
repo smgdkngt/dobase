@@ -22,6 +22,13 @@ class DocsTest < ApplicationSystemTestCase
     assert_eventually { @document.reload.content.to_plain_text.include?("Written at the last second") }
   end
 
+  test "the editor shows its own placeholder" do
+    visit edit_tool_docs_document_path(@tool, docs_documents(:empty_document))
+    wait_for_turbo
+
+    assert_selector "[data-document-editor-target='editor'] .ProseMirror [data-placeholder='Start writing...']"
+  end
+
   private
 
   def assert_eventually(timeout: 5)
