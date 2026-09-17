@@ -43,6 +43,15 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
     )
   end
 
+  # The first sign-in of a run can take a while on a busy machine
+  def sign_in_as(user)
+    visit new_session_path
+    fill_in "Email", with: user.email_address
+    fill_in "Password", with: "password"
+    click_on "Sign In"
+    assert_selector ".sidebar", wait: 15
+  end
+
   # Poll database until condition is met (replaces fragile sleep + assert)
   def assert_db_change(condition, timeout: 5)
     deadline = Time.now + timeout

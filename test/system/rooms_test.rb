@@ -49,6 +49,8 @@ class RoomsTest < ApplicationSystemTestCase
     visit tool_path(@tool)
     wait_for_turbo
     wait_for_stimulus "room"
+    # Wait for the camera check (no camera in headless Chrome), so its error can't replace the one from joining
+    assert_selector "[data-room-target='preJoinError']", text: /camera|microphone/i, wait: 5
 
     click_on "Join Room"
 
@@ -57,15 +59,5 @@ class RoomsTest < ApplicationSystemTestCase
     # Never left the pre-join screen
     assert_selector "[data-room-target='preJoin']:not(.hidden)"
     assert_selector "[data-room-target='inCall'].hidden", visible: :all
-  end
-
-  private
-
-  def sign_in_as(user)
-    visit new_session_path
-    fill_in "Email", with: user.email_address
-    fill_in "Password", with: "password"
-    click_on "Sign In"
-    assert_selector ".sidebar", wait: 5
   end
 end

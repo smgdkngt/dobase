@@ -170,11 +170,12 @@ class MailsTest < ApplicationSystemTestCase
 
   test "attachments go out with the email, however many times files are picked" do
     visit new_tool_mail_path(@tool)
-    wait_for_stimulus "compose"
+    wait_for_compose_editor
 
     deliveries = capture_smtp_deliveries do
       add_recipient "friend@example.com"
       find("input[name='subject']").set("Numbers")
+      assert_field "subject", with: "Numbers"
       attach_file "attachments[]", text_file("report.txt", "numbers"), make_visible: true
       attach_file "attachments[]", text_file("notes.txt", "more numbers"), make_visible: true
       assert_text "report.txt"
@@ -354,13 +355,5 @@ class MailsTest < ApplicationSystemTestCase
       raise if attempt == retries
       sleep 0.5
     end
-  end
-
-  def sign_in_as(user)
-    visit new_session_path
-    fill_in "Email", with: user.email_address
-    fill_in "Password", with: "password"
-    click_on "Sign In"
-    assert_selector ".sidebar", wait: 5
   end
 end
