@@ -53,7 +53,34 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to login_path
   end
 
+  test "a rate-limited sign-up redirects to the sign-up form instead of erroring" do
+    # rate_limit's store defaults to the controller's cache_store, captured
+    # once as a plain value when the class body first runs — by then the test
+    # environment's null store (which never actually counts anything) is
+    # baked in for good, so reassigning Rails.cache later has no effect.
+    # Swap in a real store and reload the controller so the limit can trip.
+    previous_store = ActionController::Base.cache_store
+    ActionController::Base.cache_store = ActiveSupport::Cache::MemoryStore.new
+    reload_registrations_controller!
+
+    10.times { post signup_path, params: { user: { email_address: "spam@example.com" } } }
+
+    assert_nothing_raised do
+      post signup_path, params: { user: { email_address: "spam@example.com" } }
+    end
+    assert_redirected_to signup_path
+    assert_equal "Too many attempts. Try again later.", flash[:alert]
+  ensure
+    ActionController::Base.cache_store = previous_store
+    reload_registrations_controller!
+  end
+
   private
+
+  def reload_registrations_controller!
+    Object.send(:remove_const, :RegistrationsController) if Object.const_defined?(:RegistrationsController)
+    load Rails.root.join("app/controllers/registrations_controller.rb").to_s
+  end
 
   def new_user_params(email_address: "newcomer@example.com")
     { first_name: "New", last_name: "Comer", email_address: email_address, password: "a-long-password", password_confirmation: "a-long-password" }
