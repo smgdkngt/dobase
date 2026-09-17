@@ -59,6 +59,30 @@ module Tools
         end
       end
 
+      test "bulk mark read, mark unread and move act on whole conversations in the folder" do
+        older, newer = create_mail_thread
+        elsewhere = mails_accounts(:primary).messages.create!(message_id: "<lunch-203@example.com>", folder: "Receipts", uid: 203,
+          subject: "Lunch?", from_address: "ann@example.com", to_addresses: "[]", sent_at: 3.hours.ago, thread_id: "thread-lunch")
+
+        assert_enqueued_jobs 2, only: ImapSyncJob do
+          post tool_bulk_path(@tool), params: { message_ids: [ newer.id ], action_type: "mark_read", folder: "inbox" }
+        end
+        assert older.reload.read?
+        assert_not elsewhere.reload.read?
+        assert_equal "2 email(s) marked as read.", flash[:notice]
+
+        post tool_bulk_path(@tool), params: { message_ids: [ newer.id ], action_type: "mark_unread", folder: "inbox" }
+        assert_not older.reload.read?
+        assert_equal "2 email(s) marked as unread.", flash[:notice]
+
+        assert_enqueued_jobs 2, only: ImapSyncJob do
+          post tool_bulk_path(@tool), params: { message_ids: [ newer.id ], action_type: "move_to_folder", target_folder: "Projects", folder: "inbox" }
+        end
+        assert_equal "Projects", older.reload.folder
+        assert_equal "Receipts", elsewhere.reload.folder
+        assert_equal "2 email(s) moved to Projects.", flash[:notice]
+      end
+
       test "bulk mark_read" do
         post tool_bulk_path(@tool), params: { message_ids: [ @msg1.id ], action_type: "mark_read" }
         assert @msg1.reload.read

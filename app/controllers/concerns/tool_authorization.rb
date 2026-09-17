@@ -6,7 +6,7 @@ module ToolAuthorization
   # The tool type each namespace under /tools/:tool_id serves
   TOOL_TYPE_SLUGS = {
     "boards" => "boards", "calendars" => "calendar", "chats" => "chat", "docs" => "docs",
-    "files" => "files", "mails" => "mail", "mail_labels" => "mail", "rooms" => "room", "todos" => "todos"
+    "files" => "files", "mails" => "mail", "rooms" => "room", "todos" => "todos"
   }.freeze
 
   private

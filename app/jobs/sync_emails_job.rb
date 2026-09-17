@@ -8,7 +8,7 @@ class SyncEmailsJob < ApplicationJob
 
   def perform(mail_account_id)
     mail_account = Mails::Account.find_by(id: mail_account_id)
-    return unless mail_account
+    return if mail_account.nil? || mail_account.authentication_failed?
 
     service = ::ImapSyncService.new(mail_account)
     service.sync_folders
@@ -19,7 +19,8 @@ class SyncEmailsJob < ApplicationJob
       service.sync_folder(folder, limit: 50)
     end
   # Every failure is shown on the account, or the mail page says "Syncing..." forever.
-  # Unexpected ones still fail the job, so they can be looked into.
+  # A rejected login waits for new settings or a sync by hand, a server that can't be reached
+  # is tried again on the next scheduled sync. Unexpected failures still fail the job, so they can be looked into.
   rescue ::ImapSyncService::ConnectionError, ::ImapSyncService::AuthenticationError => e
     Rails.logger.error("Mail sync failed for account #{mail_account_id}: #{e.message}")
     mail_account.mark_sync_error!(e.message)

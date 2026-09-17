@@ -455,9 +455,6 @@ module Tools
       patch tool_mails_account_path(@tool), params: { mails_account: { imap_host: "imap.evil.example" } }, headers: @headers, as: :json
       assert_response :forbidden
 
-      post test_connection_tool_mails_account_path(@tool), headers: @headers, as: :json
-      assert_response :forbidden
-
       assert ::Mails::Message.exists?(trashed.id)
       assert_equal "imap.example.com", @account.reload.imap_host
       assert_empty @imap.calls

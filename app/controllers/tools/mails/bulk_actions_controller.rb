@@ -51,21 +51,18 @@ module Tools
           end
           count = messages.update_all(archived: true)
           "#{count} email(s) archived."
-        when "mark_read"
-          messages.update_all(read: true)
+        when "mark_read", "mark_unread"
+          read = action == "mark_read"
+          messages = conversations_of(messages, folder).where(read: !read)
           messages.where.not(uid: nil).find_each do |message|
-            ImapSyncJob.perform_later(@mail_account.id, "mark_as_read", message.uid, message.folder || "INBOX")
+            ImapSyncJob.perform_later(@mail_account.id, read ? "mark_as_read" : "mark_as_unread", message.uid, message.folder || "INBOX")
           end
-          "#{messages.count} email(s) marked as read."
-        when "mark_unread"
-          messages.update_all(read: false)
-          messages.where.not(uid: nil).find_each do |message|
-            ImapSyncJob.perform_later(@mail_account.id, "mark_as_unread", message.uid, message.folder || "INBOX")
-          end
-          "#{messages.count} email(s) marked as unread."
+          count = messages.update_all(read: read)
+          "#{count} email(s) marked as #{read ? "read" : "unread"}."
         when "move_to_folder"
           target_folder = params[:target_folder].to_s.strip
           if valid_folder_name?(target_folder)
+            messages = conversations_of(messages, folder)
             messages.find_each do |message|
               source_folder = message.folder || "INBOX"
               message.update!(folder: target_folder, archived: false, trashed: false)

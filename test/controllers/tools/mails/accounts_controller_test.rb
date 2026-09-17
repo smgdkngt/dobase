@@ -38,6 +38,28 @@ module Tools
         assert_equal "imap.example.com", @account.reload.imap_host
       end
 
+      test "new connection settings sync an account whose login was turned down again" do
+        @account.mark_sync_error!(::Mails::Account::AUTHENTICATION_FAILED)
+
+        assert_no_enqueued_jobs only: SyncEmailsJob do
+          patch tool_mails_account_path(@tool), params: { mails_account: { signature: "Best, Sem", password: "" } }
+        end
+        assert @account.reload.authentication_failed?
+
+        assert_enqueued_with job: SyncEmailsJob, args: [ @account.id ] do
+          patch tool_mails_account_path(@tool), params: { mails_account: { password: "the-right-one" } }
+        end
+        assert @account.reload.syncing?
+      end
+
+      test "there are no connection test or mail label endpoints" do
+        post "/tools/#{@tool.id}/mails/account/test_connection"
+        assert_response :not_found
+
+        get "/tools/#{@tool.id}/mail_labels"
+        assert_response :not_found
+      end
+
       test "the settings open on the first tab when nothing went wrong" do
         get_settings
 

@@ -96,23 +96,25 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
 
   # --- Sent folder detection --------------------------------------------------
 
-  test "find_sent_folder_from_list prefers plain Sent" do
-    assert_equal "Sent",
-      @service.send(:find_sent_folder_from_list, %w[INBOX Sent Trash])
+  test "the sent folder is found by a name servers commonly use" do
+    assert_equal "Sent", special_folder("Sent", %w[INBOX Sent Trash])
+    assert_equal "[Gmail]/Sent Mail", special_folder("Sent", [ "INBOX", "[Gmail]/Sent Mail" ])
+    assert_equal "INBOX.Sent", special_folder("Sent", %w[INBOX INBOX.Sent INBOX.Trash])
+    assert_nil special_folder("Sent", %w[INBOX Trash])
   end
 
-  test "find_sent_folder_from_list handles Gmail" do
-    assert_equal "[Gmail]/Sent Mail",
-      @service.send(:find_sent_folder_from_list, [ "INBOX", "[Gmail]/Sent Mail" ])
+  test "the drafts folder is found by a name servers commonly use" do
+    assert_equal "[Gmail]/Drafts", special_folder("Drafts", [ "INBOX", "[Gmail]/Drafts" ])
+    assert_equal "INBOX.Drafts", special_folder("Drafts", %w[INBOX INBOX.Drafts])
+    assert_nil special_folder("Drafts", %w[INBOX Trash])
   end
 
-  test "find_sent_folder_from_list handles cyrus-style INBOX.Sent" do
-    assert_equal "INBOX.Sent",
-      @service.send(:find_sent_folder_from_list, %w[INBOX INBOX.Sent INBOX.Trash])
-  end
+  test "a folder the server marks with a SPECIAL-USE attribute comes before names" do
+    folders = [ "INBOX", "Drafts", "Sent", [ "[Gmail]/Concepten", :Drafts ], [ "[Gmail]/Verzonden berichten", :Sent ] ]
 
-  test "find_sent_folder_from_list returns nil when no candidate" do
-    assert_nil @service.send(:find_sent_folder_from_list, %w[INBOX Trash])
+    assert_equal "[Gmail]/Concepten", special_folder("Drafts", folders)
+    assert_equal "[Gmail]/Verzonden berichten", special_folder("Sent", folders)
+    assert_nil special_folder("Receipts", folders)
   end
 
   # Sent mail is stored in "Sent", which isn't the sent folder's name on Gmail, iCloud or Office 365
@@ -163,6 +165,39 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     connect_to_imap(server) { @service.mark_as_read(104, folder: "Sent") }
 
     assert_equal [ "Sent" ], server.selected
+  end
+
+  # Drafts are stored in "Drafts", which is "[Gmail]/Drafts" on Gmail and "INBOX.Drafts" on Cyrus-style servers
+
+  test "deleting a draft happens in the server's drafts folder" do
+    server = FakeImapServer.new(folders: [ "INBOX", [ "[Gmail]/Drafts", :Drafts ] ])
+
+    connect_to_imap(server) do
+      @service.delete_message(55, folder: "Drafts")
+      @service.delete_draft(56)
+      @service.delete_draft(nil)
+    end
+
+    assert_equal [ "[Gmail]/Drafts" ] * 2, server.selected
+    assert_equal [ 55, 56 ], server.expunged
+  end
+
+  test "a draft is saved in the server's drafts folder" do
+    draft = mails_messages(:draft_message)
+    server = FakeImapServer.new(folders: [ "INBOX", "INBOX.Drafts" ], message_ids: { [ "INBOX.Drafts", draft.message_id ] => [ 9 ] })
+
+    connect_to_imap(server) { @service.save_draft(draft) }
+
+    assert_equal [ [ "INBOX.Drafts", [ :Draft, :Seen ] ] ], server.appended
+    assert_equal 9, draft.reload.uid
+  end
+
+  test "the server's sent and drafts folders are listed as Sent and Drafts" do
+    server = FakeImapServer.new(folders: [ "INBOX", "Receipts", [ "[Gmail]/Sent Mail", :Sent ], "[Gmail]/Drafts", "[Gmail]/Spam" ])
+
+    connect_to_imap(server) { @service.sync_folders }
+
+    assert_equal %w[INBOX Receipts Sent Drafts], JSON.parse(@account.reload.synced_folders)
   end
 
   # --- Moving mail by Message-ID ----------------------------------------------
@@ -336,7 +371,7 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
   test "a server on a local address isn't contacted" do
     @account.update!(imap_host: "127.0.0.1")
 
-    error = assert_raises(ImapSyncService::ConnectionError) { @service.test_connection }
+    error = assert_raises(ImapSyncService::ConnectionError) { @service.sync_folders }
     assert_match "local address", error.message
   end
 
@@ -349,6 +384,11 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
   end
 
   private
+    def special_folder(folder, folders)
+      mailboxes = folders.map { |name, *attributes| Net::IMAP::MailboxList.new(attributes, "/", name) }
+      @service.send(:find_special_folder, mailboxes, folder)
+    end
+
     class FakeImap
       attr_reader :fetched_attrs
 

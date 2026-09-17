@@ -22,6 +22,10 @@ module Mails
 
     validates :smtp_auth, inclusion: { in: SMTP_AUTH_METHODS }
 
+    AUTHENTICATION_FAILED = "The mail server didn't accept the username or password"
+    # Changing these is worth another try after the server turned the login down
+    CONNECTION_SETTINGS = %w[imap_host imap_port imap_ssl username encrypted_password].freeze
+
     BUILT_IN_FOLDERS = %w[INBOX Sent Drafts Trash Spam INBOX.spam INBOX.Spam Junk].freeze
 
     def custom_folders
@@ -30,6 +34,12 @@ module Mails
       JSON.parse(synced_folders).reject { |f| f.in?(excluded) }
     rescue JSON::ParserError
       []
+    end
+
+    # Syncing again with the same credentials only gets turned down again, so the scheduled
+    # sync skips the account until its settings change or someone asks for a sync
+    def authentication_failed?
+      sync_error? && sync_error == AUTHENTICATION_FAILED
     end
 
     def record_contact(email, name = nil)

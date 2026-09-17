@@ -8,31 +8,23 @@ class ImapSyncService
 
   MAX_ATTACHMENT_SIZE = 25.megabytes
 
+  SPECIAL_FOLDERS = {
+    "Sent" => [ :Sent, [ "Sent", "INBOX.Sent", "[Gmail]/Sent Mail", "Sent Messages", "Sent Items" ] ],
+    "Drafts" => [ :Drafts, [ "Drafts", "INBOX.Drafts", "[Gmail]/Drafts", "Draft" ] ]
+  }.freeze
+
   def initialize(email_account)
     @account = email_account
   end
 
-  def test_connection
-    connect do |imap|
-      imap.list("", "*")
-      true
-    end
-  rescue Net::IMAP::NoResponseError, Net::IMAP::BadResponseError => e
-    raise AuthenticationError, "Authentication failed: #{e.message}"
-  rescue StandardError => e
-    raise ConnectionError, "Connection failed: #{e.message}"
-  end
-
   def sync_folders
     connect do |imap|
-      folders = imap.list("", "*")&.map(&:name) || []
-      # Filter out Gmail system folders and NoSelect folders
-      folders.reject! { |f| f.start_with?("[Gmail]/") && f != "[Gmail]/Sent Mail" }
-      # Normalize: map provider-specific sent folders to "Sent"
-      sent_folder = find_sent_folder_from_list(folders)
-      normalized = folders.map do |f|
-        f == sent_folder ? "Sent" : f
-      end.uniq
+      mailboxes = imap.list("", "*") || []
+      # The server's sent and drafts folders are known here as "Sent" and "Drafts"
+      special = SPECIAL_FOLDERS.keys.index_by { |folder| find_special_folder(mailboxes, folder) }.except(nil)
+      # Leave out Gmail's other system folders
+      folders = mailboxes.map(&:name).reject { |f| f.start_with?("[Gmail]/") && !special.key?(f) }
+      normalized = folders.map { |f| special.fetch(f, f) }.uniq
       @account.update!(synced_folders: normalized.to_json)
       normalized
     end
@@ -111,9 +103,10 @@ class ImapSyncService
 
   def save_draft(message)
     raw = build_raw_email(message)
-    drafts_folder = find_drafts_folder
 
     connect do |imap|
+      drafts_folder = find_special_folder(imap.list("", "*"), "Drafts")
+
       # Delete old draft from server if it exists
       if message.uid.present? && drafts_folder
         imap.select(drafts_folder)
@@ -134,12 +127,9 @@ class ImapSyncService
   end
 
   def delete_draft(uid)
-    drafts_folder = find_drafts_folder
-    return unless drafts_folder && uid.present?
+    return if uid.blank?
 
-    delete_message(uid, folder: drafts_folder)
-  rescue StandardError => e
-    Rails.logger.error("Failed to delete draft from IMAP: #{e.message}")
+    delete_message(uid, folder: "Drafts")
   end
 
   # Takes one UID or several in the same folder
@@ -180,16 +170,6 @@ class ImapSyncService
     Rails.logger.error("Failed to move email #{message_id} from #{source_folder} to #{destination_folder}: #{e.message}")
   end
 
-  def fetch_email_body(uid, folder: "INBOX")
-    connect do |imap|
-      imap.select(folder)
-      data = imap.fetch(uid, "BODY[]")&.first
-      return nil unless data
-
-      parse_email_body(data.attr["BODY[]"])
-    end
-  end
-
   private
 
   def connect
@@ -214,7 +194,11 @@ class ImapSyncService
     )
 
     begin
-      imap.login(@account.username, @account.password)
+      begin
+        imap.login(@account.username, @account.password)
+      rescue Net::IMAP::NoResponseError
+        raise AuthenticationError, Mails::Account::AUTHENTICATION_FAILED
+      end
       yield imap
     ensure
       imap.logout rescue nil
@@ -391,8 +375,7 @@ class ImapSyncService
   end
 
   def find_sent_folder(imap)
-    folders = imap.list("", "*").map(&:name)
-    find_sent_folder_from_list(folders)
+    find_special_folder(imap.list("", "*"), "Sent")
   end
 
   def select_folder(imap, folder)
@@ -411,24 +394,21 @@ class ImapSyncService
     end
   end
 
-  # Sent mail is kept in "Sent" here, whatever the server calls its sent folder
-  # ("[Gmail]/Sent Mail", "Sent Messages", ...). Lists the server's folders at most once.
+  # Sent mail and drafts are kept in "Sent" and "Drafts" here, whatever the server calls
+  # those folders ("[Gmail]/Sent Mail", "INBOX.Drafts", ...). Lists the server's folders at most once.
   def server_folder_names(imap, *folders)
-    sent_folder = find_sent_folder(imap) if folders.include?("Sent")
-    folders.map { |folder| folder == "Sent" ? sent_folder || folder : folder }
+    mailboxes = imap.list("", "*") if folders.intersect?(SPECIAL_FOLDERS.keys)
+    folders.map { |folder| (mailboxes && find_special_folder(mailboxes, folder)) || folder }
   end
 
-  def find_sent_folder_from_list(folders)
-    sent_names = [ "Sent", "INBOX.Sent", "[Gmail]/Sent Mail", "Sent Messages", "Sent Items" ]
-    sent_names.find { |name| folders.include?(name) }
-  end
+  # The folder the server marks with the SPECIAL-USE attribute (RFC 6154),
+  # or else the first one with a name servers commonly use
+  def find_special_folder(mailboxes, folder)
+    attribute, names = SPECIAL_FOLDERS[folder]
+    return unless attribute
 
-  def find_drafts_folder
-    connect do |imap|
-      folders = imap.list("", "*").map(&:name)
-      drafts_names = [ "Drafts", "INBOX.Drafts", "[Gmail]/Drafts", "Draft" ]
-      drafts_names.find { |name| folders.include?(name) }
-    end
+    mailboxes.find { |mailbox| mailbox.attr.include?(attribute) }&.name ||
+      names.find { |name| mailboxes.any? { |mailbox| mailbox.name == name } }
   end
 
   def build_raw_email(message)

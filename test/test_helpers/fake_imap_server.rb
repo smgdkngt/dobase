@@ -7,6 +7,7 @@ require "net/imap"
 class FakeImapServer
   attr_reader :selected, :searched, :stored, :copied, :appended, :expunged, :lists
 
+  # folders: names, or [name, *attributes] for folders with SPECIAL-USE attributes like :Drafts
   # message_ids: { [folder, "<message-id>"] => [uid, ...] }
   def initialize(folders: [ "INBOX" ], message_ids: {}, capabilities: %w[IMAP4REV1 UIDPLUS])
     @folders = folders
@@ -29,7 +30,7 @@ class FakeImapServer
 
   def list(_reference, _pattern)
     @lists += 1
-    @folders.map { |name| Net::IMAP::MailboxList.new([], "/", name) }
+    @folders.map { |name, *attributes| Net::IMAP::MailboxList.new(attributes, "/", name) }
   end
 
   def select(folder) = @selected << folder

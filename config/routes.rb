@@ -105,9 +105,7 @@ Rails.application.routes.draw do
 
       resources :mail_drafts, only: %i[create update], path: "mails/drafts", controller: "mails/drafts"
 
-      resource :mails_account, only: %i[new create update], path: "mails/account", controller: "mails/accounts" do
-        post :test_connection, on: :collection
-      end
+      resource :mails_account, only: %i[new create update], path: "mails/account", controller: "mails/accounts"
 
       # Mail state controllers (RESTful)
       scope module: :mails do
@@ -126,8 +124,6 @@ Rails.application.routes.draw do
           resource :move, only: :create
         end
       end
-
-      resources :mail_labels, only: %i[index create update destroy]
 
       resources :mails_contacts, only: :index, controller: "mails/contacts"
 
