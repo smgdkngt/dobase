@@ -1,20 +1,57 @@
 <% content_for(:title) { "#{@tool.name} - #{app_name}" } %>
 
+<% content_for :command_palette_actions do %>
+  <%= render "shared/command_palette_action", key: "m", description: "Toggle microphone", icon: "mic" %>
+  <%= render "shared/command_palette_action", key: "v", description: "Toggle camera", icon: "video" %>
+  <%= render "shared/command_palette_action", key: "s", description: "Toggle screen share", icon: "monitor" %>
+<% end %>
+
+<% content_for :keyboard_shortcuts do %>
+  <div>
+    <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Room</h3>
+    <div class="shortcut-list">
+      <%= render "shared/shortcut_row", key: "m", description: "Toggle microphone" %>
+      <%= render "shared/shortcut_row", key: "v", description: "Toggle camera" %>
+      <%= render "shared/shortcut_row", key: "s", description: "Toggle screen share" %>
+    </div>
+  </div>
+<% end %>
+
 <div class="tool-layout tool-layout-anchored room-layout"
      data-controller="room"
      data-room-token-url-value="<%= tool_room_tokens_path(@tool) %>"
+     data-room-activity-url-value="<%= tool_room_activity_path(@tool) %>"
      data-room-user-name-value="<%= current_user.name %>"
      data-room-tool-path-value="<%= tool_room_path(@tool) %>"
+     data-room-tool-id-value="<%= @tool.id %>"
      data-persistent-room-placeholder>
+
+  <%# Hidden hotkey triggers — active call-wide, since this element (and these
+      buttons with it) moves into the turbo-permanent PiP container on join %>
+  <button data-controller="hotkey" data-hotkey="m" data-action="click->room#toggleMic" hidden>Toggle microphone</button>
+  <button data-controller="hotkey" data-hotkey="v" data-action="click->room#toggleCamera" hidden>Toggle camera</button>
+  <button data-controller="hotkey" data-hotkey="s" data-action="click->room#toggleScreen" hidden>Toggle screen share</button>
 
   <div class="tool-topbar" data-action="pointerdown->room#startDrag">
     <div class="flex items-center gap-2">
       <h1 class="tool-topbar-title"><%= @tool.name %></h1>
     </div>
     <div class="tool-topbar-actions">
-      <div class="flex items-center gap-1.5 text-sm text-text-secondary">
+      <button type="button"
+              class="room-participant-count-btn"
+              popovertarget="room-participant-list"
+              style="anchor-name: --room-participants-btn"
+              aria-label="Participants in this call">
         <%= render "shared/icon", name: "users", size: 14, class: "text-text-tertiary" %>
         <span data-room-target="participantCount">0 participants</span>
+      </button>
+
+      <div id="room-participant-list"
+           popover="auto"
+           class="popover-menu w-64 p-0 m-0 inset-auto"
+           style="position-anchor: --room-participants-btn; position-area: block-end span-inline-end">
+        <div class="text-xs font-semibold text-text-tertiary uppercase tracking-wider px-4 pt-3 pb-2">In this call</div>
+        <div class="max-h-64 overflow-y-auto pb-2" data-room-target="participantListBody"></div>
       </div>
     </div>
     <span class="pip-grip-handle"><%= render "shared/icon", name: "grip-vertical", size: 14 %></span>
@@ -22,15 +59,29 @@
 
   <%# In another call state (shown via CSS when PiP is active) %>
   <div class="room-in-another-call">
-    <div class="w-16 h-16 rounded-full bg-background-secondary flex items-center justify-center mb-4">
-      <%= render "shared/icon", name: "video-off", size: 28, class: "text-text-tertiary" %>
-    </div>
-    <p class="text-sm font-medium text-text-primary mb-1">You're already in a call</p>
-    <p class="text-sm text-text-secondary">Leave your current call before joining another room.</p>
+    <%= render "components/empty_state",
+          title: "You're already in a call",
+          description: "Leave your current call before joining another room.",
+          icon: "video-off",
+          size: :md %>
   </div>
 
   <%# Pre-join state %>
   <div class="room-pre-join" data-room-target="preJoin">
+    <div class="hidden flex flex-col items-center gap-2 w-80 max-w-full" data-room-target="preJoinError">
+      <div class="flash flash-alert w-full">
+        <%= render "shared/icon", name: "alert-circle", size: 18 %>
+        <span class="flex-1" data-room-target="preJoinErrorMessage"></span>
+      </div>
+      <%= render "components/button",
+            text: "Try again",
+            variant: :secondary,
+            size: :sm,
+            icon: "refresh-cw",
+            type: :button,
+            data: { action: "click->room#retryAfterError" } %>
+    </div>
+
     <%# Camera preview %>
     <div class="w-80 max-w-full rounded-xl overflow-hidden bg-background-secondary shadow-md">
       <video class="w-full aspect-video object-cover object-center bg-background-secondary"
@@ -69,25 +120,45 @@
 
   <%# In-call state %>
   <div class="room-in-call hidden" data-room-target="inCall">
-    <%# Content area (relative wrapper for local video overlay) %>
-    <div class="room-content-area">
-      <%# Video grid (remote participants) %>
-      <div class="h-full grid gap-2 p-4 overflow-hidden auto-rows-fr hidden"
-           style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));"
-           data-room-target="videoGrid">
+    <%# Content area (relative wrapper for local video overlay, spotlight, banners) %>
+    <div class="room-content-area" data-room-target="contentArea">
+      <div class="room-banner hidden" data-room-target="reconnectingBanner">
+        <div class="flash flash-warning">
+          <%= render "shared/icon", name: "loader-2", size: 16, class: "animate-spin" %>
+          <span>Reconnecting…</span>
+        </div>
       </div>
 
-      <%# Empty state (alone in call) %>
-      <div class="h-full flex flex-col items-center justify-center text-center p-6" data-room-target="emptyState">
-        <div class="w-16 h-16 rounded-full bg-background-secondary flex items-center justify-center mb-4">
-          <%= render "shared/icon", name: "users", size: 28, class: "text-text-tertiary" %>
+      <%# Screen share spotlight — takes over the content area while active %>
+      <div class="room-spotlight hidden" data-room-target="spotlight">
+        <video autoplay playsinline data-room-target="spotlightVideo"></video>
+        <div class="room-tile-overlay">
+          <span class="text-xs font-medium text-white" data-room-target="spotlightLabel"></span>
         </div>
-        <p class="text-sm text-text-secondary">Waiting for others to join...</p>
+      </div>
+
+      <%# Video grid (remote participants) %>
+      <div class="room-video-grid hidden" data-room-target="videoGrid"></div>
+
+      <%# Empty state (alone in call) %>
+      <div class="h-full flex items-center justify-center" data-room-target="emptyState">
+        <%= render "components/empty_state",
+              title: "Waiting for others to join",
+              description: "You're the only one here right now.",
+              icon: "users",
+              size: :md %>
       </div>
 
       <%# Local camera PiP %>
       <div class="room-local-video" data-room-target="localVideo">
         <video class="room-local-video-feed" autoplay playsinline muted></video>
+        <div class="room-tile-overlay">
+          <span class="hidden room-quality-dot" data-room-target="localQualityDot"></span>
+          <span class="text-xs font-medium text-white">You</span>
+          <span class="hidden text-white/80" data-room-target="localMutedIcon">
+            <%= render "shared/icon", name: "mic-off", size: 12 %>
+          </span>
+        </div>
       </div>
     </div>
 
@@ -95,7 +166,7 @@
     <div class="room-controls">
       <%= render "components/icon_button",
             icon: "mic",
-            title: "Toggle microphone",
+            title: "Mute microphone",
             data: {
               room_target: "micButton",
               action: "click->room#toggleMic"
@@ -103,7 +174,7 @@
 
       <%= render "components/icon_button",
             icon: "video",
-            title: "Toggle camera",
+            title: "Turn off camera",
             data: {
               room_target: "cameraButton",
               action: "click->room#toggleCamera"
@@ -111,7 +182,7 @@
 
       <%= render "components/icon_button",
             icon: "monitor",
-            title: "Toggle screen share",
+            title: "Share screen",
             data: {
               room_target: "screenButton",
               action: "click->room#toggleScreen"
@@ -164,10 +235,11 @@
         <div class="w-16 h-16 rounded-full bg-background-tertiary flex items-center justify-center text-xl font-semibold text-text-primary" data-initials></div>
         <span class="text-sm text-text-secondary" data-name></span>
       </div>
-      <div class="absolute bottom-2 left-2 flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/50 backdrop-blur-sm">
-        <span class="text-xs font-medium text-white" data-name></span>
+      <div class="room-tile-overlay">
+        <span class="hidden room-quality-dot" data-quality-dot></span>
+        <span class="text-xs font-medium text-white truncate" data-name></span>
         <span class="hidden text-white/80" data-muted-icon>
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="2" x2="22" y1="2" y2="22"/><path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2"/><path d="M5 10v2a7 7 0 0 0 12 5"/><path d="M15 9.34V5a3 3 0 0 0-5.68-1.33"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+          <%= render "shared/icon", name: "mic-off", size: 12 %>
         </span>
       </div>
     </div>

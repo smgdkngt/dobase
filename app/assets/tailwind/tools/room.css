@@ -26,6 +26,31 @@
     @apply flex-1 relative overflow-hidden;
   }
 
+  /* ── Participant grid ────────────────────────────────────────── */
+
+  .room-video-grid {
+    @apply h-full grid gap-2 p-4 overflow-hidden auto-rows-fr;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  /* Name / mic-state / connection-quality overlay — shared by participant
+     tiles, the local video bubble and the screen-share spotlight so the
+     "who is this and how are they doing" treatment looks the same everywhere. */
+  .room-tile-overlay {
+    @apply absolute bottom-2 left-2 z-10 flex items-center gap-1.5 px-2 py-1
+           rounded-md bg-black/50 backdrop-blur-sm max-w-[calc(100%-1rem)];
+  }
+
+  .room-quality-dot {
+    @apply w-1.5 h-1.5 rounded-full bg-warning shrink-0;
+  }
+
+  /* Active speaker highlight */
+  [data-participant-id].room-speaking,
+  .room-local-video.room-speaking {
+    @apply ring-2 ring-accent;
+  }
+
   /* ── Local video ─────────────────────────────────────────────── */
 
   .room-local-video {
@@ -35,6 +60,29 @@
 
   .room-local-video-feed {
     @apply w-full aspect-video object-cover object-center bg-background-secondary;
+  }
+
+  /* ── Reconnecting banner ─────────────────────────────────────── */
+
+  .room-banner {
+    @apply absolute top-4 left-1/2 -translate-x-1/2 z-20;
+  }
+
+  /* ── Screen share spotlight ──────────────────────────────────── */
+
+  .room-spotlight {
+    @apply absolute inset-0 z-0 flex items-center justify-center bg-black rounded-xl overflow-hidden;
+  }
+
+  .room-spotlight video {
+    @apply w-full h-full object-contain;
+  }
+
+  /* While a screen share is spotlighted, the participant grid steps aside —
+     audio keeps playing (the <audio> elements are unaffected by display:none
+     on an ancestor), only the video thumbnails are hidden. */
+  .room-content-area[data-has-spotlight] .room-video-grid {
+    @apply hidden!;
   }
 
   /* ── Controls bar ────────────────────────────────────────────── */
@@ -129,8 +177,21 @@
     @apply w-full h-full object-cover object-center aspect-auto;
   }
 
+  /* The local video bubble shrinks to 56px in PiP — no room for a name/mic overlay */
+  [data-room-mode-value="pip"] .room-local-video .room-tile-overlay {
+    @apply hidden;
+  }
+
   [data-room-mode-value="pip"] .room-controls {
     @apply py-0.5 px-2 gap-0.5;
+  }
+
+  [data-room-mode-value="pip"] .room-banner {
+    @apply top-1 scale-75;
+  }
+
+  [data-room-mode-value="pip"] .room-spotlight {
+    @apply rounded-none;
   }
 
   /* ── "In another call" state ───────────────────────────────────── */
@@ -158,6 +219,26 @@
   @keyframes pulse-call {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
+  }
+
+  /* ── Participant count / list popover ────────────────────────────── */
+
+  .room-participant-count-btn {
+    @apply flex items-center gap-1.5 text-sm text-text-secondary px-2 py-1 -mx-2
+           rounded-md hover:bg-background-tertiary hover:text-text-primary transition-colors;
+  }
+
+  .room-participant-row {
+    @apply flex items-center gap-2.5 px-4 py-2;
+  }
+
+  .room-participant-row-avatar {
+    @apply w-7 h-7 rounded-full bg-background-tertiary flex items-center justify-center
+           text-xs font-semibold text-text-primary shrink-0;
+  }
+
+  .room-participant-row-name {
+    @apply flex-1 min-w-0 truncate text-sm text-text-primary;
   }
 }
 

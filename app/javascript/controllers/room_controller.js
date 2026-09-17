@@ -1,14 +1,23 @@
 import { Controller } from "@hotwired/stimulus"
-import { api } from "services/api"
 
 export default class extends Controller {
   static targets = [
     "preJoin",
+    "preJoinError",
+    "preJoinErrorMessage",
     "inCall",
     "videoGrid",
     "emptyState",
+    "contentArea",
+    "spotlight",
+    "spotlightVideo",
+    "spotlightLabel",
+    "reconnectingBanner",
     "localVideo",
+    "localQualityDot",
+    "localMutedIcon",
     "participantCount",
+    "participantListBody",
     "micButton",
     "cameraButton",
     "screenButton",
@@ -22,8 +31,10 @@ export default class extends Controller {
 
   static values = {
     tokenUrl: String,
+    activityUrl: String,
     userName: String,
     toolPath: String,
+    toolId: Number,
     mode: { type: String, default: "" } // "", "full", or "pip"
   }
 
@@ -48,7 +59,15 @@ export default class extends Controller {
     const existingRoom = container?.querySelector("[data-controller~='room']")
     if (existingRoom && existingRoom !== this.element && existingRoom._liveKitRoom) {
       this._isDuplicate = true
-      this.element.hidden = true
+      // This room's own stale placeholder — the live instance (still in
+      // #persistent-room) covers the page via CSS full-screen mode instead.
+      if (existingRoom.dataset.roomToolIdValue === String(this.toolIdValue)) {
+        this.element.hidden = true
+      }
+      // Otherwise this is a DIFFERENT room while a call is active elsewhere —
+      // stay visible so CSS can show the "you're already in a call" state
+      // (see body:has([data-room-mode-value="pip"]) in room.css). Hiding the
+      // whole element here would blank this room's page instead.
       return
     }
 
@@ -69,11 +88,16 @@ export default class extends Controller {
   }
 
   async join() {
-    const { Room, RoomEvent, Track } = await import("livekit-client")
+    this._clearJoinError()
 
-    const tokenData = await api(this.tokenUrlValue, "POST")
-    if (!tokenData?.token || !tokenData?.url) {
-      console.error("Room: failed to fetch token", tokenData)
+    const { Room, RoomEvent, Track } = await import("livekit-client")
+    this.LiveKitTrack = Track
+
+    let tokenData
+    try {
+      tokenData = await this._fetchToken()
+    } catch (e) {
+      this._showJoinError(e.message, () => this.join())
       return
     }
 
@@ -82,7 +106,6 @@ export default class extends Controller {
     const audioDeviceId = this.hasAudioSelectTarget ? this.audioSelectTarget.value : undefined
     const videoDeviceId = this.hasVideoSelectTarget ? this.videoSelectTarget.value : undefined
 
-    this.LiveKitTrack = Track
     this.room = new Room({
       videoCaptureDefaults: {
         resolution: { width: 640, height: 360, frameRate: 24 }
@@ -90,16 +113,30 @@ export default class extends Controller {
     })
     this._bindRoomEvents(RoomEvent)
 
-    await this.room.connect(tokenData.url, tokenData.token)
+    try {
+      await this.room.connect(tokenData.url, tokenData.token)
+    } catch (e) {
+      console.error("Room: failed to connect", e)
+      await this._teardownFailedRoom()
+      this._showJoinError("Couldn't reach the video server. Check your connection and try again.", () => this.join())
+      return
+    }
 
-    // Enable camera and mic with explicitly selected devices
-    const camOptions = { resolution: { width: 640, height: 360, frameRate: 24 } }
-    if (videoDeviceId) camOptions.deviceId = videoDeviceId
-    const micOptions = {}
-    if (audioDeviceId) micOptions.deviceId = audioDeviceId
+    try {
+      // Enable camera and mic with explicitly selected devices
+      const camOptions = { resolution: { width: 640, height: 360, frameRate: 24 } }
+      if (videoDeviceId) camOptions.deviceId = videoDeviceId
+      const micOptions = {}
+      if (audioDeviceId) micOptions.deviceId = audioDeviceId
 
-    await this.room.localParticipant.setCameraEnabled(true, camOptions)
-    await this.room.localParticipant.setMicrophoneEnabled(true, micOptions)
+      await this.room.localParticipant.setCameraEnabled(true, camOptions)
+      await this.room.localParticipant.setMicrophoneEnabled(true, micOptions)
+    } catch (e) {
+      console.error("Room: failed to enable camera/microphone", e)
+      await this._teardownFailedRoom()
+      this._showJoinError(this._mediaErrorMessage(e), () => this.join())
+      return
+    }
 
     // Sync settings selects with pre-join selections
     if (this.hasSettingsAudioSelectTarget) {
@@ -119,6 +156,10 @@ export default class extends Controller {
     this.updateParticipantCount()
     this._updateEmptyState()
 
+    this._pingActivity(true)
+    this._boundPageHide = () => this._pingActivity(false)
+    window.addEventListener("pagehide", this._boundPageHide)
+
     // Move into persistent container
     const container = document.getElementById("persistent-room")
     if (container && !container.contains(this.element)) {
@@ -131,8 +172,15 @@ export default class extends Controller {
   async leave() {
     const wasOnRoomPage = window.location.pathname === this.toolPathValue
 
-    // Stop all local media tracks (camera/mic) explicitly
+    this._pingActivity(false)
+    if (this._boundPageHide) {
+      window.removeEventListener("pagehide", this._boundPageHide)
+      this._boundPageHide = null
+    }
+
+    // Stop all local media tracks (camera/mic/screen share) explicitly
     if (this.room) {
+      this._leavingIntentionally = true
       this.room.localParticipant.trackPublications.forEach((pub) => {
         pub.track?.stop()
       })
@@ -148,6 +196,8 @@ export default class extends Controller {
     this.modeValue = ""
     this._stopNavigationListener()
     this._removeSidebarIndicator()
+    this._resetSpotlight()
+    this._hideReconnecting()
 
     // Remove element from persistent container (prevents stale re-init opening camera)
     const container = document.getElementById("persistent-room")
@@ -160,12 +210,19 @@ export default class extends Controller {
     }
   }
 
+  retryAfterError() {
+    this._clearJoinError()
+    this._retryAction?.()
+  }
+
   toggleMic() {
     if (!this.room) return
     const local = this.room.localParticipant
     const enabled = local.isMicrophoneEnabled
     local.setMicrophoneEnabled(!enabled)
     this.micButtonTarget.classList.toggle("text-error", enabled)
+    this.micButtonTarget.title = enabled ? "Unmute microphone" : "Mute microphone"
+    if (this.hasLocalMutedIconTarget) this.localMutedIconTarget.classList.toggle("hidden", !enabled)
   }
 
   toggleCamera() {
@@ -174,14 +231,18 @@ export default class extends Controller {
     const enabled = local.isCameraEnabled
     local.setCameraEnabled(!enabled)
     this.cameraButtonTarget.classList.toggle("text-error", enabled)
+    this.cameraButtonTarget.title = enabled ? "Turn on camera" : "Turn off camera"
   }
 
   async toggleScreen() {
     if (!this.room) return
-    const local = this.room.localParticipant
-    const isSharing = local.isScreenShareEnabled
-    await local.setScreenShareEnabled(!isSharing)
-    this.screenButtonTarget.classList.toggle("text-error", !isSharing)
+    try {
+      await this.room.localParticipant.setScreenShareEnabled(!this.room.localParticipant.isScreenShareEnabled)
+      // Button state and title follow LocalTrackPublished/Unpublished so it stays
+      // correct even when the share is stopped from the browser's own UI.
+    } catch (e) {
+      console.warn("Room: could not toggle screen share:", e)
+    }
   }
 
   async switchAudioDevice() {
@@ -243,10 +304,11 @@ export default class extends Controller {
   }
 
   updateParticipantCount() {
-    if (!this.hasParticipantCountTarget) return
-    const count = this.room ? this.room.remoteParticipants.size + 1 : 0
-    const label = count === 1 ? "1 participant" : `${count} participants`
-    this.participantCountTarget.textContent = label
+    if (this.hasParticipantCountTarget) {
+      const count = this.room ? this.room.remoteParticipants.size + 1 : 0
+      this.participantCountTarget.textContent = count === 1 ? "1 participant" : `${count} participants`
+    }
+    this._renderParticipantList()
   }
 
   renderParticipant(participant) {
@@ -331,6 +393,80 @@ export default class extends Controller {
 
   // ── Private ──────────────────────────────────────────────────────────────
 
+  async _fetchToken() {
+    let res
+    try {
+      res = await fetch(this.tokenUrlValue, {
+        method: "POST",
+        headers: {
+          "Accept": "application/json",
+          "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content
+        }
+      })
+    } catch (_e) {
+      throw new Error("Couldn't reach the server. Check your connection and try again.")
+    }
+
+    let data = null
+    try {
+      data = await res.json()
+    } catch (_e) {
+      // No/invalid JSON body — fall through to the generic error below
+    }
+
+    if (!res.ok || !data?.token || !data?.url) {
+      throw new Error(data?.error || "This room isn't available right now. Try again in a moment.")
+    }
+    return data
+  }
+
+  _mediaErrorMessage(e) {
+    switch (e?.name) {
+      case "NotAllowedError":
+        return "Camera and microphone access is blocked. Allow access in your browser's settings, then try again."
+      case "NotFoundError":
+        return "No camera or microphone was found. Connect a device and try again."
+      case "NotReadableError":
+        return "Your camera or microphone is already in use by another application."
+      default:
+        return "Couldn't access your camera or microphone. Try again."
+    }
+  }
+
+  async _teardownFailedRoom() {
+    if (!this.room) return
+    // Suppress the Disconnected handler's own recovery (pre-join rebuild +
+    // error banner) — join() is already handling this failure and will show
+    // its own, more specific message right after this resolves.
+    this._leavingIntentionally = true
+    try {
+      await this.room.disconnect()
+    } catch (_e) {
+      // Already gone
+    }
+    this.room = null
+    await this._requestDeviceAccess()
+  }
+
+  _showJoinError(message, retry) {
+    this._retryAction = retry
+    if (this.hasPreJoinErrorMessageTarget) this.preJoinErrorMessageTarget.textContent = message
+    if (this.hasPreJoinErrorTarget) this.preJoinErrorTarget.classList.remove("hidden")
+  }
+
+  _clearJoinError() {
+    if (this.hasPreJoinErrorTarget) this.preJoinErrorTarget.classList.add("hidden")
+  }
+
+  _pingActivity(active) {
+    if (!this.activityUrlValue) return
+    fetch(this.activityUrlValue, {
+      method: active ? "POST" : "DELETE",
+      keepalive: true,
+      headers: { "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content }
+    }).catch(() => {})
+  }
+
   _listenForNavigation() {
     if (this._onTurboRender) return
     this._onTurboRender = () => {
@@ -369,13 +505,15 @@ export default class extends Controller {
   }
 
   _applySidebarIndicator() {
-    if (!this.toolPathValue) return
-    const link = document.querySelector(`a.sidebar-tool-item[href="${this.toolPathValue}"]`)
+    if (!this.toolIdValue) return
+    const link = document.querySelector(`[data-tool-id="${this.toolIdValue}"]`)
     if (link) link.dataset.inCall = "true"
   }
 
   _removeSidebarIndicator() {
-    document.querySelectorAll("[data-in-call]").forEach(el => delete el.dataset.inCall)
+    if (!this.toolIdValue) return
+    const link = document.querySelector(`[data-tool-id="${this.toolIdValue}"]`)
+    if (link) delete link.dataset.inCall
   }
 
   async _requestDeviceAccess() {
@@ -384,8 +522,10 @@ export default class extends Controller {
       if (this.hasPreviewVideoTarget) {
         this.previewVideoTarget.srcObject = this.previewStream
       }
+      this._clearJoinError()
     } catch (e) {
       console.warn("Room: could not access media devices:", e)
+      this._showJoinError(this._mediaErrorMessage(e), () => this._requestDeviceAccess())
     }
     await this._enumerateDevices()
   }
@@ -441,23 +581,53 @@ export default class extends Controller {
         this.updateParticipantCount()
       })
       .on(RoomEvent.ParticipantDisconnected, (participant) => {
+        this._hideSpotlight(participant.identity)
         this.removeParticipant(participant.identity)
         this.updateParticipantCount()
       })
-      .on(RoomEvent.TrackSubscribed, (track, _pub, participant) => {
+      .on(RoomEvent.TrackSubscribed, (track, pub, participant) => {
+        if (track.source === this.LiveKitTrack?.Source?.ScreenShare) {
+          this._showSpotlight(track, participant)
+          return
+        }
         this.attachTrack(track, participant.identity)
+        if (track.kind === (this.LiveKitTrack?.Kind?.Audio ?? "audio") && pub.isMuted) {
+          this._updateMutedState(participant.identity, track.kind, true)
+        }
       })
       .on(RoomEvent.TrackUnsubscribed, (track, _pub, participant) => {
+        if (track.source === this.LiveKitTrack?.Source?.ScreenShare) {
+          this._hideSpotlight(participant.identity)
+          return
+        }
         this.detachTrack(track, participant.identity)
       })
       .on(RoomEvent.LocalTrackPublished, (pub) => {
-        if (pub.track?.kind === (this.LiveKitTrack?.Kind?.Video ?? "video")) {
-          pub.track.attach(this.localVideoTarget.querySelector("video"))
+        const track = pub.track
+        const source = this.LiveKitTrack?.Source
+        if (!track || !source) return
+        if (track.source === source.Camera) {
+          track.attach(this.localVideoTarget.querySelector("video"))
+        } else if (track.source === source.ScreenShare) {
+          this._showSpotlight(track, this.room.localParticipant)
+          if (this.hasScreenButtonTarget) {
+            this.screenButtonTarget.classList.add("text-error")
+            this.screenButtonTarget.title = "Stop sharing"
+          }
         }
       })
       .on(RoomEvent.LocalTrackUnpublished, (pub) => {
-        if (pub.track?.kind === (this.LiveKitTrack?.Kind?.Video ?? "video")) {
-          pub.track.detach(this.localVideoTarget.querySelector("video"))
+        const track = pub.track
+        const source = this.LiveKitTrack?.Source
+        if (!track || !source) return
+        if (track.source === source.Camera) {
+          track.detach(this.localVideoTarget.querySelector("video"))
+        } else if (track.source === source.ScreenShare) {
+          this._hideSpotlight(this.room.localParticipant.identity)
+          if (this.hasScreenButtonTarget) {
+            this.screenButtonTarget.classList.remove("text-error")
+            this.screenButtonTarget.title = "Share screen"
+          }
         }
       })
       .on(RoomEvent.TrackMuted, (pub, participant) => {
@@ -470,11 +640,23 @@ export default class extends Controller {
           this._updateMutedState(participant.identity, pub.kind, false)
         }
       })
+      .on(RoomEvent.ActiveSpeakersChanged, (speakers) => this._updateActiveSpeakers(speakers))
+      .on(RoomEvent.ConnectionQualityChanged, (quality, participant) => this._updateConnectionQuality(quality, participant))
+      .on(RoomEvent.Reconnecting, () => this._showReconnecting())
+      .on(RoomEvent.Reconnected, () => this._hideReconnecting())
       .on(RoomEvent.Disconnected, () => {
+        this.room = null
+        this._resetSpotlight()
+        this._hideReconnecting()
         this.videoGridTarget.innerHTML = ""
         this._clearLocalVideo()
-        this._showPreJoin()
         this.updateParticipantCount()
+        if (!this._leavingIntentionally) {
+          this._showPreJoin()
+          this._requestDeviceAccess()
+          this._showJoinError("You were disconnected from the call. Check your connection and try again.", () => this.join())
+        }
+        this._leavingIntentionally = false
       })
   }
 
@@ -482,8 +664,14 @@ export default class extends Controller {
     this.room.remoteParticipants.forEach((participant) => {
       this.renderParticipant(participant)
       participant.trackPublications.forEach((pub) => {
-        if (pub.isSubscribed && pub.track) {
-          this.attachTrack(pub.track, participant.identity)
+        if (!pub.isSubscribed || !pub.track) return
+        if (pub.track.source === this.LiveKitTrack?.Source?.ScreenShare) {
+          this._showSpotlight(pub.track, participant)
+          return
+        }
+        this.attachTrack(pub.track, participant.identity)
+        if (pub.kind === (this.LiveKitTrack?.Kind?.Audio ?? "audio") && pub.isMuted) {
+          this._updateMutedState(participant.identity, pub.kind, true)
         }
       })
     })
@@ -492,9 +680,13 @@ export default class extends Controller {
   _renderLocalParticipant() {
     const local = this.room.localParticipant
     const videoEl = this.localVideoTarget.querySelector("video")
+    const source = this.LiveKitTrack?.Source
     local.trackPublications.forEach((pub) => {
-      if (pub.track?.kind === (this.LiveKitTrack?.Kind?.Video ?? "video")) {
+      if (!pub.track || !source) return
+      if (pub.track.source === source.Camera) {
         pub.track.attach(videoEl)
+      } else if (pub.track.source === source.ScreenShare) {
+        this._showSpotlight(pub.track, local)
       }
     })
   }
@@ -512,10 +704,100 @@ export default class extends Controller {
     mutedIcon?.classList.toggle("hidden", !muted)
   }
 
+  _showSpotlight(track, participant) {
+    if (!this.hasSpotlightTarget || !this.room) return
+    this._spotlightIdentity = participant.identity
+    const isLocal = participant.identity === this.room.localParticipant.identity
+    if (this.hasSpotlightLabelTarget) {
+      this.spotlightLabelTarget.textContent = isLocal
+        ? "You're presenting"
+        : `${participant.name || participant.identity} is presenting`
+    }
+    if (this.hasSpotlightVideoTarget) track.attach(this.spotlightVideoTarget)
+    this.spotlightTarget.classList.remove("hidden")
+    if (this.hasContentAreaTarget) this.contentAreaTarget.dataset.hasSpotlight = "true"
+    this._updateEmptyState()
+  }
+
+  _hideSpotlight(identity) {
+    if (!this.hasSpotlightTarget || this._spotlightIdentity !== identity) return
+    this._resetSpotlight()
+  }
+
+  _resetSpotlight() {
+    if (this.hasSpotlightVideoTarget) this.spotlightVideoTarget.srcObject = null
+    if (this.hasSpotlightTarget) this.spotlightTarget.classList.add("hidden")
+    if (this.hasContentAreaTarget) delete this.contentAreaTarget.dataset.hasSpotlight
+    this._spotlightIdentity = null
+    this._updateEmptyState()
+  }
+
+  _showReconnecting() {
+    if (this.hasReconnectingBannerTarget) this.reconnectingBannerTarget.classList.remove("hidden")
+  }
+
+  _hideReconnecting() {
+    if (this.hasReconnectingBannerTarget) this.reconnectingBannerTarget.classList.add("hidden")
+  }
+
+  _updateConnectionQuality(quality, participant) {
+    if (!this.room) return
+    const poor = quality === "poor" || quality === "lost"
+    const isLocal = participant.identity === this.room.localParticipant.identity
+    const dot = isLocal
+      ? (this.hasLocalQualityDotTarget ? this.localQualityDotTarget : null)
+      : this.videoGridTarget.querySelector(`[data-participant-id="${participant.identity}"] [data-quality-dot]`)
+    if (!dot) return
+    dot.classList.toggle("hidden", !poor)
+    dot.title = quality === "lost" ? "Connection lost" : "Poor connection"
+  }
+
+  _updateActiveSpeakers(speakers) {
+    const speakingIds = new Set(speakers.map(p => p.identity))
+    const localId = this.room?.localParticipant?.identity
+    this.videoGridTarget.querySelectorAll("[data-participant-id]").forEach((tile) => {
+      tile.classList.toggle("room-speaking", speakingIds.has(tile.dataset.participantId))
+    })
+    if (this.hasLocalVideoTarget) {
+      this.localVideoTarget.classList.toggle("room-speaking", localId != null && speakingIds.has(localId))
+    }
+  }
+
+  _renderParticipantList() {
+    if (!this.hasParticipantListBodyTarget) return
+    this.participantListBodyTarget.innerHTML = ""
+    if (this.room) {
+      this._appendParticipantRow(this.userNameValue || "You", this.initials(this.userNameValue), true)
+    }
+    this.videoGridTarget.querySelectorAll("[data-participant-id]").forEach((tile) => {
+      const name = tile.querySelector("[data-name]")?.textContent || "Participant"
+      const initialsText = tile.querySelector("[data-initials]")?.textContent || this.initials(name)
+      this._appendParticipantRow(name, initialsText, false)
+    })
+  }
+
+  _appendParticipantRow(name, initialsText, isLocal) {
+    const row = document.createElement("div")
+    row.className = "room-participant-row"
+
+    const avatar = document.createElement("div")
+    avatar.className = "room-participant-row-avatar"
+    avatar.textContent = initialsText
+    row.appendChild(avatar)
+
+    const nameEl = document.createElement("span")
+    nameEl.className = "room-participant-row-name"
+    nameEl.textContent = isLocal ? `${name} (you)` : name
+    row.appendChild(nameEl)
+
+    this.participantListBodyTarget.appendChild(row)
+  }
+
   _updateEmptyState() {
     if (!this.hasEmptyStateTarget) return
     const hasRemote = this.videoGridTarget.querySelector("[data-participant-id]")
-    this.emptyStateTarget.classList.toggle("hidden", !!hasRemote)
+    const hasSpotlight = this._spotlightIdentity != null
+    this.emptyStateTarget.classList.toggle("hidden", !!hasRemote || hasSpotlight)
     this.videoGridTarget.classList.toggle("hidden", !hasRemote)
   }
 
