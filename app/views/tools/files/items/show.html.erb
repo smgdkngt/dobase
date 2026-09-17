@@ -45,20 +45,20 @@
     <h3 class="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-4">Details</h3>
     <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
       <dt class="text-text-tertiary">Type</dt>
-      <dd class="text-text-primary break-words"><%= @file.content_type || "Unknown" %></dd>
+      <dd class="min-w-0 text-text-primary wrap-anywhere"><%= @file.content_type || "Unknown" %></dd>
 
       <dt class="text-text-tertiary">Size</dt>
-      <dd class="text-text-primary break-words"><%= @file.human_file_size %></dd>
+      <dd class="min-w-0 text-text-primary wrap-anywhere"><%= @file.human_file_size %></dd>
 
       <dt class="text-text-tertiary">Created</dt>
-      <dd class="text-text-primary break-words"><%= @file.created_at.strftime("%b %-d, %Y at %-I:%M %p") %><%= " by #{@file.created_by.name}" if @file.created_by && @file.created_by != current_user %></dd>
+      <dd class="min-w-0 text-text-primary wrap-anywhere"><%= format_datetime(@file.created_at) %><%= " by #{@file.created_by.name}" if @file.created_by && @file.created_by != current_user %></dd>
 
       <dt class="text-text-tertiary">Modified</dt>
-      <dd class="text-text-primary break-words"><%= @file.updated_at.strftime("%b %-d, %Y at %-I:%M %p") %><%= " by #{@file.updated_by.name}" if @file.updated_by && @file.updated_by != current_user %></dd>
+      <dd class="min-w-0 text-text-primary wrap-anywhere"><%= format_datetime(@file.updated_at) %><%= " by #{@file.updated_by.name}" if @file.updated_by && @file.updated_by != current_user %></dd>
 
       <% if @file.folder %>
         <dt class="text-text-tertiary">Location</dt>
-        <dd class="text-text-primary break-words"><%= @file.folder.breadcrumbs.map(&:name).join(" / ") %></dd>
+        <dd class="min-w-0 text-text-primary wrap-anywhere"><%= @file.folder.breadcrumbs.map(&:name).join(" / ") %></dd>
       <% end %>
     </dl>
 

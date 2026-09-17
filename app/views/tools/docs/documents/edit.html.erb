@@ -36,6 +36,7 @@
       <rhino-editor input="<%= input_id %>"
         class="document-editor flex-1"
         placeholder="Start writing..."
+        defer-initialize
         data-document-editor-target="editor"
         data-action="rhino-change->document-editor#scheduleAutoSave"
         data-blob-url-template="<%= rails_service_blob_url(":signed_id", ":filename") %>"

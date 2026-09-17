@@ -44,16 +44,16 @@
         <div class="text-text-primary">
           <% if invite.all_day? %>
             <p>
-              <%= invite.starts_at.strftime("%A, %B %d, %Y") %>
+              <%= invite.starts_at.strftime("%A, %B %-d, %Y") %>
               <% if invite.last_day > invite.starts_at.to_date %>
-                - <%= invite.last_day.strftime("%A, %B %d, %Y") %>
+                - <%= invite.last_day.strftime("%A, %B %-d, %Y") %>
               <% end %>
             </p>
             <p class="text-text-secondary">All day</p>
           <% else %>
-            <p><%= invite.starts_at.strftime("%A, %B %d, %Y") %></p>
+            <p><%= invite.starts_at.strftime("%A, %B %-d, %Y") %></p>
             <p class="text-text-secondary">
-              <%= invite.starts_at.strftime("%I:%M %p") %> - <%= invite.ends_at.strftime("%I:%M %p") %>
+              <%= format_time(invite.starts_at) %> - <%= format_time(invite.ends_at) %>
               <% if invite.duration_display %>
                 (<%= invite.duration_display %>)
               <% end %>

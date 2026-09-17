@@ -263,6 +263,20 @@
     @apply px-5 py-4;
   }
 
+  /* Card / todo detail modal: content + metadata side by side; stacked in one
+     scroll area on phones so neither part gets squeezed */
+  .detail-modal-body {
+    @apply flex flex-1 flex-col min-h-0 overflow-y-auto sm:flex-row sm:overflow-hidden;
+  }
+
+  .detail-modal-main {
+    @apply flex flex-1 flex-col min-w-0 shrink-0 sm:shrink sm:overflow-y-auto;
+  }
+
+  .detail-modal-aside {
+    @apply shrink-0 border-t border-border-light bg-background-secondary/50 sm:w-56 sm:border-t-0 sm:border-l sm:overflow-y-auto;
+  }
+
   /* Flash messages */
   .flash {
     @apply rounded-lg px-4 py-3 text-sm flex items-center gap-3;
@@ -297,6 +311,16 @@
     }
   }
 
+  /* Toasts sit bottom-right; on tools with a composer at the bottom (chat,
+     room) they move to the top so they never cover Send */
+  .flash-toast {
+    @apply fixed bottom-6 right-6 z-[9999] max-w-sm;
+  }
+
+  body:has(.tool-layout-anchored) .flash-toast {
+    @apply top-16 bottom-auto;
+  }
+
   .flash-dismiss {
     @apply opacity-0 translate-x-full transition-all duration-200 ease-in-out;
   }
@@ -318,8 +342,51 @@
     @apply text-xs text-text-tertiary;
   }
 
+  /* Row actions: accent for Make owner / Resend / Reinvite, red only for removing */
+  .collaborator-action {
+    @apply text-xs text-accent bg-transparent border-none cursor-pointer px-2 py-1 rounded-sm shrink-0 hover:bg-accent-light disabled:opacity-50 disabled:cursor-default;
+  }
+
   .collaborator-remove {
     @apply text-xs text-error bg-transparent border-none cursor-pointer px-2 py-1 rounded-sm shrink-0 hover:bg-error-light;
+  }
+
+  /* ── Rhino editor theme (all editors: docs, compose, compact input) ──
+     Rhino picks light or dark values with light-dark(), so every pair gets
+     the same token. Toolbar buttons live in shadow DOM: style them via ::part. */
+
+  rhino-editor {
+    --rhino-border-color: transparent;
+    --rhino-text-color: var(--color-text-primary);
+    --rhino-dark-text-color: var(--color-text-primary);
+    --rhino-placeholder-text-color: var(--color-text-tertiary);
+    --rhino-dark-placeholder-text-color: var(--color-text-tertiary);
+    --rhino-toolbar-text-color: var(--color-text-secondary);
+    --rhino-button-text-color: var(--color-text-secondary);
+    --rhino-button-dark-text-color: var(--color-text-secondary);
+    --rhino-button-border-color: transparent;
+    --rhino-button-disabled-text-color: var(--color-text-tertiary);
+    --rhino-button-disabled-border-color: transparent;
+    --rhino-button-active-border-color: var(--color-accent);
+    --rhino-button-active-background-color: var(--color-background-tertiary);
+    --rhino-button-focus-background-color: var(--color-background-tertiary);
+    --rhino-dialog-border-color: var(--color-border);
+  }
+
+  rhino-editor::part(toolbar__button) {
+    @apply rounded-md border-transparent bg-transparent text-text-secondary transition-colors;
+  }
+
+  rhino-editor::part(toolbar__button):hover {
+    @apply bg-background-tertiary text-text-primary;
+  }
+
+  rhino-editor::part(toolbar__button--active) {
+    @apply bg-accent-light text-accent;
+  }
+
+  rhino-editor::part(toolbar__button--disabled) {
+    @apply bg-transparent text-text-tertiary opacity-50;
   }
 
   /* ── Rich text input (compact Rhino editor) ──────────────────────── */
@@ -334,10 +401,6 @@
 
   .rich-text-input rhino-editor {
     @apply flex flex-col;
-    --rhino-border-color: transparent;
-    --rhino-button-active-border-color: var(--color-accent);
-    --rhino-button-text-color: var(--color-text-primary);
-    --rhino-toolbar-text-color: var(--color-text-primary);
   }
 
   .rich-text-input rhino-editor [role="toolbar"] {
@@ -348,7 +411,7 @@
   /* ── Rich text content (compact rendering for chat/comments) ─────── */
 
   .rich-text-content {
-    @apply text-text-primary leading-snug;
+    @apply text-text-primary leading-snug wrap-anywhere;
 
     p { @apply my-0; }
     p + p { @apply mt-0.5; }

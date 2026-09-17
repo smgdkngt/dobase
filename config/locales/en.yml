@@ -45,3 +45,10 @@ en:
         start_time: "Start"
         ends_at: "End"
         end_time: "End"
+  number:
+    human:
+      storage_units:
+        units:
+          byte:
+            one: "B"
+            other: "B"

@@ -26,7 +26,7 @@
         <% if conversation[:starred] %>
           <%= render "shared/icon", name: "star", size: 12, class: "text-warning fill-warning" %>
         <% end %>
-        <span class="text-xs text-text-tertiary"><%= conversation[:sent_at]&.strftime(conversation[:sent_at]&.year == Date.today.year ? "%b %d" : "%b %d, %Y") %></span>
+        <span class="text-xs text-text-tertiary"><%= format_date(conversation[:sent_at]) %></span>
       </div>
     </div>
     <div class="text-sm text-text-secondary truncate mb-0.5 <%= 'text-text-primary font-medium' unless conversation[:read] %>"><%= conversation[:subject] %></div>

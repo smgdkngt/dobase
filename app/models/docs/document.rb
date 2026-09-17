@@ -21,6 +21,11 @@ module Docs
       locked_by_id.present? && locked_at.present? && locked_at > LOCK_TIMEOUT.ago
     end
 
+    # When the content was last changed. Taking the edit lock touches updated_at too.
+    def edited_at
+      last_edited_at || updated_at
+    end
+
     def preview_text(length: 200)
       return "" if content.blank?
 

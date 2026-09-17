@@ -102,7 +102,7 @@
                   elsif message_date > Date.current - 7
                     date_label = message_date.strftime("%A")
                   else
-                    date_label = message_date.strftime("%B %d, %Y")
+                    date_label = format_date(message_date)
                   end
                 %>
                 <div class="flex items-center gap-3 my-4 sm:my-6 px-2 sm:px-4" role="separator" aria-label="Messages from <%= date_label %>">

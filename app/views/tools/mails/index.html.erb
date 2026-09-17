@@ -47,7 +47,7 @@
   <button data-controller="hotkey" data-hotkey="Escape" data-action="click->mail-keyboard#deselect" hidden>Deselect</button>
   <!-- Top Bar -->
   <div class="mail-topbar flex items-center px-4 py-1 min-h-[53px] gap-3 bg-surface border-b border-border-light col-span-full">
-    <h1 class="tool-topbar-title pr-4 mr-1 border-r border-border-light"><%= @tool.name %></h1>
+    <h1 class="tool-topbar-title mail-topbar-title"><%= @tool.name %></h1>
 
     <!-- Search -->
     <%= render "components/search",
@@ -69,7 +69,7 @@
       }
       current_meta = folder_meta[@current_folder] || { label: @current_folder, icon: "folder" }
     %>
-    <div class="relative">
+    <div class="relative mail-folder-picker">
       <button type="button"
               class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-background-tertiary transition-colors"
               popovertarget="mail-folder-menu"
@@ -141,7 +141,7 @@
            data-sync-status-syncing-value="<%= @mail_account.syncing? %>">
         <div class="w-1.5 h-1.5 rounded-full <%= @mail_account.synced? ? 'bg-success' : (@mail_account.sync_error? ? 'bg-error' : 'bg-warning') %>"
              data-sync-status-target="indicator"></div>
-        <span class="text-xs text-text-tertiary" data-sync-status-target="status">
+        <span class="mail-sync-text text-xs text-text-tertiary" data-sync-status-target="status">
           <% if @mail_account.syncing? %>
             Syncing...
           <% elsif @mail_account.last_synced_at %>

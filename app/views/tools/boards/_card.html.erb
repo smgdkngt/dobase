@@ -38,7 +38,7 @@
         %>
         <span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-sm <%= due_class %>">
           <%= render "shared/icon", name: "calendar", size: 10 %>
-          <%= card.due_date.strftime("%b %-d") %>
+          <%= format_date(card.due_date) %>
         </span>
       <% end %>
       <% if comments_count > 0 %>

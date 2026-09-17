@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { Mention } from "rhino-editor"
 import { createMentionSuggestion } from "services/mention_suggestion"
+import { applyPlaceholder } from "services/rhino_placeholder"
 
 // Wraps a <rhino-editor> with form helpers:
 // enter-to-submit, typing event dispatch, toolbar configuration, mentions, and clearing after submit.
@@ -26,6 +27,8 @@ export default class extends Controller {
     if (this.mentionsValue.length > 0) {
       this._configureMentions()
     }
+
+    applyPlaceholder(this.editorTarget)
 
     // Start the deferred editor after options are set
     this.editorTarget.startEditor()

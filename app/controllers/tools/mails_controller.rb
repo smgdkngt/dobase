@@ -309,7 +309,7 @@ module Tools
     end
 
     def build_reply_body(message)
-      date_str = message.sent_at&.strftime("%a, %b %d, %Y at %I:%M %p")
+      date_str = message.sent_at&.strftime("%a, %b %-d, %Y at %-I:%M %p")
       quoted = message.body_html.presence || helpers.simple_format(message.body_plain.to_s)
       "<br><br><p>On #{date_str}, #{message.display_from} &lt;#{message.from_address}&gt; wrote:</p><blockquote>#{quoted}</blockquote>"
     end
@@ -318,7 +318,7 @@ module Tools
       forwarded = message.body_html.presence || helpers.simple_format(message.body_plain.to_s)
       "<br><br><p>---------- Forwarded message ----------<br>" \
         "From: #{message.display_from} &lt;#{message.from_address}&gt;<br>" \
-        "Date: #{message.sent_at&.strftime('%a, %b %d, %Y at %I:%M %p')}<br>" \
+        "Date: #{message.sent_at&.strftime('%a, %b %-d, %Y at %-I:%M %p')}<br>" \
         "Subject: #{ERB::Util.html_escape(message.subject)}<br>" \
         "To: #{ERB::Util.html_escape(message.to_addresses_list.join(', '))}</p>" \
         "#{forwarded}"

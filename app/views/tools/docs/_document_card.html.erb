@@ -2,7 +2,7 @@
   <%# Grid card with preview %>
   <div data-document-id="<%= document.id %>">
     <%= link_to tool_docs_document_path(document.tool, document),
-        class: "group block bg-surface border border-border-light rounded-lg overflow-hidden hover:border-accent hover:shadow-md transition-all" do %>
+        class: "group flex flex-col h-full bg-surface border border-border-light rounded-lg overflow-hidden hover:border-accent hover:shadow-md transition-all" do %>
       <div class="aspect-[4/3] bg-background p-4 overflow-hidden relative">
         <% if document.content.present? %>
           <div class="document-view pointer-events-none origin-top-left scale-[0.4] w-[250%]">
@@ -13,20 +13,21 @@
             <%= render "shared/icon", name: "file-text", size: 48, class: "text-text-tertiary/30" %>
           </div>
         <% end %>
-        <div class="absolute top-2 right-2 <%= 'hidden' unless document.locked? %>"
-             data-editing-indicator
-             role="status"
-             aria-live="polite">
-          <span class="flex items-center gap-1.5 px-2 py-0.5 bg-background-secondary text-text-secondary text-xs font-medium rounded-full">
-            <span class="w-1.5 h-1.5 bg-warning rounded-full animate-pulse" aria-hidden="true"></span>
-            <span data-editing-user><%= document.locked_by&.name %></span>
+      </div>
+      <div class="flex-1 p-3 border-t border-border-light">
+        <div class="flex items-center gap-2">
+          <h3 class="flex-1 min-w-0 font-medium text-sm truncate group-hover:text-accent"><%= document.title %></h3>
+          <span class="flex items-center gap-1.5 max-w-[50%] px-2 py-0.5 bg-background-secondary text-text-secondary text-xs font-medium rounded-full <%= 'hidden' unless document.locked? %>"
+                data-editing-indicator
+                role="status"
+                aria-live="polite"
+                title="Being edited">
+            <span class="w-1.5 h-1.5 shrink-0 bg-warning rounded-full animate-pulse" aria-hidden="true"></span>
+            <span class="truncate" data-editing-user><%= document.locked_by&.name %></span>
           </span>
         </div>
-      </div>
-      <div class="p-3 border-t border-border-light">
-        <h3 class="font-medium text-sm truncate group-hover:text-accent"><%= document.title %></h3>
-        <p class="text-xs text-text-tertiary mt-1 truncate">
-          Edited <%= time_ago_in_words(document.updated_at) %> ago<%= " by #{document.updated_by.name}" if document.updated_by && document.updated_by != current_user %>
+        <p class="text-xs text-text-tertiary mt-1 line-clamp-2">
+          Edited <%= time_ago_in_words(document.edited_at) %> ago<%= " by #{document.updated_by.name}" if document.updated_by && document.updated_by != current_user %>
         </p>
       </div>
     <% end %>
@@ -53,7 +54,7 @@
         <p class="text-xs text-text-tertiary truncate mt-0.5"><%= document.preview_text(length: 100) %></p>
       </div>
       <div class="text-xs text-text-tertiary flex-shrink-0">
-        <%= time_ago_in_words(document.updated_at) %> ago<%= " by #{document.updated_by.name}" if document.updated_by && document.updated_by != current_user %>
+        <%= time_ago_in_words(document.edited_at) %> ago<%= " by #{document.updated_by.name}" if document.updated_by && document.updated_by != current_user %>
       </div>
     <% end %>
   </div>

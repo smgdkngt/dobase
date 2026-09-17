@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import consumer from "channels/consumer"
+import { applyPlaceholder } from "services/rhino_placeholder"
 
 export default class extends Controller {
   static targets = ["form", "title", "editor", "saveIndicator"]
@@ -13,6 +14,10 @@ export default class extends Controller {
     this.isSaving = false
     this.pendingSave = false
     this.lastSavedTitle = this.titleTarget.value
+
+    // The editor is deferred so its options can be set before it starts
+    applyPlaceholder(this.editorTarget)
+    this.editorTarget.startEditor()
 
     this.setupChannel()
     this.setupKeyboardShortcuts()

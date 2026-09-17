@@ -2,7 +2,7 @@
   <%= form_with model: Tool.new, url: tools_path do |f| %>
     <div class="mb-6" data-controller="tool-type-select">
       <label class="label mb-3">What do you want to add?</label>
-      <div class="grid grid-cols-2 gap-3">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
         <% ToolType.enabled.order(:name).each_with_index do |tool_type, index| %>
           <label class="block cursor-pointer">
             <%= f.radio_button :tool_type_id, tool_type.id,
@@ -16,7 +16,7 @@
               </div>
               <div class="min-w-0">
                 <div class="font-medium text-sm text-text-primary"><%= tool_type.name %></div>
-                <div class="text-xs text-text-tertiary truncate"><%= tool_type_description(tool_type) %></div>
+                <div class="text-xs text-text-tertiary line-clamp-2"><%= tool_type_description(tool_type) %></div>
               </div>
             </div>
           </label>

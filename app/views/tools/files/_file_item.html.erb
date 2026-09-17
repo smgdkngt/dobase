@@ -36,7 +36,7 @@
         <% end %>
       </span>
       <span class="text-sm text-text-secondary w-[100px] text-right shrink-0 hidden md:block"><%= file.human_file_size %></span>
-      <span class="text-sm text-text-secondary w-[100px] text-right shrink-0 hidden lg:block"><%= file.created_at.strftime("%b %-d, %Y") %></span>
+      <span class="text-sm text-text-secondary w-[100px] text-right shrink-0 hidden lg:block"><%= format_date(file.created_at) %></span>
     </div>
   <% end %>
   <div class="<%= view_mode == 'grid' ? 'absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity' : '' %> flex items-center gap-2">

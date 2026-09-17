@@ -31,7 +31,10 @@
     has_remote_images = sanitized.match?(/<img\b[^>]*?\bsrc\s*=\s*["']https?:\/\//i) || sanitized.match?(/url\(\s*["']?\s*https?:/i)
     images_stripped = sanitized.gsub(/(<img\b[^>]*?)\bsrc\s*=\s*["']https?:\/\/[^"']*["']/i, '\1data-blocked-src=""')
 
+    # Emails are designed for a light page, so they keep one in dark mode too (like other
+    # mail clients); the host page frames them on a light surface instead of recoloring them.
     base_styles = <<~CSS
+      :root { color-scheme: light; }
       body {
         margin: 0;
         padding: 0;
@@ -52,11 +55,6 @@
         padding-left: 1em;
         border-left: 3px solid #d2d2d7;
         color: #6e6e73;
-      }
-      @media (prefers-color-scheme: dark) {
-        body { color: #f5f5f7; background: #2c2c2e; }
-        a { color: #0a84ff; }
-        blockquote { border-left-color: #48484a; color: #a1a1a6; }
       }
     CSS
 
@@ -83,12 +81,14 @@
                 data-action="email-frame#showImages">Show images</button>
       </div>
     <% end %>
-    <iframe
-      sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-      srcdoc="<%= safe_srcdoc %>"
-      data-email-frame-target="frame"
-      style="width: 100%; border: none; height: 0; overflow: hidden; display: block;"
-    ></iframe>
+    <div class="email-frame">
+      <iframe
+        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+        srcdoc="<%= safe_srcdoc %>"
+        data-email-frame-target="frame"
+        style="width: 100%; border: none; height: 0; overflow: hidden; display: block;"
+      ></iframe>
+    </div>
   </div>
 <% elsif message.body_plain.present? %>
   <div class="whitespace-pre-wrap text-text-primary text-sm"><%=

@@ -160,7 +160,7 @@ Rhino Editor (TipTap-based) replaces Trix. Two editor modes:
 - **Full** (Docs): `.document-editor` / `.document-view` classes, large text, full toolbar
 - **Compact** (Chat/Comments): `.rich-text-input` wrapper, pruned toolbar (bold/italic/link/code), inherits font size from context
 
-Models use `has_rich_text :body`. The `rich_text_input` component wraps `rich_text_area_tag` with a Stimulus controller for enter-to-submit and toolbar pruning. Rhino Editor toolbar is in shadow DOM — style via `::part(toolbar)`, `::part(editor-wrapper)`. Button colors use `--rhino-button-text-color` and `--rhino-toolbar-text-color` CSS variables.
+Models use `has_rich_text :body`. The `rich_text_input` component wraps `rich_text_area_tag` with a Stimulus controller for enter-to-submit and toolbar pruning. Rhino Editor toolbar is in shadow DOM — style via `::part(toolbar)`, `::part(editor-wrapper)`. The shared Rhino theme (the `--rhino-*` variables and `::part(toolbar__button)` styles for every editor) lives in `components.css`.
 
 ### Background Jobs
 
@@ -332,6 +332,7 @@ link_to content, href, **html_options
 
 - `frozen_string_literal: true` in all Ruby files
 - Icons: Lucide (rendered via `shared/icon` partial)
+- Sizes, dates and times: use `FormattingHelper` (`human_file_size`, `format_time` → "6:05 PM", `format_date` → "Sep 16" / "Sep 16, 2025", `format_datetime`), never ad-hoc `strftime` or `number_to_human_size`. Times show in the viewer's `Time.zone`.
 - Testing: Minitest with fixtures; namespaced models need `set_fixture_class` in test_helper. Fixtures bypass model callbacks, so `collaborators.yml` must have explicit owner records for every tool fixture (the `add_creator_as_owner` callback doesn't run for fixtures).
 - Ordering: position column + dedicated `PositionsController`
 - Encryption: mail/calendar passwords encrypted with `secret_key_base`

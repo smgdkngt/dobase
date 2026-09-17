@@ -22,7 +22,7 @@
       <span class="hidden sm:inline text-sm text-text-tertiary <%= 'hidden' if @locked_by || !show_edited %>"
             data-document-viewer-target="editedStatus">
         <% if show_edited %>
-          Edited <%= time_ago_in_words(@document.last_edited_at || @document.updated_at) %> ago
+          Edited <%= time_ago_in_words(@document.edited_at) %> ago
           by <%= @document.updated_by.name %>
         <% end %>
       </span>

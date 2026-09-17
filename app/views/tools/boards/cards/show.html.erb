@@ -57,10 +57,10 @@
   </div>
 
   <%# ─── Body: two-column layout ────────────────────────────────────── %>
-  <div class="flex-1 flex flex-col sm:flex-row min-h-0">
+  <div class="detail-modal-body">
 
     <%# Left column: Description + Activity %>
-    <div class="flex-1 min-w-0 flex flex-col overflow-y-auto">
+    <div class="detail-modal-main">
       <div>
 
         <%# Description %>
@@ -157,7 +157,7 @@
     </div>
 
     <%# Right column: Metadata sidebar %>
-    <div class="sm:w-56 border-t sm:border-t-0 sm:border-l border-border-light bg-background-secondary/50 overflow-y-auto flex-shrink-0">
+    <div class="detail-modal-aside">
       <div>
 
         <%# ── Assignee ───────────────────────────────────────────────── %>
@@ -223,7 +223,7 @@
             </div>
             <input type="date"
                    value="<%= @card.due_date&.iso8601 %>"
-                   class="text-sm bg-transparent border-none outline-none cursor-pointer flex-1 min-w-0"
+                   class="text-sm text-text-primary bg-transparent border-none outline-none cursor-pointer flex-1 min-w-0"
                    data-action="change->board-card#setDueDate"
                    data-board-card-target="dueDateInput">
           </label>
@@ -308,7 +308,7 @@
                      class="text-sm text-text-primary hover:text-accent truncate flex-1 min-w-0 transition-colors">
                     <%= attachment.file.filename %>
                   </a>
-                  <span class="text-xs text-text-tertiary shrink-0"><%= number_to_human_size(attachment.file.byte_size) %></span>
+                  <span class="text-xs text-text-tertiary shrink-0"><%= human_file_size(attachment.file.byte_size) %></span>
                   <%= link_to tool_board_card_attachment_path(@tool, @card, attachment),
                       class: "opacity-0 group-hover:opacity-100 p-0.5 rounded hover:text-error text-text-tertiary transition-all",
                       data: { turbo_method: :delete, turbo_confirm: "Delete this attachment?", turbo_confirm_button: "Delete", turbo_frame: "card-detail-content" } do %>

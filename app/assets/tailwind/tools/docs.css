@@ -6,10 +6,6 @@
 rhino-editor.document-editor {
   @apply flex flex-col h-full;
   overflow: hidden;
-  --rhino-border-color: transparent;
-  --rhino-button-active-border-color: var(--color-accent);
-  --rhino-button-text-color: var(--color-text-primary);
-  --rhino-toolbar-text-color: var(--color-text-primary);
 }
 
 rhino-editor.document-editor::part(toolbar) {

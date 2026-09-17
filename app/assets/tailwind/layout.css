@@ -259,10 +259,7 @@
   .sidebar {
     @apply z-50 top-auto bottom-0 inset-x-0 w-full max-h-[75vh]
            border-r-0 rounded-t-2xl translate-y-full
-           pt-0 pl-0 transition-transform duration-300 ease-in-out;
-    background: color-mix(in srgb, var(--color-sidebar-bg) 92%, transparent);
-    backdrop-filter: blur(24px) saturate(1.4);
-    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+           pt-0 pl-0 transition-transform duration-300 ease-in-out shadow-xl;
     padding-bottom: var(--mobile-bar-clearance);
   }
 
@@ -293,14 +290,26 @@
     @apply min-h-0! pt-0 pb-0;
   }
 
-  /* Anchored tools (chat, room): reduce height so bottom UI sits above the bar */
-  .main-content:has(> .tool-layout-anchored) {
+  /* Anchored tools (chat, room, an open email): reduce height so bottom UI sits above the bar */
+  .main-content:has(> .tool-layout-anchored),
+  .main-content:has(> .mail-layout.mail-detail-open) {
     height: calc(100dvh - env(safe-area-inset-top) - var(--mobile-bar-clearance)) !important;
   }
 
   /* Scroll areas in browsing tools: padding so last items can scroll past the bar */
   .tool-scroll-area {
     padding-bottom: var(--mobile-bar-clearance);
+  }
+
+  /* Toasts span the width above the bottom bar */
+  .flash-toast {
+    @apply left-4 right-4 max-w-none;
+    bottom: var(--mobile-bar-clearance);
+  }
+
+  body:has(.tool-layout-anchored) .flash-toast {
+    @apply bottom-auto;
+    top: calc(4rem + env(safe-area-inset-top));
   }
 
   /* ── Re-anchor popovers to mobile bottom bar buttons ── */
@@ -348,7 +357,15 @@
   }
 
   .edit-modal-tabs .tab-danger {
-    @apply text-error hover:text-error hover:bg-error/10;
+    @apply relative flex-none! w-auto! text-text-tertiary hover:text-error hover:bg-error/10;
+  }
+
+  .edit-modal-tabs > :not(.tab-danger) + .tab-danger {
+    @apply ms-auto;
+  }
+
+  .edit-modal-tabs .tab-danger span {
+    @apply sr-only;
   }
 
   .edit-modal-content {
@@ -382,7 +399,8 @@
     height: calc(100vh - env(safe-area-inset-top)) !important;
   }
 
-  .main-content:has(> .tool-layout-anchored) {
+  .main-content:has(> .tool-layout-anchored),
+  .main-content:has(> .mail-layout.mail-detail-open) {
     height: calc(100vh - env(safe-area-inset-top) - var(--mobile-bar-clearance)) !important;
   }
 

@@ -51,6 +51,15 @@ class BoardsTest < ApplicationSystemTestCase
     assert_text "NEW COLUMN NAME"
   end
 
+  test "the comment box shows its own placeholder" do
+    visit tool_board_path(@tool)
+    open_card(cards(:first_task))
+
+    within "dialog[open]" do
+      assert_selector ".rich-text-input [data-placeholder='Write a comment...']"
+    end
+  end
+
   test "opening card detail dialog" do
     visit tool_board_path(@tool)
     open_card(cards(:first_task))

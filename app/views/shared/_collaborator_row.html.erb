@@ -15,7 +15,7 @@
     <div class="flex items-center gap-2">
       <%= button_to tool_collaborator_path(tool, collaborator),
             method: :patch,
-            class: "collaborator-remove" do %>
+            class: "collaborator-action" do %>
         Make owner
       <% end %>
       <%= button_to tool_collaborator_path(tool, collaborator),

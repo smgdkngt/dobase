@@ -21,7 +21,7 @@
     "warning" => { css: "flash-warning", icon: "alert-circle" }
   }
   has_messages = flash.any? { |type, _| flash_config[type.to_s] }
-  wrapper_class = position == :toast ? "fixed bottom-6 right-6 z-[9999] max-w-sm" : "mb-4"
+  wrapper_class = position == :toast ? "flash-toast" : "mb-4"
 %>
 <% if position == :toast || has_messages %>
   <div id="flash" class="flex flex-col gap-2 <%= wrapper_class %>" data-controller="flash">
