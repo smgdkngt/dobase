@@ -78,5 +78,18 @@ module Tools
       assert_includes response.body, cards(:first_task).title
       refute_includes response.body, cards(:second_task).title
     end
+
+    test "show runs the same number of queries however many cards the board has" do
+      column = @tool.board.columns.first
+      add_cards = -> do
+        5.times do |index|
+          card = column.cards.create!(title: "More #{index}", position: 100 + index, assigned_user: users(:one), description: "<p>Notes</p>")
+          card.comments.create!(user: users(:one), body: "A comment")
+        end
+        column.cards.create!(title: "Archived", position: 200, archived_at: Time.current)
+      end
+
+      assert_queries_independent_of(add_cards) { get tool_board_path(@tool) }
+    end
   end
 end

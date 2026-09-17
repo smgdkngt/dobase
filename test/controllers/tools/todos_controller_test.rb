@@ -57,5 +57,19 @@ module Tools
       refute_includes response.body, todo_items(:pending_one).title
       assert_includes response.body, todo_items(:pending_two).title
     end
+
+    test "show runs the same number of queries however many items the lists have" do
+      list = @tool.todo_lists.first
+      add_items = -> do
+        5.times do |index|
+          item = list.items.create!(title: "More #{index}", position: 100 + index, assigned_user: users(:one), description: "<p>Notes</p>")
+          item.comments.create!(user: users(:one), body: "A comment")
+        end
+        list.items.create!(title: "Done today", position: 200, completed_at: 1.hour.ago)
+        list.items.create!(title: "Done last week", position: 201, completed_at: 1.week.ago)
+      end
+
+      assert_queries_independent_of(add_items) { get tool_todo_path(@tool) }
+    end
   end
 end

@@ -1,9 +1,11 @@
 <%
   reorder_mode ||= false
   assignee_filter ||= nil
-  pending_items = filter_by_assignee(list.items.pending.order(:position).to_a, assignee_filter)
-  recently_completed_items = filter_by_assignee(list.items.recently_completed.order(:position).to_a, assignee_filter)
-  completed_hidden_items = filter_by_assignee(list.items.completed_hidden.order(:position).to_a, assignee_filter)
+  # Split the loaded items in Ruby, so a preloaded list needs no queries of its own
+  items = list.items.to_a
+  pending_items = filter_by_assignee(items.reject(&:completed?), assignee_filter)
+  recently_completed_items = filter_by_assignee(items.select(&:recently_completed?), assignee_filter)
+  completed_hidden_items = filter_by_assignee(items.select { |item| item.completed? && !item.recently_completed? }, assignee_filter)
   completed_hidden_count = completed_hidden_items.size
   pending_count = pending_items.size
 %>

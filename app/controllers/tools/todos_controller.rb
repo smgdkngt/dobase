@@ -12,7 +12,7 @@ module Tools
     def show
       respond_to do |format|
         format.html do
-          @lists = @tool.todo_lists.includes(items: [ :assigned_user, :comments, :attachments ]).order(:position)
+          @lists = @tool.todo_lists.includes(items: [ :assigned_user, :comments, :attachments, :rich_text_description ]).order(:position)
           @collaborators = @tool.users
           @assignee_filter = params[:assignee]
         end

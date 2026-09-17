@@ -11,6 +11,7 @@ class ToolsController < ApplicationController
 
   def index
     @tools = current_user.accessible_tools.includes(:tool_type).order(updated_at: :desc)
+    @owned_tool_ids = Collaborator.where(user: current_user, role: "owner").pluck(:tool_id).to_set
   end
 
   def show
