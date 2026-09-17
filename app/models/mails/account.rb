@@ -12,7 +12,7 @@ module Mails
     has_many :labels, class_name: "Mails::Label", foreign_key: "mail_account_id", dependent: :destroy
     has_many :contacts, class_name: "Mails::Contact", foreign_key: "mail_account_id", dependent: :destroy
 
-    validates :email_address, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
+    validates :email_address, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP, allow_blank: true }
     validates :imap_host, presence: true
     validates :smtp_host, presence: true
     validates :username, presence: true

@@ -27,6 +27,13 @@ module NextMailNavigation
          .first
   end
 
+  # Archiving and trashing act on conversations, the way the folder's list shows them:
+  # the messages, and the other messages of their conversations in that folder
+  def with_their_conversations(messages, folder:)
+    thread_ids = messages.filter_map(&:thread_id)
+    (messages.to_a + mail_folder_scope(folder).where(thread_id: thread_ids).to_a).uniq
+  end
+
   def mail_folder_scope(folder)
     account = @tool.mail_account
     case folder

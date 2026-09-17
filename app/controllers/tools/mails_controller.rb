@@ -130,12 +130,14 @@ module Tools
       folder = params[:folder] || (@message.trashed? ? "trash" : "inbox")
       next_msg = find_next_message(@message, folder)
       if @message.trashed?
-        sync_delete_to_imap(@message)
-        @message.destroy
+        messages = with_their_conversations([ @message ], folder: "trash").select(&:trashed?)
+        sync_delete_to_imap(messages)
+        messages.each(&:destroy)
         redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Email permanently deleted.")
       else
-        @message.update(trashed: true)
-        sync_delete_to_imap(@message)
+        messages = with_their_conversations([ @message ], folder: folder).reject(&:trashed?)
+        messages.each { |message| message.update(trashed: true) }
+        sync_delete_to_imap(messages)
         redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Email moved to trash.")
       end
     end
@@ -322,10 +324,12 @@ module Tools
         "#{forwarded}"
     end
 
-    def sync_delete_to_imap(message)
-      return unless message.uid.present? && message.folder.present?
-      account = @tool.mail_account
-      ImapSyncService.new(account).delete_message(message.uid, folder: message.folder)
+    # One connection per folder
+    def sync_delete_to_imap(messages)
+      on_server = messages.select { |message| message.uid.present? && message.folder.present? }
+      on_server.group_by(&:folder).each do |folder, in_folder|
+        ImapSyncService.new(@tool.mail_account).delete_message(in_folder.map(&:uid), folder: folder)
+      end
     end
   end
 end

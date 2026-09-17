@@ -75,7 +75,7 @@ class ImapSyncService
 
   def mark_as_read(uid, folder: "INBOX")
     connect do |imap|
-      imap.select(folder)
+      select_folder(imap, folder)
       imap.uid_store(uid, "+FLAGS", [ :Seen ])
     end
   rescue StandardError => e
@@ -84,7 +84,7 @@ class ImapSyncService
 
   def mark_as_unread(uid, folder: "INBOX")
     connect do |imap|
-      imap.select(folder)
+      select_folder(imap, folder)
       imap.uid_store(uid, "-FLAGS", [ :Seen ])
     end
   rescue StandardError => e
@@ -93,7 +93,7 @@ class ImapSyncService
 
   def set_starred(uid, starred, folder: "INBOX")
     connect do |imap|
-      imap.select(folder)
+      select_folder(imap, folder)
       if starred
         imap.uid_store(uid, "+FLAGS", [ :Flagged ])
       else
@@ -117,8 +117,7 @@ class ImapSyncService
       # Delete old draft from server if it exists
       if message.uid.present? && drafts_folder
         imap.select(drafts_folder)
-        imap.uid_store(message.uid, "+FLAGS", [ :Deleted ])
-        imap.expunge
+        remove_from_folder(imap, message.uid)
       end
 
       # Upload new version
@@ -143,25 +142,42 @@ class ImapSyncService
     Rails.logger.error("Failed to delete draft from IMAP: #{e.message}")
   end
 
-  def delete_message(uid, folder:)
+  # Takes one UID or several in the same folder
+  def delete_message(uids, folder:)
     connect do |imap|
-      imap.select(folder)
-      imap.uid_store(uid, "+FLAGS", [ :Deleted ])
-      imap.expunge
+      select_folder(imap, folder)
+      remove_from_folder(imap, uids)
     end
   rescue StandardError => e
-    Rails.logger.error("Failed to delete email #{uid} from #{folder}: #{e.message}")
+    Rails.logger.error("Failed to delete email #{Array(uids).join(", ")} from #{folder}: #{e.message}")
   end
 
   def move_to_folder(uid, source_folder:, destination_folder:)
     connect do |imap|
-      imap.select(source_folder)
-      imap.uid_copy(uid, destination_folder)
-      imap.uid_store(uid, "+FLAGS", [ :Deleted ])
-      imap.expunge
+      source, destination = server_folder_names(imap, source_folder, destination_folder)
+      imap.select(source)
+      imap.uid_copy(uid, destination)
+      remove_from_folder(imap, uid)
     end
   rescue StandardError => e
     Rails.logger.error("Failed to move email #{uid} from #{source_folder} to #{destination_folder}: #{e.message}")
+  end
+
+  # A moved message gets a new UID in its new folder, so mail that was moved before, like
+  # archived mail, is found by its Message-ID. The search matches parts of a header,
+  # so it's done with the angle brackets: only this whole Message-ID matches.
+  def move_to_folder_by_message_id(message_id, source_folder:, destination_folder:)
+    connect do |imap|
+      source, destination = server_folder_names(imap, source_folder, destination_folder)
+      imap.select(source)
+      uids = imap.uid_search([ "HEADER", "Message-ID", "<#{message_id.delete("<>")}>" ])
+      next if uids.empty?
+
+      imap.uid_copy(uids, destination)
+      remove_from_folder(imap, uids)
+    end
+  rescue StandardError => e
+    Rails.logger.error("Failed to move email #{message_id} from #{source_folder} to #{destination_folder}: #{e.message}")
   end
 
   def fetch_email_body(uid, folder: "INBOX")
@@ -377,6 +393,29 @@ class ImapSyncService
   def find_sent_folder(imap)
     folders = imap.list("", "*").map(&:name)
     find_sent_folder_from_list(folders)
+  end
+
+  def select_folder(imap, folder)
+    imap.select(server_folder_names(imap, folder).first)
+  end
+
+  # A plain EXPUNGE removes every message flagged \Deleted in the folder, also ones another
+  # mail client flagged without removing them. UID EXPUNGE removes only these messages.
+  def remove_from_folder(imap, uids)
+    imap.uid_store(uids, "+FLAGS", [ :Deleted ])
+
+    if imap.capable?("UIDPLUS") || imap.capable?("IMAP4rev2")
+      imap.uid_expunge(uids)
+    else
+      imap.expunge
+    end
+  end
+
+  # Sent mail is kept in "Sent" here, whatever the server calls its sent folder
+  # ("[Gmail]/Sent Mail", "Sent Messages", ...). Lists the server's folders at most once.
+  def server_folder_names(imap, *folders)
+    sent_folder = find_sent_folder(imap) if folders.include?("Sent")
+    folders.map { |folder| folder == "Sent" ? sent_folder || folder : folder }
   end
 
   def find_sent_folder_from_list(folders)

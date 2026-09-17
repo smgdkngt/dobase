@@ -70,15 +70,16 @@
         href: tool_mail_read_path(@tool, @selected_message),
         method: @selected_message.read? ? :delete : :post,
         data: { controller: "hotkey", hotkey: "u" } %>
+    <%# Where # takes Shift, as on US keyboards, the browser reports Shift+# %>
     <% if @current_folder == "trash" %>
       <%= render "components/icon_button", icon: "trash-2", title: "Delete forever",
           href: tool_mail_path(@tool, @selected_message, folder: @current_folder), method: :delete,
           variant: :danger, turbo_confirm: "Permanently delete this email?",
-          data: { controller: "hotkey", hotkey: "#", turbo_confirm_button: "Delete forever", turbo_frame: "_top" } %>
+          data: { controller: "hotkey", hotkey: "#,Shift+#", turbo_confirm_button: "Delete forever", turbo_frame: "_top" } %>
     <% else %>
       <%= render "components/icon_button", icon: "trash-2", title: "Delete (#)",
           href: tool_mail_trash_path(@tool, @selected_message, folder: @current_folder), method: :post,
-          data: { controller: "hotkey", hotkey: "#", turbo_frame: "_top" } %>
+          data: { controller: "hotkey", hotkey: "#,Shift+#", turbo_frame: "_top" } %>
     <% end %>
   </div>
 </div>

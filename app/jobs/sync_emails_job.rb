@@ -18,7 +18,13 @@ class SyncEmailsJob < ApplicationJob
     mail_account.custom_folders.each do |folder|
       service.sync_folder(folder, limit: 50)
     end
+  # Every failure is shown on the account, or the mail page says "Syncing..." forever.
+  # Unexpected ones still fail the job, so they can be looked into.
   rescue ::ImapSyncService::ConnectionError, ::ImapSyncService::AuthenticationError => e
     Rails.logger.error("Mail sync failed for account #{mail_account_id}: #{e.message}")
+    mail_account.mark_sync_error!(e.message)
+  rescue StandardError => e
+    mail_account&.mark_sync_error!(e.message)
+    raise
   end
 end

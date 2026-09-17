@@ -20,6 +20,9 @@ class ImapSyncJob < ApplicationJob
     when "move_to_folder"
       destination = args.first
       service.move_to_folder(uid, source_folder: folder, destination_folder: destination)
+    when "move_to_folder_by_message_id"
+      destination, message_id = args
+      service.move_to_folder_by_message_id(message_id, source_folder: folder, destination_folder: destination)
     when "delete_message"
       service.delete_message(uid, folder: folder)
     end

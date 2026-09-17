@@ -1,7 +1,16 @@
-<%# Displays first error from a model. Usage: render "shared/error_flash", object: @user %>
-<% if object.errors.any? %>
-  <div class="flash flash-error mb-4">
+<%# Displays a model's errors. Usage: render "shared/error_flash", object: @user %>
+<% messages = object.errors.full_messages.uniq %>
+<% if messages.any? %>
+  <div class="flash flash-error mb-4 <%= "items-start" if messages.many? %>">
     <%= render "shared/icon", name: "alert-circle", size: 18 %>
-    <span><%= object.errors.full_messages.first %></span>
+    <% if messages.one? %>
+      <span><%= messages.first %></span>
+    <% else %>
+      <ul class="flex flex-col gap-1">
+        <% messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    <% end %>
   </div>
 <% end %>

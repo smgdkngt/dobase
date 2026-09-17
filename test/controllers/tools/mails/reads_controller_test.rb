@@ -23,6 +23,16 @@ module Tools
         delete tool_mail_read_path(@tool, msg)
         assert_not msg.reload.read
       end
+
+      test "marking read and unread tells the mail server once each" do
+        msg = mails_messages(:inbox_unread)
+
+        post tool_mail_read_path(@tool, msg)
+        delete tool_mail_read_path(@tool, msg)
+
+        assert_equal [ [ msg.mail_account_id, "mark_as_read", 101, "INBOX" ], [ msg.mail_account_id, "mark_as_unread", 101, "INBOX" ] ],
+          enqueued_jobs.select { |job| job["job_class"] == "ImapSyncJob" }.map { |job| job["arguments"] }
+      end
     end
   end
 end

@@ -9,10 +9,17 @@
   mail_account = @tool.mail_account if is_mail_tool
   is_calendar_tool = @tool.tool_type.slug == "calendar"
   calendar_account = @tool.calendar_account if is_calendar_tool
+  # Saving the mail account failed: show what went wrong
+  default_tab = mail_account&.errors&.any? ? "email" : "settings"
 %>
 
+<%# A failed save renders these settings as a page of their own, outside the modal %>
+<% unless turbo_frame_request? %>
+  <div class="p-6"><div class="max-w-3xl mx-auto card overflow-hidden">
+    <div class="card-header"><h2 class="text-lg font-semibold">Edit <%= @tool.name %></h2></div>
+<% end %>
 <%= turbo_frame_tag "edit-tool-form" do %>
-  <div data-controller="tabs" data-tabs-default-value="settings" class="edit-modal-layout flex -m-5 h-[500px]">
+  <div data-controller="tabs" data-tabs-default-value="<%= default_tab %>" class="edit-modal-layout flex <%= turbo_frame_request? ? '-m-5 h-[500px]' : '' %>">
     <%# Vertical tab navigation (horizontal on mobile) %>
     <div class="edit-modal-tabs flex flex-col gap-1 w-44 flex-shrink-0 p-4 border-r border-border-light bg-background-secondary/50">
       <button type="button" class="tab w-full justify-start" data-tabs-target="tab" data-tab="settings" data-action="click->tabs#select">
@@ -160,11 +167,11 @@
               <h3 class="text-sm font-semibold text-text-primary mb-3">Account Details</h3>
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label for="mail_account_email_address" class="label">Email Address</label>
+                  <%= f.label :email_address, "Email Address", class: "label" %>
                   <%= f.email_field :email_address, class: "input", required: true %>
                 </div>
                 <div>
-                  <label for="mail_account_display_name" class="label">Display Name</label>
+                  <%= f.label :display_name, "Display Name", class: "label" %>
                   <%= f.text_field :display_name, class: "input", placeholder: "John Doe" %>
                 </div>
               </div>
@@ -175,11 +182,11 @@
               <h3 class="text-sm font-semibold text-text-primary mb-3">Credentials</h3>
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label for="mail_account_username" class="label">Username</label>
+                  <%= f.label :username, "Username", class: "label" %>
                   <%= f.text_field :username, class: "input", required: true %>
                 </div>
                 <div>
-                  <label for="mail_account_password" class="label">Password</label>
+                  <%= f.label :password, "Password", class: "label" %>
                   <%= f.password_field :password, class: "input", placeholder: "Leave blank to keep current" %>
                 </div>
               </div>
@@ -190,11 +197,11 @@
               <h3 class="text-sm font-semibold text-text-primary mb-3">IMAP Settings</h3>
               <div class="grid grid-cols-4 gap-3">
                 <div class="col-span-3">
-                  <label for="mail_account_imap_host" class="label">IMAP Server</label>
+                  <%= f.label :imap_host, "IMAP Server", class: "label" %>
                   <%= f.text_field :imap_host, class: "input", required: true %>
                 </div>
                 <div>
-                  <label for="mail_account_imap_port" class="label">Port</label>
+                  <%= f.label :imap_port, "Port", class: "label" %>
                   <%= f.number_field :imap_port, class: "input" %>
                 </div>
               </div>
@@ -209,17 +216,17 @@
               <h3 class="text-sm font-semibold text-text-primary mb-3">SMTP Settings</h3>
               <div class="grid grid-cols-4 gap-3">
                 <div class="col-span-3">
-                  <label for="mail_account_smtp_host" class="label">SMTP Server</label>
+                  <%= f.label :smtp_host, "SMTP Server", class: "label" %>
                   <%= f.text_field :smtp_host, class: "input", required: true %>
                 </div>
                 <div>
-                  <label for="mail_account_smtp_port" class="label">Port</label>
+                  <%= f.label :smtp_port, "Port", class: "label" %>
                   <%= f.number_field :smtp_port, class: "input" %>
                 </div>
               </div>
               <div class="grid grid-cols-2 gap-3 mt-3">
                 <div>
-                  <label for="mail_account_smtp_auth" class="label">Authentication</label>
+                  <%= f.label :smtp_auth, "Authentication", class: "label" %>
                   <%= f.select :smtp_auth, [["Plain", "plain"], ["Login", "login"], ["CRAM-MD5", "cram_md5"]], {}, class: "input" %>
                 </div>
                 <div class="flex items-end pb-2">
@@ -453,4 +460,7 @@
       </div>
     </div>
   </div>
+<% end %>
+<% unless turbo_frame_request? %>
+  </div></div>
 <% end %>

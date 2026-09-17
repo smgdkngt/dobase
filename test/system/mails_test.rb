@@ -92,6 +92,44 @@ class MailsTest < ApplicationSystemTestCase
     click_with_retry("[title='Delete (#)']") { message.reload.trashed? }
   end
 
+  test "the # shortcut trashes the open message" do
+    message = mails_messages(:inbox_unread)
+    open_message(message)
+
+    connect_to_imap(FakeImapServer.new) do
+      # Typed with Shift, the way a US keyboard does it
+      find("body").send_keys("#")
+      assert_db_change(-> { message.reload.trashed? })
+    end
+  end
+
+  test "the # shortcut in the trash deletes the message for good, after asking" do
+    message = mails_messages(:trashed_message)
+    open_message(message, folder: "trash")
+
+    connect_to_imap(FakeImapServer.new) do
+      find("body").send_keys("#")
+      within("dialog#turbo-confirm-dialog[open]") do
+        assert_text "Permanently delete this email?"
+        click_on "Delete forever"
+      end
+      assert_db_change(-> { !Mails::Message.exists?(message.id) })
+    end
+  end
+
+  test "Trash in the command palette trashes the open message" do
+    message = mails_messages(:inbox_unread)
+    open_message(message)
+    wait_for_stimulus "keyboard-shortcuts"
+    wait_for_stimulus "command-palette"
+
+    connect_to_imap(FakeImapServer.new) do
+      find(".sidebar-jump-pill").click
+      within("dialog[data-controller='command-palette']") { find("button", text: "Trash").click }
+      assert_db_change(-> { message.reload.trashed? })
+    end
+  end
+
   test "accepting a calendar invite into a calendar from another calendar tool" do
     team_tool = Tool.create!(name: "Team Calendar", tool_type: tool_types(:calendar), owner: @user)
     launches = Calendars::Account.create!(tool: team_tool, provider: "local").calendars.create!(name: "Launches", remote_id: "local-launches")
@@ -252,6 +290,22 @@ class MailsTest < ApplicationSystemTestCase
     assert_db_change(-> { account.reload.syncing? })
   end
 
+  test "mail settings that can't be saved show what to fix" do
+    open_mail_settings
+    within "dialog#edit-tool-modal[open]" do
+      click_on "Email"
+      fill_in "IMAP Server", with: "   "
+      click_on "Save Changes"
+    end
+
+    assert_text "IMAP server can't be blank"
+    fill_in "IMAP Server", with: "imap.fixed.example.com"
+    click_on "Save Changes"
+
+    assert_text "Mail account updated successfully."
+    assert_equal "imap.fixed.example.com", @tool.mail_account.reload.imap_host
+  end
+
   private
 
   # The editor takes the prefilled body, and typing, once it has started. Headless Chrome
@@ -271,6 +325,21 @@ class MailsTest < ApplicationSystemTestCase
   def text_file(name, content)
     @files ||= Dir.mktmpdir
     File.join(@files, name).tap { |path| File.write(path, content) }
+  end
+
+  def open_message(message, folder: nil)
+    visit tool_mail_path(@tool, message, folder: folder)
+    assert_text message.body_plain, wait: 5
+    wait_for_turbo
+    wait_for_stimulus "hotkey", "[data-controller~='hotkey'][title^='Delete']"
+  end
+
+  def open_mail_settings
+    visit tool_mails_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "sidebar"
+    # The settings gear only shows on hover
+    find("[data-action~='click->sidebar#editTool'][data-tool-id='#{@tool.id}']", visible: :all).execute_script("this.click()")
   end
 
   # Click an element and retry if the expected condition isn't met.
