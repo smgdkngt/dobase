@@ -69,10 +69,10 @@ class CaldavSyncService
   def discover_calendars
     return if @account.local?
     principal_url = discover_principal_url
-    raise SyncError, "Could not discover principal URL" unless principal_url
+    raise SyncError, "No CalDAV server found at this address. Check the CalDAV URL." unless principal_url
 
     calendar_home_url = discover_calendar_home(principal_url)
-    raise SyncError, "Could not discover calendar home" unless calendar_home_url
+    raise SyncError, "The CalDAV server didn't say where its calendars are." unless calendar_home_url
 
     calendars = list_calendars(calendar_home_url)
     save_discovered_calendars(calendars)
@@ -252,7 +252,11 @@ class CaldavSyncService
     make_webdav_request("PROPPATCH", url, body)
   end
 
-  def make_webdav_request(method, url, body, extra_headers = {})
+  # Servers often redirect, from /.well-known/caldav in particular. Only redirects on the
+  # same host are followed, so the account's credentials never go to another server.
+  MAX_REDIRECTS = 3
+
+  def make_webdav_request(method, url, body, extra_headers = {}, redirects: MAX_REDIRECTS)
     uri = URI.parse(url)
     begin
       RemoteHost.verify!(uri.host)
@@ -284,6 +288,10 @@ class CaldavSyncService
 
     response = http.request(request)
 
+    if response.is_a?(Net::HTTPRedirection) && redirects.positive? && (location = same_host_location(uri, response["location"]))
+      return make_webdav_request(method, location, body, extra_headers, redirects: redirects - 1)
+    end
+
     # Wrap in a simple struct to match interface
     OpenStruct.new(
       status: response.code.to_i,
@@ -293,8 +301,32 @@ class CaldavSyncService
     )
   end
 
+  def same_host_location(uri, location)
+    return if location.blank?
+
+    target = uri.merge(location)
+    target.to_s if target.is_a?(URI::HTTP) && target.host == uri.host
+  rescue URI::Error
+    nil
+  end
+
+  # The CalDAV URL itself, or else the server's /.well-known/caldav (RFC 6764), so that
+  # a server's plain address works too, as it does for Nextcloud
   def discover_principal_url
-    response = propfind(@account.caldav_url, depth: 0, body: propfind_current_user_principal_xml)
+    principal_url_at(@account.caldav_url) || principal_url_at(well_known_url)
+  end
+
+  def well_known_url
+    uri = URI.parse(@account.caldav_url)
+    uri.merge("/.well-known/caldav").to_s unless uri.path.to_s.start_with?("/.well-known/")
+  rescue URI::Error
+    nil
+  end
+
+  def principal_url_at(url)
+    return unless url
+
+    response = propfind(url, depth: 0, body: propfind_current_user_principal_xml)
     return nil unless response.success?
 
     doc = parse_xml(response.body)
