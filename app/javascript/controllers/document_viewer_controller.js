@@ -50,12 +50,18 @@ export default class extends Controller {
     }
   }
 
+  // Built with DOM APIs rather than a template string: userName comes from
+  // another collaborator and must never be parsed as markup, even though CSP
+  // already stops it from executing as a script.
   showLocked(userName) {
     if (this.hasLockStatusTarget) {
-      this.lockStatusTarget.innerHTML = `
-        <span class="w-2 h-2 bg-warning rounded-full animate-pulse" aria-hidden="true"></span>
-        ${userName} is editing
-      `
+      this.lockStatusTarget.replaceChildren()
+
+      const dot = document.createElement("span")
+      dot.className = "w-2 h-2 bg-warning rounded-full animate-pulse"
+      dot.setAttribute("aria-hidden", "true")
+
+      this.lockStatusTarget.append(dot, document.createTextNode(` ${userName} is editing`))
       this.lockStatusTarget.classList.remove("hidden")
     }
 
