@@ -3,6 +3,8 @@
 require "test_helper"
 
 class CalendarsHelperTest < ActionView::TestCase
+  include FormattingHelper
+
   test "day_columns puts overlapping events side by side and the others full width" do
     day = Date.new(2030, 1, 8)
     review = event("Design review", "12:00", "13:30")
@@ -24,6 +26,25 @@ class CalendarsHelperTest < ActionView::TestCase
     early = event("Early", "03:00", "04:00")
 
     assert_equal [ [ night, 0, 1 ], [ early, 0, 1 ] ], day_columns([ night, early ], Date.new(2030, 1, 8))
+  end
+
+  test "format_event_time uses the app's time and date formats" do
+    travel_to Time.zone.local(2030, 1, 1) do
+      assert_equal "Jan 8, 12:00 PM – 1:30 PM", format_event_time(event("Review", "12:00", "13:30"))
+      assert_equal "Jan 7, 10:00 PM – Jan 8, 2:00 AM", format_event_time(event("Night", "2030-01-07 22:00", "02:00"))
+    end
+  end
+
+  test "format_event_time shows all-day events by their dates, whatever the zone" do
+    trip = Calendars::Event.new(all_day: true, starts_at: Time.utc(2030, 1, 8), ends_at: Time.utc(2030, 1, 11))
+    holiday = Calendars::Event.new(all_day: true, starts_at: Time.utc(2030, 1, 8), ends_at: Time.utc(2030, 1, 9))
+
+    travel_to Time.utc(2030, 1, 2) do
+      Time.use_zone("America/Los_Angeles") do
+        assert_equal "Jan 8 – Jan 10", format_event_time(trip)
+        assert_equal "Jan 8", format_event_time(holiday)
+      end
+    end
   end
 
   private
