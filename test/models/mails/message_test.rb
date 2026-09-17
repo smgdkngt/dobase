@@ -22,5 +22,15 @@ module Mails
       @message.update!(trashed: false)
       assert_nil @message.reload.trashed_at
     end
+
+    test "a reply references the message's ancestors and then the message" do
+      assert_equal "<msg-001@example.com>", @message.reply_references
+
+      @message.in_reply_to = "<parent@example.com>"
+      assert_equal "<parent@example.com> <msg-001@example.com>", @message.reply_references
+
+      @message.references = "<root@example.com> <parent@example.com>"
+      assert_equal "<root@example.com> <parent@example.com> <msg-001@example.com>", @message.reply_references
+    end
   end
 end

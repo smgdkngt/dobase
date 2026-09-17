@@ -88,6 +88,30 @@ module Tools
       assert_includes response.body, "Images are hidden"
     end
 
+    test "the list says how many messages it has" do
+      get tool_mails_path(@tool, folder: "trash")
+      assert_select "span", text: "1 message"
+
+      get tool_mails_path(@tool)
+      assert_select "span", text: "3 messages"
+    end
+
+    test "the compose form is titled after what it's for" do
+      message = mails_messages(:inbox_read)
+      {
+        new_tool_mail_path(@tool) => "New Message",
+        new_tool_mail_path(@tool, reply_to: message.id) => "Reply",
+        new_tool_mail_path(@tool, reply_to: message.id, reply_all: true) => "Reply All",
+        new_tool_mail_path(@tool, forward: message.id) => "Forward",
+        new_tool_mail_path(@tool, draft_id: mails_messages(:draft_message).id) => "Edit Draft"
+      }.each do |path, heading|
+        get path
+
+        assert_select "h1", heading
+        assert_select "title", "#{heading} - My Mail - #{Rails.application.config.x.app.name}"
+      end
+    end
+
     test "show redirects drafts to the compose form" do
       draft = mails_messages(:draft_message)
       get tool_mail_path(@tool, draft)
@@ -166,6 +190,61 @@ module Tools
       assert_includes response.body, "Invalid email address: not-an-address"
     end
 
+    test "create sends to recipients written with their name" do
+      deliveries = capture_smtp_deliveries do
+        post tool_mails_path(@tool), params: {
+          to: "Friendly Sender <sender@example.com>", cc: "Reports Bot <reports@example.com>, boss@example.com", subject: "Hello", body: "<p>Hi</p>"
+        }
+      end
+
+      assert_redirected_to tool_mails_path(@tool, folder: "sent")
+      assert_equal [ "sender@example.com", "reports@example.com", "boss@example.com" ], deliveries.sole[:recipients]
+      assert_match "To: Friendly Sender <sender@example.com>", deliveries.sole[:message]
+    end
+
+    test "create refuses a name without a valid address" do
+      [ "Friendly Sender <sender>", "Friendly Sender <sender@example.com" ].each do |recipient|
+        post tool_mails_path(@tool), params: { to: recipient, subject: "Hi", body: "<p>Hi</p>" }
+
+        assert_response :unprocessable_entity
+        assert_includes response.body, "Invalid email address: #{ERB::Util.html_escape(recipient)}"
+      end
+    end
+
+    test "a reply goes out in the conversation it answers" do
+      original = mails_messages(:inbox_read)
+      original.update!(references: "<msg-000@example.com>")
+
+      get new_tool_mail_path(@tool, reply_to: original.id)
+      assert_select "input[name=in_reply_to][value=?]", original.message_id
+
+      deliveries = capture_smtp_deliveries do
+        post tool_mails_path(@tool), params: {
+          to: "reports@example.com", subject: "Re: Your weekly report", body: "<p>Thanks</p>", in_reply_to: original.message_id
+        }
+      end
+
+      assert_redirected_to tool_mails_path(@tool, folder: "sent")
+      assert_match "In-Reply-To: <msg-002@example.com>", deliveries.sole[:message]
+      assert_match(/References: <msg-000@example.com>\s+<msg-002@example.com>/, deliveries.sole[:message])
+
+      reply = @account.messages.sent.find_by!(subject: "Re: Your weekly report")
+      assert_equal original.message_id, reply.in_reply_to
+      assert_includes original.conversation, reply
+    end
+
+    test "a reply that can't be sent is still a reply when the form comes back" do
+      original = mails_messages(:inbox_read)
+
+      post tool_mails_path(@tool), params: {
+        to: "not-an-address", subject: "Re: Your weekly report", body: "<p>Thanks</p>", in_reply_to: original.message_id
+      }
+
+      assert_response :unprocessable_entity
+      assert_select "input[name=in_reply_to][value=?]", original.message_id
+      assert_select "h1", "Reply"
+    end
+
     test "index with search query filters messages" do
       get tool_mails_path(@tool, q: "Welcome")
       assert_response :success
@@ -176,6 +255,27 @@ module Tools
       tool_no_mail = Tool.create!(name: "Empty Mail", tool_type: tool_types(:mail), owner: users(:one))
       get tool_mails_path(tool_no_mail)
       assert_redirected_to new_tool_mails_account_path(tool_no_mail)
+
+      get new_tool_mail_path(tool_no_mail)
+      assert_redirected_to new_tool_mails_account_path(tool_no_mail)
+    end
+
+    test "collaborators see that the owner hasn't connected a mail account yet" do
+      tool = Tool.create!(name: "Team Mail", tool_type: tool_types(:mail), owner: users(:one), sidebar_position: -1)
+      tool.collaborators.create!(user: users(:two), role: "collaborator")
+      sign_in_as users(:two)
+
+      get root_path
+      3.times { follow_redirect! if response.redirect? }
+
+      assert_response :success
+      assert_equal tool_mails_path(tool), path
+      assert_select "h1", "Team Mail"
+      assert_select "div", text: "The owner of Team Mail hasn't connected a mail account yet. Once they have, the mail shows up here."
+
+      get new_tool_mail_path(tool)
+      assert_response :success
+      assert_select "div", text: /hasn't connected a mail account yet/
     end
 
     test "destroy from inbox trashes message" do

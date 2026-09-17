@@ -127,6 +127,11 @@ module Mails
       subject.to_s.gsub(/^(Re|Fwd|Fw):\s*/i, "").strip
     end
 
+    # The References of a reply to this message: the messages before it, then this one (RFC 5322, 3.6.4)
+    def reply_references
+      [ references.presence || in_reply_to, message_id ].compact_blank.join(" ")
+    end
+
     private
 
     def sync_read_flag_to_imap(is_read)

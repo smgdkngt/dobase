@@ -10,27 +10,13 @@ module Tools
 
     before_action :set_tool
     before_action -> { authorize_tool_access!(@tool) }
-    before_action :require_mail_account, except: [ :index ]
+    before_action :require_mail_account
     before_action :set_message, only: [ :show, :destroy ]
     before_action :build_compose_defaults, only: [ :new ]
 
     PER_PAGE = 30
 
     def index
-      if @tool.mail_account.nil?
-        respond_to do |format|
-          format.html do
-            if @tool.owned_by?(current_user)
-              redirect_to new_tool_mails_account_path(@tool)
-            else
-              redirect_to tool_path(@tool), alert: "Mail account not configured."
-            end
-          end
-          format.json { render_mail_account_not_configured }
-        end
-        return
-      end
-
       @mail_account = @tool.mail_account
       @current_folder = params[:folder] || "inbox"
       load_index_data
@@ -86,8 +72,7 @@ module Tools
       cc = params[:cc].presence&.split(/,\s*/)&.reject(&:blank?)
       bcc = params[:bcc].presence&.split(/,\s*/)&.reject(&:blank?)
 
-      all_addresses = [ *to, *cc, *bcc ]
-      invalid = all_addresses.reject { |a| a.match?(URI::MailTo::EMAIL_REGEXP) }
+      invalid = [ *to, *cc, *bcc ].reject { |recipient| valid_recipient?(recipient) }
 
       if invalid.any?
         render_send_error "Invalid email address: #{invalid.first}"
@@ -114,7 +99,8 @@ module Tools
         subject: params[:subject],
         body: body_plain,
         body_html: body_html,
-        attachments: all_attachments.presence
+        attachments: all_attachments.presence,
+        in_reply_to: params[:in_reply_to].presence
       )
 
       if params[:draft_id].present?
@@ -160,12 +146,19 @@ module Tools
       @tool = Tool.find(params[:tool_id])
     end
 
+    # Owners connect the account; everyone else waits for them
     def require_mail_account
-      unless @tool.mail_account
-        respond_to do |format|
-          format.html { redirect_to new_tool_mails_account_path(@tool), alert: "Please configure your mail account first." }
-          format.json { render_mail_account_not_configured }
+      return if @tool.mail_account
+
+      respond_to do |format|
+        format.html do
+          if @tool.owned_by?(current_user)
+            redirect_to new_tool_mails_account_path(@tool)
+          else
+            render "tools/account_not_connected"
+          end
         end
+        format.json { render_mail_account_not_configured }
       end
     end
 
@@ -173,11 +166,19 @@ module Tools
       render json: { error: "Mail account not configured" }, status: :not_found
     end
 
+    # An address, or a name with an address: "Ann Lee <ann@example.com>"
+    def valid_recipient?(recipient)
+      Mail::Address.new(recipient).address.to_s.match?(URI::MailTo::EMAIL_REGEXP)
+    rescue Mail::Field::ParseError
+      false
+    end
+
     def render_send_error(message)
       respond_to do |format|
         format.html do
           flash.now[:alert] = message
           build_compose_defaults
+          @unsent = true
           render :new, status: :unprocessable_entity
         end
         format.json { render json: { errors: [ message ] }, status: :unprocessable_entity }
@@ -275,10 +276,13 @@ module Tools
       @bcc = params[:bcc] || ""
       @subject = params[:subject] || ""
       @body = params[:body] || ""
+      @in_reply_to = params[:in_reply_to]
+      @heading = @in_reply_to.present? ? "Reply" : "New Message"
 
       if params[:reply_to].present?
         original = @tool.mail_account.messages.find_by(id: params[:reply_to])
         if original
+          @heading = params[:reply_all] ? "Reply All" : "Reply"
           @in_reply_to = original.message_id
           @to = original.from_address
           @subject = "Re: #{original.normalized_subject}" unless @subject.present?
@@ -294,6 +298,7 @@ module Tools
       elsif params[:forward].present?
         original = @tool.mail_account.messages.find_by(id: params[:forward])
         if original
+          @heading = "Forward"
           @subject = "Fwd: #{original.normalized_subject}" unless @subject.present?
           @body = build_forward_body(original) unless @body.present?
           @forward_attachments = original.attachments.select { |a| a.file.attached? }

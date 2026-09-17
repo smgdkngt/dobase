@@ -331,6 +331,16 @@ module Tools
       assert_equal [ [ "friend@example.com" ], [ "team@example.com" ], [ "archive@example.com" ] ], email.values_at(:to, :cc, :bcc)
       assert_equal [ "Hello", "Hi there", "<p>Hi <b>there</b></p>" ], email.values_at(:subject, :body, :body_html)
       assert_nil email[:attachments]
+      assert_nil email[:in_reply_to]
+    end
+
+    test "send replies to the message whose message_id is in_reply_to" do
+      post tool_mails_path(@tool), headers: @headers, as: :json, params: {
+        to: "reports@example.com", subject: "Re: Your weekly report", body: "<p>Thanks</p>", in_reply_to: mails_messages(:inbox_read).message_id
+      }
+
+      assert_response :created
+      assert_equal mails_messages(:inbox_read).message_id, @smtp.sent.sole[:in_reply_to]
     end
 
     test "sending a draft deletes the draft" do

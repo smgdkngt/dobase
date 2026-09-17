@@ -27,6 +27,20 @@ module Tools
       assert_redirected_to new_tool_calendar_account_path(tool)
     end
 
+    test "week view tells collaborators the owner hasn't connected a calendar account yet" do
+      tool = Tool.create!(name: "Team Calendar", tool_type: tool_types(:calendar), owner: users(:one))
+      tool.collaborators.create!(user: users(:two), role: "collaborator")
+      sign_in_as users(:two)
+
+      get tool_path(tool)
+      assert_redirected_to tool_calendar_path(tool)
+      follow_redirect!
+
+      assert_response :success
+      assert_select "h1", "Team Calendar"
+      assert_select "div", text: "The owner of Team Calendar hasn't connected a calendar account yet. Once they have, the calendar shows up here."
+    end
+
     test "creating an event redirects to the calendar" do
       post tool_calendar_events_path(@tool), params: {
         calendars_event: { calendar_id: @work.id, summary: "Dentist", start_time: "2030-01-08T14:00", end_time: "2030-01-08T15:00", recurrence_frequency: "none" }

@@ -3,28 +3,11 @@
 require "test_helper"
 
 class SmtpSendServiceTest < ActiveSupport::TestCase
-  # Records what would have gone over SMTP, so no test talks to a mail server.
-  class FakeSmtp
-    attr_reader :deliveries
-
-    def initialize
-      @deliveries = []
-    end
-
-    def start(*)
-      yield self
-    end
-
-    def send_message(message, from, recipients)
-      @deliveries << { message: message, from: from, recipients: recipients }
-    end
-  end
-
   setup do
     @account = mails_accounts(:primary)
     @service = SmtpSendService.new(@account)
 
-    smtp = @smtp = FakeSmtp.new
+    smtp = @smtp = SmtpTestHelper::FakeSmtp.new
     @service.define_singleton_method(:build_smtp) { smtp }
   end
 
@@ -37,6 +20,7 @@ class SmtpSendServiceTest < ActiveSupport::TestCase
     delivery = @smtp.deliveries.sole
     assert_equal "testuser@example.com", delivery[:from]
     assert_equal [ "friend@example.com", "colleague@example.com" ], delivery[:recipients]
+    assert_no_match(/^(In-Reply-To|References):/, delivery[:message])
 
     sent = @account.messages.find_by!(subject: "Hello")
     assert_equal "Sent", sent.folder
@@ -44,6 +28,48 @@ class SmtpSendServiceTest < ActiveSupport::TestCase
     assert_equal [ "colleague@example.com" ], sent.cc_addresses_list
     assert_equal "<p>Hi there</p>", sent.body_html
     assert_equal [ "colleague@example.com", "friend@example.com" ], @account.contacts.pluck(:email_address).sort
+  end
+
+  test "recipients keep their names in the headers, and only their addresses go to the mail server" do
+    @service.send_email(to: [ "Friendly Sender <sender@example.com>" ], cc: [ "Reports Bot <reports@example.com>" ],
+      bcc: [ "Archive <archive@example.com>" ], subject: "Hello", body: "Hi")
+
+    delivery = @smtp.deliveries.sole
+    assert_equal [ "sender@example.com", "reports@example.com", "archive@example.com" ], delivery[:recipients]
+    assert_match "To: Friendly Sender <sender@example.com>", delivery[:message]
+    assert_match "Cc: Reports Bot <reports@example.com>", delivery[:message]
+    assert_no_match "archive@example.com", delivery[:message]
+
+    sent = @account.messages.find_by!(subject: "Hello")
+    assert_equal [ "sender@example.com" ], sent.to_addresses_list
+    assert_equal [ "reports@example.com" ], sent.cc_addresses_list
+    assert_equal "Friendly Sender", @account.contacts.find_by!(email_address: "sender@example.com").name
+  end
+
+  test "a reply names the message it answers and that message's ancestors, and joins its conversation" do
+    parent = mails_messages(:inbox_read)
+    parent.update!(in_reply_to: "<msg-000@example.com>")
+
+    @service.send_email(to: [ "reports@example.com" ], subject: "Re: Your weekly report", body: "Thanks", in_reply_to: parent.message_id)
+
+    message = @smtp.deliveries.sole[:message]
+    assert_match "In-Reply-To: <msg-002@example.com>", message
+    assert_match(/References: <msg-000@example.com>\s+<msg-002@example.com>/, message)
+
+    reply = @account.messages.sent.find_by!(subject: "Re: Your weekly report")
+    assert_equal [ parent.message_id, "<msg-000@example.com> <msg-002@example.com>" ], [ reply.in_reply_to, reply.references ]
+    assert_equal parent.thread_id, reply.thread_id
+  end
+
+  test "a reply to a message that isn't here still names it" do
+    @service.send_email(to: [ "friend@example.com" ], subject: "Re: Plans", body: "Yes", in_reply_to: "plans@example.com")
+
+    message = @smtp.deliveries.sole[:message]
+    assert_match "In-Reply-To: <plans@example.com>", message
+    assert_match "References: <plans@example.com>", message
+
+    reply = @account.messages.sent.find_by!(subject: "Re: Plans")
+    assert_equal [ "plans@example.com" ] * 3, [ reply.in_reply_to, reply.references, reply.thread_id ]
   end
 
   test "a failure after delivery is reported, not raised as a failed send" do
@@ -78,6 +104,27 @@ class SmtpSendServiceTest < ActiveSupport::TestCase
     assert_equal "notes.txt", attachment.filename
     assert_equal 5, attachment.file_size
     assert_equal "hello", attachment.file.download
+  end
+
+  test "attachments go next to the text and HTML of the email, not among them" do
+    file = Rack::Test::UploadedFile.new(StringIO.new("hello"), "text/plain", original_filename: "notes.txt")
+
+    @service.send_email(to: [ "friend@example.com" ], subject: "Notes", body: "Attached", body_html: "<p>Attached</p>", attachments: [ file ])
+
+    mail = Mail.new(@smtp.deliveries.sole[:message])
+    assert_equal "multipart/mixed", mail.mime_type
+    assert_equal [ "multipart/alternative", "text/plain" ], mail.parts.map(&:mime_type)
+    assert_equal [ "text/plain", "text/html" ], mail.parts.first.parts.map(&:mime_type)
+    assert_equal [ "notes.txt" ], mail.attachments.map(&:filename)
+    assert_equal [ "Attached", "<p>Attached</p>" ], [ mail.text_part.decoded, mail.html_part.decoded ]
+  end
+
+  test "an email without attachments has its text and HTML as alternatives" do
+    @service.send_email(to: [ "friend@example.com" ], subject: "Hello", body: "Hi", body_html: "<p>Hi</p>")
+
+    mail = Mail.new(@smtp.deliveries.sole[:message])
+    assert_equal "multipart/alternative", mail.mime_type
+    assert_equal [ "text/plain", "text/html" ], mail.parts.map(&:mime_type)
   end
   test "a mail server on a private network isn't contacted" do
     @account.update!(smtp_host: "mail.internal")

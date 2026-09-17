@@ -9,6 +9,10 @@ class MailsTest < ApplicationSystemTestCase
     sign_in_as(@user)
   end
 
+  teardown do
+    FileUtils.rm_rf(@files) if @files
+  end
+
   test "viewing inbox shows messages" do
     visit tool_mails_path(@tool)
 
@@ -108,6 +112,95 @@ class MailsTest < ApplicationSystemTestCase
     assert_text "Tasting session"
   end
 
+  test "sending to a contact picked from the suggestions" do
+    visit new_tool_mail_path(@tool)
+    wait_for_stimulus "email-autocomplete"
+
+    deliveries = capture_smtp_deliveries do
+      find("input[data-compose-target='to']").set("Friendly")
+      find("button[data-email='sender@example.com']").click
+      assert_selector "[data-controller='email-autocomplete']", text: "Friendly Sender"
+      assert_equal "sender@example.com", find("input[name='to']", visible: :hidden).value
+
+      find("input[name='subject']").set("Hello")
+      click_on "Send"
+      assert_text "Email sent successfully."
+    end
+
+    assert_equal [ "sender@example.com" ], deliveries.sole[:recipients]
+  end
+
+  test "attachments go out with the email, however many times files are picked" do
+    visit new_tool_mail_path(@tool)
+    wait_for_stimulus "compose"
+
+    deliveries = capture_smtp_deliveries do
+      add_recipient "friend@example.com"
+      find("input[name='subject']").set("Numbers")
+      attach_file "attachments[]", text_file("report.txt", "numbers"), make_visible: true
+      attach_file "attachments[]", text_file("notes.txt", "more numbers"), make_visible: true
+      assert_text "report.txt"
+      assert_text "notes.txt"
+
+      click_on "Send"
+      assert_text "Email sent successfully."
+    end
+
+    assert_match "report.txt", deliveries.sole[:message]
+    assert_match "notes.txt", deliveries.sole[:message]
+    sent = @tool.mail_account.messages.sent.find_by!(subject: "Numbers")
+    assert_equal [ "notes.txt", "report.txt" ], sent.attachments.pluck(:filename).sort
+  end
+
+  test "saving a draft, and saving it again" do
+    visit new_tool_mail_path(@tool)
+    wait_for_stimulus "compose"
+
+    add_recipient "friend@example.com"
+    find("input[name='subject']").set("Plans")
+    click_on "Save Draft"
+    assert_text "Draft saved."
+    draft = @tool.mail_account.messages.drafts.find_by!(subject: "Plans")
+    assert_equal [ "friend@example.com" ], draft.to_addresses_list
+
+    wait_for_stimulus "compose"
+    find("input[name='subject']").set("Plans for Friday")
+    click_on "Save Draft"
+    assert_db_change(-> { draft.reload.subject == "Plans for Friday" })
+  end
+
+  test "leaving a reply or forward only asks to discard it once it has been changed" do
+    message = mails_messages(:inbox_read)
+    visit new_tool_mail_path(@tool, reply_to: message.id)
+    wait_for_compose_editor
+    wait_for_turbo
+
+    click_on "Project Board"
+    assert_current_path tool_board_path(tools(:project_board))
+
+    visit new_tool_mail_path(@tool, forward: message.id)
+    wait_for_compose_editor
+    find("rhino-editor [contenteditable]").send_keys("FYI")
+    assert_selector "rhino-editor [contenteditable]", text: "FYI"
+    wait_for_turbo
+
+    dismiss_confirm("You have an unsent message. Discard it?") { click_on "Project Board" }
+    assert_current_path new_tool_mail_path(@tool, forward: message.id)
+  end
+
+  test "leaving a message that failed to send asks to discard it" do
+    visit new_tool_mail_path(@tool)
+    wait_for_compose_editor
+    add_recipient "not-an-address"
+    click_on "Send"
+    assert_text "Invalid email address: not-an-address"
+    wait_for_compose_editor
+    wait_for_turbo
+
+    dismiss_confirm("You have an unsent message. Discard it?") { click_on "Project Board" }
+    assert_selector "input[name='to'][value='not-an-address']", visible: :hidden
+  end
+
   test "bulk select and archive" do
     visit tool_mails_path(@tool)
 
@@ -160,6 +253,25 @@ class MailsTest < ApplicationSystemTestCase
   end
 
   private
+
+  # The editor takes the prefilled body, and typing, once it has started. Headless Chrome
+  # can drop input that arrives before the page has shown a frame, so wait for two.
+  def wait_for_compose_editor
+    wait_for_stimulus "compose"
+    page.document.synchronize do
+      raise Capybara::ExpectationNotMet, "The editor hasn't started" unless evaluate_script("document.querySelector('rhino-editor').hasInitialized")
+    end
+    page.evaluate_async_script("requestAnimationFrame(() => requestAnimationFrame(arguments[0]))")
+  end
+
+  def add_recipient(address)
+    find("input[data-compose-target='to']").set(address).send_keys(:enter)
+  end
+
+  def text_file(name, content)
+    @files ||= Dir.mktmpdir
+    File.join(@files, name).tap { |path| File.write(path, content) }
+  end
 
   # Click an element and retry if the expected condition isn't met.
   # Turbo method links sometimes fail to fire in headless Chrome.

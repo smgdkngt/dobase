@@ -226,7 +226,7 @@
               <%= render "components/icon_button", icon: "mail", title: "Mark as unread (u)", type: :submit, name: "action_type", value: "mark_unread", size: :sm %>
             <% end %>
           </div>
-          <span class="text-xs text-text-tertiary ml-auto"><%= @total_count %> messages</span>
+          <span class="text-xs text-text-tertiary ml-auto"><%= pluralize(@total_count, "message") %></span>
         </div>
       <% end %>
 

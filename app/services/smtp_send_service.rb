@@ -70,17 +70,30 @@ class SmtpSendService
     raise ConnectionError, "Connection failed: #{e.message}"
   end
 
-  def send_email(to:, subject:, body:, body_html: nil, cc: nil, bcc: nil, attachments: nil)
-    mail = deliver(to: to, subject: subject, body: body, body_html: body_html, cc: cc, bcc: bcc, attachments: attachments)
-    file_sent_email(mail, to: to, subject: subject, body: body, body_html: body_html, cc: cc, bcc: bcc, attachments: attachments)
+  # A reply passes the message_id of the message it answers as in_reply_to.
+  def send_email(to:, subject:, body:, body_html: nil, cc: nil, bcc: nil, attachments: nil, in_reply_to: nil)
+    in_reply_to = in_reply_to.presence
+    email = { to: to, subject: subject, body: body, body_html: body_html, cc: cc, bcc: bcc, attachments: attachments,
+              in_reply_to: in_reply_to, references: references_for(in_reply_to) }
+
+    mail = deliver(**email)
+    file_sent_email(mail, **email)
 
     true
   end
 
   private
 
-  def deliver(to:, subject:, body:, body_html:, cc:, bcc:, attachments:)
-    mail = build_mail(to: to, subject: subject, body: body, body_html: body_html, cc: cc, bcc: bcc, attachments: attachments)
+  # The conversation up to the answered message, as far as it's known here, so mail
+  # programs and the copy in Sent file the reply with it
+  def references_for(in_reply_to)
+    return unless in_reply_to
+
+    @account.messages.find_by(message_id: in_reply_to)&.reply_references || in_reply_to
+  end
+
+  def deliver(**email)
+    mail = build_mail(**email)
 
     smtp = build_smtp
     smtp.start(
@@ -89,8 +102,8 @@ class SmtpSendService
       @account.password,
       @account.smtp_auth.to_sym
     ) do |server|
-      recipients = Array(to) + Array(cc).compact + Array(bcc).compact
-      server.send_message(mail.to_s, @account.email_address, recipients)
+      # The addresses of To, Cc and Bcc, without the names the headers may give them
+      server.send_message(mail.to_s, @account.email_address, mail.smtp_envelope_to)
     end
 
     mail
@@ -122,7 +135,7 @@ class SmtpSendService
     smtp
   end
 
-  def build_mail(to:, subject:, body:, body_html:, cc:, bcc:, attachments:)
+  def build_mail(to:, subject:, body:, body_html:, cc:, bcc:, attachments:, in_reply_to:, references:)
     mail = Mail.new
 
     mail.from = @account.display_name.present? ? "#{@account.display_name} <#{@account.email_address}>" : @account.email_address
@@ -133,27 +146,30 @@ class SmtpSendService
     mail.date = Time.current
     mail.message_id = "<#{SecureRandom.uuid}@#{@account.smtp_host}>"
 
-    if body_html.present? || (attachments.present? && Array(attachments).any?)
-      mail.text_part = Mail::Part.new do
-        body body
-        content_type "text/plain; charset=UTF-8"
-      end
+    if in_reply_to
+      mail.in_reply_to = in_reply_to
+      mail.references = references
+    end
 
-      if body_html.present?
-        mail.html_part = Mail::Part.new do
-          body body_html
-          content_type "text/html; charset=UTF-8"
-        end
-      end
-
-      Array(attachments).each do |attachment|
-        add_attachment(mail, attachment)
-      end
+    if body_html.present? && attachments.present?
+      # The text and HTML are the message in two forms; attachments go next to them, not among them
+      mail.part(content_type: "multipart/alternative") { |message| add_text_and_html(message, body, body_html) }
+    elsif body_html.present? || attachments.present?
+      add_text_and_html(mail, body, body_html)
     else
       mail.body = body
     end
 
+    Array(attachments).each do |attachment|
+      add_attachment(mail, attachment)
+    end
+
     mail
+  end
+
+  def add_text_and_html(message, text, html)
+    message.text_part = Mail::Part.new(body: text, content_type: "text/plain; charset=UTF-8")
+    message.html_part = Mail::Part.new(body: html, content_type: "text/html; charset=UTF-8") if html.present?
   end
 
   def add_attachment(mail, attachment)
@@ -232,31 +248,26 @@ class SmtpSendService
     end
   end
 
+  # "Ann Lee <ann@example.com>" is ["ann@example.com", "Ann Lee"], "ann@example.com" is ["ann@example.com", nil]
   def parse_email_address(address)
-    return [ nil, nil ] if address.blank?
-
-    address = address.to_s.strip
-
-    # Handle "Name <email@example.com>" format
-    if address =~ /\A(.+?)\s*<(.+?)>\z/
-      name = Regexp.last_match(1).strip.gsub(/\A["']|["']\z/, "")
-      email = Regexp.last_match(2).strip
-      [ email, name ]
-    else
-      # Just an email address
-      [ address, nil ]
-    end
+    parsed = Mail::Address.new(address.to_s.strip)
+    [ parsed.address, parsed.display_name ]
+  rescue Mail::Field::ParseError
+    [ nil, nil ]
   end
 
-  def save_sent_email(mail, to:, subject:, body:, body_html:, cc:, bcc:, attachments:)
+  def save_sent_email(mail, subject:, body:, body_html:, attachments:, in_reply_to:, references:, **)
     email = @account.messages.create!(
       message_id: mail.message_id,
+      in_reply_to: in_reply_to,
+      references: references,
       folder: "Sent",
       subject: subject,
       from_address: @account.email_address,
       from_name: @account.display_name,
-      to_addresses: Array(to).to_json,
-      cc_addresses: Array(cc).compact.to_json,
+      # Addresses without names, like the mail that syncs in
+      to_addresses: Array(mail.to).to_json,
+      cc_addresses: Array(mail.cc).to_json,
       body_plain: body,
       body_html: body_html,
       read: true,

@@ -136,8 +136,9 @@ export default class extends Controller {
     this._syncHidden()
   }
 
+  // The tag shows a picked contact's name; the form only sends the address
   _syncHidden() {
-    this.hiddenTarget.value = this._addresses.join(", ")
+    this.hiddenTarget.value = this._addresses.map(address => this._emailAddress(address)).join(", ")
   }
 
   _renderTag(address, index) {
@@ -158,6 +159,10 @@ export default class extends Controller {
   _displayAddress(address) {
     const match = address.match(/^(.+?)\s*<(.+?)>$/)
     return match ? match[1] : address
+  }
+
+  _emailAddress(address) {
+    return address.match(/<([^<>]+)>$/)?.[1] ?? address
   }
 
   async _search(query) {
@@ -183,10 +188,7 @@ export default class extends Controller {
     }
 
     // Filter out already-added addresses
-    const existing = new Set(this._addresses.map(a => {
-      const match = a.match(/<(.+?)>/)
-      return (match ? match[1] : a).toLowerCase()
-    }))
+    const existing = new Set(this._addresses.map(address => this._emailAddress(address).toLowerCase()))
 
     const filtered = contacts.filter(c => !existing.has(c.email_address.toLowerCase()))
     if (filtered.length === 0) {

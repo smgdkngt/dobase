@@ -146,12 +146,13 @@ module Dobase
         to, cc = reply_recipients(original, conversation.dig("account", "email_address"), all: all)
         raise Error, "#{mail_tool["id"]}/#{id} has no address to reply to." if to.empty?
 
-        reply = { to: to.join(", "), cc: cc.join(", "), subject: "Re: #{original["subject"].to_s.sub(/\A(Re|Fwd|Fw):\s*/i, "").strip}", body: rich_text(body, html: html) }
+        reply = { to: to.join(", "), cc: cc.join(", "), subject: "Re: #{original["subject"].to_s.sub(/\A(Re|Fwd|Fw):\s*/i, "").strip}",
+                  body: rich_text(body, html: html), in_reply_to: original["message_id"] }
         if send
           sent = post("/tools/#{mail_tool["id"]}/mails", reply)
           output(sent) { say "Sent #{quoted(sent["subject"])} to #{recipients(sent)}." }
         else
-          draft = post("/tools/#{mail_tool["id"]}/mails/drafts", reply.merge(in_reply_to: original["message_id"]))
+          draft = post("/tools/#{mail_tool["id"]}/mails/drafts", reply)
           output(draft) { say "Saved reply draft #{describe(mail_tool, draft)} to #{recipients(draft)}. Send it with: dobase mail send #{mail_tool["id"]} --draft #{draft["id"]}" }
         end
       end
@@ -174,7 +175,8 @@ module Dobase
           raise Error, "Draft #{mail_tool["id"]}/#{draft_id} has no recipients." if saved["to"].empty?
 
           body = saved["body_html"] || CGI.escapeHTML(saved["body"].to_s)
-          request = { to: saved["to"].join(", "), cc: saved["cc"].join(", "), subject: saved["subject"], body: body, draft_id: saved["id"] }
+          request = { to: saved["to"].join(", "), cc: saved["cc"].join(", "), subject: saved["subject"], body: body,
+                      in_reply_to: saved["in_reply_to"], draft_id: saved["id"] }
         else
           require_flags(to: email[:to], subject: email[:subject], body: email[:body])
           request = { to: email[:to], cc: email[:cc], bcc: email[:bcc], subject: text(email[:subject]), body: rich_text(email[:body], html: email[:html]) }

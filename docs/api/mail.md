@@ -176,11 +176,15 @@ only those and returns the draft. Drafts are deleted in the browser.
 `POST /tools/:tool_id/mails` sends real email through the account's SMTP server:
 
 ```json
-{ "to": "rachel@northstarvc.com", "cc": "", "bcc": "", "subject": "Re: Seed Round Follow-up", "body": "<p>Thursday at 2pm works. See you then!</p>" }
+{ "to": "rachel@northstarvc.com", "cc": "", "bcc": "", "subject": "Re: Seed Round Follow-up", "body": "<p>Thursday at 2pm works. See you then!</p>", "in_reply_to": "<004@moonshot-snacks.com>" }
 ```
 
-`to`, `cc` and `bcc` are comma-separated addresses, and `body` is HTML. It
-returns `201` with the recipients and subject, and a copy goes into Sent:
+`to`, `cc` and `bcc` are comma-separated addresses, and `body` is HTML. An
+address can have a name in front of it, as in `Rachel Kim <rachel@northstarvc.com>`.
+A reply sends `in_reply_to`, the `message_id` of the message it answers: the
+email gets `In-Reply-To` and `References` headers, so mail programs keep it in
+that conversation, and its copy in Sent joins the conversation in Dobase.
+It returns `201` with the recipients and subject, and a copy goes into Sent:
 
 ```json
 { "to": ["rachel@northstarvc.com"], "cc": [], "bcc": [], "subject": "Re: Seed Round Follow-up" }
@@ -188,7 +192,8 @@ returns `201` with the recipients and subject, and a copy goes into Sent:
 
 To send a saved draft, send its fields with `"draft_id": 12`; the draft is
 deleted once the email is sent. As in the browser, the email is made from the
-fields in the request, not from what the draft holds.
+fields in the request, not from what the draft holds, so send a reply draft's
+`in_reply_to` too.
 
 An invalid address returns `422` without sending anything. A mail server that
 refuses the email or can't be reached returns `422` too:
@@ -196,11 +201,6 @@ refuses the email or can't be reached returns `422` too:
 ```json
 { "errors": ["Invalid email address: not an address"] }
 ```
-
-Sent email has no `In-Reply-To` or `References` headers (replies from the
-browser don't either), so mail programs can only match a reply to its
-conversation by subject, and Dobase shows the sent copy as a conversation of
-its own.
 
 ## Sync
 

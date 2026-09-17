@@ -40,7 +40,7 @@ module Tools
       elsif @tool.owned_by?(current_user)
         redirect_to new_tool_calendar_account_path(@tool)
       else
-        redirect_to tool_path(@tool), alert: "Calendar account not configured."
+        render "tools/account_not_connected"
       end
     end
 

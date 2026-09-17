@@ -1,0 +1,16 @@
+<% content_for :title, "#{@tool.name} - #{app_name}" %>
+<% kind = @tool.tool_type.name.downcase %>
+
+<div class="tool-layout flex flex-col h-full">
+  <%= render "components/tool_topbar", title: @tool.name, tool: @tool %>
+
+  <div class="tool-scroll-area flex-1 flex items-center justify-center p-6">
+    <div class="max-w-md">
+      <%= render "components/empty_state",
+          icon: @tool.tool_type.icon,
+          title: "Not connected yet",
+          description: "The owner of #{@tool.name} hasn't connected a #{kind} account yet. Once they have, the #{kind} shows up here.",
+          size: :md %>
+    </div>
+  </div>
+</div>
