@@ -65,14 +65,24 @@
     <% if @file.share %>
       <h3 class="text-sm font-semibold text-text-secondary uppercase tracking-wide mt-6 mb-4">Sharing</h3>
       <div class="bg-accent-light p-3 rounded-lg">
-        <p class="flex items-center gap-2 text-sm">
-          <%= render "shared/icon", name: "link", size: 14 %>
-          Public link active
-        </p>
-        <% if @file.share.expires_at %>
-          <p class="text-xs text-text-tertiary">
-            Expires <%= @file.share.expires_at.strftime("%b %-d, %Y") %>
+        <% if @file.share.expired? %>
+          <p class="flex items-center gap-2 text-sm text-error">
+            <%= render "shared/icon", name: "alert-circle", size: 14 %>
+            Public link expired
           </p>
+          <p class="text-xs text-text-tertiary">
+            Expired <%= @file.share.expires_at.strftime("%b %-d, %Y") %>
+          </p>
+        <% else %>
+          <p class="flex items-center gap-2 text-sm">
+            <%= render "shared/icon", name: "link", size: 14 %>
+            Public link active
+          </p>
+          <% if @file.share.expires_at %>
+            <p class="text-xs text-text-tertiary">
+              Expires <%= @file.share.expires_at.strftime("%b %-d, %Y") %>
+            </p>
+          <% end %>
         <% end %>
         <p class="text-xs text-text-tertiary">
           Downloaded <%= pluralize(@file.share.download_count, "time") %>

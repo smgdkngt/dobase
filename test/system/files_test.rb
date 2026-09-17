@@ -105,6 +105,53 @@ class FilesTest < ApplicationSystemTestCase
     assert_nil file.reload.share, "Expected share to be removed"
   end
 
+  test "the file page's Share button updates to Shared after creating a link" do
+    file = file_items(:report)
+    file.file.attach(io: StringIO.new("quarterly numbers"), filename: "report.pdf", content_type: "application/pdf")
+    visit tool_files_item_path(@tool, file)
+    wait_for_turbo
+    wait_for_stimulus "file-preview"
+
+    click_on "Share"
+    within("dialog[open]") { click_on "Create Link" }
+
+    assert_selector "button", text: "Shared", wait: 5
+    assert_no_selector "button", text: /\AShare\z/
+    assert_text "Public link active"
+  end
+
+  test "an expired share is shown as expired, not active" do
+    file = file_items(:report)
+    file.file.attach(io: StringIO.new("quarterly numbers"), filename: "report.pdf", content_type: "application/pdf")
+    file.create_share!(created_by: @user, expires_at: 1.day.ago)
+    visit tool_files_item_path(@tool, file)
+    wait_for_turbo
+
+    assert_text "Public link expired"
+    assert_no_text "Public link active"
+
+    click_on "Shared"
+    within "dialog[open]" do
+      assert_text "Expired on"
+      assert_no_selector "input[readonly]"
+    end
+  end
+
+  test "removing a folder share closes the dialog instead of leaving it blank" do
+    photos = file_folders(:photos)
+    photos.create_share!(created_by: @user)
+    visit tool_files_path(@tool)
+    wait_for_turbo
+
+    open_context_menu(photos)
+    click_on "Share"
+    within("dialog[open]") { click_on "Remove Share" }
+    within("dialog#turbo-confirm-dialog") { find("button[value='confirm']").click }
+
+    assert_db_change(-> { photos.reload.share.nil? })
+    assert_no_selector "[data-files-target='shareDialog'][open]", wait: 5
+  end
+
   test "downloading a selection of a folder and a file as one zip" do
     file_items(:readme).file.attach(io: StringIO.new("read me first"), filename: "readme.txt", content_type: "text/plain")
     file_items(:report).file.attach(io: StringIO.new("quarterly numbers"), filename: "report.pdf", content_type: "application/pdf")
@@ -229,10 +276,10 @@ class FilesTest < ApplicationSystemTestCase
     others.each { |record| find(item_selector(record)).click(:meta) }
   end
 
-  def open_context_menu(file)
+  def open_context_menu(record)
     wait_for_stimulus "file-selection"
     wait_for_stimulus "file-context-menu"
-    item = find("[data-item-type='file'][data-item-id='#{file.id}']")
+    item = find(item_selector(record))
     # Make the menu button visible (hover CSS unreliable in headless Chrome)
     menu_btn = item.find("button[data-action*='file-context-menu#showFromButton']", visible: :all)
     page.execute_script("arguments[0].style.opacity = '1'; arguments[0].style.pointerEvents = 'auto'", menu_btn.native)

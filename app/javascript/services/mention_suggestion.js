@@ -79,7 +79,12 @@ export function createMentionSuggestion({ users, onStateChange }) {
 
           dropdown = document.createElement("div")
           dropdown.className = "mention-suggestion popover-menu"
-          document.body.appendChild(dropdown)
+          // Card/todo comment boxes live inside an open <dialog>, which renders
+          // in the top layer — appending to <body> would put the dropdown
+          // underneath it. Append inside the dialog when there is one so it
+          // stacks above the dialog's own content instead.
+          const host = props.editor?.view?.dom?.closest("dialog[open]") || document.body
+          host.appendChild(dropdown)
           renderItems()
           position(props.clientRect?.())
           setState(true)

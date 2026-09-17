@@ -39,13 +39,18 @@ export default class extends Controller {
 
   handleSubmitEnd(event) {
     // Close modal if form/link submission inside this modal was successful,
-    // but NOT if the form targets a turbo-frame within this modal (e.g. comments)
+    // but NOT if the form updates a turbo-frame within this modal (e.g. comments,
+    // or a nested tab frame like access tokens) — whether that frame is named via
+    // an explicit data-turbo-frame or is just the form's nearest ancestor frame.
     if (event.detail.success) {
       const target = event.target
       if (this.element.contains(target)) {
         const frameId = target.dataset?.turboFrame || target.getAttribute("data-turbo-frame")
-        if (frameId && frameId !== "_top" && this.element.querySelector(`#${frameId}`)) {
-          return // frame update within the modal, don't close
+        if (frameId !== "_top") {
+          const frame = frameId ? this.element.querySelector(`#${frameId}`) : target.closest("turbo-frame")
+          if (frame && this.element.contains(frame)) {
+            return // frame update within the modal, don't close
+          }
         }
         this.close()
       }

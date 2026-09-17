@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { api } from "services/api"
+import { showFlash } from "services/flash"
 
 export default class extends Controller {
   static targets = ["itemModal", "itemDetailDialog", "addItemForm", "addItemInput", "addItemBtn", "completedSection", "completedToggle", "completedToggleLabel"]
@@ -42,8 +43,20 @@ export default class extends Controller {
         "X-Requested-With": "XMLHttpRequest"
       }
     })
-      .then(response => response.text())
+      .then(response => {
+        // A missing item 404s server-side and redirects (eventually back to
+        // this same list). Following that would inject a whole copy of the
+        // page into the modal, whose own todo controller would repeat the
+        // same auto-open and nest again. Bail out instead.
+        if (!response.ok || response.redirected) {
+          this._clearItemParam()
+          showFlash("This item no longer exists.")
+          return null
+        }
+        return response.text()
+      })
       .then(html => {
+        if (html === null) return
         if (this.hasItemModalTarget) {
           this.itemModalTarget.innerHTML = html
         }
@@ -52,6 +65,12 @@ export default class extends Controller {
       .catch(error => {
         console.error("Error loading item:", error)
       })
+  }
+
+  _clearItemParam() {
+    const url = new URL(window.location.href)
+    url.searchParams.delete("item")
+    window.history.replaceState(history.state, "", url)
   }
 
   // ── Checkbox toggle ──

@@ -9,6 +9,7 @@
 
   <div class="card">
     <div class="card-body" data-controller="recovery-code">
+      <%= render "shared/flash", position: :inline %>
       <%= form_with url: two_factor_challenge_path, method: :post, class: "space-y-4" do |f| %>
         <div>
           <label for="code" class="label">Verification code</label>

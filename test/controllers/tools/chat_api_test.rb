@@ -187,7 +187,10 @@ module Tools
 
       post tool_chat_messages_path(@tool), params: { message: { body: "<p>From the browser</p>" } }, headers: turbo_headers
       assert_response :ok
-      assert_empty response.body
+      # Clears the error slot (a stream that updates it to nothing) rather
+      # than a bare empty body, so a previous failed attempt's error doesn't
+      # linger once a send succeeds.
+      assert_includes response.body, "chat-form-errors"
 
       post tool_chat_messages_path(@tool), params: { message: { body: "" } }, headers: turbo_headers
       assert_response :unprocessable_entity

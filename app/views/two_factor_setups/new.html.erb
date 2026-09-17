@@ -24,6 +24,8 @@
       </details>
     </div>
 
+    <%= render "shared/flash", position: :inline %>
+
     <%= form_with url: two_factor_setup_path, method: :post, data: { turbo_frame: "profile-form" } do |f| %>
       <div>
         <p class="text-sm text-text-primary mb-3">2. Enter the 6-digit code to verify</p>

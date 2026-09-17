@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { api } from "services/api"
+import { showFlash } from "services/flash"
 
 export default class extends Controller {
   static targets = ["cardModal", "cardDetailDialog", "addCardForm", "addCardInput", "addCardBtn", "archivedSection", "archivedToggle", "archivedToggleLabel"]
@@ -42,8 +43,20 @@ export default class extends Controller {
         "X-Requested-With": "XMLHttpRequest"
       }
     })
-      .then(response => response.text())
+      .then(response => {
+        // A missing card 404s server-side and redirects (eventually back to
+        // this same board). Following that would inject a whole copy of the
+        // page into the modal, whose own board controller would repeat the
+        // same auto-open and nest again. Bail out instead.
+        if (!response.ok || response.redirected) {
+          this._clearCardParam()
+          showFlash("This card no longer exists.")
+          return null
+        }
+        return response.text()
+      })
       .then(html => {
+        if (html === null) return
         if (this.hasCardModalTarget) {
           this.cardModalTarget.innerHTML = html
         }
@@ -52,6 +65,12 @@ export default class extends Controller {
       .catch(error => {
         console.error("Error loading card:", error)
       })
+  }
+
+  _clearCardParam() {
+    const url = new URL(window.location.href)
+    url.searchParams.delete("card")
+    window.history.replaceState(history.state, "", url)
   }
 
   // ── Column collapse ──
