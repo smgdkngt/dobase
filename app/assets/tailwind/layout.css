@@ -301,6 +301,17 @@
     padding-bottom: var(--mobile-bar-clearance);
   }
 
+  /* Toasts span the width above the bottom bar */
+  .flash-toast {
+    @apply left-4 right-4 max-w-none;
+    bottom: var(--mobile-bar-clearance);
+  }
+
+  body:has(.tool-layout-anchored) .flash-toast {
+    @apply bottom-auto;
+    top: calc(4rem + env(safe-area-inset-top));
+  }
+
   /* ── Re-anchor popovers to mobile bottom bar buttons ── */
   .sidebar-user-popover {
     position-anchor: --mobile-user-btn;
@@ -346,7 +357,15 @@
   }
 
   .edit-modal-tabs .tab-danger {
-    @apply text-error hover:text-error hover:bg-error/10;
+    @apply relative flex-none! w-auto! text-text-tertiary hover:text-error hover:bg-error/10;
+  }
+
+  .edit-modal-tabs > :not(.tab-danger) + .tab-danger {
+    @apply ms-auto;
+  }
+
+  .edit-modal-tabs .tab-danger span {
+    @apply sr-only;
   }
 
   .edit-modal-content {

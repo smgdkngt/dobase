@@ -311,6 +311,16 @@
     }
   }
 
+  /* Toasts sit bottom-right; on tools with a composer at the bottom (chat,
+     room) they move to the top so they never cover Send */
+  .flash-toast {
+    @apply fixed bottom-6 right-6 z-[9999] max-w-sm;
+  }
+
+  body:has(.tool-layout-anchored) .flash-toast {
+    @apply top-16 bottom-auto;
+  }
+
   .flash-dismiss {
     @apply opacity-0 translate-x-full transition-all duration-200 ease-in-out;
   }
@@ -330,6 +340,10 @@
 
   .collaborator-email {
     @apply text-xs text-text-tertiary;
+  }
+
+  .collaborator-action {
+    @apply text-xs text-text-secondary bg-transparent border-none cursor-pointer px-2 py-1 rounded-sm shrink-0 hover:bg-background-tertiary hover:text-text-primary;
   }
 
   .collaborator-remove {
