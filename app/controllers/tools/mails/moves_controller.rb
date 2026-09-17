@@ -25,14 +25,16 @@ module Tools
           return
         end
 
-        source_folder = @message.folder || "INBOX"
         current_folder = params[:current_folder] || "inbox"
         next_msg = find_next_message(@message, current_folder)
 
-        @message.update!(folder: target_folder, archived: false, trashed: false)
+        with_their_conversations([ @message ], folder: current_folder).each do |message|
+          source_folder = message.folder || "INBOX"
+          message.update!(folder: target_folder, archived: false, trashed: false)
 
-        if @message.uid.present?
-          ImapSyncJob.perform_later(@tool.mail_account.id, "move_to_folder", @message.uid, source_folder, target_folder)
+          if message.uid.present?
+            ImapSyncJob.perform_later(@tool.mail_account.id, "move_to_folder", message.uid, source_folder, target_folder)
+          end
         end
 
         respond_to do |format|

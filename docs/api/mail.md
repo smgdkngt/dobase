@@ -153,6 +153,11 @@ has one, and otherwise only marks it read on the server. Unarchiving moves it
 from the archive folder back to the inbox, or marks it unread when there's no
 archive folder.
 
+Archive and move act on the whole conversation in the folder you're looking
+at, the way the list shows it: pass that folder as `folder` when archiving and
+as `current_folder` when moving (both default to `inbox`). Read and star only
+change the message itself.
+
 The `folder` to move to is `INBOX`, `Sent` (the server's sent folder, whatever
 the server calls it) or one of the `custom_folders`. An invalid name returns
 `422` with `{"errors": ["Invalid folder name"]}`.
