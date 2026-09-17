@@ -159,8 +159,11 @@ module Calendars
       all_day? ? starts_at.utc.to_date : starts_at.to_date
     end
 
+    # An event that ends at midnight ends on the day before
     def last_day
-      all_day? ? ends_at.utc.to_date - 1 : ends_at.to_date
+      return ends_at.utc.to_date - 1 if all_day?
+
+      ends_at == ends_at.beginning_of_day && ends_at > starts_at ? ends_at.to_date - 1 : ends_at.to_date
     end
 
     # The copies Tools::CalendarsController makes for each occurrence of a

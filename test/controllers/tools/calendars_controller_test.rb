@@ -47,6 +47,25 @@ module Tools
       assert_equal({ "Holiday" => "grid-column: 2 / span 1", "Trip" => "grid-column: 4 / span 4" }, spans)
     end
 
+    test "week view lays out overlapping, short and long events" do
+      create = ->(summary, starts, ends) { @personal.events.create!(uid: "#{summary}@dobase", summary: summary, starts_at: starts, ends_at: ends) }
+      create.("Design review", Time.utc(2030, 1, 9, 12), Time.utc(2030, 1, 9, 13, 30))
+      create.("Call", Time.utc(2030, 1, 9, 12, 30), Time.utc(2030, 1, 9, 13))
+      create.("Conference", Time.utc(2030, 1, 9, 9), Time.utc(2030, 1, 11, 17))
+      create.("Late", Time.utc(2030, 1, 10, 22), Time.utc(2030, 1, 11))
+
+      get tool_calendar_path(@tool, week_start: "2030-01-07")
+
+      blocks = css_select(".week-column [data-event-id]").to_h { |block| [ block.text.squish, block["style"] ] }
+      assert_match "left: calc(0.0% + 2px); width: calc(50.0% - 4px)", blocks["12:00 Design review"]
+      assert_match "left: calc(50.0% + 2px); width: calc(50.0% - 4px)", blocks["12:30 Call"]
+      assert_match "height: 2.08", blocks["12:30 Call"]
+      assert_equal [ "12:00 Design review", "12:30 Call", "22:00 Late" ], blocks.keys
+      assert_select ".all-day-event-span", text: "09:00 Conference" do |spans|
+        assert_match "grid-column: 3 / span 3", spans.sole["style"]
+      end
+    end
+
     test "the new event form offers only calendars that take new events" do
       @personal.update!(read_only: true)
 

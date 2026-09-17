@@ -8,8 +8,8 @@
   today = Date.current
   hours = (0..23).to_a
 
-  # Separate all-day and timed events
-  all_day_events, timed_events = events.partition(&:all_day?)
+  # Events of a day or longer go in the all-day row, where their title shows on every day
+  all_day_events, timed_events = events.partition { |event| event.all_day? || event.ends_at - event.starts_at >= 1.day }
 
   # Group timed events by each day they span (not just start day)
   timed_by_day = {}
@@ -146,8 +146,10 @@
             <span class="truncate text-white text-xs font-medium">
               <% if span_info[:is_continuation] %>
                 ← <%= event.summary %>
-              <% else %>
+              <% elsif event.all_day? %>
                 <%= event.summary %>
+              <% else %>
+                <%= event.starts_at.strftime("%H:%M") %> <%= event.summary %>
               <% end %>
             </span>
           </div>
@@ -185,11 +187,13 @@
           <% end %>
 
           <!-- Events for this day -->
-          <% day_events.each do |event| %>
+          <% day_columns(day_events, day).each do |event, column, columns| %>
             <%= render "tools/calendars/event_block",
                 event: event,
                 calendar: calendars.find { |c| c.id == event.calendar_id },
-                display_date: day %>
+                display_date: day,
+                column: column,
+                columns: columns %>
           <% end %>
 
           <!-- Current time indicator (only for today) -->
