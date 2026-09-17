@@ -136,6 +136,8 @@
 
       <%# Security panel %>
       <div data-tabs-target="panel" data-tab="security" class="hidden">
+        <%= render "shared/flash", position: :inline %>
+
         <h3 class="text-sm font-semibold text-text-primary mb-4">Change password</h3>
 
         <%= form_with model: @user, url: profile_path, method: :patch, data: { turbo_frame: "_top" } do |f| %>
@@ -176,6 +178,8 @@
             </div>
           </div>
           <%= form_with url: two_factor_setup_path, method: :delete, class: "flex items-center gap-2", data: { turbo_frame: "profile-form" } do |f| %>
+            <%# So a failed attempt can re-render the edit page on the Security tab %>
+            <input type="hidden" name="tab" value="security">
             <%= f.password_field :password,
               class: "input flex-1 !py-1.5 text-xs",
               required: true,

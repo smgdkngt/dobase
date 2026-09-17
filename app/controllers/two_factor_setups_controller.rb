@@ -31,7 +31,16 @@ class TwoFactorSetupsController < ApplicationController
 
   def destroy
     unless current_user.authenticate(params[:password].to_s)
-      redirect_to edit_profile_path(tab: "security"), alert: "Incorrect password."
+      # This form submits scoped to the "profile-form" turbo-frame, so a
+      # redirect would be chased as a frame request: the flash would be read
+      # (and swept) rendering that response, but discarded on the client since
+      # the toast lives outside the frame — it would never actually be seen.
+      # Render inline instead, like a normal failed-form response.
+      @user = current_user
+      @sessions = current_user.sessions.order(created_at: :desc)
+      @access_tokens = current_user.access_tokens.newest_first
+      flash.now[:alert] = "Incorrect password."
+      render "profiles/edit", status: :unprocessable_entity
       return
     end
 

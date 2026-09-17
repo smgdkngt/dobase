@@ -36,6 +36,9 @@ class TwoFactorChallengesControllerTest < ActionDispatch::IntegrationTest
 
     post two_factor_challenge_path, params: { code: "000000" }
     assert_response :unprocessable_entity
+    # The page must actually show the flash.now alert, not just set it —
+    # this view has no inline flash without the fix, so the message is lost.
+    assert_includes response.body, "Invalid code"
   end
 
   test "create with valid recovery code signs in and consumes it" do
