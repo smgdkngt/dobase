@@ -1,6 +1,7 @@
 <% content_for :title, "Edit Event - #{@tool.name} - #{app_name}" %>
 <% content_for :page_title, "Edit Event" %>
 
+<%= render layout: "tools/calendars/events/page" do %>
 <%= turbo_frame_tag "event_modal_content" do %>
   <div class="event-edit-form">
     <h3 class="text-lg font-semibold text-text-primary mb-4">Edit Event</h3>
@@ -8,6 +9,7 @@
         event: @event,
         calendars: @calendars,
         tool: @tool,
-        modal_id: ("event-details-modal" if turbo_frame_request?) %>
+        modal_id: ("event-details-modal" if in_event_dialog?) %>
   </div>
+<% end %>
 <% end %>

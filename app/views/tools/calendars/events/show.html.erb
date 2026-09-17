@@ -1,6 +1,7 @@
 <%#
   Event details view - can be rendered in a turbo_frame or modal
 %>
+<%= render layout: "tools/calendars/events/page" do %>
 <%= turbo_frame_tag "event_modal_content" do %>
 <div class="event-details">
   <!-- Event title and time -->
@@ -77,17 +78,26 @@
         data: { turbo_frame: "_top", turbo_confirm_button: "Delete" } %>
 
     <div class="flex items-center gap-2">
-      <%= render "components/button",
-          text: "Close",
-          variant: :secondary,
-          type: :button,
-          data: { action: "click->modal#close" } %>
+      <% if in_event_dialog? %>
+        <%= render "components/button",
+            text: "Close",
+            variant: :secondary,
+            type: :button,
+            data: { action: "click->modal#close" } %>
+      <% else %>
+        <%= render "components/button",
+            text: "Back to calendar",
+            variant: :secondary,
+            href: tool_calendar_path(@tool, week_start: @event.first_day),
+            data: { turbo_frame: "_top" } %>
+      <% end %>
       <%= render "components/button",
           text: "Edit",
           icon: "edit",
           href: edit_tool_calendar_event_path(@tool, @event),
-          data: { turbo_frame: "event_modal_content" } %>
+          data: { turbo_frame: in_event_dialog? ? "event_modal_content" : "_top" } %>
     </div>
   </div>
 </div>
+<% end %>
 <% end %>

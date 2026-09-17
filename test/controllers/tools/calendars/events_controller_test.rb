@@ -51,6 +51,21 @@ module Tools
         assert_select "a[href='#{tool_calendar_path(@tool)}'][data-turbo-frame='_top']", text: "Cancel"
       end
 
+      test "an event shows in a card with a way back on a page of its own, and bare in the event dialog" do
+        get tool_calendar_event_path(@tool, @meeting)
+        assert_select ".card .event-details"
+        assert_select "a[href=?]", tool_calendar_path(@tool, week_start: @meeting.first_day), text: "Back to calendar"
+        assert_select "a[data-turbo-frame='_top']", text: "Edit"
+
+        get tool_calendar_event_path(@tool, @meeting), headers: { "X-Requested-With" => "XMLHttpRequest" }
+        assert_select ".card", count: 0
+        assert_select "button[data-action='click->modal#close']", text: "Close"
+        assert_select "a[data-turbo-frame='event_modal_content']", text: "Edit"
+
+        get edit_tool_calendar_event_path(@tool, @meeting)
+        assert_select ".card .event-edit-form"
+      end
+
       test "update can't move an event to a calendar of another tool" do
         foreign_calendar = calendars_accounts(:pending_account).calendars.create!(name: "Theirs", remote_id: "/theirs/")
 

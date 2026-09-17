@@ -1,0 +1,14 @@
+<%# The event details and form fill the event dialog; on a page of their own they get a card like the new event page %>
+<% if in_event_dialog? %>
+  <%= yield %>
+<% else %>
+  <div class="p-6">
+    <div class="max-w-2xl">
+      <div class="card">
+        <div class="card-body">
+          <%= yield %>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>
