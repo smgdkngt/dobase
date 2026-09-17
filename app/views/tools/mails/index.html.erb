@@ -37,7 +37,7 @@
 
 <div class="tool-layout mail-layout <%= 'mail-detail-open' if @selected_message %>"
      data-controller="mail-keyboard mail-refresh"
-     data-mail-refresh-interval-value="<%= @mail_account.auto_refresh_interval || 60 %>"
+     data-mail-refresh-interval-value="<%= @mail_account.authentication_failed? ? 0 : (@mail_account.auto_refresh_interval || 60) %>"
      data-mail-refresh-url-value="<%= tool_sync_path(@tool) %>">
   <%# Hidden hotkey triggers for keyboard navigation %>
   <button data-controller="hotkey" data-hotkey="j" data-action="click->mail-keyboard#selectNext" hidden>Next</button>
@@ -141,15 +141,17 @@
            data-sync-status-syncing-value="<%= @mail_account.syncing? %>">
         <div class="w-1.5 h-1.5 rounded-full <%= @mail_account.synced? ? 'bg-success' : (@mail_account.sync_error? ? 'bg-error' : 'bg-warning') %>"
              data-sync-status-target="indicator"></div>
-        <span class="mail-sync-text text-xs text-text-tertiary" data-sync-status-target="status">
+        <%= tag.span class: "mail-sync-text text-xs text-text-tertiary", title: (@mail_account.sync_error if @mail_account.sync_error?), data: { sync_status_target: "status" } do %>
           <% if @mail_account.syncing? %>
             Syncing...
+          <% elsif @mail_account.authentication_failed? %>
+            Login failed
           <% elsif @mail_account.last_synced_at %>
             <%= time_ago_in_words(@mail_account.last_synced_at) %>
           <% else %>
             Not synced
           <% end %>
-        </span>
+        <% end %>
         <%= render "components/icon_button",
             icon: "refresh-cw",
             title: "Sync now",

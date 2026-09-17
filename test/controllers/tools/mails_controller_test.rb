@@ -17,6 +17,16 @@ module Tools
       assert_includes response.body, "Your weekly report"
     end
 
+    test "the mail page stops refreshing while the server turns the login down" do
+      get tool_mails_path(@tool)
+      assert_select "[data-mail-refresh-interval-value='60']"
+
+      @account.mark_sync_error!(::Mails::Account::AUTHENTICATION_FAILED)
+      get tool_mails_path(@tool)
+      assert_select "[data-mail-refresh-interval-value='0']"
+      assert_includes response.body, "The mail server didn&#39;t accept the username or password"
+    end
+
     test "index with folder=starred shows starred messages" do
       get tool_mails_path(@tool, folder: "starred")
       assert_response :success

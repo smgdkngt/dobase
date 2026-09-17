@@ -26,6 +26,10 @@ module Tools
 
       def update
         if @mail_account.update(mail_account_params)
+          if @mail_account.saved_changes.keys.intersect?(::Mails::Account::CONNECTION_SETTINGS)
+            @mail_account.mark_syncing!
+            SyncEmailsJob.perform_later(@mail_account.id)
+          end
           redirect_to tool_mails_path(@tool), notice: "Mail account updated successfully."
         else
           # The mail account is edited in the tool's settings

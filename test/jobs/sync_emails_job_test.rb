@@ -13,15 +13,37 @@ class SyncEmailsJobTest < ActiveJob::TestCase
     assert_equal :discard, SyncEmailsJob.concurrency_on_conflict
   end
 
-  test "a wrong password shows as a sync error instead of syncing forever" do
+  test "a wrong password shows as a sync error without failing the job" do
     @account.mark_syncing!
 
     connect_to_imap(ImapServerRejectingLogin.new) do
-      assert_raises(Net::IMAP::NoResponseError) { SyncEmailsJob.perform_now(@account.id) }
+      assert_nothing_raised { SyncEmailsJob.perform_now(@account.id) }
     end
 
     assert @account.reload.sync_error?
-    assert_equal "[AUTHENTICATIONFAILED] Invalid credentials (Failure)", @account.sync_error
+    assert @account.authentication_failed?
+    assert_equal "The mail server didn't accept the username or password", @account.sync_error
+  end
+
+  test "an account whose login was turned down isn't synced again until someone asks" do
+    @account.mark_sync_error!(Mails::Account::AUTHENTICATION_FAILED)
+    server = ImapServerRejectingLogin.new
+
+    connect_to_imap(server) { SyncEmailsJob.perform_now(@account.id) }
+    assert_equal 0, server.logins
+
+    @account.mark_syncing!
+    connect_to_imap(server) { SyncEmailsJob.perform_now(@account.id) }
+    assert_equal 1, server.logins
+  end
+
+  test "an account whose server couldn't be reached is synced again" do
+    @account.mark_sync_error!("Connection refused - connect(2) for imap.example.com:993")
+    server = ImapServerRejectingLogin.new
+
+    connect_to_imap(server) { SyncEmailsJob.perform_now(@account.id) }
+
+    assert_equal 1, server.logins
   end
 
   test "a server that can't be found shows as a sync error" do
@@ -36,7 +58,12 @@ class SyncEmailsJobTest < ActiveJob::TestCase
 
   private
     class ImapServerRejectingLogin < FakeImapServer
+      def logins
+        @logins || 0
+      end
+
       def login(_username, _password)
+        @logins = logins + 1
         text = Net::IMAP::ResponseText.new(nil, "[AUTHENTICATIONFAILED] Invalid credentials (Failure)")
         raise Net::IMAP::NoResponseError, Net::IMAP::TaggedResponse.new("RUBY0001", "NO", text, "")
       end

@@ -214,7 +214,11 @@ class ImapSyncService
     )
 
     begin
-      imap.login(@account.username, @account.password)
+      begin
+        imap.login(@account.username, @account.password)
+      rescue Net::IMAP::NoResponseError
+        raise AuthenticationError, Mails::Account::AUTHENTICATION_FAILED
+      end
       yield imap
     ensure
       imap.logout rescue nil

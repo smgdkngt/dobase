@@ -222,6 +222,10 @@ returns:
 `status` is `pending`, `syncing`, `synced` or `error`, and `last_synced_at` is
 the time of the last successful sync.
 
+When the mail server turns down the username or password, the status is
+`error` and the scheduled sync stops trying. It starts again when the account's
+connection settings change, or after a `POST /tools/:tool_id/sync`.
+
 ## Contacts
 
 `GET /tools/:tool_id/mails_contacts?q=ra` returns up to 10 people you have
