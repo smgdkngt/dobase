@@ -160,7 +160,7 @@ Rhino Editor (TipTap-based) replaces Trix. Two editor modes:
 - **Full** (Docs): `.document-editor` / `.document-view` classes, large text, full toolbar
 - **Compact** (Chat/Comments): `.rich-text-input` wrapper, pruned toolbar (bold/italic/link/code), inherits font size from context
 
-Models use `has_rich_text :body`. The `rich_text_input` component wraps `rich_text_area_tag` with a Stimulus controller for enter-to-submit and toolbar pruning. Rhino Editor toolbar is in shadow DOM — style via `::part(toolbar)`, `::part(editor-wrapper)`. Button colors use `--rhino-button-text-color` and `--rhino-toolbar-text-color` CSS variables.
+Models use `has_rich_text :body`. The `rich_text_input` component wraps `rich_text_area_tag` with a Stimulus controller for enter-to-submit and toolbar pruning. Rhino Editor toolbar is in shadow DOM — style via `::part(toolbar)`, `::part(editor-wrapper)`. The shared Rhino theme (the `--rhino-*` variables and `::part(toolbar__button)` styles for every editor) lives in `components.css`.
 
 ### Background Jobs
 

@@ -322,6 +322,44 @@
     @apply text-xs text-error bg-transparent border-none cursor-pointer px-2 py-1 rounded-sm shrink-0 hover:bg-error-light;
   }
 
+  /* ── Rhino editor theme (all editors: docs, compose, compact input) ──
+     Rhino picks light or dark values with light-dark(), so every pair gets
+     the same token. Toolbar buttons live in shadow DOM: style them via ::part. */
+
+  rhino-editor {
+    --rhino-border-color: transparent;
+    --rhino-text-color: var(--color-text-primary);
+    --rhino-dark-text-color: var(--color-text-primary);
+    --rhino-placeholder-text-color: var(--color-text-tertiary);
+    --rhino-dark-placeholder-text-color: var(--color-text-tertiary);
+    --rhino-toolbar-text-color: var(--color-text-secondary);
+    --rhino-button-text-color: var(--color-text-secondary);
+    --rhino-button-dark-text-color: var(--color-text-secondary);
+    --rhino-button-border-color: transparent;
+    --rhino-button-disabled-text-color: var(--color-text-tertiary);
+    --rhino-button-disabled-border-color: transparent;
+    --rhino-button-active-border-color: var(--color-accent);
+    --rhino-button-active-background-color: var(--color-background-tertiary);
+    --rhino-button-focus-background-color: var(--color-background-tertiary);
+    --rhino-dialog-border-color: var(--color-border);
+  }
+
+  rhino-editor::part(toolbar__button) {
+    @apply rounded-md border-transparent bg-transparent text-text-secondary transition-colors;
+  }
+
+  rhino-editor::part(toolbar__button):hover {
+    @apply bg-background-tertiary text-text-primary;
+  }
+
+  rhino-editor::part(toolbar__button--active) {
+    @apply bg-accent-light text-accent;
+  }
+
+  rhino-editor::part(toolbar__button--disabled) {
+    @apply bg-transparent text-text-tertiary opacity-50;
+  }
+
   /* ── Rich text input (compact Rhino editor) ──────────────────────── */
 
   .rich-text-input {
@@ -334,10 +372,6 @@
 
   .rich-text-input rhino-editor {
     @apply flex flex-col;
-    --rhino-border-color: transparent;
-    --rhino-button-active-border-color: var(--color-accent);
-    --rhino-button-text-color: var(--color-text-primary);
-    --rhino-toolbar-text-color: var(--color-text-primary);
   }
 
   .rich-text-input rhino-editor [role="toolbar"] {
