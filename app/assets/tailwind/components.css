@@ -263,6 +263,20 @@
     @apply px-5 py-4;
   }
 
+  /* Card / todo detail modal: content + metadata side by side; stacked in one
+     scroll area on phones so neither part gets squeezed */
+  .detail-modal-body {
+    @apply flex flex-1 flex-col min-h-0 overflow-y-auto sm:flex-row sm:overflow-hidden;
+  }
+
+  .detail-modal-main {
+    @apply flex flex-1 flex-col min-w-0 shrink-0 sm:shrink sm:overflow-y-auto;
+  }
+
+  .detail-modal-aside {
+    @apply shrink-0 border-t border-border-light bg-background-secondary/50 sm:w-56 sm:border-t-0 sm:border-l sm:overflow-y-auto;
+  }
+
   /* Flash messages */
   .flash {
     @apply rounded-lg px-4 py-3 text-sm flex items-center gap-3;
@@ -382,7 +396,7 @@
   /* ── Rich text content (compact rendering for chat/comments) ─────── */
 
   .rich-text-content {
-    @apply text-text-primary leading-snug;
+    @apply text-text-primary leading-snug wrap-anywhere;
 
     p { @apply my-0; }
     p + p { @apply mt-0.5; }

@@ -8,6 +8,10 @@
     grid-template-columns: 320px 1fr;
   }
 
+  .mail-topbar-title {
+    @apply pr-4 mr-1 border-r border-border-light;
+  }
+
   .mail-content {
     @apply bg-surface grid overflow-hidden;
     grid-template-rows: auto 1fr auto;
@@ -71,29 +75,44 @@
     @apply grid;
   }
 
-  /* Topbar: wrap into two rows */
+  /* Fill the main area; an open email is anchored above the bottom bar (layout.css) */
+  .mail-layout {
+    @apply h-full;
+  }
+
+  .compose-layout {
+    height: calc(100dvh - env(safe-area-inset-top) - var(--mobile-bar-clearance));
+  }
+
+  /* Topbar in two rows: title + actions, then search + folder picker */
   .mail-topbar {
-    @apply flex-wrap py-2;
+    @apply flex-wrap gap-y-2 py-2;
   }
 
-  /* Account info takes full first row */
-  .mail-topbar > .mail-topbar-account {
-    @apply border-r-0 border-b border-border-light pb-2 mr-0 pr-0 w-full;
+  .mail-topbar-title {
+    @apply flex-auto min-w-0 truncate border-r-0 pr-0 mr-0;
   }
 
-  /* Search wraps to second row */
+  .mail-topbar > .mail-topbar-actions {
+    @apply order-1 ml-auto;
+  }
+
   .mail-topbar > .search-form {
-    @apply flex-1 min-w-0;
+    @apply order-2 min-w-0;
+    flex: 1 1 50%;
+  }
+
+  .mail-topbar > .search-form .search-form-input {
+    @apply w-full;
+  }
+
+  .mail-topbar > .mail-folder-picker {
+    @apply order-3;
   }
 
   /* Hide sync indicator text, keep dot + button */
   .mail-topbar .mail-sync-text {
     @apply hidden;
-  }
-
-  /* Actions on first row */
-  .mail-topbar > .mail-topbar-actions {
-    @apply ml-auto order-first;
   }
 
   /* Detail header: actions on second row */
