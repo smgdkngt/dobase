@@ -49,7 +49,7 @@ export default class extends Controller {
     try {
       const res = await fetch(this.urlValue, {
         method: "POST",
-        headers: { "X-CSRF-Token": csrfToken(), "Accept": "text/html" },
+        headers: { "X-CSRF-Token": csrfToken(), "Accept": "application/json" },
         credentials: "same-origin"
       })
       if (res.ok) {
