@@ -127,9 +127,10 @@
   </nav>
 
   <%# ── Bottom bar ── %>
+  <% sidebar_unread_count = current_user.notifications.unread.count %>
   <div data-controller="notifications"
        data-notifications-user-id-value="<%= current_user.id %>"
-       data-notifications-unread-count-value="<%= current_user.notifications.unread.count %>">
+       data-notifications-unread-count-value="<%= sidebar_unread_count %>">
     <div class="sidebar-bottom-bar">
       <%# User menu trigger — avatar with name %>
       <button type="button"
@@ -152,9 +153,12 @@
                 data-action="click->notifications#togglePopover"
                 title="Notifications (b)">
           <%= render "shared/icon", name: "bell", size: 16 %>
-          <span class="absolute -top-0.5 -right-0.5 badge badge-sm hidden"
+          <%# Rendered server-side (not just toggled by JS) so a Turbo morph
+              refresh — which restores whatever class the server sends —
+              keeps showing an accurate badge instead of resetting to hidden. %>
+          <span class="absolute -top-0.5 -right-0.5 badge badge-sm <%= "hidden" if sidebar_unread_count.zero? %>"
                 data-notifications-target="badge">
-            <%= current_user.notifications.unread.count %>
+            <%= sidebar_unread_count %>
           </span>
         </button>
       </div>

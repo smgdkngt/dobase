@@ -81,10 +81,13 @@
             <span><%= app_name %></span>
           </button>
 
+          <%
+            mobile_unread_count = current_user.notifications.unread.count
+          %>
           <div class="relative"
                data-controller="notifications"
                data-notifications-user-id-value="<%= current_user.id %>"
-               data-notifications-unread-count-value="<%= current_user.notifications.unread.count %>">
+               data-notifications-unread-count-value="<%= mobile_unread_count %>">
             <button type="button"
                     class="mobile-bottom-bar-item"
                     popovertarget="sidebar-notifications"
@@ -92,9 +95,11 @@
                     data-notifications-target="trigger"
                     data-action="click->notifications#togglePopover">
               <%= render "shared/icon", name: "bell", size: 20 %>
-              <span class="absolute -top-0.5 -right-0.5 badge badge-sm hidden"
+              <%# Rendered server-side so a Turbo morph refresh (which restores
+                  whatever class the server sends) doesn't reset it to hidden. %>
+              <span class="absolute -top-0.5 -right-0.5 badge badge-sm <%= "hidden" if mobile_unread_count.zero? %>"
                     data-notifications-target="badge">
-                <%= current_user.notifications.unread.count %>
+                <%= mobile_unread_count %>
               </span>
             </button>
           </div>

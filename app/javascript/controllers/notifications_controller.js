@@ -45,8 +45,7 @@ export default class extends Controller {
 
     // If the popover is open, prepend the notification to the list
     if (this.hasListTarget) {
-      const item = this.buildNotificationHTML(data)
-      this.listTarget.insertAdjacentHTML("afterbegin", item)
+      this.listTarget.prepend(this.buildNotificationElement(data))
     }
   }
 
@@ -62,8 +61,13 @@ export default class extends Controller {
 
   togglePopover() {
     // The popover API handles show/hide. We just need to reload the frame
-    // when opened to get fresh data.
-    const frame = this.popoverTarget.querySelector("turbo-frame")
+    // when opened to get fresh data. The mobile bottom bar's trigger is a
+    // separate instance of this controller that only wraps the trigger
+    // button — the popover with the frame lives in the sidebar, outside
+    // this element's scope on mobile — so fall back to the frame's id.
+    const frame = this.hasPopoverTarget
+      ? this.popoverTarget.querySelector("turbo-frame")
+      : document.getElementById("notifications")
     if (frame) {
       frame.reload()
     }
@@ -131,30 +135,42 @@ export default class extends Controller {
     }
   }
 
-  buildNotificationHTML(data) {
-    const timeAgo = "just now"
-    const unreadClass = "bg-accent-light/30"
-    const fontClass = "font-medium"
+  // Built with DOM APIs rather than a template string: data.message comes
+  // from another user's action (e.g. a chat message or file name) and must
+  // never be parsed as markup, even though CSP already stops it from
+  // executing as a script.
+  buildNotificationElement(data) {
+    const link = document.createElement("a")
+    link.href = data.url
+    link.dataset.turboFrame = "_top"
+    link.className = "flex items-start gap-3 px-4 py-3 hover:bg-background-tertiary transition-colors border-b border-border-light bg-accent-light/30"
+    link.dataset.action = "click->notifications#markAsRead"
+    link.dataset.notificationId = data.id
 
-    return `
-      <a href="${data.url}"
-         data-turbo-frame="_top"
-         class="flex items-start gap-3 px-4 py-3 hover:bg-background-tertiary transition-colors border-b border-border-light ${unreadClass}"
-         data-action="click->notifications#markAsRead"
-         data-notification-id="${data.id}">
-        <div class="flex-shrink-0 mt-0.5 text-text-secondary">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-          </svg>
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="text-sm text-text-primary leading-snug ${fontClass}">${data.message}</p>
-          <p class="text-xs text-text-tertiary mt-0.5">${timeAgo}</p>
-        </div>
-        <div class="flex-shrink-0 mt-1.5">
-          <span class="block w-2 h-2 rounded-full bg-accent"></span>
-        </div>
-      </a>
-    `
+    const iconWrap = document.createElement("div")
+    iconWrap.className = "flex-shrink-0 mt-0.5 text-text-secondary"
+    iconWrap.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>'
+
+    const textWrap = document.createElement("div")
+    textWrap.className = "flex-1 min-w-0"
+
+    const message = document.createElement("p")
+    message.className = "text-sm text-text-primary leading-snug font-medium"
+    message.textContent = data.message
+
+    const timeAgo = document.createElement("p")
+    timeAgo.className = "text-xs text-text-tertiary mt-0.5"
+    timeAgo.textContent = "just now"
+
+    textWrap.append(message, timeAgo)
+
+    const dotWrap = document.createElement("div")
+    dotWrap.className = "flex-shrink-0 mt-1.5"
+    const dot = document.createElement("span")
+    dot.className = "block w-2 h-2 rounded-full bg-accent"
+    dotWrap.appendChild(dot)
+
+    link.append(iconWrap, textWrap, dotWrap)
+    return link
   }
 }
