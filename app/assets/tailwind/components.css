@@ -342,8 +342,9 @@
     @apply text-xs text-text-tertiary;
   }
 
+  /* Row actions: accent for Make owner / Resend / Reinvite, red only for removing */
   .collaborator-action {
-    @apply text-xs text-text-secondary bg-transparent border-none cursor-pointer px-2 py-1 rounded-sm shrink-0 hover:bg-background-tertiary hover:text-text-primary;
+    @apply text-xs text-accent bg-transparent border-none cursor-pointer px-2 py-1 rounded-sm shrink-0 hover:bg-accent-light disabled:opacity-50 disabled:cursor-default;
   }
 
   .collaborator-remove {
