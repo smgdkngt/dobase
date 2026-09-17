@@ -84,11 +84,15 @@ module Tools
         params.require(:message).permit(:body, :reply_to_id, files: [])
       end
 
-      # Replaces the error slot with the message's current errors — none on
-      # success, which is what clears a previous failed attempt's message
-      # instead of leaving it stuck once the next send goes through.
+      # Updates the error slot's contents with the message's current errors —
+      # none on success, which is what clears a previous failed attempt's
+      # message instead of leaving it stuck once the next send goes through.
+      # turbo_stream.update (not replace): shared/error_flash renders no
+      # element with the "chat-form-errors" id itself (just a bare .flash
+      # div, or nothing), so a replace would remove the slot from the page —
+      # leaving nothing for a later failed send to target.
       def render_message_errors(status: :ok)
-        render turbo_stream: turbo_stream.replace(
+        render turbo_stream: turbo_stream.update(
           "chat-form-errors",
           partial: "shared/error_flash",
           locals: { object: @message }

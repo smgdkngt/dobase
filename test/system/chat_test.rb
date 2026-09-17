@@ -62,7 +62,59 @@ class ChatTest < ApplicationSystemTestCase
       "a focus event after disconnect() must not still trigger markAsRead"
   end
 
+  test "the error slot survives being cleared, so a later failed send still shows its error" do
+    visit tool_chat_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "chat"
+
+    submit_blank_body
+    assert_selector "#chat-form-errors", text: "can't be blank", wait: 5
+
+    fill_in_editor("Hello there")
+    click_send
+    assert_no_text "can't be blank"
+    assert_text "Hello there"
+
+    submit_blank_body
+    assert_selector "#chat-form-errors", text: "can't be blank", wait: 5
+  end
+
   private
+
+  # Submits a genuinely blank body straight to the server (bypassing the
+  # client-side isEmpty guard, which is exercised separately by "an empty
+  # message can't be sent") and applies whatever turbo-stream comes back,
+  # exactly like a real failed form submission would.
+  def submit_blank_body
+    # allow_forgery_protection is off in the test environment, so no CSRF
+    # token is needed here (there's no csrf-token meta tag to read).
+    page.execute_script(<<~JS)
+      fetch(window.location.pathname + "/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Accept": "text/vnd.turbo-stream.html"
+        },
+        body: "message%5Bbody%5D="
+      }).then(r => r.text()).then(html => Turbo.renderStreamMessage(html))
+    JS
+    sleep 0.3
+  end
+
+  def fill_in_editor(text)
+    editable = find("rhino-editor .ProseMirror")
+    editable.click
+    page.execute_script(<<~JS)
+      document.querySelector("rhino-editor").editor.commands.clearContent()
+    JS
+    editable.send_keys(text)
+  end
+
+  def click_send
+    find("form.chat-form button[type=submit], button[type=submit][title='Send message']", match: :first).click
+    wait_for_turbo
+    sleep 0.3
+  end
 
   def sign_in_as(user)
     visit new_session_path
