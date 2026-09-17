@@ -5,11 +5,9 @@ require "test_helper"
 class Tools::Chats::MessagesControllerTest < ActionDispatch::IntegrationTest
   setup do
     @user = users(:one)
-    @tool = Tool.create!(name: "Team Chat", tool_type: tool_types(:board), owner: @user)
-    # Reuse the board tool type's collaborator record; chat itself is
-    # auto-created by the Tool creation callback for chat-type tools, so
-    # build the chat/tool association directly for this generic tool.
-    @chat = Chats::Chat.create!(tool: @tool)
+    chat_type = ToolType.find_or_create_by!(slug: "chat") { |type| type.name = "Chat"; type.icon = "message-circle"; type.enabled = true }
+    @tool = Tool.create!(name: "Team Chat", tool_type: chat_type, owner: @user)
+    @chat = @tool.chat
     sign_in_as @user
   end
 
