@@ -71,10 +71,11 @@ module Files
       when pdf? then "file-text"
       when content_type&.include?("spreadsheet") || %w[xls xlsx csv].include?(extension)
         "table"
-      when content_type&.include?("document") || %w[doc docx].include?(extension)
-        "file-text"
-      when content_type&.include?("presentation") || %w[ppt pptx].include?(extension)
+      # Before documents: PowerPoint's type, ...officedocument.presentationml.presentation, says "document" too
+      when content_type&.include?("presentation") || content_type&.include?("powerpoint") || %w[ppt pptx key odp].include?(extension)
         "presentation"
+      when content_type&.include?("document") || content_type == "application/msword" || %w[doc docx].include?(extension)
+        "file-text"
       when %w[zip rar 7z tar gz].include?(extension)
         "archive"
       else

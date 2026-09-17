@@ -55,7 +55,6 @@ class ModalClosingTest < ApplicationSystemTestCase
     assert_selector "#profile-modal[open]", wait: 5
 
     within("#profile-modal") { click_on "Save changes" }
-    wait_for_turbo
 
     assert_no_selector "#profile-modal[open]", wait: 5
   end
