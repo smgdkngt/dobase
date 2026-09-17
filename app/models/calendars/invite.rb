@@ -37,11 +37,18 @@ module Calendars
       end
     end
 
-    # All-day events end at midnight after their last day (DTEND is exclusive)
+    # All-day invites run from midnight UTC on their first day to midnight UTC after their
+    # last (DTEND is exclusive), like all-day events, so their dates are read in UTC
+    def first_day
+      return nil unless starts_at
+
+      all_day? ? starts_at.utc.to_date : starts_at.to_date
+    end
+
     def last_day
       return nil unless ends_at
 
-      all_day? ? (ends_at - 1.day).to_date : ends_at.to_date
+      all_day? ? (ends_at.utc - 1.day).to_date : ends_at.to_date
     end
 
     # An attendee answering the user's own invitation, so there is nothing to accept

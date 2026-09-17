@@ -46,13 +46,13 @@ class IcsParserServiceTest < ActiveSupport::TestCase
       END:VCALENDAR
     ICS
 
-    result = IcsParserService.new(ics).parse
+    result = Time.use_zone("America/Los_Angeles") { IcsParserService.new(ics).parse }
 
     assert_equal "vacation-123@example.com", result[:uid]
     assert_equal "Vacation", result[:summary]
     assert result[:all_day]
-    assert_equal Date.new(2025, 3, 1), result[:starts_at].to_date
-    assert_equal Date.new(2025, 3, 5), result[:ends_at].to_date
+    # Dates are kept at midnight UTC, whatever the zone they're read in
+    assert_equal [ Time.utc(2025, 3, 1), Time.utc(2025, 3, 5) ], [ result[:starts_at], result[:ends_at] ]
   end
 
   test "parses event with organizer" do

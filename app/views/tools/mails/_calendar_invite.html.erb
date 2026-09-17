@@ -44,16 +44,16 @@
         <div class="text-text-primary">
           <% if invite.all_day? %>
             <p>
-              <%= invite.starts_at.strftime("%A, %B %-d, %Y") %>
-              <% if invite.last_day > invite.starts_at.to_date %>
-                - <%= invite.last_day.strftime("%A, %B %-d, %Y") %>
+              <%= invite.first_day.strftime("%A, %B %-d, %Y") %>
+              <% if invite.last_day > invite.first_day %>
+                – <%= invite.last_day.strftime("%A, %B %-d, %Y") %>
               <% end %>
             </p>
             <p class="text-text-secondary">All day</p>
           <% else %>
             <p><%= invite.starts_at.strftime("%A, %B %-d, %Y") %></p>
             <p class="text-text-secondary">
-              <%= format_time(invite.starts_at) %> - <%= format_time(invite.ends_at) %>
+              <%= format_time(invite.starts_at) %> – <%= format_time(invite.ends_at) %>
               <% if invite.duration_display %>
                 (<%= invite.duration_display %>)
               <% end %>
@@ -172,7 +172,7 @@
             icon: "external-link",
             variant: :secondary,
             size: :sm,
-            href: tool_calendar_path(calendar_tool, week_start: accepted.starts_at&.to_date) %>
+            href: tool_calendar_path(calendar_tool, week_start: accepted.first_day) %>
       <% end %>
     </div>
   <% elsif invite.accepted? && invite.created_event_id && (calendar_tool = invite.added_to_calendar&.account&.tool) %>
@@ -183,7 +183,7 @@
           icon: "external-link",
           variant: :secondary,
           size: :sm,
-          href: tool_calendar_path(calendar_tool, week_start: invite.starts_at&.to_date) %>
+          href: tool_calendar_path(calendar_tool, week_start: invite.first_day) %>
     </div>
   <% end %>
 </div>

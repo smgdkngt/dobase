@@ -65,8 +65,9 @@ class IcsParserService
   def parse_datetime(dt)
     return nil unless dt
 
+    # A date is the same day everywhere, so it's kept at midnight UTC, like all-day events
     if dt.is_a?(Icalendar::Values::Date)
-      dt.to_date.beginning_of_day
+      dt.to_date.in_time_zone("UTC")
     elsif dt.respond_to?(:to_time)
       dt.to_time.in_time_zone
     else

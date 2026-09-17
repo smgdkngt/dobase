@@ -41,6 +41,31 @@ class MailInviteDetectorServiceTest < ActiveSupport::TestCase
     ], invite.attendees
   end
 
+  test "stores an all-day invite from midnight UTC on its first day, like all-day events, in any zone" do
+    attach_ics <<~ICS
+      BEGIN:VCALENDAR
+      VERSION:2.0
+      PRODID:-//Test//Test//EN
+      METHOD:REQUEST
+      BEGIN:VEVENT
+      UID:offsite-123@example.com
+      DTSTART;VALUE=DATE:20261001
+      DTEND;VALUE=DATE:20261003
+      SUMMARY:Offsite
+      END:VEVENT
+      END:VCALENDAR
+    ICS
+
+    Time.use_zone("America/Los_Angeles") { MailInviteDetectorService.new(@message).detect_and_create_invite }
+
+    invite = @message.calendar_invites.find_by!(uid: "offsite-123@example.com")
+    assert invite.all_day?
+    assert_equal [ Time.utc(2026, 10, 1), Time.utc(2026, 10, 3) ], [ invite.starts_at, invite.ends_at ]
+    Time.use_zone("America/Los_Angeles") do
+      assert_equal [ Date.new(2026, 10, 1), Date.new(2026, 10, 2) ], [ invite.first_day, invite.last_day ]
+    end
+  end
+
   test "keeps non-ASCII text from an .ics attachment" do
     attach_ics <<~ICS
       BEGIN:VCALENDAR

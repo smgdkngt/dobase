@@ -174,6 +174,20 @@ module Tools
       assert_select "select[name=calendar_id]", count: 0
     end
 
+    test "show gives an all-day invite its own dates, west of UTC too" do
+      users(:one).update!(timezone: "Pacific Time (US & Canada)")
+      msg = mails_messages(:inbox_unread)
+      msg.calendar_invites.create!(uid: "offsite@example.com", method: "REQUEST", summary: "Offsite", status: "accepted", all_day: true,
+                                   starts_at: Time.utc(2026, 10, 1), ends_at: Time.utc(2026, 10, 3),
+                                   added_to_calendar: calendars_calendars(:personal), created_event: calendars_events(:meeting))
+
+      get tool_mail_path(@tool, msg)
+
+      assert_select "p", text: /Thursday, October 1, 2026\s+– Friday, October 2, 2026/
+      assert_not_includes response.body, "September 30"
+      assert_select "a[href=?]", tool_calendar_path(tools(:my_calendar), week_start: "2026-10-01"), text: "View in Calendar"
+    end
+
     test "show still renders a message whose invite has no title or times" do
       msg = mails_messages(:inbox_unread)
       msg.calendar_invites.create!(uid: "untimed@example.com", method: "REQUEST", summary: "")
