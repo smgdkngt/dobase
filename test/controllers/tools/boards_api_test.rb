@@ -205,6 +205,29 @@ module Tools
       assert response.parsed_body["download_url"].present?
     end
 
+    test "programs can't be attached, and nothing is saved when one of the files is refused" do
+      files = [
+        Rack::Test::UploadedFile.new(StringIO.new("fine"), "text/plain", original_filename: "notes.txt"),
+        Rack::Test::UploadedFile.new(StringIO.new("MZ"), "application/x-msdownload", original_filename: "setup.exe")
+      ]
+      sign_in_as @user
+
+      assert_no_difference -> { @card.attachments.count } do
+        post tool_board_card_attachments_path(@tool, @card), params: { files: files }
+      end
+      assert_redirected_to tool_board_card_path(@tool, @card)
+      assert_equal "File type .exe is not allowed for security reasons", flash[:alert]
+    end
+
+    test "the API says why an attachment was refused" do
+      file = Rack::Test::UploadedFile.new(StringIO.new("echo hi"), "application/x-sh", original_filename: "run")
+
+      post tool_board_card_attachments_path(@tool, @card), params: { file: file }, headers: @headers
+
+      assert_response :unprocessable_entity
+      assert_equal [ "File type is not allowed for security reasons" ], response.parsed_body["errors"]
+    end
+
     test "several files can be attached at once" do
       files = %w[one.txt two.txt].map { |name| Rack::Test::UploadedFile.new(StringIO.new(name), "text/plain", original_filename: name) }
 

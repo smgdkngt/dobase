@@ -27,11 +27,21 @@ module Tools
             return
           end
 
-          @attachment = files.map { |file| attach(file) }.last
+          attachments = files.map { |file| build_attachment(file) }
+          if attachments.all?(&:valid?)
+            attachments.each(&:save!)
+            @attachment = attachments.last
 
-          respond_to do |format|
-            format.html { redirect_to tool_board_card_path(@tool, @card) }
-            format.json { render :show, status: :created }
+            respond_to do |format|
+              format.html { redirect_to tool_board_card_path(@tool, @card) }
+              format.json { render :show, status: :created }
+            end
+          else
+            errors = attachments.flat_map { |attachment| attachment.errors.full_messages }.uniq
+            respond_to do |format|
+              format.html { redirect_to tool_board_card_path(@tool, @card), alert: errors.first }
+              format.json { render json: { errors: errors }, status: :unprocessable_entity }
+            end
           end
         end
 
@@ -51,10 +61,9 @@ module Tools
           Array(params[:files].presence || params[:file]).grep(ActionDispatch::Http::UploadedFile)
         end
 
-        def attach(file)
-          @card.attachments.create!(filename: file.original_filename, content_type: file.content_type, file_size: file.size).tap do |attachment|
-            attachment.file.attach(file)
-          end
+        # Built with its file, so the file is checked before anything is saved
+        def build_attachment(file)
+          @card.attachments.build(filename: file.original_filename, content_type: file.content_type, file_size: file.size, file: file)
         end
 
         def set_tool
