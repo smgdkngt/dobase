@@ -33,9 +33,11 @@ class NotificationsTest < ApplicationSystemTestCase
     visit tools_path
     wait_for_turbo
     wait_for_stimulus "notifications", "[data-controller~='notifications']"
-    # Open the popover for real so the list target actually exists.
+    # Open the popover for real so the list target actually exists, and wait
+    # for the frame to actually finish loading its content (not just for the
+    # frame element to appear) before poking at the controller.
     find("button.sidebar-add-btn[data-notifications-target='trigger']", visible: :all).click
-    assert_selector "#sidebar-notifications turbo-frame#notifications[complete], #sidebar-notifications turbo-frame#notifications:not([busy])", visible: :all, wait: 5
+    assert_selector "[data-notifications-target='list']", text: "sent a message", visible: :all, wait: 5
 
     # Two elements on the page host a "notifications" controller instance —
     # the sidebar's (which has the open popover and its list) and the mobile
