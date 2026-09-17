@@ -116,10 +116,37 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
   test "discover_calendars raises error when principal not found" do
     stub_request(:propfind, @account.caldav_url)
       .to_return(status: 207, body: empty_multistatus_response)
+    stub_request(:propfind, "https://caldav.icloud.com/.well-known/caldav").to_return(status: 404)
 
-    assert_raises(CaldavSyncService::SyncError) do
+    error = assert_raises(CaldavSyncService::SyncError) do
       @service.discover_calendars
     end
+    assert_equal "No CalDAV server found at this address. Check the CalDAV URL.", error.message
+  end
+
+  test "discover_calendars finds the server through its well-known address" do
+    @account.update!(caldav_url: "https://cloud.example.com/")
+    stub_request(:propfind, "https://cloud.example.com/").to_return(status: 207, body: empty_multistatus_response)
+    stub_request(:propfind, "https://cloud.example.com/.well-known/caldav")
+      .to_return(status: 301, headers: { "Location" => "/remote.php/dav/" })
+    stub_request(:propfind, "https://cloud.example.com/remote.php/dav/").to_return(status: 207, body: principal_response)
+    stub_request(:propfind, "https://cloud.example.com/123456789/principal/").to_return(status: 207, body: calendar_home_response)
+    calendars = stub_request(:propfind, "https://cloud.example.com/123456789/calendars/").to_return(status: 207, body: calendars_list_response)
+
+    CaldavSyncService.new(@account).discover_calendars
+
+    assert_requested calendars
+  end
+
+  test "discovery doesn't follow a redirect to another host" do
+    @account.update!(caldav_url: "https://cloud.example.com/")
+    stub_request(:propfind, "https://cloud.example.com/").to_return(status: 207, body: empty_multistatus_response)
+    stub_request(:propfind, "https://cloud.example.com/.well-known/caldav")
+      .to_return(status: 307, headers: { "Location" => "https://elsewhere.example.net/dav/" })
+    elsewhere = stub_request(:propfind, "https://elsewhere.example.net/dav/")
+
+    assert_raises(CaldavSyncService::SyncError) { CaldavSyncService.new(@account).discover_calendars }
+    assert_not_requested elsewhere
   end
 
   # Sync tests
