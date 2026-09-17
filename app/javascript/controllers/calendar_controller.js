@@ -103,6 +103,8 @@ export default class extends Controller {
     if (this.hasStartTimeInputTarget && this.hasEndTimeInputTarget) {
       this.startTimeInputTarget.value = this.formatDateTimeLocal(startTime)
       this.endTimeInputTarget.value = this.formatDateTimeLocal(endTime)
+      // So the repeat options follow the new start
+      this.startTimeInputTarget.dispatchEvent(new Event("change", { bubbles: true }))
     }
 
     // Open the new event modal

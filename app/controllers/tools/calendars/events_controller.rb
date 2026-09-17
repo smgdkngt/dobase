@@ -35,6 +35,7 @@ module Tools
           starts_at: parse_start_time(params[:starts_at]),
           ends_at: parse_end_time(params[:starts_at], params[:ends_at])
         )
+        @event.load_recurrence_for_form
       end
 
       def create

@@ -109,7 +109,7 @@
       calendar: default_calendar,
       start_time: default_start,
       end_time: default_end
-    )
+    ).tap(&:load_recurrence_for_form)
   %>
   <%= render "shared/modal", id: "new-event-modal", title: "New Event", size: :lg,
         data: { calendar_target: "newEventDialog" } do %>

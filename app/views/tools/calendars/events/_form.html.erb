@@ -8,10 +8,15 @@
   modal_id = local_assigns[:modal_id]
   # An all-day event shows from the start of its first day to the end of its last, wherever it was made
   all_day = event.all_day? && event.starts_at && event.ends_at
+  # A weekly series repeats on the weekday it starts, unless other days are chosen
+  weekly_days = Array(event.recurrence_days_of_week).presence ||
+    (event.starts_at ? [ Calendars::Event::WDAY_TO_ABBR[event.first_day.wday] ] : [])
 %>
 
 <%# In the event details modal the form stays in its frame, so a failed save shows its errors there %>
-<%= form_with model: event, url: form_url, method: form_method do |f| %>
+<%= form_with model: event, url: form_url, method: form_method,
+      data: { controller: "recurrence-form", recurrence_form_frequency_value: event.recurrence_frequency || "none",
+              recurrence_form_follow_start_value: event.rrule.blank? } do |f| %>
   <%= render "shared/error_flash", object: event %>
 
   <!-- Summary -->
@@ -45,7 +50,7 @@
           value: all_day ? event.first_day.beginning_of_day : event.start_time,
           class: "input",
           required: true,
-          data: { calendar_target: "startTimeInput" }
+          data: { calendar_target: "startTimeInput", action: "change->recurrence-form#startChanged" }
         %>
       </div>
       <div>
@@ -69,8 +74,7 @@
   </div>
 
   <!-- Recurrence -->
-  <div class="mb-4" data-controller="recurrence-form"
-       data-recurrence-form-frequency-value="<%= event.recurrence_frequency || 'none' %>">
+  <div class="mb-4">
     <label class="label">Repeat</label>
 
     <%= f.select :recurrence_frequency,
@@ -103,13 +107,13 @@
         <span class="text-sm text-text-secondary mb-1.5 block">On days</span>
         <div class="flex gap-1">
           <% [["MO", "M"], ["TU", "T"], ["WE", "W"], ["TH", "T"], ["FR", "F"], ["SA", "S"], ["SU", "S"]].each do |abbr, letter| %>
-            <% checked = Array(event.recurrence_days_of_week).include?(abbr) %>
+            <% checked = weekly_days.include?(abbr) %>
             <label class="flex items-center justify-center w-9 h-9 rounded-full border cursor-pointer text-sm font-medium transition-colors
                           <%= checked ? 'bg-accent text-white border-accent' : 'border-border text-text-secondary hover:border-accent/50' %>">
               <%= check_box_tag "calendars_event[recurrence_days_of_week][]", abbr, checked,
                     class: "sr-only",
                     id: "recurrence_day_#{abbr}",
-                    data: { action: "change->recurrence-form#toggleDayButton" } %>
+                    data: { recurrence_form_target: "day", action: "change->recurrence-form#toggleDayButton" } %>
               <%= letter %>
             </label>
           <% end %>
@@ -135,7 +139,7 @@
           <label class="flex items-center gap-2 cursor-pointer">
             <%= f.radio_button :recurrence_monthly_by, "day_of_week",
               class: "w-4 h-4 text-accent focus:ring-accent/20" %>
-            <span class="text-sm text-text-primary"><%= monthly_dow_label %></span>
+            <span class="text-sm text-text-primary" data-recurrence-form-target="weekdayLabel"><%= monthly_dow_label %></span>
           </label>
         </div>
       </div>

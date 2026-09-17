@@ -66,6 +66,22 @@ module Tools
       end
     end
 
+    test "the new event form repeats on the start's weekday and never ends, until told otherwise" do
+      travel_to Time.utc(2030, 1, 9, 10, 30) do
+        get tool_calendar_path(@tool)
+      end
+
+      assert_select "#new-event-modal" do
+        assert_select "input[name='calendars_event[recurrence_end_type]'][checked]" do |radios|
+          assert_equal [ "never" ], radios.map { |radio| radio["value"] }
+        end
+        assert_select "input[name='calendars_event[recurrence_days_of_week][]'][checked]" do |days|
+          assert_equal [ "WE" ], days.map { |day| day["value"] }
+        end
+        assert_select "[data-recurrence-form-target=weekdayLabel]", text: "The 2nd Wednesday"
+      end
+    end
+
     test "the new event form offers only calendars that take new events" do
       @personal.update!(read_only: true)
 

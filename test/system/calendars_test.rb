@@ -42,6 +42,20 @@ class CalendarsTest < ApplicationSystemTestCase
     assert_equal Time.utc(2030, 1, 8, 15), event.reload.ends_at
   end
 
+  test "the repeat options of a new event follow the slot picked in the grid" do
+    visit tool_calendar_path(@tool, week_start: "2030-01-07")
+    wait_for_turbo
+    wait_for_stimulus "calendar"
+
+    find(".week-column[data-date='2030-01-11'] .hour-slot[data-hour='10']").click
+    within("dialog#new-event-modal[open]") do
+      select "Weekly", from: "calendars_event[recurrence_frequency]"
+      assert_equal [ "FR" ], all("input[name='calendars_event[recurrence_days_of_week][]']", visible: :all).select(&:checked?).map(&:value)
+      assert_selector "[data-recurrence-form-target=weekdayLabel]", text: "The 2nd Friday", visible: :all
+      assert_checked_field "Never"
+    end
+  end
+
   private
 
   def in_browser_time_zone(zone)
