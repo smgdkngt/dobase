@@ -134,6 +134,7 @@ Rails.application.routes.draw do
       resource :room, only: :show do
         scope module: :rooms do
           resources :tokens, only: :create
+          resource :activity, only: %i[create destroy]
         end
       end
 
