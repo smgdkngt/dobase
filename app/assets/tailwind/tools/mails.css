@@ -32,6 +32,17 @@
     min-height: 100%;
   }
 
+  /* HTML email: always on a light page, framed as a light card in dark mode */
+  .email-frame {
+    @apply rounded-lg;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .email-frame {
+      @apply bg-white p-4 overflow-hidden;
+    }
+  }
+
   /* Selected state with color-mix - no Tailwind equivalent */
   .mail-list-item.selected {
     @apply border-l-accent;
