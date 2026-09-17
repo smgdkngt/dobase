@@ -4,26 +4,11 @@ module Files
   class Item < ApplicationRecord
     include HumanFileSize
     include Trackable
+    include BlockedFileType
 
     self.table_name = "file_items"
 
     MAX_FILE_SIZE = 200.megabytes
-
-    BLOCKED_EXTENSIONS = %w[
-      exe msi bat cmd com scr pif
-      sh bash ps1 vbs vbe js jse ws wsf
-      dll sys drv
-      reg inf hta cpl
-      app dmg pkg
-    ].freeze
-
-    BLOCKED_CONTENT_TYPES = %w[
-      application/x-msdownload
-      application/x-executable
-      application/x-msdos-program
-      application/x-sh
-      application/x-shellscript
-    ].freeze
 
     belongs_to :tool
     belongs_to :folder, class_name: "Files::Folder", optional: true
@@ -32,7 +17,6 @@ module Files
 
     validates :name, presence: true
     validate :file_size_limit, if: -> { file.attached? }
-    validate :file_type_allowed, if: -> { file.attached? }
 
     scope :roots, -> { where(folder_id: nil) }
     scope :ordered, -> { order(:position, :name) }
@@ -93,18 +77,6 @@ module Files
     def file_size_limit
       if file.blob.byte_size > MAX_FILE_SIZE
         errors.add(:file, "is too large. Maximum size is #{MAX_FILE_SIZE / 1.megabyte}MB")
-      end
-    end
-
-    def file_type_allowed
-      ext = File.extname(file.filename.to_s).delete(".").downcase
-      if BLOCKED_EXTENSIONS.include?(ext)
-        errors.add(:file, "type .#{ext} is not allowed for security reasons")
-        return
-      end
-
-      if BLOCKED_CONTENT_TYPES.any? { |type| file.blob.content_type&.include?(type) }
-        errors.add(:file, "type is not allowed for security reasons")
       end
     end
   end

@@ -327,6 +327,16 @@ module Tools
       assert ::Todos::Comment.exists?(comment.id)
     end
 
+    test "programs can't be attached to a todo" do
+      file = Rack::Test::UploadedFile.new(StringIO.new("MZ"), "application/octet-stream", original_filename: "Setup.EXE")
+
+      assert_no_difference -> { @item.attachments.count } do
+        post tool_todo_item_attachments_path(@tool, @item), params: { file: file }, headers: @headers
+      end
+      assert_response :unprocessable_entity
+      assert_equal [ "File type .exe is not allowed for security reasons" ], response.parsed_body["errors"]
+    end
+
     test "several files can be attached at once" do
       files = %w[one.txt two.txt].map { |name| Rack::Test::UploadedFile.new(StringIO.new(name), "text/plain", original_filename: name) }
       sign_in_as @user

@@ -3,6 +3,7 @@
 module Boards
   class Attachment < ApplicationRecord
     include HumanFileSize
+    include BlockedFileType
 
     self.table_name = "card_attachments"
 

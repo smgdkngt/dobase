@@ -3,6 +3,7 @@
 module Todos
   class Attachment < ApplicationRecord
     include HumanFileSize
+    include BlockedFileType
 
     self.table_name = "todo_item_attachments"
 
