@@ -16,10 +16,14 @@ export default class extends Controller {
 
     this.setupChannel()
     this.setupKeyboardShortcuts()
+    this.saveBeforeLeaving = () => this.flushPendingSave({ keepalive: true })
+    window.addEventListener("pagehide", this.saveBeforeLeaving)
   }
 
   disconnect() {
-    if (this.saveTimeout) clearTimeout(this.saveTimeout)
+    // Leaving the page (a Turbo visit keeps the document alive, so the save still goes through)
+    this.flushPendingSave()
+    window.removeEventListener("pagehide", this.saveBeforeLeaving)
     if (this.lockInterval) clearInterval(this.lockInterval)
     this.channel?.unsubscribe()
     this.removeKeyboardShortcuts()
@@ -74,13 +78,24 @@ export default class extends Controller {
     }
   }
 
+  // Saves right away what the autosave was still waiting to save
+  flushPendingSave({ keepalive = false } = {}) {
+    if (!this.saveTimeout) return
+
+    clearTimeout(this.saveTimeout)
+    this.saveTimeout = null
+    this.save({ keepalive })
+  }
+
   scheduleAutoSave() {
     if (this.saveTimeout) clearTimeout(this.saveTimeout)
     this.showSaveIndicator("Editing...")
     this.saveTimeout = setTimeout(() => this.save(), 2000)
   }
 
-  async save() {
+  // keepalive lets the request outlive a closing tab (for bodies up to 64 KB)
+  async save({ keepalive = false } = {}) {
+    this.saveTimeout = null
     if (this.isSaving) {
       this.pendingSave = true
       return
@@ -100,7 +115,8 @@ export default class extends Controller {
           "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content,
           "Accept": "application/json"
         },
-        body: formData
+        body: formData,
+        keepalive
       })
 
       if (response.ok) {

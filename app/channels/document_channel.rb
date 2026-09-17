@@ -26,13 +26,15 @@ class DocumentChannel < ApplicationCable::Channel
     end
   end
 
+  # Keeps our lock fresh, and takes it back if it was released meanwhile: the same
+  # document open in another tab that closed releases it on unsubscribe
   def refresh_lock
     return unless @document
 
-    # Atomic update: only refresh if we still hold the lock
-    Docs::Document
+    kept = Docs::Document
       .where(id: @document.id, locked_by_id: current_user.id)
       .update_all(locked_at: Time.current)
+    start_editing if kept.zero?
   end
 
   def start_editing

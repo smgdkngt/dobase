@@ -60,6 +60,8 @@ export default class extends Controller {
         this.updateTypingIndicator()
         break
       case "presence":
+        // Answer a newcomer's hello, so they see who was already here
+        if (data.status === "online" && data.hello) this.channel?.perform("announce_presence")
         data.status === "online"
           ? this.onlineUsers.add(data.user_id)
           : this.onlineUsers.delete(data.user_id)
