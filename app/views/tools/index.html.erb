@@ -21,7 +21,7 @@
             <% end %>
             <p class="text-sm text-text-secondary"><%= tool.tool_type.name %></p>
           </div>
-          <% if tool.owned_by?(current_user) %>
+          <% if @owned_tool_ids.include?(tool.id) %>
             <span class="text-xs text-text-tertiary">Owner</span>
           <% else %>
             <span class="text-xs text-text-tertiary bg-background-secondary px-2 py-0.5 rounded">Shared</span>

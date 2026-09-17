@@ -35,5 +35,19 @@ module Tools
       get tool_files_path(@tool)
       assert_redirected_to new_session_path
     end
+
+    test "show runs the same number of queries however many files and shares the folder has" do
+      add_files = -> do
+        4.times do
+          name = "#{SecureRandom.hex(4)}.txt"
+          item = @tool.file_items.create!(name: name, file: { io: StringIO.new("text"), filename: name, content_type: "text/plain" })
+          ::Files::Share.create!(shareable: item, created_by: users(:one))
+        end
+        folder = @tool.file_folders.create!(name: "Shared #{SecureRandom.hex(4)}")
+        ::Files::Share.create!(shareable: folder, created_by: users(:one))
+      end
+
+      assert_queries_independent_of(add_files) { get tool_files_path(@tool) }
+    end
   end
 end

@@ -27,6 +27,10 @@ module Todos
     scope :recurring, -> { where.not(recurrence_rule: nil) }
 
     def completed? = completed_at.present?
+
+    # Matches the recently_completed scope
+    def recently_completed? = completed? && completed_at >= 24.hours.ago
+
     def recurring? = recurrence_rule.present?
 
     # Creates the next instance of a recurring item with the schedule advanced

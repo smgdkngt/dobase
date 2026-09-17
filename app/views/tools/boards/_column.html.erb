@@ -1,7 +1,9 @@
 <%
   assignee_filter ||= nil
-  active_cards = filter_by_assignee(column.cards.active.to_a, assignee_filter)
-  archived_cards = column.cards.archived
+  # Split the loaded cards in Ruby, so a preloaded column needs no queries of its own
+  cards = column.cards.to_a
+  active_cards = filter_by_assignee(cards.reject(&:archived?), assignee_filter)
+  archived_cards = cards.select(&:archived?)
   active_count = active_cards.size
   archived_count = archived_cards.size
 %>

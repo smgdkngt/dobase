@@ -11,8 +11,8 @@ module Tools
     before_action :set_folder, only: :show
 
     def show
-      @folders = current_folders.ordered
-      @files = current_files.ordered
+      @folders = current_folders.ordered.includes(:share)
+      @files = current_files.ordered.includes(:share)
 
       respond_to do |format|
         format.html do

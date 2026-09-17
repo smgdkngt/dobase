@@ -3,6 +3,7 @@ require_relative "../config/environment"
 require "rails/test_help"
 require_relative "test_helpers/session_test_helper"
 require_relative "test_helpers/api_test_helper"
+require_relative "test_helpers/query_count_test_helper"
 require_relative "test_helpers/smtp_test_helper"
 
 # Tests never look up real host names. Names count as public servers, except
