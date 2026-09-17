@@ -554,6 +554,8 @@ class CaldavSyncService
     calendar.update!(sync_token: sync_token, ctag: ctag)
   end
 
+  # A stored calendar object: no METHOD, which RFC 4791 (4.1) doesn't allow there
+  # and some servers reject. Invites carry their own ICS.
   def build_icalendar(event)
     cal = Icalendar::Calendar.new
     cal.prodid = "-//#{Rails.application.config.x.app.name}//Calendar//EN"
@@ -592,7 +594,6 @@ class CaldavSyncService
 
     cal.add_event(vevent)
     keep_exceptions(cal, vevent, event) if event.is_recurring? && event.rrule.present?
-    cal.publish
     cal.to_ical
   end
 

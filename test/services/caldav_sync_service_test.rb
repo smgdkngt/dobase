@@ -366,6 +366,24 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     assert_equal expected_url, event.remote_href
   end
 
+  test "create_event and update_event PUT calendar objects without a METHOD" do
+    event = calendars_events(:meeting)
+    bodies = []
+    stub_request(:put, /.*/).to_return do |request|
+      bodies << request.body
+      { status: 201, headers: { "ETag" => '"etag"' } }
+    end
+
+    @service.create_event(event)
+    @service.update_event(event.reload)
+
+    assert_equal 2, bodies.size
+    bodies.each do |body|
+      assert_includes body, "BEGIN:VCALENDAR"
+      assert_no_match(/^METHOD:/, body)
+    end
+  end
+
   test "update_event pushes changes to server" do
     event = calendars_events(:meeting)
     event.update!(summary: "Updated Meeting")
