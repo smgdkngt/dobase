@@ -45,11 +45,6 @@ module Docs
       assert_equal "", document.preview_text
     end
 
-    test "ordered scope sorts by updated_at descending" do
-      documents = Docs::Document.ordered
-      assert documents.first.updated_at >= documents.last.updated_at
-    end
-
     test "locked? returns false when not locked" do
       document = docs_documents(:meeting_notes)
       document.locked_by_id = nil
@@ -82,6 +77,14 @@ module Docs
       document = docs_documents(:empty_document)
 
       assert_equal document.updated_at, document.edited_at
+    end
+    test "ordered lists the most recently edited documents first" do
+      tool = tools(:my_docs)
+      edited = tool.documents.create!(title: "Edited", created_by: users(:one), last_edited_at: 1.minute.ago)
+      touched = tool.documents.create!(title: "Only touched", created_by: users(:one), last_edited_at: 1.day.ago)
+      touched.touch
+
+      assert_equal [ edited, touched ], tool.documents.ordered.where(id: [ edited, touched ]).to_a
     end
   end
 end

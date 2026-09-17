@@ -12,7 +12,8 @@ module Docs
 
     validates :title, presence: true
 
-    scope :ordered, -> { order(updated_at: :desc) }
+    # Most recently edited first, by the time the documents list shows (edited_at)
+    scope :ordered, -> { order(Arel::Nodes::NamedFunction.new("COALESCE", [ arel_table[:last_edited_at], arel_table[:updated_at] ]).desc, id: :desc) }
 
     # Lock expires after 5 minutes of inactivity
     LOCK_TIMEOUT = 5.minutes
