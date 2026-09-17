@@ -191,6 +191,19 @@ class MailsTest < ApplicationSystemTestCase
     assert_equal [ "notes.txt", "report.txt" ], sent.attachments.pluck(:filename).sort
   end
 
+  test "picked files are listed by name, as text, with their size" do
+    visit new_tool_mail_path(@tool)
+    wait_for_compose_editor
+
+    attach_file "attachments[]", text_file("<em>notes.txt", "a" * 1536), make_visible: true
+
+    within("[data-compose-target='attachmentsList']") do
+      assert_text "<em>notes.txt"
+      assert_text "1.5 KB"
+      assert_no_selector "em"
+    end
+  end
+
   test "saving a draft, and saving it again" do
     visit new_tool_mail_path(@tool)
     wait_for_stimulus "compose"
