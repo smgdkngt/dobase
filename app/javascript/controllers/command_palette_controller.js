@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["input", "results", "item"]
+  static targets = ["input", "results", "item", "sectionHeader", "sectionDivider"]
 
   open() {
     this.inputTarget.value = ""
@@ -24,7 +24,22 @@ export default class extends Controller {
       }
     })
 
+    this._toggleEmptySections()
     this.#selectFirst()
+  }
+
+  // Hide a section's header (and, for actions, the divider after it) once
+  // filtering leaves nothing visible under it — otherwise a filter that only
+  // matches tools leaves a dangling "ACTIONS" label with nothing below it.
+  _toggleEmptySections() {
+    const visible = (item) => !item.classList.contains("hidden")
+    const hasVisibleAction = this.itemTargets.some(item => item.dataset.type === "action" && visible(item))
+    const hasVisibleTool = this.itemTargets.some(item => item.dataset.type !== "action" && visible(item))
+
+    this.sectionHeaderTargets.forEach(header => {
+      header.classList.toggle("hidden", !(header.dataset.section === "action" ? hasVisibleAction : hasVisibleTool))
+    })
+    this.sectionDividerTargets.forEach(divider => divider.classList.toggle("hidden", !hasVisibleAction))
   }
 
   navigate(event) {
@@ -48,7 +63,17 @@ export default class extends Controller {
     const hotkey = event.currentTarget.dataset.hotkeyTrigger
     this.element.close()
     const target = this._findHotkeyElement(hotkey)
-    if (target) target.click()
+    if (!target) return
+
+    // Some hotkey targets are the field itself (e.g. mail search), not a
+    // button to click — clicking a text input doesn't focus it the way a
+    // real mouse click would, since that focus comes from mousedown, which
+    // .click() doesn't dispatch.
+    if (target.matches("input, textarea, [contenteditable]")) {
+      target.focus()
+    } else {
+      target.click()
+    }
   }
 
   // data-hotkey can list several hotkeys, separated by commas: "#,Shift+#".

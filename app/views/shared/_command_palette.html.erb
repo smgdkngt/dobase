@@ -10,11 +10,11 @@
   </div>
   <div class="max-h-80 overflow-y-auto pb-2" data-command-palette-target="results">
     <% if content_for?(:command_palette_actions) %>
-      <div class="px-4 py-1.5">
+      <div class="px-4 py-1.5" data-command-palette-target="sectionHeader" data-section="action">
         <span class="text-xs font-semibold text-text-tertiary uppercase tracking-wider">Actions</span>
       </div>
       <%= content_for(:command_palette_actions) %>
-      <div class="border-t border-border-light my-1"></div>
+      <div class="border-t border-border-light my-1" data-command-palette-target="sectionDivider"></div>
     <% end %>
     <%
       group_lookup = {}
@@ -22,7 +22,7 @@
         group.tools.each { |tool| group_lookup[tool.id] = group.name }
       end
     %>
-    <div class="px-4 py-1.5">
+    <div class="px-4 py-1.5" data-command-palette-target="sectionHeader" data-section="tool">
       <span class="text-xs font-semibold text-text-tertiary uppercase tracking-wider">Tools</span>
     </div>
     <% current_user.accessible_tools.includes(:tool_type).order(:name).each do |tool| %>

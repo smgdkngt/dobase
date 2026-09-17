@@ -4,11 +4,15 @@
 <% content_for :command_palette_actions do %>
   <%= render "shared/command_palette_action", key: "c", description: "Compose", icon: "edit" %>
   <%= render "shared/command_palette_action", key: "/", description: "Search", icon: "search" %>
-  <%= render "shared/command_palette_action", key: "e", description: "Archive", icon: "archive" %>
-  <%= render "shared/command_palette_action", key: "s", description: "Star / unstar", icon: "star" %>
-  <%= render "shared/command_palette_action", key: "r", description: "Reply", icon: "reply" %>
-  <%= render "shared/command_palette_action", key: "f", description: "Forward", icon: "forward" %>
-  <%= render "shared/command_palette_action", key: "#", description: "Trash", icon: "trash-2" %>
+  <%# These act on the open message, rendered by tools/mails/mail_detail — hide
+      them when there isn't one, since their hotkey target wouldn't be on the page. %>
+  <% if @selected_message %>
+    <%= render "shared/command_palette_action", key: "e", description: "Archive", icon: "archive" %>
+    <%= render "shared/command_palette_action", key: "s", description: "Star / unstar", icon: "star" %>
+    <%= render "shared/command_palette_action", key: "r", description: "Reply", icon: "reply" %>
+    <%= render "shared/command_palette_action", key: "f", description: "Forward", icon: "forward" %>
+    <%= render "shared/command_palette_action", key: "#", description: "Trash", icon: "trash-2" %>
+  <% end %>
 <% end %>
 
 <% content_for :keyboard_shortcuts do %>
@@ -108,8 +112,7 @@
         <div class="dropdown-divider"></div>
         <button type="button"
                 class="dropdown-item flex items-center gap-2 w-full"
-                commandfor="create-folder-modal" command="show-modal"
-                popovertarget="mail-folder-menu" popovertargetaction="hide">
+                commandfor="create-folder-modal" command="show-modal">
           <%= render "shared/icon", name: "folder-plus", size: 16 %>
           <span>New Folder</span>
         </button>
