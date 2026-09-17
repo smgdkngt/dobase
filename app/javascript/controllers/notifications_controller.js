@@ -24,6 +24,14 @@ export default class extends Controller {
   }
 
   handleNotification(data) {
+    // Live presence ping from the Room tool (see Tools::Rooms::ActivitiesController) —
+    // not a real notification, so it skips the bell/badge/list entirely and just
+    // toggles the same in-call indicator the room controller uses for itself.
+    if (data.type === "room_activity") {
+      this.updateInCallIndicator(data.tool_id, data.active)
+      return
+    }
+
     this.unreadCountValue += 1
     this.updateBadge()
 
@@ -39,6 +47,16 @@ export default class extends Controller {
     if (this.hasListTarget) {
       const item = this.buildNotificationHTML(data)
       this.listTarget.insertAdjacentHTML("afterbegin", item)
+    }
+  }
+
+  updateInCallIndicator(toolId, active) {
+    const toolItem = document.querySelector(`[data-tool-id="${toolId}"]`)
+    if (!toolItem) return
+    if (active) {
+      toolItem.setAttribute("data-in-call", "")
+    } else {
+      toolItem.removeAttribute("data-in-call")
     }
   }
 
