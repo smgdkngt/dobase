@@ -17,7 +17,10 @@ export default class extends Controller {
 
     this.boundTurboRender = this.handleTurboRender.bind(this)
     document.addEventListener("turbo:before-stream-render", this.boundTurboRender)
-    window.addEventListener("focus", () => this.markAsRead())
+    // Keep the bound function: removeEventListener needs the same one, or
+    // every connect would leave another window listener behind.
+    this.boundMarkAsRead = () => this.markAsRead()
+    window.addEventListener("focus", this.boundMarkAsRead)
 
     this.setupActionCable()
     this.scrollToBottom()
@@ -26,6 +29,7 @@ export default class extends Controller {
 
   disconnect() {
     document.removeEventListener("turbo:before-stream-render", this.boundTurboRender)
+    window.removeEventListener("focus", this.boundMarkAsRead)
     this.revokeObjectUrls()
     this.channel?.unsubscribe()
     if (this.typingTimeout) clearTimeout(this.typingTimeout)
@@ -221,7 +225,7 @@ export default class extends Controller {
     if (this.hasReplyAuthorTarget) this.replyAuthorTarget.textContent = `Replying to ${msg.dataset.messageAuthor}`
     if (this.hasReplyContentTarget) this.replyContentTarget.textContent = msg.dataset.messageContent || "[File attachment]"
     if (this.hasReplyPreviewTarget) this.replyPreviewTarget.classList.remove("hidden")
-    this.#editor?.focus()
+    this.#editor?.commands.focus()
   }
 
   cancelReply() {
@@ -230,13 +234,15 @@ export default class extends Controller {
   }
 
   focusInput() {
-    this.#editor?.focus()
+    this.#editor?.commands.focus()
   }
 
   // Form submission
   submit(event) {
     const editor = this.#editor
-    const hasText = editor && !editor.isBlank
+    // TipTap's Editor exposes isEmpty, not isBlank — isBlank is always
+    // undefined, so !editor.isBlank was always true and let empty sends through.
+    const hasText = editor && !editor.isEmpty
     const hasFiles = this.selectedFiles.length > 0
 
     if (!hasText && !hasFiles) {
@@ -257,7 +263,11 @@ export default class extends Controller {
     }, { once: true })
   }
 
+  // The TipTap editor instance, not the <rhino-editor> element itself — the
+  // actual editable content lives in its shadow DOM, so plain .focus() on
+  // the custom element doesn't move the cursor into it. Use TipTap's own
+  // focus command instead, same as rich_text_input_controller does for clear.
   get #editor() {
-    return this.element.querySelector("rhino-editor")
+    return this.element.querySelector("rhino-editor")?.editor
   }
 }

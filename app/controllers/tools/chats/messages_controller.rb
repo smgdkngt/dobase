@@ -3,8 +3,9 @@
 module Tools
   module Chats
     # The chat form submits through Turbo and new messages arrive over the chat's
-    # broadcast, so the browser only gets a status or the form errors. Those use
-    # format.any rather than format.html so the errors keep their Turbo Stream type.
+    # broadcast, so the browser only needs the error slot updated — cleared on
+    # success, filled in on failure. Those use format.any rather than format.html
+    # so the response keeps its Turbo Stream type.
     class MessagesController < ApplicationController
       include ToolAuthorization
 
@@ -22,10 +23,10 @@ module Tools
 
         respond_to do |format|
           if @message.save
-            format.any { head :ok }
+            format.any { render_message_errors }
             format.json { render :show, status: :created }
           else
-            format.any { render_form_errors }
+            format.any { render_message_errors(status: :unprocessable_entity) }
             format.json { render json: { errors: @message.errors.full_messages }, status: :unprocessable_entity }
           end
         end
@@ -34,10 +35,10 @@ module Tools
       def update
         respond_to do |format|
           if @message.update(body: params.dig(:message, :body), edited_at: Time.current)
-            format.any { head :ok }
+            format.any { render_message_errors }
             format.json { render :show }
           else
-            format.any { render_form_errors }
+            format.any { render_message_errors(status: :unprocessable_entity) }
             format.json { render json: { errors: @message.errors.full_messages }, status: :unprocessable_entity }
           end
         end
@@ -83,12 +84,15 @@ module Tools
         params.require(:message).permit(:body, :reply_to_id, files: [])
       end
 
-      def render_form_errors
+      # Replaces the error slot with the message's current errors — none on
+      # success, which is what clears a previous failed attempt's message
+      # instead of leaving it stuck once the next send goes through.
+      def render_message_errors(status: :ok)
         render turbo_stream: turbo_stream.replace(
           "chat-form-errors",
           partial: "shared/error_flash",
           locals: { object: @message }
-        ), status: :unprocessable_entity
+        ), status: status
       end
     end
   end
