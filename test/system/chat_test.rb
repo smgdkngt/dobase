@@ -10,6 +10,24 @@ class ChatTest < ApplicationSystemTestCase
     sign_in_as(@user)
   end
 
+  test "a message broadcast from someone in another time zone shows the time in the viewer's zone" do
+    @user.update!(timezone: "Tokyo")
+    sent_at = 1.hour.ago.change(sec: 0)
+    message = Time.use_zone("UTC") { @tool.chat.messages.create!(user: @user, body: "From London", created_at: sent_at) }
+
+    visit tool_chat_path(@tool)
+    wait_for_stimulus "local-time"
+    # What the sender's request renders and broadcasts: the time in the sender's zone
+    rendered = Time.use_zone("UTC") { ApplicationController.render(partial: "tools/chats/message", locals: { message: message }) }
+    page.execute_script(<<~JS, rendered)
+      const template = document.createElement("template")
+      template.innerHTML = arguments[0].replace('id="', 'id="broadcast_')
+      document.getElementById("chat_messages").append(template.content)
+    JS
+
+    within("[id^='broadcast_']") { assert_selector "time", text: sent_at.in_time_zone("Tokyo").strftime("%-I:%M %p") }
+  end
+
   test "an empty message can't be sent" do
     visit tool_chat_path(@tool)
     wait_for_turbo

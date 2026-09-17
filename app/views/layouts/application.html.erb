@@ -10,6 +10,7 @@
     <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#2c2c2e" media="(prefers-color-scheme: dark)">
     <%= csrf_meta_tags %>
+    <meta name="time-zone" content="<%= Time.zone.tzinfo.name %>">
     <%= csp_meta_tag %>
     <%# No prefetch on hover: page visits have effects (marking mail read, the docs edit lock, activity dots) %>
     <meta name="turbo-prefetch" content="false">
