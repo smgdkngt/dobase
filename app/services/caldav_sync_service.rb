@@ -536,8 +536,8 @@ class CaldavSyncService
       vevent.dtstart = Icalendar::Values::Date.new(event.first_day)
       vevent.dtend = Icalendar::Values::Date.new(event.last_day + 1)
     else
-      vevent.dtstart = Icalendar::Values::DateTime.new(event.starts_at.utc)
-      vevent.dtend = Icalendar::Values::DateTime.new(event.ends_at.utc)
+      vevent.dtstart = utc_value(event.starts_at)
+      vevent.dtend = utc_value(event.ends_at)
     end
 
     vevent.status = event.status.upcase if event.status.present?
@@ -556,12 +556,17 @@ class CaldavSyncService
         { "cn" => attendee["name"].presence, "partstat" => attendee["status"].presence&.upcase || "NEEDS-ACTION" }.compact)
     end
 
-    vevent.dtstamp = Icalendar::Values::DateTime.new(Time.current.utc)
+    vevent.dtstamp = utc_value(Time.current)
 
     cal.add_event(vevent)
     keep_exceptions(cal, vevent, event) if event.is_recurring? && event.rrule.present?
     cal.publish
     cal.to_ical
+  end
+
+  # Without the tzid, icalendar writes the time without its Z, which calendars read as local time
+  def utc_value(time)
+    Icalendar::Values::DateTime.new(time.utc, "tzid" => "UTC")
   end
 
   # Dobase doesn't edit the occurrences a synced series skips (EXDATE) or adds (RDATE), nor the

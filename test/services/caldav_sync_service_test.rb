@@ -494,6 +494,19 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     assert_includes ics, "END:VCALENDAR"
   end
 
+  test "sends the times of an event in UTC" do
+    event = calendars_events(:meeting)
+
+    ics = @service.send(:build_icalendar, event)
+
+    assert_includes ics, "DTSTART:#{event.starts_at.utc.strftime('%Y%m%dT%H%M%SZ')}"
+    assert_includes ics, "DTEND:#{event.ends_at.utc.strftime('%Y%m%dT%H%M%SZ')}"
+    assert_match(/^DTSTAMP:\d{8}T\d{6}Z\r?$/, ics)
+    Time.use_zone("Tokyo") do
+      assert_equal event.starts_at, IcsParserService.new(ics).parse[:starts_at]
+    end
+  end
+
   test "builds valid icalendar for all-day event" do
     event = calendars_events(:all_day_event)
 
