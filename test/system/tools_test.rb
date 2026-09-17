@@ -50,12 +50,4 @@ class ToolsTest < ApplicationSystemTestCase
     # The settings gear only shows on hover
     find("[data-action~='click->sidebar#editTool'][data-tool-id='#{@tool.id}']", visible: :all).execute_script("this.click()")
   end
-
-  def sign_in_as(user)
-    visit new_session_path
-    fill_in "Email", with: user.email_address
-    fill_in "Password", with: "password"
-    click_on "Sign In"
-    assert_selector ".sidebar", wait: 5
-  end
 end

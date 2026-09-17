@@ -286,12 +286,4 @@ class FilesTest < ApplicationSystemTestCase
     menu_btn.click
     find("[data-file-context-menu-target='menu']", visible: true, wait: 10)
   end
-
-  def sign_in_as(user)
-    visit new_session_path
-    fill_in "Email", with: user.email_address
-    fill_in "Password", with: "password"
-    click_on "Sign In"
-    assert_selector ".sidebar", wait: 5
-  end
 end
