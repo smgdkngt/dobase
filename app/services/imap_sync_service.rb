@@ -142,13 +142,14 @@ class ImapSyncService
     Rails.logger.error("Failed to delete draft from IMAP: #{e.message}")
   end
 
-  def delete_message(uid, folder:)
+  # Takes one UID or several in the same folder
+  def delete_message(uids, folder:)
     connect do |imap|
       select_folder(imap, folder)
-      remove_from_folder(imap, uid)
+      remove_from_folder(imap, uids)
     end
   rescue StandardError => e
-    Rails.logger.error("Failed to delete email #{uid} from #{folder}: #{e.message}")
+    Rails.logger.error("Failed to delete email #{Array(uids).join(", ")} from #{folder}: #{e.message}")
   end
 
   def move_to_folder(uid, source_folder:, destination_folder:)

@@ -17,8 +17,9 @@ module Tools
       def create
         folder = params[:folder] || "inbox"
         next_msg = find_next_message(@message, folder)
-        @message.update!(trashed: true, archived: false)
-        sync_delete_to_imap(@message)
+        messages = with_their_conversations([ @message ], folder: folder).reject(&:trashed?)
+        messages.each { |message| message.update!(trashed: true, archived: false) }
+        sync_delete_to_imap(messages)
 
         respond_to do |format|
           format.html { redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Email moved to trash.") }
@@ -29,7 +30,7 @@ module Tools
       # DELETE /tools/:tool_id/mails/:mail_id/trash
       def destroy
         next_msg = find_next_message(@message, "trash")
-        @message.update!(trashed: false)
+        with_their_conversations([ @message ], folder: "trash").each { |message| message.update!(trashed: false) }
 
         respond_to do |format|
           format.html { redirect_to_next_mail_or_fallback(next_msg, folder: "trash", notice: "Email restored.") }
@@ -57,10 +58,12 @@ module Tools
         @message = ::Mails::Message.where(account: @tool.mail_account).find(params[:mail_id])
       end
 
-      def sync_delete_to_imap(message)
-        return unless message.uid.present? && message.folder.present?
-        account = @tool.mail_account
-        ImapSyncService.new(account).delete_message(message.uid, folder: message.folder)
+      # One connection per folder
+      def sync_delete_to_imap(messages)
+        on_server = messages.select { |message| message.uid.present? && message.folder.present? }
+        on_server.group_by(&:folder).each do |folder, in_folder|
+          ImapSyncService.new(@tool.mail_account).delete_message(in_folder.map(&:uid), folder: folder)
+        end
       end
     end
   end

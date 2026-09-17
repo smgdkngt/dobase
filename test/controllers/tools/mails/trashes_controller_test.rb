@@ -22,6 +22,32 @@ module Tools
         assert_not msg.reload.trashed
       end
 
+      test "trashing a message trashes its conversation, deleting it on the server in one go" do
+        older, newer = create_mail_thread
+        server = FakeImapServer.new
+
+        connect_to_imap(server) { post tool_mail_trash_path(@tool, newer, folder: "inbox") }
+
+        assert [ older, newer ].all? { |message| message.reload.trashed? }
+        assert_equal [ [ 201, 202 ] ], server.stored.map { |uids, _action, _flags| uids.sort }
+
+        delete tool_mail_trash_path(@tool, newer)
+        assert [ older, newer ].none? { |message| message.reload.trashed? }
+      end
+
+      test "deleting a trashed conversation for good deletes its trashed messages and nothing else" do
+        older, newer = create_mail_thread
+        [ older, newer ].each { |message| message.update!(trashed: true) }
+        in_inbox = mails_messages(:inbox_unread)
+        in_inbox.update_column(:thread_id, "thread-lunch")
+
+        connect_to_imap(FakeImapServer.new) { delete tool_mail_path(@tool, newer, folder: "inbox") }
+
+        assert_not ::Mails::Message.exists?(older.id)
+        assert_not ::Mails::Message.exists?(newer.id)
+        assert ::Mails::Message.exists?(in_inbox.id)
+      end
+
       test "destroy_all empties trash" do
         assert ::Mails::Message.where(mail_account_id: mails_accounts(:primary).id).trashed.any?
         delete tool_empty_trash_path(@tool)

@@ -5,6 +5,7 @@ module Tools
     class BulkActionsController < ApplicationController
       include ToolAuthorization
       include FolderValidation
+      include NextMailNavigation
 
       # Each selected message can queue an IMAP job. Select-all in the mail list only covers the current page.
       MAX_MESSAGES = 200
@@ -24,19 +25,22 @@ module Tools
         end
 
         messages = @mail_account.messages.where(id: message_ids)
+        folder = params[:folder].presence || "inbox"
 
         notice = case action
         when "trash"
+          messages = conversations_of(messages, folder).where(trashed: false)
           messages.where.not(uid: nil).find_each do |message|
             ImapSyncJob.perform_later(@mail_account.id, "delete_message", message.uid, message.folder || "INBOX")
           end
-          messages.update_all(trashed: true, trashed_at: Time.current, archived: false)
-          "#{messages.count} email(s) moved to trash."
+          count = messages.update_all(trashed: true, trashed_at: Time.current, archived: false)
+          "#{count} email(s) moved to trash."
         when "restore"
           # Local only, like TrashesController#destroy: trashing already expunged these on the IMAP server.
-          count = messages.trashed.update_all(trashed: false, trashed_at: nil)
+          count = conversations_of(messages, "trash").trashed.update_all(trashed: false, trashed_at: nil)
           "#{count} email(s) restored."
         when "archive"
+          messages = conversations_of(messages, folder).where(archived: false)
           archive_folder = @mail_account.archive_folder.presence
           messages.where.not(uid: nil).find_each do |message|
             if archive_folder
@@ -45,8 +49,8 @@ module Tools
               ImapSyncJob.perform_later(@mail_account.id, "mark_as_read", message.uid, message.folder || "INBOX")
             end
           end
-          messages.update_all(archived: true)
-          "#{messages.count} email(s) archived."
+          count = messages.update_all(archived: true)
+          "#{count} email(s) archived."
         when "mark_read"
           messages.update_all(read: true)
           messages.where.not(uid: nil).find_each do |message|
@@ -74,7 +78,7 @@ module Tools
             "Invalid folder name."
           end
         when "delete"
-          trashed = messages.where(trashed: true)
+          trashed = conversations_of(messages, "trash").trashed
           trashed.where.not(uid: nil).find_each do |message|
             ImapSyncJob.perform_later(@mail_account.id, "delete_message", message.uid, message.folder || "INBOX")
           end
@@ -91,6 +95,10 @@ module Tools
 
       def set_tool
         @tool = Tool.find(params[:tool_id])
+      end
+
+      def conversations_of(messages, folder)
+        @mail_account.messages.where(id: with_their_conversations(messages, folder: folder).map(&:id))
       end
     end
   end

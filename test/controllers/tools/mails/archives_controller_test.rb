@@ -39,6 +39,26 @@ module Tools
         assert_nil msg.uid, "the next inbox sync fills in the new UID"
       end
 
+      test "archiving a message archives its conversation in the folder, and unarchiving brings it back" do
+        older, newer = create_mail_thread
+
+        post tool_mail_archive_path(@tool, newer, folder: "inbox")
+        assert [ older, newer ].all? { |message| message.reload.archived? }
+        assert_equal [ 201, 202 ], enqueued_jobs.select { |job| job["job_class"] == "ImapSyncJob" }.map { |job| job["arguments"][2] }.sort
+
+        delete tool_mail_archive_path(@tool, newer)
+        assert [ older, newer ].none? { |message| message.reload.archived? }
+      end
+
+      test "archiving leaves the conversation's messages in other folders alone" do
+        msg = mails_messages(:inbox_read)
+
+        post tool_mail_archive_path(@tool, msg, folder: "inbox")
+
+        assert msg.reload.archived?
+        assert_not mails_messages(:sent_message).reload.archived?, "same thread, but in Sent"
+      end
+
       test "unarchiving without an archive folder marks the message unread on the server" do
         msg = mails_messages(:archived_message)
 

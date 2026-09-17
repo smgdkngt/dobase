@@ -38,6 +38,27 @@ module Tools
         assert_equal "1 email(s) restored.", flash[:notice]
       end
 
+      test "bulk archive, trash, restore and delete act on whole conversations" do
+        older, newer = create_mail_thread
+
+        post tool_bulk_path(@tool), params: { message_ids: [ newer.id ], action_type: "archive", folder: "inbox" }
+        assert older.reload.archived?
+        assert_equal "2 email(s) archived.", flash[:notice]
+
+        [ older, newer ].each { |message| message.update!(archived: false) }
+        post tool_bulk_path(@tool), params: { message_ids: [ newer.id ], action_type: "trash", folder: "inbox" }
+        assert older.reload.trashed?
+        assert_equal "2 email(s) moved to trash.", flash[:notice]
+
+        post tool_bulk_path(@tool), params: { message_ids: [ newer.id ], action_type: "restore", folder: "trash" }
+        assert_not older.reload.trashed?
+
+        [ older, newer ].each { |message| message.update!(trashed: true) }
+        assert_difference "::Mails::Message.count", -2 do
+          post tool_bulk_path(@tool), params: { message_ids: [ newer.id ], action_type: "delete", folder: "trash" }
+        end
+      end
+
       test "bulk mark_read" do
         post tool_bulk_path(@tool), params: { message_ids: [ @msg1.id ], action_type: "mark_read" }
         assert @msg1.reload.read
