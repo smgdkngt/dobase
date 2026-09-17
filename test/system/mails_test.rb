@@ -135,6 +135,30 @@ class MailsTest < ApplicationSystemTestCase
     assert read_message.reload.archived?
   end
 
+  test "the mail page doesn't sync when auto-refresh is disabled" do
+    account = @tool.mail_account
+    account.update!(auto_refresh_interval: 0)
+
+    visit tool_mails_path(@tool)
+    wait_for_stimulus "mail-refresh"
+    # Disabled used to ask for a sync right away, and then nonstop
+    sleep 1
+
+    assert account.reload.synced?, "the mail page asked for a sync"
+  end
+
+  test "the mail page follows a new auto-refresh interval without reconnecting" do
+    account = @tool.mail_account
+    account.update!(auto_refresh_interval: 300)
+
+    visit tool_mails_path(@tool)
+    wait_for_stimulus "mail-refresh"
+    # What the morph refresh after saving the settings does
+    find("[data-controller~='mail-refresh']").execute_script("this.dataset.mailRefreshIntervalValue = '1'")
+
+    assert_db_change(-> { account.reload.syncing? })
+  end
+
   private
 
   # Click an element and retry if the expected condition isn't met.

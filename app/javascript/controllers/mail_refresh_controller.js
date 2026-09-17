@@ -21,8 +21,16 @@ export default class extends Controller {
     document.removeEventListener("visibilitychange", this.handleVisibility)
   }
 
+  // Saving the mail settings refreshes the page with a morph, which changes the
+  // interval without connecting the controller again
+  intervalValueChanged() {
+    this.stopTimer()
+    this.startTimer()
+  }
+
+  // An interval of 0 means auto-refresh is disabled
   startTimer() {
-    if (this.timer) return
+    if (this.timer || this.intervalValue <= 0) return
     this.timer = setInterval(() => this.sync(), this.intervalValue * 1000)
   }
 
@@ -41,7 +49,7 @@ export default class extends Controller {
     try {
       const res = await fetch(this.urlValue, {
         method: "POST",
-        headers: { "X-CSRF-Token": csrfToken(), "Accept": "text/html" },
+        headers: { "X-CSRF-Token": csrfToken(), "Accept": "application/json" },
         credentials: "same-origin"
       })
       if (res.ok) {
