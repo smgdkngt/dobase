@@ -3,6 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = [
     "preJoin",
+    "joinButton",
     "preJoinError",
     "preJoinErrorMessage",
     "inCall",
@@ -87,7 +88,28 @@ export default class extends Controller {
     navigator.mediaDevices?.removeEventListener("devicechange", this._boundDeviceChange)
   }
 
+  // Joining takes a moment (library, token, server) before anything changes on screen, so a
+  // second click used to start a second join with the same identity. The server then drops
+  // the first, and that join's failure took the second one down with it.
   async join() {
+    if (this._joining || this.room) return
+    this._joining = true
+    this._setJoining(true)
+    try {
+      await this._join()
+    } finally {
+      this._joining = false
+      this._setJoining(false)
+    }
+  }
+
+  _setJoining(joining) {
+    if (!this.hasJoinButtonTarget) return
+    this.joinButtonTarget.disabled = joining
+    this.joinButtonTarget.setAttribute("aria-busy", joining)
+  }
+
+  async _join() {
     this._clearJoinError()
 
     const { Room, RoomEvent, Track } = await import("livekit-client")
@@ -106,18 +128,19 @@ export default class extends Controller {
     const audioDeviceId = this.hasAudioSelectTarget ? this.audioSelectTarget.value : undefined
     const videoDeviceId = this.hasVideoSelectTarget ? this.videoSelectTarget.value : undefined
 
-    this.room = new Room({
+    const room = new Room({
       videoCaptureDefaults: {
         resolution: { width: 640, height: 360, frameRate: 24 }
       }
     })
+    this.room = room
     this._bindRoomEvents(RoomEvent)
 
     try {
-      await this.room.connect(tokenData.url, tokenData.token)
+      await room.connect(tokenData.url, tokenData.token)
     } catch (e) {
       console.error("Room: failed to connect", e)
-      await this._teardownFailedRoom()
+      await this._teardownFailedRoom(room)
       this._showJoinError("Couldn't reach the video server. Check your connection and try again.", () => this.join())
       return
     }
@@ -129,11 +152,11 @@ export default class extends Controller {
       const micOptions = {}
       if (audioDeviceId) micOptions.deviceId = audioDeviceId
 
-      await this.room.localParticipant.setCameraEnabled(true, camOptions)
-      await this.room.localParticipant.setMicrophoneEnabled(true, micOptions)
+      await room.localParticipant.setCameraEnabled(true, camOptions)
+      await room.localParticipant.setMicrophoneEnabled(true, micOptions)
     } catch (e) {
       console.error("Room: failed to enable camera/microphone", e)
-      await this._teardownFailedRoom()
+      await this._teardownFailedRoom(room)
       this._showJoinError(this._mediaErrorMessage(e), () => this.join())
       return
     }
@@ -433,17 +456,20 @@ export default class extends Controller {
     }
   }
 
-  async _teardownFailedRoom() {
-    if (!this.room) return
+  // Takes down the room a failed join made, and only resets the page if it's still the current one
+  async _teardownFailedRoom(room) {
+    if (!room) return
+    const current = room === this.room
     // Suppress the Disconnected handler's own recovery (pre-join rebuild +
     // error banner) — join() is already handling this failure and will show
     // its own, more specific message right after this resolves.
-    this._leavingIntentionally = true
+    if (current) this._leavingIntentionally = true
     try {
-      await this.room.disconnect()
+      await room.disconnect()
     } catch (_e) {
       // Already gone
     }
+    if (!current) return
     this.room = null
     await this._requestDeviceAccess()
   }

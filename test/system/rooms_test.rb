@@ -60,4 +60,33 @@ class RoomsTest < ApplicationSystemTestCase
     assert_selector "[data-room-target='preJoin']:not(.hidden)"
     assert_selector "[data-room-target='inCall'].hidden", visible: :all
   end
+
+  test "a second click on Join while joining doesn't start a second join" do
+    visit tool_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "room"
+    assert_selector "[data-room-target='preJoinError']", text: /camera|microphone/i, wait: 5
+
+    # Slow token requests down, and count them
+    page.execute_script(<<~JS)
+      window.__tokenRequests = 0
+      const original = window.fetch
+      window.fetch = (url, options) => {
+        if (String(url).includes("/tokens")) {
+          window.__tokenRequests++
+          return new Promise(resolve => setTimeout(resolve, 1000)).then(() => original(url, options))
+        }
+        return original(url, options)
+      }
+    JS
+
+    join = find("[data-room-target='joinButton']")
+    join.click
+    assert_selector "[data-room-target='joinButton'][disabled]"
+    page.execute_script("arguments[0].click()", join)
+
+    assert_selector "[data-room-target='preJoinError']", text: /aren't set up/i, wait: 5
+    assert_no_selector "[data-room-target='joinButton'][disabled]"
+    assert_equal 1, page.evaluate_script("window.__tokenRequests")
+  end
 end
