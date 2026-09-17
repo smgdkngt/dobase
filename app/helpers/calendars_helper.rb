@@ -47,29 +47,23 @@ module CalendarsHelper
     groups.flat_map { |group| group[:events].map { |event, column| [ event, column, group[:columns].size ] } }
   end
 
-  def format_week_header(week_start, week_end)
-    if week_start.year == week_end.year
-      if week_start.month == week_end.month
-        # Same month: "Feb 10 - 16, 2026"
-        "#{week_start.strftime('%b %d')} - #{week_end.strftime('%d')}, #{week_end.year}"
-      else
-        # Different months, same year: "Jan 28 - Feb 3, 2026"
-        "#{week_start.strftime('%b %d')} - #{week_end.strftime('%b %d')}, #{week_end.year}"
-      end
+  # "Sep 16, 12:00 PM – 1:30 PM", "Sep 16, 10:00 PM – Sep 17, 1:00 AM", or for all-day
+  # events their days, which are dates and don't shift with the zone: "Sep 16 – Sep 18"
+  def format_event_time(event)
+    if event.all_day?
+      return format_date(event.first_day) if event.last_day <= event.first_day
+
+      "#{format_date(event.first_day)} – #{format_date(event.last_day)}"
+    elsif event.starts_at.to_date == event.ends_at.to_date
+      "#{format_datetime(event.starts_at)} – #{format_time(event.ends_at)}"
     else
-      # Different years: "Dec 29, 2025 - Jan 4, 2026"
-      "#{week_start.strftime('%b %d, %Y')} - #{week_end.strftime('%b %d, %Y')}"
+      "#{format_datetime(event.starts_at)} – #{format_datetime(event.ends_at)}"
     end
   end
 
-  def format_event_time(event)
-    return "All day" if event.all_day?
-
-    if event.starts_at.to_date == event.ends_at.to_date
-      "#{event.starts_at.strftime('%l:%M %p').strip} - #{event.ends_at.strftime('%l:%M %p').strip}"
-    else
-      "#{event.starts_at.strftime('%b %d, %l:%M %p').strip} - #{event.ends_at.strftime('%b %d, %l:%M %p').strip}"
-    end
+  # The week grid's hour labels, kept short: "12 AM", "9 AM", "1 PM"
+  def format_hour(hour)
+    Time.zone.today.in_time_zone.change(hour: hour).strftime("%-l %p")
   end
 
   # Calendars a mail invite can be added to: enabled, writable, and in a calendar tool the user can access

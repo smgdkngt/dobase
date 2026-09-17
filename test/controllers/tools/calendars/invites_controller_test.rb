@@ -35,6 +35,21 @@ module Tools
         assert_enqueued_with job: PushEventJob, args: [ event.id, :create ]
       end
 
+      test "accepting an all-day invite west of UTC adds an all-day event on the same dates" do
+        users(:one).update!(timezone: "Pacific Time (US & Canada)")
+        @own_invite.update!(all_day: true, starts_at: Time.utc(2030, 1, 10), ends_at: Time.utc(2030, 1, 12))
+        calendar = calendars_calendars(:personal)
+
+        post tool_calendar_invites_path(@calendar_tool), params: { invite_id: @own_invite.id, calendar_id: calendar.id }
+
+        event = calendar.events.find_by!(uid: @own_invite.uid)
+        assert event.all_day?
+        assert_equal [ Time.utc(2030, 1, 10), Time.utc(2030, 1, 12) ], [ event.starts_at, event.ends_at ]
+        Time.use_zone("America/Los_Angeles") do
+          assert_equal [ Date.new(2030, 1, 10), Date.new(2030, 1, 11) ], [ event.first_day, event.last_day ]
+        end
+      end
+
       test "accepting an invite without a title adds an untitled event" do
         @own_invite.update!(summary: nil)
         calendar = calendars_calendars(:personal)

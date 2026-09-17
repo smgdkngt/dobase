@@ -71,7 +71,7 @@
             Public link expired
           </p>
           <p class="text-xs text-text-tertiary">
-            Expired <%= @file.share.expires_at.strftime("%b %-d, %Y") %>
+            Expired <%= format_date(@file.share.expires_at) %>
           </p>
         <% else %>
           <p class="flex items-center gap-2 text-sm">
@@ -80,7 +80,7 @@
           </p>
           <% if @file.share.expires_at %>
             <p class="text-xs text-text-tertiary">
-              Expires <%= @file.share.expires_at.strftime("%b %-d, %Y") %>
+              Expires <%= format_date(@file.share.expires_at) %>
             </p>
           <% end %>
         <% end %>

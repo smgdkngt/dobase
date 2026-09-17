@@ -4,7 +4,7 @@
     <% if share.expired? %>
       <p class="flex items-center gap-1.5 text-sm text-error">
         <%= render "shared/icon", name: "alert-circle", size: 14 %>
-        Expired on <%= share.expires_at.strftime("%B %-d, %Y") %>
+        Expired on <%= format_date(share.expires_at) %>
       </p>
     <% else %>
       <div class="flex gap-2" data-controller="clipboard">
@@ -13,7 +13,7 @@
       </div>
       <% if share.expires_at %>
         <p class="text-sm text-text-secondary mt-2">
-          Expires <%= share.expires_at.strftime("%B %-d, %Y") %>
+          Expires <%= format_date(share.expires_at) %>
         </p>
       <% end %>
     <% end %>

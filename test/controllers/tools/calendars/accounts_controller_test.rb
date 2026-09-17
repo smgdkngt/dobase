@@ -21,6 +21,14 @@ module Tools
         assert_not @tool.reload.calendar_account.local?
       end
 
+      test "the setup and settings labels point at their fields" do
+        get new_tool_calendar_account_path(@tool)
+        assert_labels_match_fields %w[caldav_url username password]
+
+        get edit_tool_calendar_account_path(calendars_accounts(:icloud_account).tool)
+        assert_labels_match_fields %w[caldav_url username password]
+      end
+
       test "the account settings have no delete button that would submit them instead" do
         tool = calendars_accounts(:icloud_account).tool
 
@@ -52,6 +60,18 @@ module Tools
         assert account.local?
         calendar = account.calendars.sole
         assert_equal [ "Team Calendar", true, true, nil ], [ calendar.name, calendar.is_default?, calendar.enabled?, calendar.remote_id ]
+      end
+
+      private
+
+      def assert_labels_match_fields(fields)
+        fields.each do |field|
+          assert_select "label.label[for=calendars_account_#{field}]", count: 1
+          assert_select "input#calendars_account_#{field}", count: 1
+        end
+        css_select("form[action$='/calendar/account'] label[for]").each do |label|
+          assert_select "##{label['for']}", 1
+        end
       end
     end
   end

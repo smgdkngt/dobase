@@ -57,13 +57,14 @@ module Tools
       get tool_calendar_path(@tool, week_start: "2030-01-07")
 
       blocks = css_select(".week-column [data-event-id]").to_h { |block| [ block.text.squish, block["style"] ] }
-      assert_match "left: calc(0.0% + 2px); width: calc(50.0% - 4px)", blocks["12:00 Design review"]
-      assert_match "left: calc(50.0% + 2px); width: calc(50.0% - 4px)", blocks["12:30 Call"]
-      assert_match "height: 2.08", blocks["12:30 Call"]
-      assert_equal [ "12:00 Design review", "12:30 Call", "22:00 Late" ], blocks.keys
-      assert_select ".all-day-event-span", text: "09:00 Conference" do |spans|
+      assert_match "left: calc(0.0% + 2px); width: calc(50.0% - 4px)", blocks["12:00 PM Design review"]
+      assert_match "left: calc(50.0% + 2px); width: calc(50.0% - 4px)", blocks["12:30 PM Call"]
+      assert_match "height: 2.08", blocks["12:30 PM Call"]
+      assert_equal [ "12:00 PM Design review", "12:30 PM Call", "10:00 PM Late" ], blocks.keys
+      assert_select ".all-day-event-span", text: "9:00 AM Conference" do |spans|
         assert_match "grid-column: 3 / span 3", spans.sole["style"]
       end
+      assert_equal [ "12 AM", "1 AM", "11 AM", "12 PM", "11 PM" ], css_select(".time-label").map { |label| label.text.strip }.values_at(0, 1, 11, 12, 23)
     end
 
     test "the new event form repeats on the start's weekday and never ends, until told otherwise" do

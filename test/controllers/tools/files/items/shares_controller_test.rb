@@ -38,6 +38,18 @@ module Tools
           assert_includes response.body, "Remove Share"
         end
 
+        test "the share dialog and the file's sharing panel show the expiry as a short date" do
+          file_shares(:readme_share).update!(expires_at: Time.zone.local(2030, 9, 16, 12))
+
+          get tool_files_item_share_path(@tool, @file_with_share)
+          assert_includes response.body, "Expires Sep 16, 2030"
+
+          get tool_files_item_path(@tool, @file_with_share)
+          assert_response :success
+          assert_includes response.body, "Expires Sep 16, 2030"
+          assert_not_includes response.body, "September"
+        end
+
         test "create with password sets password" do
           post tool_files_item_share_path(@tool, @file_without_share), params: { password: "secret123" }
           assert_response :success

@@ -149,7 +149,7 @@
               <% elsif event.all_day? %>
                 <%= event.summary %>
               <% else %>
-                <%= event.starts_at.strftime("%H:%M") %> <%= event.summary %>
+                <%= format_time(event.starts_at) %> <%= event.summary %>
               <% end %>
             </span>
           </div>
@@ -164,7 +164,7 @@
     <div class="time-labels">
       <% hours.each do |hour| %>
         <div class="time-label">
-          <span class="text-xs text-text-tertiary"><%= "%02d:00" % hour %></span>
+          <span class="text-xs text-text-tertiary"><%= format_hour(hour) %></span>
         </div>
       <% end %>
     </div>
