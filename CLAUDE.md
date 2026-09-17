@@ -332,6 +332,7 @@ link_to content, href, **html_options
 
 - `frozen_string_literal: true` in all Ruby files
 - Icons: Lucide (rendered via `shared/icon` partial)
+- Sizes, dates and times: use `FormattingHelper` (`human_file_size`, `format_time` → "6:05 PM", `format_date` → "Sep 16" / "Sep 16, 2025", `format_datetime`), never ad-hoc `strftime` or `number_to_human_size`. Times show in the viewer's `Time.zone`.
 - Testing: Minitest with fixtures; namespaced models need `set_fixture_class` in test_helper. Fixtures bypass model callbacks, so `collaborators.yml` must have explicit owner records for every tool fixture (the `add_creator_as_owner` callback doesn't run for fixtures).
 - Ordering: position column + dedicated `PositionsController`
 - Encryption: mail/calendar passwords encrypted with `secret_key_base`

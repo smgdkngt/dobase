@@ -10,7 +10,7 @@
         <% if email_message.from_name.present? && email_message.from_name != email_message.from_address %>
           <span class="text-xs text-text-tertiary"><%= email_message.from_address %></span>
         <% end %>
-        <span class="text-xs text-text-tertiary ml-auto"><%= email_message.sent_at&.strftime(email_message.sent_at&.year == Date.today.year ? "%b %d, %I:%M %p" : "%b %d, %Y, %I:%M %p") %></span>
+        <span class="text-xs text-text-tertiary ml-auto"><%= format_datetime(email_message.sent_at) %></span>
       </div>
       <div class="text-xs text-text-tertiary mt-0.5 <%= 'hidden' if is_last %>" data-collapse-target="preview">
         To: <%= email_message.to_addresses_list.join(", ").truncate(50) %>

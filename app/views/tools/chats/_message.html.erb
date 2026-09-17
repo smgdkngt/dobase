@@ -4,11 +4,11 @@
   # Timestamp formatting
   time_ago = Time.current - message.created_at
   if time_ago < 24.hours
-    timestamp = message.created_at.strftime("%-I:%M %p")
+    timestamp = format_time(message.created_at)
   elsif time_ago < 48.hours
-    timestamp = "Yesterday at " + message.created_at.strftime("%-I:%M %p")
+    timestamp = "Yesterday, #{format_time(message.created_at)}"
   else
-    timestamp = message.created_at.strftime("%b %-d, %-I:%M %p")
+    timestamp = format_datetime(message.created_at)
   end
 
   has_content = message.body.present?
@@ -84,7 +84,7 @@
                 download: file.filename.to_s do %>
             <%= render "shared/icon", name: "file", size: 16, class: "text-text-tertiary" %>
             <span class="text-sm text-text-primary"><%= file.filename.to_s %></span>
-            <span class="text-xs text-text-tertiary"><%= number_to_human_size(file.byte_size) %></span>
+            <span class="text-xs text-text-tertiary"><%= human_file_size(file.byte_size) %></span>
           <% end %>
         <% end %>
       </div>

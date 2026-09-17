@@ -219,7 +219,7 @@
                      class="text-sm text-text-primary hover:text-accent truncate flex-1 min-w-0 transition-colors">
                     <%= attachment.file.filename %>
                   </a>
-                  <span class="text-xs text-text-tertiary shrink-0"><%= number_to_human_size(attachment.file.byte_size) %></span>
+                  <span class="text-xs text-text-tertiary shrink-0"><%= human_file_size(attachment.file.byte_size) %></span>
                   <%= link_to tool_todo_item_attachment_path(@tool, @item, attachment),
                       class: "opacity-0 group-hover:opacity-100 p-0.5 rounded hover:text-error text-text-tertiary transition-all",
                       data: { turbo_method: :delete, turbo_confirm: "Delete this attachment?", turbo_confirm_button: "Delete", turbo_frame: "item-detail-content" } do %>
