@@ -43,4 +43,16 @@ class FormattingHelperTest < ActionView::TestCase
     end
     assert_nil format_datetime(nil)
   end
+  test "local_time_tag writes the time for the browser to redraw in the viewer's zone" do
+    Time.use_zone("America/New_York") do
+      tag = Nokogiri::HTML5.fragment(local_time_tag(Time.utc(2026, 9, 16, 3, 30))).at("time")
+
+      assert_equal "11:30 PM", tag.text
+      assert_equal "2026-09-16T03:30:00Z", tag["datetime"]
+      assert_equal "local-time", tag["data-controller"]
+
+      assert_equal "11:30", Nokogiri::HTML5.fragment(local_time_tag(Time.utc(2026, 9, 16, 3, 30), period: false)).at("time").text
+    end
+    assert_nil local_time_tag(nil)
+  end
 end

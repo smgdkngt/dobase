@@ -4,7 +4,8 @@
   # Timestamp formatting
   time_ago = Time.current - message.created_at
   if time_ago < 24.hours
-    timestamp = format_time(message.created_at)
+    # Broadcast from the sender's request, so the browser puts it in the viewer's zone
+    timestamp = local_time_tag(message.created_at)
   elsif time_ago < 48.hours
     timestamp = "Yesterday, #{format_time(message.created_at)}"
   else
@@ -35,7 +36,7 @@
     <% else %>
       <!-- Hover timestamp for continuation messages -->
       <span class="hidden group-hover/message:block text-xs text-text-tertiary text-right leading-relaxed pt-[5px]">
-        <%= message.created_at.strftime("%-I:%M") %>
+        <%= local_time_tag(message.created_at, period: false) %>
       </span>
     <% end %>
   </div>
