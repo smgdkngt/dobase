@@ -4,7 +4,6 @@ require "net/smtp"
 
 class SmtpSendService
   class SendError < StandardError; end
-  class ConnectionError < StandardError; end
 
   # Common MIME types for attachments
   MIME_TYPES = {
@@ -52,22 +51,6 @@ class SmtpSendService
 
   def initialize(email_account)
     @account = email_account
-  end
-
-  def test_connection
-    smtp = build_smtp
-    smtp.start(
-      @account.smtp_host,
-      @account.username,
-      @account.password,
-      @account.smtp_auth.to_sym
-    )
-    smtp.finish
-    true
-  rescue Net::SMTPAuthenticationError => e
-    raise ConnectionError, "Authentication failed: #{e.message}"
-  rescue StandardError => e
-    raise ConnectionError, "Connection failed: #{e.message}"
   end
 
   # A reply passes the message_id of the message it answers as in_reply_to.

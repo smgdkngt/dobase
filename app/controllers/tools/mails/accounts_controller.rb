@@ -37,24 +37,6 @@ module Tools
         end
       end
 
-      def test_connection
-        @mail_account = @tool.mail_account || @tool.build_mail_account(mail_account_params)
-
-        begin
-          imap_service = ImapSyncService.new(@mail_account)
-          imap_service.test_connection
-
-          smtp_service = SmtpSendService.new(@mail_account)
-          smtp_service.test_connection
-
-          render json: { success: true, message: "Connection successful!" }
-        rescue ImapSyncService::ConnectionError, ImapSyncService::AuthenticationError => e
-          render json: { success: false, message: "IMAP: #{e.message}" }, status: :unprocessable_entity
-        rescue SmtpSendService::ConnectionError => e
-          render json: { success: false, message: "SMTP: #{e.message}" }, status: :unprocessable_entity
-        end
-      end
-
       private
 
       def set_tool

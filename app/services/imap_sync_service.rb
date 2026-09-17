@@ -17,17 +17,6 @@ class ImapSyncService
     @account = email_account
   end
 
-  def test_connection
-    connect do |imap|
-      imap.list("", "*")
-      true
-    end
-  rescue Net::IMAP::NoResponseError, Net::IMAP::BadResponseError => e
-    raise AuthenticationError, "Authentication failed: #{e.message}"
-  rescue StandardError => e
-    raise ConnectionError, "Connection failed: #{e.message}"
-  end
-
   def sync_folders
     connect do |imap|
       mailboxes = imap.list("", "*") || []
@@ -179,16 +168,6 @@ class ImapSyncService
     end
   rescue StandardError => e
     Rails.logger.error("Failed to move email #{message_id} from #{source_folder} to #{destination_folder}: #{e.message}")
-  end
-
-  def fetch_email_body(uid, folder: "INBOX")
-    connect do |imap|
-      imap.select(folder)
-      data = imap.fetch(uid, "BODY[]")&.first
-      return nil unless data
-
-      parse_email_body(data.attr["BODY[]"])
-    end
   end
 
   private

@@ -371,7 +371,7 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
   test "a server on a local address isn't contacted" do
     @account.update!(imap_host: "127.0.0.1")
 
-    error = assert_raises(ImapSyncService::ConnectionError) { @service.test_connection }
+    error = assert_raises(ImapSyncService::ConnectionError) { @service.sync_folders }
     assert_match "local address", error.message
   end
 

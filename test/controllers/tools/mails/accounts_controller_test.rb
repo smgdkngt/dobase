@@ -52,6 +52,14 @@ module Tools
         assert @account.reload.syncing?
       end
 
+      test "there are no connection test or mail label endpoints" do
+        post "/tools/#{@tool.id}/mails/account/test_connection"
+        assert_response :not_found
+
+        get "/tools/#{@tool.id}/mail_labels"
+        assert_response :not_found
+      end
+
       test "the settings open on the first tab when nothing went wrong" do
         get_settings
 
