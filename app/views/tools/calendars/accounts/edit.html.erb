@@ -16,7 +16,7 @@
           <div class="mb-6">
             <h3 class="text-sm font-semibold text-text-primary mb-3">Server Settings</h3>
             <div>
-              <label for="calendar_account_caldav_url" class="label">CalDAV URL</label>
+              <%= f.label :caldav_url, "CalDAV URL", class: "label" %>
               <%= f.text_field :caldav_url,
                 class: "input #{@calendar_account.errors[:caldav_url].any? ? 'input-error' : ''}",
                 required: true
@@ -30,14 +30,14 @@
             <h3 class="text-sm font-semibold text-text-primary mb-3">Credentials</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label for="calendar_account_username" class="label">Username</label>
+                <%= f.label :username, "Username", class: "label" %>
                 <%= f.text_field :username,
                   class: "input #{@calendar_account.errors[:username].any? ? 'input-error' : ''}",
                   required: true
                 %>
               </div>
               <div>
-                <label for="calendar_account_password" class="label">Password</label>
+                <%= f.label :password, "Password", class: "label" %>
                 <%= f.password_field :password,
                   class: "input",
                   placeholder: "Leave blank to keep current password"
