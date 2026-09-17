@@ -91,5 +91,12 @@ module Tools
 
       assert_queries_independent_of(add_cards) { get tool_board_path(@tool) }
     end
+
+    test "another kind of tool at a board URL is not found" do
+      get tool_board_path(tools(:my_mail))
+
+      assert_redirected_to root_path
+      assert_equal "That item no longer exists.", flash[:alert]
+    end
   end
 end

@@ -490,30 +490,36 @@ module Tools
     end
 
     test "tools without a mail account answer 404" do
-      board = tools(:project_board)
+      unconnected = Tool.create!(name: "Not connected", tool_type: tool_types(:mail), owner: users(:one))
       message = mails_messages(:inbox_unread)
 
-      post tool_mail_read_path(board, message), headers: @headers, as: :json
+      post tool_mail_read_path(unconnected, message), headers: @headers, as: :json
       assert_response :not_found
 
-      post tool_mail_move_path(board, message), params: { folder: "Receipts" }, headers: @headers, as: :json
+      post tool_mail_move_path(unconnected, message), params: { folder: "Receipts" }, headers: @headers, as: :json
       assert_response :not_found
 
-      post tool_mail_drafts_path(board), params: { subject: "Hi" }, headers: @headers, as: :json
+      post tool_mail_drafts_path(unconnected), params: { subject: "Hi" }, headers: @headers, as: :json
       assert_response :not_found
       assert_equal "Mail account not configured", response.parsed_body["error"]
 
-      post tool_mails_path(board), params: { to: "friend@example.com", subject: "Hi", body: "<p>Hi</p>" }, headers: @headers, as: :json
+      post tool_mails_path(unconnected), params: { to: "friend@example.com", subject: "Hi", body: "<p>Hi</p>" }, headers: @headers, as: :json
       assert_response :not_found
 
-      post tool_sync_path(board), headers: @headers, as: :json
+      post tool_sync_path(unconnected), headers: @headers, as: :json
       assert_response :not_found
 
-      get tool_mails_contacts_path(board, q: "friend"), headers: @headers
+      get tool_mails_contacts_path(unconnected, q: "friend"), headers: @headers
       assert_response :not_found
 
       assert_empty @smtp.sent
       assert_not message.reload.read
+    end
+
+    test "another kind of tool answers 404 at mail URLs" do
+      get tool_mails_path(tools(:project_board)), headers: @headers
+      assert_response :not_found
+      assert_equal "Not found", response.parsed_body["error"]
     end
 
     test "mail in tools the user can't access is forbidden" do

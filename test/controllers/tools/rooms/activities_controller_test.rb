@@ -42,7 +42,7 @@ module Tools
       test "requires tool access" do
         sign_out
         sign_in_as users(:two)
-        inaccessible_tool = tools(:my_docs) # owned by one; two has no collaboration on it
+        inaccessible_tool = Tool.create!(name: "Private room", tool_type: tool_types(:room), owner: users(:one))
 
         post tool_room_activity_path(inaccessible_tool), as: :json
 
