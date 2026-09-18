@@ -10,6 +10,7 @@ class User < ApplicationRecord
   # survives the account that created it.
   before_destroy :hand_over_co_owned_tools, prepend: true
   has_many :collaborations, class_name: "Collaborator", dependent: :destroy
+  has_many :board_column_collapses, class_name: "Boards::ColumnCollapse", dependent: :delete_all
   has_many :sidebar_groups, -> { order(:position) }, class_name: "Sidebar::Group", dependent: :destroy
 
   has_many :notifications, as: :recipient, dependent: :destroy, class_name: "Noticed::Notification"

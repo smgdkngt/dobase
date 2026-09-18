@@ -10,18 +10,10 @@
 
           <% if item.comments.any? %>
             <div class="space-y-4 mb-4">
-              <% item.comments.includes(:user, :rich_text_body).order(created_at: :asc).each do |comment| %>
-                <div class="flex gap-2.5">
-                  <%= render "shared/avatar", user: comment.user, size: :sm %>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-baseline gap-2 mb-0.5">
-                      <span class="text-sm font-semibold text-text-primary"><%= comment.user.name %></span>
-                      <span class="text-xs text-text-tertiary"><%= time_ago_in_words(comment.created_at) %> ago</span>
-                    </div>
-                    <div class="text-sm text-text-primary leading-snug rich-text-content"><%= comment.body %></div>
-                  </div>
-                </div>
-              <% end %>
+              <%= render partial: "tools/todos/items/comments/comment",
+                    collection: item.comments.includes(:user, :rich_text_body).order(created_at: :asc),
+                    as: :comment,
+                    locals: { item: item, tool: tool } %>
             </div>
           <% end %>
 

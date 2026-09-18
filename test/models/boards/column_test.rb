@@ -20,6 +20,44 @@ module Boards
       assert_includes column.errors[:name], "can't be blank"
     end
 
+    test "collapsing is personal to one user" do
+      column = columns(:todo)
+
+      column.collapse_for(users(:one))
+
+      assert column.collapsed_for?(users(:one))
+      assert_not column.collapsed_for?(users(:two))
+    end
+
+    test "collapsing twice for the same user leaves one record" do
+      column = columns(:todo)
+
+      column.collapse_for(users(:one))
+      column.collapse_for(users(:one))
+
+      assert_equal 1, column.collapses.count
+    end
+
+    test "expanding drops only that user's collapse" do
+      column = columns(:todo)
+      column.collapse_for(users(:one))
+      column.collapse_for(users(:two))
+
+      column.expand_for(users(:one))
+
+      assert_not column.collapsed_for?(users(:one))
+      assert column.collapsed_for?(users(:two))
+    end
+
+    test "destroying column destroys its collapses" do
+      column = columns(:todo)
+      column.collapse_for(users(:one))
+
+      assert_difference "Boards::ColumnCollapse.count", -1 do
+        column.destroy
+      end
+    end
+
     test "destroying column destroys cards" do
       column = columns(:todo)
       card_count = column.cards.count

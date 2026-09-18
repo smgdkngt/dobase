@@ -26,7 +26,13 @@ module Tools
 
       def update
         if params.key?(:collapsed)
-          @column.update!(collapsed: params[:collapsed], updated_by: current_user)
+          # Collapsing is personal, so it records the viewer and leaves the
+          # column itself — and everyone else's board — alone.
+          if ActiveModel::Type::Boolean.new.cast(params[:collapsed])
+            @column.collapse_for(current_user)
+          else
+            @column.expand_for(current_user)
+          end
           head :ok
         elsif @column.update(name: params[:name], updated_by: current_user)
           render :show, formats: :json

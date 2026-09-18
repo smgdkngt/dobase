@@ -7,7 +7,7 @@
   active_count = active_cards.size
   archived_count = archived_cards.size
 %>
-<div class="board-column flex flex-col bg-background-secondary rounded-lg max-h-full <%= 'collapsed' if column.collapsed? %>"
+<div class="board-column flex flex-col bg-background-secondary rounded-lg max-h-full <%= 'collapsed' if collapsed_column_ids.include?(column.id) %>"
      id="board-column-<%= column.id %>"
      data-sort-id="<%= column.id %>"
      data-column-id="<%= column.id %>">

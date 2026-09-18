@@ -14,7 +14,7 @@ module Tools
         # second copy of a recurring item.
         def create
           unless @item.completed?
-            @item.update!(completed_at: Time.current)
+            @item.update!(completed_at: Time.current, updated_by: current_user)
             @item.spawn_next_instance! if @item.recurring?
             notify_completion
           end
@@ -23,7 +23,7 @@ module Tools
 
         # DELETE /tools/:tool_id/todo/items/:item_id/completion
         def destroy
-          @item.update!(completed_at: nil)
+          @item.update!(completed_at: nil, updated_by: current_user)
           respond_with_item
         end
 
