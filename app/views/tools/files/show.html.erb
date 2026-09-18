@@ -43,14 +43,18 @@
     </div>
 
     <div class="tool-topbar-actions">
-      <div class="flex bg-background-secondary rounded-md p-0.5">
+      <div class="flex bg-background-secondary rounded-md p-0.5" role="group" aria-label="View mode">
         <%= link_to tool_files_path(@tool, folder_id: @folder&.id, view: "grid"),
             class: "p-1.5 rounded transition-all #{@view_mode == 'grid' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'}",
+            "aria-label": "Grid view",
+            "aria-current": (@view_mode == "grid" ? "true" : nil),
             data: { turbo_action: "replace" } do %>
           <%= render "shared/icon", name: "grid", size: 16 %>
         <% end %>
         <%= link_to tool_files_path(@tool, folder_id: @folder&.id, view: "list"),
             class: "p-1.5 rounded transition-all #{@view_mode == 'list' ? 'bg-surface text-text-primary shadow-sm' : 'text-text-secondary hover:text-text-primary'}",
+            "aria-label": "List view",
+            "aria-current": (@view_mode == "list" ? "true" : nil),
             data: { turbo_action: "replace" } do %>
           <%= render "shared/icon", name: "list", size: 16 %>
         <% end %>

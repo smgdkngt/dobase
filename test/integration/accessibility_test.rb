@@ -9,7 +9,10 @@ class AccessibilityTest < ActionDispatch::IntegrationTest
     project_board: ->(tool) { "/tools/#{tool.id}/board" },
     my_docs:       ->(tool) { "/tools/#{tool.id}/docs" },
     my_files:      ->(tool) { "/tools/#{tool.id}/files" },
-    my_todos:      ->(tool) { "/tools/#{tool.id}/todo" }
+    my_todos:      ->(tool) { "/tools/#{tool.id}/todo" },
+    my_mail:       ->(tool) { "/tools/#{tool.id}/mails" },
+    my_calendar:   ->(tool) { "/tools/#{tool.id}/calendar" },
+    my_room:       ->(tool) { "/tools/#{tool.id}/room" }
   }.freeze
 
   setup { sign_in_as users(:one) }
@@ -60,19 +63,13 @@ class AccessibilityTest < ActionDispatch::IntegrationTest
     assert_select "a[href=?][aria-current=?]", "/tools/#{tool.id}", "page"
   end
 
-  test "icon-only buttons carry an accessible name" do
-    get_page "/tools/#{tools(:my_todos).id}/todo"
+  test "no button or link is left without an accessible name" do
+    each_page do |path|
+      document = Nokogiri::HTML(response.body)
+      unnamed = document.css("button, a[href]").reject { |element| named?(element) }
 
-    document = Nokogiri::HTML(response.body)
-    unnamed = document.css("button, a[href]").reject do |element|
-      element.text.strip.present? ||
-        element["aria-label"].present? ||
-        element["aria-labelledby"].present? ||
-        element["title"].present? ||
-        element.css("img[alt]").any? { |image| image["alt"].present? }
+      assert_empty unnamed.map { |element| "#{path}: #{element.to_html.squish.first(120)}" }
     end
-
-    assert_empty unnamed.map { |element| element.to_html.squish.first(120) }
   end
 
   private
@@ -83,6 +80,15 @@ class AccessibilityTest < ActionDispatch::IntegrationTest
     get path
     follow_redirect! while response.redirect?
     assert_response :success, "#{path} did not render"
+  end
+
+  def named?(element)
+    element.text.strip.present? ||
+      element["aria-label"].present? ||
+      element["aria-labelledby"].present? ||
+      element["title"].present? ||
+      element.css("img[alt]").any? { |image| image["alt"].present? } ||
+      element.css("[aria-label]").any?
   end
 
   def each_page
