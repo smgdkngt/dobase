@@ -222,6 +222,28 @@ module Tools
       assert_equal "Fixed", message.reload.body.to_plain_text
     end
 
+    test "update leaves the body alone when the request doesn't mention it" do
+      message = @chat.messages.create!(user: @user, body: "<p>Keep me</p>")
+      message.files.attach(io: StringIO.new("hi"), filename: "notes.txt", content_type: "text/plain")
+      message.save!
+
+      patch tool_chat_message_path(@tool, message), params: { message: { reply_to_id: nil } }, headers: @headers, as: :json
+
+      assert_response :success
+      assert_equal "Keep me", message.reload.body.to_plain_text
+    end
+
+    test "update without a message answers 400 instead of blanking the body" do
+      message = @chat.messages.create!(user: @user, body: "<p>Keep me</p>")
+      message.files.attach(io: StringIO.new("hi"), filename: "notes.txt", content_type: "text/plain")
+      message.save!
+
+      patch tool_chat_message_path(@tool, message), params: {}, headers: @headers, as: :json
+
+      assert_response :bad_request
+      assert_equal "Keep me", message.reload.body.to_plain_text
+    end
+
     test "update refuses someone else's message" do
       message = @chat.messages.create!(user: @other_user, body: "<p>Mine</p>")
 
