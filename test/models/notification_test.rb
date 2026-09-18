@@ -150,6 +150,53 @@ class NotificationTest < ActiveSupport::TestCase
     assert_includes Tool.unread_tool_ids_for(@user_two), @tool.id
   end
 
+  test "your own file doesn't put an activity dot on your own files tool" do
+    tool = share_with_user_two(tools(:my_files))
+
+    tool.file_items.create!(name: "mine.txt", position: 0, created_by: @user_one)
+
+    assert_not_includes Tool.unread_tool_ids_for(@user_one), tool.id
+    assert_includes Tool.unread_tool_ids_for(@user_two), tool.id
+  end
+
+  test "someone else's file does put an activity dot on your files tool" do
+    tool = share_with_user_two(tools(:my_files))
+
+    tool.file_items.create!(name: "theirs.txt", position: 0, created_by: @user_two)
+
+    assert_includes Tool.unread_tool_ids_for(@user_one), tool.id
+  end
+
+  test "your own todo item doesn't put an activity dot on your own todos" do
+    tool = share_with_user_two(tools(:my_todos))
+
+    tool.todo_lists.first.items.create!(title: "Mine", position: 0, created_by: @user_one, updated_by: @user_one)
+
+    assert_not_includes Tool.unread_tool_ids_for(@user_one), tool.id
+    assert_includes Tool.unread_tool_ids_for(@user_two), tool.id
+  end
+
+  test "editing someone else's todo item puts the dot on their todos, not yours" do
+    tool = share_with_user_two(tools(:my_todos))
+    item = tool.todo_lists.first.items.create!(title: "Theirs", position: 0, created_by: @user_two, updated_by: @user_two)
+    touch_last_seen(tool)
+
+    item.update!(title: "Edited by me", updated_by: @user_one)
+
+    assert_not_includes Tool.unread_tool_ids_for(@user_one), tool.id
+    assert_includes Tool.unread_tool_ids_for(@user_two), tool.id
+  end
+
+  test "completing your own todo item doesn't put an activity dot on your todos" do
+    tool = share_with_user_two(tools(:my_todos))
+    item = tool.todo_lists.first.items.create!(title: "Mine", position: 0, created_by: @user_one, updated_by: @user_one)
+    touch_last_seen(tool)
+
+    item.update!(completed_at: Time.current, updated_by: @user_one)
+
+    assert_not_includes Tool.unread_tool_ids_for(@user_one), tool.id
+  end
+
   test "muted tool is excluded from unread_tool_ids_for" do
     board = boards(:shared)
     column = board.columns.create!(name: "Test", position: 0)
@@ -176,5 +223,19 @@ class NotificationTest < ActiveSupport::TestCase
     assert_difference "Noticed::Notification.count", -1 do
       user.destroy!
     end
+  end
+
+  private
+
+  # Gives user two access to a tool that only user one has, and starts both of
+  # them from a board with nothing new on it.
+  def share_with_user_two(tool)
+    Collaborator.create!(tool: tool, user: @user_two, role: "collaborator")
+    touch_last_seen(tool)
+    tool
+  end
+
+  def touch_last_seen(tool)
+    Collaborator.where(tool_id: tool.id).update_all(last_seen_at: Time.current)
   end
 end

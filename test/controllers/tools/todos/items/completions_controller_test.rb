@@ -30,6 +30,20 @@ module Tools
           assert_nil completed_item.reload.completed_at
         end
 
+        test "create records who completed the item" do
+          post tool_todo_item_completion_path(@tool, @item), as: :json
+
+          assert_equal users(:one), @item.reload.updated_by
+        end
+
+        test "destroy records who reopened the item" do
+          completed_item = todo_items(:recently_completed)
+
+          delete tool_todo_item_completion_path(@tool, completed_item), as: :json
+
+          assert_equal users(:one), completed_item.reload.updated_by
+        end
+
         test "requires authentication" do
           sign_out
 
