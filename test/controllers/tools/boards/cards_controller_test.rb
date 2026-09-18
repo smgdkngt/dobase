@@ -18,6 +18,26 @@ module Tools
         assert_includes response.body, @card.title
       end
 
+      test "the card dialog offers to delete your own comment" do
+        comment = @card.comments.create!(user: users(:one), body: "<p>Mine</p>")
+
+        get tool_board_card_path(@tool, @card)
+
+        assert_response :success
+        assert_includes response.body, tool_board_card_comment_path(@tool, @card, comment)
+      end
+
+      test "a collaborator is not offered someone else's comment to delete" do
+        @tool.collaborators.create!(user: users(:two), role: "collaborator")
+        comment = @card.comments.create!(user: users(:one), body: "<p>Not yours</p>")
+        sign_in_as users(:two)
+
+        get tool_board_card_path(@tool, @card)
+
+        assert_response :success
+        assert_not_includes response.body, tool_board_card_comment_path(@tool, @card, comment)
+      end
+
       test "update changes card title" do
         patch tool_board_card_path(@tool, @card), params: { card: { title: "Updated Title" } }, as: :json
 
