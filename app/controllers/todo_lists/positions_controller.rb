@@ -9,8 +9,14 @@ module TodoLists
     before_action -> { authorize_tool_access!(@tool) }
 
     def update
-      list_order(tool_item_ids).each_with_index do |id, index|
-        ::Todos::Item.where(id: id).update_all(todo_list_id: @list.id, position: index)
+      # Only the items the request lists move to this list. One that isn't listed was hidden
+      # by a filter, or has just been dragged to another list while this request was on its
+      # way: claiming it back would drag it out of the list it went to.
+      item_ids = tool_item_ids
+      list_order(item_ids).each_with_index do |id, index|
+        changes = { position: index }
+        changes[:todo_list_id] = @list.id if item_ids.include?(id)
+        ::Todos::Item.where(id: id).update_all(changes)
       end
       render json: { success: true }
     end

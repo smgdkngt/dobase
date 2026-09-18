@@ -101,5 +101,26 @@ module Columns
       assert_equal 0, foreign_card.position
       assert_equal 0, own_card.reload.position
     end
+
+    test "a card the request doesn't list never changes column" do
+      board = @column.board
+      from, to = board.columns.order(:position).first(2)
+      staying = from.cards.create!(title: "Staying", position: 0)
+      travelling = to.cards.create!(title: "Travelling", position: 0)
+
+      # What a reorder of `from` sees when the card was dragged to `to` while the
+      # request was on its way: the order it works out still holds the card that left.
+      original = KeepHiddenInPlace.method(:call)
+      KeepHiddenInPlace.define_singleton_method(:call) { |_current, requested| requested + [ travelling.id ] }
+      begin
+        patch column_positions_path(from), params: { card_ids: [ staying.id ] }, as: :json
+      ensure
+        KeepHiddenInPlace.define_singleton_method(:call, original)
+      end
+
+      assert_response :success
+      assert_equal to.id, travelling.reload.column_id
+      assert_equal 0, staying.reload.position
+    end
   end
 end
