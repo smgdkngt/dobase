@@ -63,6 +63,11 @@ gem "ice_cube"
 # HTTP client for CalDAV
 gem "faraday"
 
+# Error reporting, off unless SENTRY_DSN is set. Works with any Sentry-compatible
+# collector, self-hosted ones included (Bugsink, GlitchTip, Sentry itself).
+gem "sentry-ruby"
+gem "sentry-rails"
+
 # LiveKit video conferencing token generation
 gem "livekit-server-sdk", "~> 1.0", require: "livekit"
 
