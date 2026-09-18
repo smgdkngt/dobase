@@ -90,7 +90,7 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     attachment.file.attach(io: StringIO.new("BEGIN:VCALENDAR"), filename: "invite.ics", content_type: "text/calendar")
     attachment.file.blob.service.delete(attachment.file.blob.key)
 
-    assert_nothing_raised { @service.send(:detect_calendar_invite, email) }
+    assert_nothing_raised { incoming_message.send(:detect_calendar_invite, email) }
     assert_empty email.calendar_invites
   end
 
@@ -284,16 +284,16 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
   # IMAP servers regularly return non-UTF-8 bytes; the service must not crash.
 
   test "safe_utf8 returns nil for nil" do
-    assert_nil @service.send(:safe_utf8, nil)
+    assert_nil incoming_message.send(:safe_utf8, nil)
   end
 
   test "safe_utf8 leaves valid UTF-8 unchanged" do
-    assert_equal "héllo", @service.send(:safe_utf8, "héllo")
+    assert_equal "héllo", incoming_message.send(:safe_utf8, "héllo")
   end
 
   test "safe_utf8 replaces invalid bytes with the replacement character" do
     invalid = (+"héllo").force_encoding("ASCII-8BIT") + "\xC3".b
-    result = @service.send(:safe_utf8, invalid)
+    result = incoming_message.send(:safe_utf8, invalid)
 
     assert_equal Encoding::UTF_8, result.encoding
     assert_includes result, "�"
@@ -313,7 +313,7 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
   end
 
   test "saves attachments from the downloaded message, with decoded names" do
-    @service.send(:save_email, fetch_data(9, report_mail.to_s), "INBOX")
+    incoming_message.send(:save_email, fetch_data(9, report_mail.to_s), "INBOX")
 
     email = @account.messages.find_by!(message_id: "report-9@example.com")
     assert email.has_attachments
@@ -329,7 +329,7 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     mail.add_part Mail::Part.new(content_type: "image/png", content_disposition: "inline", content_id: "<logo>", body: "PNG-unnamed")
     mail.add_part Mail::Part.new(content_type: "image/png", content_disposition: "inline; filename=photo.png", body: "PNG-named")
 
-    @service.send(:save_email, fetch_data(3, mail.to_s), "INBOX")
+    incoming_message.send(:save_email, fetch_data(3, mail.to_s), "INBOX")
 
     email = @account.messages.find_by!(message_id: "pictures-3@example.com")
     assert_equal [ "photo.png" ], email.attachments.map(&:filename)
@@ -351,7 +351,7 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
       END:VCALENDAR
     ICS
 
-    @service.send(:save_email, fetch_data(4, mail.to_s), "INBOX")
+    incoming_message.send(:save_email, fetch_data(4, mail.to_s), "INBOX")
 
     email = @account.messages.find_by!(message_id: "outlook-invite@example.com")
     assert_empty email.attachments
@@ -359,8 +359,8 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
   end
 
   test "an attachment over the size limit is skipped, the email is still saved" do
-    stub_const(ImapSyncService, :MAX_ATTACHMENT_SIZE, 10) do
-      @service.send(:save_email, fetch_data(9, report_mail.to_s), "INBOX")
+    stub_const(Mails::IncomingMessage, :MAX_ATTACHMENT_SIZE, 10) do
+      incoming_message.send(:save_email, fetch_data(9, report_mail.to_s), "INBOX")
     end
 
     email = @account.messages.find_by!(message_id: "report-9@example.com")
@@ -416,7 +416,11 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
       end
     end
 
-    def fetch_data(uid, raw)
+  def incoming_message
+    @incoming_message ||= Mails::IncomingMessage.new(@account)
+  end
+
+  def fetch_data(uid, raw)
       message_id = Mail.new(raw).message_id
       envelope = Net::IMAP::Envelope.new(
         nil, "Test", [ Net::IMAP::Address.new("Ann", nil, "ann", "example.com") ], nil, nil,

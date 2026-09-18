@@ -68,9 +68,11 @@ module Docs
 
     test "edited_at is when the content last changed, not when the lock was taken" do
       document = docs_documents(:project_plan)
+      edited_at = document.last_edited_at
       document.update!(locked_by: users(:one), locked_at: Time.current)
 
-      assert_in_delta 1.day.ago, document.edited_at, 1.minute
+      assert_equal edited_at, document.edited_at
+      assert_operator document.updated_at, :>, document.edited_at
     end
 
     test "edited_at falls back to updated_at for documents never edited" do
