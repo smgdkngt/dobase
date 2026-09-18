@@ -11,6 +11,13 @@ export default class extends Controller {
 
   // ── Open item (double-click) ──
 
+  // Tiles open on double-click with a mouse; Enter does it from the keyboard.
+  openItemKey(event) {
+    if (event.key !== "Enter") return
+    event.preventDefault()
+    this.openItem(event)
+  }
+
   openItem(event) {
     const item = event.currentTarget.closest("[data-item-url]")
     if (item?.dataset.itemUrl) {

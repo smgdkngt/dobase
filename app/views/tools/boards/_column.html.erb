@@ -13,20 +13,27 @@
      data-column-id="<%= column.id %>">
 
   <%# Collapsed strip %>
-  <div class="board-column-collapsed-strip"
-       data-action="click->board#expandColumn"
-       data-column-id="<%= column.id %>">
+  <button type="button" class="board-column-collapsed-strip"
+          aria-label="Expand <%= column.name %> column"
+          data-action="click->board#expandColumn"
+          data-column-id="<%= column.id %>">
     <span class="board-column-collapsed-name"><%= column.name %></span>
-    <span class="board-column-collapsed-count"><%= active_count %></span>
-  </div>
+    <span class="board-column-collapsed-count"><%= active_count %> <span class="sr-only">cards</span></span>
+  </button>
 
   <%# Expanded content %>
   <div class="board-column-expanded">
     <div class="flex items-center justify-between py-3 px-3 pb-2 gap-2">
-      <span class="text-sm font-semibold text-text-primary uppercase tracking-wide cursor-pointer px-1.5 py-0.5 rounded-sm border border-transparent flex-1 min-w-0 hover:bg-background-tertiary"
-            data-action="dblclick->board#startRenameColumn"
-            data-column-id="<%= column.id %>"><%= column.name %></span>
+      <h2 class="flex-1 min-w-0">
+        <span class="text-sm font-semibold text-text-primary uppercase tracking-wide cursor-pointer px-1.5 py-0.5 rounded-sm border border-transparent block truncate hover:bg-background-tertiary"
+              role="button"
+              tabindex="0"
+              aria-label="<%= column.name %> — rename column"
+              data-action="dblclick->board#startRenameColumn keydown->board#startRenameColumnKey"
+              data-column-id="<%= column.id %>"><%= column.name %></span>
+      </h2>
       <span class="text-xs text-text-tertiary bg-background-tertiary rounded-full px-2 py-0.5 min-w-[1.25rem] text-center"
+            aria-label="<%= pluralize(active_count, "card") %>"
             id="column-<%= column.id %>-count"><%= active_count %></span>
       <% if reorder_mode %>
         <%= render "components/icon_button",
@@ -64,6 +71,7 @@
         <button type="button"
                 class="flex items-center gap-1.5 px-2 py-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors"
                 data-action="board#toggleArchived"
+                aria-expanded="false"
                 data-board-target="archivedToggle"
                 data-column-id="<%= column.id %>">
           <%= render "shared/icon", name: "archive", size: 12 %>

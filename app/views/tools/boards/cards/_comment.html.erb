@@ -21,7 +21,7 @@
           title: "Delete comment",
           size: :sm,
           variant: :danger,
-          class: "opacity-0 group-hover:opacity-100 transition-opacity",
+          class: "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity",
           href: tool_board_card_comment_path(tool, card, comment),
           method: :delete,
           turbo_confirm: "Delete this comment?",

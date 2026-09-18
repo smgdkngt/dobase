@@ -37,6 +37,14 @@ export default class extends Controller {
     }
   }
 
+  // The row body is a role="button" div (the row also holds a checkbox and a
+  // drag handle), so Enter and Space have to open the item.
+  openItemKey(event) {
+    if (event.key !== "Enter" && event.key !== " ") return
+    event.preventDefault()
+    this.openItem(event)
+  }
+
   openItem(event) {
     const itemId = event.currentTarget.dataset.itemId
     this.#openItemById(itemId)

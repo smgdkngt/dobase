@@ -42,6 +42,14 @@ export default class extends Controller {
     this.#openCardById(cardId)
   }
 
+  // A card is a role="button" div (it also has to be draggable), so Enter and
+  // Space have to open it the way a real button would.
+  openCardKey(event) {
+    if (event.key !== "Enter" && event.key !== " ") return
+    event.preventDefault()
+    this.#openCardById(event.currentTarget.dataset.cardId)
+  }
+
   #openCardById(cardId) {
     const url = `/tools/${this.toolIdValue}/board/cards/${cardId}`
 
@@ -142,6 +150,14 @@ export default class extends Controller {
 
   // ── Column rename ──
 
+  // Renaming is a double-click on the column name; Enter and Space on the
+  // focused name do the same thing for keyboard users.
+  startRenameColumnKey(event) {
+    if (event.key !== "Enter" && event.key !== " ") return
+    event.preventDefault()
+    this.startRenameColumn(event)
+  }
+
   startRenameColumn(event) {
     const span = event.currentTarget
     const columnId = span.dataset.columnId
@@ -182,6 +198,7 @@ export default class extends Controller {
       const isHidden = !section.classList.contains("flex")
       section.classList.toggle("hidden", !isHidden)
       section.classList.toggle("flex", isHidden)
+      event.currentTarget.setAttribute("aria-expanded", String(isHidden))
       if (label) {
         const count = label.textContent.match(/\d+/)?.[0] || ""
         label.textContent = isHidden ? `Hide ${count} archived` : `${count} archived`

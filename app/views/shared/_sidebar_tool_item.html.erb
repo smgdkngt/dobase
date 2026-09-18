@@ -6,30 +6,38 @@
   emoji = instance.emoji_icon
   has_unread = !is_active && unread_tool_ids.include?(instance.id)
 %>
-<a href="<%= tool_path(instance) %>"
-   class="sidebar-tool-item group/tool sidebar-item <%= is_active ? 'sidebar-item-active' : '' %>"
-   data-sort-id="<%= instance.id %>"
-   data-tool-id="<%= instance.id %>"
-   <%= 'data-unread' if has_unread %>
-   <%= 'aria-current="page"'.html_safe if is_active %>
-   data-action="click->mobile-sidebar#navigate">
-  <% if emoji %>
-    <span class="shrink-0 text-base leading-none" aria-hidden="true"><%= emoji %></span>
-  <% else %>
-    <%= render "shared/icon", name: instance.display_icon, size: 18 %>
-  <% end %>
-  <span class="truncate flex-1"><%= instance.display_name %></span>
-  <% if instance.tool_type.slug == "mail" && instance.mail_account %>
-    <% unread = instance.mail_account.messages.inbox.not_archived.unread.count %>
-    <% if unread > 0 %>
-      <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-accent text-white text-xs font-medium"
-            aria-label="<%= pluralize(unread, "unread message") %>"><%= unread > 99 ? "99+" : unread %></span>
+<%# The settings button is a sibling of the link, never nested inside it:
+    a button inside an anchor is invalid HTML and unreachable by keyboard. %>
+<div class="sidebar-tool-item group/tool sidebar-item <%= is_active ? 'sidebar-item-active' : '' %>"
+     data-sort-id="<%= instance.id %>"
+     data-tool-id="<%= instance.id %>">
+  <a href="<%= tool_path(instance) %>"
+     class="sidebar-tool-link"
+     data-sidebar-tool-link
+     <%= 'data-unread' if has_unread %>
+     <%= 'aria-current="page"'.html_safe if is_active %>
+     data-action="click->mobile-sidebar#navigate">
+    <% if emoji %>
+      <span class="shrink-0 text-base leading-none" aria-hidden="true"><%= emoji %></span>
+    <% else %>
+      <%= render "shared/icon", name: instance.display_icon, size: 18 %>
     <% end %>
-  <% end %>
+    <span class="truncate flex-1"><%= instance.display_name %></span>
+    <% if has_unread %>
+      <span class="sr-only">New activity</span>
+    <% end %>
+    <% if instance.tool_type.slug == "mail" && instance.mail_account %>
+      <% unread = instance.mail_account.messages.inbox.not_archived.unread.count %>
+      <% if unread > 0 %>
+        <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-accent text-white text-xs font-medium"
+              aria-label="<%= pluralize(unread, "unread message") %>"><%= unread > 99 ? "99+" : unread %></span>
+      <% end %>
+    <% end %>
+  </a>
   <button type="button" class="sidebar-tool-menu-btn"
           aria-label="Settings for <%= instance.display_name %>"
           data-action="click->sidebar#editTool"
           data-tool-id="<%= instance.id %>">
     <%= render "shared/icon", name: "settings", size: 14 %>
   </button>
-</a>
+</div>

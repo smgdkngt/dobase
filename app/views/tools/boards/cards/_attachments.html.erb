@@ -30,7 +30,7 @@
                   </a>
                   <span class="text-xs text-text-tertiary shrink-0"><%= human_file_size(attachment.file.byte_size) %></span>
                   <%= link_to tool_board_card_attachment_path(tool, card, attachment),
-                      class: "opacity-0 group-hover:opacity-100 p-0.5 rounded hover:text-error text-text-tertiary transition-all",
+                      class: "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 p-0.5 rounded hover:text-error text-text-tertiary transition-all",
                       data: { turbo_method: :delete, turbo_confirm: "Delete this attachment?", turbo_confirm_button: "Delete", turbo_frame: "card-detail-content" } do %>
                     <%= render "shared/icon", name: "x", size: 12 %>
                   <% end %>
