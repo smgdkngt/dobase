@@ -6,7 +6,7 @@ module Tools
       include ToolScoped
 
       def update
-        params[:column_ids].each_with_index do |id, index|
+        Array(params[:column_ids]).each_with_index do |id, index|
           @tool.board.columns.where(id: id).update_all(position: index)
         end
         render json: { success: true }
