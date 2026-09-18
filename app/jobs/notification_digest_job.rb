@@ -10,7 +10,7 @@ class NotificationDigestJob < ApplicationJob
       notifications = unread_notifications_since(user)
       next if notifications.empty?
 
-      NotificationDigestMailer.digest(user, notifications).deliver_later
+      NotificationDigestMailer.digest(user, notifications.map(&:id)).deliver_later
       user.update_column(:last_notification_digest_at, Time.current)
     end
   end

@@ -37,4 +37,19 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_nil @user.reload.last_visited_path
   end
+
+  test "a last visited path whose record is gone doesn't bounce the dashboard back and forth" do
+    document = Docs::Document.create!(tool: tools(:my_docs), title: "Notes", created_by: @user)
+    get tool_docs_document_path(tools(:my_docs), document)
+    assert_equal tool_docs_document_path(tools(:my_docs), document), @user.reload.last_visited_path
+
+    document.destroy!
+
+    get root_path
+    follow_redirect!
+
+    assert_nil @user.reload.last_visited_path
+    follow_redirect!
+    assert_no_match %r{/documents/#{document.id}\z}, response.location.to_s
+  end
 end

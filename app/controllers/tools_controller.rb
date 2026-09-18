@@ -78,8 +78,12 @@ class ToolsController < ApplicationController
     @tool = Tool.find(params[:id])
   end
 
-  # API clients name the tool type by its slug ("boards", "todos", ...).
+  # API clients name the tool type by its slug ("boards", "todos", ...). The type
+  # is settled at creation: a board whose type changed later would leave its
+  # columns and cards behind an address that no longer serves them.
   def tool_params
+    return params.require(:tool).permit(:name) if action_name == "update"
+
     params.require(:tool).permit(:name, :tool_type_id).tap do |permitted|
       if params[:tool][:tool_type].present?
         permitted[:tool_type_id] = ToolType.enabled.find_by(slug: params[:tool][:tool_type])&.id

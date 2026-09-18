@@ -25,7 +25,9 @@
   }
 
   if user
-    if user.avatar.attached?
+    # A rejected upload (wrong type, too big) is still attached in memory on the
+    # form's re-render, but its blob was never stored — asking for its URL raises.
+    if user.avatar.attached? && user.avatar.blob&.persisted?
       has_image = true
       image_url = url_for(user.avatar.variant(resize_to_fill: [200, 200]))
     else

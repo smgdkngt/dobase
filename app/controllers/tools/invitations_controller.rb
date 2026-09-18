@@ -9,9 +9,13 @@ module Tools
 
     def resend
       invitation = @tool.invitations.find(params[:id])
-      invitation.update!(status: "pending", expires_at: 7.days.from_now)
-      CollaboratorMailer.invitation(invitation).deliver_later
-      redirect_to edit_tool_path(@tool, tab: "collaborators"), notice: "Invitation resent."
+
+      if invitation.update(status: "pending", expires_at: 7.days.from_now)
+        CollaboratorMailer.invitation(invitation).deliver_later
+        redirect_to edit_tool_path(@tool, tab: "collaborators"), notice: "Invitation resent."
+      else
+        redirect_to edit_tool_path(@tool, tab: "collaborators"), alert: invitation.errors.full_messages.first
+      end
     end
 
     def cancel

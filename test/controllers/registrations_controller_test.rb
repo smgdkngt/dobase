@@ -75,6 +75,14 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     reload_registrations_controller!
   end
 
+  test "the sign-up page sends an already signed-in user home" do
+    sign_in_as users(:one)
+
+    get signup_path
+
+    assert_redirected_to root_path
+  end
+
   private
 
   def reload_registrations_controller!
