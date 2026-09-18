@@ -1,11 +1,11 @@
 <%# locals: (file:, tool:, view_mode:) %>
 <%
-  base_classes = "group relative cursor-pointer select-none transition-colors"
+  base_classes = "group relative cursor-pointer select-none transition-colors duration-150"
   grid_classes = "w-[110px] sm:w-[140px] p-3 sm:p-4 rounded-lg flex flex-col items-center gap-2 hover:bg-background-tertiary"
   list_classes = "flex items-center gap-3 px-4 py-3 border-b border-border-light hover:bg-background-tertiary"
   item_classes = view_mode == "grid" ? "#{base_classes} #{grid_classes}" : "#{base_classes} #{list_classes}"
 
-  icon_base = "flex items-center justify-center shrink-0 rounded-xl"
+  icon_base = "flex items-center justify-center shrink-0 rounded-xl transition-transform duration-150 group-hover:scale-105"
   icon_size = view_mode == "grid" ? "w-12 h-12 sm:w-16 sm:h-16" : "w-7 h-7 rounded-md"
 %>
 <div class="<%= item_classes %>"

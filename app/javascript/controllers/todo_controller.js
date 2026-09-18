@@ -11,6 +11,14 @@ export default class extends Controller {
   connect() {
     if (this.hasItemDetailDialogTarget) {
       this._onModalClose = () => {
+        // The dialog's "close" event doesn't fire until its CSS closing
+        // transition finishes (allow-discrete keeps it in the top layer
+        // until then), so this flag is consumed here rather than cleared
+        // on a timer — a fixed delay would race the transition duration.
+        if (this._suppressCloseVisit) {
+          this._suppressCloseVisit = false
+          return
+        }
         const url = new URL(window.location.href)
         url.searchParams.delete("item")
         Turbo.visit(url.toString(), { action: "replace" })
@@ -37,6 +45,13 @@ export default class extends Controller {
   #openItemById(itemId) {
     const url = `/tools/${this.toolIdValue}/todo/items/${itemId}`
 
+    // Open immediately with a skeleton so the dialog's entrance isn't spent
+    // staring at a blank sheet — content swaps in once the fetch resolves.
+    if (this.hasItemModalTarget) {
+      this.itemModalTarget.innerHTML = this._itemSkeletonHTML()
+    }
+    if (this.hasItemDetailDialogTarget) this.itemDetailDialogTarget.showModal()
+
     fetch(url, {
       headers: {
         "Accept": "text/html",
@@ -49,6 +64,13 @@ export default class extends Controller {
         // page into the modal, whose own todo controller would repeat the
         // same auto-open and nest again. Bail out instead.
         if (!response.ok || response.redirected) {
+          // Close without the "close" listener's own Turbo.visit — we're
+          // already clearing the ?item= param below, and a second full-page
+          // visit here would wipe out the flash we're about to show.
+          if (this.hasItemDetailDialogTarget) {
+            this._suppressCloseVisit = true
+            this.itemDetailDialogTarget.close()
+          }
           this._clearItemParam()
           showFlash("This item no longer exists.")
           return null
@@ -59,12 +81,40 @@ export default class extends Controller {
         if (html === null) return
         if (this.hasItemModalTarget) {
           this.itemModalTarget.innerHTML = html
+          // The dialog opened on a skeleton, so it kept the focus itself. Hand it
+          // to the item, where the first Tab lands on its own buttons.
+          this.itemModalTarget.querySelector("[autofocus], button, a[href]")?.focus()
         }
-        if (this.hasItemDetailDialogTarget) this.itemDetailDialogTarget.showModal()
       })
       .catch(error => {
         console.error("Error loading item:", error)
       })
+  }
+
+  _itemSkeletonHTML() {
+    return `
+      <div class="flex flex-col w-full" style="max-height: 80vh; min-height: 60vh;">
+        <div class="flex items-center gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-border-light">
+          <div class="skeleton w-5 h-5 rounded-full shrink-0"></div>
+          <div class="flex-1 min-w-0">
+            <div class="skeleton h-5 w-2/3"></div>
+          </div>
+        </div>
+        <div class="detail-modal-body">
+          <div class="detail-modal-main p-5 flex flex-col gap-3">
+            <div class="skeleton h-4 w-full"></div>
+            <div class="skeleton h-4 w-5/6"></div>
+            <div class="skeleton h-4 w-1/2"></div>
+          </div>
+          <div class="detail-modal-aside p-4 flex flex-col gap-3">
+            <div class="skeleton h-3 w-16"></div>
+            <div class="skeleton h-8 w-full"></div>
+            <div class="skeleton h-3 w-16"></div>
+            <div class="skeleton h-8 w-full"></div>
+          </div>
+        </div>
+      </div>
+    `
   }
 
   _clearItemParam() {

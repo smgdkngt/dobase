@@ -596,6 +596,12 @@
     animation: empty-state-in 360ms var(--ease-out) both;
   }
 
+  /* File/media previews (files tool, public share pages) settle in instead
+     of popping straight onto a bare background */
+  .media-fade-in {
+    animation: empty-state-in 260ms var(--ease-out) both;
+  }
+
   /* Attachment chips (compose, chat file uploads) */
   .compose-attachment-item {
     @apply flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-text-secondary

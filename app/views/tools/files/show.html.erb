@@ -110,12 +110,12 @@
     <%# File grid/list %>
     <div class="<%= @view_mode == 'grid' ? 'flex flex-wrap gap-2 sm:gap-4 content-start min-h-full' : 'flex flex-col' %>">
       <% if @folders.empty? && @files.empty? %>
-        <div class="flex flex-col items-center justify-center py-16 text-center w-full">
-          <div class="text-text-tertiary mb-4">
-            <%= render "shared/icon", name: "folder-open", size: 48 %>
-          </div>
-          <p class="text-sm font-medium text-text-primary">Nothing here yet</p>
-          <p class="text-sm text-text-tertiary mt-1">Drop files anywhere on this page to upload</p>
+        <div class="w-full">
+          <%= render "components/empty_state",
+              icon: "folder-open",
+              title: "Nothing here yet",
+              description: "Drop files anywhere on this page to upload",
+              size: :md %>
         </div>
       <% else %>
         <% @folders.each do |folder| %>
