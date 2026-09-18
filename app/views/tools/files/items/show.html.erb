@@ -36,7 +36,7 @@
   </div>
 
   <%# Content %>
-  <div class="flex items-center justify-center p-4 sm:p-8 bg-background-secondary overflow-auto">
+  <div class="flex items-start justify-center p-4 sm:p-8 bg-background-secondary overflow-auto <%= "[&>*]:w-full" if @file.text? %>">
     <%= render "components/media_preview", file: @file, download_path: tool_files_item_download_path(@tool, @file) %>
   </div>
 

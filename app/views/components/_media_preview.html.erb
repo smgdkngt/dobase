@@ -53,6 +53,26 @@
       <%= tag.source src: url_for(file.file), type: file.content_type %>
     <% end %>
   </div>
+<% elsif file.text? && (preview = file.preview_text) %>
+  <div class="file-text-preview <%= radius_class %>">
+    <% if file.markdown? %>
+      <div class="markdown-preview"><%= markdown_preview(preview) %></div>
+    <% else %>
+      <pre class="file-text-preview-plain"><%= preview %></pre>
+    <% end %>
+  </div>
+<% elsif file.text? && file.preview_too_large? %>
+  <div class="flex flex-col items-center p-16 bg-background-secondary <%= radius_class %> text-text-tertiary">
+    <%= render "shared/icon", name: file.icon_name, size: 64 %>
+    <p class="mt-4 text-lg font-medium text-text-primary"><%= file.name %></p>
+    <p class="text-text-secondary">Too large to show here (<%= file.human_file_size %>)</p>
+    <% if local_assigns[:download_path] %>
+      <%= link_to download_path, class: "btn btn-primary mt-4", data: { turbo: false } do %>
+        <%= render "shared/icon", name: "download", size: 16 %>
+        <span>Download</span>
+      <% end %>
+    <% end %>
+  </div>
 <% elsif file.pdf? %>
   <div class="w-full h-full min-h-[70vh]">
     <iframe src="<%= url_for(file.file) %>" type="application/pdf" class="w-full h-full border-none <%= radius_class %>"></iframe>
