@@ -14,11 +14,13 @@ module Chats
       User.where(id: tool.collaborators.select(:user_id))
     end
 
+    # Your own messages are never unread for you.
     def unread_count_for(user)
+      from_others = messages.where.not(user_id: user.id)
       receipt = read_receipts.find_by(user: user)
-      return messages.count if receipt.nil?
+      return from_others.count if receipt.nil?
 
-      messages.where("created_at > ?", receipt.last_read_at).count
+      from_others.where("chat_messages.created_at > ?", receipt.last_read_at).count
     end
 
     def mark_as_read_for!(user)
