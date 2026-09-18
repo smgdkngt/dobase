@@ -1,0 +1,54 @@
+        <%# ── Assignee ───────────────────────────────────────────────── %>
+        <div class="p-3">
+          <p class="text-xs font-medium text-text-tertiary px-1 mb-1">Assignee</p>
+          <div class="relative">
+            <button type="button"
+                    class="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-background-tertiary transition-colors select-none group w-full"
+                    commandfor="card-assignee-menu"
+                    command="toggle-popover"
+                    style="anchor-name: --card-assignee">
+              <% if card.assigned_user %>
+                <%= render "shared/avatar", user: card.assigned_user, size: :sm %>
+                <span class="text-sm font-medium text-text-primary flex-1 truncate text-left" data-board-card-target="assigneeLabel"><%= card.assigned_user.name %></span>
+              <% else %>
+                <div class="w-6 h-6 rounded-full bg-background-tertiary border border-dashed border-border flex items-center justify-center flex-shrink-0">
+                  <%= render "shared/icon", name: "user", size: 12, class: "text-text-tertiary" %>
+                </div>
+                <span class="text-sm text-text-tertiary flex-1 text-left" data-board-card-target="assigneeLabel">Unassigned</span>
+              <% end %>
+              <%= render "shared/icon", name: "chevron-down", size: 12, class: "text-text-tertiary flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" %>
+            </button>
+            <div id="card-assignee-menu" popover="auto"
+                 class="popover-menu max-h-44 overflow-y-auto"
+                 style="position-anchor: --card-assignee; top: anchor(bottom); left: anchor(left); width: anchor-size(width);">
+              <button type="button"
+                      class="flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-left hover:bg-background-tertiary transition-colors"
+                      data-action="click->board-card#setAssignee"
+                      data-user-id=""
+                      data-user-name="Unassigned"
+                      commandfor="card-assignee-menu" command="hide-popover">
+                <div class="w-6 h-6 rounded-full bg-background-tertiary flex items-center justify-center flex-shrink-0">
+                  <%= render "shared/icon", name: "user", size: 12, class: "text-text-tertiary" %>
+                </div>
+                <span class="text-text-tertiary">Unassigned</span>
+              </button>
+              <% @collaborators.each do |user| %>
+                <button type="button"
+                        class="flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-left hover:bg-background-tertiary transition-colors"
+                        data-action="click->board-card#setAssignee"
+                        data-user-id="<%= user.id %>"
+                        data-user-name="<%= user.name %>"
+                        commandfor="card-assignee-menu" command="hide-popover">
+                  <%= render "shared/avatar", user: user, size: :sm %>
+                  <span class="text-text-primary flex-1 truncate"><%= user.name %></span>
+                  <% if card.assigned_user == user %>
+                    <%= render "shared/icon", name: "check", size: 13, class: "text-accent flex-shrink-0" %>
+                  <% end %>
+                </button>
+              <% end %>
+            </div>
+          </div>
+        </div>
+
+        <div class="h-px bg-border-light"></div>
+

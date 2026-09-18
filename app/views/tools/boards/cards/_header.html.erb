@@ -1,0 +1,37 @@
+  <%# ─── Header ─────────────────────────────────────────────────────── %>
+  <div class="flex items-start gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-border-light">
+    <div class="flex-1 min-w-0">
+
+      <%# Breadcrumb row: color pill + column name %>
+      <div class="flex items-center gap-2 mb-2">
+        <% if card_color(card) %>
+          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset"
+                style="background-color: <%= card_color(card)[:bg_light] %>; color: <%= card_color(card)[:text] %>; --tw-ring-color: <%= card_color(card)[:ring] %>;">
+            <span class="w-1.5 h-1.5 rounded-full" style="background-color: <%= card_color(card)[:hex] %>;"></span>
+            <%= card.color.capitalize %>
+          </span>
+        <% end %>
+        <span class="text-xs text-text-tertiary">
+          in
+          <span class="font-medium text-text-secondary"><%= card.column.name %></span>
+        </span>
+      </div>
+
+      <%# Editable title %>
+      <h2 class="text-lg font-semibold text-text-primary leading-snug cursor-text hover:text-accent transition-colors"
+          data-board-card-target="titleDisplay"
+          data-action="click->board-card#editTitle"><%= card.title %></h2>
+      <input type="text"
+             value="<%= card.title %>"
+             class="input text-lg font-semibold hidden w-full"
+             data-board-card-target="titleInput"
+             data-action="blur->board-card#saveTitle keydown->board-card#titleKeydown">
+    </div>
+
+    <%= render "components/icon_button",
+        icon: "x",
+        title: "Close",
+        size: :sm,
+        data: { action: "click->modal#close" } %>
+  </div>
+
