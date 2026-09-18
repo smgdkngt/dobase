@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_18_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_18_140000) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -240,9 +240,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_120000) do
     t.index ["user_id"], name: "index_collaborators_on_user_id"
   end
 
+  create_table "column_collapses", force: :cascade do |t|
+    t.integer "column_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["column_id", "user_id"], name: "index_column_collapses_on_column_id_and_user_id", unique: true
+    t.index ["user_id"], name: "index_column_collapses_on_user_id"
+  end
+
   create_table "columns", force: :cascade do |t|
     t.bigint "board_id", null: false
-    t.boolean "collapsed", default: false, null: false
     t.datetime "created_at", null: false
     t.integer "created_by_id"
     t.string "name", null: false
@@ -617,6 +625,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_120000) do
   add_foreign_key "chats", "tools"
   add_foreign_key "collaborators", "tools"
   add_foreign_key "collaborators", "users"
+  add_foreign_key "column_collapses", "columns"
+  add_foreign_key "column_collapses", "users"
   add_foreign_key "columns", "boards"
   add_foreign_key "columns", "users", column: "created_by_id"
   add_foreign_key "columns", "users", column: "updated_by_id"

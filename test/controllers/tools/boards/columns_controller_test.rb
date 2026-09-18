@@ -40,6 +40,37 @@ module Tools
         assert_equal "Updated Name", column.reload.name
       end
 
+      test "collapsing a column collapses it for you alone" do
+        column = columns(:todo)
+        column.collapse_for(users(:two))
+
+        patch tool_board_column_path(@tool, column), params: { collapsed: true }, as: :json
+
+        assert_response :success
+        assert column.collapsed_for?(users(:one))
+        assert column.collapsed_for?(users(:two))
+      end
+
+      test "expanding a column leaves other people collapsed" do
+        column = columns(:todo)
+        column.collapse_for(users(:one))
+        column.collapse_for(users(:two))
+
+        patch tool_board_column_path(@tool, column), params: { collapsed: false }, as: :json
+
+        assert_response :success
+        assert_not column.collapsed_for?(users(:one))
+        assert column.collapsed_for?(users(:two))
+      end
+
+      test "collapsing does not rename the column" do
+        column = columns(:todo)
+
+        patch tool_board_column_path(@tool, column), params: { collapsed: true }, as: :json
+
+        assert_equal "To Do", column.reload.name
+      end
+
       test "destroy removes column" do
         column = columns(:done)
 

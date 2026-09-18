@@ -41,7 +41,7 @@
        <% end %>>
     <%= render partial: "tools/boards/column",
           collection: @columns, as: :column,
-          locals: { tool: @tool, reorder_mode: reorder_mode, assignee_filter: @assignee_filter } %>
+          locals: { tool: @tool, reorder_mode: reorder_mode, assignee_filter: @assignee_filter, collapsed_column_ids: @collapsed_column_ids } %>
   </div>
 
   <%# Card detail dialog — larger two-column layout %>
