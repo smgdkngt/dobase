@@ -305,6 +305,12 @@
                 overlay 180ms allow-discrete, display 180ms allow-discrete;
   }
 
+  /* The dialog takes focus when it opens; its buttons show the focus ring, not the sheet */
+  .modal-dialog:focus,
+  .modal-dialog:focus-visible {
+    @apply outline-none;
+  }
+
   .modal-dialog[open] {
     @apply flex flex-col;
     opacity: 1;

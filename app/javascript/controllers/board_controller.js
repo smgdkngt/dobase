@@ -81,6 +81,9 @@ export default class extends Controller {
         if (html === null) return
         if (this.hasCardModalTarget) {
           this.cardModalTarget.innerHTML = html
+          // The dialog opened on a skeleton, so it kept the focus itself. Hand it
+          // to the card, where the first Tab lands on its own buttons.
+          this.cardModalTarget.querySelector("[autofocus], button, a[href]")?.focus()
         }
       })
       .catch(error => {
