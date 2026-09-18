@@ -7,7 +7,7 @@
     <p class="text-text-secondary mt-1">Enter your new password below</p>
   </div>
 
-  <div class="card">
+  <div class="auth-card">
     <div class="card-body">
       <%= render "shared/flash", position: :inline %>
       <%= form_with url: password_path(params[:token]), method: :put, class: "space-y-4" do |f| %>

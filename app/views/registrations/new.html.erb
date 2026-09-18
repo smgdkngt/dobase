@@ -7,7 +7,7 @@
     <p class="text-text-secondary mt-1">Get started with <%= app_name %></p>
   </div>
 
-  <div class="card">
+  <div class="auth-card">
     <div class="card-body">
       <%= render "shared/flash", position: :inline %>
       <%= form_with model: @user, url: signup_path, method: :post do |f| %>
