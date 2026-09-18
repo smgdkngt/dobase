@@ -17,14 +17,15 @@ export default class extends Controller {
     const currentUserId = parseInt(chatEl.dataset.chatUserIdValue)
     const messageUserId = this.userIdValue
     const isOwn = currentUserId === messageUserId
+    // Owners may delete anyone's message, the same as the controller allows.
+    const canModerate = chatEl.dataset.chatCanModerateValue === "true"
 
     // Store ownership for reference
     this.element.dataset.isOwn = isOwn ? "true" : "false"
 
-    // Show delete button only for own messages
     const deleteBtn = this.element.querySelector("[data-message-delete]")
     if (deleteBtn) {
-      deleteBtn.classList.toggle("hidden", !isOwn)
+      deleteBtn.classList.toggle("hidden", !(isOwn || canModerate))
     }
   }
 }
