@@ -17,7 +17,7 @@
   <% end %>
 
   <%= render "components/tool_topbar", tool: @document.tool, back_path: tool_docs_path(@document.tool), title_html: title_input do %>
-    <span class="text-sm text-text-tertiary" data-document-editor-target="saveIndicator">Saved</span>
+    <span class="text-sm text-text-tertiary" role="status" aria-live="polite" data-document-editor-target="saveIndicator">Saved</span>
 
     <%= render "components/icon_button",
           icon: "trash-2",
@@ -29,7 +29,7 @@
           data: { turbo_confirm_button: "Delete" } %>
   <% end %>
 
-  <main class="flex-1 flex flex-col overflow-hidden">
+  <div class="flex-1 flex flex-col overflow-hidden">
     <% input_id = "document_content_#{@document.id}" %>
     <%= form_with model: @document, url: tool_docs_document_path(@tool, @document), method: :patch, class: "flex-1 flex flex-col overflow-hidden", data: { document_editor_target: "form" } do |f| %>
       <%= hidden_field_tag "docs_document[content]", @document.content&.try(:to_trix_html) || @document.content, id: input_id %>
@@ -43,5 +43,5 @@
         data-direct-upload-url="<%= rails_direct_uploads_url %>">
       </rhino-editor>
     <% end %>
-  </main>
+  </div>
 </div>

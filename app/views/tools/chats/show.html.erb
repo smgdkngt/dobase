@@ -91,7 +91,9 @@
            data-chat-target="messages">
         <%= render "tools/chats/older_messages", tool: @tool, messages: @messages, has_more: @has_more %>
 
-        <div id="chat_messages">
+        <%# role="log" announces messages as they arrive without re-reading
+            the whole conversation. %>
+        <div id="chat_messages" role="log" aria-live="polite" aria-relevant="additions">
           <%= render "tools/chats/messages", messages: @messages %>
 
           <div id="chat-empty-state" class="flex items-center justify-center h-full">
@@ -156,6 +158,7 @@
           <input type="hidden" name="message[reply_to_id]" value="" data-chat-target="replyToId">
           <input type="file"
                  name="message[files][]"
+                 aria-label="Attach files"
                  multiple
                  class="hidden"
                  data-chat-target="fileInput"
@@ -195,7 +198,7 @@
     <div class="relative group/file">
       <img src="" alt="" class="w-16 h-16 object-cover rounded-lg border border-border-light">
       <button type="button"
-              class="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center bg-red-500 text-white rounded-full text-xs opacity-0 group-hover/file:opacity-100 transition-opacity"
+              class="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center bg-red-500 text-white rounded-full text-xs opacity-0 group-hover/file:opacity-100 focus-visible:opacity-100 transition-opacity"
               data-action="click->chat#removeFile">&times;</button>
     </div>
   </template>
@@ -210,7 +213,7 @@
         </div>
       </div>
       <button type="button"
-              class="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center bg-red-500 text-white rounded-full text-xs opacity-0 group-hover/file:opacity-100 transition-opacity"
+              class="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center bg-red-500 text-white rounded-full text-xs opacity-0 group-hover/file:opacity-100 focus-visible:opacity-100 transition-opacity"
               data-action="click->chat#removeFile">&times;</button>
     </div>
   </template>

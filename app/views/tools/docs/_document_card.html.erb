@@ -16,7 +16,7 @@
       </div>
       <div class="flex-1 p-3 border-t border-border-light">
         <div class="flex items-center gap-2">
-          <h3 class="flex-1 min-w-0 font-medium text-sm truncate group-hover:text-accent"><%= document.title %></h3>
+          <h2 class="flex-1 min-w-0 font-medium text-sm truncate group-hover:text-accent"><%= document.title %></h2>
           <span class="flex items-center gap-1.5 max-w-[50%] px-2 py-0.5 bg-background-secondary text-text-secondary text-xs font-medium rounded-full <%= 'hidden' unless document.locked? %>"
                 data-editing-indicator
                 role="status"
@@ -45,7 +45,7 @@
       </div>
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2">
-          <h3 class="font-medium text-sm truncate group-hover:text-accent"><%= document.title %></h3>
+          <h2 class="font-medium text-sm truncate group-hover:text-accent"><%= document.title %></h2>
           <span class="flex-shrink-0 text-xs text-warning <%= 'hidden' unless document.locked? %>"
                 data-editing-label>
             <%= document.locked_by&.name %> is editing

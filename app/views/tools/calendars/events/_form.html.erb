@@ -92,6 +92,7 @@
       <div class="flex items-center gap-2">
         <span class="text-sm text-text-secondary">Every</span>
         <%= f.number_field :recurrence_interval,
+          "aria-label": "Repeat every",
           value: event.recurrence_interval || 1,
           min: 1, max: 99,
           class: "input w-20"
@@ -109,7 +110,7 @@
           <% [["MO", "M"], ["TU", "T"], ["WE", "W"], ["TH", "T"], ["FR", "F"], ["SA", "S"], ["SU", "S"]].each do |abbr, letter| %>
             <% checked = weekly_days.include?(abbr) %>
             <label class="flex items-center justify-center w-9 h-9 rounded-full border cursor-pointer text-sm font-medium transition-colors
-                          <%= checked ? 'bg-accent text-white border-accent' : 'border-border text-text-secondary hover:border-accent/50' %>">
+                          <%= checked ? 'bg-accent-solid text-white border-accent-solid' : 'border-border text-text-secondary hover:border-accent/50' %>">
               <%= check_box_tag "calendars_event[recurrence_days_of_week][]", abbr, checked,
                     class: "sr-only",
                     id: "recurrence_day_#{abbr}",
@@ -165,6 +166,7 @@
             <div data-recurrence-form-target="endCountField"
                  class="flex items-center gap-1 <%= 'hidden' unless event.recurrence_end_type == 'count' %>">
               <%= f.number_field :recurrence_count,
+                "aria-label": "Number of repeats",
                 value: event.recurrence_count || 10,
                 min: 1, max: 999,
                 class: "input w-20" %>
@@ -182,6 +184,7 @@
             <div data-recurrence-form-target="endUntilField"
                  class="<%= 'hidden' unless event.recurrence_end_type == 'until' %>">
               <%= f.date_field :recurrence_until,
+                "aria-label": "Repeat until date",
                 value: event.recurrence_until,
                 class: "input" %>
             </div>

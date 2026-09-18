@@ -13,6 +13,8 @@
   <div class="todo-checkbox-wrapper" data-checkbox-wrapper>
     <input type="checkbox"
            class="todo-checkbox"
+           id="todo-item-<%= item.id %>-completion"
+           aria-label="Mark &quot;<%= item.title %>&quot; complete"
            <%= "checked" if is_completed %>
            data-action="change->todo#toggleCompletion"
            data-item-id="<%= item.id %>"
@@ -21,12 +23,16 @@
 
   <%# Content (click opens detail) %>
   <div class="flex-1 min-w-0 cursor-pointer flex items-center gap-2"
-       data-action="click->todo#openItem"
+       role="button"
+       tabindex="0"
+       aria-label="Open <%= item.title %>"
+       data-action="click->todo#openItem keydown->todo#openItemKey"
        data-item-id="<%= item.id %>">
     <span class="text-[0.9375rem] text-text-primary leading-normal"><%= item.title %></span>
     <% if item.assigned_user.present? %>
       <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-accent-light text-accent text-[0.5625rem] font-semibold shrink-0"
-            title="<%= item.assigned_user.name %>">
+            title="Assigned to <%= item.assigned_user.name %>"
+            aria-label="Assigned to <%= item.assigned_user.name %>">
         <%= item.assigned_user.name&.chars&.first&.upcase %>
       </span>
     <% end %>
@@ -49,7 +55,7 @@
         <% end %>
         <% if item.recurring? %>
           <span class="inline-flex items-center" title="<%= item.recurrence_description %>">
-            <%= render "shared/icon", name: "repeat", size: 12 %>
+            <%= render "shared/icon", name: "repeat", size: 12, label: item.recurrence_description %>
           </span>
         <% end %>
       </span>
@@ -73,7 +79,7 @@
   <% end %>
 
   <%# Drag handle %>
-  <div class="todo-drag-handle">
+  <div class="todo-drag-handle" aria-hidden="true">
     <%= render "shared/icon", name: "grip-vertical", size: 14 %>
   </div>
 </div>

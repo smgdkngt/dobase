@@ -1,10 +1,12 @@
-<aside class="sidebar" data-controller="sidebar"
+<aside class="sidebar" aria-label="Workspace" data-controller="sidebar"
        data-action="sortable:move->sidebar#handleToolMove"
        data-mobile-sidebar-target="sidebar">
   <%# ── Logo ── %>
   <div class="px-2 py-2 border-b border-border-light flex items-center gap-1">
     <button type="button"
             class="sidebar-logo-btn sidebar-reorder-hide"
+            aria-label="<%= app_name %> menu"
+            aria-haspopup="menu"
             popovertarget="sidebar-add-menu"
             style="anchor-name: --sidebar-add-btn">
       <img src="<%= app_logo_path %>" alt="<%= app_name %>" class="w-7 h-7 flex-shrink-0">
@@ -21,7 +23,7 @@
       <%= render "shared/icon", name: "check", size: 14, class: "text-accent flex-shrink-0 ml-auto" %>
     </button>
 
-    <button type="button" class="sidebar-close-btn flex-shrink-0" data-action="click->mobile-sidebar#close">
+    <button type="button" class="sidebar-close-btn flex-shrink-0" aria-label="Close sidebar" data-action="click->mobile-sidebar#close">
       <%= render "shared/icon", name: "x", size: 20 %>
     </button>
   </div>
@@ -39,7 +41,7 @@
   </div>
 
   <%# ── Navigation ── %>
-  <nav class="flex-1 py-2 overflow-y-auto scrollbar-thin" data-sidebar-target="nav">
+  <nav class="flex-1 py-2 overflow-y-auto scrollbar-thin" aria-label="Tools" data-sidebar-target="nav">
     <% if defined?(current_user) && current_user %>
       <% unread_tool_ids = Tool.unread_tool_ids_for(current_user) %>
       <%# ── Ungrouped Tools ── %>
@@ -75,6 +77,8 @@
               <div class="sidebar-group-actions">
                 <button type="button" class="sidebar-context-btn"
                         data-sidebar-context-btn
+                        aria-label="<%= group.name %> group options"
+                        aria-haspopup="menu"
                         popovertarget="group-menu-<%= group.id %>"
                         style="anchor-name: --grp-<%= group.id %>">
                   <%= render "shared/icon", name: "more-horizontal", size: 14 %>
@@ -135,6 +139,8 @@
       <%# User menu trigger — avatar with name %>
       <button type="button"
               class="sidebar-user-btn"
+              aria-label="Account menu for <%= current_user.name %>"
+              aria-haspopup="menu"
               popovertarget="sidebar-user-menu"
               style="anchor-name: --sidebar-user-btn">
         <%= render "shared/avatar", user: current_user, size: :sm %>
@@ -157,8 +163,12 @@
               refresh — which restores whatever class the server sends —
               keeps showing an accurate badge instead of resetting to hidden. %>
           <span class="absolute -top-0.5 -right-0.5 badge badge-sm <%= "hidden" if sidebar_unread_count.zero? %>"
+                aria-hidden="true"
                 data-notifications-target="badge">
             <%= sidebar_unread_count %>
+          </span>
+          <span class="sr-only" role="status" data-notifications-target="badgeStatus">
+            <%= sidebar_unread_count.zero? ? "No unread notifications" : pluralize(sidebar_unread_count, "unread notification") %>
           </span>
         </button>
       </div>

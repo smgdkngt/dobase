@@ -62,8 +62,12 @@
     @apply select-none;
   }
 
+  .sidebar-tool-link {
+    @apply flex items-center gap-3 flex-1 min-w-0 -my-2 py-2 text-inherit no-underline;
+  }
+
   /* Unread activity dot */
-  .sidebar-tool-item[data-unread]::after {
+  .sidebar-tool-link[data-unread]::after {
     @apply w-1.5 h-1.5 rounded-full bg-accent shrink-0;
     content: "";
   }
@@ -79,7 +83,8 @@
 
   /* Only reveal gear on hover for pointer devices */
   @media (hover: hover) {
-    .sidebar-tool-item:hover .sidebar-tool-menu-btn {
+    .sidebar-tool-item:hover .sidebar-tool-menu-btn,
+    .sidebar-tool-item:focus-within .sidebar-tool-menu-btn {
       opacity: 1;
       transform: translateX(0);
     }
@@ -417,5 +422,16 @@
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
+  }
+}
+
+/* Skip link — hidden until focused, then pinned to the top-left. */
+@layer components {
+  .skip-link {
+    @apply sr-only;
+  }
+
+  .skip-link:focus-visible {
+    @apply not-sr-only fixed top-3 left-3 z-[200] rounded-lg bg-surface px-4 py-2 text-sm font-medium text-text-primary shadow-lg ring-2 ring-accent;
   }
 }

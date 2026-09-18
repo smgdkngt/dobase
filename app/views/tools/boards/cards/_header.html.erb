@@ -23,6 +23,7 @@
           data-action="click->board-card#editTitle"><%= card.title %></h2>
       <input type="text"
              value="<%= card.title %>"
+             aria-label="Card title"
              class="input text-lg font-semibold hidden w-full"
              data-board-card-target="titleInput"
              data-action="blur->board-card#saveTitle keydown->board-card#titleKeydown">

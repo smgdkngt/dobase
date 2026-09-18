@@ -15,7 +15,10 @@
      data-item-id="<%= file.id %>"
      data-item-url="<%= tool_files_item_path(tool, file) %>"
      draggable="true"
-     data-action="click->file-selection#select click->file-drag#recordClick dblclick->files#openItem contextmenu->file-selection#selectForMenu contextmenu->file-context-menu#show dragstart->file-drag#dragStart dragend->file-drag#dragEnd">
+     role="button"
+     tabindex="0"
+     aria-label="File <%= file.name %>"
+     data-action="keydown->files#openItemKey click->file-selection#select click->file-drag#recordClick dblclick->files#openItem contextmenu->file-selection#selectForMenu contextmenu->file-context-menu#show dragstart->file-drag#dragStart dragend->file-drag#dragEnd">
   <% if file.image? && file.file.attached? %>
     <div class="<%= icon_base %> <%= icon_size %> overflow-hidden">
       <%= image_tag url_for(file.thumbnail), class: "w-full h-full object-cover", loading: "lazy", decoding: "async", alt: file.name %>
@@ -32,26 +35,28 @@
       <span data-item-name class=" flex-1 min-w-0 truncate text-sm sm:text-base"><%= file.name %></span>
       <span class="w-5 shrink-0 text-center hidden sm:block">
         <% if file.share %>
-          <span class="text-accent" title="Shared"><%= render "shared/icon", name: "link", size: 14 %></span>
+          <span class="text-accent"><%= render "shared/icon", name: "link", size: 14, label: "Shared" %></span>
         <% end %>
       </span>
       <span class="text-sm text-text-secondary w-[100px] text-right shrink-0 hidden md:block"><%= file.human_file_size %></span>
       <span class="text-sm text-text-secondary w-[100px] text-right shrink-0 hidden lg:block"><%= format_date(file.created_at) %></span>
     </div>
   <% end %>
-  <div class="<%= view_mode == 'grid' ? 'absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity' : '' %> flex items-center gap-2">
+  <div class="<%= view_mode == 'grid' ? 'absolute top-2 right-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity' : '' %> flex items-center gap-2">
     <% if view_mode == "grid" && file.share %>
-      <span class="text-accent" title="Shared">
-        <%= render "shared/icon", name: "link", size: 14 %>
+      <span class="text-accent">
+        <%= render "shared/icon", name: "link", size: 14, label: "Shared" %>
       </span>
     <% end %>
     <% if image_index %>
-      <button type="button" class="p-1 rounded text-text-tertiary hover:bg-background-tertiary hover:text-text-primary transition-all <%= 'opacity-0 group-hover:opacity-100' if view_mode == 'grid' %>"
-              data-action="click->gallery#open:stop" data-index="<%= image_index %>" title="View">
+      <button type="button" class="p-1 rounded text-text-tertiary hover:bg-background-tertiary hover:text-text-primary transition-all <%= 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100' if view_mode == 'grid' %>"
+              data-action="click->gallery#open:stop" data-index="<%= image_index %>" title="View" aria-label="View <%= file.name %>">
         <%= render "shared/icon", name: "eye", size: 16 %>
       </button>
     <% end %>
-    <button type="button" class="p-1 rounded text-text-tertiary hover:bg-background-tertiary hover:text-text-primary transition-all <%= 'opacity-0 group-hover:opacity-100' if view_mode == 'grid' %>"
+    <button type="button" class="p-1 rounded text-text-tertiary hover:bg-background-tertiary hover:text-text-primary transition-all <%= 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100' if view_mode == 'grid' %>"
+            aria-label="More actions for <%= file.name %>"
+            aria-haspopup="menu"
             data-action="click->file-selection#selectForMenu click->file-context-menu#showFromButton:stop">
       <%= render "shared/icon", name: "more-vertical", size: 16 %>
     </button>

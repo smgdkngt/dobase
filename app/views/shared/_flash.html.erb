@@ -24,7 +24,7 @@
   wrapper_class = position == :toast ? "flash-toast" : "mb-4"
 %>
 <% if position == :toast || has_messages %>
-  <div id="flash" class="flex flex-col gap-2 <%= wrapper_class %>" data-controller="flash">
+  <div id="flash" class="flex flex-col gap-2 <%= wrapper_class %>" data-controller="flash" aria-live="polite" aria-atomic="false">
     <% flash.each do |type, message| %>
       <% cfg = flash_config[type.to_s] %>
       <% next unless cfg %>
@@ -32,7 +32,7 @@
         <%= render "shared/icon", name: cfg[:icon], size: 18 %>
         <span class="flex-1"><%= message %></span>
         <% if dismissable %>
-          <button type="button" class="ml-2 opacity-70 hover:opacity-100" data-action="click->flash#dismiss">
+          <button type="button" class="ml-2 opacity-70 hover:opacity-100" aria-label="Dismiss message" data-action="click->flash#dismiss">
             <%= render "shared/icon", name: "x", size: 16 %>
           </button>
         <% end %>

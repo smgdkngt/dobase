@@ -241,13 +241,13 @@
             <%# Signature %>
             <div class="mb-5">
               <h3 class="text-sm font-semibold text-text-primary mb-3">Email Signature</h3>
-              <%= f.text_area :signature, class: "input min-h-[80px]", rows: 3, placeholder: "Your name\nYour title" %>
+              <%= f.text_area :signature, class: "input min-h-[80px]", rows: 3, "aria-label": "Email signature", placeholder: "Your name\nYour title" %>
             </div>
 
             <%# Archive folder %>
             <div class="mb-5">
               <h3 class="text-sm font-semibold text-text-primary mb-3">Archive Folder</h3>
-              <%= f.text_field :archive_folder, class: "input", placeholder: "Archive" %>
+              <%= f.text_field :archive_folder, class: "input", "aria-label": "Archive folder", placeholder: "Archive" %>
               <p class="help-text">IMAP folder to move archived emails to. Leave blank to just mark as read.</p>
             </div>
 
@@ -257,7 +257,7 @@
               <%# Unset means the mail page's default of a minute %>
               <%= f.select :auto_refresh_interval,
                 [["Disabled", 0], ["30 seconds", 30], ["1 minute", 60], ["2 minutes", 120], ["5 minutes", 300]],
-                { selected: mail_account.auto_refresh_interval || 60 }, class: "input" %>
+                { selected: mail_account.auto_refresh_interval || 60 }, { class: "input", "aria-label": "Auto-refresh interval" } %>
             </div>
 
             <%# Sync Status %>
@@ -364,10 +364,12 @@
                     <div class="flex items-center gap-3 p-3 bg-background-secondary rounded-lg">
                       <input type="hidden" name="calendars_account[calendars_attributes][<%= calendar.id %>][id]" value="<%= calendar.id %>">
                       <input type="color"
+                             aria-label="Colour for <%= calendar.name %>"
                              name="calendars_account[calendars_attributes][<%= calendar.id %>][color]"
                              value="<%= calendar.color_hex %>"
                              class="w-6 h-6 rounded cursor-pointer border-0 p-0">
                       <input type="text"
+                             aria-label="Name for <%= calendar.name %>"
                              name="calendars_account[calendars_attributes][<%= calendar.id %>][name]"
                              value="<%= calendar.name %>"
                              class="flex-1 text-sm font-medium bg-transparent border-0 p-0 focus:outline-none focus:ring-0">
@@ -463,7 +465,7 @@
           <%= form_with url: tool_collaborators_path(@tool),
                 class: "flex gap-2 items-center mt-4 pt-4 border-t border-border-light" do |f| %>
             <div class="flex-1">
-              <%= f.email_field :email, class: "input", placeholder: "Enter email address…", required: true %>
+              <%= f.email_field :email, class: "input", "aria-label": "Collaborator email address", placeholder: "Enter email address…", required: true %>
             </div>
             <%= render "components/button", text: "Add", icon: "plus" %>
           <% end %>

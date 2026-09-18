@@ -54,6 +54,9 @@
   </head>
 
   <body class="bg-background-secondary text-text-primary" data-controller="keyboard-shortcuts">
+    <%# data-turbo="false" so the browser handles the fragment itself and moves
+        focus into <main>; a Turbo anchor visit only scrolls. %>
+    <a href="#main-content" class="skip-link" data-turbo="false">Skip to main content</a>
     <%= render "shared/turbo_confirm_dialog" %>
     <% if user_signed_in? %>
       <%= render "shared/flash" %>
@@ -62,14 +65,16 @@
         <div class="sidebar-overlay" data-mobile-sidebar-target="overlay" data-action="click->mobile-sidebar#close"></div>
 
         <%= render "shared/sidebar" %>
-        <main class="main-content">
+        <main class="main-content" id="main-content" tabindex="-1">
           <%= yield %>
         </main>
 
         <%# Mobile bottom bar — only visible < 1024px %>
-        <nav class="mobile-bottom-bar">
+        <nav class="mobile-bottom-bar" aria-label="Main">
           <button type="button"
                   class="mobile-bottom-bar-item"
+                  aria-label="Account menu for <%= current_user.name %>"
+                  aria-haspopup="menu"
                   popovertarget="sidebar-user-menu"
                   style="anchor-name: --mobile-user-btn">
             <%= render "shared/avatar", user: current_user, size: :sm %>
@@ -91,6 +96,7 @@
                data-notifications-unread-count-value="<%= mobile_unread_count %>">
             <button type="button"
                     class="mobile-bottom-bar-item"
+                    aria-label="Notifications"
                     popovertarget="sidebar-notifications"
                     style="anchor-name: --mobile-notifications-btn"
                     data-notifications-target="trigger"
@@ -99,6 +105,7 @@
               <%# Rendered server-side so a Turbo morph refresh (which restores
                   whatever class the server sends) doesn't reset it to hidden. %>
               <span class="absolute -top-0.5 -right-0.5 badge badge-sm <%= "hidden" if mobile_unread_count.zero? %>"
+                    aria-hidden="true"
                     data-notifications-target="badge">
                 <%= mobile_unread_count %>
               </span>
@@ -112,7 +119,7 @@
       <%= render "shared/command_palette" %>
       <%= render "shared/keyboard_shortcuts_dialog" %>
     <% else %>
-      <main class="min-h-dvh flex items-center justify-center bg-background-secondary">
+      <main class="min-h-dvh flex items-center justify-center bg-background-secondary" id="main-content" tabindex="-1">
         <%= yield %>
       </main>
     <% end %>

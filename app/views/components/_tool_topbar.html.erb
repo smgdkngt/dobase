@@ -7,6 +7,7 @@
   Options:
     tool: Tool instance (for context)
     back_path: Path for back button (optional)
+    back_label: Accessible name for the back button (default: "Back")
     title_html: Custom HTML for title area (optional, replaces title)
 
   Yields:
@@ -20,7 +21,8 @@
 <div class="tool-topbar">
   <div class="flex items-center gap-2 flex-1 min-w-0">
     <% if local_assigns[:back_path] %>
-      <%= link_to back_path, class: "p-1.5 -ml-1.5 text-text-tertiary hover:text-text-primary rounded-lg hover:bg-background-tertiary transition-colors" do %>
+      <%= link_to back_path, class: "p-1.5 -ml-1.5 text-text-tertiary hover:text-text-primary rounded-lg hover:bg-background-tertiary transition-colors",
+            title: local_assigns[:back_label] || "Back", "aria-label": local_assigns[:back_label] || "Back" do %>
         <%= render "shared/icon", name: "arrow-left", size: 18 %>
       <% end %>
     <% end %>

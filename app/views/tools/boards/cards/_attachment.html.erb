@@ -8,7 +8,7 @@
   <span class="text-xs text-text-tertiary ml-auto"><%= attachment.human_readable_size %></span>
   <%= button_to tool_board_card_attachment_path(card.column.board.tool, card, attachment),
         method: :delete,
-        class: "opacity-0 group-hover:opacity-100 p-1 text-text-tertiary hover:text-error bg-transparent border-none cursor-pointer" do %>
+        class: "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 p-1 text-text-tertiary hover:text-error bg-transparent border-none cursor-pointer" do %>
     <%= render "shared/icon", name: "x", size: 12 %>
   <% end %>
 </div>

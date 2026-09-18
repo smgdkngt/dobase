@@ -70,9 +70,12 @@
 %>
 
 <%
+  accessible_name = icon_only ? (local_assigns[:title] || text) : nil
+
   html_options = {
     class: classes,
     title: local_assigns[:title],
+    "aria-label": accessible_name,
     data: data_attrs.presence
   }.compact
 

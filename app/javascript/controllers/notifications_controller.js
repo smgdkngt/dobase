@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import consumer from "channels/consumer"
 
 export default class extends Controller {
-  static targets = ["badge", "trigger", "popover", "list", "markAllRead"]
+  static targets = ["badge", "badgeStatus", "trigger", "popover", "list", "markAllRead"]
   static values = { userId: Number, unreadCount: Number }
 
   connect() {
@@ -39,7 +39,8 @@ export default class extends Controller {
     if (data.tool_id) {
       const toolItem = document.querySelector(`[data-tool-id="${data.tool_id}"]`)
       if (toolItem && !toolItem.classList.contains("sidebar-item-active")) {
-        toolItem.setAttribute("data-unread", "")
+        const link = toolItem.querySelector("[data-sidebar-tool-link]") || toolItem
+        link.setAttribute("data-unread", "")
       }
     }
 
@@ -132,6 +133,16 @@ export default class extends Controller {
       this.badgeTarget.classList.remove("hidden")
     } else {
       this.badgeTarget.classList.add("hidden")
+    }
+
+    // The badge itself is aria-hidden (a bare number reads as nonsense); the
+    // count lives in a visually hidden status region next to it instead.
+    if (this.hasBadgeStatusTarget) {
+      const count = this.unreadCountValue
+      this.badgeStatusTarget.textContent =
+        count === 0
+          ? "No unread notifications"
+          : `${count} unread notification${count === 1 ? "" : "s"}`
     }
   }
 

@@ -51,7 +51,7 @@
 
   <%# Always the same element, empty or not: edits arriving over the channel are
       written into it, and an empty document has to have somewhere to put them. %>
-  <main class="flex-1 overflow-y-auto">
+  <div class="flex-1 overflow-y-auto">
     <article class="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 document-view" data-document-viewer-target="content">
       <% if @document.content.present? %>
         <%= @document.content %>
@@ -64,5 +64,5 @@
         </div>
       <% end %>
     </article>
-  </main>
+  </div>
 </div>

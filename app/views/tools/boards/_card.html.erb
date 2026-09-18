@@ -6,7 +6,9 @@
      id="board-card-<%= card.id %>"
      data-sort-id="<%= card.id %>"
      data-card-id="<%= card.id %>"
-     data-action="click->board#openCard">
+     role="button"
+     tabindex="0"
+     data-action="click->board#openCard keydown->board#openCardKey">
   <% if card.color.present? %>
     <%
       color_class = case card.color
@@ -55,7 +57,8 @@
       <% end %>
       <% if card.assigned_user.present? %>
         <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-accent-light text-accent text-[0.5625rem] font-semibold ml-auto"
-              title="<%= card.assigned_user.name %>">
+              title="Assigned to <%= card.assigned_user.name %>"
+              aria-label="Assigned to <%= card.assigned_user.name %>">
           <%= card.assigned_user.name&.chars&.first&.upcase %>
         </span>
       <% end %>

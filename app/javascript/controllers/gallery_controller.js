@@ -9,7 +9,8 @@ const SLIDESHOW_INTERVAL_MS = 4000
 export default class extends Controller {
   static targets = [
     "overlay", "image", "images", "name", "counter", "downloadLink",
-    "prevButton", "nextButton", "slideshowButton", "playIcon", "pauseIcon"
+    "prevButton", "nextButton", "slideshowButton", "playIcon", "pauseIcon",
+    "closeButton"
   ]
 
   connect() {
@@ -43,6 +44,10 @@ export default class extends Controller {
     this.currentIndex = Number.isNaN(index) ? 0 : index
     this._render()
     this.overlayTarget.hidden = false
+    // The overlay is a plain element, not a <dialog>, so focus has to be moved
+    // in and put back by hand.
+    this._openedFrom = document.activeElement
+    if (this.hasCloseButtonTarget) this.closeButtonTarget.focus()
     document.addEventListener("keydown", this.handleKeydown)
     document.body.style.overflow = "hidden"
   }
@@ -52,6 +57,8 @@ export default class extends Controller {
     this.overlayTarget.hidden = true
     document.removeEventListener("keydown", this.handleKeydown)
     document.body.style.overflow = ""
+    this._openedFrom?.focus?.()
+    this._openedFrom = null
   }
 
   prev() {

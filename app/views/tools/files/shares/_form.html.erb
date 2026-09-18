@@ -8,7 +8,7 @@
       </p>
     <% else %>
       <div class="flex gap-2" data-controller="clipboard">
-        <input type="text" readonly value="<%= share_url(share.token) %>" class="input flex-1" data-clipboard-target="source">
+        <input type="text" readonly aria-label="Share link" value="<%= share_url(share.token) %>" class="input flex-1" data-clipboard-target="source">
         <%= render "components/button", text: "Copy", variant: :secondary, size: :sm, type: :button, data: { action: "clipboard#copy", clipboard_target: "button" } %>
       </div>
       <% if share.expires_at %>
