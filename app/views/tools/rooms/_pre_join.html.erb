@@ -1,52 +1,64 @@
   <%# Pre-join state %>
   <div class="room-pre-join" data-room-target="preJoin">
-    <div class="hidden flex flex-col items-center gap-2 w-80 max-w-full" data-room-target="preJoinError">
-      <div class="flash flash-alert w-full">
-        <%= render "shared/icon", name: "alert-circle", size: 18 %>
-        <span class="flex-1" data-room-target="preJoinErrorMessage"></span>
+    <div class="room-pre-join-card media-fade-in">
+      <div class="text-center">
+        <h2 class="text-lg font-semibold text-text-primary">Ready to join?</h2>
+        <p class="text-sm text-text-secondary mt-1">Check your camera and microphone first.</p>
       </div>
+
+      <div class="hidden flex flex-col items-center gap-2 w-full" data-room-target="preJoinError">
+        <div class="flash flash-alert w-full">
+          <%= render "shared/icon", name: "alert-circle", size: 18 %>
+          <span class="flex-1" data-room-target="preJoinErrorMessage"></span>
+        </div>
+        <%= render "components/button",
+              text: "Try again",
+              variant: :secondary,
+              size: :sm,
+              icon: "refresh-cw",
+              type: :button,
+              data: { action: "click->room#retryAfterError" } %>
+      </div>
+
+      <%# Camera preview — the placeholder icon sits behind the video, so it
+          only shows through when there is no active stream to paint over it. %>
+      <div class="room-preview">
+        <div class="room-preview-placeholder">
+          <%= render "shared/icon", name: "video-off", size: 28 %>
+        </div>
+        <video class="room-preview-video"
+               data-room-target="previewVideo"
+               autoplay playsinline muted></video>
+      </div>
+
+      <%# Device selectors %>
+      <div class="w-full flex flex-col gap-3">
+        <div class="form-field !mb-0">
+          <label class="label" for="room-audio-device">
+            <%= render "shared/icon", name: "mic", size: 14, class: "inline-block align-[-2px] mr-1 text-text-tertiary" %>
+            Microphone
+          </label>
+          <select id="room-audio-device" class="input" data-room-target="audioSelect"></select>
+        </div>
+
+        <div class="form-field !mb-0">
+          <label class="label" for="room-video-device">
+            <%= render "shared/icon", name: "video", size: 14, class: "inline-block align-[-2px] mr-1 text-text-tertiary" %>
+            Camera
+          </label>
+          <select id="room-video-device" class="input"
+                  data-room-target="videoSelect"
+                  data-action="change->room#changePreviewCamera"></select>
+        </div>
+      </div>
+
       <%= render "components/button",
-            text: "Try again",
-            variant: :secondary,
-            size: :sm,
-            icon: "refresh-cw",
+            text: "Join Room",
+            variant: :primary,
+            icon: "video",
+            full_width: true,
             type: :button,
-            data: { action: "click->room#retryAfterError" } %>
+            data: { action: "click->room#join", room_target: "joinButton" } %>
     </div>
-
-    <%# Camera preview %>
-    <div class="w-80 max-w-full rounded-xl overflow-hidden bg-background-secondary shadow-md">
-      <video class="w-full aspect-video object-cover object-center bg-background-secondary"
-             data-room-target="previewVideo"
-             autoplay playsinline muted></video>
-    </div>
-
-    <%# Device selectors %>
-    <div class="w-80 max-w-full flex flex-col gap-3">
-      <div class="form-field">
-        <label class="label" for="room-audio-device">
-          <%= render "shared/icon", name: "mic", size: 14, class: "inline-block align-[-2px] mr-1 text-text-tertiary" %>
-          Microphone
-        </label>
-        <select id="room-audio-device" class="input" data-room-target="audioSelect"></select>
-      </div>
-
-      <div class="form-field">
-        <label class="label" for="room-video-device">
-          <%= render "shared/icon", name: "video", size: 14, class: "inline-block align-[-2px] mr-1 text-text-tertiary" %>
-          Camera
-        </label>
-        <select id="room-video-device" class="input"
-                data-room-target="videoSelect"
-                data-action="change->room#changePreviewCamera"></select>
-      </div>
-    </div>
-
-    <%= render "components/button",
-          text: "Join Room",
-          variant: :primary,
-          icon: "video",
-          type: :button,
-          data: { action: "click->room#join", room_target: "joinButton" } %>
   </div>
 
