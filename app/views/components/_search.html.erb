@@ -9,6 +9,7 @@
     value: Current search value
     placeholder: Placeholder text (default: "Search...")
     hidden_fields: Hash of hidden field names/values
+    label: Accessible name for the input (defaults to the placeholder)
     data: Data attributes for the form
     input_data: Data attributes for the input element
     autofocus: true to autofocus
@@ -25,10 +26,11 @@
   data ||= {}
   input_data ||= {}
 %>
-<%= form_with url: url, method: :get, class: "search-form", data: data do %>
+<%= form_with url: url, method: :get, class: "search-form", role: "search", data: data do %>
   <%= render "shared/icon", name: "search", size: 14, class: "search-form-icon" %>
   <%= tag.input type: :search, name: name, value: local_assigns[:value], placeholder: placeholder,
         class: "search-form-input", autocomplete: "off",
+        "aria-label": local_assigns[:label] || placeholder,
         autofocus: local_assigns[:autofocus] || nil, data: input_data.presence %>
   <% hidden_fields.each do |field_name, field_value| %>
     <%= tag.input type: :hidden, name: field_name, value: field_value %>

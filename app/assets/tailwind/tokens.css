@@ -116,6 +116,16 @@
     border-color: var(--color-border);
   }
 
+  /* Keyboard focus is visible on *everything* by default. Components that want
+     a ring of their own (.btn, .icon-btn) opt out with focus:outline-none and
+     draw their own; anything else — links, tiles, list rows, dropdown items,
+     custom role="button" elements — gets this outline for free. */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
   /* Dark Mode Overrides */
   @media (prefers-color-scheme: dark) {
     :root {

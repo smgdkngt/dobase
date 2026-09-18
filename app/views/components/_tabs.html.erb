@@ -16,9 +16,9 @@
       { label: "Trash", href: trash_path, icon: "trash-2", badge: 3 }
     ]
 %>
-<div class="tabs">
+<nav class="tabs" aria-label="<%= local_assigns[:label] || "Sections" %>">
   <% tabs.each do |tab| %>
-    <%= link_to tab[:href], class: "tab #{tab[:active] ? 'active' : ''}" do %>
+    <%= link_to tab[:href], class: "tab #{tab[:active] ? 'active' : ''}", "aria-current": (tab[:active] ? "page" : nil) do %>
       <% if tab[:icon] %>
         <%= render "shared/icon", name: tab[:icon], size: 14 %>
       <% end %>
@@ -28,4 +28,4 @@
       <% end %>
     <% end %>
   <% end %>
-</div>
+</nav>

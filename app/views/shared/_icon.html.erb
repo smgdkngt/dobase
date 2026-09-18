@@ -1,5 +1,7 @@
 <%# Lucide icon partial - renders inline SVG icons %>
 <%# Usage: render "shared/icon", name: "home", size: 24, class: "text-gray-500" %>
+<%# Icons are decorative by default (aria-hidden). Pass label: "Shared" when the
+    icon itself carries the meaning and no text next to it says the same thing. %>
 <%
   name ||= "circle"
   size ||= 24
@@ -121,5 +123,5 @@
   stroke-linejoin="round"
   class="shrink-0 <%= css_class %>"
   <% if css_style.present? %>style="<%= css_style %>"<% end %>
-  aria-hidden="true"
+  <% if local_assigns[:label].present? %>role="img" aria-label="<%= local_assigns[:label] %>"<% else %>aria-hidden="true"<% end %>
 ><%= svg_content.html_safe %></svg>

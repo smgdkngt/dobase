@@ -17,6 +17,7 @@
   html_options = {
     type: :button,
     title: local_assigns[:title],
+    "aria-label": (local_assigns[:title] if local_assigns[:icon]),
     data: local_assigns[:data]
   }.compact
 %>

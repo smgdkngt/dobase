@@ -29,11 +29,13 @@
   }
 %>
 <%= tag.dialog id: modal_id, class: "modal-dialog #{size_classes[size]}",
+      "aria-labelledby": (("#{modal_id}-title" if title)),
+      "aria-label": (local_assigns[:aria_label] unless title),
       data: { controller: "modal" }.merge(extra_data) do %>
   <% if title || show_close %>
     <div class="modal-header">
       <% if title %>
-        <h2 class="text-lg font-semibold text-text-primary"><%= title %></h2>
+        <h2 id="<%= modal_id %>-title" class="text-lg font-semibold text-text-primary"><%= title %></h2>
       <% else %>
         <div></div>
       <% end %>

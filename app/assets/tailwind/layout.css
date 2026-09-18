@@ -419,3 +419,14 @@
     scrollbar-width: thin;
   }
 }
+
+/* Skip link — hidden until focused, then pinned to the top-left. */
+@layer components {
+  .skip-link {
+    @apply sr-only;
+  }
+
+  .skip-link:focus-visible {
+    @apply not-sr-only fixed top-3 left-3 z-[200] rounded-lg bg-surface px-4 py-2 text-sm font-medium text-text-primary shadow-lg ring-2 ring-accent;
+  }
+}

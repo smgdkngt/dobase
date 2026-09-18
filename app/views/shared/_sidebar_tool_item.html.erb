@@ -11,6 +11,7 @@
    data-sort-id="<%= instance.id %>"
    data-tool-id="<%= instance.id %>"
    <%= 'data-unread' if has_unread %>
+   <%= 'aria-current="page"'.html_safe if is_active %>
    data-action="click->mobile-sidebar#navigate">
   <% if emoji %>
     <span class="shrink-0 text-base leading-none" aria-hidden="true"><%= emoji %></span>
@@ -21,10 +22,12 @@
   <% if instance.tool_type.slug == "mail" && instance.mail_account %>
     <% unread = instance.mail_account.messages.inbox.not_archived.unread.count %>
     <% if unread > 0 %>
-      <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-accent text-white text-xs font-medium"><%= unread > 99 ? "99+" : unread %></span>
+      <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-accent text-white text-xs font-medium"
+            aria-label="<%= pluralize(unread, "unread message") %>"><%= unread > 99 ? "99+" : unread %></span>
     <% end %>
   <% end %>
   <button type="button" class="sidebar-tool-menu-btn"
+          aria-label="Settings for <%= instance.display_name %>"
           data-action="click->sidebar#editTool"
           data-tool-id="<%= instance.id %>">
     <%= render "shared/icon", name: "settings", size: 14 %>
