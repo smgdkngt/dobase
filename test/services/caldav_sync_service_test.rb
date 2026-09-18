@@ -501,7 +501,7 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
   test "builds valid icalendar for timed event" do
     event = calendars_events(:meeting)
 
-    ics = @service.send(:build_icalendar, event)
+    ics = Caldav::EventIcalendar.new(event).to_ical
 
     assert_includes ics, "BEGIN:VCALENDAR"
     assert_includes ics, "BEGIN:VEVENT"
@@ -515,7 +515,7 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
   test "sends the times of an event in UTC" do
     event = calendars_events(:meeting)
 
-    ics = @service.send(:build_icalendar, event)
+    ics = Caldav::EventIcalendar.new(event).to_ical
 
     assert_includes ics, "DTSTART:#{event.starts_at.utc.strftime('%Y%m%dT%H%M%SZ')}"
     assert_includes ics, "DTEND:#{event.ends_at.utc.strftime('%Y%m%dT%H%M%SZ')}"
@@ -528,7 +528,7 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
   test "builds valid icalendar for all-day event" do
     event = calendars_events(:all_day_event)
 
-    ics = @service.send(:build_icalendar, event)
+    ics = Caldav::EventIcalendar.new(event).to_ical
 
     # All-day events should use DATE format, not DATE-TIME
     assert_match(/DTSTART;VALUE=DATE:\d{8}/, ics)
@@ -540,7 +540,7 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
         start_time: "2030-01-10 00:00", end_time: "2030-01-11 23:59:59")
     end
 
-    ics = @service.send(:build_icalendar, event.reload)
+    ics = Caldav::EventIcalendar.new(event.reload).to_ical
 
     assert_includes ics, "DTSTART;VALUE=DATE:20300110"
     assert_includes ics, "DTEND;VALUE=DATE:20300112"
