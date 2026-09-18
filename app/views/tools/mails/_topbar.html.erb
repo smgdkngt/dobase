@@ -1,0 +1,124 @@
+  <div class="mail-topbar flex items-center px-4 py-1 min-h-[53px] gap-3 bg-surface border-b border-border-light col-span-full">
+    <h1 class="tool-topbar-title mail-topbar-title"><%= @tool.name %></h1>
+
+    <!-- Search -->
+    <%= render "components/search",
+        url: tool_mails_path(@tool),
+        value: params[:q],
+        placeholder: "Search emails... (/)",
+        hidden_fields: { folder: @current_folder },
+        data: { turbo_frame: "_top" },
+        input_data: { "controller": "hotkey", "hotkey": "/", "mail-keyboard-target": "search" } %>
+
+    <%
+      folder_meta = {
+        "inbox"   => { label: "Inbox",   icon: "inbox",   badge: @inbox_unread },
+        "drafts"  => { label: "Drafts",  icon: "file-pen", badge: @drafts_count },
+        "starred" => { label: "Starred", icon: "star" },
+        "sent"    => { label: "Sent",    icon: "send" },
+        "archive" => { label: "Archive", icon: "archive" },
+        "trash"   => { label: "Trash",   icon: "trash-2", badge: @trash_count }
+      }
+      current_meta = folder_meta[@current_folder] || { label: @current_folder, icon: "folder" }
+    %>
+    <div class="relative mail-folder-picker">
+      <button type="button"
+              class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-background-tertiary transition-colors"
+              popovertarget="mail-folder-menu"
+              style="anchor-name: --mail-folder-btn">
+        <%= render "shared/icon", name: current_meta[:icon], size: 16, class: "text-text-secondary" %>
+        <span><%= current_meta[:label] %></span>
+        <% if current_meta[:badge].to_i > 0 %>
+          <%= render "components/badge", text: current_meta[:badge] %>
+        <% end %>
+        <%= render "shared/icon", name: "chevron-down", size: 14, class: "text-text-tertiary" %>
+      </button>
+
+      <div id="mail-folder-menu" popover="auto" class="popover-menu" style="position-anchor: --mail-folder-btn; position-area: block-end span-inline-start">
+        <% folder_meta.each do |key, meta| %>
+          <%= link_to tool_mails_path(@tool, folder: key),
+                class: "dropdown-item flex items-center gap-2 #{@current_folder == key ? 'text-accent font-medium' : ''}" do %>
+            <%= render "shared/icon", name: meta[:icon], size: 16 %>
+            <span class="flex-1"><%= meta[:label] %></span>
+            <% if meta[:badge].to_i > 0 %>
+              <%= render "components/badge", text: meta[:badge], variant: :muted %>
+            <% end %>
+            <% if @current_folder == key %>
+              <%= render "shared/icon", name: "check", size: 14, class: "text-accent" %>
+            <% end %>
+          <% end %>
+        <% end %>
+        <% if @custom_folders.any? %>
+          <div class="dropdown-divider"></div>
+          <% @custom_folders.each do |folder| %>
+            <%= link_to tool_mails_path(@tool, folder: folder),
+                  class: "dropdown-item flex items-center gap-2 #{@current_folder == folder ? 'text-accent font-medium' : ''}" do %>
+              <%= render "shared/icon", name: "folder", size: 16 %>
+              <span class="flex-1"><%= folder %></span>
+              <% if @current_folder == folder %>
+                <%= render "shared/icon", name: "check", size: 14, class: "text-accent" %>
+              <% end %>
+            <% end %>
+          <% end %>
+        <% end %>
+        <div class="dropdown-divider"></div>
+        <button type="button"
+                class="dropdown-item flex items-center gap-2 w-full"
+                commandfor="create-folder-modal" command="show-modal">
+          <%= render "shared/icon", name: "folder-plus", size: 16 %>
+          <span>New Folder</span>
+        </button>
+      </div>
+    </div>
+
+    <%= render "shared/modal", id: "create-folder-modal", title: "New Folder", size: :sm do %>
+      <%= form_with url: tool_folder_path(@tool), method: :post do %>
+        <%= render "components/form_field",
+            label: "Folder name",
+            name: "folder_name",
+            placeholder: "e.g. Receipts",
+            required: true,
+            autofocus: true %>
+        <div class="flex justify-end gap-2 mt-4">
+          <%= render "components/button", text: "Cancel", variant: :secondary, type: :button, data: { action: "click->modal#close" } %>
+          <%= render "components/button", text: "Create" %>
+        </div>
+      <% end %>
+    <% end %>
+
+    <div class="mail-topbar-actions flex items-center gap-2 ml-auto">
+      <div class="flex items-center gap-2 pr-3 mr-2 border-r border-border-light"
+           data-controller="sync-status"
+           data-sync-status-url-value="<%= tool_sync_path(@tool) %>"
+           data-sync-status-syncing-value="<%= @mail_account.syncing? %>">
+        <div class="w-1.5 h-1.5 rounded-full <%= @mail_account.synced? ? 'bg-success' : (@mail_account.sync_error? ? 'bg-error' : 'bg-warning') %>"
+             data-sync-status-target="indicator"></div>
+        <%= tag.span class: "mail-sync-text text-xs text-text-tertiary", title: (@mail_account.sync_error if @mail_account.sync_error?), data: { sync_status_target: "status" } do %>
+          <% if @mail_account.syncing? %>
+            Syncing...
+          <% elsif @mail_account.authentication_failed? %>
+            Login failed
+          <% elsif @mail_account.last_synced_at %>
+            <%= time_ago_in_words(@mail_account.last_synced_at) %>
+          <% else %>
+            Not synced
+          <% end %>
+        <% end %>
+        <%= render "components/icon_button",
+            icon: "refresh-cw",
+            title: "Sync now",
+            size: :sm,
+            href: tool_sync_path(@tool),
+            method: :post,
+            icon_class: @mail_account.syncing? ? "animate-spin" : nil,
+            data: { sync_status_target: "button", action: "click->sync-status#sync" } %>
+      </div>
+
+      <%= render "components/button",
+          text: "Compose",
+          icon: "edit",
+          size: :sm,
+          href: new_tool_mail_path(@tool),
+          data: { controller: "hotkey", hotkey: "c" } %>
+    </div>
+  </div>

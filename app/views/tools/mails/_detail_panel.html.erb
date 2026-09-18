@@ -1,0 +1,22 @@
+
+  <!-- Email Content (turbo frame — only this panel updates when selecting emails) -->
+  <turbo-frame id="mail-content" class="mail-content" target="_top" data-turbo-action="advance">
+    <% if @selected_message && @conversation_messages %>
+      <%= render "tools/mails/mail_detail" %>
+    <% else %>
+      <div class="empty-state flex flex-col items-center justify-center h-full p-8">
+        <div class="w-16 h-16 rounded-full bg-background-tertiary flex items-center justify-center mb-5">
+          <%= render "shared/icon", name: "mail", size: 28, class: "text-text-tertiary" %>
+        </div>
+        <div class="text-base font-semibold text-text-primary mb-1.5">Select a message</div>
+        <div class="text-[0.8125rem] text-text-secondary text-center max-w-[260px]">Choose a conversation from the list to view and reply to messages</div>
+        <div class="mt-4 text-xs text-text-tertiary">
+          <span class="inline-flex items-center gap-1"><kbd class="px-1.5 py-0.5 bg-background-tertiary rounded text-text-secondary">j</kbd>/<kbd class="px-1.5 py-0.5 bg-background-tertiary rounded text-text-secondary">k</kbd> to navigate</span>
+          <span class="mx-2">&middot;</span>
+          <span class="inline-flex items-center gap-1"><kbd class="px-1.5 py-0.5 bg-background-tertiary rounded text-text-secondary">/</kbd> to search</span>
+          <span class="mx-2">&middot;</span>
+          <span class="inline-flex items-center gap-1"><kbd class="px-1.5 py-0.5 bg-background-tertiary rounded text-text-secondary">c</kbd> to compose</span>
+        </div>
+      </div>
+    <% end %>
+  </turbo-frame>
