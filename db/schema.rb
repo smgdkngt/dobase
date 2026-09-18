@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_18_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_18_120000) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -230,11 +230,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_090000) do
     t.datetime "last_seen_at"
     t.datetime "muted_at"
     t.string "role", default: "collaborator", null: false
+    t.integer "sidebar_position", default: 0, null: false
     t.bigint "tool_id", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["tool_id", "user_id"], name: "index_collaborators_on_tool_id_and_user_id", unique: true
     t.index ["tool_id"], name: "index_collaborators_on_tool_id"
+    t.index ["user_id", "sidebar_position"], name: "index_collaborators_on_user_id_and_sidebar_position"
     t.index ["user_id"], name: "index_collaborators_on_user_id"
   end
 
@@ -565,7 +567,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_090000) do
     t.string "custom_icon"
     t.string "name", null: false
     t.bigint "owner_id", null: false
-    t.integer "sidebar_position", default: 0, null: false
     t.bigint "tool_type_id", null: false
     t.datetime "updated_at", null: false
     t.index ["owner_id", "tool_type_id"], name: "index_tools_on_owner_id_and_tool_type_id"

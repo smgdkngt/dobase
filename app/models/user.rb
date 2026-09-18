@@ -51,9 +51,16 @@ class User < ApplicationRecord
     Tool.joins(:collaborators).where(collaborators: { user_id: id }).distinct
   end
 
+  # Accessible tools in this user's own sidebar order, which lives on their
+  # collaborator record so it is theirs alone.
+  def sidebar_tools
+    Tool.joins(:collaborators).where(collaborators: { user_id: id })
+        .order(Collaborator.arel_table[:sidebar_position].asc, Tool.arel_table[:id].asc)
+  end
+
   def ungrouped_tools
     grouped_ids = sidebar_groups.joins(:memberships).pluck("sidebar_memberships.tool_id")
-    scope = accessible_tools.includes(:tool_type, :mail_account).order(:sidebar_position)
+    scope = sidebar_tools.includes(:tool_type, :mail_account)
     grouped_ids.any? ? scope.where.not(id: grouped_ids) : scope
   end
 
