@@ -19,11 +19,22 @@ class ApplicationController < ActionController::Base
   end
 
   def record_not_found
+    forget_last_visited_path
+
     if request.format.json?
       render json: { error: "Not found" }, status: :not_found
     else
       redirect_to root_path, alert: "That item no longer exists."
     end
+  end
+
+  # The dashboard sends people back to the page they were last on. Once the
+  # record behind that page is gone, following it only lands here again — and
+  # the two would bounce off each other forever.
+  def forget_last_visited_path
+    return unless current_user&.last_visited_path == request.path
+
+    current_user.update_column(:last_visited_path, nil)
   end
 
   def track_last_visited_path

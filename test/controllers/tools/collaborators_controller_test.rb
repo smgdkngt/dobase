@@ -40,7 +40,7 @@ module Tools
 
       assert_not_includes response.body, @card.title
     end
-  
+
     test "inviting someone again after their invitation expired sends a fresh one" do
       expired = @tool.invitations.create!(email: "newcomer@example.com", invited_by: users(:one))
       expired.update_column(:expires_at, 1.day.ago)
