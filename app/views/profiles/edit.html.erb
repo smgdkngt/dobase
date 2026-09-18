@@ -142,6 +142,15 @@
 
         <%= form_with model: @user, url: profile_path, method: :patch, data: { turbo_frame: "_top" } do |f| %>
           <div class="form-field mb-4">
+            <label for="user_current_password" class="label">Current password</label>
+            <%= password_field_tag "user[current_password]", nil,
+              id: "user_current_password",
+              class: "input",
+              placeholder: "Enter your current password",
+              autocomplete: "current-password" %>
+          </div>
+
+          <div class="form-field mb-4">
             <label for="user_password" class="label">New password</label>
             <%= f.password_field :password,
               class: "input",
