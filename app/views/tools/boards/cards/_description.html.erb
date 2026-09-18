@@ -1,0 +1,43 @@
+        <%# Description %>
+        <section class="p-4 sm:p-5">
+          <h3 class="text-sm font-semibold text-text-tertiary mb-2 flex items-center gap-1.5">
+            <%= render "shared/icon", name: "align-left", size: 14, class: "opacity-70" %>
+            Description
+          </h3>
+
+          <% if card.description.present? %>
+            <div class="text-sm text-text-primary leading-snug rich-text-content cursor-text rounded-md px-3 py-2.5 hover:bg-background-tertiary transition-colors -mx-3"
+                 data-board-card-target="descriptionDisplay"
+                 data-action="click->board-card#editDescription">
+              <%= card.description %>
+            </div>
+          <% else %>
+            <div class="text-sm text-text-tertiary/70 italic cursor-text rounded-md px-3 py-2.5 hover:bg-background-tertiary hover:text-text-tertiary transition-colors -mx-3"
+                 data-board-card-target="descriptionDisplay"
+                 data-action="click->board-card#editDescription">
+              Add a description...
+            </div>
+          <% end %>
+
+          <div class="hidden" data-board-card-target="descriptionEdit">
+            <%= form_with url: tool_board_card_path(tool, card), method: :patch, data: { turbo_frame: "card-detail-content" } do |f| %>
+              <%= render "components/rich_text_input", name: "card[description]", value: card.description do %>
+                <%= render "components/icon_button",
+                      icon: "x",
+                      title: "Cancel",
+                      size: :sm,
+                      class: "rounded",
+                      type: :button,
+                      data: { action: "click->board-card#cancelDescription" } %>
+                <%= render "components/icon_button",
+                      icon: "check",
+                      title: "Save",
+                      variant: :accent,
+                      size: :sm,
+                      class: "rounded",
+                      type: :submit %>
+              <% end %>
+            <% end %>
+          </div>
+        </section>
+
