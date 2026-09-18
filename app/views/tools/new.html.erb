@@ -11,8 +11,8 @@
       <%= form_with model: @tool, url: tools_path do |f| %>
         <%= render "shared/error_flash", object: @tool %>
 
-        <div class="mb-4">
-          <label for="tool_tool_type_id" class="label">Tool Type</label>
+        <fieldset class="mb-4">
+          <legend class="label">Tool Type</legend>
           <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
             <% @tool_types.each do |tool_type| %>
               <label class="relative cursor-pointer">
@@ -31,10 +31,10 @@
           <% if @tool.errors[:tool_type].any? %>
             <p class="error-text"><%= @tool.errors[:tool_type].first %></p>
           <% end %>
-        </div>
+        </fieldset>
 
         <div class="mb-4">
-          <label for="tool_name" class="label">Name</label>
+          <%= f.label :name, "Name", class: "label" %>
           <%= f.text_field :name,
             class: "input #{@tool.errors[:name].any? ? 'input-error' : ''}",
             placeholder: "My Project Tasks",

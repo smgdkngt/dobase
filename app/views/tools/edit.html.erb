@@ -100,7 +100,7 @@
           <%= render "shared/error_flash", object: @tool %>
 
           <div class="mb-4">
-            <label class="label">Tool Type</label>
+            <p class="label">Tool Type</p>
             <div class="flex items-center gap-3 p-3 bg-background-secondary rounded-lg">
               <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
                 <%= render "shared/icon", name: @tool.tool_type.icon, size: 20, class: "text-accent" %>
@@ -111,7 +111,7 @@
           </div>
 
           <div class="mb-5">
-            <label for="tool_name" class="label">Name</label>
+            <%= f.label :name, "Name", class: "label" %>
             <%= f.text_field :name,
               class: "input #{@tool.errors[:name].any? ? 'input-error' : ''}",
               required: true
