@@ -18,6 +18,7 @@ module Files
     validate :parent_outside_own_subtree, on: :update, if: :parent_id_changed?
 
     before_save :set_depth
+    after_update :restamp_subtree_depth, if: :saved_change_to_depth?
 
     scope :roots, -> { where(parent_id: nil) }
     scope :ordered, -> { order(:position, :name) }
@@ -45,9 +46,38 @@ module Files
       self.depth = parent ? parent.depth + 1 : 0
     end
 
+    # A folder lands under its new parent with everything below it, so the whole
+    # subtree has to fit within the depth limit, not just the folder itself.
     def depth_limit
-      if parent && parent.depth >= MAX_DEPTH - 1
+      return unless parent && (new_record? || parent_id_changed?)
+
+      if parent.depth + 1 + subtree_height > MAX_DEPTH - 1
         errors.add(:base, "Maximum folder depth of #{MAX_DEPTH} reached")
+      end
+    end
+
+    # How many levels of folders sit below this one.
+    def subtree_height
+      height = 0
+      ids = children.pluck(:id)
+
+      while ids.any?
+        height += 1
+        ids = Folder.where(parent_id: ids).pluck(:id)
+      end
+
+      height
+    end
+
+    # depth is stored, so moving a folder has to restamp everything under it.
+    def restamp_subtree_depth
+      level = children.pluck(:id)
+      level_depth = depth
+
+      while level.any?
+        level_depth += 1
+        Folder.where(id: level).update_all(depth: level_depth)
+        level = Folder.where(parent_id: level).pluck(:id)
       end
     end
 
