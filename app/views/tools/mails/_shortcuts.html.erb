@@ -1,0 +1,33 @@
+<% content_for :command_palette_actions do %>
+  <%= render "shared/command_palette_action", key: "c", description: "Compose", icon: "edit" %>
+  <%= render "shared/command_palette_action", key: "/", description: "Search", icon: "search" %>
+  <%# These act on the open message, rendered by tools/mails/mail_detail — hide
+      them when there isn't one, since their hotkey target wouldn't be on the page. %>
+  <% if @selected_message %>
+    <%= render "shared/command_palette_action", key: "e", description: "Archive", icon: "archive" %>
+    <%= render "shared/command_palette_action", key: "s", description: "Star / unstar", icon: "star" %>
+    <%= render "shared/command_palette_action", key: "r", description: "Reply", icon: "reply" %>
+    <%= render "shared/command_palette_action", key: "f", description: "Forward", icon: "forward" %>
+    <%= render "shared/command_palette_action", key: "#", description: "Trash", icon: "trash-2" %>
+  <% end %>
+<% end %>
+
+<% content_for :keyboard_shortcuts do %>
+  <div>
+    <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Mail</h3>
+    <div class="shortcut-list">
+      <%= render "shared/shortcut_row", key: "j", description: "Next message" %>
+      <%= render "shared/shortcut_row", key: "k", description: "Previous message" %>
+      <%= render "shared/shortcut_row", key: "o", description: "Open message" %>
+      <%= render "shared/shortcut_row", key: "c", description: "Compose" %>
+      <%= render "shared/shortcut_row", key: "/", description: "Search" %>
+      <%= render "shared/shortcut_row", key: "e", description: "Archive" %>
+      <%= render "shared/shortcut_row", key: "s", description: "Star / unstar" %>
+      <%= render "shared/shortcut_row", key: "u", description: "Mark unread" %>
+      <%= render "shared/shortcut_row", key: "#", description: "Trash" %>
+      <%= render "shared/shortcut_row", key: "r", description: "Reply" %>
+      <%= render "shared/shortcut_row", key: "a", description: "Reply all" %>
+      <%= render "shared/shortcut_row", key: "f", description: "Forward" %>
+    </div>
+  </div>
+<% end %>
