@@ -33,6 +33,8 @@
     <% end %>
   </div>
   <div class="tool-topbar-actions">
+    <%# Everyone else in this tool right now; filled in by presence_controller.js %>
+    <div class="presence-facepile hidden" data-presence-target="facepile" aria-live="polite" aria-label="Others here now"></div>
     <%= yield if block_given? %>
   </div>
 </div>

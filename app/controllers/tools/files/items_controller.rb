@@ -11,6 +11,8 @@ module Tools
       before_action :set_file
 
       def show
+        @presence_context = "file:#{@file.id}"
+
         respond_to do |format|
           format.html { @siblings = (@file.folder&.files || @tool.file_items.roots).ordered.where.not(id: @file.id) }
           format.json

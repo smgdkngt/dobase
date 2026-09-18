@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { api } from "services/api"
 import { showFlash } from "services/flash"
+import { reportPresence } from "services/presence"
 
 export default class extends Controller {
   static targets = ["cardModal", "cardDetailDialog", "addCardForm", "addCardInput", "addCardBtn", "archivedSection", "archivedToggle", "archivedToggleLabel"]
@@ -11,6 +12,7 @@ export default class extends Controller {
   connect() {
     if (this.hasCardDetailDialogTarget) {
       this._onModalClose = () => {
+        reportPresence(null)
         // The dialog's "close" event doesn't fire until its CSS closing
         // transition finishes (allow-discrete keeps it in the top layer
         // until then), so this flag is consumed here rather than cleared
@@ -52,6 +54,7 @@ export default class extends Controller {
 
   #openCardById(cardId) {
     const url = `/tools/${this.toolIdValue}/board/cards/${cardId}`
+    reportPresence(`card:${cardId}`)
 
     // Open immediately with a skeleton so the dialog's entrance isn't spent
     // staring at a blank sheet — content swaps in once the fetch resolves.
