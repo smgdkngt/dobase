@@ -17,7 +17,7 @@
 <% end %>
 
 <div class="tool-layout flex flex-col h-full"
-     data-controller="files file-selection file-context-menu file-upload file-drag"
+     data-controller="files file-selection file-context-menu file-upload file-drag gallery"
      data-files-tool-id-value="<%= @tool.id %>"
      data-file-drag-tool-id-value="<%= @tool.id %>"
      data-action="file-context-menu:action->files#handleContextAction file-selection:changed->file-drag#selectionChanged turbo:morph@document->file-selection#clear">
@@ -55,6 +55,15 @@
           <%= render "shared/icon", name: "list", size: 16 %>
         <% end %>
       </div>
+      <% if @images.present? %>
+        <%= render "components/button",
+            text: "View",
+            icon: "image",
+            size: :sm,
+            variant: :secondary,
+            type: :button,
+            data: { action: "gallery#open", index: 0 } %>
+      <% end %>
       <%= render "components/button",
           text: "New Folder",
           icon: "folder-plus",
@@ -121,8 +130,9 @@
         <% @folders.each do |folder| %>
           <%= render "tools/files/folder_item", folder: folder, tool: @tool, view_mode: @view_mode %>
         <% end %>
+        <% image_indices = @images.each_with_index.to_h { |file, index| [ file.id, index ] } %>
         <% @files.each do |file| %>
-          <%= render "tools/files/file_item", file: file, tool: @tool, view_mode: @view_mode %>
+          <%= render "tools/files/file_item", file: file, tool: @tool, view_mode: @view_mode, image_index: image_indices[file.id] %>
         <% end %>
       <% end %>
     </div>
@@ -215,4 +225,6 @@
       <%= turbo_frame_tag "share-content" %>
     </div>
   </dialog>
+
+  <%= render "shared/gallery", images: @images, download_path_for: ->(file) { tool_files_item_download_path(@tool, file) } %>
 </div>
