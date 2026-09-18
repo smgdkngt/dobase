@@ -64,6 +64,19 @@ class PresenceChannelTest < ActionCable::Channel::TestCase
     end
   end
 
+  test "a face carries the picture of whoever has one, without resizing it first" do
+    @user.avatar.attach(io: File.open(Rails.root.join("test/fixtures/files/sample.png")),
+      filename: "sample.png", content_type: "image/png")
+    stub_connection current_user: @user
+
+    subscribe tool_id: @tool.id
+
+    avatar_url = broadcasts(PresenceChannel.broadcasting_for(@tool)).last.then { |message| JSON.parse(message)["user"]["avatar_url"] }
+    assert_match %r{\A/rails/active_storage/representations/}, avatar_url
+    assert_not @user.avatar.variant(resize_to_fill: [ 200, 200 ]).send(:processed?),
+      "the picture should be made when a browser asks for it, not while someone is arriving"
+  end
+
   private
 
   def here(context: nil, hello: false)

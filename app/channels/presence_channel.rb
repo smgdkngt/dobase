@@ -70,8 +70,11 @@ class PresenceChannel < ApplicationCable::Channel
     avatar = current_user.avatar
     return nil unless avatar.attached? && avatar.blob&.persisted?
 
+    # Not .processed: that would resize the picture while the channel is still
+    # answering someone's arrival. The link stands on its own and the picture is
+    # made when a browser asks for it, as everywhere else in the app.
     Rails.application.routes.url_helpers.rails_representation_path(
-      avatar.variant(resize_to_fill: [ 200, 200 ]).processed, only_path: true
+      avatar.variant(resize_to_fill: [ 200, 200 ]), only_path: true
     )
   rescue StandardError
     nil
