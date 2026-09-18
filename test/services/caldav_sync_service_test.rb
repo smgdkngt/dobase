@@ -200,6 +200,27 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     assert calendar.events.exists?(uid: "new-event-2")
   end
 
+  test "a change from the server stops counting as the work of whoever touched it here" do
+    calendar = calendars_calendars(:personal)
+    calendar.update!(sync_token: nil, ctag: nil)
+    calendar.events.destroy_all
+    mine = calendar.events.create!(
+      uid: "mine", summary: "Lunch",
+      starts_at: 1.hour.from_now, ends_at: 2.hours.from_now,
+      created_by: users(:one), updated_by: users(:one)
+    )
+
+    stub_request(:report, calendar.remote_url)
+      .to_return(status: 207, body: calendar_query_response([ { uid: "mine", summary: "Lunch, moved" } ]))
+    stub_request(:propfind, calendar.remote_url)
+      .to_return(status: 207, body: sync_token_response)
+
+    @service.sync_calendar(calendar)
+
+    assert_equal "Lunch, moved", mine.reload.summary
+    assert_nil mine.updated_by_id
+  end
+
   test "full_sync removes events deleted from server" do
     calendar = calendars_calendars(:personal)
     calendar.update!(sync_token: nil, ctag: nil)

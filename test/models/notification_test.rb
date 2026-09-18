@@ -197,6 +197,47 @@ class NotificationTest < ActiveSupport::TestCase
     assert_not_includes Tool.unread_tool_ids_for(@user_one), tool.id
   end
 
+  test "your own document edit doesn't put an activity dot on your own docs" do
+    tool = share_with_user_two(tools(:my_docs))
+
+    docs_documents(:meeting_notes).update!(title: "Edited by me", updated_by: @user_one)
+
+    assert_not_includes Tool.unread_tool_ids_for(@user_one), tool.id
+    assert_includes Tool.unread_tool_ids_for(@user_two), tool.id
+  end
+
+  test "someone else's document edit does put an activity dot on your docs" do
+    tool = share_with_user_two(tools(:my_docs))
+
+    docs_documents(:meeting_notes).update!(title: "Edited by them", updated_by: @user_two)
+
+    assert_includes Tool.unread_tool_ids_for(@user_one), tool.id
+  end
+
+  test "your own calendar event doesn't put an activity dot on your own calendar" do
+    tool = share_with_user_two(tools(:my_calendar))
+
+    calendars_calendars(:personal).events.create!(
+      uid: "mine-#{SecureRandom.uuid}", summary: "Mine",
+      starts_at: 1.day.from_now, ends_at: 1.day.from_now + 1.hour,
+      created_by: @user_one, updated_by: @user_one
+    )
+
+    assert_not_includes Tool.unread_tool_ids_for(@user_one), tool.id
+    assert_includes Tool.unread_tool_ids_for(@user_two), tool.id
+  end
+
+  test "an event that came in from the server does put an activity dot on your calendar" do
+    tool = share_with_user_two(tools(:my_calendar))
+
+    calendars_calendars(:personal).events.create!(
+      uid: "theirs-#{SecureRandom.uuid}", summary: "From the server",
+      starts_at: 1.day.from_now, ends_at: 1.day.from_now + 1.hour
+    )
+
+    assert_includes Tool.unread_tool_ids_for(@user_one), tool.id
+  end
+
   test "muted tool is excluded from unread_tool_ids_for" do
     board = boards(:shared)
     column = board.columns.create!(name: "Test", position: 0)
