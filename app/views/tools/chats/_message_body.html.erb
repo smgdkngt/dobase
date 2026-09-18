@@ -1,0 +1,15 @@
+<%#
+  A message's text, in the frame the edit form takes the place of.
+
+  Required:
+    message: the message
+%>
+<%= turbo_frame_tag dom_id(message, :body) do %>
+  <% if message.body.present? %>
+    <div class="text-sm sm:text-base text-text-primary rich-text-content"><%= message.body %></div>
+  <% end %>
+
+  <% if message.edited_at %>
+    <span class="text-[11px] text-text-tertiary" data-message-edited title="This message was edited after it was sent">edited</span>
+  <% end %>
+<% end %>

@@ -255,7 +255,32 @@ class FilesTest < ApplicationSystemTestCase
     assert_no_selector "#{item_selector(readme)}.ring-accent"
   end
 
+  test "dragging a folder into its own subfolder says why it can't go there" do
+    documents = file_folders(:documents)
+    subfolder = file_folders(:nested_folder)
+
+    visit tool_files_path(@tool, folder_id: documents.id)
+    wait_for_turbo
+
+    drop_on subfolder, folders: [ documents ]
+
+    assert_text "A folder can't be moved into itself or one of its subfolders", wait: 5
+    assert_nil documents.reload.parent_id
+  end
+
   private
+
+  # A drag that ends on a folder, without the pointer gymnastics: the browser
+  # hands the controller the dragged items as JSON, so the test does the same.
+  def drop_on(folder, files: [], folders: [])
+    payload = { files: files.map { |file| file.id.to_s }, folders: folders.map { |dragged| dragged.id.to_s } }.to_json
+
+    page.execute_script(<<~JS, find(item_selector(folder)), payload)
+      const transfer = new DataTransfer()
+      transfer.setData("application/json", arguments[1])
+      arguments[0].dispatchEvent(new DragEvent("drop", { dataTransfer: transfer, bubbles: true, cancelable: true }))
+    JS
+  end
 
   # Chrome saves to a .crdownload file and renames it once the download is done.
   def wait_for_download(path, timeout: 10)

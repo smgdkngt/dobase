@@ -1,0 +1,36 @@
+<%#
+  The way back through a chat: sits above the messages on the page and asks for
+  the page before the oldest one showing. The chat controller clicks it when the
+  reader reaches the top, so scrolling up is enough.
+
+  Required:
+    tool:     the chat's tool
+    messages: the page of messages below this, oldest first
+    has_more: whether there are older messages still
+%>
+<div id="chat_older_messages" class="px-2 sm:px-4" data-chat-target="olderMessages">
+  <% if has_more && messages.first %>
+    <%= link_to tool_chat_messages_path(tool, before: messages.first.id),
+          class: "chat-load-older",
+          data: {
+            turbo_stream: true,
+            chat_target: "olderMessagesTrigger",
+            action: "click->chat#loadingOlderMessages"
+          } do %>
+      <%= render "shared/icon", name: "chevron-up", size: 14 %>
+      <span>Load older messages</span>
+    <% end %>
+
+    <div class="chat-older-placeholder" data-chat-target="olderMessagesPlaceholder" hidden>
+      <% 3.times do |row| %>
+        <div class="chat-older-placeholder-row">
+          <div class="skeleton w-9 h-9 sm:w-11 sm:h-11 rounded-full"></div>
+          <div class="flex-1 space-y-2 py-1">
+            <div class="skeleton h-3 w-24"></div>
+            <div class="skeleton h-3 <%= [ "w-3/4", "w-1/2", "w-2/3" ][row] %>"></div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

@@ -4,9 +4,6 @@ module Tools
   class ChatsController < ApplicationController
     include ToolScoped
 
-    MESSAGES_PER_PAGE = 50
-    MAX_MESSAGES_PER_PAGE = 200
-
     allow_access_tokens
 
     def show
@@ -14,7 +11,7 @@ module Tools
 
       respond_to do |format|
         format.html do
-          @messages = @chat.messages.chronological.with_associations.last(100)
+          set_page_of_messages
           @participants = @chat.participants
           @chat.mark_as_read_for!(current_user)
         end
@@ -27,13 +24,10 @@ module Tools
 
     # The latest messages (before params[:before], when paging back), oldest first.
     def set_page_of_messages
-      limit = (Integer(params[:limit], exception: false) || MESSAGES_PER_PAGE).clamp(1, MAX_MESSAGES_PER_PAGE)
-      messages = @chat.messages.with_associations.recent
-      messages = messages.before(@chat.messages.find(Integer(params[:before], exception: false))) if params[:before].present?
+      limit = (Integer(params[:limit], exception: false) || ::Chats::Chat::MESSAGES_PER_PAGE)
+        .clamp(1, ::Chats::Chat::MAX_MESSAGES_PER_PAGE)
 
-      page = messages.limit(limit + 1).to_a
-      @has_more = page.size > limit
-      @messages = page.first(limit).reverse
+      @messages, @has_more = @chat.page_of_messages(before: params[:before], limit: limit)
     end
   end
 end

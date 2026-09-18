@@ -134,6 +134,62 @@ class ChatTest < ApplicationSystemTestCase
     assert_selector "[data-message-delete].hidden", visible: :all
   end
 
+  test "reaching the top of the chat loads older messages and keeps the reader's place" do
+    (Chats::Chat::MESSAGES_PER_PAGE + 5).times do |index|
+      @tool.chat.messages.create!(user: @user, body: "<p>Message #{index}</p>")
+    end
+
+    visit tool_chat_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "chat"
+
+    assert_text "Message #{Chats::Chat::MESSAGES_PER_PAGE + 4}"
+    assert_no_text "Message 0"
+
+    page.execute_script("document.querySelector(\"[data-chat-target='messages']\").scrollTop = 0")
+
+    assert_text "Message 0", wait: 5
+    scroll_top = page.evaluate_script("document.querySelector(\"[data-chat-target='messages']\").scrollTop")
+    assert scroll_top > 0,
+      "expected the older messages to go in above the reader, not to drop them at the top of the chat"
+  end
+
+  test "an author rewrites their own message from the page, and it says it was edited" do
+    @tool.chat.messages.create!(user: @user, body: "<p>Tpyo</p>")
+
+    visit tool_chat_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "chat"
+    assert_text "Tpyo"
+
+    # The message's actions only come up under the pointer.
+    find("[data-message-id]", match: :first).hover
+    find("[data-message-edit] a").click
+    assert_selector "turbo-frame[id^='body_chats_message'] rhino-editor", wait: 5
+
+    within("turbo-frame[id^='body_chats_message']") do
+      fill_in_editor "Fixed"
+      click_button "Save"
+    end
+
+    assert_text "Fixed"
+    assert_no_text "Tpyo"
+    assert_selector "[data-message-edited]", text: "edited"
+  end
+
+  test "someone else's message is not offered for editing" do
+    other = users(:two)
+    @tool.collaborators.create!(user: other, role: "collaborator")
+    @tool.chat.messages.create!(user: other, body: "<p>Not mine</p>")
+
+    visit tool_chat_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "chat"
+
+    assert_text "Not mine"
+    assert_selector "[data-message-edit].hidden", visible: :all
+  end
+
   private
 
   # Submits a genuinely blank body straight to the server (bypassing the
@@ -156,11 +212,13 @@ class ChatTest < ApplicationSystemTestCase
     sleep 0.3
   end
 
+  # Clears through the editor the caret is actually in — the page can hold more
+  # than one (the compose box and a message being rewritten).
   def fill_in_editor(text)
     editable = find("rhino-editor .ProseMirror")
     editable.click
-    page.execute_script(<<~JS)
-      document.querySelector("rhino-editor").editor.commands.clearContent()
+    page.execute_script(<<~JS, editable)
+      arguments[0].closest("rhino-editor").editor.commands.clearContent()
     JS
     editable.send_keys(text)
   end

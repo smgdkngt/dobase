@@ -6,6 +6,7 @@ class ChatChannel < ApplicationCable::Channel
     reject and return unless chat&.tool&.accessible_by?(current_user)
 
     @chat = chat
+    ChatPresence.connect(@chat.id, current_user.id)
     stream_for @chat
     transmit({ type: "welcome", user_id: current_user.id })
     broadcast_presence("online", hello: true)
@@ -21,8 +22,11 @@ class ChatChannel < ApplicationCable::Channel
     broadcast_presence("online") if @chat
   end
 
+  # One tab closing doesn't mean the person left: only the last connection to go
+  # takes them offline (and stops any typing indicator they left behind).
   def unsubscribed
     return unless @chat
+    return unless ChatPresence.disconnect(@chat.id, current_user.id)
 
     stop_typing
     broadcast_presence("offline")
