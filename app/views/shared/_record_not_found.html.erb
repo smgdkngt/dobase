@@ -1,0 +1,11 @@
+<%# Answers a turbo-frame request whose record is gone: the frame shows why instead of blanking %>
+<%= turbo_frame_tag request.headers["Turbo-Frame"] do %>
+  <div class="p-6 text-center">
+    <p class="text-sm text-text-secondary">That item no longer exists.</p>
+    <p class="text-xs text-text-tertiary mt-1">Someone else may have deleted it.</p>
+    <div class="mt-4 flex justify-center">
+      <%= render "components/button", text: "Reload", variant: :secondary, href: request.referer.presence || root_path,
+            data: { turbo_frame: "_top" } %>
+    </div>
+  </div>
+<% end %>

@@ -23,6 +23,10 @@ class ApplicationController < ActionController::Base
 
     if request.format.json?
       render json: { error: "Not found" }, status: :not_found
+    elsif turbo_frame_request?
+      # A redirect here would answer with a page that has no matching frame, and the
+      # frame (a modal, say) would go blank without saying why.
+      render partial: "shared/record_not_found", status: :not_found
     else
       redirect_to root_path, alert: "That item no longer exists."
     end
