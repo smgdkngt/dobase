@@ -33,7 +33,7 @@
 %>
 <% if file.image? %>
   <div class="flex justify-center">
-    <%= image_tag url_for(file.file), alt: file.name, class: "media-fade-in max-w-full #{max_height} object-contain #{radius_class} #{shadow_class}" %>
+    <%= image_tag url_for(file.display_copy), alt: file.name, class: "media-fade-in max-w-full #{max_height} object-contain #{radius_class} #{shadow_class}" %>
   </div>
 <% elsif file.video? %>
   <div class="flex justify-center">

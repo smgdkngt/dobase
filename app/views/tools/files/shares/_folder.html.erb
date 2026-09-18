@@ -39,7 +39,7 @@
              data-action="public-gallery#openLightbox"
              data-index="<%= @images.index(file) %>">
             <div class="w-20 h-20 mb-3 rounded-lg overflow-hidden">
-              <%= image_tag url_for(file.file), alt: file.name, class: "w-full h-full object-cover" %>
+              <%= image_tag url_for(file.thumbnail), alt: file.name, class: "w-full h-full object-cover", loading: "lazy", decoding: "async" %>
             </div>
             <span class="text-sm text-center line-clamp-2 break-words"><%= file.name %></span>
             <span class="text-xs text-text-tertiary mt-1"><%= file.human_file_size %></span>
@@ -87,7 +87,7 @@
       </div>
       <div class="hidden" data-public-gallery-target="images">
         <% @images.each do |img| %>
-          <span data-url="<%= url_for(img.file) %>" data-name="<%= img.name %>" data-download="<%= share_file_download_path(@share.token, img) %>"></span>
+          <span data-url="<%= url_for(img.display_copy) %>" data-name="<%= img.name %>" data-download="<%= share_file_download_path(@share.token, img) %>"></span>
         <% end %>
       </div>
     </div>
