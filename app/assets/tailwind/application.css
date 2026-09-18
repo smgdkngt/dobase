@@ -9,6 +9,7 @@
 /* Tool-specific styles */
 @import "./tools/board.css";
 @import "./tools/calendar.css";
+@import "./tools/chat.css";
 @import "./tools/docs.css";
 @import "./tools/mails.css";
 @import "./tools/room.css";

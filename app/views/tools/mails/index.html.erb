@@ -280,7 +280,7 @@
     <% if @selected_message && @conversation_messages %>
       <%= render "tools/mails/mail_detail" %>
     <% else %>
-      <div class="flex flex-col items-center justify-center h-full p-8">
+      <div class="empty-state flex flex-col items-center justify-center h-full p-8">
         <div class="w-16 h-16 rounded-full bg-background-tertiary flex items-center justify-center mb-5">
           <%= render "shared/icon", name: "mail", size: 28, class: "text-text-tertiary" %>
         </div>

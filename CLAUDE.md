@@ -49,7 +49,7 @@ Docker images are published to `ghcr.io/smgdkngt/dobase` via `.github/workflows/
 
 **Tailwind CSS** must be rebuilt after stylesheet changes:
 ```bash
-bundle exec tailwindcss -i ./app/assets/tailwind/application.css -o ./app/assets/builds/application.css
+bin/rails tailwindcss:build   # writes app/assets/builds/tailwind.css, which the layout loads
 ```
 The `bin/dev` watcher handles this automatically in development.
 

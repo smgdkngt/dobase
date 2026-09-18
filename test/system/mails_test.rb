@@ -228,7 +228,8 @@ class MailsTest < ApplicationSystemTestCase
     wait_for_turbo
 
     click_on "Project Board"
-    assert_current_path tool_board_path(tools(:project_board))
+    # The sidebar links to the tool, which redirects on to its board
+    assert_current_path tool_board_path(tools(:project_board)), wait: 10
 
     visit new_tool_mail_path(@tool, forward: message.id)
     wait_for_compose_editor

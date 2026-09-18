@@ -43,7 +43,7 @@
   text_color = "text-white"
 %>
 
-<div class="absolute rounded-md shadow-sm cursor-pointer overflow-hidden border border-white/20 transition-shadow hover:shadow-md hover:z-10 min-h-5"
+<div class="event-block-in absolute rounded-md shadow-sm cursor-pointer overflow-hidden border border-white/20 transition-all duration-150 hover:shadow-md hover:brightness-105 hover:z-10 min-h-5"
      style="top: <%= top_position %>%; height: <%= height %>%; left: calc(<%= left %>% + 2px); width: calc(<%= width %>% - 4px); background-color: <%= bg_color %>;"
      data-event-id="<%= event.id %>"
      data-action="click->calendar#showEvent">

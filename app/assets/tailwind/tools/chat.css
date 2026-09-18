@@ -1,0 +1,40 @@
+/* Chat tool - only what can't be done in ERB with Tailwind */
+
+@layer components {
+  /* Participants popover: a plain JS-toggled dropdown (not a native
+     [popover]), so it gets its own quiet fade/scale entrance mirroring
+     .popover-menu[popover] rather than reusing that selector. */
+  .chat-participants-popover {
+    opacity: 0;
+    transform: scale(0.96) translateY(-2px);
+    transition: opacity 140ms var(--ease-out), transform 140ms var(--ease-out),
+                overlay 140ms allow-discrete, display 140ms allow-discrete;
+  }
+
+  .chat-participants-popover:not(.hidden) {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+
+  @starting-style {
+    .chat-participants-popover:not(.hidden) {
+      opacity: 0;
+      transform: scale(0.96) translateY(-2px);
+    }
+  }
+
+  /* Messages ease in as they render — a new send, the realtime broadcast
+     landing for other participants, or the history on first load — instead
+     of popping straight into the list. Mirrors the board's [data-card-id]
+     entrance. */
+  [data-controller="message"] {
+    transition: opacity 200ms ease, transform 200ms ease;
+  }
+
+  @starting-style {
+    [data-controller="message"] {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
+}
