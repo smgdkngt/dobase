@@ -52,7 +52,9 @@
 
   /* Card hover lift — a physical sense of picking something up */
   [data-card-id] {
-    transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+    opacity: 1;
+    transform: translateY(0);
+    transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease, opacity 200ms ease;
   }
   [data-card-id]:hover {
     transform: translateY(-1px);
@@ -61,5 +63,14 @@
   [data-card-id]:active {
     transform: translateY(0);
     @apply shadow-sm;
+  }
+
+  /* New cards ease into place instead of popping in, whether added inline
+     or via a full-page morph after the add-card form submits */
+  @starting-style {
+    [data-card-id] {
+      opacity: 0;
+      transform: translateY(4px);
+    }
   }
 }

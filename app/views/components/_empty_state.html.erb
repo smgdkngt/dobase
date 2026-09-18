@@ -49,15 +49,15 @@
     else "text-xs text-text-tertiary"
   end
 %>
-<div class="flex flex-col items-center justify-center text-center <%= container_padding %>">
+<div class="empty-state flex flex-col items-center justify-center text-center <%= container_padding %>">
   <% if local_assigns[:icon] %>
-    <div class="flex items-center justify-center text-text-tertiary <%= icon_container %>">
+    <div class="flex items-center justify-center text-text-tertiary ring-1 ring-border-light <%= icon_container %>">
       <%= render "shared/icon", name: icon, size: icon_size %>
     </div>
   <% end %>
   <div class="text-text-primary <%= title_class %>"><%= title %></div>
   <% if local_assigns[:description] %>
-    <div class="<%= desc_class %>"><%= description %></div>
+    <div class="max-w-sm text-balance <%= desc_class %>"><%= description %></div>
   <% end %>
   <% if local_assigns[:action_text] && local_assigns[:action_href] %>
     <div class="mt-4">
