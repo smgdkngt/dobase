@@ -1,16 +1,18 @@
-<h2 style="margin: 0 0 16px;">You're invited to collaborate</h2>
+<% content_for :title, "You're invited to #{@tool.name}" %>
+<% content_for :preheader, "#{@inviter.name} invited you to collaborate on #{@tool.name} in #{app_name}." %>
+<% content_for :footer_context, @tool.name %>
 
-<p style="margin: 0 0 16px;">
-  <strong><%= @inviter.name %></strong> has invited you to collaborate on
+<h1 class="email-heading" style="margin: 0 0 16px; font-size: 19px; font-weight: 600; color: #1d1d1f;">You're invited to collaborate</h1>
+
+<p style="margin: 0 0 24px;">
+  <strong><%= @inviter.name %></strong> invited you to collaborate on
   <strong><%= @tool.name %></strong> in <%= app_name %>.
 </p>
 
-<p style="margin: 0 0 24px;">
-  <%= link_to "Accept Invitation", @accept_url,
-      style: "display: inline-block; padding: 12px 24px; background-color: #4F46E5; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px;" %>
+<p style="margin: 0 0 28px;">
+  <%= render "shared/mailer_button", text: "Accept invitation", url: @accept_url %>
 </p>
 
-<p style="margin: 0;">
-  This invitation will expire in 7 days.
-  If you don't have an account yet, you'll be able to create one when you accept.
+<p class="muted-text" style="margin: 0; font-size: 13px; color: #86868b;">
+  This invitation expires in 7 days. If you don't have an account yet, you'll be able to create one when you accept.
 </p>
