@@ -5,7 +5,7 @@ import consumer from "channels/consumer"
 
 export default class extends Controller {
   static targets = ["messages", "typingIndicator", "fileInput", "filePreview", "form", "replyPreview", "replyToId", "replyAuthor", "replyContent", "onlineIndicator", "imagePreviewTemplate", "filePreviewTemplate"]
-  static values = { chatId: Number, userId: Number, readUrl: String }
+  static values = { chatId: Number, userId: Number, readUrl: String, canModerate: Boolean }
 
   connect() {
     this.selectedFiles = []

@@ -81,9 +81,10 @@ class Tool < ApplicationRecord
 
     unread = Set.new
 
-    # Chat messages
+    # Chat messages. Your own count as read the moment you send them.
     Chats::Chat.where(tool_id: candidate_ids)
       .joins(:messages)
+      .where.not(chat_messages: { user_id: user.id })
       .group(:tool_id)
       .maximum("chat_messages.created_at")
       .each do |tid, max_at|
@@ -94,6 +95,7 @@ class Tool < ApplicationRecord
     # Board cards (cards → columns → boards)
     Boards::Board.where(tool_id: candidate_ids)
       .joins(columns: :cards)
+      .where("cards.created_by_id IS NULL OR cards.created_by_id != ?", user.id)
       .group("boards.tool_id")
       .maximum("cards.created_at")
       .each do |tid, max_at|

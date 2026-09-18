@@ -129,6 +129,27 @@ class NotificationTest < ActiveSupport::TestCase
     end
   end
 
+  test "your own card doesn't put an activity dot on your own board" do
+    board = boards(:shared)
+    column = board.columns.create!(name: "Test", position: 0)
+    Collaborator.where(user_id: @user_one.id, tool_id: @tool.id).update_all(last_seen_at: Time.current)
+
+    column.cards.create!(title: "Mine", position: 0, created_by: @user_one)
+
+    assert_not_includes Tool.unread_tool_ids_for(@user_one), @tool.id
+    assert_includes Tool.unread_tool_ids_for(@user_two), @tool.id
+  end
+
+  test "your own chat message doesn't put an activity dot on your own chat" do
+    chat = Chats::Chat.create!(tool: @tool)
+    Collaborator.where(user_id: @user_one.id, tool_id: @tool.id).update_all(last_seen_at: Time.current)
+
+    chat.messages.create!(user: @user_one, body: "<p>Mine</p>")
+
+    assert_not_includes Tool.unread_tool_ids_for(@user_one), @tool.id
+    assert_includes Tool.unread_tool_ids_for(@user_two), @tool.id
+  end
+
   test "muted tool is excluded from unread_tool_ids_for" do
     board = boards(:shared)
     column = board.columns.create!(name: "Test", position: 0)

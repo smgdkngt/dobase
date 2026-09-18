@@ -31,6 +31,13 @@ module Tools
         assert_equal 0, done.reload.position
       end
 
+      test "a reorder with no columns is a no-op, not a 500" do
+        patch tool_board_positions_path(@tool), params: {}, as: :json
+
+        assert_response :success
+        assert_equal [ 0, 1, 2 ], columns(:todo, :in_progress, :done).map { |column| column.reload.position }
+      end
+
       test "requires authentication" do
         sign_out
 

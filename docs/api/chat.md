@@ -70,8 +70,9 @@ office documents, plain text, CSV, Markdown, zip archives, audio and video.
 ## Edit a message
 
 `PATCH /tools/:tool_id/chat/messages/:id` with `{"message": {"body": "<p>Standup moved to 4pm</p>"}}`
-returns the message. You can only edit your own messages; other messages
-answer `403`.
+returns the message. Leaving `body` out leaves the text as it was, and a
+request with no `message` at all answers `400`. You can only edit your own
+messages; other messages answer `403`.
 
 ## Delete a message
 

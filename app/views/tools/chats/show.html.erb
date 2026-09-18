@@ -17,6 +17,7 @@
      data-controller="chat"
      data-chat-chat-id-value="<%= @chat.id %>"
      data-chat-user-id-value="<%= current_user.id %>"
+     data-chat-can-moderate-value="<%= @tool.owned_by?(current_user) %>"
      data-chat-read-url-value="<%= tool_chat_read_path(@tool) %>">
   <button data-controller="hotkey" data-hotkey="/" data-action="click->chat#focusInput" hidden>Focus input</button>
 

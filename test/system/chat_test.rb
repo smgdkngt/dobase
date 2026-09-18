@@ -108,6 +108,32 @@ class ChatTest < ApplicationSystemTestCase
     assert_selector "#chat-form-errors", text: "can't be blank", wait: 5
   end
 
+  test "an owner is offered someone else's message to delete" do
+    other = users(:two)
+    @tool.collaborators.create!(user: other, role: "collaborator")
+    @tool.chat.messages.create!(user: other, body: "Not mine")
+
+    visit tool_chat_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "chat"
+
+    assert_selector "[data-message-delete]:not(.hidden)", visible: :all, wait: 5
+  end
+
+  test "a collaborator is not offered someone else's message to delete" do
+    other = users(:two)
+    theirs = Tool.create!(name: "Their Chat", tool_type: @tool.tool_type, owner: other)
+    theirs.collaborators.create!(user: @user, role: "collaborator")
+    theirs.chat.messages.create!(user: other, body: "Not mine")
+
+    visit tool_chat_path(theirs)
+    wait_for_turbo
+    wait_for_stimulus "chat"
+
+    assert_text "Not mine"
+    assert_selector "[data-message-delete].hidden", visible: :all
+  end
+
   private
 
   # Submits a genuinely blank body straight to the server (bypassing the

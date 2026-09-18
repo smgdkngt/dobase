@@ -31,7 +31,7 @@ module Tools
 
       def update
         respond_to do |format|
-          if @message.update(body: params.dig(:message, :body), edited_at: Time.current)
+          if @message.update(edit_params.merge(edited_at: Time.current))
             format.any { render_message_errors }
             format.json { render :show }
           else
@@ -75,6 +75,14 @@ module Tools
 
       def message_params
         params.require(:message).permit(:body, :reply_to_id, files: [])
+      end
+
+      # Only the body can be edited, and only when it's actually in the request:
+      # reading params[:message][:body] straight through blanked the text of any
+      # message whose update didn't mention it (a files-only message survives a
+      # blank body, so nothing caught it).
+      def edit_params
+        params.require(:message).permit(:body)
       end
 
       # Updates the error slot's contents with the message's current errors —
