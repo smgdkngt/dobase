@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { showFlash } from "services/flash"
 
 // Handles dragging files/folders between folders
 export default class extends Controller {
@@ -141,8 +142,27 @@ export default class extends Controller {
       }))
     })
 
-    await Promise.all(promises)
+    const responses = await Promise.all(promises)
+    const refusal = await this._refusalReason(responses)
+
+    if (refusal) {
+      // The refresh below renders a fresh page, flash and all, so the toast
+      // waits for that page to land instead of being wiped by it.
+      document.addEventListener("turbo:load", () => showFlash(refusal), { once: true })
+    }
+
     Turbo.visit(window.location.href, { action: "replace" })
+  }
+
+  // Why the server wouldn't take the move — a folder dropped into its own
+  // subtree, one nested too deep — rather than a silent refresh that leaves
+  // everything where it was.
+  async _refusalReason(responses) {
+    const refused = responses.find(response => !response.ok)
+    if (!refused) return null
+
+    const body = await refused.json().catch(() => null)
+    return body?.errors?.join(" ") || body?.error || "Those items couldn't be moved."
   }
 
   get #csrfToken() {
