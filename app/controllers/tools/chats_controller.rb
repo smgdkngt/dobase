@@ -17,7 +17,7 @@ module Tools
 
       respond_to do |format|
         format.html do
-          @messages = @chat.messages.chronological.includes(:user, files_attachments: :blob, reply_to: :user).last(100)
+          @messages = @chat.messages.chronological.with_associations.last(100)
           @participants = @chat.participants
           @chat.mark_as_read_for!(current_user)
         end
