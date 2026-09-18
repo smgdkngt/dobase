@@ -59,15 +59,20 @@
 
           <div class="flex items-center gap-4 mb-6">
             <div class="flex-shrink-0">
-              <%= render "shared/avatar", user: @user, size: :xl %>
+              <%= render "shared/avatar", user: @user, size: "2xl" %>
             </div>
             <div class="flex-1">
-              <label for="user_avatar" class="label">Avatar</label>
+              <span class="label">Avatar</span>
+              <label for="user_avatar" class="btn btn-secondary btn-sm cursor-pointer w-fit">
+                <%= render "shared/icon", name: "upload", size: 14 %>
+                <span>Choose photo…</span>
+              </label>
               <%= f.file_field :avatar,
-                class: "input",
+                id: "user_avatar",
+                class: "sr-only",
                 accept: "image/png,image/jpeg,image/gif,image/webp"
               %>
-              <p class="help-text">Max 5MB</p>
+              <p class="help-text">PNG, JPEG, GIF or WebP. Max 5MB.</p>
             </div>
           </div>
 
