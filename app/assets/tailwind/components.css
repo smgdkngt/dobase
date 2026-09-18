@@ -503,9 +503,14 @@
 
   /* ── Rich text content (compact rendering for chat/comments) ─────── */
 
-  /* A text or markdown file shown as itself: readable width, scrolls on its own */
+  /* A text or markdown file shown as itself: fills its pane, scrolls on its own */
   .file-text-preview {
-    @apply w-full max-h-[70vh] overflow-auto bg-surface border border-border-light text-text-primary;
+    @apply w-full min-h-0 max-h-[70vh] overflow-auto bg-surface border border-border-light text-text-primary;
+  }
+
+  /* On its own page it gets the whole pane instead of a slice of it */
+  .file-text-preview-fill {
+    @apply h-full max-h-none;
   }
 
   .file-text-preview-plain {
