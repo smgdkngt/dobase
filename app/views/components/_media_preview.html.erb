@@ -59,6 +59,8 @@
   <div class="file-text-preview <%= radius_class %> <%= "file-text-preview-fill" if fill %>">
     <% if file.markdown? %>
       <div class="markdown-preview"><%= markdown_preview(preview) %></div>
+    <% elsif (lexer = code_lexer(file.name)) %>
+      <pre class="file-text-preview-plain highlight"><code><%= highlighted_code(preview, lexer) %></code></pre>
     <% else %>
       <pre class="file-text-preview-plain"><%= preview %></pre>
     <% end %>

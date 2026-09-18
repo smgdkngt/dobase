@@ -517,6 +517,17 @@
     @apply p-5 sm:p-6 text-sm font-mono leading-relaxed whitespace-pre-wrap break-words;
   }
 
+  /* Rouge marks up a code file; these are the colours it gets */
+  .highlight {
+    .c, .cd, .cm, .c1, .cs { @apply italic; color: var(--color-code-comment); }
+    .k, .kc, .kd, .kn, .kp, .kr, .kv, .ow { color: var(--color-code-keyword); }
+    .s, .s1, .s2, .sb, .sc, .sd, .se, .sh, .si, .sr, .ss, .sx, .dl { color: var(--color-code-string); }
+    .m, .mb, .mf, .mh, .mi, .mo, .mx, .il { color: var(--color-code-number); }
+    .na, .nf, .nb, .nt, .nv, .vi, .vc, .vg { color: var(--color-code-name); }
+    .nc, .nn, .no, .kt, .ne, .nl { color: var(--color-code-constant); }
+    .err { @apply underline decoration-wavy; text-decoration-color: var(--color-error); }
+  }
+
   /* A markdown file reads as a document, not as a chat message */
   .markdown-preview {
     @apply p-5 sm:p-8 text-text-primary leading-relaxed wrap-anywhere;

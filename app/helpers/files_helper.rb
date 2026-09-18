@@ -19,4 +19,23 @@ module FilesHelper
     safe = sanitize(html, tags: MARKDOWN_TAGS, attributes: MARKDOWN_ATTRIBUTES)
     safe.gsub("<a ", '<a target="_blank" rel="noopener noreferrer" ').html_safe
   end
+
+  # The lexer for a file's name, or nil when Rouge doesn't know the language —
+  # plain text, a log, a csv. Rouge guesses from the text as well, which lands
+  # on something for anything, so only the name is trusted here.
+  def code_lexer(filename)
+    lexer = ::Rouge::Lexer.guess_by_filename(filename.to_s)
+    lexer unless lexer == ::Rouge::Lexers::PlainText
+  rescue ::Rouge::Guesser::Ambiguous => e
+    e.alternatives.first
+  rescue StandardError
+    nil
+  end
+
+  # A code file with its keywords, strings and comments marked up. Rouge escapes
+  # the text it formats, so what comes back is safe to put on the page.
+  def highlighted_code(text, lexer)
+    formatter = ::Rouge::Formatters::HTML.new
+    formatter.format(lexer.new.lex(text.to_s)).html_safe
+  end
 end
