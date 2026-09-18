@@ -22,8 +22,13 @@ module Tools
         end
 
         # DELETE /tools/:tool_id/todo/items/:item_id/completion
+        # Putting a repeating item back on the list takes its copy with it,
+        # unless someone has started on that copy.
         def destroy
-          @item.update!(completed_at: nil, updated_by: current_user)
+          ::Todos::Item.transaction do
+            @item.discard_untouched_copy!
+            @item.update!(completed_at: nil, updated_by: current_user)
+          end
           respond_with_item
         end
 

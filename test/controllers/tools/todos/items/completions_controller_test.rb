@@ -64,6 +64,44 @@ module Tools
           assert_equal Date.current + 1.day, new_item.due_date
         end
 
+        test "putting a repeating item back on the list takes its untouched copy with it" do
+          @item.update!(recurrence_rule: "daily", due_date: Date.current)
+          post tool_todo_item_completion_path(@tool, @item), as: :json
+          copy = @item.reload.spawned_copy
+          assert copy.present?
+
+          assert_difference -> { @item.list.items.count }, -1 do
+            delete tool_todo_item_completion_path(@tool, @item), as: :json
+          end
+
+          assert_nil @item.reload.completed_at
+          assert_not ::Todos::Item.exists?(copy.id)
+        end
+
+        test "a copy someone has commented on stays when the item is put back" do
+          @item.update!(recurrence_rule: "daily", due_date: Date.current)
+          post tool_todo_item_completion_path(@tool, @item), as: :json
+          copy = @item.reload.spawned_copy
+          copy.comments.create!(user: users(:one), body: "Started on this")
+
+          assert_no_difference -> { @item.list.items.count } do
+            delete tool_todo_item_completion_path(@tool, @item), as: :json
+          end
+
+          assert ::Todos::Item.exists?(copy.id)
+        end
+
+        test "a copy already ticked off stays when the item is put back" do
+          @item.update!(recurrence_rule: "daily", due_date: Date.current)
+          post tool_todo_item_completion_path(@tool, @item), as: :json
+          copy = @item.reload.spawned_copy
+          copy.update!(completed_at: Time.current)
+
+          delete tool_todo_item_completion_path(@tool, @item), as: :json
+
+          assert ::Todos::Item.exists?(copy.id)
+        end
+
         test "completing a non-recurring item does not spawn a copy" do
           assert_nil @item.recurrence_rule
 

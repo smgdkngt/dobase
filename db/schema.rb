@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_18_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_18_150000) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -532,6 +532,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_140000) do
     t.date "due_date"
     t.integer "position", default: 0, null: false
     t.string "recurrence_rule"
+    t.integer "spawned_from_id"
     t.string "title", null: false
     t.integer "todo_list_id", null: false
     t.datetime "updated_at", null: false
@@ -539,6 +540,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_140000) do
     t.index ["assigned_user_id"], name: "index_todo_items_on_assigned_user_id"
     t.index ["completed_at"], name: "index_todo_items_on_completed_at"
     t.index ["created_by_id"], name: "index_todo_items_on_created_by_id"
+    t.index ["spawned_from_id"], name: "index_todo_items_on_spawned_from_id"
     t.index ["todo_list_id", "position"], name: "index_todo_items_on_todo_list_id_and_position"
     t.index ["todo_list_id"], name: "index_todo_items_on_todo_list_id"
     t.index ["updated_by_id"], name: "index_todo_items_on_updated_by_id"

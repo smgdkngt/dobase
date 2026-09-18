@@ -9,6 +9,8 @@ module Todos
     belongs_to :assigned_user, class_name: "User", optional: true
     has_many :comments, class_name: "Todos::Comment", foreign_key: :todo_item_id, dependent: :destroy
     has_many :attachments, class_name: "Todos::Attachment", foreign_key: :todo_item_id, dependent: :destroy
+    belongs_to :spawned_from, class_name: "Todos::Item", optional: true
+    has_one :spawned_copy, class_name: "Todos::Item", foreign_key: :spawned_from_id, inverse_of: :spawned_from, dependent: :nullify
     has_rich_text :description
 
     RECURRENCE_RULES = %w[daily weekly monthly].freeze
@@ -46,12 +48,23 @@ module Todos
         recurrence_rule: recurrence_rule,
         due_date: next_due_date,
         created_by: created_by,
-        updated_by: updated_by
+        updated_by: updated_by,
+        spawned_from: self
       )
       new_item.description = description.body if description.present?
       new_item.save!
       new_item.move_to(list, position: 0, by: updated_by)
       new_item
+    end
+
+    # Un-completing a repeating item takes back the copy that completing it
+    # made, as long as nobody has picked that copy up: it's still open, and
+    # nothing has been said or attached on it.
+    def discard_untouched_copy!
+      copy = spawned_copy
+      return if copy.nil? || copy.completed? || copy.comments.any? || copy.attachments.any?
+
+      copy.destroy!
     end
 
     def recurrence_description
