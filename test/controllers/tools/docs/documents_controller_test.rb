@@ -21,6 +21,14 @@ module Tools
         assert_equal @tool, document.tool
       end
 
+      test "an empty document still has somewhere for a live edit to land" do
+        get tool_docs_document_path(@tool, docs_documents(:empty_document))
+
+        assert_response :success
+        assert_select "[data-document-viewer-target=content]"
+        assert_select "[data-document-viewer-target=content]", text: /This document is empty/
+      end
+
       test "requires authentication" do
         sign_out
 

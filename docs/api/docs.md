@@ -72,4 +72,5 @@ Try again once `locked` is false. A lock of your own doesn't stop you.
 
 ## Delete a document
 
-`DELETE /tools/:tool_id/docs/documents/:id` returns `204`.
+`DELETE /tools/:tool_id/docs/documents/:id` returns `204`. Like an update, it
+answers `409` while someone else has the document open in the editor.
