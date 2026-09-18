@@ -84,7 +84,7 @@
   </div>
 </div>
 
-<div class="overflow-y-auto p-4">
+<div class="mail-message-in overflow-y-auto p-4">
   <% @conversation_messages.each_with_index do |msg, index| %>
     <%= render "tools/mails/email_message",
           email_message: msg,

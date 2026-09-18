@@ -52,6 +52,11 @@
     @apply border-l-accent;
     background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
   }
+
+  /* Reading pane settles in on each message switch instead of hard-cutting */
+  .mail-message-in {
+    animation: empty-state-in 200ms var(--ease-out) both;
+  }
 }
 
 /* Responsive: Mobile */

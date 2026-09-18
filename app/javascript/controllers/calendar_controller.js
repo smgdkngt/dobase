@@ -123,6 +123,13 @@ export default class extends Controller {
     // Fetch event details and show in modal
     const url = `/tools/${this.toolIdValue}/calendar/events/${eventId}`
 
+    // Open immediately with a skeleton so the dialog's entrance isn't spent
+    // staring at a blank sheet — content swaps in once the fetch resolves.
+    if (this.hasEventModalTarget) {
+      this.eventModalTarget.innerHTML = this._eventSkeletonHTML()
+    }
+    if (this.hasEventDetailDialogTarget) this.eventDetailDialogTarget.showModal()
+
     fetch(url, {
       headers: {
         "Accept": "text/html",
@@ -133,13 +140,23 @@ export default class extends Controller {
       .then(html => {
         if (this.hasEventModalTarget) {
           this.eventModalTarget.innerHTML = html
+          this.eventModalTarget.querySelector("[autofocus], button, a[href]")?.focus()
         }
-
-        if (this.hasEventDetailDialogTarget) this.eventDetailDialogTarget.showModal()
       })
       .catch(error => {
         console.error("Error loading event:", error)
       })
+  }
+
+  _eventSkeletonHTML() {
+    return `
+      <div class="flex flex-col gap-3">
+        <div class="skeleton h-5 w-2/3"></div>
+        <div class="skeleton h-4 w-1/3"></div>
+        <div class="skeleton h-4 w-1/2"></div>
+        <div class="skeleton h-16 w-full mt-2"></div>
+      </div>
+    `
   }
 
   closeModal() {

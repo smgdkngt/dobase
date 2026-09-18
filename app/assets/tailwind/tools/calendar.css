@@ -101,6 +101,12 @@
     height: 60px;
   }
 
+  /* Event blocks ease into place on each render (week switch, new event)
+     instead of just appearing */
+  .event-block-in {
+    animation: event-block-in 160ms var(--ease-out) both;
+  }
+
   /* Provider card selection */
   .provider-card {
     @apply block;
@@ -114,4 +120,9 @@
     @apply flex flex-col items-center p-4 border-2 border-border-light rounded-lg;
     @apply transition-all hover:border-accent/50;
   }
+}
+
+@keyframes event-block-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
 }
