@@ -34,6 +34,14 @@
   --color-error-solid: #d70015;
   --color-error-light: #ffebea;
 
+  /* Code, as a file preview highlights it */
+  --color-code-comment: #6e7781;
+  --color-code-keyword: #ad3da4;
+  --color-code-string: #c41a16;
+  --color-code-number: #1c00cf;
+  --color-code-name: #0b6a78;
+  --color-code-constant: #4b21b0;
+
   /* Sidebar */
   --color-sidebar-bg: #f5f5f7;
   --color-sidebar-hover: #e8e8ed;
@@ -164,6 +172,13 @@
       --color-error: #ff6961;
       --color-error-solid: #c9231c;
       --color-error-light: rgba(255, 69, 58, 0.15);
+
+      --color-code-comment: #7e8c99;
+      --color-code-keyword: #ff7ab2;
+      --color-code-string: #ff8170;
+      --color-code-number: #d9c97c;
+      --color-code-name: #4eb0cc;
+      --color-code-constant: #b281eb;
 
       --color-sidebar-bg: #2c2c2e;
       --color-sidebar-hover: #3a3a3c;

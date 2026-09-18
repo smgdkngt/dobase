@@ -54,6 +54,9 @@ gem "rubyzip", "~> 3.5"
 # Markdown, for previewing .md files in the Files tool
 gem "commonmarker", "~> 2.0"
 
+# Syntax highlighting, for previewing code files in the Files tool
+gem "rouge", "~> 4.0"
+
 # iCalendar parsing and generation
 gem "icalendar"
 
