@@ -3,7 +3,7 @@
 module Tools
   module Calendars
     class EventsController < ApplicationController
-      include ToolAuthorization
+      include ToolScoped
 
       # Recurrence fields besides recurrence_frequency.
       RECURRENCE_FIELDS = %w[
@@ -12,9 +12,6 @@ module Tools
       ].freeze
 
       allow_access_tokens only: %i[show create update destroy]
-
-      before_action :set_tool
-      before_action -> { authorize_tool_access!(@tool) }
       before_action :set_calendar_account
       before_action :set_event, only: %i[show edit update destroy]
 
@@ -110,10 +107,6 @@ module Tools
       end
 
       private
-
-      def set_tool
-        @tool = Tool.find(params[:tool_id])
-      end
 
       def set_calendar_account
         @calendar_account = @tool.calendar_account

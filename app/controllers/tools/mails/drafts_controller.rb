@@ -3,12 +3,9 @@
 module Tools
   module Mails
     class DraftsController < ApplicationController
-      include ToolAuthorization
+      include ToolScoped
 
       allow_access_tokens
-
-      before_action :set_tool
-      before_action -> { authorize_tool_access!(@tool) }
       before_action :set_mail_account
       before_action :set_draft, only: :update
 
@@ -57,10 +54,6 @@ module Tools
       end
 
       private
-
-      def set_tool
-        @tool = Tool.find(params[:tool_id])
-      end
 
       def set_mail_account
         @mail_account = @tool.mail_account

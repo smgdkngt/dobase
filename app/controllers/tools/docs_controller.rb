@@ -2,12 +2,9 @@
 
 module Tools
   class DocsController < ApplicationController
-    include ToolAuthorization
+    include ToolScoped
 
     allow_access_tokens
-
-    before_action :set_tool
-    before_action -> { authorize_tool_access!(@tool) }
 
     def show
       @documents = @tool.documents.with_rich_text_content.includes(:updated_by, :locked_by).ordered
@@ -22,12 +19,6 @@ module Tools
         end
         format.json
       end
-    end
-
-    private
-
-    def set_tool
-      @tool = Tool.find(params[:tool_id])
     end
   end
 end

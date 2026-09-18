@@ -4,14 +4,11 @@ module Tools
   module Files
     module Folders
       class SharesController < ApplicationController
-        include ToolAuthorization
+        include ToolScoped
 
         # Tokens can see a public link but not create or remove one: a link made
         # with a leaked token would outlive revoking it.
         allow_access_tokens only: :show
-
-        before_action :set_tool
-        before_action -> { authorize_tool_access!(@tool) }
         before_action :set_folder
 
         def show
@@ -46,10 +43,6 @@ module Tools
         end
 
         private
-
-        def set_tool
-          @tool = Tool.find(params[:tool_id])
-        end
 
         def set_folder
           @folder = @tool.file_folders.find(params[:folder_id])

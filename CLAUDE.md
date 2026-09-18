@@ -65,6 +65,8 @@ Every feature is a **Tool** instance linked to a **ToolType** (slug: `mail`, `bo
 
 The tool creator is automatically added as an owner collaborator (`after_create :add_creator_as_owner`). Check ownership via `tool.owned_by?(user)` and access via `tool.accessible_by?(user)` — both query the collaborators table. Permissions are explicit and instance-based — never inferred.
 
+Controllers under `/tools/:tool_id` include the `ToolScoped` concern, which loads `@tool` from `params[:tool_id]` and authorizes access. Only controllers that load their tool differently (from a card, a list, another param) or need owner rights wire that up themselves.
+
 ### Namespacing Pattern
 
 Models and controllers are namespaced per tool. Models set `self.table_name` explicitly:

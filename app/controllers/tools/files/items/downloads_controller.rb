@@ -4,13 +4,10 @@ module Tools
   module Files
     module Items
       class DownloadsController < ApplicationController
-        include ToolAuthorization
+        include ToolScoped
         include FileItemDownload
 
         allow_access_tokens
-
-        before_action :set_tool
-        before_action -> { authorize_tool_access!(@tool) }
         before_action :set_file
 
         def show
@@ -18,10 +15,6 @@ module Tools
         end
 
         private
-
-        def set_tool
-          @tool = Tool.find(params[:tool_id])
-        end
 
         def set_file
           @file = @tool.file_items.find(params[:item_id])

@@ -4,14 +4,11 @@ module Tools
   module Todos
     module Items
       class PositionsController < ApplicationController
-        include ToolAuthorization
+        include ToolScoped
 
         allow_access_tokens
         # A JSON body without "position" would otherwise be wrapped under params[:position].
         wrap_parameters false
-
-        before_action :set_tool
-        before_action -> { authorize_tool_access!(@tool) }
         before_action :set_item
 
         # PATCH /tools/:tool_id/todo/items/:item_id/position
@@ -27,10 +24,6 @@ module Tools
         end
 
         private
-
-        def set_tool
-          @tool = Tool.find(params[:tool_id])
-        end
 
         def set_item
           @item = ::Todos::Item.joins(:list).where(todo_lists: { tool_id: @tool.id }).find(params[:item_id])

@@ -2,7 +2,7 @@
 
 module Tools
   class CalendarsController < ApplicationController
-    include ToolAuthorization
+    include ToolScoped
 
     # The longest date range the JSON API returns; any three calendar months fit.
     MAX_RANGE_DAYS = 92
@@ -10,9 +10,6 @@ module Tools
     class InvalidDateRange < StandardError; end
 
     allow_access_tokens
-
-    before_action :set_tool
-    before_action -> { authorize_tool_access!(@tool) }
     before_action :require_calendar_account
 
     def show
@@ -27,10 +24,6 @@ module Tools
     end
 
     private
-
-    def set_tool
-      @tool = Tool.find(params[:tool_id])
-    end
 
     def require_calendar_account
       return if @tool.calendar_account

@@ -3,12 +3,9 @@
 module Tools
   module Boards
     class CardsController < ApplicationController
-      include ToolAuthorization
+      include ToolScoped
 
       allow_access_tokens
-
-      before_action :set_tool
-      before_action -> { authorize_tool_access!(@tool) }
       before_action :set_card
 
       def show
@@ -60,10 +57,6 @@ module Tools
       end
 
       private
-
-      def set_tool
-        @tool = Tool.find(params[:tool_id])
-      end
 
       def set_card
         @card = @tool.board.cards.find(params[:id])

@@ -3,15 +3,12 @@
 module Tools
   module Mails
     class BulkActionsController < ApplicationController
-      include ToolAuthorization
+      include ToolScoped
       include FolderValidation
       include NextMailNavigation
 
       # Each selected message can queue an IMAP job. Select-all in the mail list only covers the current page.
       MAX_MESSAGES = 200
-
-      before_action :set_tool
-      before_action -> { authorize_tool_access!(@tool) }
 
       # POST /tools/:tool_id/mails/bulk
       def create
@@ -89,10 +86,6 @@ module Tools
       end
 
       private
-
-      def set_tool
-        @tool = Tool.find(params[:tool_id])
-      end
 
       def conversations_of(messages, folder)
         @mail_account.messages.where(id: with_their_conversations(messages, folder: folder).map(&:id))

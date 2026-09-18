@@ -3,14 +3,11 @@
 module Tools
   module Files
     class FoldersController < ApplicationController
-      include ToolAuthorization
+      include ToolScoped
 
       allow_access_tokens
       # API clients send name and parent_id at the top level; the web sends them under folder.
       wrap_parameters :folder, include: %i[name parent_id]
-
-      before_action :set_tool
-      before_action -> { authorize_tool_access!(@tool) }
       before_action :set_folder, only: %i[update destroy]
 
       def create
@@ -55,10 +52,6 @@ module Tools
       end
 
       private
-
-      def set_tool
-        @tool = Tool.find(params[:tool_id])
-      end
 
       def set_folder
         @folder = @tool.file_folders.find(params[:id])

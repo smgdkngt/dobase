@@ -6,10 +6,7 @@ module Tools
     # The whole selection goes in one request and one transaction, so a failure
     # doesn't leave it half deleted.
     class DeletionsController < ApplicationController
-      include ToolAuthorization
-
-      before_action :set_tool
-      before_action -> { authorize_tool_access!(@tool) }
+      include ToolScoped
 
       def create
         folders = @tool.file_folders.where(id: params[:folder_ids])
@@ -22,12 +19,6 @@ module Tools
         end
 
         redirect_back_or_to tool_files_path(@tool)
-      end
-
-      private
-
-      def set_tool
-        @tool = Tool.find(params[:tool_id])
       end
     end
   end

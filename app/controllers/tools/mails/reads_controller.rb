@@ -3,12 +3,9 @@
 module Tools
   module Mails
     class ReadsController < ApplicationController
-      include ToolAuthorization
+      include ToolScoped
 
       allow_access_tokens
-
-      before_action :set_tool
-      before_action -> { authorize_tool_access!(@tool) }
       before_action :set_message
 
       # POST /tools/:tool_id/mails/:mail_id/read
@@ -25,10 +22,6 @@ module Tools
       end
 
       private
-
-      def set_tool
-        @tool = Tool.find(params[:tool_id])
-      end
 
       def set_message
         @message = ::Mails::Message.where(account: @tool.mail_account).find(params[:mail_id])

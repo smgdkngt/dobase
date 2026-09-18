@@ -3,12 +3,9 @@
 module Tools
   module Mails
     class ContactsController < ApplicationController
-      include ToolAuthorization
+      include ToolScoped
 
       allow_access_tokens
-
-      before_action :set_tool
-      before_action -> { authorize_tool_access!(@tool) }
       before_action :require_mail_account
 
       def index
@@ -47,10 +44,6 @@ module Tools
       end
 
       private
-
-      def set_tool
-        @tool = Tool.find(params[:tool_id])
-      end
 
       def require_mail_account
         @mail_account = @tool.mail_account
