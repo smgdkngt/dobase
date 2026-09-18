@@ -69,4 +69,13 @@ class ToolsApiTest < ActionDispatch::IntegrationTest
     assert_equal "Roadmap", response.parsed_body["name"]
     assert_equal "Roadmap", tools(:project_board).reload.name
   end
+
+  test "update can't turn a board into another kind of tool" do
+    board = tools(:project_board)
+
+    patch tool_path(board), params: { tool: { name: "Roadmap", tool_type: "todos" } }, headers: @headers, as: :json
+
+    assert_response :success
+    assert_equal "boards", board.reload.tool_type.slug
+  end
 end
