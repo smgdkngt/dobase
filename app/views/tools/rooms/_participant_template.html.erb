@@ -1,9 +1,9 @@
   <%# Participant tile template %>
   <template data-room-target="participantTemplate">
-    <div class="relative bg-background-secondary rounded-xl overflow-hidden" data-participant-id="">
+    <div class="relative bg-background-secondary rounded-xl overflow-hidden border border-border-light" data-participant-id="">
       <video class="hidden w-full h-full object-cover object-center" data-video autoplay playsinline muted></video>
       <div class="absolute inset-0 flex flex-col items-center justify-center gap-3" data-placeholder>
-        <div class="w-16 h-16 rounded-full bg-background-tertiary flex items-center justify-center text-xl font-semibold text-text-primary" data-initials></div>
+        <div class="w-16 h-16 rounded-full bg-background-tertiary ring-1 ring-border-light flex items-center justify-center text-xl font-semibold text-text-primary" data-initials></div>
         <span class="text-sm text-text-secondary" data-name></span>
       </div>
       <div class="room-tile-overlay">

@@ -1,6 +1,6 @@
 <div class="flex items-center justify-between py-2 opacity-75" id="invitation-<%= invitation.id %>">
   <div class="collaborator-info">
-    <%= render "shared/avatar", initials: invitation.email[0].upcase, size: :sm %>
+    <%= render "shared/avatar", initials: invitation.email[0].upcase, size: :md %>
     <div>
       <div class="collaborator-name">
         <%= invitation.email %>

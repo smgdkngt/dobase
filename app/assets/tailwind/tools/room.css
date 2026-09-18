@@ -2,6 +2,7 @@
   [data-participant-id] {
     min-height: 200px;
     aspect-ratio: 16 / 9;
+    animation: empty-state-in 240ms var(--ease-out) both;
   }
 
   /* ── Room layout ──────────────────────────────────────────────── */
@@ -13,7 +14,25 @@
   /* ── Pre-join ─────────────────────────────────────────────────── */
 
   .room-pre-join {
-    @apply flex-1 flex flex-col items-center justify-center gap-6 p-6;
+    @apply flex-1 flex flex-col items-center justify-center p-6;
+  }
+
+  .room-pre-join-card {
+    @apply w-full max-w-sm flex flex-col items-center gap-5 p-6
+           bg-surface rounded-xl border border-border-light shadow-md;
+  }
+
+  .room-preview {
+    @apply relative w-full aspect-video rounded-lg overflow-hidden bg-background-secondary;
+  }
+
+  .room-preview-placeholder {
+    @apply absolute inset-0 flex items-center justify-center text-text-tertiary;
+  }
+
+  .room-preview-video {
+    @apply absolute inset-0 w-full h-full object-cover object-center;
+    background: transparent;
   }
 
   /* ── In-call layout ───────────────────────────────────────────── */
@@ -56,6 +75,7 @@
   .room-local-video {
     @apply absolute bottom-4 right-4 w-44 rounded-lg overflow-hidden
            shadow-lg border border-white/10 z-10;
+    animation: empty-state-in 260ms var(--ease-out) both;
   }
 
   .room-local-video-feed {
@@ -121,7 +141,7 @@
   }
 
   [data-room-mode-value="pip"] [data-participant-id] {
-    @apply min-h-0 rounded-none;
+    @apply min-h-0 rounded-none border-none;
     aspect-ratio: auto;
   }
 

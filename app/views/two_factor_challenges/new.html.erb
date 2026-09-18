@@ -7,7 +7,7 @@
     <p class="text-text-secondary mt-1">Enter the 6-digit code to continue signing in</p>
   </div>
 
-  <div class="card">
+  <div class="auth-card">
     <div class="card-body" data-controller="recovery-code">
       <%= render "shared/flash", position: :inline %>
       <%= form_with url: two_factor_challenge_path, method: :post, class: "space-y-4" do |f| %>

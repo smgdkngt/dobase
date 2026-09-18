@@ -10,11 +10,13 @@
       </p>
     </div>
 
-    <div class="card">
+    <div class="auth-card">
       <div class="card-body text-center">
         <div class="flex items-center justify-center gap-3 mb-4">
           <% if @tool.emoji_icon %>
-            <span class="text-2xl"><%= @tool.emoji_icon %></span>
+            <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center text-xl">
+              <%= @tool.emoji_icon %>
+            </div>
           <% else %>
             <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
               <%= render "shared/icon", name: @tool.tool_type.icon, size: 20, class: "text-accent" %>
