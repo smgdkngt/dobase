@@ -55,7 +55,7 @@ gem "rubyzip", "~> 3.5"
 gem "commonmarker", "~> 2.0"
 
 # Syntax highlighting, for previewing code files in the Files tool
-gem "rouge", "~> 4.0"
+gem "rouge", "~> 5.1"
 
 # iCalendar parsing and generation
 gem "icalendar"
