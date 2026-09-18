@@ -9,7 +9,8 @@ module Tools
 
     def show
       @folders = current_folders.ordered.includes(:share)
-      @files = current_files.ordered.includes(:share)
+      # Thumbnails need the attachment, the blob and the variant record of each file
+      @files = current_files.ordered.includes(:share, file_attachment: { blob: :variant_records })
 
       respond_to do |format|
         format.html do

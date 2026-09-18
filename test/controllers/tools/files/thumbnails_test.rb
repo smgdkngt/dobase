@@ -36,6 +36,12 @@ module Tools
         assert_no_match %r{<img[^>]*/rails/active_storage/blobs/}, response.body
       end
 
+      test "a folder of pictures runs the same number of queries however many it holds" do
+        add_pictures = -> { 3.times { upload("#{SecureRandom.hex(4)}.png") } }
+
+        assert_queries_independent_of(add_pictures) { get tool_files_path(@tool, view: "grid") }
+      end
+
       test "a picture vips can't read is shown as it is" do
         drawing = @tool.file_items.create!(name: "logo.svg", file: {
           io: StringIO.new("<svg xmlns='http://www.w3.org/2000/svg'></svg>"), filename: "logo.svg", content_type: "image/svg+xml"
