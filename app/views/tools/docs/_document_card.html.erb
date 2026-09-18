@@ -1,6 +1,6 @@
 <% if view_mode == "grid" %>
   <%# Grid card with preview %>
-  <div data-document-id="<%= document.id %>">
+  <div data-document-id="<%= document.id %>" data-presence-item="document:<%= document.id %>">
     <%= link_to tool_docs_document_path(document.tool, document),
         class: "group flex flex-col h-full bg-surface border border-border-light rounded-lg overflow-hidden hover:border-accent hover:shadow-md hover:-translate-y-0.5 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2" do %>
       <div class="aspect-[4/3] bg-background p-4 overflow-hidden relative">
@@ -34,7 +34,7 @@
   </div>
 <% else %>
   <%# List row %>
-  <div data-document-id="<%= document.id %>">
+  <div data-document-id="<%= document.id %>" data-presence-item="document:<%= document.id %>">
     <%= link_to tool_docs_document_path(document.tool, document),
         class: "group flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-background-tertiary transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2" do %>
       <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-background-secondary rounded-lg text-text-tertiary group-hover:text-accent group-hover:bg-accent/10 transition-colors relative">

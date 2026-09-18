@@ -73,4 +73,18 @@ module ApplicationHelper
 
     parts.join(" · ").presence
   end
+
+  # What a tool page needs to say who is here: the tool to listen to, and which
+  # of the faces is your own. Everything else about a person comes from the
+  # server over the channel, never from the page.
+  def presence_attributes
+    {
+      data: {
+        controller: "presence",
+        presence_tool_id_value: @tool.id,
+        presence_user_id_value: Current.user&.id,
+        presence_context_value: @presence_context
+      }.compact
+    }
+  end
 end

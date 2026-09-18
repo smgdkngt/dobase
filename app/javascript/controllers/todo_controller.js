@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { api } from "services/api"
 import { showFlash } from "services/flash"
+import { reportPresence } from "services/presence"
 
 export default class extends Controller {
   static targets = ["itemModal", "itemDetailDialog", "addItemForm", "addItemInput", "addItemBtn", "completedSection", "completedToggle", "completedToggleLabel"]
@@ -11,6 +12,7 @@ export default class extends Controller {
   connect() {
     if (this.hasItemDetailDialogTarget) {
       this._onModalClose = () => {
+        reportPresence(null)
         // The dialog's "close" event doesn't fire until its CSS closing
         // transition finishes (allow-discrete keeps it in the top layer
         // until then), so this flag is consumed here rather than cleared
@@ -52,6 +54,7 @@ export default class extends Controller {
 
   #openItemById(itemId) {
     const url = `/tools/${this.toolIdValue}/todo/items/${itemId}`
+    reportPresence(`todo:${itemId}`)
 
     // Open immediately with a skeleton so the dialog's entrance isn't spent
     // staring at a blank sheet — content swaps in once the fetch resolves.

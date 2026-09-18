@@ -24,6 +24,10 @@ class User < ApplicationRecord
   validates :first_name, :last_name, presence: true
 
   def name = "#{first_name} #{last_name}".strip
+
+  # What an avatar falls back to, the same two letters the avatar partial draws
+  def initials = "#{first_name.to_s.first}#{last_name.to_s.first}".upcase
+
   validates :password, length: { minimum: 8 }, allow_nil: true
   validates :timezone, inclusion: { in: ActiveSupport::TimeZone.all.map(&:name) }, allow_nil: true
   validates :notification_digest, inclusion: { in: NOTIFICATION_DIGEST_OPTIONS }

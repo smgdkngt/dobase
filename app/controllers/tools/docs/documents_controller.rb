@@ -12,6 +12,7 @@ module Tools
 
       def show
         @locked_by = @document.locked? ? @document.locked_by : nil
+        @presence_context = "document:#{@document.id}"
       end
 
       def edit

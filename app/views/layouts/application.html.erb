@@ -65,7 +65,10 @@
         <div class="sidebar-overlay" data-mobile-sidebar-target="overlay" data-action="click->mobile-sidebar#close"></div>
 
         <%= render "shared/sidebar" %>
-        <main class="main-content" id="main-content" tabindex="-1">
+        <%# A tool page tells everyone else on it that you are here, and what you
+            have open; see presence_controller.js and PresenceChannel. %>
+        <main class="main-content" id="main-content" tabindex="-1"
+              <%= tag.attributes(presence_attributes) if @tool&.persisted? %>>
           <%= yield %>
         </main>
 
