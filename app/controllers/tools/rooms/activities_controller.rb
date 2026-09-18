@@ -9,10 +9,7 @@ module Tools
     # "someone is here" ping. See NotificationChannel / notifications_controller.js,
     # which special-cases the `type: "room_activity"` payload.
     class ActivitiesController < ApplicationController
-      include ToolAuthorization
-
-      before_action :set_tool
-      before_action -> { authorize_tool_access!(@tool) }
+      include ToolScoped
 
       # POST /tools/:tool_id/room/activity — the current user joined the call
       def create
@@ -29,10 +26,6 @@ module Tools
       end
 
       private
-
-      def set_tool
-        @tool = Tool.find(params[:tool_id])
-      end
 
       def broadcast_activity(active:)
         @tool.notifiable_users.where.not(id: current_user.id).find_each do |user|

@@ -5,10 +5,7 @@ module Tools
   # actions on the current_user's own collaborator record — owners can't
   # silence other people, only themselves.
   class MutesController < ApplicationController
-    include ToolAuthorization
-
-    before_action :set_tool
-    before_action -> { authorize_tool_access!(@tool) }
+    include ToolScoped
     before_action :set_collaborator
 
     def create
@@ -22,9 +19,6 @@ module Tools
     end
 
     private
-      def set_tool
-        @tool = Tool.find(params[:tool_id])
-      end
 
       def set_collaborator
         @collaborator = @tool.collaborators.find_by!(user: current_user)

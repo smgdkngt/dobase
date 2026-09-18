@@ -7,12 +7,9 @@ module Tools
     # success, filled in on failure. Those use format.any rather than format.html
     # so the response keeps its Turbo Stream type.
     class MessagesController < ApplicationController
-      include ToolAuthorization
+      include ToolScoped
 
       allow_access_tokens
-
-      before_action :set_tool
-      before_action -> { authorize_tool_access!(@tool) }
       before_action :set_message, only: %i[update destroy]
       before_action :ensure_author, only: :update
       before_action :ensure_author_or_owner, only: :destroy
@@ -54,10 +51,6 @@ module Tools
       end
 
       private
-
-      def set_tool
-        @tool = Tool.find(params[:tool_id])
-      end
 
       def set_message
         @message = @tool.chat.messages.find(params[:id])

@@ -6,11 +6,8 @@ module Tools
     # browsers block or ask about several downloads started by one click. The ids
     # come in a POST body: a few hundred of them don't fit in a URL.
     class DownloadsController < ApplicationController
-      include ToolAuthorization
+      include ToolScoped
       include FolderArchiveDownload
-
-      before_action :set_tool
-      before_action -> { authorize_tool_access!(@tool) }
       before_action :set_selection
 
       # One file or folder downloads the way it does on its own; more come as one zip.
@@ -25,10 +22,6 @@ module Tools
       end
 
       private
-
-      def set_tool
-        @tool = Tool.find(params[:tool_id])
-      end
 
       def set_selection
         @files = @tool.file_items.where(id: params[:file_ids]).to_a

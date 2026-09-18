@@ -4,12 +4,9 @@ module Tools
   module Todos
     module Items
       class AttachmentsController < ApplicationController
-        include ToolAuthorization
+        include ToolScoped
 
         allow_access_tokens
-
-        before_action :set_tool
-        before_action -> { authorize_tool_access!(@tool) }
         before_action :set_item
         before_action :set_attachment, only: :destroy
 
@@ -64,10 +61,6 @@ module Tools
         # Built with its file, so the file is checked before anything is saved
         def build_attachment(file)
           @item.attachments.build(filename: file.original_filename, content_type: file.content_type, file_size: file.size, file: file)
-        end
-
-        def set_tool
-          @tool = Tool.find(params[:tool_id])
         end
 
         def set_item

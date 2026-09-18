@@ -3,10 +3,7 @@
 module Tools
   module Rooms
     class TokensController < ApplicationController
-      include ToolAuthorization
-
-      before_action :set_tool
-      before_action -> { authorize_tool_access!(@tool) }
+      include ToolScoped
 
       def create
         return render_not_configured unless livekit_configured?
@@ -23,10 +20,6 @@ module Tools
       end
 
       private
-
-      def set_tool
-        @tool = Tool.find(params[:tool_id])
-      end
 
       def livekit_configured?
         ENV["LIVEKIT_URL"].present? && ENV["LIVEKIT_API_KEY"].present? && ENV["LIVEKIT_API_SECRET"].present?

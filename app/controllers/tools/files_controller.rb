@@ -2,12 +2,9 @@
 
 module Tools
   class FilesController < ApplicationController
-    include ToolAuthorization
+    include ToolScoped
 
     allow_access_tokens
-
-    before_action :set_tool
-    before_action -> { authorize_tool_access!(@tool) }
     before_action :set_folder, only: :show
 
     def show
@@ -29,10 +26,6 @@ module Tools
     end
 
     private
-
-    def set_tool
-      @tool = Tool.find(params[:tool_id])
-    end
 
     def set_folder
       @folder = @tool.file_folders.find(params[:folder_id]) if params[:folder_id].present?

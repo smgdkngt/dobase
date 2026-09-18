@@ -2,14 +2,11 @@
 
 module Tools
   class MailsController < ApplicationController
-    include ToolAuthorization
+    include ToolScoped
     include NextMailNavigation
 
     # The compose form and deleting mail for good stay in the browser.
     allow_access_tokens only: %i[index show create]
-
-    before_action :set_tool
-    before_action -> { authorize_tool_access!(@tool) }
     before_action :require_mail_account
     before_action :set_message, only: [ :show, :destroy ]
     before_action :build_compose_defaults, only: [ :new ]
@@ -143,10 +140,6 @@ module Tools
     end
 
     private
-
-    def set_tool
-      @tool = Tool.find(params[:tool_id])
-    end
 
     # Owners connect the account; everyone else waits for them
     def require_mail_account

@@ -3,10 +3,7 @@
 module Tools
   module Calendars
     class InvitesController < ApplicationController
-      include ToolAuthorization
-
-      before_action :set_tool
-      before_action -> { authorize_tool_access!(@tool) }
+      include ToolScoped
       before_action :set_calendar_account
       before_action :set_invite, only: :destroy
 
@@ -55,10 +52,6 @@ module Tools
       end
 
       private
-
-      def set_tool
-        @tool = Tool.find(params[:tool_id])
-      end
 
       def set_calendar_account
         @calendar_account = @tool.calendar_account

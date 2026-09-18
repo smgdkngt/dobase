@@ -3,12 +3,9 @@
 module Tools
   module Files
     class UploadsController < ApplicationController
-      include ToolAuthorization
+      include ToolScoped
 
       allow_access_tokens
-
-      before_action :set_tool
-      before_action -> { authorize_tool_access!(@tool) }
 
       # Takes files[] (or a single file) and an optional folder_id. Either every
       # file is saved or, when one of them is refused, none are.
@@ -34,10 +31,6 @@ module Tools
       end
 
       private
-
-      def set_tool
-        @tool = Tool.find(params[:tool_id])
-      end
 
       def build_files(folder)
         uploaded_files = Array(params[:files].presence || params[:file]).select { |uploaded_file| uploaded_file.respond_to?(:original_filename) }

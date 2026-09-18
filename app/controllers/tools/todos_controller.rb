@@ -2,12 +2,9 @@
 
 module Tools
   class TodosController < ApplicationController
-    include ToolAuthorization
+    include ToolScoped
 
     allow_access_tokens
-
-    before_action :set_tool
-    before_action -> { authorize_tool_access!(@tool) }
 
     def show
       respond_to do |format|
@@ -24,10 +21,6 @@ module Tools
     end
 
     private
-
-    def set_tool
-      @tool = Tool.find(params[:tool_id])
-    end
 
     # What the page shows: open items, then the ones completed in the last day.
     # With completed=true, every completed item instead.

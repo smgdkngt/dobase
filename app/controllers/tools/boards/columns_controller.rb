@@ -3,12 +3,9 @@
 module Tools
   module Boards
     class ColumnsController < ApplicationController
-      include ToolAuthorization
+      include ToolScoped
 
       allow_access_tokens
-
-      before_action :set_tool
-      before_action -> { authorize_tool_access!(@tool) }
       before_action :set_board
       before_action :set_column, only: %i[update destroy]
 
@@ -48,10 +45,6 @@ module Tools
       end
 
       private
-
-      def set_tool
-        @tool = Tool.find(params[:tool_id])
-      end
 
       def set_board
         @board = @tool.board

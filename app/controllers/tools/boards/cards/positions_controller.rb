@@ -4,14 +4,11 @@ module Tools
   module Boards
     module Cards
       class PositionsController < ApplicationController
-        include ToolAuthorization
+        include ToolScoped
 
         allow_access_tokens
         # A JSON body without "position" would otherwise be wrapped under params[:position].
         wrap_parameters false
-
-        before_action :set_tool
-        before_action -> { authorize_tool_access!(@tool) }
         before_action :set_card
 
         # PATCH /tools/:tool_id/board/cards/:card_id/position
@@ -30,10 +27,6 @@ module Tools
         end
 
         private
-
-        def set_tool
-          @tool = Tool.find(params[:tool_id])
-        end
 
         def set_card
           @card = @tool.board.cards.find(params[:card_id])

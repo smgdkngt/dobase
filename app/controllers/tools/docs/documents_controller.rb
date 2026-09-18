@@ -3,14 +3,11 @@
 module Tools
   module Docs
     class DocumentsController < ApplicationController
-      include ToolAuthorization
+      include ToolScoped
 
       # Opening the editor takes the document's lock, which only the browser editor keeps alive.
       allow_access_tokens only: %i[show create update destroy]
-
-      before_action :set_tool
       before_action :set_document, only: %i[show edit update destroy]
-      before_action -> { authorize_tool_access!(@tool) }
       before_action :refuse_while_someone_else_is_editing, only: %i[update destroy]
 
       def show
@@ -86,10 +83,6 @@ module Tools
       end
 
       private
-
-      def set_tool
-        @tool = Tool.find(params[:tool_id])
-      end
 
       def set_document
         @document = @tool.documents.find(params[:id])

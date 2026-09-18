@@ -3,11 +3,8 @@
 module Tools
   module Mails
     class FoldersController < ApplicationController
-      include ToolAuthorization
+      include ToolScoped
       include FolderValidation
-
-      before_action :set_tool
-      before_action -> { authorize_tool_access!(@tool) }
 
       # POST /tools/:tool_id/mails/folder
       def create
@@ -22,12 +19,6 @@ module Tools
         redirect_to tool_mails_path(@tool, folder: folder_name), notice: "Folder \"#{folder_name}\" created."
       rescue StandardError => e
         redirect_to tool_mails_path(@tool), alert: "Could not create folder: #{e.message}"
-      end
-
-      private
-
-      def set_tool
-        @tool = Tool.find(params[:tool_id])
       end
     end
   end

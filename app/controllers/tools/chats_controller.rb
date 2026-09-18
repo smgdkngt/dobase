@@ -2,15 +2,12 @@
 
 module Tools
   class ChatsController < ApplicationController
-    include ToolAuthorization
+    include ToolScoped
 
     MESSAGES_PER_PAGE = 50
     MAX_MESSAGES_PER_PAGE = 200
 
     allow_access_tokens
-
-    before_action :set_tool
-    before_action -> { authorize_tool_access!(@tool) }
 
     def show
       @chat = @tool.chat
@@ -27,10 +24,6 @@ module Tools
     end
 
     private
-
-    def set_tool
-      @tool = Tool.find(params[:tool_id])
-    end
 
     # The latest messages (before params[:before], when paging back), oldest first.
     def set_page_of_messages

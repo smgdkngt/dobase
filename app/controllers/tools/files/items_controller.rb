@@ -3,14 +3,11 @@
 module Tools
   module Files
     class ItemsController < ApplicationController
-      include ToolAuthorization
+      include ToolScoped
 
       allow_access_tokens
       # API clients send name and folder_id at the top level; the web sends them under file.
       wrap_parameters :file, include: %i[name folder_id]
-
-      before_action :set_tool
-      before_action -> { authorize_tool_access!(@tool) }
       before_action :set_file
 
       def show
@@ -39,10 +36,6 @@ module Tools
       end
 
       private
-
-      def set_tool
-        @tool = Tool.find(params[:tool_id])
-      end
 
       def set_file
         @file = @tool.file_items.find(params[:id])
