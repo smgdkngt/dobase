@@ -1,6 +1,10 @@
 require "test_helper"
 
 class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
+  # A browser test waits for what it asks about. Two seconds is enough on an idle
+  # machine and not on a busy one, where the whole suite (and everything else) runs.
+  Capybara.default_max_wait_time = 5
+
   # Chrome warns that the fixtures' password, "password", was found in a data breach. After the
   # first sign-in in a new browser, that warning takes the keyboard and keys never reach the page.
   driven_by :selenium, using: :headless_chrome, screen_size: [ 1400, 1400 ] do |options|
