@@ -11,6 +11,14 @@ export default class extends Controller {
   connect() {
     if (this.hasCardDetailDialogTarget) {
       this._onModalClose = () => {
+        // The dialog's "close" event doesn't fire until its CSS closing
+        // transition finishes (allow-discrete keeps it in the top layer
+        // until then), so this flag is consumed here rather than cleared
+        // on a timer — a fixed delay would race the transition duration.
+        if (this._suppressCloseVisit) {
+          this._suppressCloseVisit = false
+          return
+        }
         const url = new URL(window.location.href)
         url.searchParams.delete("card")
         Turbo.visit(url.toString(), { action: "replace" })
@@ -40,7 +48,7 @@ export default class extends Controller {
     // Open immediately with a skeleton so the dialog's entrance isn't spent
     // staring at a blank sheet — content swaps in once the fetch resolves.
     if (this.hasCardModalTarget) {
-      this.cardModalTarget.innerHTML = this.#cardSkeletonHTML()
+      this.cardModalTarget.innerHTML = this._cardSkeletonHTML()
     }
     if (this.hasCardDetailDialogTarget) this.cardDetailDialogTarget.showModal()
 
@@ -56,7 +64,13 @@ export default class extends Controller {
         // page into the modal, whose own board controller would repeat the
         // same auto-open and nest again. Bail out instead.
         if (!response.ok || response.redirected) {
-          if (this.hasCardDetailDialogTarget) this.cardDetailDialogTarget.close()
+          // Close without the "close" listener's own Turbo.visit — we're
+          // already clearing the ?card= param below, and a second full-page
+          // visit here would wipe out the flash we're about to show.
+          if (this.hasCardDetailDialogTarget) {
+            this._suppressCloseVisit = true
+            this.cardDetailDialogTarget.close()
+          }
           this._clearCardParam()
           showFlash("This card no longer exists.")
           return null
@@ -74,7 +88,7 @@ export default class extends Controller {
       })
   }
 
-  #cardSkeletonHTML() {
+  _cardSkeletonHTML() {
     return `
       <div class="flex flex-col w-full" style="max-height: 80vh; min-height: 60vh;">
         <div class="flex items-start gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-border-light">

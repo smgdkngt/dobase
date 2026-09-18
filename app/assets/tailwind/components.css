@@ -261,19 +261,27 @@
   /* Popover menu base */
   .popover-menu {
     @apply w-48 rounded-lg bg-surface border border-border-light shadow-lg py-1 m-0 inset-auto;
+  }
+
+  /* Entrance/exit only applies to genuine native popovers (the [popover]
+     attribute) — .popover-menu is also reused by plain, JS-positioned
+     dropdowns (e.g. the @-mention suggestion list) that toggle visibility
+     themselves and aren't ever matched by :popover-open, which would
+     otherwise leave them stuck at opacity: 0. */
+  .popover-menu[popover] {
     opacity: 0;
     transform: scale(0.96) translateY(-2px);
     transition: opacity 140ms var(--ease-out), transform 140ms var(--ease-out),
                 overlay 140ms allow-discrete, display 140ms allow-discrete;
   }
 
-  .popover-menu:popover-open {
+  .popover-menu[popover]:popover-open {
     opacity: 1;
     transform: scale(1) translateY(0);
   }
 
   @starting-style {
-    .popover-menu:popover-open {
+    .popover-menu[popover]:popover-open {
       opacity: 0;
       transform: scale(0.96) translateY(-2px);
     }

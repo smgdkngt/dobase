@@ -13,6 +13,7 @@
   /* Column sizing */
   .board-column {
     @apply min-w-[300px] max-w-[300px];
+    transition: min-width 200ms var(--ease-out), max-width 200ms var(--ease-out);
   }
 
   /* Collapsed columns */
