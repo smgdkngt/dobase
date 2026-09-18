@@ -1,9 +1,11 @@
 <dialog class="modal-dialog max-w-md"
+        aria-label="Command palette"
         data-controller="command-palette"
         data-keyboard-shortcuts-target="commandPalette">
   <div class="p-3">
     <input type="text" placeholder="Jump to..."
            class="input w-full"
+           aria-label="Jump to a tool or action"
            autocomplete="off"
            data-command-palette-target="input"
            data-action="input->command-palette#filter keydown->command-palette#navigate">

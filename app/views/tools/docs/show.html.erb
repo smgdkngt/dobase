@@ -43,7 +43,7 @@
     </div>
   <% end %>
 
-  <main class="tool-scroll-area flex-1 overflow-y-auto p-3 sm:p-6">
+  <div class="tool-scroll-area flex-1 overflow-y-auto p-3 sm:p-6">
     <% if @documents.empty? %>
       <%= render "components/empty_state",
           icon: "file-text",
@@ -57,5 +57,5 @@
         <% end %>
       </div>
     <% end %>
-  </main>
+  </div>
 </div>

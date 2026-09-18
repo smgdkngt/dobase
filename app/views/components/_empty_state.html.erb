@@ -11,6 +11,7 @@
     action_href: Button link
     action_icon: Button icon
     size: :sm (default), :md, :lg
+    title_tag: Heading element for the title (default: :h1 at :lg, :div otherwise)
 
   Examples:
     render "components/empty_state", title: "No messages", description: "Your inbox is empty", icon: "inbox"
@@ -55,7 +56,10 @@
       <%= render "shared/icon", name: icon, size: icon_size %>
     </div>
   <% end %>
-  <div class="text-text-primary <%= title_class %>"><%= title %></div>
+  <%# A full-page empty state (Not Found, Link Expired) is the page's heading;
+      the small in-panel ones are not, so they stay a plain div. %>
+  <% title_tag = local_assigns[:title_tag] || (size == :lg ? :h1 : :div) %>
+  <%= content_tag title_tag, title, class: "text-text-primary #{title_class}" %>
   <% if local_assigns[:description] %>
     <div class="max-w-sm text-balance <%= desc_class %>"><%= description %></div>
   <% end %>

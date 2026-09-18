@@ -171,9 +171,9 @@
   </div>
 
   <%# Rename dialog %>
-  <dialog class="modal-dialog max-w-sm" data-files-target="renameDialog">
+  <dialog class="modal-dialog max-w-sm" aria-labelledby="files-rename-title" data-files-target="renameDialog">
     <div class="modal-header">
-      <h2 class="text-lg font-semibold">Rename</h2>
+      <h2 id="files-rename-title" class="text-lg font-semibold">Rename</h2>
       <%= render "components/icon_button", icon: "x", title: "Close", size: :sm,
           data: { action: "files#closeRenameDialog" } %>
     </div>
@@ -192,9 +192,9 @@
   </dialog>
 
   <%# New folder dialog %>
-  <dialog class="modal-dialog max-w-sm" data-files-target="folderDialog">
+  <dialog class="modal-dialog max-w-sm" aria-labelledby="files-folder-title" data-files-target="folderDialog">
     <div class="modal-header">
-      <h2 class="text-lg font-semibold">New Folder</h2>
+      <h2 id="files-folder-title" class="text-lg font-semibold">New Folder</h2>
       <%= render "components/icon_button", icon: "x", title: "Close", size: :sm,
           data: { action: "files#closeFolderDialog" } %>
     </div>
@@ -215,9 +215,9 @@
   </dialog>
 
   <%# Share dialog %>
-  <dialog class="modal-dialog max-w-md" data-files-target="shareDialog">
+  <dialog class="modal-dialog max-w-md" aria-labelledby="files-share-title" data-files-target="shareDialog">
     <div class="modal-header">
-      <h2 class="text-lg font-semibold">Share</h2>
+      <h2 id="files-share-title" class="text-lg font-semibold">Share</h2>
       <%= render "components/icon_button", icon: "x", title: "Close", size: :sm,
           data: { action: "files#closeShareDialog" } %>
     </div>

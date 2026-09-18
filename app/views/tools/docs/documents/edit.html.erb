@@ -29,7 +29,7 @@
           data: { turbo_confirm_button: "Delete" } %>
   <% end %>
 
-  <main class="flex-1 flex flex-col overflow-hidden">
+  <div class="flex-1 flex flex-col overflow-hidden">
     <% input_id = "document_content_#{@document.id}" %>
     <%= form_with model: @document, url: tool_docs_document_path(@tool, @document), method: :patch, class: "flex-1 flex flex-col overflow-hidden", data: { document_editor_target: "form" } do |f| %>
       <%= hidden_field_tag "docs_document[content]", @document.content&.try(:to_trix_html) || @document.content, id: input_id %>
@@ -43,5 +43,5 @@
         data-direct-upload-url="<%= rails_direct_uploads_url %>">
       </rhino-editor>
     <% end %>
-  </main>
+  </div>
 </div>

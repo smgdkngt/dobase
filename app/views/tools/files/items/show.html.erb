@@ -99,9 +99,9 @@
   </div>
 
   <%# Share dialog %>
-  <dialog class="modal-dialog max-w-sm" data-file-preview-target="shareDialog">
+  <dialog class="modal-dialog max-w-sm" aria-labelledby="file-share-title" data-file-preview-target="shareDialog">
     <div class="modal-header">
-      <h2>Share File</h2>
+      <h2 id="file-share-title">Share File</h2>
       <%= render "components/icon_button", icon: "x", title: "Close", size: :sm, data: { action: "file-preview#closeShareDialog" } %>
     </div>
     <div class="modal-body">

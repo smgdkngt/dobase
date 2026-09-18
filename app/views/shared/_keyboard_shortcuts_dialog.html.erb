@@ -1,8 +1,9 @@
 <dialog class="modal-dialog max-w-lg"
+        aria-labelledby="keyboard-shortcuts-title"
         data-keyboard-shortcuts-target="dialog"
         data-controller="modal">
   <div class="modal-header">
-    <h2 class="text-lg font-semibold text-text-primary">Keyboard shortcuts</h2>
+    <h2 id="keyboard-shortcuts-title" class="text-lg font-semibold text-text-primary">Keyboard shortcuts</h2>
     <%= render "components/icon_button", icon: "x", title: "Close",
         data: { action: "click->modal#close" } %>
   </div>
