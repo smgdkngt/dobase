@@ -32,12 +32,10 @@ module Files
       ancestors.reverse + [ self ]
     end
 
-    def all_files
-      files + children.flat_map(&:all_files)
-    end
-
+    # The images the share page shows, which are the ones its gallery can open:
+    # a subfolder's files have no page of their own behind a share link.
     def image_files
-      all_files.select(&:image?)
+      files.select(&:image?)
     end
 
     private
