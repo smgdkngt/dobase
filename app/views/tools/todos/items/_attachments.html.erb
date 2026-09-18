@@ -1,0 +1,46 @@
+        <%# ── Attachments ─────────────────────────────────────────────── %>
+        <div class="p-3">
+          <div class="flex items-center justify-between px-1 mb-1">
+            <p class="text-xs font-medium text-text-tertiary">
+              Attachments
+              <% if item.attachments.any? %>
+                <span class="font-normal normal-case tracking-normal ml-0.5 text-text-tertiary">(<%= item.attachments.count %>)</span>
+              <% end %>
+            </p>
+            <%= form_with url: tool_todo_item_attachments_path(tool, item), multipart: true, class: "inline", data: { turbo_frame: "item-detail-content" } do %>
+              <label class="text-xs font-medium text-accent hover:text-accent-hover cursor-pointer transition-colors">
+                + Add
+                <input type="file" name="files[]" multiple class="hidden"
+                       data-action="change->todo-item#submitAttachment">
+              </label>
+            <% end %>
+          </div>
+
+          <div class="space-y-1">
+            <% if item.attachments.any? %>
+              <% item.attachments.each do |attachment| %>
+                <div class="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-background-tertiary group transition-colors">
+                  <div class="w-6 h-6 rounded bg-background-tertiary flex items-center justify-center flex-shrink-0">
+                    <%= render "shared/icon", name: "paperclip", size: 12, class: "text-text-tertiary" %>
+                  </div>
+                  <a href="<%= rails_blob_path(attachment.file) %>"
+                     target="_blank"
+                     class="text-sm text-text-primary hover:text-accent truncate flex-1 min-w-0 transition-colors">
+                    <%= attachment.file.filename %>
+                  </a>
+                  <span class="text-xs text-text-tertiary shrink-0"><%= human_file_size(attachment.file.byte_size) %></span>
+                  <%= link_to tool_todo_item_attachment_path(tool, item, attachment),
+                      class: "opacity-0 group-hover:opacity-100 p-0.5 rounded hover:text-error text-text-tertiary transition-all",
+                      data: { turbo_method: :delete, turbo_confirm: "Delete this attachment?", turbo_confirm_button: "Delete", turbo_frame: "item-detail-content" } do %>
+                    <%= render "shared/icon", name: "x", size: 12 %>
+                  <% end %>
+                </div>
+              <% end %>
+            <% else %>
+              <p class="text-sm text-text-tertiary px-2 py-1">No attachments yet</p>
+            <% end %>
+          </div>
+        </div>
+
+        <div class="h-px bg-border-light"></div>
+

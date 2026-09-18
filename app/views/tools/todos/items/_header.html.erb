@@ -1,0 +1,26 @@
+  <%# ─── Header ─────────────────────────────────────────────────────── %>
+  <div class="flex items-center gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-border-light">
+    <%# Big checkbox %>
+    <input type="checkbox"
+           class="todo-checkbox todo-checkbox-lg shrink-0"
+           <%= "checked" if item.completed? %>
+           data-action="change->todo-item#toggleCompletion">
+
+    <div class="flex-1 min-w-0">
+      <%# Editable title %>
+      <h2 class="text-lg font-semibold text-text-primary leading-snug cursor-text hover:text-accent transition-colors"
+          data-todo-item-target="titleDisplay"
+          data-action="click->todo-item#editTitle"><%= item.title %></h2>
+      <input type="text"
+             value="<%= item.title %>"
+             class="input text-lg font-semibold hidden w-full"
+             data-todo-item-target="titleInput"
+             data-action="blur->todo-item#saveTitle keydown->todo-item#titleKeydown">
+    </div>
+
+    <%= render "components/icon_button",
+        icon: "x",
+        title: "Close",
+        size: :sm,
+        data: { action: "click->modal#close" } %>
+  </div>

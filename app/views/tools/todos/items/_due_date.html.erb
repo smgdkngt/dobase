@@ -1,0 +1,17 @@
+        <%# ── Due Date ────────────────────────────────────────────────── %>
+        <div class="p-3">
+          <p class="text-xs font-medium text-text-tertiary px-1 mb-1">Due date</p>
+          <label class="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-background-tertiary transition-colors">
+            <div class="w-6 h-6 rounded-md bg-background-tertiary flex items-center justify-center flex-shrink-0">
+              <%= render "shared/icon", name: "calendar", size: 13, class: "text-text-tertiary" %>
+            </div>
+            <input type="date"
+                   value="<%= item.due_date&.iso8601 %>"
+                   class="text-sm text-text-primary bg-transparent border-none outline-none cursor-pointer flex-1 min-w-0"
+                   data-action="change->todo-item#setDueDate"
+                   data-todo-item-target="dueDateInput">
+          </label>
+        </div>
+
+        <div class="h-px bg-border-light"></div>
+
