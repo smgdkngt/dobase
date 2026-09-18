@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_16_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_18_090000) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -397,26 +397,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_16_130000) do
     t.index ["mail_account_id"], name: "index_mail_contacts_on_mail_account_id"
   end
 
-  create_table "mail_label_assignments", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.bigint "mail_label_id", null: false
-    t.bigint "mail_message_id", null: false
-    t.datetime "updated_at", null: false
-    t.index ["mail_label_id"], name: "index_mail_label_assignments_on_mail_label_id"
-    t.index ["mail_message_id", "mail_label_id"], name: "idx_on_mail_message_id_mail_label_id_d5dc158252", unique: true
-    t.index ["mail_message_id"], name: "index_mail_label_assignments_on_mail_message_id"
-  end
-
-  create_table "mail_labels", force: :cascade do |t|
-    t.string "color"
-    t.datetime "created_at", null: false
-    t.bigint "mail_account_id", null: false
-    t.string "name", null: false
-    t.datetime "updated_at", null: false
-    t.index ["mail_account_id", "name"], name: "index_mail_labels_on_mail_account_id_and_name", unique: true
-    t.index ["mail_account_id"], name: "index_mail_labels_on_mail_account_id"
-  end
-
   create_table "mail_messages", force: :cascade do |t|
     t.boolean "archived", default: false, null: false
     t.text "body_html"
@@ -659,9 +639,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_16_130000) do
   add_foreign_key "mail_accounts", "tools"
   add_foreign_key "mail_attachments", "mail_messages"
   add_foreign_key "mail_contacts", "mail_accounts"
-  add_foreign_key "mail_label_assignments", "mail_labels"
-  add_foreign_key "mail_label_assignments", "mail_messages"
-  add_foreign_key "mail_labels", "mail_accounts"
   add_foreign_key "mail_messages", "mail_accounts"
   add_foreign_key "rooms", "tools"
   add_foreign_key "sessions", "users"
