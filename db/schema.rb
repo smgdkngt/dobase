@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_18_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_18_160000) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -270,6 +270,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_150000) do
     t.bigint "user_id", null: false
     t.index ["card_id"], name: "index_comments_on_card_id"
     t.index ["user_id"], name: "index_comments_on_user_id"
+  end
+
+  create_table "document_updates", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.binary "data", null: false
+    t.integer "document_id", null: false
+    t.boolean "seed", default: false, null: false
+    t.index ["document_id"], name: "index_document_updates_on_document_id"
+    t.index ["document_id"], name: "index_document_updates_on_seed", unique: true, where: "seed = 1"
   end
 
   create_table "documents", force: :cascade do |t|
@@ -634,6 +643,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_150000) do
   add_foreign_key "columns", "users", column: "updated_by_id"
   add_foreign_key "comments", "cards"
   add_foreign_key "comments", "users"
+  add_foreign_key "document_updates", "documents"
   add_foreign_key "documents", "tools"
   add_foreign_key "documents", "users", column: "created_by_id"
   add_foreign_key "documents", "users", column: "locked_by_id", on_delete: :nullify

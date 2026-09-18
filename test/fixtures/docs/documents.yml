@@ -21,3 +21,12 @@ empty_document:
   tool: my_docs
   created_at: <%= Time.current.to_fs(:db) %>
   updated_at: <%= Time.current.to_fs(:db) %>
+
+shared_notes:
+  title: Shared Notes
+  tool: shared_docs
+  created_by: one
+  updated_by: one
+  last_edited_at: <%= Time.current.to_fs(:db) %>
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>

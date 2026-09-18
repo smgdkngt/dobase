@@ -75,3 +75,11 @@ other_todos:
   owner: two
   created_at: <%= Time.current.to_fs(:db) %>
   updated_at: <%= Time.current.to_fs(:db) %>
+
+# A docs tool both users work in, for testing two people writing at once
+shared_docs:
+  name: Shared Docs
+  tool_type: docs
+  owner: one
+  created_at: <%= Time.current.to_fs(:db) %>
+  updated_at: <%= Time.current.to_fs(:db) %>

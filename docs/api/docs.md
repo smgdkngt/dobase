@@ -26,9 +26,11 @@ a plain-text `preview` of the start of its content.
 ```
 
 `locked` is true while someone has the document open in the browser editor,
-and `locked_by` says who (otherwise it is `null`). The lock is released when
-they leave the editor, and lapses after five minutes if their browser stops
-checking in.
+and `locked_by` names one of them (otherwise it is `null`). People in the
+editor write in a shared copy of the text that merges what they type, so they
+don't wait for each other; this field is there for writes from outside the
+editor, which replace the text wholesale. It clears when the last of them
+leaves, and lapses after five minutes if their browsers stop checking in.
 
 ## Show a document
 
@@ -68,7 +70,9 @@ because their editor would save over your change:
 { "error": "Marcus Rivera is editing this document" }
 ```
 
-Try again once `locked` is false. A lock of your own doesn't stop you.
+Try again once `locked` is false. Your own editor doesn't stop you, and a
+write that goes through replaces the shared copy the editors were using: they
+pick up your text on their next visit.
 
 ## Delete a document
 

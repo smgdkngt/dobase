@@ -61,3 +61,13 @@ two_shared_board:
   tool: shared_board
   user: two
   role: collaborator
+
+one_shared_docs:
+  tool: shared_docs
+  user: one
+  role: owner
+
+two_shared_docs:
+  tool: shared_docs
+  user: two
+  role: collaborator
