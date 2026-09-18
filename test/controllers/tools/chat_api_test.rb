@@ -13,6 +13,15 @@ module Tools
       @chat = @tool.chat
     end
 
+    test "the chat page runs the same number of queries however many messages it holds" do
+      sign_in_as @user
+      add_messages = -> do
+        5.times { |index| @chat.messages.create!(user: @other_user, body: "<p>Message #{index}</p>") }
+      end
+
+      assert_queries_independent_of(add_messages) { get tool_chat_path(@tool) }
+    end
+
     test "chat lists messages oldest first with their author, reply and files" do
       first = @chat.messages.create!(user: @other_user, body: "<p>Hello <strong>team</strong>, this is the first message</p>", created_at: 2.minutes.ago)
       reply = @chat.messages.create!(user: @user, body: "<p>Hi!</p>", reply_to: first, created_at: 1.minute.ago)
