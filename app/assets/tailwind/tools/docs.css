@@ -94,3 +94,44 @@ rhino-editor.document-editor .trix-content,
     @apply list-decimal;
   }
 }
+
+/* Someone else's caret in a shared document, with their name above it. The
+   colour comes from the editor as an inline style, per person. */
+.collaboration-carets__caret {
+  position: relative;
+  margin-left: -1px;
+  margin-right: -1px;
+  border-left: 1px solid;
+  border-right: 1px solid;
+  word-break: normal;
+  pointer-events: none;
+}
+
+.collaboration-carets__label {
+  position: absolute;
+  top: -1.4em;
+  left: -1px;
+  border-radius: 4px 4px 4px 0;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.75rem;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
+  white-space: nowrap;
+  color: #fff;
+  user-select: none;
+  /* Out of the way until the caret moves, so a row of names doesn't cover the text */
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.collaboration-carets__caret:hover .collaboration-carets__label,
+.document-editor:focus-within .collaboration-carets__label {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collaboration-carets__label {
+    transition: none;
+  }
+}

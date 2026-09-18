@@ -186,11 +186,11 @@ module Tools
       assert_equal "Still mine", @document.reload.content.to_plain_text
     end
 
-    test "the editor's autosave keeps working for the lock holder" do
+    test "the editor's autosave keeps working while someone else is writing too" do
+      @document.update_columns(locked_by_id: @user.id, locked_at: 1.minute.ago)
       sign_in_as @other_user
       get edit_tool_docs_document_path(@tool, @document)
       assert_response :success
-      assert_equal @other_user, @document.reload.locked_by
 
       patch tool_docs_document_path(@tool, @document),
         params: { docs_document: { title: "Autosaved", content: "<p>Typing</p>" } },

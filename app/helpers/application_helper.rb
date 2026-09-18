@@ -87,4 +87,13 @@ module ApplicationHelper
       }.compact
     }
   end
+
+  # The colour beside someone's name where several people work in one place: a
+  # caret in a document today. Keyed off the id, so it is the same colour for
+  # everyone looking, and the same one tomorrow.
+  COLLABORATOR_COLORS = %w[#e5484d #d6409f #8e4ec6 #3e63dd #0091ff #12a594 #46a758 #f76b15].freeze
+
+  def user_color(user)
+    COLLABORATOR_COLORS[user.id % COLLABORATOR_COLORS.size]
+  end
 end

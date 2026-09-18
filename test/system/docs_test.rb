@@ -29,6 +29,45 @@ class DocsTest < ApplicationSystemTestCase
     assert_selector "[data-document-editor-target='editor'] .ProseMirror [data-placeholder='Start writing...']"
   end
 
+  test "two people write in the same document at once and both see everything" do
+    tool = tools(:shared_docs)
+    document = docs_documents(:shared_notes)
+    visit edit_tool_docs_document_path(tool, document)
+    wait_for_stimulus "document-editor"
+    find("[data-document-editor-target='editor'] .ProseMirror").send_keys(:end, "One writes here.")
+
+    using_session("colleague") do
+      sign_in_as users(:two)
+      assert_selector "aside.sidebar"
+      page.execute_script("Turbo.visit('#{Rails.application.routes.url_helpers.edit_tool_docs_document_path(tools(:shared_docs), docs_documents(:shared_notes))}')")
+      wait_for_stimulus "document-editor"
+      # What the other one typed arrives without a reload
+      assert_selector ".ProseMirror", text: "One writes here."
+      find("[data-document-editor-target='editor'] .ProseMirror").send_keys(:end, " Two writes here.")
+    end
+
+    assert_selector ".ProseMirror", text: "One writes here. Two writes here."
+    assert_eventually { document.reload.content.to_plain_text.include?("Two writes here.") }
+  end
+
+  test "you can see where the other one is typing" do
+    tool = tools(:shared_docs)
+    document = docs_documents(:shared_notes)
+    visit edit_tool_docs_document_path(tool, document)
+    wait_for_stimulus "document-editor"
+
+    using_session("colleague") do
+      sign_in_as users(:two)
+      assert_selector "aside.sidebar"
+      page.execute_script("Turbo.visit('#{Rails.application.routes.url_helpers.edit_tool_docs_document_path(tools(:shared_docs), docs_documents(:shared_notes))}')")
+      wait_for_stimulus "document-editor"
+      find("[data-document-editor-target='editor'] .ProseMirror").send_keys(:end, "Typing")
+    end
+
+    assert_selector ".collaboration-carets__caret"
+    assert_selector ".collaboration-carets__label", text: users(:two).name, visible: :all
+  end
+
   private
 
   def assert_eventually(timeout: 5)

@@ -1,12 +1,15 @@
 import { Controller } from "@hotwired/stimulus"
-import consumer from "channels/consumer"
+import { Collaboration, CollaborationCaret } from "rhino-editor"
 import { applyPlaceholder } from "services/rhino_placeholder"
+import { DocumentSync } from "services/document_sync"
 
 export default class extends Controller {
   static targets = ["form", "title", "editor", "saveIndicator"]
   static values = {
     documentId: Number,
-    saveUrl: String
+    saveUrl: String,
+    userName: String,
+    userColor: String
   }
 
   connect() {
@@ -17,9 +20,7 @@ export default class extends Controller {
 
     // The editor is deferred so its options can be set before it starts
     applyPlaceholder(this.editorTarget)
-    this.editorTarget.startEditor()
-
-    this.setupChannel()
+    this.startSharedEditing()
     this.setupKeyboardShortcuts()
     this.saveBeforeLeaving = () => this.flushPendingSave({ keepalive: true })
     window.addEventListener("pagehide", this.saveBeforeLeaving)
@@ -29,41 +30,45 @@ export default class extends Controller {
     // Leaving the page (a Turbo visit keeps the document alive, so the save still goes through)
     this.flushPendingSave()
     window.removeEventListener("pagehide", this.saveBeforeLeaving)
-    if (this.lockInterval) clearInterval(this.lockInterval)
-    this.channel?.unsubscribe()
+    this.sync?.destroy()
+    this.sync = null
     this.removeKeyboardShortcuts()
   }
 
-  setupChannel() {
-    // Clear any existing interval first
-    if (this.lockInterval) clearInterval(this.lockInterval)
+  // Everyone in the document writes in the same Yjs copy, which merges what
+  // people type at the same time. The editor starts empty and fills from that
+  // copy: handing it the saved HTML as well would add a second copy of the text
+  // on every visit.
+  startSharedEditing() {
+    this.sync = new DocumentSync(this.documentIdValue, {
+      onSynced: ({ seed, compact }) => this.onSynced(seed, compact)
+    })
+    this.sync.describeMe({ name: this.userNameValue, color: this.userColorValue })
 
-    this.channel = consumer.subscriptions.create(
-      { channel: "DocumentChannel", document_id: this.documentIdValue },
-      {
-        connected: () => {
-          this.channel.perform("start_editing")
-          this.refreshLock()
-        },
-        disconnected: () => {
-          this.showSaveIndicator("Reconnecting...", true)
-        },
-        rejected: () => {
-          this.showSaveIndicator("Access denied", true)
-        },
-        received: (data) => {
-          if (data.type === "lock_rejected") {
-            this.showSaveIndicator(`${data.locked_by} is editing`, true)
-          }
-        }
-      }
+    this.editorTarget.addExtensions(
+      Collaboration.configure({ document: this.sync.doc }),
+      CollaborationCaret.configure({ provider: this.sync, user: { name: this.userNameValue, color: this.userColorValue } })
     )
 
-    this.lockInterval = setInterval(() => this.refreshLock(), 60000)
+    // The shared copy keeps the history — one editor undoing its own steps on
+    // top of that would undo other people's words too
+    this.editorTarget.starterKitOptions = { ...(this.editorTarget.starterKitOptions || {}), undoRedo: false }
+
+    const input = document.getElementById(this.editorTarget.getAttribute("input"))
+    this.savedHtml = input?.value || ""
+    if (input) input.value = ""
+    this.editorTarget.startEditor()
   }
 
-  refreshLock() {
-    this.channel?.perform("refresh_lock")
+  // The first page to open a document since this was built fills the shared copy
+  // with the text as it was saved; everyone after joins what that page made.
+  onSynced(seed, compact) {
+    if (seed !== null && seed !== undefined) {
+      const html = seed || this.savedHtml
+      if (html) this.editorTarget.editor?.commands.setContent(html)
+    }
+
+    if (compact) this.sync.compact()
   }
 
   setupKeyboardShortcuts() {

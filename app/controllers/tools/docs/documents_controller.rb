@@ -15,24 +15,11 @@ module Tools
         @presence_context = "document:#{@document.id}"
       end
 
+      # Everyone may open the editor at once: the text is a shared copy that
+      # merges what people type (see DocumentSyncChannel). Having it open is
+      # recorded from there, for the documents list and the API to read.
       def edit
-        # Atomic lock acquisition: only update if not locked or lock expired or we own it
-        rows_updated = ::Docs::Document.where(id: @document.id)
-          .where(
-            "locked_by_id IS NULL OR locked_at < ? OR locked_by_id = ?",
-            ::Docs::Document::LOCK_TIMEOUT.ago,
-            current_user.id
-          )
-          .update_all(locked_by_id: current_user.id, locked_at: Time.current)
-
-        if rows_updated.zero?
-          @document.reload
-          redirect_to tool_docs_document_path(@tool, @document),
-            notice: "#{@document.locked_by&.name || 'Someone'} is currently editing this document."
-          return
-        end
-
-        @document.reload
+        @presence_context = "document:#{@document.id}"
       end
 
       def create
@@ -64,6 +51,10 @@ module Tools
 
         respond_to do |format|
           if @document.save
+            # A write from outside the editor replaces the text, so the copy the
+            # editors share has to start again from it — otherwise the next
+            # keystroke in an open editor would put the old text straight back.
+            @document.reset_shared_copy! if access_token_request?
             @document.broadcast_content_update
             format.html { redirect_to edit_tool_docs_document_path(@tool, @document) }
             format.json { render :show }
@@ -93,9 +84,11 @@ module Tools
         params.require(:docs_document).permit(:title, :content)
       end
 
-      # Whoever holds the lock has the document open in the editor, which autosaves
-      # over any change made in the meantime. Their own saves go through.
+      # People writing in the editor share one copy of the text, which merges
+      # what they type; they never get in each other's way. A write from outside
+      # it replaces the lot, so that one waits until the editors have left.
       def refuse_while_someone_else_is_editing
+        return unless access_token_request?
         return unless @document.locked? && @document.locked_by_id != current_user.id
 
         message = "#{@document.locked_by&.name || 'Someone'} is editing this document"
