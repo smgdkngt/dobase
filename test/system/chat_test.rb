@@ -162,9 +162,11 @@ class ChatTest < ApplicationSystemTestCase
     wait_for_stimulus "chat"
     assert_text "Tpyo"
 
-    # The message's actions only come up under the pointer.
+    # The actions come up under the pointer, and only for the author once the
+    # message's own controller has connected.
+    wait_for_stimulus "message"
     find("[data-message-id]", match: :first).hover
-    find("[data-message-edit] a").click
+    find("[data-message-edit] a", visible: :all).execute_script("this.click()")
     assert_selector "turbo-frame[id^='body_chats_message'] rhino-editor", wait: 5
 
     within("turbo-frame[id^='body_chats_message']") do
