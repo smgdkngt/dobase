@@ -13,8 +13,13 @@ module Columns
       # Find cards that are moving TO this column from a different one
       moved_cards = Boards::Card.where(id: card_ids).where.not(column_id: @column.id).to_a
 
+      # Only the cards the request lists move to this column. A card that isn't listed was
+      # hidden by a filter, or has just been dragged to another column while this request
+      # was on its way: claiming it back would drag it out of the column it went to.
       column_order(card_ids).each_with_index do |id, index|
-        Boards::Card.where(id: id).update_all(column_id: @column.id, position: index)
+        changes = { position: index }
+        changes[:column_id] = @column.id if card_ids.include?(id)
+        Boards::Card.where(id: id).update_all(changes)
       end
 
       notify_card_moves(moved_cards)
