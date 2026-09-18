@@ -11,6 +11,7 @@ class Collaborator < ApplicationRecord
 
   after_destroy :delete_tool_notifications
   after_destroy :unassign_tool_work
+  after_destroy :hand_over_tool
 
   scope :owners, -> { where(role: "owner") }
   scope :muted, -> { where.not(muted_at: nil) }
@@ -31,6 +32,16 @@ class Collaborator < ApplicationRecord
   end
 
   private
+
+  # tools.owner_id names the account a tool falls to when it is deleted. Someone
+  # who leaves or is removed shouldn't take the tool down with them later, so
+  # hand it to whoever still owns it.
+  def hand_over_tool
+    return if destroyed_by_association || tool.owner_id != user_id
+
+    successor = tool.collaborators.owners.where.not(user_id: user_id).order(:created_at, :id).first
+    tool.update_column(:owner_id, successor.user_id) if successor
+  end
 
   # Someone who leaves or is removed can't open what they were assigned, can't be
   # picked from the assignee menus any more and doesn't show up in the assignee

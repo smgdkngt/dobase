@@ -6,6 +6,9 @@ class User < ApplicationRecord
   has_many :access_tokens, dependent: :destroy
 
   has_many :owned_tools, class_name: "Tool", foreign_key: :owner_id, dependent: :destroy
+  # Runs before the dependent: :destroy above, so a tool someone else still owns
+  # survives the account that created it.
+  before_destroy :hand_over_co_owned_tools, prepend: true
   has_many :collaborations, class_name: "Collaborator", dependent: :destroy
   has_many :sidebar_groups, -> { order(:position) }, class_name: "Sidebar::Group", dependent: :destroy
 
@@ -92,6 +95,13 @@ class User < ApplicationRecord
   end
 
   private
+
+  def hand_over_co_owned_tools
+    owned_tools.find_each do |tool|
+      successor = tool.collaborators.owners.where.not(user_id: id).order(:created_at, :id).first
+      tool.update_column(:owner_id, successor.user_id) if successor
+    end
+  end
 
   def acceptable_avatar
     return unless avatar.attached?

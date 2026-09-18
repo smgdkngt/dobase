@@ -21,6 +21,15 @@ module Tools
       assert_not_includes response.body, @card.title
     end
 
+    test "leaving a tool you created hands it over to the remaining owner" do
+      collaborators(:two_shared_board).update!(role: "owner")
+      sign_in_as users(:one)
+
+      delete leave_tool_collaborators_path(@tool)
+
+      assert_equal users(:two), @tool.reload.owner
+    end
+
     test "a collaborator who leaves no longer sees the tool's cards in their notifications" do
       sign_in_as users(:two)
       get notifications_path
