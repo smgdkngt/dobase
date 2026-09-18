@@ -24,7 +24,8 @@ class MailerLayoutTest < ActionMailer::TestCase
     each_mail do |mail|
       body = mail.html_part.body.to_s
       assert_includes body, Rails.application.config.x.app.name
-      assert_includes body, "http://example.com#{Rails.application.config.x.app.logo_path}"
+      # The SVG the browser gets is served to mail clients as the PNG beside it
+      assert_includes body, "http://example.com/icon.png"
     end
   end
 
@@ -38,12 +39,19 @@ class MailerLayoutTest < ActionMailer::TestCase
     end
   end
 
+  test "a png logo is used as it is, since mail clients draw no svg" do
+    with_app_config(name: "Acme Workspace", logo_path: "/icon-192.png") do
+      assert_includes PasswordsMailer.reset(@user).html_part.body.to_s, "http://example.com/icon-192.png"
+    end
+  end
+
   test "custom branding env vars flow through to the rendered mail" do
     with_app_config(name: "Acme Workspace", logo_path: "/brand/acme.svg") do
       mail = PasswordsMailer.reset(@user)
 
       assert_includes mail.html_part.body.to_s, "Acme Workspace"
-      assert_includes mail.html_part.body.to_s, "http://example.com/brand/acme.svg"
+      # No PNG lies next to that SVG, so the header is the name on its own
+      assert_not_includes mail.html_part.body.to_s, "/brand/acme"
       assert_includes mail.text_part.body.to_s, "Acme Workspace"
     end
   end

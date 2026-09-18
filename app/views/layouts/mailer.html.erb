@@ -50,10 +50,12 @@
               <td class="email-header" style="padding: 24px 32px; border-bottom: 1px solid #e8e8ed;">
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td style="vertical-align: middle;">
-                      <img src="<%= absolute_url(app_logo_path) %>" width="24" height="24" alt="" style="display: block; width: 24px; height: 24px; border-radius: 6px;">
-                    </td>
-                    <td style="vertical-align: middle; padding-left: 10px;">
+                    <% if (logo = mailer_logo_path) %>
+                      <td style="vertical-align: middle;">
+                        <img src="<%= absolute_url(logo) %>" width="24" height="24" alt="" style="display: block; width: 24px; height: 24px; border-radius: 6px;">
+                      </td>
+                    <% end %>
+                    <td style="vertical-align: middle; <%= "padding-left: 10px;" if logo %>">
                       <span class="brand-name" style="font-size: 16px; font-weight: 600; color: #1d1d1f; letter-spacing: -0.01em;"><%= app_name %></span>
                     </td>
                   </tr>
