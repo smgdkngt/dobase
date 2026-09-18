@@ -1,6 +1,6 @@
 <% content_for(:title) { "#{@file.name} - Shared" } %>
 
-<div class="w-full max-w-[900px]" data-controller="public-gallery">
+<div class="w-full max-w-[900px]">
   <div class="mb-4">
     <%= render "components/back_link", href: share_path(@share.token), text: "Back to folder" %>
   </div>

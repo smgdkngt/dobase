@@ -1,0 +1,49 @@
+<%#
+  Gallery overlay - large picture view with previous/next, a counter, the
+  file's name, a download link and (for more than one picture) a slideshow.
+
+  Pairs with the `gallery` Stimulus controller, declared on an ancestor
+  element. Something in that scope needs a
+  `data-action="click->gallery#open"` with a `data-index` matching the
+  picture's position in `images` to open it.
+
+  Required:
+    images: the folder's picture files, in display order
+    download_path_for: ->(file) { ... } - the download URL for one picture
+%>
+<% if images.present? %>
+  <div class="gallery-overlay" data-gallery-target="overlay" hidden>
+    <button type="button" class="gallery-control gallery-control-corner top-4 right-4" data-action="gallery#close" title="Close">
+      <%= render "shared/icon", name: "x", size: 24 %>
+    </button>
+
+    <button type="button" class="gallery-control gallery-control-side left-4" data-gallery-target="prevButton" data-action="gallery#prev" title="Previous">
+      <%= render "shared/icon", name: "chevron-left", size: 32 %>
+    </button>
+    <button type="button" class="gallery-control gallery-control-side right-4" data-gallery-target="nextButton" data-action="gallery#next" title="Next">
+      <%= render "shared/icon", name: "chevron-right", size: 32 %>
+    </button>
+
+    <div class="gallery-stage" data-action="touchstart->gallery#touchStart touchend->gallery#touchEnd">
+      <img data-gallery-target="image" class="gallery-image media-fade-in" alt="">
+    </div>
+
+    <div class="gallery-toolbar">
+      <button type="button" class="gallery-control" data-gallery-target="slideshowButton" data-action="gallery#toggleSlideshow" title="Play slideshow">
+        <span data-gallery-target="playIcon"><%= render "shared/icon", name: "play", size: 18 %></span>
+        <span data-gallery-target="pauseIcon" hidden><%= render "shared/icon", name: "pause", size: 18 %></span>
+      </button>
+      <span data-gallery-target="name" class="font-medium truncate max-w-[40vw]"></span>
+      <span data-gallery-target="counter" class="opacity-70 text-sm shrink-0"></span>
+      <a data-gallery-target="downloadLink" class="gallery-control" data-turbo="false" title="Download">
+        <%= render "shared/icon", name: "download", size: 18 %>
+      </a>
+    </div>
+
+    <div class="hidden" data-gallery-target="images">
+      <% images.each do |file| %>
+        <span data-url="<%= url_for(file.display_copy) %>" data-name="<%= file.name %>" data-download="<%= download_path_for.call(file) %>"></span>
+      <% end %>
+    </div>
+  </div>
+<% end %>

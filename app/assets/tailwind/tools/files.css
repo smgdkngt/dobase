@@ -1,0 +1,33 @@
+/* Files tool + public share pages: the large-view / slideshow gallery
+   (gallery_controller.js) that both share. */
+@layer components {
+  .gallery-overlay {
+    @apply fixed inset-0 z-[100] flex flex-col items-center justify-center gap-6 bg-black/95 p-4;
+  }
+
+  .gallery-stage {
+    @apply flex max-h-[75vh] w-full items-center justify-center;
+  }
+
+  .gallery-image {
+    @apply max-h-[75vh] max-w-full rounded-lg object-contain shadow-lg;
+  }
+
+  .gallery-toolbar {
+    @apply flex max-w-full items-center gap-3 rounded-full bg-white/10 px-4 py-2 text-white;
+  }
+
+  .gallery-control {
+    @apply flex items-center justify-center rounded-full p-2 text-white/80 transition-all duration-150
+           hover:text-white active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white
+           focus-visible:ring-offset-2 focus-visible:ring-offset-black;
+  }
+
+  .gallery-control-corner {
+    @apply absolute;
+  }
+
+  .gallery-control-side {
+    @apply absolute top-1/2 -translate-y-1/2;
+  }
+}

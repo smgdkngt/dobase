@@ -1,6 +1,6 @@
 <% content_for(:title) { "#{@folder.name} - Shared Folder" } %>
 
-<div class="w-full max-w-[900px]" data-controller="public-gallery">
+<div class="w-full max-w-[900px]" data-controller="gallery">
   <div class="flex items-center justify-between gap-4 mb-8">
     <div class="text-left">
       <h1 class="flex items-center gap-3 text-2xl font-semibold mb-2 text-accent">
@@ -32,12 +32,13 @@
         </div>
       <% end %>
 
-      <% @files.each_with_index do |file, index| %>
+      <% image_indices = @images.each_with_index.to_h { |file, index| [ file.id, index ] } %>
+      <% @files.each do |file| %>
         <% if file.image? %>
           <a href="<%= share_file_path(@share.token, file) %>"
              class="flex flex-col items-center p-6 rounded-xl transition-colors hover:bg-background-tertiary"
-             data-action="public-gallery#openLightbox"
-             data-index="<%= @images.index(file) %>">
+             data-action="click->gallery#open"
+             data-index="<%= image_indices[file.id] %>">
             <div class="w-20 h-20 mb-3 rounded-lg overflow-hidden">
               <%= image_tag url_for(file.thumbnail), alt: file.name, class: "w-full h-full object-cover", loading: "lazy", decoding: "async" %>
             </div>
@@ -67,29 +68,5 @@
     </p>
   <% end %>
 
-  <%# Image lightbox %>
-  <% if @images.any? %>
-    <div class="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center" data-public-gallery-target="lightbox" hidden>
-      <button class="absolute top-4 right-4 p-3 text-white opacity-70 hover:opacity-100 transition-opacity" data-action="public-gallery#closeLightbox">
-        <%= render "shared/icon", name: "x", size: 24 %>
-      </button>
-      <button class="absolute left-4 top-1/2 -translate-y-1/2 p-4 text-white opacity-70 hover:opacity-100 transition-opacity" data-action="public-gallery#prev">
-        <%= render "shared/icon", name: "chevron-left", size: 32 %>
-      </button>
-      <button class="absolute right-4 top-1/2 -translate-y-1/2 p-4 text-white opacity-70 hover:opacity-100 transition-opacity" data-action="public-gallery#next">
-        <%= render "shared/icon", name: "chevron-right", size: 32 %>
-      </button>
-      <div class="max-w-[90vw] max-h-[80vh] [&_img]:max-w-full [&_img]:max-h-[80vh] [&_img]:object-contain" data-public-gallery-target="lightboxContent">
-        <%# Image loaded dynamically %>
-      </div>
-      <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-4 text-white" data-public-gallery-target="lightboxInfo">
-        <%# Info loaded dynamically %>
-      </div>
-      <div class="hidden" data-public-gallery-target="images">
-        <% @images.each do |img| %>
-          <span data-url="<%= url_for(img.display_copy) %>" data-name="<%= img.name %>" data-download="<%= share_file_download_path(@share.token, img) %>"></span>
-        <% end %>
-      </div>
-    </div>
-  <% end %>
+  <%= render "shared/gallery", images: @images, download_path_for: ->(file) { share_file_download_path(@share.token, file) } %>
 </div>

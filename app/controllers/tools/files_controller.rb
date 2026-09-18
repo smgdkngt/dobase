@@ -16,6 +16,8 @@ module Tools
         format.html do
           @ancestors = @folder&.breadcrumbs || []
           @view_mode = params[:view].presence_in(%w[grid list]) || cookies[:files_view] || "grid"
+          # The gallery's large view / slideshow steps through these, in the same order as the grid
+          @images = @files.select(&:image?)
 
           # Save preference to cookie if changed via URL param
           if params[:view].present? && params[:view] != cookies[:files_view]
