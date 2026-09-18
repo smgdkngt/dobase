@@ -22,7 +22,7 @@ class SidebarPositionsController < ApplicationController
 
   def reorder_ungrouped_tools
     params[:tool_ids].each_with_index do |tid, idx|
-      current_user.accessible_tools.where(id: tid).update_all(sidebar_position: idx)
+      current_user.collaborations.where(tool_id: tid).update_all(sidebar_position: idx)
     end
     render json: { success: true }
   end

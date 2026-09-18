@@ -9,6 +9,8 @@ class Collaborator < ApplicationRecord
   validates :role, presence: true, inclusion: { in: ROLES }
   validates :user_id, uniqueness: { scope: :tool_id, message: "is already a collaborator" }
 
+  before_create :place_last_in_sidebar
+
   after_destroy :delete_tool_notifications
   after_destroy :unassign_tool_work
   after_destroy :hand_over_tool
@@ -32,6 +34,12 @@ class Collaborator < ApplicationRecord
   end
 
   private
+
+  # The sidebar order is per person, so a tool you gain access to lands at the
+  # bottom of your own sidebar and leaves everybody else's alone.
+  def place_last_in_sidebar
+    self.sidebar_position = (user.collaborations.maximum(:sidebar_position) || -1) + 1
+  end
 
   # tools.owner_id names the account a tool falls to when it is deleted. Someone
   # who leaves or is removed shouldn't take the tool down with them later, so

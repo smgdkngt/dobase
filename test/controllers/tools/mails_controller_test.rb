@@ -285,8 +285,9 @@ module Tools
     end
 
     test "collaborators see that the owner hasn't connected a mail account yet" do
-      tool = Tool.create!(name: "Team Mail", tool_type: tool_types(:mail), owner: users(:one), sidebar_position: -1)
-      tool.collaborators.create!(user: users(:two), role: "collaborator")
+      tool = Tool.create!(name: "Team Mail", tool_type: tool_types(:mail), owner: users(:one))
+      # First in this collaborator's own sidebar, so the dashboard lands on it.
+      tool.collaborators.create!(user: users(:two), role: "collaborator").update!(sidebar_position: -1)
       sign_in_as users(:two)
 
       get root_path
