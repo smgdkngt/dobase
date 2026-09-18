@@ -47,7 +47,7 @@ class CalendarsTest < ApplicationSystemTestCase
     wait_for_turbo
     wait_for_stimulus "calendar"
 
-    find(".week-column[data-date='2030-01-11'] .hour-slot[data-hour='10']").click
+    click_hour_slot("2030-01-11", 10)
     within("dialog#new-event-modal[open]") do
       select "Weekly", from: "calendars_event[recurrence_frequency]"
       assert_equal [ "FR" ], all("input[name='calendars_event[recurrence_days_of_week][]']", visible: :all).select(&:checked?).map(&:value)
@@ -57,6 +57,18 @@ class CalendarsTest < ApplicationSystemTestCase
   end
 
   private
+
+  # The grid scrolls itself to the current hour when it connects, in a frame of
+  # its own. A click sent before that lands on whatever slid under the cursor,
+  # which is why this test came and went on CI.
+  def click_hour_slot(date, hour)
+    selector = ".week-column[data-date='#{date}'] .hour-slot[data-hour='#{hour}']"
+    find(selector).execute_script("this.scrollIntoView({ block: 'center' })")
+    find(selector).click
+    return if has_selector?("dialog#new-event-modal[open]", wait: 3)
+
+    find(selector).click
+  end
 
   def in_browser_time_zone(zone)
     page.driver.browser.execute_cdp("Emulation.setTimezoneOverride", timezoneId: zone)
