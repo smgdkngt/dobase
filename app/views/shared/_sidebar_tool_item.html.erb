@@ -29,7 +29,7 @@
     <% if instance.tool_type.slug == "mail" && instance.mail_account %>
       <% unread = instance.mail_account.messages.inbox.not_archived.unread.count %>
       <% if unread > 0 %>
-        <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-accent text-white text-xs font-medium"
+        <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-accent-solid text-white text-xs font-medium"
               aria-label="<%= pluralize(unread, "unread message") %>"><%= unread > 99 ? "99+" : unread %></span>
       <% end %>
     <% end %>

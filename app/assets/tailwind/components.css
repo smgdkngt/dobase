@@ -6,7 +6,7 @@
   }
 
   .btn-primary {
-    @apply bg-accent text-text-inverse hover:bg-accent-hover active:bg-accent-hover focus-visible:ring-accent;
+    @apply bg-accent-solid text-text-inverse hover:bg-accent-solid-hover active:bg-accent-solid-hover focus-visible:ring-accent;
   }
 
   .btn-secondary {
@@ -18,7 +18,7 @@
   }
 
   .btn-danger {
-    @apply bg-error text-text-inverse hover:opacity-90 active:opacity-90 focus-visible:ring-error;
+    @apply bg-error-solid text-text-inverse hover:opacity-90 active:opacity-90 focus-visible:ring-error;
   }
 
   .btn-sm {
@@ -43,7 +43,7 @@
   }
 
   .icon-btn-accent {
-    @apply bg-accent text-white hover:bg-accent/90 hover:text-white;
+    @apply bg-accent-solid text-white hover:bg-accent-solid/90 hover:text-white;
   }
 
   /* Grouped button modifiers - use with icon-btn */
@@ -91,7 +91,7 @@
 
   /* Badge */
   .badge {
-    @apply inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-accent text-white text-xs font-medium;
+    @apply inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-accent-solid text-white text-xs font-medium;
   }
 
   .badge-sm {
@@ -111,7 +111,7 @@
   }
 
   .badge-error {
-    @apply bg-error text-white;
+    @apply bg-error-solid text-white;
   }
 
   /* Tabs */

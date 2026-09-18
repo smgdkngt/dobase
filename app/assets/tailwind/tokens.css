@@ -8,23 +8,30 @@
   --color-surface-elevated: #ffffff;
 
   --color-text-primary: #1d1d1f;
-  --color-text-secondary: #6e6e73;
-  --color-text-tertiary: #86868b;
+  --color-text-secondary: #57575c;
+  --color-text-tertiary: #646469;
   --color-text-inverse: #ffffff;
 
   --color-border: #d2d2d7;
   --color-border-light: #e8e8ed;
   --color-divider: #d2d2d7;
 
-  --color-accent: #0071e3;
-  --color-accent-hover: #0077ed;
+  /* --color-accent is the accent as *text and outline*, so it has to carry
+     4.5:1 against the page. --color-accent-solid is the accent as a *filled
+     background* with white on top, which pulls the other way — in dark mode
+     one value cannot do both, so they part company there. */
+  --color-accent: #0064d2;
+  --color-accent-hover: #0071e3;
+  --color-accent-solid: #0064d2;
+  --color-accent-solid-hover: #0071e3;
   --color-accent-light: #e8f4fd;
 
-  --color-success: #34c759;
+  --color-success: #1e7a34;
   --color-success-light: #e8f8ed;
-  --color-warning: #ff9500;
+  --color-warning: #a35a00;
   --color-warning-light: #fff4e6;
-  --color-error: #ff3b30;
+  --color-error: #d70015;
+  --color-error-solid: #d70015;
   --color-error-light: #ffebea;
 
   /* Sidebar */
@@ -32,7 +39,7 @@
   --color-sidebar-hover: #e8e8ed;
   --color-sidebar-active: #d2d2d7;
   --color-sidebar-text: #1d1d1f;
-  --color-sidebar-text-muted: #6e6e73;
+  --color-sidebar-text-muted: #57575c;
 
   /* Typography */
   --font-family-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -136,30 +143,33 @@
       --color-surface-elevated: #3a3a3c;
 
       --color-text-primary: #f5f5f7;
-      --color-text-secondary: #a1a1a6;
-      --color-text-tertiary: #8e8e93;
+      --color-text-secondary: #c7c7cc;
+      --color-text-tertiary: #aaaaaf;
       --color-text-inverse: #ffffff;
 
       --color-border: #48484a;
       --color-border-light: #3a3a3c;
       --color-divider: #48484a;
 
-      --color-accent: #0a84ff;
-      --color-accent-hover: #409cff;
+      --color-accent: #4aa3ff;
+      --color-accent-hover: #6fb6ff;
+      --color-accent-solid: #0064d2;
+      --color-accent-solid-hover: #0071e3;
       --color-accent-light: rgba(10, 132, 255, 0.15);
 
       --color-success: #30d158;
       --color-success-light: rgba(48, 209, 88, 0.15);
       --color-warning: #ff9f0a;
       --color-warning-light: rgba(255, 159, 10, 0.15);
-      --color-error: #ff453a;
+      --color-error: #ff6961;
+      --color-error-solid: #c9231c;
       --color-error-light: rgba(255, 69, 58, 0.15);
 
       --color-sidebar-bg: #2c2c2e;
       --color-sidebar-hover: #3a3a3c;
       --color-sidebar-active: #48484a;
       --color-sidebar-text: #f5f5f7;
-      --color-sidebar-text-muted: #a1a1a6;
+      --color-sidebar-text-muted: #c7c7cc;
 
       --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
       --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -178,6 +188,14 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.001ms !important;
       scroll-behavior: auto !important;
+    }
+
+    /* View transition pseudo-elements sit outside the * selector above, so the
+       cross-fade Turbo runs on every visit needs turning off separately. */
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation: none !important;
     }
   }
 }

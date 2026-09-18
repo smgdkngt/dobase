@@ -51,7 +51,10 @@ export default class extends Controller {
     // Update visual selection immediately
     this.items.forEach(i => i.classList.remove("selected"))
     item.classList.add("selected")
-    item.scrollIntoView({ block: "nearest", behavior: "smooth" })
+    // The global prefers-reduced-motion rule can't reach a behavior passed in
+    // JavaScript, so ask for the preference here instead.
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    item.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" })
 
     // Mark as read visually (the server marks it read, but the list doesn't re-render)
     this._markItemRead(item)

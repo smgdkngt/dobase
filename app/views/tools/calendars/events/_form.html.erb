@@ -110,7 +110,7 @@
           <% [["MO", "M"], ["TU", "T"], ["WE", "W"], ["TH", "T"], ["FR", "F"], ["SA", "S"], ["SU", "S"]].each do |abbr, letter| %>
             <% checked = weekly_days.include?(abbr) %>
             <label class="flex items-center justify-center w-9 h-9 rounded-full border cursor-pointer text-sm font-medium transition-colors
-                          <%= checked ? 'bg-accent text-white border-accent' : 'border-border text-text-secondary hover:border-accent/50' %>">
+                          <%= checked ? 'bg-accent-solid text-white border-accent-solid' : 'border-border text-text-secondary hover:border-accent/50' %>">
               <%= check_box_tag "calendars_event[recurrence_days_of_week][]", abbr, checked,
                     class: "sr-only",
                     id: "recurrence_day_#{abbr}",

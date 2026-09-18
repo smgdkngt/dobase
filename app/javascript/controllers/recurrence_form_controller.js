@@ -55,10 +55,10 @@ export default class extends Controller {
   styleDay(checkbox) {
     const label = checkbox.closest("label")
     if (checkbox.checked) {
-      label.classList.add("bg-accent", "text-white", "border-accent")
+      label.classList.add("bg-accent-solid", "text-white", "border-accent-solid")
       label.classList.remove("border-border", "text-text-secondary", "hover:border-accent/50")
     } else {
-      label.classList.remove("bg-accent", "text-white", "border-accent")
+      label.classList.remove("bg-accent-solid", "text-white", "border-accent-solid")
       label.classList.add("border-border", "text-text-secondary", "hover:border-accent/50")
     }
   }
