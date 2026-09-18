@@ -196,6 +196,7 @@
             <input type="hidden" name="tab" value="security">
             <%= f.password_field :password,
               class: "input flex-1 !py-1.5 text-xs",
+              "aria-label": "Password, to disable two-factor authentication",
               required: true,
               placeholder: "Enter password to disable",
               autocomplete: "current-password" %>

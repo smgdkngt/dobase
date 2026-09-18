@@ -105,7 +105,7 @@
       </button>
       <div class="hidden flex-col gap-2 [&.active]:flex" data-board-target="addCardForm" data-column-id="<%= column.id %>">
         <%= form_with url: column_cards_path(column) do |f| %>
-          <textarea name="card[title]" class="w-full px-2.5 py-2 border border-border rounded-md text-sm bg-surface text-text-primary outline-none resize-none focus:border-accent focus:ring-2 focus:ring-accent/15 [field-sizing:content] max-h-32"
+          <textarea name="card[title]" aria-label="Card title" class="w-full px-2.5 py-2 border border-border rounded-md text-sm bg-surface text-text-primary outline-none resize-none focus:border-accent focus:ring-2 focus:ring-accent/15 [field-sizing:content] max-h-32"
                     data-board-target="addCardInput"
                     data-column-id="<%= column.id %>"
                     placeholder="Enter card title..."

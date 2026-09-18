@@ -24,6 +24,7 @@
     <div class="relative mail-folder-picker">
       <button type="button"
               class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-background-tertiary transition-colors"
+              aria-haspopup="menu"
               popovertarget="mail-folder-menu"
               style="anchor-name: --mail-folder-btn">
         <%= render "shared/icon", name: current_meta[:icon], size: 16, class: "text-text-secondary" %>
@@ -92,8 +93,10 @@
            data-sync-status-url-value="<%= tool_sync_path(@tool) %>"
            data-sync-status-syncing-value="<%= @mail_account.syncing? %>">
         <div class="w-1.5 h-1.5 rounded-full <%= @mail_account.synced? ? 'bg-success' : (@mail_account.sync_error? ? 'bg-error' : 'bg-warning') %>"
+             aria-hidden="true"
              data-sync-status-target="indicator"></div>
-        <%= tag.span class: "mail-sync-text text-xs text-text-tertiary", title: (@mail_account.sync_error if @mail_account.sync_error?), data: { sync_status_target: "status" } do %>
+        <span class="sr-only">Mail sync:</span>
+        <%= tag.span class: "mail-sync-text text-xs text-text-tertiary", role: "status", title: (@mail_account.sync_error if @mail_account.sync_error?), data: { sync_status_target: "status" } do %>
           <% if @mail_account.syncing? %>
             Syncing...
           <% elsif @mail_account.authentication_failed? %>

@@ -91,7 +91,9 @@
            data-chat-target="messages">
         <%= render "tools/chats/older_messages", tool: @tool, messages: @messages, has_more: @has_more %>
 
-        <div id="chat_messages">
+        <%# role="log" announces messages as they arrive without re-reading
+            the whole conversation. %>
+        <div id="chat_messages" role="log" aria-live="polite" aria-relevant="additions">
           <%= render "tools/chats/messages", messages: @messages %>
 
           <div id="chat-empty-state" class="flex items-center justify-center h-full">
@@ -156,6 +158,7 @@
           <input type="hidden" name="message[reply_to_id]" value="" data-chat-target="replyToId">
           <input type="file"
                  name="message[files][]"
+                 aria-label="Attach files"
                  multiple
                  class="hidden"
                  data-chat-target="fileInput"

@@ -57,6 +57,13 @@
 
 <%
   field_id = local_assigns[:id] || name
+  # The message under the field is tied to the input, so a screen reader reads
+  # the error (or the help text) as part of the field rather than as loose prose.
+  description_id = if has_error
+    "#{field_id}-error"
+  elsif local_assigns[:help]
+    "#{field_id}-help"
+  end
 
   shared_options = {
     name: name,
@@ -66,12 +73,16 @@
     required: local_assigns[:required] || nil,
     autofocus: local_assigns[:autofocus] || nil,
     disabled: local_assigns[:disabled] || nil,
+    "aria-invalid": (has_error ? "true" : nil),
+    "aria-describedby": description_id,
     data: local_assigns[:data]
   }.compact
 %>
 
 <div class="form-field">
-  <%= tag.label label, for: field_id, class: "label" %>
+  <%= tag.label class: "label", for: field_id do %>
+    <%= label %><% if local_assigns[:required] %> <span class="text-error" aria-hidden="true">*</span><span class="sr-only"> (required)</span><% end %>
+  <% end %>
 
   <% case type %>
   <% when :textarea %>
@@ -91,8 +102,8 @@
   <% end %>
 
   <% if has_error %>
-    <%= tag.p error_message, class: "error-text" %>
+    <%= tag.p error_message, id: description_id, class: "error-text" %>
   <% elsif local_assigns[:help] %>
-    <%= tag.p local_assigns[:help], class: "help-text" %>
+    <%= tag.p local_assigns[:help], id: description_id, class: "help-text" %>
   <% end %>
 </div>

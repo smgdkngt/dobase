@@ -52,6 +52,7 @@
       <%= render "components/nav_pill_button", icon: "calendar-days", title: "Pick a week", data: { action: "calendar#openWeekPicker" } %>
       <%= render "components/nav_pill_button", icon: "chevron-right", title: "Next week (\u2318\u2192)", data: { controller: "hotkey", action: "calendar#nextWeek", hotkey: "Mod+ArrowRight" } %>
       <input type="week"
+             aria-label="Jump to week"
              value="<%= @week_start.strftime("%G-W%V") %>"
              class="absolute opacity-0 pointer-events-none"
              data-action="change->calendar#jumpToWeek"
@@ -66,8 +67,10 @@
              data-sync-status-url-value="<%= tool_calendar_sync_path(@tool) %>"
              data-sync-status-syncing-value="<%= @calendar_account.syncing? %>">
           <div class="w-1.5 h-1.5 rounded-full <%= @calendar_account.synced? ? 'bg-success' : (@calendar_account.sync_error? ? 'bg-error' : 'bg-warning') %>"
+               aria-hidden="true"
                data-sync-status-target="indicator"></div>
-          <span class="text-xs text-text-tertiary" data-sync-status-target="status">
+          <span class="sr-only">Calendar sync:</span>
+          <span class="text-xs text-text-tertiary" role="status" data-sync-status-target="status">
             <% if @calendar_account.syncing? %>
               Syncing...
             <% elsif @calendar_account.last_synced_at %>

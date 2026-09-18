@@ -17,7 +17,7 @@
   <% end %>
 
   <%= render "components/tool_topbar", tool: @document.tool, back_path: tool_docs_path(@document.tool), title_html: title_input do %>
-    <span class="text-sm text-text-tertiary" data-document-editor-target="saveIndicator">Saved</span>
+    <span class="text-sm text-text-tertiary" role="status" aria-live="polite" data-document-editor-target="saveIndicator">Saved</span>
 
     <%= render "components/icon_button",
           icon: "trash-2",

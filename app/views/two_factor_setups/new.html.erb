@@ -31,6 +31,7 @@
         <p class="text-sm text-text-primary mb-3">2. Enter the 6-digit code to verify</p>
         <%= f.text_field :code,
           class: "input text-center tracking-widest max-w-[200px] mx-auto",
+          "aria-label": "Six-digit verification code",
           placeholder: "000000",
           required: true,
           autocomplete: "one-time-code",

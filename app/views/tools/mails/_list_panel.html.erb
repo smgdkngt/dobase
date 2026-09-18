@@ -22,7 +22,7 @@
 
       <% if @conversations.any? %>
         <div class="flex items-center px-3 py-0.5 min-h-9 border-b border-border-light bg-background-secondary gap-3">
-          <input type="checkbox" class="w-4 h-4 rounded accent-accent ml-[2px]" data-mail-bulk-target="selectAll" data-action="change->mail-bulk#toggleAll">
+          <input type="checkbox" class="w-4 h-4 rounded accent-accent ml-[2px]" aria-label="Select all conversations" data-mail-bulk-target="selectAll" data-action="change->mail-bulk#toggleAll">
           <div class="flex items-center gap-1 hidden" data-mail-bulk-target="actions">
             <% if @current_folder == "trash" %>
               <%= render "components/icon_button", icon: "trash-2", title: "Delete forever", type: :submit, name: "action_type", value: "delete", size: :sm %>
