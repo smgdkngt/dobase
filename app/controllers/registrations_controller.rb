@@ -5,7 +5,8 @@ class RegistrationsController < ApplicationController
   rate_limit to: 10, within: 3.minutes, only: :create, with: -> { redirect_to signup_path, alert: "Too many attempts. Try again later." }
 
   def new
-    redirect_to root_path if authenticated?
+    return redirect_to root_path if authenticated?
+
     unless registration_allowed?
       redirect_to login_path, alert: "Registration is by invitation only."
       return
