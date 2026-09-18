@@ -1,0 +1,18 @@
+  <%# Participant tile template %>
+  <template data-room-target="participantTemplate">
+    <div class="relative bg-background-secondary rounded-xl overflow-hidden" data-participant-id="">
+      <video class="hidden w-full h-full object-cover object-center" data-video autoplay playsinline muted></video>
+      <div class="absolute inset-0 flex flex-col items-center justify-center gap-3" data-placeholder>
+        <div class="w-16 h-16 rounded-full bg-background-tertiary flex items-center justify-center text-xl font-semibold text-text-primary" data-initials></div>
+        <span class="text-sm text-text-secondary" data-name></span>
+      </div>
+      <div class="room-tile-overlay">
+        <span class="hidden room-quality-dot" data-quality-dot></span>
+        <span class="text-xs font-medium text-white truncate" data-name></span>
+        <span class="hidden text-white/80" data-muted-icon>
+          <%= render "shared/icon", name: "mic-off", size: 12 %>
+        </span>
+      </div>
+    </div>
+  </template>
+
