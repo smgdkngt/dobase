@@ -19,7 +19,12 @@ module Files
     belongs_to :tool
     belongs_to :folder, class_name: "Files::Folder", optional: true
     has_one :share, as: :shareable, class_name: "Files::Share", dependent: :destroy
-    has_one_attached :file
+    # A folder full of photos used to load every original in full. Thumbnails are made when
+    # a file is uploaded, and a smaller copy is used to show a picture on screen.
+    has_one_attached :file do |attachable|
+      attachable.variant :thumb, resize_to_limit: [ 480, 480 ], preprocessed: true
+      attachable.variant :preview, resize_to_limit: [ 1600, 1600 ]
+    end
 
     validates :name, presence: true
     validate :file_size_limit, if: -> { file.attached? }
@@ -35,6 +40,15 @@ module Files
 
     def image?
       content_type&.start_with?("image/")
+    end
+
+    # SVGs and anything else vips can't read stay as they are
+    def thumbnail
+      file.variable? ? file.variant(:thumb) : file
+    end
+
+    def display_copy
+      file.variable? ? file.variant(:preview) : file
     end
 
     def video?

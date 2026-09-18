@@ -18,7 +18,7 @@
      data-action="click->file-selection#select click->file-drag#recordClick dblclick->files#openItem contextmenu->file-selection#selectForMenu contextmenu->file-context-menu#show dragstart->file-drag#dragStart dragend->file-drag#dragEnd">
   <% if file.image? && file.file.attached? %>
     <div class="<%= icon_base %> <%= icon_size %> overflow-hidden">
-      <%= image_tag url_for(file.file), class: "w-full h-full object-cover" %>
+      <%= image_tag url_for(file.thumbnail), class: "w-full h-full object-cover", loading: "lazy", decoding: "async", alt: file.name %>
     </div>
   <% else %>
     <div class="<%= icon_base %> <%= icon_size %> bg-gradient-to-br from-zinc-400 to-zinc-500 text-white">
