@@ -141,7 +141,7 @@
   }
 
   [data-room-mode-value="pip"] [data-participant-id] {
-    @apply min-h-0 rounded-none;
+    @apply min-h-0 rounded-none border-none;
     aspect-ratio: auto;
   }
 
