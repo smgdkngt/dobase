@@ -1,0 +1,40 @@
+  <%# Hidden hotkey triggers — active call-wide, since this element (and these
+      buttons with it) moves into the turbo-permanent PiP container on join %>
+  <button data-controller="hotkey" data-hotkey="m" data-action="click->room#toggleMic" hidden>Toggle microphone</button>
+  <button data-controller="hotkey" data-hotkey="v" data-action="click->room#toggleCamera" hidden>Toggle camera</button>
+  <button data-controller="hotkey" data-hotkey="s" data-action="click->room#toggleScreen" hidden>Toggle screen share</button>
+
+  <div class="tool-topbar" data-action="pointerdown->room#startDrag">
+    <div class="flex items-center gap-2">
+      <h1 class="tool-topbar-title"><%= tool.name %></h1>
+    </div>
+    <div class="tool-topbar-actions">
+      <button type="button"
+              class="room-participant-count-btn"
+              popovertarget="room-participant-list"
+              style="anchor-name: --room-participants-btn"
+              aria-label="Participants in this call">
+        <%= render "shared/icon", name: "users", size: 14, class: "text-text-tertiary" %>
+        <span data-room-target="participantCount">0 participants</span>
+      </button>
+
+      <div id="room-participant-list"
+           popover="auto"
+           class="popover-menu w-64 p-0 m-0 inset-auto"
+           style="position-anchor: --room-participants-btn; position-area: block-end span-inline-end">
+        <div class="text-xs font-semibold text-text-tertiary uppercase tracking-wider px-4 pt-3 pb-2">In this call</div>
+        <div class="max-h-64 overflow-y-auto pb-2" data-room-target="participantListBody"></div>
+      </div>
+    </div>
+    <span class="pip-grip-handle"><%= render "shared/icon", name: "grip-vertical", size: 14 %></span>
+  </div>
+
+  <%# In another call state (shown via CSS when PiP is active) %>
+  <div class="room-in-another-call">
+    <%= render "components/empty_state",
+          title: "You're already in a call",
+          description: "Leave your current call before joining another room.",
+          icon: "video-off",
+          size: :md %>
+  </div>
+

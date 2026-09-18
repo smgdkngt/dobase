@@ -1,0 +1,108 @@
+  <%# In-call state %>
+  <div class="room-in-call hidden" data-room-target="inCall">
+    <%# Content area (relative wrapper for local video overlay, spotlight, banners) %>
+    <div class="room-content-area" data-room-target="contentArea">
+      <div class="room-banner hidden" data-room-target="reconnectingBanner">
+        <div class="flash flash-warning">
+          <%= render "shared/icon", name: "loader-2", size: 16, class: "animate-spin" %>
+          <span>Reconnecting…</span>
+        </div>
+      </div>
+
+      <%# Screen share spotlight — takes over the content area while active %>
+      <div class="room-spotlight hidden" data-room-target="spotlight">
+        <video autoplay playsinline data-room-target="spotlightVideo"></video>
+        <div class="room-tile-overlay">
+          <span class="text-xs font-medium text-white" data-room-target="spotlightLabel"></span>
+        </div>
+      </div>
+
+      <%# Video grid (remote participants) %>
+      <div class="room-video-grid hidden" data-room-target="videoGrid"></div>
+
+      <%# Empty state (alone in call) %>
+      <div class="h-full flex items-center justify-center" data-room-target="emptyState">
+        <%= render "components/empty_state",
+              title: "Waiting for others to join",
+              description: "You're the only one here right now.",
+              icon: "users",
+              size: :md %>
+      </div>
+
+      <%# Local camera PiP %>
+      <div class="room-local-video" data-room-target="localVideo">
+        <video class="room-local-video-feed" autoplay playsinline muted></video>
+        <div class="room-tile-overlay">
+          <span class="hidden room-quality-dot" data-room-target="localQualityDot"></span>
+          <span class="text-xs font-medium text-white">You</span>
+          <span class="hidden text-white/80" data-room-target="localMutedIcon">
+            <%= render "shared/icon", name: "mic-off", size: 12 %>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <%# Controls bar %>
+    <div class="room-controls">
+      <%= render "components/icon_button",
+            icon: "mic",
+            title: "Mute microphone",
+            data: {
+              room_target: "micButton",
+              action: "click->room#toggleMic"
+            } %>
+
+      <%= render "components/icon_button",
+            icon: "video",
+            title: "Turn off camera",
+            data: {
+              room_target: "cameraButton",
+              action: "click->room#toggleCamera"
+            } %>
+
+      <%= render "components/icon_button",
+            icon: "monitor",
+            title: "Share screen",
+            data: {
+              room_target: "screenButton",
+              action: "click->room#toggleScreen"
+            } %>
+
+      <button type="button"
+              class="icon-btn"
+              title="Device settings"
+              popovertarget="room-device-settings"
+              style="anchor-name: --room-settings-btn">
+        <%= render "shared/icon", name: "settings", size: 16 %>
+      </button>
+
+      <%# Device settings popover %>
+      <div id="room-device-settings"
+           popover="auto"
+           class="popover-menu w-72 p-4 m-0 inset-auto"
+           style="position-anchor: --room-settings-btn; position-area: block-start span-inline-end">
+        <div class="text-xs font-semibold text-text-tertiary uppercase tracking-wider mb-3">Device Settings</div>
+        <div class="flex flex-col gap-3">
+          <div class="form-field">
+            <label class="label" for="room-settings-audio">Microphone</label>
+            <select id="room-settings-audio" class="input"
+                    data-room-target="settingsAudioSelect"
+                    data-action="change->room#switchAudioDevice"></select>
+          </div>
+          <div class="form-field">
+            <label class="label" for="room-settings-video">Camera</label>
+            <select id="room-settings-video" class="input"
+                    data-room-target="settingsVideoSelect"
+                    data-action="change->room#switchVideoDevice"></select>
+          </div>
+        </div>
+      </div>
+
+      <%= render "components/button",
+            text: "Leave",
+            variant: :danger,
+            icon: "log-out",
+            type: :button,
+            data: { action: "click->room#leave" } %>
+    </div>
+  </div>

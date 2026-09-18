@@ -1,0 +1,16 @@
+<% content_for :command_palette_actions do %>
+  <%= render "shared/command_palette_action", key: "m", description: "Toggle microphone", icon: "mic" %>
+  <%= render "shared/command_palette_action", key: "v", description: "Toggle camera", icon: "video" %>
+  <%= render "shared/command_palette_action", key: "s", description: "Toggle screen share", icon: "monitor" %>
+<% end %>
+
+<% content_for :keyboard_shortcuts do %>
+  <div>
+    <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Room</h3>
+    <div class="shortcut-list">
+      <%= render "shared/shortcut_row", key: "m", description: "Toggle microphone" %>
+      <%= render "shared/shortcut_row", key: "v", description: "Toggle camera" %>
+      <%= render "shared/shortcut_row", key: "s", description: "Toggle screen share" %>
+    </div>
+  </div>
+<% end %>
