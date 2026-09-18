@@ -27,7 +27,8 @@ Mail (IMAP/SMTP) and calendar (CalDAV) connections go through `RemoteHost.verify
 bin/dev                    # Start dev server (Rails + Tailwind watcher via foreman)
 bin/setup                  # Install deps + prepare DB (--reset to drop/recreate)
 bin/rails test             # Run unit/integration tests (Minitest)
-bin/rails test:system      # Run system tests (Capybara + Selenium)
+bin/rails test:system      # Run system tests (Capybara + Selenium, needs Google Chrome)
+bin/system-test            # Same tests with cached Chrome for Testing (no Google Chrome needed)
 bin/rails test test/models/tool_test.rb           # Run single test file
 bin/rails test test/models/tool_test.rb:42        # Run single test at line
 bin/rubocop                # Lint Ruby (rubocop-rails-omakase)

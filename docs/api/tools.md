@@ -66,4 +66,5 @@ browser.
 
 ## Rename a tool
 
-`PATCH /tools/:id` with `{"tool": {"name": "Roadmap"}}`. Owners only.
+`PATCH /tools/:id` with `{"tool": {"name": "Roadmap"}}`. Owners only. A tool's
+type is settled when it's created and can't be changed afterwards.

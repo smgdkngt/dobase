@@ -32,6 +32,8 @@ class RoomsTest < ApplicationSystemTestCase
     assert_equal "function", loaded
   end
 
+  # Whether headless Chrome offers a camera has changed between builds; pin one with
+  # CHROME_FOR_TESTING=<version> for bin/system-test if this stops failing without a camera.
   test "pre-join screen explains blocked camera/microphone access and offers a retry" do
     # Headless Chrome for Testing has no camera/mic and no fake-ui flag, so
     # getUserMedia rejects immediately — exercising the same failure path a

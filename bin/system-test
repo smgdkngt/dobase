@@ -1,0 +1,44 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Runs the system tests with Chrome for Testing when Google Chrome isn't installed.
+#
+#   bin/system-test                          # every system test
+#   bin/system-test test/system/mails_test.rb
+#   bin/system-test test/system/mails_test.rb:42
+#
+# Selenium Manager downloads Chrome for Testing into ~/.cache/selenium; `bin/rails
+# test:system` still asks for Google Chrome itself, so point Selenium at the newest
+# cached build instead. With Google Chrome installed, `bin/rails test:system` is fine.
+
+require_relative "../config/boot"
+require "selenium-webdriver"
+
+# CHROME_FOR_TESTING pins a build, e.g. CHROME_FOR_TESTING=153.0.8010.36, for when a
+# newer one behaves differently (headless Chrome's fake devices have changed before).
+def cached_build(kind)
+  root = File.expand_path("~/.cache/selenium/#{kind}")
+  builds = Dir.glob("#{root}/*/*").select { |path| File.basename(path).match?(/\A\d+\./) }
+  wanted = ENV["CHROME_FOR_TESTING"]
+  builds = builds.select { |path| File.basename(path) == wanted } if wanted
+  builds.max_by { |path| File.basename(path).split(".").map(&:to_i) }
+end
+
+chrome = cached_build("chrome")
+driver = cached_build("chromedriver")
+
+abort <<~MESSAGE if chrome.nil? || driver.nil?
+  No cached Chrome for Testing found in ~/.cache/selenium.
+
+  Run the system tests once with `bin/rails test:system` (Selenium Manager downloads
+  a build), or install Google Chrome and use `bin/rails test:system` directly.
+MESSAGE
+
+binary = Dir.glob("#{chrome}/**/Google Chrome for Testing").first || Dir.glob("#{chrome}/**/chrome").first
+Selenium::WebDriver::Chrome.path = binary if binary
+Selenium::WebDriver::Chrome::Service.driver_path = File.join(driver, "chromedriver")
+
+APP_PATH = File.expand_path("../config/application", __dir__)
+ARGV.unshift("test:system") if ARGV.empty?
+ARGV.unshift("test") if ARGV.first != "test:system" && ARGV.first != "test"
+require "rails/commands"
