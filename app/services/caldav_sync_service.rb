@@ -55,17 +55,6 @@ class CaldavSyncService
     @account = calendar_account
   end
 
-  def test_connection
-    return true if @account.local?
-
-    response = propfind(@account.caldav_url, depth: 0, body: propfind_current_user_principal_xml)
-    raise AuthenticationError, "Authentication failed" if response.status == 401
-    raise ConnectionError, "Connection failed: #{response.status}" unless response.success?
-    true
-  rescue Faraday::Error => e
-    raise ConnectionError, "Connection failed: #{e.message}"
-  end
-
   def discover_calendars
     return if @account.local?
     principal_url = discover_principal_url

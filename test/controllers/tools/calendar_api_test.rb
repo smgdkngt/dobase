@@ -379,9 +379,6 @@ module Tools
       assert_equal "This action isn't available to access tokens", response.parsed_body["error"]
       assert_equal "user@icloud.com", calendars_accounts(:icloud_account).reload.username
 
-      post test_connection_tool_calendar_account_path(@tool), headers: @headers, as: :json
-      assert_response :forbidden
-
       post tool_calendar_invites_path(@tool), headers: @headers, as: :json, params: { invite_id: 1 }
       assert_response :forbidden
       delete tool_calendar_invite_path(@tool, 1), headers: @headers, as: :json
