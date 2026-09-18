@@ -9,8 +9,11 @@ class DocumentChannel < ApplicationCable::Channel
     stream_for @document
   end
 
+  # Only the connection that took the lock gives it back. A read-only viewer of
+  # the same document, or another tab of the same user, must not release the lock
+  # the editor is holding.
   def unsubscribed
-    return unless @document
+    return unless @document && @editing
 
     # Atomically release only our lock
     rows_updated = Docs::Document
@@ -26,15 +29,20 @@ class DocumentChannel < ApplicationCable::Channel
     end
   end
 
-  # Keeps our lock fresh, and takes it back if it was released meanwhile: the same
-  # document open in another tab that closed releases it on unsubscribe
+  # Keeps our lock fresh, and takes it back if it lapsed or someone released it
+  # meanwhile. Only the editor calls this, so this connection is an editing one.
   def refresh_lock
     return unless @document
 
     kept = Docs::Document
       .where(id: @document.id, locked_by_id: current_user.id)
       .update_all(locked_at: Time.current)
-    start_editing if kept.zero?
+
+    if kept.zero?
+      start_editing
+    else
+      @editing = true
+    end
   end
 
   def start_editing
@@ -50,6 +58,7 @@ class DocumentChannel < ApplicationCable::Channel
       .update_all(locked_by_id: current_user.id, locked_at: Time.current)
 
     if rows_updated > 0
+      @editing = true
       DocumentChannel.broadcast_to(@document, {
         type: "locked",
         user_name: current_user.name

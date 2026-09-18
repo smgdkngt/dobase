@@ -28,4 +28,21 @@ class DocumentChannelTest < ActionCable::Channel::TestCase
     assert_equal users(:two), @document.reload.locked_by
     assert_equal({ "type" => "lock_rejected", "locked_by" => users(:two).name }, transmissions.last)
   end
+
+  test "closing a tab that only read the document keeps the lock it holds elsewhere" do
+    # Another tab of the same user has the editor open and holds the lock
+    @document.update_columns(locked_by_id: users(:one).id, locked_at: Time.current)
+
+    unsubscribe
+
+    assert_equal users(:one), @document.reload.locked_by
+  end
+
+  test "closing the editing tab releases the lock" do
+    perform :start_editing
+
+    unsubscribe
+
+    assert_nil @document.reload.locked_by
+  end
 end
