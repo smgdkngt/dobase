@@ -29,13 +29,6 @@
     </div>
     <% last_date = message_date %>
   <% end %>
-  <%
-    # A continuation of the one above it: same person, same day, within 5 minutes
-    previous = index.positive? ? messages[index - 1] : nil
-    is_continuation = previous &&
-                      previous.user_id == message.user_id &&
-                      previous.created_at.to_date == message.created_at.to_date &&
-                      (message.created_at - previous.created_at) < 5.minutes
-  %>
-  <%= render "tools/chats/message", message: message, is_continuation: is_continuation %>
+  <% previous = index.positive? ? messages[index - 1] : nil %>
+  <%= render "tools/chats/message", message: message, is_continuation: chat_continuation?(previous, message) %>
 <% end %>
