@@ -10,6 +10,11 @@ import { Y, Awareness, applyAwarenessUpdate, encodeAwarenessUpdate, removeAwaren
 // The server keeps the changes but cannot merge them — only a browser can. When
 // it says the pile has grown, the page that hears it sends the whole document
 // back as one change, which replaces the pile.
+// Typing makes a change per keystroke. They go out merged, a few at a time:
+// Action Cable writes every message to the database here, and a sentence is
+// worth one row, not forty.
+const SEND_EVERY_MS = 250
+
 export class DocumentSync {
   constructor(documentId, { onSynced } = {}) {
     this.doc = new Y.Doc()
@@ -18,10 +23,11 @@ export class DocumentSync {
     this.onSynced = onSynced
     this.synced = false
 
+    this.pending = []
     this.doc.on("update", (update, origin) => {
       // A change that arrived from someone else is not ours to send back
       if (origin === this) return
-      this.send("apply_update", { update: encode(update) })
+      this.queue(update)
     })
 
     this.awareness.on("update", ({ added, updated, removed }) => {
@@ -35,11 +41,30 @@ export class DocumentSync {
       { received: (data) => this.receive(data) }
     )
 
-    this.beforeUnload = () => this.forgetMyCaret()
+    this.beforeUnload = () => {
+      this.flush()
+      this.forgetMyCaret()
+    }
     window.addEventListener("beforeunload", this.beforeUnload)
   }
 
+  queue(update) {
+    this.pending.push(update)
+    this.flushTimer ||= setTimeout(() => this.flush(), SEND_EVERY_MS)
+  }
+
+  flush() {
+    clearTimeout(this.flushTimer)
+    this.flushTimer = null
+    if (this.pending.length === 0) return
+
+    const merged = this.pending.length === 1 ? this.pending[0] : Y.mergeUpdates(this.pending)
+    this.pending = []
+    this.send("apply_update", { update: encode(merged) })
+  }
+
   destroy() {
+    this.flush()
     window.removeEventListener("beforeunload", this.beforeUnload)
     this.forgetMyCaret()
     this.channel?.unsubscribe()
