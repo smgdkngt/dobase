@@ -1,0 +1,46 @@
+        <%# Discussion / Comments %>
+        <section class="border-t border-border-light p-4 sm:p-5">
+          <h3 class="text-sm font-semibold text-text-tertiary mb-4 flex items-center gap-1.5">
+            <%= render "shared/icon", name: "message-square-text", size: 14, class: "opacity-70" %>
+            Comments
+            <% if item.comments.any? %>
+              <span class="ml-0.5 font-normal normal-case tracking-normal"><%= item.comments.count %></span>
+            <% end %>
+          </h3>
+
+          <% if item.comments.any? %>
+            <div class="space-y-4 mb-4">
+              <% item.comments.includes(:user, :rich_text_body).order(created_at: :asc).each do |comment| %>
+                <div class="flex gap-2.5">
+                  <%= render "shared/avatar", user: comment.user, size: :sm %>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-baseline gap-2 mb-0.5">
+                      <span class="text-sm font-semibold text-text-primary"><%= comment.user.name %></span>
+                      <span class="text-xs text-text-tertiary"><%= time_ago_in_words(comment.created_at) %> ago</span>
+                    </div>
+                    <div class="text-sm text-text-primary leading-snug rich-text-content"><%= comment.body %></div>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+
+          <%# Comment form %>
+          <%= form_with url: tool_todo_item_comments_path(tool, item), data: { turbo_frame: "item-detail-content" } do %>
+            <div class="flex gap-2.5">
+              <%= render "shared/avatar", user: current_user, size: :sm %>
+              <div class="flex-1">
+                <%= render "components/rich_text_input", name: "body", placeholder: "Write a comment...", mentions: @collaborators.where.not(id: current_user.id) do %>
+                  <%= render "components/icon_button",
+                        icon: "send",
+                        title: "Post comment",
+                        variant: :accent,
+                        size: :sm,
+                        class: "rounded",
+                        type: :submit %>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </section>
+

@@ -1,0 +1,43 @@
+        <%# Description %>
+        <section class="p-4 sm:p-5">
+          <h3 class="text-sm font-semibold text-text-tertiary mb-2 flex items-center gap-1.5">
+            <%= render "shared/icon", name: "align-left", size: 14, class: "opacity-70" %>
+            Description
+          </h3>
+
+          <% if item.description.present? %>
+            <div class="text-sm text-text-primary leading-snug rich-text-content cursor-text rounded-md px-3 py-2.5 hover:bg-background-tertiary transition-colors -mx-3"
+                 data-todo-item-target="descriptionDisplay"
+                 data-action="click->todo-item#editDescription">
+              <%= item.description %>
+            </div>
+          <% else %>
+            <div class="text-sm text-text-tertiary/70 italic cursor-text rounded-md px-3 py-2.5 hover:bg-background-tertiary hover:text-text-tertiary transition-colors -mx-3"
+                 data-todo-item-target="descriptionDisplay"
+                 data-action="click->todo-item#editDescription">
+              Add a description...
+            </div>
+          <% end %>
+
+          <div class="hidden" data-todo-item-target="descriptionEdit">
+            <%= form_with url: tool_todo_item_path(tool, item), method: :patch, data: { turbo_frame: "item-detail-content" } do |f| %>
+              <%= render "components/rich_text_input", name: "item[description]", value: item.description do %>
+                <%= render "components/icon_button",
+                      icon: "x",
+                      title: "Cancel",
+                      size: :sm,
+                      class: "rounded",
+                      type: :button,
+                      data: { action: "click->todo-item#cancelDescription" } %>
+                <%= render "components/icon_button",
+                      icon: "check",
+                      title: "Save",
+                      variant: :accent,
+                      size: :sm,
+                      class: "rounded",
+                      type: :submit %>
+              <% end %>
+            <% end %>
+          </div>
+        </section>
+
