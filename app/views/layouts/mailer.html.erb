@@ -1,31 +1,82 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
+    <title><%= yield(:title).presence || app_name %></title>
+    <style>
+      body, table, td { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+      table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+      img { border: 0; outline: none; text-decoration: none; }
+      a { color: #0071e3; }
+
+      @media (max-width: 600px) {
+        .email-wrapper { padding: 0 !important; }
+        .email-card { border-radius: 0 !important; width: 100% !important; }
+        .email-header, .email-body, .email-footer { padding-left: 24px !important; padding-right: 24px !important; }
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .email-bg { background-color: #1c1c1e !important; }
+        .email-card { background-color: #2c2c2e !important; border-color: #3a3a3c !important; }
+        .email-header, .email-footer { border-color: #3a3a3c !important; }
+        .email-body, .email-body p, .email-body li, .email-heading { color: #f5f5f7 !important; }
+        .brand-name { color: #f5f5f7 !important; }
+        .muted-text { color: #a1a1a6 !important; }
+        .email-tag { background-color: #3a3a3c !important; color: #a1a1a6 !important; }
+        .notification-row { background-color: #3a3a3c !important; }
+        a { color: #409cff !important; }
+        .btn-primary { background-color: #0a84ff !important; }
+      }
+    </style>
   </head>
 
-  <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5;">
+  <body class="email-bg" style="margin: 0; padding: 0; background-color: #f5f5f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+    <% if content_for?(:preheader) %>
+      <div style="display: none; max-height: 0; overflow: hidden; opacity: 0; mso-hide: all;">
+        <%= yield(:preheader) %>
+        <%= "&#8203;" * 40 %>
+      </div>
+    <% end %>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="email-bg" style="background-color: #f5f5f7;">
       <tr>
-        <td align="center" style="padding: 40px 20px;">
-          <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width: 560px; width: 100%; background-color: #ffffff; border-radius: 8px; overflow: hidden;">
+        <td align="center" class="email-wrapper" style="padding: 40px 20px;">
+          <table role="presentation" width="560" cellpadding="0" cellspacing="0" class="email-card" style="max-width: 560px; width: 100%; background-color: #ffffff; border-radius: 12px; border: 1px solid #e8e8ed;">
             <!-- Header -->
             <tr>
-              <td style="padding: 24px 32px; border-bottom: 1px solid #e5e5e5;">
-                <span style="font-size: 18px; font-weight: 700; color: #1a1a1a; letter-spacing: -0.02em;"><%= app_name %></span>
+              <td class="email-header" style="padding: 24px 32px; border-bottom: 1px solid #e8e8ed;">
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="vertical-align: middle;">
+                      <img src="<%= absolute_url(app_logo_path) %>" width="24" height="24" alt="" style="display: block; width: 24px; height: 24px; border-radius: 6px;">
+                    </td>
+                    <td style="vertical-align: middle; padding-left: 10px;">
+                      <span class="brand-name" style="font-size: 16px; font-weight: 600; color: #1d1d1f; letter-spacing: -0.01em;"><%= app_name %></span>
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
             <!-- Content -->
             <tr>
-              <td style="padding: 32px; font-size: 15px; color: #333333; line-height: 1.5;">
+              <td class="email-body" style="padding: 32px; font-size: 15px; color: #1d1d1f; line-height: 1.6;">
                 <%= yield %>
               </td>
             </tr>
             <!-- Footer -->
             <tr>
-              <td style="padding: 24px 32px; border-top: 1px solid #e5e5e5;">
-                <p style="margin: 0; font-size: 13px; color: #999999; line-height: 1.5;">You received this email from <%= app_name %>.</p>
+              <td class="email-footer" style="padding: 20px 32px; border-top: 1px solid #e8e8ed;">
+                <p class="muted-text" style="margin: 0; font-size: 13px; color: #86868b; line-height: 1.5;">
+                  Sent by <%= app_name %><% if content_for?(:footer_context) %> &middot; <%= yield(:footer_context) %><% end %>
+                </p>
+                <% if content_for?(:footer_note) %>
+                  <p class="muted-text" style="margin: 6px 0 0; font-size: 13px; color: #86868b; line-height: 1.5;">
+                    <%= yield(:footer_note) %>
+                  </p>
+                <% end %>
               </td>
             </tr>
           </table>
