@@ -25,3 +25,6 @@ production:
   purge_trashed_mail:
     class: PurgeTrashedMailJob
     schedule: every day at 4am
+  purge_notification_events:
+    class: PurgeNotificationEventsJob
+    schedule: every day at 4:15am
