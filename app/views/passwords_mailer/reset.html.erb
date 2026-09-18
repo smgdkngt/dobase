@@ -1,6 +1,21 @@
-<p>
-  You can reset your password on
-  <%= link_to "this password reset page", edit_password_url(@user.password_reset_token) %>.
+<% content_for :title, "Reset your password" %>
+<% content_for :preheader, "Reset your #{app_name} password. This link expires in #{distance_of_time_in_words(0, @user.password_reset_token_expires_in)}." %>
 
-  This link will expire in <%= distance_of_time_in_words(0, @user.password_reset_token_expires_in) %>.
+<h1 class="email-heading" style="margin: 0 0 16px; font-size: 19px; font-weight: 600; color: #1d1d1f;">Reset your password</h1>
+
+<p style="margin: 0 0 24px;">
+  We received a request to reset the password for your <%= app_name %> account
+  (<%= @user.email_address %>).
+</p>
+
+<p style="margin: 0 0 28px;">
+  <%= render "shared/mailer_button", text: "Reset password", url: edit_password_url(@user.password_reset_token) %>
+</p>
+
+<p class="muted-text" style="margin: 0 0 8px; font-size: 13px; color: #86868b;">
+  This link expires in <%= distance_of_time_in_words(0, @user.password_reset_token_expires_in) %>.
+</p>
+
+<p class="muted-text" style="margin: 0; font-size: 13px; color: #86868b;">
+  If you didn't request this, you can safely ignore this email — your password won't change.
 </p>

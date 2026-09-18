@@ -1,5 +1,4 @@
 <%= @notifications.size %> new <%= "notification".pluralize(@notifications.size) %>
-<%= "=" * 40 %>
 
 <%
   grouped = @notifications.group_by { |n| n.event.params[:tool]&.name || "General" }
@@ -23,5 +22,6 @@
 
 <% end %>
 <% end %>
----
-Change digest frequency: <%= absolute_url('/profile/edit') %>
+--
+Change how often you get these: <%= absolute_url('/profile/edit?tab=notifications') %>
+Sent by <%= app_name %>
