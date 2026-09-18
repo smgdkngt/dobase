@@ -89,31 +89,20 @@ class CaldavSyncService
   def ctag_changed?(calendar)
     return true unless calendar.ctag.present?
 
-    response = propfind(calendar.remote_url, depth: 0, body: propfind_ctag_xml)
+    response = propfind(calendar.remote_url, depth: 0, body: Caldav::Xml.ctag)
     return true unless response.success?
 
-    doc = parse_xml(response.body)
+    doc = Caldav::Xml.parse(response.body)
     server_ctag = doc.at_xpath("//*[local-name()='getctag']")&.text
 
     calendar.ctag != server_ctag
-  end
-
-  def propfind_ctag_xml
-    <<~XML
-      <?xml version="1.0" encoding="UTF-8"?>
-      <d:propfind xmlns:d="DAV:" xmlns:cs="http://calendarserver.org/ns/">
-        <d:prop>
-          <cs:getctag/>
-        </d:prop>
-      </d:propfind>
-    XML
   end
 
   def create_event(event)
     return if event.calendar.local?
 
     calendar = event.calendar
-    ics_data = build_icalendar(event)
+    ics_data = Caldav::EventIcalendar.new(event).to_ical
     url = "#{calendar.remote_url}#{event.uid}.ics"
 
     response = http_client.put(url) do |req|
@@ -133,7 +122,7 @@ class CaldavSyncService
     return if event.calendar.local?
 
     url = event.remote_href.presence || "#{event.calendar.remote_url}#{event.uid}.ics"
-    ics_data = build_icalendar(event)
+    ics_data = Caldav::EventIcalendar.new(event).to_ical
 
     response = http_client.put(url) do |req|
       req.headers["Content-Type"] = "text/calendar; charset=utf-8"
@@ -174,7 +163,7 @@ class CaldavSyncService
     return if calendar.local?
     return unless calendar.remote_url.present?
 
-    response = proppatch(calendar.remote_url, calendar_proppatch_xml(calendar))
+    response = proppatch(calendar.remote_url, Caldav::Xml.calendar_proppatch(calendar))
 
     unless response.success?
       raise SyncError, "Failed to update calendar: #{response.status}"
@@ -315,10 +304,10 @@ class CaldavSyncService
   def principal_url_at(url)
     return unless url
 
-    response = propfind(url, depth: 0, body: propfind_current_user_principal_xml)
+    response = propfind(url, depth: 0, body: Caldav::Xml.current_user_principal)
     return nil unless response.success?
 
-    doc = parse_xml(response.body)
+    doc = Caldav::Xml.parse(response.body)
     # Use local-name() to handle default namespaces without prefixes
     href = doc.at_xpath("//*[local-name()='current-user-principal']/*[local-name()='href']")&.text
     return nil unless href
@@ -327,10 +316,10 @@ class CaldavSyncService
   end
 
   def discover_calendar_home(principal_url)
-    response = propfind(principal_url, depth: 0, body: propfind_calendar_home_set_xml)
+    response = propfind(principal_url, depth: 0, body: Caldav::Xml.calendar_home_set)
     return nil unless response.success?
 
-    doc = parse_xml(response.body)
+    doc = Caldav::Xml.parse(response.body)
     href = doc.at_xpath("//*[local-name()='calendar-home-set']/*[local-name()='href']")&.text
     return nil unless href
 
@@ -338,10 +327,10 @@ class CaldavSyncService
   end
 
   def list_calendars(calendar_home_url)
-    response = propfind(calendar_home_url, depth: 1, body: propfind_calendars_xml)
+    response = propfind(calendar_home_url, depth: 1, body: Caldav::Xml.calendars)
     return [] unless response.success?
 
-    doc = parse_xml(response.body)
+    doc = Caldav::Xml.parse(response.body)
     calendars = []
 
     doc.xpath("//*[local-name()='response']").each do |resp|
@@ -391,7 +380,7 @@ class CaldavSyncService
   end
 
   def full_sync(calendar)
-    response = report(calendar.remote_url, calendar_query_xml)
+    response = report(calendar.remote_url, Caldav::Xml.calendar_query)
 
     if response.status == 404
       calendar.update!(enabled: false)
@@ -401,7 +390,7 @@ class CaldavSyncService
 
     raise SyncError, "Full sync failed: #{response.status}" unless response.success?
 
-    doc = parse_xml(response.body)
+    doc = Caldav::Xml.parse(response.body)
     events_data = parse_calendar_data_response(doc)
 
     # Mark all existing events for potential deletion
@@ -422,7 +411,7 @@ class CaldavSyncService
   end
 
   def delta_sync(calendar)
-    response = report(calendar.remote_url, sync_collection_xml(calendar.sync_token))
+    response = report(calendar.remote_url, Caldav::Xml.sync_collection(calendar.sync_token))
 
     # If sync-token is invalid, fall back to full sync
     if response.status == 403 || response.status == 412
@@ -432,7 +421,7 @@ class CaldavSyncService
 
     raise SyncError, "Delta sync failed: #{response.status}" unless response.success?
 
-    doc = parse_xml(response.body)
+    doc = Caldav::Xml.parse(response.body)
 
     # Process changed/new events
     doc.xpath("//*[local-name()='response']").each do |resp|
@@ -533,10 +522,10 @@ class CaldavSyncService
   end
 
   def update_calendar_sync_token(calendar)
-    response = propfind(calendar.remote_url, depth: 0, body: propfind_sync_token_xml)
+    response = propfind(calendar.remote_url, depth: 0, body: Caldav::Xml.sync_token)
     return unless response.success?
 
-    doc = parse_xml(response.body)
+    doc = Caldav::Xml.parse(response.body)
     sync_token = doc.at_xpath("//*[local-name()='sync-token']")&.text
     ctag = doc.at_xpath("//*[local-name()='getctag']")&.text
 
@@ -545,78 +534,12 @@ class CaldavSyncService
 
   # A stored calendar object: no METHOD, which RFC 4791 (4.1) doesn't allow there
   # and some servers reject. Invites carry their own ICS.
-  def build_icalendar(event)
-    cal = Icalendar::Calendar.new
-    cal.prodid = "-//#{Rails.application.config.x.app.name}//Calendar//EN"
-
-    vevent = Icalendar::Event.new
-    vevent.uid = event.uid
-    vevent.summary = event.summary
-    vevent.description = event.description if event.description.present?
-    vevent.location = event.location if event.location.present?
-
-    if event.all_day?
-      vevent.dtstart = Icalendar::Values::Date.new(event.first_day)
-      vevent.dtend = Icalendar::Values::Date.new(event.last_day + 1)
-    else
-      vevent.dtstart = utc_value(event.starts_at)
-      vevent.dtend = utc_value(event.ends_at)
-    end
-
-    vevent.status = event.status.upcase if event.status.present?
-
-    if event.is_recurring? && event.rrule.present?
-      vevent.rrule = [ Icalendar::Values::Recur.new(event.rrule) ]
-    end
-
-    if event.organizer_email.present?
-      vevent.organizer = Icalendar::Values::CalAddress.new("mailto:#{event.organizer_email}",
-        { "cn" => event.organizer_name.presence }.compact)
-    end
-
-    event.attendees.each do |attendee|
-      vevent.append_attendee Icalendar::Values::CalAddress.new("mailto:#{attendee["email"]}",
-        { "cn" => attendee["name"].presence, "partstat" => attendee["status"].presence&.upcase || "NEEDS-ACTION" }.compact)
-    end
-
-    vevent.dtstamp = utc_value(Time.current)
-
-    cal.add_event(vevent)
-    keep_exceptions(cal, vevent, event) if event.is_recurring? && event.rrule.present?
-    cal.to_ical
-  end
 
   # Without the tzid, icalendar writes the time without its Z, which calendars read as local time
-  def utc_value(time)
-    Icalendar::Values::DateTime.new(time.utc, "tzid" => "UTC")
-  end
 
   # Dobase doesn't edit the occurrences a synced series skips (EXDATE) or adds (RDATE), nor the
   # ones changed on their own (a VEVENT with a RECURRENCE-ID), so they're sent back as they came,
   # with the time zones they use. Once the series starts at another time they no longer fit.
-  def keep_exceptions(cal, vevent, event)
-    original = Icalendar::Calendar.parse(event.raw_icalendar.to_s).first
-    return unless original
-
-    same_event = original.events.select { |component| component.uid.to_s == event.uid }
-    series = same_event.find { |component| component.recurrence_id.nil? }
-    return unless series && same_start?(series, event)
-
-    vevent.exdate = series.exdate
-    vevent.rdate = series.rdate
-    same_event.select(&:recurrence_id).each { |occurrence| cal.add_event(occurrence) }
-    original.timezones.each { |timezone| cal.add_timezone(timezone) }
-  rescue Icalendar::Parser::ParseError, ArgumentError => e
-    Rails.logger.warn("Couldn't keep the exceptions of event #{event.uid}: #{e.message}")
-  end
-
-  def same_start?(series, event)
-    if event.all_day?
-      series.dtstart.is_a?(Icalendar::Values::Date) && series.dtstart.to_date == event.first_day
-    else
-      !series.dtstart.is_a?(Icalendar::Values::Date) && series.dtstart.to_time == event.starts_at
-    end
-  end
 
   def resolve_url(href)
     return href if href.start_with?("http")
@@ -640,104 +563,4 @@ class CaldavSyncService
   end
 
   # XML request bodies
-
-  def propfind_current_user_principal_xml
-    <<~XML
-      <?xml version="1.0" encoding="UTF-8"?>
-      <d:propfind xmlns:d="DAV:">
-        <d:prop>
-          <d:current-user-principal/>
-        </d:prop>
-      </d:propfind>
-    XML
-  end
-
-  def propfind_calendar_home_set_xml
-    <<~XML
-      <?xml version="1.0" encoding="UTF-8"?>
-      <d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
-        <d:prop>
-          <c:calendar-home-set/>
-        </d:prop>
-      </d:propfind>
-    XML
-  end
-
-  def propfind_calendars_xml
-    <<~XML
-      <?xml version="1.0" encoding="UTF-8"?>
-      <d:propfind xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:x="http://apple.com/ns/ical/">
-        <d:prop>
-          <d:resourcetype/>
-          <d:displayname/>
-          <x:calendar-color/>
-          <cs:getctag/>
-          <d:sync-token/>
-        </d:prop>
-      </d:propfind>
-    XML
-  end
-
-  def calendar_proppatch_xml(calendar)
-    <<~XML
-      <?xml version="1.0" encoding="UTF-8"?>
-      <d:propertyupdate xmlns:d="DAV:" xmlns:x="http://apple.com/ns/ical/">
-        <d:set>
-          <d:prop>
-            <d:displayname>#{ERB::Util.html_escape(calendar.name)}</d:displayname>
-            <x:calendar-color>#{calendar.color_hex}FF</x:calendar-color>
-          </d:prop>
-        </d:set>
-      </d:propertyupdate>
-    XML
-  end
-
-  def propfind_sync_token_xml
-    <<~XML
-      <?xml version="1.0" encoding="UTF-8"?>
-      <d:propfind xmlns:d="DAV:" xmlns:cs="http://calendarserver.org/ns/">
-        <d:prop>
-          <d:sync-token/>
-          <cs:getctag/>
-        </d:prop>
-      </d:propfind>
-    XML
-  end
-
-  def calendar_query_xml
-    <<~XML
-      <?xml version="1.0" encoding="UTF-8"?>
-      <c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
-        <d:prop>
-          <d:getetag/>
-          <c:calendar-data/>
-        </d:prop>
-        <c:filter>
-          <c:comp-filter name="VCALENDAR">
-            <c:comp-filter name="VEVENT"/>
-          </c:comp-filter>
-        </c:filter>
-      </c:calendar-query>
-    XML
-  end
-
-  def parse_xml(body)
-    # Responses come from a server the user chose. Never substitute entities: with
-    # `noent`, a <!ENTITY x SYSTEM "file:///..."> would read files off this machine.
-    Nokogiri::XML(body) { |config| config.nonet }
-  end
-
-  def sync_collection_xml(sync_token)
-    <<~XML
-      <?xml version="1.0" encoding="UTF-8"?>
-      <d:sync-collection xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
-        <d:sync-token>#{ERB::Util.html_escape(sync_token)}</d:sync-token>
-        <d:sync-level>1</d:sync-level>
-        <d:prop>
-          <d:getetag/>
-          <c:calendar-data/>
-        </d:prop>
-      </d:sync-collection>
-    XML
-  end
 end
