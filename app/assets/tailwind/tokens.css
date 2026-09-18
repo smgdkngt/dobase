@@ -85,6 +85,8 @@
   --transition-fast: 150ms ease;
   --transition-normal: 200ms ease;
   --transition-slow: 300ms ease;
+  --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Layout */
   --sidebar-width: 240px;
@@ -154,6 +156,18 @@
       --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
       --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
 
+    }
+  }
+
+  /* Respect the user's motion preference everywhere at once: collapse
+     durations instead of stripping transitions/animations selectively so
+     every future `transition-*`/`animate-*` utility is covered too. */
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
     }
   }
 }

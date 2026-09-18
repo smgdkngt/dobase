@@ -2,7 +2,7 @@
 @layer components {
   /* Button variants */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed active:not-disabled:scale-[0.97];
   }
 
   .btn-primary {
@@ -31,7 +31,7 @@
 
   /* Icon Button - for toolbar actions */
   .icon-btn {
-    @apply inline-flex items-center justify-center w-8 h-8 rounded-lg text-text-secondary hover:bg-background-tertiary hover:text-text-primary active:bg-background-tertiary active:text-text-primary transition-colors;
+    @apply inline-flex items-center justify-center w-8 h-8 rounded-lg text-text-secondary hover:bg-background-tertiary hover:text-text-primary active:bg-background-tertiary active:text-text-primary transition-all duration-150 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2;
   }
 
   .icon-btn-sm {
@@ -203,6 +203,40 @@
     @apply px-5 py-4;
   }
 
+  /* Clickable card rows (tool lists, settings rows, etc.) — a calm lift on
+     hover so the whole row reads as a target, not just the link inside it. */
+  .card-row {
+    @apply relative transition-colors duration-150;
+  }
+
+  .card-row:hover {
+    @apply bg-background-secondary/60;
+  }
+
+  .card-row:has(a:focus-visible) {
+    @apply outline-2 outline-accent -outline-offset-2;
+  }
+
+  /* Skeleton placeholder — quiet shimmer while content loads */
+  .skeleton {
+    @apply rounded-md bg-background-tertiary relative overflow-hidden;
+  }
+
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-text-primary) 6%, transparent), transparent);
+    animation: skeleton-shimmer 1.6s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton::after {
+      display: none;
+    }
+  }
+
   /* Avatar */
   .avatar {
     @apply inline-flex items-center justify-center rounded-full bg-background-tertiary text-text-secondary font-medium overflow-hidden;
@@ -229,6 +263,30 @@
     @apply w-48 rounded-lg bg-surface border border-border-light shadow-lg py-1 m-0 inset-auto;
   }
 
+  /* Entrance/exit only applies to genuine native popovers (the [popover]
+     attribute) — .popover-menu is also reused by plain, JS-positioned
+     dropdowns (e.g. the @-mention suggestion list) that toggle visibility
+     themselves and aren't ever matched by :popover-open, which would
+     otherwise leave them stuck at opacity: 0. */
+  .popover-menu[popover] {
+    opacity: 0;
+    transform: scale(0.96) translateY(-2px);
+    transition: opacity 140ms var(--ease-out), transform 140ms var(--ease-out),
+                overlay 140ms allow-discrete, display 140ms allow-discrete;
+  }
+
+  .popover-menu[popover]:popover-open {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+
+  @starting-style {
+    .popover-menu[popover]:popover-open {
+      opacity: 0;
+      transform: scale(0.96) translateY(-2px);
+    }
+  }
+
   .dropdown-item {
     @apply block w-full px-4 py-2 text-sm text-text-primary hover:bg-background-tertiary text-left transition-colors;
   }
@@ -241,14 +299,45 @@
   .modal-dialog {
     @apply w-full m-auto bg-surface rounded-xl shadow-xl p-0 border-0 overflow-hidden max-h-[90vh];
     inset: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+    transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out),
+                overlay 180ms allow-discrete, display 180ms allow-discrete;
+  }
+
+  /* The dialog takes focus when it opens; its buttons show the focus ring, not the sheet */
+  .modal-dialog:focus,
+  .modal-dialog:focus-visible {
+    @apply outline-none;
   }
 
   .modal-dialog[open] {
     @apply flex flex-col;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  @starting-style {
+    .modal-dialog[open] {
+      opacity: 0;
+      transform: translateY(4px) scale(0.98);
+    }
   }
 
   .modal-dialog::backdrop {
     @apply bg-black/40 backdrop-blur-sm;
+    opacity: 0;
+    transition: opacity 180ms var(--ease-out), overlay 180ms allow-discrete, display 180ms allow-discrete;
+  }
+
+  .modal-dialog[open]::backdrop {
+    opacity: 1;
+  }
+
+  @starting-style {
+    .modal-dialog[open]::backdrop {
+      opacity: 0;
+    }
   }
 
   .modal-dialog > * {
@@ -495,6 +584,18 @@
   .reorder-mode > [data-sort-id]:nth-child(even) { animation-delay: 0.125s; }
   .reorder-mode > [data-sort-id]:active { @apply cursor-grabbing; animation: none; }
 
+  /* Empty states settle in gently instead of just appearing */
+  .empty-state {
+    animation: empty-state-in 320ms var(--ease-out) both;
+  }
+
+  /* Auth pages (login, signup, password reset) — a focal card standing a
+     little further off the page than an inline .card, with a quiet entrance */
+  .auth-card {
+    @apply bg-surface rounded-xl border border-border-light shadow-lg;
+    animation: empty-state-in 360ms var(--ease-out) both;
+  }
+
   /* Attachment chips (compose, chat file uploads) */
   .compose-attachment-item {
     @apply flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-text-secondary
@@ -513,4 +614,13 @@
 @keyframes wiggle {
   0%, 100% { transform: rotate(-0.4deg); }
   50% { transform: rotate(0.4deg); }
+}
+
+@keyframes skeleton-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+@keyframes empty-state-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
