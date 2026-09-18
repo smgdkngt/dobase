@@ -67,10 +67,12 @@ class Tools::Chats::MessagesControllerTest < ActionDispatch::IntegrationTest
     get tool_chat_messages_path(@tool, before: messages[5].id), headers: { "Accept" => "text/vnd.turbo-stream.html" }
 
     assert_response :success
-    assert_select "turbo-stream[action=prepend][target=chat_messages]"
+    assert_select "turbo-stream[action=prepend][target=chat_messages]" do
+      assert_select "template", html: /Message 0\b/
+      # The page already has this one; it comes back only to join its group
+      assert_select "template", html: /Message 5\b/, count: 0
+    end
     assert_select "turbo-stream[action=replace][target=chat_older_messages]"
-    assert_match(/Message 0\b/, response.body)
-    assert_no_match(/Message 5\b/, response.body)
   end
 
   test "the day's separator moves up with the messages that now open it" do
@@ -83,6 +85,30 @@ class Tools::Chats::MessagesControllerTest < ActionDispatch::IntegrationTest
     # already shows has to go — the prepended page brings its own, above the
     # older messages where it belongs.
     assert_select "turbo-stream[action=remove][target=?]", "chat_date_#{messages[1].created_at.to_date}"
+  end
+
+  test "a group that straddles the page boundary stops repeating its author" do
+    messages = add_messages(4)
+
+    get tool_chat_messages_path(@tool, before: messages[2].id), headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    assert_response :success
+    # Same person, same minute: the message the page opened with belongs to the
+    # group the prepended page ends with, and is drawn again without the header
+    assert_select "turbo-stream[action=replace][target=?]", "chats_message_#{messages[2].id}"
+  end
+
+  test "a message by someone else keeps its author across the page boundary" do
+    other = users(:two)
+    @tool.collaborators.create!(user: other, role: "collaborator")
+    add_messages(2)
+    boundary = @chat.messages.create!(user: other, body: "<p>Mine</p>")
+    @chat.messages.create!(user: other, body: "<p>And another</p>")
+
+    get tool_chat_messages_path(@tool, before: boundary.id), headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    assert_response :success
+    assert_select "turbo-stream[action=replace][target=?]", "chats_message_#{boundary.id}", false
   end
 
   test "the author is offered a form to edit their own message" do

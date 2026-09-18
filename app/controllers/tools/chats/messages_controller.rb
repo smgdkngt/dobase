@@ -30,6 +30,7 @@ module Tools
           # the new one instead, since they share an id.
           remove_boundary_date_separator,
           turbo_stream.prepend("chat_messages", partial: "tools/chats/messages", locals: { messages: @messages }),
+          fold_boundary_message_into_its_group,
           turbo_stream.replace("chat_older_messages", partial: "tools/chats/older_messages",
             locals: { tool: @tool, messages: @messages, has_more: @has_more })
         ].compact
@@ -85,6 +86,19 @@ module Tools
       end
 
       private
+
+      # The message the page opened with was the first of its group, so it drew
+      # its author's name and avatar. Now that the message before it is on the
+      # page too, it may belong to that group after all, and is drawn again as
+      # the continuation it is.
+      def fold_boundary_message_into_its_group
+        previous = @messages.last
+        boundary = @tool.chat.messages.find_by(id: params[:before])
+        return unless previous && boundary && helpers.chat_continuation?(previous, boundary)
+
+        turbo_stream.replace(boundary, partial: "tools/chats/message",
+          locals: { message: boundary, is_continuation: true })
+      end
 
       def remove_boundary_date_separator
         date = @messages.last&.created_at&.to_date
