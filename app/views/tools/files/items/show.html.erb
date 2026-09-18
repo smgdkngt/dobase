@@ -49,7 +49,7 @@
 
   <%# Sidebar %>
   <div class="p-4 sm:p-6 border-t md:border-t-0 md:border-l border-border-light overflow-y-auto">
-    <h3 class="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-4">Details</h3>
+    <h2 class="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-4">Details</h2>
     <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
       <dt class="text-text-tertiary">Type</dt>
       <dd class="min-w-0 text-text-primary wrap-anywhere"><%= @file.content_type || "Unknown" %></dd>
@@ -70,7 +70,7 @@
     </dl>
 
     <% if @file.share %>
-      <h3 class="text-sm font-semibold text-text-secondary uppercase tracking-wide mt-6 mb-4">Sharing</h3>
+      <h2 class="text-sm font-semibold text-text-secondary uppercase tracking-wide mt-6 mb-4">Sharing</h2>
       <div class="bg-accent-light p-3 rounded-lg">
         <% if @file.share.expired? %>
           <p class="flex items-center gap-2 text-sm text-error">

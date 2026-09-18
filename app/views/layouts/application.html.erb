@@ -54,7 +54,9 @@
   </head>
 
   <body class="bg-background-secondary text-text-primary" data-controller="keyboard-shortcuts">
-    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <%# data-turbo="false" so the browser handles the fragment itself and moves
+        focus into <main>; a Turbo anchor visit only scrolls. %>
+    <a href="#main-content" class="skip-link" data-turbo="false">Skip to main content</a>
     <%= render "shared/turbo_confirm_dialog" %>
     <% if user_signed_in? %>
       <%= render "shared/flash" %>
