@@ -51,6 +51,9 @@ gem "ruby-vips"
 # Create zip files for folder downloads
 gem "rubyzip", "~> 3.5"
 
+# Markdown, for previewing .md files in the Files tool
+gem "commonmarker", "~> 2.0"
+
 # iCalendar parsing and generation
 gem "icalendar"
 

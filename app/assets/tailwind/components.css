@@ -503,6 +503,44 @@
 
   /* ── Rich text content (compact rendering for chat/comments) ─────── */
 
+  /* A text or markdown file shown as itself: readable width, scrolls on its own */
+  .file-text-preview {
+    @apply w-full max-h-[70vh] overflow-auto bg-surface border border-border-light text-text-primary;
+  }
+
+  .file-text-preview-plain {
+    @apply p-5 sm:p-6 text-sm font-mono leading-relaxed whitespace-pre-wrap break-words;
+  }
+
+  /* A markdown file reads as a document, not as a chat message */
+  .markdown-preview {
+    @apply p-5 sm:p-8 text-text-primary leading-relaxed wrap-anywhere;
+
+    > :first-child { @apply mt-0; }
+    p { @apply my-3; }
+    strong, b { @apply font-semibold; }
+    em, i { @apply italic; }
+    a { @apply text-accent underline; }
+    h1 { @apply text-2xl font-semibold mt-8 mb-3 text-balance; }
+    h2 { @apply text-xl font-semibold mt-7 mb-3 text-balance; }
+    h3 { @apply text-lg font-semibold mt-6 mb-2; }
+    h4, h5, h6 { @apply text-base font-semibold mt-5 mb-2; }
+    ul { @apply list-disc pl-6 my-3 space-y-1; }
+    ol { @apply list-decimal pl-6 my-3 space-y-1; }
+    li > ul, li > ol { @apply my-1; }
+    code { @apply bg-background-secondary px-1 py-0.5 rounded text-[0.875em] font-mono; }
+    pre { @apply bg-background-secondary p-4 rounded-lg my-4 overflow-x-auto text-sm leading-relaxed; }
+    pre code { @apply bg-transparent p-0; }
+    blockquote { @apply border-l-4 border-border pl-4 my-4 text-text-secondary; }
+    hr { @apply my-6 border-border-light; }
+    img { @apply max-w-full rounded-lg my-4; }
+    table { @apply w-full my-4 text-sm border-collapse; }
+    th { @apply text-left font-semibold border-b border-border px-3 py-2 bg-background-secondary; }
+    td { @apply border-b border-border-light px-3 py-2 align-top; }
+    input[type="checkbox"] { @apply mr-2 align-[-1px]; }
+    li:has(> input[type="checkbox"]) { @apply list-none -ml-5; }
+  }
+
   .rich-text-content {
     @apply text-text-primary leading-snug wrap-anywhere;
 
