@@ -49,6 +49,13 @@ export default class extends Controller {
   }
 
   handleChannelMessage(data) {
+    // Presence is counted per server process, so one of our own tabs closing on
+    // another process can mark us offline while we're still here. Say hello
+    // again rather than letting everyone else think we left.
+    if (data.type === "presence" && data.status === "offline" && data.user_id === this.userIdValue) {
+      this.channel?.perform("announce_presence")
+    }
+
     if (data.user_id === this.userIdValue) return
 
     switch (data.type) {
