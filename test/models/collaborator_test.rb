@@ -62,4 +62,28 @@ class CollaboratorTest < ActiveSupport::TestCase
 
     assert_equal [ event ], users(:one).notifications.map(&:event)
   end
+
+  test "destroying a collaborator hands back the todos they were assigned on that tool" do
+    tool = tools(:my_todos)
+    membership = tool.collaborators.create!(user: users(:two), role: "collaborator")
+    mine = todo_items(:pending_one)
+    mine.update!(assigned_user: users(:two))
+    elsewhere = todo_items(:other_item)
+    elsewhere.update!(assigned_user: users(:two))
+
+    membership.destroy
+
+    assert_nil mine.reload.assigned_user
+    assert_equal users(:two), elsewhere.reload.assigned_user
+  end
+
+  test "destroying a collaborator hands back the cards they were assigned on that tool" do
+    column = boards(:shared).columns.create!(name: "To Do", position: 0)
+    card = column.cards.create!(title: "Shared card", position: 0)
+    card.update!(assigned_user: users(:two))
+
+    @collaborator.destroy
+
+    assert_nil card.reload.assigned_user
+  end
 end

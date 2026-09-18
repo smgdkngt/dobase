@@ -34,15 +34,14 @@ module Todos
     def recurring? = recurrence_rule.present?
 
     # Creates the next instance of a recurring item with the schedule advanced
-    # one interval. Comments and attachments stay on the completed record as
-    # history; the new instance starts fresh, unassigned if the assignee has
-    # since left the tool.
+    # one interval, at the top of the list. Comments and attachments stay on the
+    # completed record as history; the new instance starts fresh, unassigned if
+    # the assignee has since left the tool.
     def spawn_next_instance!
       return unless recurring?
 
       new_item = list.items.new(
         title: title,
-        position: 0,
         assigned_user_id: (assigned_user_id if assignee_on_tool?),
         recurrence_rule: recurrence_rule,
         due_date: next_due_date,
@@ -51,6 +50,7 @@ module Todos
       )
       new_item.description = description.body if description.present?
       new_item.save!
+      new_item.move_to(list, position: 0, by: updated_by)
       new_item
     end
 

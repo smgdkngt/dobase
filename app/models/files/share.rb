@@ -16,6 +16,16 @@ module Files
     scope :active, -> { where("expires_at IS NULL OR expires_at > ?", Time.current) }
     scope :expired, -> { where("expires_at <= ?", Time.current) }
 
+    # The share form asks for a day, not a moment. A link set to expire on a day
+    # should still work that day, so a plain date means the end of it.
+    def expires_at=(value)
+      if value.is_a?(String) && value.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+        super(Time.zone.parse(value).end_of_day)
+      else
+        super
+      end
+    end
+
     def expired?
       expires_at.present? && expires_at <= Time.current
     end

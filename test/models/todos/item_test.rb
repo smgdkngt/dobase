@@ -138,6 +138,17 @@ module Todos
       assert_nil item.reload.spawn_next_instance!.assigned_user
     end
 
+    test "spawn_next_instance puts the fresh copy at the top of the list" do
+      item = todo_items(:pending_two)
+      item.update!(recurrence_rule: "daily")
+
+      new_item = item.spawn_next_instance!
+
+      assert_equal new_item, item.list.items.reload.first
+      positions = item.list.items.map(&:position)
+      assert_equal positions.uniq, positions, "every item should keep a place of its own"
+    end
+
     test "spawn_next_instance rolls the due_date forward by the rule's interval" do
       item = todo_items(:pending_one)
       anchor = Date.new(2026, 1, 15)

@@ -12,7 +12,7 @@
         &middot; Shared <%= time_ago_in_words(@share.created_at) %> ago
       </p>
     </div>
-    <% if @files.any? %>
+    <% if @files.any? || @folders.any? %>
       <%= link_to share_download_path(@share.token), class: "btn btn-primary", data: { turbo: false } do %>
         <%= render "shared/icon", name: "download", size: 16 %>
         <span>Download All</span>

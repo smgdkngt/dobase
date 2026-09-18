@@ -49,18 +49,20 @@
     </div>
   <% end %>
 
+  <%# Always the same element, empty or not: edits arriving over the channel are
+      written into it, and an empty document has to have somewhere to put them. %>
   <main class="flex-1 overflow-y-auto">
-    <% if @document.content.present? || @locked_by %>
-      <article class="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 document-view" data-document-viewer-target="content">
+    <article class="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 document-view" data-document-viewer-target="content">
+      <% if @document.content.present? %>
         <%= @document.content %>
-      </article>
-    <% else %>
-      <div class="h-full flex items-center justify-center">
-        <%= render "components/empty_state",
-              icon: "file-text",
-              title: "This document is empty",
-              description: "Click Edit to start writing" %>
-      </div>
-    <% end %>
+      <% else %>
+        <div class="min-h-[60vh] flex items-center justify-center">
+          <%= render "components/empty_state",
+                icon: "file-text",
+                title: "This document is empty",
+                description: "Click Edit to start writing" %>
+        </div>
+      <% end %>
+    </article>
   </main>
 </div>

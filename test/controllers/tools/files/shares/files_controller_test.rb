@@ -26,6 +26,26 @@ module Tools
           assert_select "a[href='#{share_download_path(@share.token)}']", count: 0
         end
 
+        test "the gallery only offers images the share can actually open" do
+          nested = file_items(:photo)
+          nested.update!(folder: file_folders(:nested_folder))
+          nested.file.attach(io: StringIO.new("jpeg"), filename: "sunset.jpg", content_type: "image/jpeg")
+
+          get share_path(@share.token)
+
+          assert_response :success
+          assert_select "[data-name='#{nested.name}']", count: 0
+        end
+
+        test "a folder whose files are all in subfolders can still be downloaded" do
+          @file.update!(folder: file_folders(:nested_folder))
+
+          get share_path(@share.token)
+
+          assert_response :success
+          assert_select "a[href='#{share_download_path(@share.token)}']", text: /Download All/
+        end
+
         test "a file that isn't in the shared folder shows the share's not found page" do
           get share_file_path(@share.token, file_items(:readme))
 
