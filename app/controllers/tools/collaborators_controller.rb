@@ -38,8 +38,10 @@ module Tools
         return
       end
 
-      # Clean up old declined/expired invitations for this email
-      @tool.invitations.where(email: email).where.not(status: "pending").destroy_all
+      # Any earlier invitation for this address is spent — declined, accepted or
+      # expired — since an active one returned above. Clear it out: the database
+      # only allows one pending invitation per address.
+      @tool.invitations.where(email: email).destroy_all
 
       invitation = @tool.invitations.build(email: email, invited_by: current_user)
 

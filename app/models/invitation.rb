@@ -22,6 +22,7 @@ class Invitation < ApplicationRecord
   scope :declined, -> { where(status: "declined") }
 
   validate :cannot_invite_existing_member
+  validate :one_pending_invitation_per_address
 
   def expired?
     expires_at < Time.current
@@ -63,6 +64,16 @@ class Invitation < ApplicationRecord
 
   def set_expiry
     self.expires_at ||= 7.days.from_now
+  end
+
+  # The database enforces one pending invitation per address per tool; say so
+  # rather than letting the constraint raise.
+  def one_pending_invitation_per_address
+    return unless tool && pending?
+
+    others = tool.invitations.pending.where(email: email)
+    others = others.where.not(id: id) if persisted?
+    errors.add(:email, "has already been invited") if others.exists?
   end
 
   def cannot_invite_existing_member
