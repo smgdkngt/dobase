@@ -10,6 +10,7 @@
     shadow: Whether to show shadow (default: true)
     controls: Show video/audio controls (default: true)
     autoplay: Autoplay video/audio (default: false)
+    fill: Let text and PDF previews fill their container instead of capping at 70vh (default: false)
 
   Examples:
     render "components/media_preview", file: @file
@@ -21,6 +22,7 @@
   shadow = local_assigns.fetch(:shadow, true)
   controls = local_assigns.fetch(:controls, true)
   autoplay = local_assigns.fetch(:autoplay, false)
+  fill = local_assigns.fetch(:fill, false)
 
   radius_class = case rounded
     when :xl then "rounded-xl"
@@ -54,7 +56,7 @@
     <% end %>
   </div>
 <% elsif file.text? && (preview = file.preview_text) %>
-  <div class="file-text-preview <%= radius_class %>">
+  <div class="file-text-preview <%= radius_class %> <%= "file-text-preview-fill" if fill %>">
     <% if file.markdown? %>
       <div class="markdown-preview"><%= markdown_preview(preview) %></div>
     <% else %>
@@ -74,7 +76,7 @@
     <% end %>
   </div>
 <% elsif file.pdf? %>
-  <div class="w-full h-full min-h-[70vh]">
+  <div class="w-full h-full <%= "min-h-[70vh]" unless fill %>">
     <iframe src="<%= url_for(file.file) %>" type="application/pdf" class="w-full h-full border-none <%= radius_class %>"></iframe>
   </div>
 <% else %>

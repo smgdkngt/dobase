@@ -36,9 +36,16 @@
   </div>
 
   <%# Content %>
-  <div class="flex items-start justify-center p-4 sm:p-8 bg-background-secondary overflow-auto <%= "[&>*]:w-full" if @file.text? %>">
-    <%= render "components/media_preview", file: @file, download_path: tool_files_item_download_path(@tool, @file) %>
-  </div>
+  <% if @file.text? || @file.pdf? %>
+    <%# Something you read takes the whole pane and scrolls inside its own frame %>
+    <div class="grid min-h-0 p-3 sm:p-4 bg-background-secondary overflow-hidden">
+      <%= render "components/media_preview", file: @file, fill: true, download_path: tool_files_item_download_path(@tool, @file) %>
+    </div>
+  <% else %>
+    <div class="flex items-start justify-center p-4 sm:p-8 bg-background-secondary overflow-auto">
+      <%= render "components/media_preview", file: @file, download_path: tool_files_item_download_path(@tool, @file) %>
+    </div>
+  <% end %>
 
   <%# Sidebar %>
   <div class="p-4 sm:p-6 border-t md:border-t-0 md:border-l border-border-light overflow-y-auto">
