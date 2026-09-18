@@ -23,6 +23,12 @@ export default class extends Controller {
     // Store ownership for reference
     this.element.dataset.isOwn = isOwn ? "true" : "false"
 
+    // Only the author edits their own message, the same as the controller allows.
+    const editBtn = this.element.querySelector("[data-message-edit]")
+    if (editBtn) {
+      editBtn.classList.toggle("hidden", !isOwn)
+    }
+
     const deleteBtn = this.element.querySelector("[data-message-delete]")
     if (deleteBtn) {
       deleteBtn.classList.toggle("hidden", !(isOwn || canModerate))

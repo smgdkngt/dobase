@@ -1,0 +1,41 @@
+<%#
+  A page of chat messages, oldest first, with a separator opening each new day
+  and consecutive messages from the same person folded into one group.
+
+  Required:
+    messages: the messages to render, oldest first
+%>
+<% last_date = nil %>
+<% messages.each_with_index do |message, index| %>
+  <% message_date = message.created_at.to_date %>
+  <% if message_date != last_date %>
+    <%
+      date_label =
+        case message_date
+        when Date.current then "Today"
+        when Date.current - 1 then "Yesterday"
+        when (Date.current - 6)..Date.current then message_date.strftime("%A")
+        else format_date(message_date)
+        end
+    %>
+    <%# The id lets a page of older messages take over a day it now opens. %>
+    <div id="chat_date_<%= message_date %>"
+         class="flex items-center gap-3 my-4 sm:my-6 px-2 sm:px-4"
+         role="separator"
+         aria-label="Messages from <%= date_label %>">
+      <div class="flex-1 h-px bg-border-light"></div>
+      <span class="text-xs text-text-tertiary font-medium"><%= date_label %></span>
+      <div class="flex-1 h-px bg-border-light"></div>
+    </div>
+    <% last_date = message_date %>
+  <% end %>
+  <%
+    # A continuation of the one above it: same person, same day, within 5 minutes
+    previous = index.positive? ? messages[index - 1] : nil
+    is_continuation = previous &&
+                      previous.user_id == message.user_id &&
+                      previous.created_at.to_date == message.created_at.to_date &&
+                      (message.created_at - previous.created_at) < 5.minutes
+  %>
+  <%= render "tools/chats/message", message: message, is_continuation: is_continuation %>
+<% end %>

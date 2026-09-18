@@ -12,7 +12,6 @@
     timestamp = format_datetime(message.created_at)
   end
 
-  has_content = message.body.present?
   has_files = message.has_files?
   image_files = has_files ? message.image_files : []
   other_files = has_files ? message.other_files : []
@@ -59,9 +58,7 @@
       </div>
     <% end %>
 
-    <% if has_content %>
-      <div class="text-sm sm:text-base text-text-primary rich-text-content"><%= message.body %></div>
-    <% end %>
+    <%= render "tools/chats/message_body", message: message %>
 
     <% if image_files.any? %>
       <div class="flex flex-wrap gap-2 mt-2">
@@ -100,6 +97,14 @@
             title: "Reply",
             group: :left,
             data: { action: "click->chat#startReply", message_id: message.id } %>
+      <div class="hidden" data-message-edit>
+        <%= render "components/icon_button",
+              icon: "edit-2",
+              title: "Edit",
+              group: :middle,
+              href: edit_tool_chat_message_path(tool, message),
+              data: { turbo_frame: dom_id(message, :body) } %>
+      </div>
       <div class="hidden" data-message-delete>
         <%= render "components/icon_button",
               icon: "trash-2",

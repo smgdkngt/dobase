@@ -23,6 +23,28 @@
     }
   }
 
+  /* The way back through the chat, above the messages on the page. */
+  .chat-load-older {
+    @apply mx-auto flex w-fit items-center gap-1.5 rounded-full border border-border-light
+           bg-surface px-3 py-1.5 text-xs font-medium text-text-secondary
+           hover:bg-background-tertiary hover:text-text-primary
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40;
+    transition: background-color 140ms var(--ease-out), color 140ms var(--ease-out);
+  }
+
+  /* A message being rewritten in place, in the frame its text normally fills. */
+  .chat-message-edit {
+    @apply mt-1 max-w-2xl;
+  }
+
+  .chat-older-placeholder {
+    @apply space-y-3 py-2;
+  }
+
+  .chat-older-placeholder-row {
+    @apply flex gap-2.5 sm:gap-3;
+  }
+
   /* Messages ease in as they render — a new send, the realtime broadcast
      landing for other participants, or the history on first load — instead
      of popping straight into the list. Mirrors the board's [data-card-id]

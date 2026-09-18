@@ -4,7 +4,7 @@ import { api } from "services/api"
 import consumer from "channels/consumer"
 
 export default class extends Controller {
-  static targets = ["messages", "typingIndicator", "fileInput", "filePreview", "form", "replyPreview", "replyToId", "replyAuthor", "replyContent", "onlineIndicator", "imagePreviewTemplate", "filePreviewTemplate"]
+  static targets = ["messages", "typingIndicator", "fileInput", "filePreview", "form", "replyPreview", "replyToId", "replyAuthor", "replyContent", "onlineIndicator", "imagePreviewTemplate", "filePreviewTemplate", "olderMessages", "olderMessagesTrigger", "olderMessagesPlaceholder"]
   static values = { chatId: Number, userId: Number, readUrl: String, canModerate: Boolean }
 
   connect() {
@@ -15,6 +15,7 @@ export default class extends Controller {
     this.typingTimeout = null
     this.isTyping = false
     this.markAsReadPending = false
+    this.loadingOlder = false
 
     this.boundTurboRender = this.handleTurboRender.bind(this)
     document.addEventListener("turbo:before-stream-render", this.boundTurboRender)
@@ -33,7 +34,41 @@ export default class extends Controller {
     window.removeEventListener("focus", this.boundMarkAsRead)
     this.revokeObjectUrls()
     this.channel?.unsubscribe()
+    this.topObserver?.disconnect()
+    this.topObserver = null
     if (this.typingTimeout) clearTimeout(this.typingTimeout)
+  }
+
+  // Older messages
+  //
+  // Reaching the top asks for the page before the oldest message showing, by
+  // clicking the same link a reader can click. The trigger is replaced by every
+  // page that arrives, so it's watched through its target callbacks.
+  olderMessagesTriggerTargetConnected(trigger) {
+    if (!this.hasMessagesTarget) return
+
+    this.topObserver ||= new IntersectionObserver(
+      entries => entries.forEach(entry => { if (entry.isIntersecting) this.loadOlderMessages() }),
+      { root: this.messagesTarget, rootMargin: "200px 0px 0px 0px" }
+    )
+    this.topObserver.observe(trigger)
+  }
+
+  olderMessagesTriggerTargetDisconnected(trigger) {
+    this.topObserver?.unobserve(trigger)
+  }
+
+  loadOlderMessages() {
+    if (this.loadingOlder || !this.hasOlderMessagesTriggerTarget) return
+    this.olderMessagesTriggerTarget.click()
+  }
+
+  // Clicking the trigger (by hand or from the observer) swaps it for a
+  // placeholder, so the wait reads as the messages that are on their way.
+  loadingOlderMessages() {
+    this.loadingOlder = true
+    if (this.hasOlderMessagesTriggerTarget) this.olderMessagesTriggerTarget.hidden = true
+    if (this.hasOlderMessagesPlaceholderTarget) this.olderMessagesPlaceholderTarget.hidden = false
   }
 
   // ActionCable
@@ -125,9 +160,40 @@ export default class extends Controller {
   handleTurboRender(event) {
     const fallback = event.detail.render
     event.detail.render = (streamElement) => {
+      // A page of older messages goes in above what the reader is looking at:
+      // hold their place instead of dropping them back at the newest message.
+      if (this.isOlderMessagesStream(streamElement)) {
+        const before = this.hasMessagesTarget
+          ? { height: this.messagesTarget.scrollHeight, top: this.messagesTarget.scrollTop }
+          : null
+
+        fallback(streamElement)
+        this.loadingOlder = false
+
+        // Straight after the render, not in a frame callback: the three streams
+        // land one after the other, and each has to correct for its own change
+        // before the next one measures.
+        if (before) {
+          this.messagesTarget.scrollTop = before.top + (this.messagesTarget.scrollHeight - before.height)
+        }
+        return
+      }
+
       fallback(streamElement)
       setTimeout(() => this.scrollToBottom(), 50)
     }
+  }
+
+  // The three streams a page of older messages arrives in: the messages
+  // themselves, the trigger that asks for the page before them, and the day
+  // separator they take over.
+  isOlderMessagesStream(streamElement) {
+    const target = streamElement.getAttribute("target")
+    const action = streamElement.getAttribute("action")
+
+    if (target === "chat_older_messages") return true
+    if (target === "chat_messages" && action === "prepend") return true
+    return action === "remove" && target?.startsWith("chat_date_")
   }
 
   // Scrolling & Read receipts

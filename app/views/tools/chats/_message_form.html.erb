@@ -1,0 +1,24 @@
+<%#
+  Rewriting a message in place: takes the body's frame, and gives it back when
+  the edit is saved (the message is replaced) or cancelled (the body comes back).
+
+  Required:
+    message: the message being edited
+%>
+<%= turbo_frame_tag dom_id(message, :body) do %>
+  <%= form_with url: tool_chat_message_path(message.chat.tool, message), method: :patch, class: "chat-message-edit" do %>
+    <%= render "components/rich_text_input",
+          name: "message[body]",
+          value: message.body,
+          placeholder: "Edit this message...",
+          submit_on_enter: true,
+          buttons: %w[bold italic code] do %>
+      <%= render "components/button",
+            text: "Cancel",
+            variant: :ghost,
+            size: :sm,
+            href: tool_chat_message_path(message.chat.tool, message) %>
+      <%= render "components/button", text: "Save", size: :sm, type: :submit %>
+    <% end %>
+  <% end %>
+<% end %>

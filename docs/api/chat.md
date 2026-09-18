@@ -2,7 +2,9 @@
 
 ## Messages
 
-`GET /tools/:tool_id/chat` returns the latest 50 messages, oldest first:
+`GET /tools/:tool_id/chat` returns the latest 50 messages, oldest first (the
+same page the chat's own page starts with, which reads further back as you
+scroll up):
 
 ```json
 {
@@ -50,6 +52,11 @@
 
 Reading the chat doesn't mark it read. [Mark it read](#mark-as-read) when you
 have dealt with the messages.
+
+## One message
+
+`GET /tools/:tool_id/chat/messages/:id` returns a single message, in the same
+shape as the ones in the list above.
 
 ## Send a message
 

@@ -211,6 +211,17 @@ module Tools
       assert_equal 0, @chat.messages.count
     end
 
+    test "a single message can be fetched on its own" do
+      message = @chat.messages.create!(user: @other_user, body: "<p>Just this one</p>")
+
+      get tool_chat_message_path(@tool, message), headers: @headers
+
+      assert_response :success
+      assert_equal message.id, response.parsed_body["id"]
+      assert_equal "Just this one", response.parsed_body["body"]
+      assert_equal @other_user.id, response.parsed_body.dig("user", "id")
+    end
+
     test "update edits your own message" do
       message = @chat.messages.create!(user: @user, body: "<p>Typo</p>")
 
