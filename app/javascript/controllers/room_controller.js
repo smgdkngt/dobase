@@ -486,11 +486,21 @@ export default class extends Controller {
 
   _pingActivity(active) {
     if (!this.activityUrlValue) return
-    fetch(this.activityUrlValue, {
+    // A leave ping carries how many participants are still in the call, so the
+    // sidebar dot only clears for everyone once the last one has left.
+    const url = active
+      ? this.activityUrlValue
+      : `${this.activityUrlValue}?remaining=${this._remainingParticipantCount()}`
+    fetch(url, {
       method: active ? "POST" : "DELETE",
       keepalive: true,
       headers: { "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content }
     }).catch(() => {})
+  }
+
+  // Everyone but us: the ping is sent while we are still connected.
+  _remainingParticipantCount() {
+    return this.room?.remoteParticipants?.size ?? 0
   }
 
   _listenForNavigation() {

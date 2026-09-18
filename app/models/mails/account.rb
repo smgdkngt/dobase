@@ -9,7 +9,6 @@ module Mails
     belongs_to :tool
     has_many :messages, class_name: "Mails::Message", foreign_key: "mail_account_id", dependent: :destroy
     has_many :attachments, through: :messages
-    has_many :labels, class_name: "Mails::Label", foreign_key: "mail_account_id", dependent: :destroy
     has_many :contacts, class_name: "Mails::Contact", foreign_key: "mail_account_id", dependent: :destroy
 
     validates :email_address, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP, allow_blank: true }

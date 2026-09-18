@@ -34,21 +34,6 @@ module Tools
         end
       end
 
-      def test_connection
-        @calendar_account = @tool.calendar_account || @tool.build_calendar_account(calendar_account_params)
-
-        begin
-          service = CaldavSyncService.new(@calendar_account)
-          service.test_connection
-
-          render json: { success: true, message: "Connection successful!" }
-        rescue CaldavSyncService::AuthenticationError => e
-          render json: { success: false, message: "Authentication failed: #{e.message}" }, status: :unprocessable_entity
-        rescue CaldavSyncService::ConnectionError => e
-          render json: { success: false, message: "Connection failed: #{e.message}" }, status: :unprocessable_entity
-        end
-      end
-
       private
 
       def set_tool

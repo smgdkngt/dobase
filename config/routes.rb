@@ -151,9 +151,7 @@ Rails.application.routes.draw do
 
       resource :calendar, only: :show do
         scope module: :calendars do
-          resource :account, only: %i[new create edit update] do
-            post :test_connection, on: :collection
-          end
+          resource :account, only: %i[new create edit update]
           resource :sync, only: %i[show create]
           resources :events, only: %i[show new create edit update destroy]
           resources :invites, only: %i[create destroy]

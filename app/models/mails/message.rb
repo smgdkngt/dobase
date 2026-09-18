@@ -6,8 +6,6 @@ module Mails
 
     belongs_to :account, class_name: "Mails::Account", foreign_key: "mail_account_id"
     has_many :attachments, class_name: "Mails::Attachment", foreign_key: "mail_message_id", dependent: :destroy
-    has_many :label_assignments, class_name: "Mails::LabelAssignment", foreign_key: "mail_message_id", dependent: :destroy
-    has_many :labels, through: :label_assignments, source: :label
     has_many :calendar_invites, class_name: "Calendars::Invite", foreign_key: "mail_message_id", dependent: :destroy
 
     validates :message_id, presence: true, uniqueness: { scope: :mail_account_id }

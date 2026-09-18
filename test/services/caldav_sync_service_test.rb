@@ -16,33 +16,6 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     WebMock.allow_net_connect!
   end
 
-  # Connection tests
-
-  test "test_connection succeeds with valid credentials" do
-    stub_request(:propfind, @account.caldav_url)
-      .to_return(status: 207, body: principal_response)
-
-    assert @service.test_connection
-  end
-
-  test "test_connection raises AuthenticationError on 401" do
-    stub_request(:propfind, @account.caldav_url)
-      .to_return(status: 401, body: "")
-
-    assert_raises(CaldavSyncService::AuthenticationError) do
-      @service.test_connection
-    end
-  end
-
-  test "test_connection raises ConnectionError on server error" do
-    stub_request(:propfind, @account.caldav_url)
-      .to_return(status: 500, body: "")
-
-    assert_raises(CaldavSyncService::ConnectionError) do
-      @service.test_connection
-    end
-  end
-
   # Calendar discovery tests
 
   test "discover_calendars finds and saves calendars" do
@@ -334,7 +307,7 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
   test "a calendar server on a local address isn't contacted" do
     @account.update!(caldav_url: "http://169.254.169.254/latest/")
 
-    error = assert_raises(CaldavSyncService::ConnectionError) { @service.test_connection }
+    error = assert_raises(CaldavSyncService::ConnectionError) { @service.discover_calendars }
     assert_match "local address", error.message
   end
 

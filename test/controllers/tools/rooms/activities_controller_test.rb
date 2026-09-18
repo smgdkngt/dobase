@@ -24,9 +24,23 @@ module Tools
         assert_response :no_content
       end
 
-      test "destroy broadcasts an inactive room_activity ping" do
+      test "destroy broadcasts an inactive room_activity ping when the call is empty" do
         assert_broadcast_on("notifications:#{@other_user.id}", type: "room_activity", tool_id: @tool.id, active: false) do
           delete tool_room_activity_path(@tool), as: :json
+        end
+        assert_response :no_content
+      end
+
+      test "destroy keeps the indicator active while participants remain" do
+        assert_broadcast_on("notifications:#{@other_user.id}", type: "room_activity", tool_id: @tool.id, active: true) do
+          delete tool_room_activity_path(@tool, remaining: 2), as: :json
+        end
+        assert_response :no_content
+      end
+
+      test "destroy treats a missing or unparsable remaining count as an empty call" do
+        assert_broadcast_on("notifications:#{@other_user.id}", type: "room_activity", tool_id: @tool.id, active: false) do
+          delete tool_room_activity_path(@tool, remaining: "nonsense"), as: :json
         end
         assert_response :no_content
       end

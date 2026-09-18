@@ -585,11 +585,8 @@ if ENV["SEED_DEMO"]
     synced_folders: '["INBOX","Sent"]'
   )
 
-  important_label = mail_account.labels.create!(name: "Important", color: "#ef4444")
-  investors_label = mail_account.labels.create!(name: "Investors", color: "#8b5cf6")
-
   # Inbox emails
-  m1 = mail_account.messages.create!(
+  mail_account.messages.create!(
     message_id: "<001@moonshot-snacks.com>",
     uid: 1,
     folder: "INBOX",
@@ -603,7 +600,6 @@ if ENV["SEED_DEMO"]
     read: false,
     starred: true
   )
-  m1.label_assignments.create!(label: important_label)
 
   mail_account.messages.create!(
     message_id: "<002@moonshot-snacks.com>",
@@ -635,7 +631,7 @@ if ENV["SEED_DEMO"]
     starred: false
   )
 
-  m4 = mail_account.messages.create!(
+  mail_account.messages.create!(
     message_id: "<004@moonshot-snacks.com>",
     uid: 4,
     folder: "INBOX",
@@ -649,8 +645,6 @@ if ENV["SEED_DEMO"]
     read: false,
     starred: true
   )
-  m4.label_assignments.create!(label: investors_label)
-  m4.label_assignments.create!(label: important_label)
 
   mail_account.messages.create!(
     message_id: "<005@moonshot-snacks.com>",
@@ -715,7 +709,7 @@ if ENV["SEED_DEMO"]
     starred: false
   )
 
-  puts "  Created Mail with #{mail_account.messages.count} emails and #{mail_account.labels.count} labels"
+  puts "  Created Mail with #{mail_account.messages.count} emails"
 
   # ---------------------------------------------------------------------------
   # 9. Design Calendar (Sophie only, local provider)

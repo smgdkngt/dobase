@@ -29,6 +29,12 @@ module Tools
         assert_labels_match_fields %w[caldav_url username password]
       end
 
+      test "there is no connection test endpoint" do
+        post "/tools/#{@tool.id}/calendar/account/test_connection"
+
+        assert_response :not_found
+      end
+
       test "the account settings have no delete button that would submit them instead" do
         tool = calendars_accounts(:icloud_account).tool
 

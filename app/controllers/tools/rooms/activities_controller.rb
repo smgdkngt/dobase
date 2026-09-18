@@ -20,9 +20,11 @@ module Tools
         head :no_content
       end
 
-      # DELETE /tools/:tool_id/room/activity — the current user left the call
+      # DELETE /tools/:tool_id/room/activity — the current user left the call.
+      # The client says how many participants it left behind, so the indicator
+      # only clears when the call is actually empty.
       def destroy
-        broadcast_activity(active: false)
+        broadcast_activity(active: params[:remaining].to_i.positive?)
         head :no_content
       end
 
