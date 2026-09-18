@@ -10,6 +10,7 @@ class Collaborator < ApplicationRecord
   validates :user_id, uniqueness: { scope: :tool_id, message: "is already a collaborator" }
 
   after_destroy :delete_tool_notifications
+  after_destroy :unassign_tool_work
 
   scope :owners, -> { where(role: "owner") }
   scope :muted, -> { where.not(muted_at: nil) }
@@ -30,6 +31,20 @@ class Collaborator < ApplicationRecord
   end
 
   private
+
+  # Someone who leaves or is removed can't open what they were assigned, can't be
+  # picked from the assignee menus any more and doesn't show up in the assignee
+  # filter, so their name would sit on todos and cards nobody can hand on. Give
+  # that work back to the tool.
+  def unassign_tool_work
+    Todos::Item.joins(:list)
+      .where(todo_lists: { tool_id: tool_id }, assigned_user_id: user_id)
+      .update_all(assigned_user_id: nil)
+
+    Boards::Card.joins(column: :board)
+      .where(boards: { tool_id: tool_id }, assigned_user_id: user_id)
+      .update_all(assigned_user_id: nil)
+  end
 
   # Notifications render the tool's current card, todo and file names, so
   # someone who leaves or is removed would keep seeing them. Clear theirs out.
