@@ -45,4 +45,29 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to new_session_path
   end
+
+  test "a rejected avatar comes back as a form error, not an error page" do
+    file = Rack::Test::UploadedFile.new(StringIO.new("not an image"), "text/plain", original_filename: "notes.txt")
+
+    patch profile_path, params: { user: profile_params(avatar: file) }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "must be an image"
+    assert_not @user.reload.avatar.attached?
+  end
+
+  test "an oversized avatar comes back as a form error too" do
+    file = Rack::Test::UploadedFile.new(StringIO.new("x" * 6.megabytes), "image/png", original_filename: "big.png")
+
+    patch profile_path, params: { user: profile_params(avatar: file) }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "less than 5MB"
+  end
+
+  private
+
+  def profile_params(**overrides)
+    { first_name: @user.first_name, last_name: @user.last_name, email_address: @user.email_address }.merge(overrides)
+  end
 end
