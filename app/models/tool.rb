@@ -103,9 +103,10 @@ class Tool < ApplicationRecord
         unread << tid if max_at && (ts.nil? || max_at > ts)
       end
 
-    # Documents key off updated_at and record no author for an edit, so there is
-    # no way to tell your own work from anyone else's here.
+    # Documents key off updated_at, so the person who counts is whoever edited
+    # last, falling back to whoever wrote the document.
     Docs::Document.where(tool_id: candidate_ids)
+      .where("COALESCE(documents.updated_by_id, documents.created_by_id) IS NULL OR COALESCE(documents.updated_by_id, documents.created_by_id) != ?", user.id)
       .group(:tool_id)
       .maximum(:updated_at)
       .each do |tid, max_at|
@@ -136,11 +137,12 @@ class Tool < ApplicationRecord
       end
 
     # Calendar events (events → calendars via calendar_id → accounts via
-    # calendar_account_id). Like documents, they key off updated_at with no
-    # author for the change, so your own edits count as activity too.
+    # calendar_account_id). A change that came back from the server clears the
+    # author, so it counts as activity whoever wrote the event here.
     Calendars::Event
       .joins(calendar: :account)
       .where(calendar_accounts: { tool_id: candidate_ids })
+      .where("COALESCE(calendar_events.updated_by_id, calendar_events.created_by_id) IS NULL OR COALESCE(calendar_events.updated_by_id, calendar_events.created_by_id) != ?", user.id)
       .group("calendar_accounts.tool_id")
       .maximum("calendar_events.updated_at")
       .each do |tid, max_at|

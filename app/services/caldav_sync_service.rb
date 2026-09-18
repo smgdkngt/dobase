@@ -7,6 +7,9 @@ require "cgi"
 require "icalendar"
 
 class CaldavSyncService
+  # What the server hands back about an event without the event itself changing
+  SYNC_BOOKKEEPING_ATTRIBUTES = %w[etag remote_href raw_icalendar updated_at].freeze
+
   class ConnectionError < StandardError; end
   class AuthenticationError < StandardError; end
   class SyncError < StandardError; end
@@ -513,6 +516,10 @@ class CaldavSyncService
       remote_href: event_data[:remote_url],
       raw_icalendar: event_data[:raw_icalendar]
     )
+
+    # A change that came in from the server was made somewhere else, by someone
+    # we can't name, so it stops counting as the work of whoever touched it here
+    event.updated_by_id = nil if event.persisted? && (event.changed - SYNC_BOOKKEEPING_ATTRIBUTES).any?
 
     return if event.save
 
