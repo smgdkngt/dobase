@@ -241,8 +241,8 @@ class ChatTest < ApplicationSystemTestCase
     assert_no_text "No messages yet"
 
     within("##{ActionView::RecordIdentifier.dom_id(message)}") do
-      find(".chat-reactions", visible: :all).first(:xpath, "..").hover
-      find("[title='Add a reaction']").click
+      # The hover bar is see-through until the pointer is on the message
+      find("[title='Add a reaction']", visible: :all).execute_script("this.click()")
       find("[aria-label='React with 👍']").click
       assert_selector ".chat-reaction[aria-pressed='true']", text: /👍\s+1/
     end

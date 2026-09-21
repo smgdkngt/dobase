@@ -103,14 +103,6 @@
               style="anchor-name: --<%= dom_id(message, :react) %>">
         <%= render "shared/icon", name: "smile-plus", size: 16 %>
       </button>
-      <div id="<%= dom_id(message, :react) %>"
-           popover="auto"
-           class="popover-menu chat-reaction-picker"
-           style="position-anchor: --<%= dom_id(message, :react) %>; position-area: block-start span-inline-start">
-        <% Chats::Reaction::EMOJI.each do |emoji| %>
-          <button type="button" class="chat-reaction-choice" data-emoji="<%= emoji %>" data-action="reactions#pick" aria-label="React with <%= emoji %>"><%= emoji %></button>
-        <% end %>
-      </div>
       <%= render "components/icon_button",
             icon: "reply",
             title: "Reply",
@@ -136,5 +128,15 @@
               data: { turbo_confirm_button: "Delete" } %>
       </div>
     </div>
+  </div>
+
+  <%# Outside the hover bar, which is see-through until the pointer is on the message %>
+  <div id="<%= dom_id(message, :react) %>"
+       popover="auto"
+       class="popover-menu chat-reaction-picker"
+       style="position-anchor: --<%= dom_id(message, :react) %>; position-area: block-start span-inline-start">
+    <% Chats::Reaction::EMOJI.each do |emoji| %>
+      <button type="button" class="chat-reaction-choice" data-emoji="<%= emoji %>" data-action="reactions#pick" aria-label="React with <%= emoji %>"><%= emoji %></button>
+    <% end %>
   </div>
 </div>
