@@ -13,6 +13,11 @@ export default class extends Controller {
     if (this.hasCardDetailDialogTarget) {
       this._onModalClose = () => {
         reportPresence(null)
+        // Closed because the page is going elsewhere: that visit stands
+        if ("closedForNavigation" in this.cardDetailDialogTarget.dataset) {
+          delete this.cardDetailDialogTarget.dataset.closedForNavigation
+          return
+        }
         // The dialog's "close" event doesn't fire until its CSS closing
         // transition finishes (allow-discrete keeps it in the top layer
         // until then), so this flag is consumed here rather than cleared

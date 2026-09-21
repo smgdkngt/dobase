@@ -3,10 +3,11 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   connect() {
     this.closeOnNavigate = this.close.bind(this)
+    this.closeForVisit = this.closeForNavigation.bind(this)
     this.handleBeforeRender = this.handleBeforeRender.bind(this)
     this.handleSubmitEnd = this.handleSubmitEnd.bind(this)
 
-    document.addEventListener("turbo:visit", this.closeOnNavigate)
+    document.addEventListener("turbo:visit", this.closeForVisit)
     document.addEventListener("turbo:morph", this.closeOnNavigate)
     document.addEventListener("turbo:before-morph", this.closeOnNavigate)
     document.addEventListener("turbo:before-stream-render", this.handleBeforeRender)
@@ -14,7 +15,7 @@ export default class extends Controller {
   }
 
   disconnect() {
-    document.removeEventListener("turbo:visit", this.closeOnNavigate)
+    document.removeEventListener("turbo:visit", this.closeForVisit)
     document.removeEventListener("turbo:morph", this.closeOnNavigate)
     document.removeEventListener("turbo:before-morph", this.closeOnNavigate)
     document.removeEventListener("turbo:before-stream-render", this.handleBeforeRender)
@@ -26,6 +27,17 @@ export default class extends Controller {
   }
 
   close() {
+    this.element.close()
+  }
+
+  // The page is going somewhere else. Whoever listens for this dialog closing
+  // must not start a visit of its own (the board and todo pages go back to
+  // themselves when their dialog closes), or it would win over the one that is
+  // under way; data-closed-for-navigation tells them.
+  closeForNavigation() {
+    if (!this.element.open) return
+
+    this.element.dataset.closedForNavigation = ""
     this.element.close()
   }
 
