@@ -18,10 +18,17 @@
     <% end %>
   </div>
 
+  <%# Shown by notifications_controller.js while the browser hasn't been asked yet %>
+  <div class="notification-desktop-offer" hidden data-notifications-target="desktopOffer">
+    <%= render "shared/icon", name: "bell", size: 14 %>
+    <span>Get a desktop notification when <%= app_name %> is in another tab.</span>
+    <button type="button" class="notification-desktop-offer-button" data-action="notifications#enableDesktop">Turn on</button>
+  </div>
+
   <% if @notifications.any? %>
-    <div class="max-h-[400px] overflow-y-auto scrollbar-thin" data-notifications-target="list">
-      <% @notifications.each do |notification| %>
-        <%= render "notifications/notification", notification: notification %>
+    <div class="max-h-[min(70vh,32rem)] overflow-y-auto scrollbar-thin" data-notifications-target="list">
+      <% NotificationFeed.new(@notifications).entries.each do |entry| %>
+        <%= render "notifications/entry", entry: entry %>
       <% end %>
     </div>
   <% else %>

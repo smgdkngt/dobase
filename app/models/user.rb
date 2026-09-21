@@ -35,6 +35,25 @@ class User < ApplicationRecord
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
 
+  # Opening what a notification is about reads it: a chat, a card, a document.
+  # Notifications keep their subject as GlobalIDs in the event's JSON params;
+  # a mention keeps only the page it points at, so it's matched by url.
+  def read_notifications_about!(records: [], urls: [], types: [])
+    patterns = Array(records).map { |record| %("#{record.to_global_id}") } +
+      Array(urls).map { |url| %("url":"#{url}") }
+    return if patterns.empty?
+
+    matches = patterns.map { "noticed_events.params LIKE ?" }.join(" OR ")
+    values = patterns.map { |pattern| "%#{self.class.sanitize_sql_like(pattern)}%" }
+    scope = notifications.unread.joins(:event).where(matches, *values)
+    scope = scope.where(noticed_events: { type: types }) if types.any?
+    read = Noticed::Notification.where(id: scope.select(:id)).update_all(read_at: Time.current)
+    return if read.zero?
+
+    # The bell counts what's left, on every page this person has open
+    ActionCable.server.broadcast("notifications:#{id}", { type: "unread_count", count: notifications.unread.count })
+  end
+
   def prune_notifications!
     cutoff_id = notifications.order(created_at: :desc, id: :desc)
                              .offset(NOTIFICATION_LIMIT).limit(1).pick(:id)

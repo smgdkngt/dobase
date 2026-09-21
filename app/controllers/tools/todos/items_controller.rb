@@ -12,6 +12,7 @@ module Tools
         respond_to do |format|
           format.html do
             @collaborators = @tool.users
+            current_user.read_notifications_about!(records: [ @item ], urls: [ tool_todo_path(@tool, item: @item.id) ])
             render layout: false
           end
           format.json

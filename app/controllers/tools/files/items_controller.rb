@@ -12,6 +12,7 @@ module Tools
 
       def show
         @presence_context = "file:#{@file.id}"
+        current_user.read_notifications_about!(records: [ @file ]) if request.format.html?
 
         respond_to do |format|
           format.html { @siblings = (@file.folder&.files || @tool.file_items.roots).ordered.where.not(id: @file.id) }

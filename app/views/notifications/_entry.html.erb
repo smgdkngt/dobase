@@ -1,0 +1,31 @@
+<%#
+  One line in the notifications list: who, what, what they said, where and when.
+  A busy chat is one entry for all its unread messages (see NotificationFeed).
+
+  Required:
+    entry: NotificationFeed::Entry
+%>
+<%= link_to entry.url,
+      class: "notification-row #{'notification-row-unread' if entry.unread?}",
+      data: { turbo_frame: "_top", action: "click->notifications#markAsRead", notification_ids: entry.ids.join(","), unread: entry.unread? } do %>
+  <span class="notification-avatar" aria-hidden="true">
+    <% if entry.actor %>
+      <%= render "shared/avatar", user: entry.actor, size: :md %>
+      <span class="notification-avatar-badge"><%= render "shared/icon", name: entry.icon, size: 10 %></span>
+    <% else %>
+      <span class="notification-avatar-icon"><%= render "shared/icon", name: entry.icon, size: 16 %></span>
+    <% end %>
+  </span>
+  <span class="notification-body">
+    <span class="notification-message"><%= entry.message %></span>
+    <% if entry.excerpt %>
+      <span class="notification-excerpt"><%= entry.excerpt %></span>
+    <% end %>
+    <span class="notification-meta">
+      <%= [ entry.tool&.name, "#{time_ago_in_words(entry.created_at)} ago" ].compact.join(" · ") %>
+    </span>
+  </span>
+  <% if entry.unread? %>
+    <span class="notification-dot"><span class="sr-only">Unread</span></span>
+  <% end %>
+<% end %>

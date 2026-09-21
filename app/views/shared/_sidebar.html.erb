@@ -135,6 +135,7 @@
   <% sidebar_unread_count = current_user.notifications.unread.count %>
   <div data-controller="notifications"
        data-notifications-user-id-value="<%= current_user.id %>"
+       data-notifications-app-name-value="<%= app_name %>"
        data-notifications-unread-count-value="<%= sidebar_unread_count %>">
     <div class="sidebar-bottom-bar">
       <%# User menu trigger — avatar with name %>

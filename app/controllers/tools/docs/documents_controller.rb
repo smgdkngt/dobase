@@ -13,6 +13,7 @@ module Tools
       def show
         @locked_by = @document.locked? ? @document.locked_by : nil
         @presence_context = "document:#{@document.id}"
+        current_user.read_notifications_about!(records: [ @document ], urls: [ tool_docs_document_path(@tool, @document) ])
       end
 
       # Everyone may open the editor at once: the text is a shared copy that
@@ -20,6 +21,7 @@ module Tools
       # recorded from there, for the documents list and the API to read.
       def edit
         @presence_context = "document:#{@document.id}"
+        current_user.read_notifications_about!(records: [ @document ], urls: [ tool_docs_document_path(@tool, @document) ])
       end
 
       def create

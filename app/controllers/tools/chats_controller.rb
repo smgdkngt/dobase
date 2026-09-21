@@ -14,6 +14,8 @@ module Tools
           set_page_of_messages
           @participants = @chat.participants
           @chat.mark_as_read_for!(current_user)
+          current_user.read_notifications_about!(records: [ @tool ], urls: [ tool_chat_path(@tool) ],
+            types: %w[ChatMessageNotifier MentionNotifier])
         end
         # Reading through the API leaves the chat unread; POST /tools/:tool_id/chat/read marks it read.
         format.json { set_page_of_messages }
