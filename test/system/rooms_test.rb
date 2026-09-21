@@ -91,4 +91,42 @@ class RoomsTest < ApplicationSystemTestCase
     assert_no_selector "[data-room-target='joinButton'][disabled]"
     assert_equal 1, page.evaluate_script("window.__tokenRequests")
   end
+
+  test "people in a call get 16:9 tiles as large as the room allows, never cropped to fit" do
+    visit tool_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "room"
+
+    # No video server here: show the call and seat people the way a joining room would
+    page.execute_script(<<~JS)
+      const element = document.querySelector("[data-controller~='room']")
+      const room = window.Stimulus.getControllerForElementAndIdentifier(element, "room")
+      room.preJoinTarget.classList.add("hidden")
+      room.inCallTarget.classList.remove("hidden")
+      room.renderParticipant({ identity: "anna", name: "Anna" })
+    JS
+
+    tile = <<~JS
+      (() => {
+        const grid = document.querySelector("[data-room-target='videoGrid']").getBoundingClientRect()
+        const tiles = [...document.querySelectorAll("[data-participant-id]")].map(tile => tile.getBoundingClientRect())
+        return {
+          ratios: tiles.map(box => Math.round(box.width / box.height * 100)),
+          inside: tiles.every(box => box.left >= grid.left && box.right <= grid.right + 1 && box.top >= grid.top && box.bottom <= grid.bottom + 1),
+          touches: Math.round(grid.width - tiles[0].width) <= 34 || Math.round(grid.height - tiles[0].height) <= 34
+        }
+      })()
+    JS
+
+    assert_equal({ "ratios" => [ 178 ], "inside" => true, "touches" => true }, evaluate_script(tile))
+
+    page.execute_script(<<~JS)
+      const room = window.Stimulus.getControllerForElementAndIdentifier(document.querySelector("[data-controller~='room']"), "room")
+      ;["bo", "cas", "dee", "eli"].forEach(identity => room.renderParticipant({ identity, name: identity }))
+    JS
+
+    layout = evaluate_script(tile)
+    assert_equal [ 178 ] * 5, layout["ratios"]
+    assert layout["inside"], "every tile fits inside the call"
+  end
 end

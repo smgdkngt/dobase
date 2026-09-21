@@ -1,6 +1,7 @@
 @layer components {
+  /* Sized by the room controller to fill the grid without cropping */
   [data-participant-id] {
-    min-height: 200px;
+    width: var(--room-tile-width, 100%);
     aspect-ratio: 16 / 9;
     animation: empty-state-in 240ms var(--ease-out) both;
   }
@@ -30,8 +31,10 @@
     @apply absolute inset-0 flex items-center justify-center text-text-tertiary;
   }
 
+  /* Your own camera is mirrored, as in every other call app: moving left moves
+     left on screen */
   .room-preview-video {
-    @apply absolute inset-0 w-full h-full object-cover object-center;
+    @apply absolute inset-0 w-full h-full object-cover object-center -scale-x-100;
     background: transparent;
   }
 
@@ -48,8 +51,13 @@
   /* ── Participant grid ────────────────────────────────────────── */
 
   .room-video-grid {
-    @apply h-full grid gap-2 p-4 overflow-hidden auto-rows-fr;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    @apply h-full flex flex-wrap content-center justify-center gap-2 p-4 overflow-hidden;
+  }
+
+  /* The whole picture, on black where a camera isn't 16:9 (a phone held
+     upright), rather than a close-up of the middle */
+  .room-tile-video {
+    @apply w-full h-full object-contain bg-black;
   }
 
   /* Name / mic-state / connection-quality overlay — shared by participant
@@ -79,7 +87,7 @@
   }
 
   .room-local-video-feed {
-    @apply w-full aspect-video object-cover object-center bg-background-secondary;
+    @apply w-full aspect-video object-cover object-center bg-background-secondary -scale-x-100;
   }
 
   /* ── Reconnecting banner ─────────────────────────────────────── */
@@ -141,12 +149,12 @@
   }
 
   [data-room-mode-value="pip"] [data-participant-id] {
-    @apply min-h-0 rounded-none border-none;
+    @apply min-h-0 rounded-none border-none w-full!;
     aspect-ratio: auto;
   }
 
   [data-room-mode-value="pip"] [data-participant-id] [data-video] {
-    @apply absolute! inset-0 w-full h-full object-cover object-center;
+    @apply absolute! inset-0 w-full h-full object-cover object-center bg-transparent;
   }
 
   [data-room-mode-value="pip"] [data-participant-id] [data-placeholder] {
