@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dobase &mdash; Your workspace, your server</title>
-  <meta name="description" content="An open-source, self-hosted workspace with installable tools. Mail, boards, docs, chat, todos, files, calendar, and video rooms — all in one deploy.">
+  <meta name="description" content="An open-source, self-hosted workspace with installable tools. Mail, boards, docs, chat, todos, files, calendar, and video rooms — built for working together, live, in one deploy.">
 
   <!-- Open Graph -->
   <meta property="og:title" content="Dobase — Your workspace, your server">
@@ -60,20 +60,19 @@
       </div>
       <div class="hero-screenshots" aria-hidden="true">
         <img src="screenshots/board-launch.png" alt="Kanban board with cards, due dates, and assignees" class="hero-screenshot" loading="eager">
+        <img src="screenshots/docs-together.png" alt="A document two people are writing at once, with the other person's cursor and name" class="hero-screenshot" loading="lazy">
+        <img src="screenshots/search.png" alt="The command palette searching cards, todos, documents, chat, events and mail at once" class="hero-screenshot" loading="lazy">
         <img src="screenshots/mail.png" alt="Email client with threaded conversations" class="hero-screenshot" loading="lazy">
         <img src="screenshots/chat.png" alt="Real-time team chat with file sharing and replies" class="hero-screenshot" loading="lazy">
+        <img src="screenshots/presence.png" alt="A board showing which card a colleague has open" class="hero-screenshot" loading="lazy">
         <img src="screenshots/calendar.png" alt="Weekly calendar view with events" class="hero-screenshot" loading="lazy">
-        <img src="screenshots/docs-editor-edit.png" alt="Rich text document editor" class="hero-screenshot" loading="lazy">
-        <img src="screenshots/add-tool.png" alt="Add any tool to your workspace" class="hero-screenshot" loading="lazy">
+        <img src="screenshots/file-markdown.png" alt="A markdown file shown as a formatted document in Files" class="hero-screenshot" loading="lazy">
         <img src="screenshots/todos.png" alt="Task lists with due dates and assignments" class="hero-screenshot" loading="lazy">
+        <img src="screenshots/card-presence.png" alt="A card that says a colleague has it open and is writing a comment" class="hero-screenshot" loading="lazy">
         <img src="screenshots/files.png" alt="File storage with folders and selection" class="hero-screenshot" loading="lazy">
-        <img src="screenshots/docs-index.png" alt="Document cards with content previews" class="hero-screenshot" loading="lazy">
-        <img src="screenshots/command-palette.png" alt="Command palette for quick navigation" class="hero-screenshot" loading="lazy">
-        <img src="screenshots/board-card-detail.png" alt="Card detail with description, comments, and attachments" class="hero-screenshot" loading="lazy">
-        <img src="screenshots/mail-folders.png" alt="Mail folders and organization" class="hero-screenshot" loading="lazy">
+        <img src="screenshots/file-code.png" alt="A code file with syntax highlighting in Files" class="hero-screenshot" loading="lazy">
+        <img src="screenshots/add-tool.png" alt="Add any tool to your workspace" class="hero-screenshot" loading="lazy">
         <img src="screenshots/collaborators-4.png" alt="Invite collaborators to share tools" class="hero-screenshot" loading="lazy">
-        <img src="screenshots/file-preview.png" alt="File preview with metadata" class="hero-screenshot" loading="lazy">
-        <img src="screenshots/todo-detail-comment.png" alt="Todo item with comments and attachments" class="hero-screenshot" loading="lazy">
       </div>
     </div>
   </section>
@@ -90,49 +89,49 @@
         <div class="bento-item" data-tool="mail">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
           <h3>Mail</h3>
-          <p>IMAP/SMTP email client with rich text compose, contacts, and threaded conversations.</p>
+          <p>IMAP/SMTP email with threaded conversations, search, drafts that sync, and calendar invites you accept right from the message.</p>
         </div>
 
         <div class="bento-item" data-tool="board">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
           <h3>Board</h3>
-          <p>Kanban boards with drag-and-drop columns, cards, comments, and attachments.</p>
+          <p>Kanban boards with labels, due dates, assignees, comments with @mentions, attachments, and an archive.</p>
         </div>
 
         <div class="bento-item" data-tool="docs">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
           <h3>Docs</h3>
-          <p>Rich text documents you can share and edit together with your team.</p>
+          <p>Rich text documents several people write in at once — you see each other's cursors, live.</p>
         </div>
 
         <div class="bento-item" data-tool="chat">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
           <h3>Chat</h3>
-          <p>Real-time messaging with typing indicators, threaded replies, and file sharing.</p>
+          <p>Real-time messaging with replies, @mentions, edits, file sharing, and who's online and typing.</p>
         </div>
 
         <div class="bento-item" data-tool="todos">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
           <h3>Todos</h3>
-          <p>Task lists with due dates, assignments, comments, and file attachments.</p>
+          <p>Task lists with due dates, assignees, repeating tasks, comments, and attachments.</p>
         </div>
 
         <div class="bento-item" data-tool="files">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
           <h3>Files</h3>
-          <p>File storage with folders, previews, and sharing via public links.</p>
+          <p>Folders, a picture gallery with slideshow, readable text, markdown and code, and public links with a password and an expiry date.</p>
         </div>
 
         <div class="bento-item" data-tool="calendar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
           <h3>Calendar</h3>
-          <p>CalDAV-compatible calendar with recurring events and standalone local mode.</p>
+          <p>Syncs with any CalDAV server — iCloud, Fastmail, Nextcloud — or runs on its own. Recurring events and invites.</p>
         </div>
 
         <div class="bento-item" data-tool="room">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>
           <h3>Room</h3>
-          <p>Video conferencing powered by LiveKit, without leaving your workspace.</p>
+          <p>Video calls powered by LiveKit, with screen sharing, right inside your workspace.</p>
         </div>
       </div>
 
@@ -141,26 +140,42 @@
         <h3 class="features-heading">Everything you'd expect, and then some.</h3>
         <div class="features-grid">
           <div class="feature-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m18 6-6-4-6 4"/><path d="m6 10-6 4 6 4"/><path d="m18 10 6 4-6 4"/><path d="m6 10 6 4 6-4"/><path d="m6 18 6 4 6-4"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
             <div>
-              <h4>Command palette</h4>
-              <p>Hit <kbd>Cmd+K</kbd> to instantly jump to any tool, page, or action without touching the mouse.</p>
+              <h4>Search everything</h4>
+              <p>Hit <kbd>Cmd+K</kbd> to jump to any tool or action — or keep typing to search cards, todos, documents, files, chat, events and mail at once.</p>
             </div>
           </div>
 
           <div class="feature-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="4" height="16" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><rect x="18" y="4" width="4" height="16" rx="1"/></svg>
             <div>
-              <h4>Keyboard shortcuts</h4>
-              <p>Navigate, compose, and act from the keyboard. Every tool ships with a full shortcut set and a <kbd>?</kbd> help overlay.</p>
+              <h4>Keyboard first</h4>
+              <p>Every tool ships with a full set of shortcuts and a <kbd>?</kbd> overlay that lists them.</p>
             </div>
           </div>
 
           <div class="feature-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><circle cx="18" cy="4" r="3" fill="currentColor" stroke="none"/></svg>
             <div>
-              <h4>Real-time notifications</h4>
-              <p>Activity dots appear on tools with new content since your last visit. Pushed live over ActionCable — no polling.</p>
+              <h4>Notifications & @mentions</h4>
+              <p>Mention someone and they hear about it. Activity dots show what's new since your last visit, pushed live — and an email digest for when you're away.</p>
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <div>
+              <h4>Share per tool</h4>
+              <p>Invite people as owners or collaborators, one tool at a time. Permissions are explicit and never global.</p>
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
+            <div>
+              <h4>API & command line</h4>
+              <p>Every tool answers JSON with a personal access token, read-only if you like. The <code>dobase</code> CLI — and AI agents — work in your workspace through it.</p>
             </div>
           </div>
 
@@ -168,15 +183,23 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1"/></svg>
             <div>
               <h4>Two-factor auth</h4>
-              <p>TOTP-based 2FA compatible with any authenticator app. Enable per-account for an extra layer of security.</p>
+              <p>TOTP-based 2FA with any authenticator app, and recovery codes for the day you lose your phone.</p>
             </div>
           </div>
 
           <div class="feature-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
             <div>
-              <h4>Collaborative sharing</h4>
-              <p>Invite people as owners or collaborators per tool. Permissions are explicit and instance-based, never global.</p>
+              <h4>Accessible</h4>
+              <p>Works from the keyboard and with a screen reader, meets WCAG AA contrast, and respects reduced motion.</p>
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            <div>
+              <h4>Light and dark</h4>
+              <p>Follows your system's appearance, everywhere, including the emails it sends.</p>
             </div>
           </div>
 
@@ -184,10 +207,44 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
             <div>
               <h4>Mobile-friendly</h4>
-              <p>Responsive layout that works on any screen size. Add to your home screen as a PWA for native-app feel.</p>
+              <p>Responsive on any screen. Add it to your home screen as a PWA for a native-app feel.</p>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Together -->
+  <section id="together" class="together-section">
+    <div class="page-width">
+      <div class="together-intro">
+        <h2>Work together, live.</h2>
+        <p>Dobase shows you who's there and what they're doing, the moment they're doing it.</p>
+      </div>
+
+      <div class="together-row">
+        <div class="together-text">
+          <h3>Write in the same document</h3>
+          <p>Everyone types at once and the text merges as you go. Each person's cursor shows up in their own colour, with their name — no locking, no "Marcus is editing".</p>
+        </div>
+        <img src="screenshots/docs-together.png" alt="A document two people are writing at once, with the other person's cursor and name" loading="lazy">
+      </div>
+
+      <div class="together-row together-row-reverse">
+        <div class="together-text">
+          <h3>See who's where</h3>
+          <p>Faces beside every tool in the sidebar and at the top of the page show who's in. The card, todo or file someone has open gets a ring — and inside it, you can see them writing a comment before it lands.</p>
+        </div>
+        <img src="screenshots/card-presence.png" alt="A card that says a colleague has it open and is writing a comment" loading="lazy">
+      </div>
+
+      <div class="together-row">
+        <div class="together-text">
+          <h3>Find anything, from anywhere</h3>
+          <p>One search box for every tool you share: cards, todos, the text of your documents, files, chat, events and mail. Enter opens it, right where it lives.</p>
+        </div>
+        <img src="screenshots/search.png" alt="The command palette searching every tool at once" loading="lazy">
       </div>
     </div>
   </section>
@@ -278,6 +335,7 @@
         <div class="footer-right">
           <a href="https://github.com/smgdkngt/dobase">GitHub</a>
           <a href="https://github.com/smgdkngt/dobase#self-hosting">Docs</a>
+          <a href="https://github.com/smgdkngt/dobase/tree/main/docs/api">API</a>
         </div>
       </div>
     </div>
