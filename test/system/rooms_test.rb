@@ -129,4 +129,37 @@ class RoomsTest < ApplicationSystemTestCase
     assert_equal [ 178 ] * 5, layout["ratios"]
     assert layout["inside"], "every tile fits inside the call"
   end
+
+  test "while someone shares their screen, everyone's camera stays in view beside it" do
+    visit tool_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "room"
+
+    # No video server here: seat two people and put a shared screen up the way a room would
+    page.execute_script(<<~JS)
+      const room = window.Stimulus.getControllerForElementAndIdentifier(document.querySelector("[data-controller~='room']"), "room")
+      room.preJoinTarget.classList.add("hidden")
+      room.inCallTarget.classList.remove("hidden")
+      room.modeValue = "full"
+      ;["anna", "bo"].forEach(identity => room.renderParticipant({ identity, name: identity }))
+      room._spotlightIdentity = "anna"
+      room.spotlightTarget.classList.remove("hidden")
+      room.contentAreaTarget.dataset.hasSpotlight = "true"
+      room._updateEmptyState()
+    JS
+
+    assert_selector "[data-room-target='spotlight']"
+    assert_selector "[data-participant-id='anna']"
+    assert_selector "[data-participant-id='bo']"
+    beside = evaluate_script(<<~JS)
+      (() => {
+        const screen = document.querySelector("[data-room-target='spotlight']").getBoundingClientRect()
+        return [...document.querySelectorAll("[data-participant-id]")].every(tile => {
+          const box = tile.getBoundingClientRect()
+          return box.left >= screen.right || box.top >= screen.bottom
+        })
+      })()
+    JS
+    assert beside, "the cameras sit beside the shared screen, not under it"
+  end
 end
