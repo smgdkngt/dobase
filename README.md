@@ -10,14 +10,21 @@ Built with Ruby on Rails 8.1, Hotwire, and Tailwind CSS.
 
 | Tool | Description |
 |------|-------------|
-| **Mail** | IMAP/SMTP email client with rich text compose, drafts, contacts, and conversations |
-| **Board** | Kanban boards with columns, cards, comments, and attachments |
-| **Docs** | Rich text documents with collaborative editing |
-| **Chat** | Real-time messaging with typing indicators, replies, and file sharing |
-| **Todos** | Task lists with due dates, assignments, comments, and attachments |
-| **Files** | File storage with folders, sharing via public links, and previews |
-| **Calendar** | CalDAV-compatible calendar with recurring events and local mode |
-| **Room** | Video conferencing powered by LiveKit |
+| **Mail** | IMAP/SMTP email with threaded conversations, search, drafts that sync, and calendar invites you accept from the message |
+| **Board** | Kanban boards with labels, due dates, assignees, comments with @mentions, attachments, and an archive |
+| **Docs** | Rich text documents several people write in at once, with each other's cursors shown live |
+| **Chat** | Real-time messaging with replies, @mentions, edits, file sharing, and who's online and typing |
+| **Todos** | Task lists with due dates, assignees, repeating tasks, comments, and attachments |
+| **Files** | Folders, a picture gallery with slideshow, readable text, markdown and code, and public links with a password and expiry |
+| **Calendar** | Syncs with any CalDAV server (iCloud, Fastmail, Nextcloud) or runs on its own; recurring events and invites |
+| **Room** | Video calls powered by LiveKit, with screen sharing |
+
+## Working together
+
+- **Write in the same document.** Everyone types at once and the text merges as you go (Yjs, carried over Action Cable — no extra service). Each person's cursor shows in their own colour, with their name.
+- **See who's where.** Faces in the sidebar and topbar show who's in each tool; the card, todo or file someone has open is ringed, and inside it you see them writing a comment.
+- **Search everything.** <kbd>Cmd</kbd>+<kbd>K</kbd> jumps to any tool or action and searches cards, todos, documents, files, chat, events and mail at once.
+- **Notifications and @mentions**, live in the app and as an email digest when you're away.
 
 ## API and command line
 
@@ -33,6 +40,7 @@ for you:
 dobase login https://dobase.example.com
 dobase card list "Product Launch"
 dobase todo create "Launch Tasks" "Book the venue" --due tomorrow --assignee me
+dobase search packaging
 ```
 
 ## Self-hosting
@@ -131,6 +139,8 @@ volumes:
 | `APP_FROM_EMAIL` | `notifications@dobase.co` | Sender address for emails |
 | `DISABLE_SSL` | — | Set to `true` for non-TLS deployments (ONCE sets this automatically on localhost) |
 | `OPEN_REGISTRATION` | — | Set to `true` to allow public signup (default: invite-only) |
+| `SENTRY_DSN` | — | Report errors to a Sentry-compatible collector — self-hosted [Bugsink](https://www.bugsink.com) or GlitchTip work. Off when unset; nothing leaves the server |
+| `SENTRY_ENV` | Rails environment | Name this installation in those reports |
 | `ALLOW_PRIVATE_NETWORK_HOSTS` | — | Set to `true` to let mail and calendar accounts use servers on a private network (10.x, 172.16–31.x, 192.168.x). Local addresses are always refused |
 
 #### Email (SMTP)
