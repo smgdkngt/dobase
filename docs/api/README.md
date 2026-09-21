@@ -6,6 +6,7 @@ answering in JSON. The [`dobase` command-line tool](../../cli/README.md) is
 built on it.
 
 - [Tools](tools.md): list, show, create and rename tools; who you are
+- [Search](search.md): everything you share, searched at once
 - [Boards](boards.md): columns, cards, comments and attachments
 - [Todos](todos.md): lists, items, completions and comments
 - [Docs](docs.md): documents

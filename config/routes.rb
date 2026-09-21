@@ -45,6 +45,9 @@ Rails.application.routes.draw do
   resource :sidebar_positions, only: :update
 
   # Tools
+  # Everything you share, searched at once: the command palette asks this as you type
+  resource :search, only: :show
+
   resources :tools do
     scope module: :tools do
       resources :collaborators, only: %i[create update destroy] do

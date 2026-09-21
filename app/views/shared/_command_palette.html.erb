@@ -3,9 +3,9 @@
         data-controller="command-palette"
         data-keyboard-shortcuts-target="commandPalette">
   <div class="p-3">
-    <input type="text" placeholder="Jump to..."
+    <input type="text" placeholder="Jump to a tool, or search everything..."
            class="input w-full"
-           aria-label="Jump to a tool or action"
+           aria-label="Jump to a tool or action, or search your tools"
            autocomplete="off"
            data-command-palette-target="input"
            data-action="input->command-palette#filter keydown->command-palette#navigate">
@@ -43,5 +43,10 @@
         <span class="text-xs text-text-tertiary"><%= tool.tool_type.name %></span>
       </a>
     <% end %>
+
+    <%# Cards, todos, documents, files, messages, events and mail that match,
+        loaded from SearchesController as you type %>
+    <%= turbo_frame_tag "command_palette_search",
+          data: { command_palette_target: "searchFrame", action: "turbo:frame-load->command-palette#searched" } %>
   </div>
 </dialog>

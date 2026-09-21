@@ -1,0 +1,26 @@
+<%# What the command palette shows under the tools once you type: the frame's
+    items are palette items, so the arrow keys and Enter reach them too. %>
+<%= turbo_frame_tag "command_palette_search" do %>
+  <% if @search.searchable? %>
+    <div class="px-4 py-1.5" data-section="search">
+      <span class="text-xs font-semibold text-text-tertiary uppercase tracking-wider">Found in your tools</span>
+    </div>
+    <% if @search.hits.empty? %>
+      <p class="px-4 py-2 text-sm text-text-tertiary">Nothing matches “<%= @search.query %>”.</p>
+    <% else %>
+      <% @search.hits.each do |hit| %>
+        <%= link_to hit.path, class: "command-palette-item",
+              data: { turbo_frame: "_top", command_palette_target: "item", search_result: true, name: hit.title.downcase, type: "search" } do %>
+          <%= render "shared/icon", name: search_icon(hit.kind), size: 16, class: "text-text-tertiary shrink-0" %>
+          <span class="flex-1 min-w-0">
+            <span class="block truncate"><%= hit.title %></span>
+            <% if hit.excerpt.present? %>
+              <span class="block truncate text-xs text-text-tertiary"><%= hit.excerpt %></span>
+            <% end %>
+          </span>
+          <span class="text-xs text-text-tertiary shrink-0 truncate max-w-[40%]"><%= hit.tool&.display_name %></span>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
