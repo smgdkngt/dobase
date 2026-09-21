@@ -92,12 +92,13 @@ Kamal handles SSL certificates (Let's Encrypt), asset bridging, and rolling rest
 docker run -d \
   -p 80:80 \
   -v dobase_storage:/rails/storage \
-  -e SECRET_KEY_BASE=$(openssl rand -hex 64) \
   -e DISABLE_SSL=true \
   ghcr.io/smgdkngt/dobase:latest
 ```
 
-Visit `http://localhost` and sign up. Remove `DISABLE_SSL=true` when running behind a TLS proxy or with a domain.
+Visit `http://localhost` and sign up; the first account needs no invitation. Remove `DISABLE_SSL=true` when running behind a TLS proxy or with a domain.
+
+Without a `SECRET_KEY_BASE`, the container makes one on first start and keeps it in the storage volume, so it survives updates. If you pass your own, keep passing the same one: stored mail and calendar passwords are encrypted with it.
 
 ### Docker Compose
 
@@ -106,8 +107,10 @@ For a persistent setup with all options, clone the repo and use the included `do
 ```bash
 git clone https://github.com/smgdkngt/dobase.git
 cd dobase
-SECRET_KEY_BASE=$(openssl rand -hex 64) docker compose up -d
+docker compose up -d
 ```
+
+A fresh key per `up` would sign everyone out on every restart, so leave `SECRET_KEY_BASE` unset (the container keeps its own) or put a fixed one in an `.env` file next to `docker-compose.yml`.
 
 Or create your own `docker-compose.yml`:
 
@@ -132,7 +135,7 @@ volumes:
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `SECRET_KEY_BASE` | — | **Required.** Generate with `openssl rand -hex 64` |
+| `SECRET_KEY_BASE` | Kept in the storage volume | Signs sessions and encrypts stored mail and calendar passwords. The Docker image makes one on first start if unset; if you set it (`openssl rand -hex 64`), never change it |
 | `APP_NAME` | `Dobase` | App name in UI, emails, page titles |
 | `APP_HOST` | `localhost:3000` | Host for mailer URLs |
 | `APP_LOGO_PATH` | `/icon.svg` | Logo path (sidebar, auth pages) |

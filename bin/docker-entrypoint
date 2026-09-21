@@ -1,5 +1,17 @@
 #!/bin/bash -e
 
+# Without a SECRET_KEY_BASE, keep one in the storage volume: made on the first
+# start, read on every start after. A key made anew on each `docker run` (an
+# update, say) signs everyone out and leaves stored mail and calendar
+# passwords unreadable, since those are encrypted with it.
+if [ -z "${SECRET_KEY_BASE}" ]; then
+  key_file="/rails/storage/secret_key_base"
+  if [ ! -s "${key_file}" ]; then
+    (umask 077 && ruby -rsecurerandom -e 'print SecureRandom.hex(64)' > "${key_file}")
+  fi
+  export SECRET_KEY_BASE="$(cat "${key_file}")"
+fi
+
 # If running the rails server then create or migrate existing database
 if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
   ./bin/rails db:prepare

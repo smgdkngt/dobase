@@ -294,6 +294,7 @@
         <div class="deploy-text">
           <h2>Self-host anywhere.</h2>
           <p>Install with <a href="https://once.com">ONCE</a> for the easiest setup &mdash; backups, updates, and SSL handled automatically. Or deploy with <a href="https://kamal-deploy.org">Kamal</a> for zero-downtime deploys with LiveKit video. Works on any VPS, cloud server, or Raspberry Pi.</p>
+          <p class="deploy-note">Or try it right now: the command here runs Dobase on <code>http://localhost</code>. On a server with a domain, let ONCE or Kamal take care of HTTPS.</p>
         </div>
         <div class="deploy-code">
           <div class="code-window">
@@ -302,7 +303,7 @@
             </div>
             <div class="code-body"><span class="prompt">$</span> <span class="cmd">docker run -d -p 80:80 \
     -v dobase:/rails/storage \
-    -e SECRET_KEY_BASE=$(openssl rand -hex 64) \
+    -e DISABLE_SSL=true \
     ghcr.io/smgdkngt/dobase</span></div>
           </div>
         </div>
