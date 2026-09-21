@@ -80,6 +80,8 @@ export default class extends Controller {
   }
 
   disconnect() {
+    this._tileObserver?.disconnect()
+    this._tileObserver = null
     if (this._isDuplicate) return
     if (this.element._liveKitRoom) return // Being moved, skip cleanup
 
@@ -835,6 +837,36 @@ export default class extends Controller {
     const hasSpotlight = this._spotlightIdentity != null
     this.emptyStateTarget.classList.toggle("hidden", !!hasRemote || hasSpotlight)
     this.videoGridTarget.classList.toggle("hidden", !hasRemote)
+    this._layoutTiles()
+  }
+
+  // Every tile is 16:9 and as large as the grid allows for however many there
+  // are, instead of one stretched across a wide screen and cropped to a nose.
+  // Tries each number of columns and keeps the one with the biggest tiles.
+  _layoutTiles() {
+    const grid = this.videoGridTarget
+    this._tileObserver ||= new ResizeObserver(() => this._layoutTiles())
+    this._tileObserver.observe(grid)
+
+    const count = grid.querySelectorAll("[data-participant-id]").length
+    if (count === 0 || grid.clientWidth === 0) return
+
+    const style = getComputedStyle(grid)
+    const gap = parseFloat(style.columnGap) || 0
+    const width = grid.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+    const height = grid.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)
+
+    let best = 0
+    for (let columns = 1; columns <= count; columns++) {
+      const rows = Math.ceil(count / columns)
+      const tileWidth = Math.min(
+        (width - gap * (columns - 1)) / columns,
+        ((height - gap * (rows - 1)) / rows) * 16 / 9
+      )
+      best = Math.max(best, tileWidth)
+    }
+
+    grid.style.setProperty("--room-tile-width", `${Math.floor(best)}px`)
   }
 
   _showInCall() {
