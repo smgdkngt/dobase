@@ -132,6 +132,25 @@ class BoardsTest < ApplicationSystemTestCase
     assert Boards::Card.exists?(title: "My New Card")
   end
 
+  test "a card moves to another column from its own dialog, without dragging" do
+    card = cards(:first_task)
+    visit tool_board_path(@tool, card: card.id)
+    assert_selector "dialog[open] h2", text: "First task"
+
+    within("dialog[open]") { select "Done", from: "Column" }
+
+    # The dialog shows the card again, now in Done
+    within("dialog[open]") do
+      assert_text "in Done"
+      assert_selector "h2", text: "First task"
+    end
+    assert_equal columns(:done), card.reload.column
+
+    # And the board has caught up once the dialog closes
+    within("dialog[open]") { click_on "Close" }
+    within("#board-column-#{columns(:done).id}") { assert_text "First task" }
+  end
+
   private
 
   def open_card(card)

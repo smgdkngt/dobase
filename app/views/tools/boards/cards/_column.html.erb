@@ -1,0 +1,17 @@
+        <%# ── Column ──────────────────────────────────────────────────── %>
+        <%# Dragging needs a mouse; this moves the card from a phone or the
+            keyboard too. It lands at the bottom of the column, and the
+            dialog shows the card again; the board catches up when it closes. %>
+        <div class="p-3">
+          <label for="card-column-<%= card.id %>" class="block text-xs font-medium text-text-tertiary px-1 mb-1">Column</label>
+          <%= form_with url: tool_board_card_position_path(tool, card), method: :patch, data: { turbo_frame: "card-detail-content" } do %>
+            <%= select_tag :column_id,
+                  options_from_collection_for_select(card.column.board.columns.order(:position), :id, :name, card.column_id),
+                  id: "card-column-#{card.id}",
+                  class: "input py-1.5",
+                  data: { action: "change->board-card#moveToColumn" } %>
+          <% end %>
+        </div>
+
+        <div class="h-px bg-border-light"></div>
+
