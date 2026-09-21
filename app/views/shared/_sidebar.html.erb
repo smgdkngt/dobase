@@ -41,7 +41,8 @@
   </div>
 
   <%# ── Navigation ── %>
-  <nav class="flex-1 py-2 overflow-y-auto scrollbar-thin" aria-label="Tools" data-sidebar-target="nav">
+  <nav class="flex-1 py-2 overflow-y-auto scrollbar-thin" aria-label="Tools" data-sidebar-target="nav"
+       <%= tag.attributes(data: { controller: "sidebar-presence", sidebar_presence_user_id_value: current_user.id }) if defined?(current_user) && current_user %>>
     <% if defined?(current_user) && current_user %>
       <% unread_tool_ids = Tool.unread_tool_ids_for(current_user) %>
       <%# ── Ungrouped Tools ── %>

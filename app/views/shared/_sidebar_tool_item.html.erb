@@ -23,6 +23,8 @@
       <%= render "shared/icon", name: instance.display_icon, size: 18 %>
     <% end %>
     <span class="truncate flex-1"><%= instance.display_name %></span>
+    <%# Who has this tool open right now; filled in by sidebar_presence_controller.js %>
+    <span class="sidebar-presence" hidden data-sidebar-presence-target="slot" data-tool-id="<%= instance.id %>"></span>
     <% if has_unread %>
       <span class="sr-only">New activity</span>
     <% end %>

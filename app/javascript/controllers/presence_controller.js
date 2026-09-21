@@ -75,6 +75,12 @@ export default class extends Controller {
   }
 
   receive(data) {
+    // A sidebar somewhere asks who is on this tool; say so, as to a hello
+    if (data.type === "roll_call") {
+      this.answer()
+      return
+    }
+
     // Our own arrival tells us nothing we don't know
     if (!data.user || data.user.id === this.userIdValue) return
 
