@@ -678,6 +678,17 @@ img, svg {
   line-height: 1.25;
 }
 
+.deploy-text .deploy-note {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--text-tertiary);
+}
+
+.deploy-note code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
 .deploy-text p {
   margin-top: 0.5rem;
   font-size: 0.9375rem;

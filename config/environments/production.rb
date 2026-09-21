@@ -1,6 +1,14 @@
 require "active_support/core_ext/integer/time"
 
 Rails.application.configure do
+  # The key the Docker entrypoint keeps in the storage volume when no
+  # SECRET_KEY_BASE is given (see bin/docker-entrypoint). Read here too, so a
+  # `docker exec ... bin/rails console`, which skips the entrypoint, has it.
+  key_file = Rails.root.join("storage", "secret_key_base")
+  if ENV["SECRET_KEY_BASE"].blank? && key_file.exist?
+    config.secret_key_base = key_file.read.strip
+  end
+
   # Settings specified here will take precedence over those in config/application.rb.
 
   # Code is not reloaded between requests.
