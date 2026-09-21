@@ -1,0 +1,19 @@
+<%# The emoji on a message, each with how many put it there. Which of them are
+    yours is marked by the reactions controller: the row is broadcast to
+    everyone, so it can't say so itself. %>
+<div id="<%= dom_id(message, :reactions) %>" class="chat-reactions" data-reactions-target="row">
+  <% message.reaction_groups.each do |emoji, users| %>
+    <button type="button"
+            class="chat-reaction"
+            title="<%= users.map(&:name).to_sentence %> reacted with <%= emoji %>"
+            aria-label="<%= emoji %> <%= users.size %>, from <%= users.map(&:name).to_sentence %>"
+            aria-pressed="false"
+            data-reactions-target="pill"
+            data-emoji="<%= emoji %>"
+            data-user-ids="<%= users.map(&:id).join(" ") %>"
+            data-action="reactions#toggle">
+      <span aria-hidden="true"><%= emoji %></span>
+      <span class="chat-reaction-count" aria-hidden="true"><%= users.size %></span>
+    </button>
+  <% end %>
+</div>

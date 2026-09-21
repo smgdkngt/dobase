@@ -22,8 +22,9 @@
 %>
 <div id="<%= dom_id(message) %>"
      class="group/message flex gap-2.5 sm:gap-3 px-2 sm:px-4 py-1.5 sm:py-2 hover:bg-background-tertiary/50 <%= is_continuation ? '' : 'mt-2 sm:mt-3' %>"
-     data-controller="message"
+     data-controller="message reactions"
      data-message-user-id-value="<%= message.user_id %>"
+     data-reactions-url-value="<%= tool_chat_message_reactions_path(tool, message) %>"
      data-message-id="<%= message.id %>"
      data-message-author="<%= message.user.name %>"
      data-message-content="<%= truncate(message.body.to_plain_text, length: 100) %>">
@@ -87,15 +88,25 @@
         <% end %>
       </div>
     <% end %>
+
+    <%= render "tools/chats/reactions", message: message %>
   </div>
 
   <!-- Actions (show on hover) -->
   <div class="flex-shrink-0 opacity-0 group-hover/message:opacity-100 group-focus-within/message:opacity-100 transition-opacity">
     <div class="flex items-center -mt-1 bg-surface border border-border-light rounded-lg shadow-sm">
+      <button type="button"
+              class="icon-btn icon-btn-group-left"
+              title="Add a reaction"
+              aria-label="Add a reaction"
+              popovertarget="<%= dom_id(message, :react) %>"
+              style="anchor-name: --<%= dom_id(message, :react) %>">
+        <%= render "shared/icon", name: "smile-plus", size: 16 %>
+      </button>
       <%= render "components/icon_button",
             icon: "reply",
             title: "Reply",
-            group: :left,
+            group: :middle,
             data: { action: "click->chat#startReply", message_id: message.id } %>
       <div class="hidden" data-message-edit>
         <%= render "components/icon_button",
@@ -117,5 +128,15 @@
               data: { turbo_confirm_button: "Delete" } %>
       </div>
     </div>
+  </div>
+
+  <%# Outside the hover bar, which is see-through until the pointer is on the message %>
+  <div id="<%= dom_id(message, :react) %>"
+       popover="auto"
+       class="popover-menu chat-reaction-picker"
+       style="position-anchor: --<%= dom_id(message, :react) %>; position-area: block-start span-inline-start">
+    <% Chats::Reaction::EMOJI.each do |emoji| %>
+      <button type="button" class="chat-reaction-choice" data-emoji="<%= emoji %>" data-action="reactions#pick" aria-label="React with <%= emoji %>"><%= emoji %></button>
+    <% end %>
   </div>
 </div>

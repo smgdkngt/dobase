@@ -12,6 +12,7 @@ module Chats
     belongs_to :reply_to, class_name: "Chats::Message", optional: true
 
     has_many :replies, class_name: "Chats::Message", foreign_key: :reply_to_id, dependent: :nullify
+    has_many :reactions, class_name: "Chats::Reaction", dependent: :delete_all
     has_many :read_receipts_as_last_read, class_name: "Chats::ReadReceipt", foreign_key: :last_read_message_id, dependent: :nullify
 
     include Mentionable
@@ -41,7 +42,7 @@ module Chats
 
     scope :recent, -> { order(created_at: :desc, id: :desc) }
     scope :chronological, -> { order(created_at: :asc) }
-    scope :with_associations, -> { includes(:user, :rich_text_body, files_attachments: :blob, reply_to: [ :user, :rich_text_body ]) }
+    scope :with_associations, -> { includes(:user, :rich_text_body, files_attachments: :blob, reactions: :user, reply_to: [ :user, :rich_text_body ]) }
     # Messages sent before `message`, to page back through a chat.
     scope :before, ->(message) { where(created_at: ...message.created_at).or(where(created_at: message.created_at, id: ...message.id)) }
 
@@ -51,6 +52,12 @@ module Chats
 
     def preview_text(length: 100)
       body.to_plain_text.squish.truncate(length)
+    end
+
+    # The emoji on this message, in the order they were first used, each with
+    # the people who put it there
+    def reaction_groups
+      reactions.sort_by(&:created_at).group_by(&:emoji).transform_values { |group| group.map(&:user) }
     end
 
     def image_files

@@ -22,6 +22,9 @@ scroll up):
         "preview": "I deployed the store to staging btw. Everything works except the checkout — turns out Stripe does..."
       },
       "files": [],
+      "reactions": [
+        { "emoji": "👍", "count": 2, "users": [{ "id": 1, "name": "Sophie Chen", "email_address": "sophie@moonshot-snacks.com" }, { "id": 3, "name": "Jake Thompson", "email_address": "jake@moonshot-snacks.com" }] }
+      ],
       "edited_at": null,
       "created_at": "..."
     },
@@ -34,6 +37,7 @@ scroll up):
       "files": [
         { "filename": "notes.txt", "content_type": "text/plain", "byte_size": 18, "download_url": "..." }
       ],
+      "reactions": [],
       "edited_at": null,
       "created_at": "..."
     }
@@ -47,6 +51,8 @@ scroll up):
   first message's id as `before`: `GET /tools/2/chat?before=19`.
 - `reply_to` is the message this one answers, with a short plain-text preview,
   or `null`.
+- `reactions` are the emoji on the message, in the order they were first
+  used, each with the people who put it there.
 - `edited_at` is set once a message has been edited.
 - `download_url` is a signed link that needs no token and works for a day.
 
@@ -85,6 +91,17 @@ messages; other messages answer `403`.
 
 `DELETE /tools/:tool_id/chat/messages/:id` returns `204`. You can delete your
 own messages, and owners can delete anyone's.
+
+## React to a message
+
+`POST /tools/:tool_id/chat/messages/:id/reactions` with `{"emoji": "👍"}` puts
+your emoji on the message and returns `201` with the message. Doing it twice
+changes nothing. The emoji on offer are 👍 ❤️ 😂 🎉 😮 🙏 👀 ✅; anything else
+answers `422`.
+
+`DELETE /tools/:tool_id/chat/messages/:id/reactions/:emoji` (the emoji
+URL-encoded) takes yours off again and returns the message. Everyone else's
+stay.
 
 ## Mark as read
 

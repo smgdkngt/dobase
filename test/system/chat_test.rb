@@ -230,4 +230,30 @@ class ChatTest < ApplicationSystemTestCase
     wait_for_turbo
     sleep 0.3
   end
+
+  test "an emoji put on a message shows for everyone, marked as yours for you" do
+    colleague = users(:two)
+    @tool.collaborators.create!(user: colleague, role: "collaborator")
+    message = @tool.chat.messages.create!(user: colleague, body: "Standup at 2?")
+
+    visit tool_chat_path(@tool)
+    wait_for_stimulus "reactions"
+    assert_no_text "No messages yet"
+
+    within("##{ActionView::RecordIdentifier.dom_id(message)}") do
+      # The hover bar is see-through until the pointer is on the message
+      find("[title='Add a reaction']", visible: :all).execute_script("this.click()")
+      find("[aria-label='React with 👍']").click
+      assert_selector ".chat-reaction[aria-pressed='true']", text: /👍\s+1/
+    end
+
+    # A colleague's emoji arrives over the broadcast, and isn't marked as yours
+    message.reactions.create!(user: colleague, emoji: "🎉")
+    within("##{ActionView::RecordIdentifier.dom_id(message)}") do
+      assert_selector ".chat-reaction[aria-pressed='false']", text: /🎉\s+1/
+
+      find(".chat-reaction", text: "👍").click
+      assert_no_selector ".chat-reaction", text: "👍"
+    end
+  end
 end

@@ -104,6 +104,7 @@ don't retry in a loop.
 $D chat list team --limit 30          # oldest first; --before ID for older pages
 $D chat post team "The build is green again."
 $D chat post team "Agreed" --reply-to 88
+$D chat react team/88 👍                # or --remove; 👍 ❤️ 😂 🎉 😮 🙏 👀 ✅ only
 $D chat read team                     # mark the chat read for the user
 ```
 
