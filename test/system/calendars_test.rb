@@ -21,6 +21,24 @@ class CalendarsTest < ApplicationSystemTestCase
     end
   end
 
+  test "a week opens at the start of the day, just under the day names" do
+    visit tool_calendar_path(@tool, week_start: "2030-01-07")
+    wait_for_stimulus "calendar"
+
+    # 8 AM sits right below the sticky header, not hidden under it (or as far
+    # down as a tall window lets it go)
+    opened_at = <<~JS
+      (() => {
+        const grid = document.querySelector("[data-calendar-target='grid']")
+        const header = grid.querySelector(".week-head").getBoundingClientRect()
+        const slot = grid.querySelector("[data-hour='8']").getBoundingClientRect()
+        const scrolledToEnd = grid.scrollTop >= grid.scrollHeight - grid.clientHeight - 1
+        return Math.round(slot.top - header.bottom) === 0 || (scrolledToEnd && slot.top > header.bottom)
+      })()
+    JS
+    assert page.document.synchronize { evaluate_script(opened_at) || raise(Capybara::ExpectationNotMet) }
+  end
+
   test "a failed save shows its errors in the event dialog, and Cancel closes it" do
     event = calendars_calendars(:personal).events.create!(uid: "dentist@dobase", summary: "Dentist",
       starts_at: Time.utc(2030, 1, 8, 14), ends_at: Time.utc(2030, 1, 8, 15))

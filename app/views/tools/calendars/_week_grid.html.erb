@@ -24,6 +24,8 @@
 %>
 
 <div class="week-grid">
+  <!-- Day names and the all-day row stay in view together while the hours scroll -->
+  <div class="week-head">
   <!-- Header row with day names and dates -->
   <div class="week-header">
     <!-- Week number cell -->
@@ -157,9 +159,10 @@
       </div>
     </div>
   <% end %>
+  </div>
 
-  <!-- Time grid -->
-  <div class="week-body">
+  <!-- Time grid, opened at the hour before now, or at the start of a working day -->
+  <div class="week-body" data-scroll-hour="<%= days.include?(today) ? [Time.current.hour - 1, 0].max : 8 %>">
     <!-- Time labels column -->
     <div class="time-labels">
       <% hours.each do |hour| %>

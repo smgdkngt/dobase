@@ -135,3 +135,11 @@ rhino-editor.document-editor .trix-content,
     transition: none;
   }
 }
+
+/* On a phone the text scrolls behind the floating bottom bar; room at the end
+   lets the last lines come out from under it */
+@media (max-width: 1023px) {
+  rhino-editor.document-editor .trix-content {
+    padding-bottom: var(--mobile-bar-clearance);
+  }
+}
