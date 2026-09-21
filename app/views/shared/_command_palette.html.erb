@@ -10,7 +10,7 @@
            data-command-palette-target="input"
            data-action="input->command-palette#filter keydown->command-palette#navigate">
   </div>
-  <div class="max-h-80 overflow-y-auto pb-2" data-command-palette-target="results">
+  <div class="max-h-[min(60vh,32rem)] overflow-y-auto pb-2" data-command-palette-target="results">
     <% if content_for?(:command_palette_actions) %>
       <div class="px-4 py-1.5" data-command-palette-target="sectionHeader" data-section="action">
         <span class="text-xs font-semibold text-text-tertiary uppercase tracking-wider">Actions</span>
