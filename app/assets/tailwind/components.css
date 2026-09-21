@@ -539,6 +539,11 @@
     @apply ml-2 text-xs text-text-secondary whitespace-nowrap;
   }
 
+  /* "Anna is writing a comment…" above a comment box */
+  .presence-typing {
+    @apply mb-2 text-xs text-text-secondary italic;
+  }
+
   /* The card, item or file someone else has open */
   .presence-here {
     @apply relative outline-2 outline-accent/60 outline-offset-1 rounded-lg;

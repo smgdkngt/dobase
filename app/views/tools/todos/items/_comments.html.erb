@@ -18,10 +18,12 @@
           <% end %>
 
           <%# Comment form %>
+          <%# Someone else writing here right now; filled in by presence_controller.js %>
+          <p class="presence-typing" hidden aria-live="polite" data-presence-target="typing" data-presence-for="todo:<%= item.id %>"></p>
           <%= form_with url: tool_todo_item_comments_path(tool, item), data: { turbo_frame: "item-detail-content" } do %>
             <div class="flex gap-2.5">
               <%= render "shared/avatar", user: current_user, size: :sm %>
-              <div class="flex-1">
+              <div class="flex-1" data-action="keydown->presence#typing" data-presence-context-param="todo:<%= item.id %>">
                 <%= render "components/rich_text_input", name: "body", placeholder: "Write a comment...", mentions: @collaborators.where.not(id: current_user.id) do %>
                   <%= render "components/icon_button",
                         icon: "send",

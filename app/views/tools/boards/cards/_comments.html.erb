@@ -19,10 +19,12 @@
           <% end %>
 
           <%# Comment form at the bottom %>
+          <%# Someone else writing here right now; filled in by presence_controller.js %>
+          <p class="presence-typing" hidden aria-live="polite" data-presence-target="typing" data-presence-for="card:<%= card.id %>"></p>
           <%= form_with url: tool_board_card_comments_path(tool, card), data: { turbo_frame: "card-detail-content" } do %>
             <div class="flex gap-2.5">
               <%= render "shared/avatar", user: current_user, size: :sm %>
-              <div class="flex-1">
+              <div class="flex-1" data-action="keydown->presence#typing" data-presence-context-param="card:<%= card.id %>">
                 <%= render "components/rich_text_input", name: "body", placeholder: "Write a comment...", mentions: @collaborators.where.not(id: current_user.id) do %>
                   <%= render "components/icon_button",
                         icon: "send",
