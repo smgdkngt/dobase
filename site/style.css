@@ -479,6 +479,7 @@ img, svg {
   color: var(--text-secondary);
 }
 
+.feature-item code,
 .feature-item kbd {
   display: inline-block;
   font-family: var(--font-mono);
@@ -490,6 +491,71 @@ img, svg {
   padding: 0.05em 0.35em;
   color: var(--text-secondary);
   vertical-align: baseline;
+}
+
+
+/* --- Together Section --- */
+.together-section {
+  padding-block: clamp(4rem, 8vh, 6rem);
+  border-top: 1px solid var(--border-light);
+}
+
+.together-intro {
+  margin-bottom: clamp(2rem, 5vh, 3.5rem);
+}
+
+.together-intro h2 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.together-intro p {
+  margin-top: 0.5rem;
+  font-size: 1rem;
+  color: var(--text-secondary);
+  max-width: 520px;
+}
+
+.together-row {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  align-items: center;
+}
+
+.together-row + .together-row {
+  margin-top: clamp(2.5rem, 6vh, 4.5rem);
+}
+
+/* Every other row puts the picture first */
+.together-row-reverse {
+  grid-template-columns: 1.2fr 0.8fr;
+}
+
+.together-row-reverse .together-text {
+  order: 2;
+}
+
+.together-row img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.together-text h3 {
+  font-size: clamp(1.125rem, 2vw, 1.375rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.together-text p {
+  margin-top: 0.6rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
 }
 
 
@@ -766,6 +832,15 @@ img, svg {
 @media (max-width: 900px) {
   .tools-bento {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .together-row,
+  .together-row-reverse {
+    grid-template-columns: 1fr;
+  }
+
+  .together-row-reverse .together-text {
+    order: 0;
   }
 
   .features-grid {
