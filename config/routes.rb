@@ -100,7 +100,11 @@ Rails.application.routes.draw do
 
       resource :docs, only: :show, controller: "docs" do
         scope module: :docs do
-          resources :documents, only: %i[show edit create update destroy]
+          resources :documents, only: %i[show edit create update destroy] do
+            scope module: :documents do
+              resources :mentions, only: :create
+            end
+          end
         end
       end
 
