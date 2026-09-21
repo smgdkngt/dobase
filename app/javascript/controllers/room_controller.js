@@ -184,6 +184,7 @@ export default class extends Controller {
     this._pingActivity(true)
     this._boundPageHide = () => this._pingActivity(false)
     window.addEventListener("pagehide", this._boundPageHide)
+    this._guardAgainstUnload()
 
     // Move into persistent container
     const container = document.getElementById("persistent-room")
@@ -213,6 +214,9 @@ export default class extends Controller {
     }
     this.room = null
 
+    window.removeEventListener("beforeunload", this.element._guardUnload)
+    delete this.element._guardUnload
+
     // Clear DOM-stored state
     delete this.element._liveKitRoom
     delete this.element._liveKitTrack
@@ -233,6 +237,22 @@ export default class extends Controller {
     if (wasOnRoomPage) {
       Turbo.visit(this.toolPathValue, { action: "replace" })
     }
+  }
+
+  // Moving between tools keeps the call; a reload or a closed tab ends it, so
+  // the browser asks first, as other call apps do. That includes the reload
+  // Turbo does on the next click after a deploy changed the stylesheets. Kept
+  // on the element, so whichever controller instance ends the call removes it.
+  _guardAgainstUnload() {
+    if (this.element._guardUnload) return
+
+    const element = this.element
+    element._guardUnload = (event) => {
+      if (!element._liveKitRoom || element._liveKitRoom.state === "disconnected") return
+      event.preventDefault()
+      event.returnValue = ""
+    }
+    window.addEventListener("beforeunload", element._guardUnload)
   }
 
   retryAfterError() {
