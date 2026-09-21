@@ -614,6 +614,59 @@
     .mention { @apply text-accent bg-accent-light rounded px-1 py-px font-medium no-underline; }
   }
 
+  /* The notifications list: who, what, what they said, where and when */
+  .notification-row {
+    @apply flex items-start gap-3 px-4 py-3 border-b border-border-light last:border-b-0 hover:bg-background-tertiary transition-colors;
+  }
+
+  .notification-row-unread {
+    @apply bg-accent-light/40;
+  }
+
+  .notification-avatar {
+    @apply relative shrink-0;
+  }
+
+  .notification-avatar-icon {
+    @apply flex items-center justify-center w-8 h-8 rounded-full bg-background-tertiary text-text-secondary;
+  }
+
+  .notification-avatar-badge {
+    @apply absolute -bottom-1 -right-1 flex items-center justify-center w-4.5 h-4.5 rounded-full bg-surface text-text-secondary ring-1 ring-border-light;
+  }
+
+  .notification-body {
+    @apply flex-1 min-w-0 flex flex-col gap-0.5;
+  }
+
+  .notification-message {
+    @apply text-sm leading-snug text-text-primary;
+  }
+
+  .notification-row-unread .notification-message {
+    @apply font-medium;
+  }
+
+  .notification-excerpt {
+    @apply text-sm leading-snug text-text-secondary line-clamp-2;
+  }
+
+  .notification-meta {
+    @apply text-xs text-text-tertiary;
+  }
+
+  .notification-dot {
+    @apply shrink-0 mt-1.5 w-2 h-2 rounded-full bg-accent-solid;
+  }
+
+  .notification-desktop-offer {
+    @apply flex items-center gap-2 px-4 py-2 text-xs text-text-secondary bg-background-secondary border-b border-border-light;
+  }
+
+  .notification-desktop-offer-button {
+    @apply ml-auto shrink-0 px-2 py-1 rounded text-accent font-medium hover:bg-background-tertiary transition-colors;
+  }
+
   /* @-mention pill inside the editor's contenteditable */
   rhino-editor .mention {
     @apply text-accent bg-accent-light rounded px-1 py-px font-medium;

@@ -54,8 +54,11 @@ class NotificationsTest < ApplicationSystemTestCase
       })
     JS
 
+    # The page never draws a message it was sent: the open list is drawn again
+    # by the server, which escapes it
     assert_no_selector "[data-notifications-target='list'] img"
     assert_nil page.evaluate_script("window.__xss")
-    assert_selector "[data-notifications-target='list'] p", text: "Gotcha", visible: :all
+    assert_selector "[data-notifications-target='list']", text: "sent a message", visible: :all
+    assert_no_text "Gotcha"
   end
 end

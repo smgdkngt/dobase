@@ -2,8 +2,8 @@ import { Controller } from "@hotwired/stimulus"
 import consumer from "channels/consumer"
 
 export default class extends Controller {
-  static targets = ["badge", "badgeStatus", "trigger", "popover", "list", "markAllRead"]
-  static values = { userId: Number, unreadCount: Number }
+  static targets = ["badge", "badgeStatus", "trigger", "popover", "list", "markAllRead", "desktopOffer"]
+  static values = { userId: Number, unreadCount: Number, appName: String }
 
   connect() {
     this.updateBadge()
@@ -32,6 +32,14 @@ export default class extends Controller {
       return
     }
 
+    // Something was read somewhere (opening a card reads what it was about)
+    if (data.type === "unread_count") {
+      this.unreadCountValue = data.count
+      this.updateBadge()
+      if (this.hasListTarget) this.reloadList()
+      return
+    }
+
     this.unreadCountValue += 1
     this.updateBadge()
 
@@ -44,10 +52,44 @@ export default class extends Controller {
       }
     }
 
-    // If the popover is open, prepend the notification to the list
-    if (this.hasListTarget) {
-      this.listTarget.prepend(this.buildNotificationElement(data))
+    // An open list is drawn again by the server, which knows who said what and
+    // folds a busy chat into one line
+    if (this.hasListTarget) this.reloadList()
+
+    this.showOnDesktop(data)
+  }
+
+  reloadList() {
+    const frame = this.hasPopoverTarget ? this.popoverTarget.querySelector("turbo-frame") : null
+    frame?.reload()
+  }
+
+  // An OS notification, only while this page is in a background tab and only
+  // once the person has said yes. Several open tabs show it once: the same tag
+  // replaces rather than stacks.
+  showOnDesktop(data) {
+    if (!("Notification" in window) || Notification.permission !== "granted" || !document.hidden) return
+
+    const notification = new Notification(this.appNameValue || "Dobase", {
+      body: data.message,
+      tag: `notification-${data.id}`,
+      icon: "/icon-192.png"
+    })
+    notification.onclick = () => {
+      window.focus()
+      if (data.url) Turbo.visit(data.url)
+      notification.close()
     }
+  }
+
+  // The offer only makes sense while the browser hasn't been asked
+  desktopOfferTargetConnected(offer) {
+    offer.hidden = !("Notification" in window) || Notification.permission !== "default"
+  }
+
+  async enableDesktop() {
+    await Notification.requestPermission()
+    this.desktopOfferTargets.forEach((offer) => this.desktopOfferTargetConnected(offer))
   }
 
   updateInCallIndicator(toolId, active) {
@@ -74,28 +116,29 @@ export default class extends Controller {
     }
   }
 
+  // One line can stand for several notifications (a busy chat); all of them are read
   markAsRead(event) {
-    const notificationId = event.currentTarget.dataset.notificationId
-    if (!notificationId) return
+    const row = event.currentTarget
+    const ids = (row.dataset.notificationIds || "").split(",").filter(Boolean)
+    if (ids.length === 0 || row.dataset.unread !== "true") return
 
-    fetch(`/notifications/${notificationId}/read`, {
-      method: "POST",
-      headers: {
-        "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content,
-        "Accept": "application/json"
-      }
+    ids.forEach((id) => {
+      fetch(`/notifications/${id}/read`, {
+        method: "POST",
+        headers: {
+          "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content,
+          "Accept": "application/json"
+        }
+      })
     })
 
     // Optimistically update the UI
-    const dot = event.currentTarget.querySelector(".bg-accent")
-    if (dot) dot.remove()
-    event.currentTarget.classList.remove("bg-accent-light/30")
-    event.currentTarget.querySelector("p")?.classList.remove("font-medium")
+    row.dataset.unread = "false"
+    row.classList.remove("notification-row-unread")
+    row.querySelector(".notification-dot")?.remove()
 
-    if (this.unreadCountValue > 0) {
-      this.unreadCountValue -= 1
-      this.updateBadge()
-    }
+    this.unreadCountValue = Math.max(0, this.unreadCountValue - ids.length)
+    this.updateBadge()
   }
 
   markAllRead(event) {
@@ -144,44 +187,5 @@ export default class extends Controller {
           ? "No unread notifications"
           : `${count} unread notification${count === 1 ? "" : "s"}`
     }
-  }
-
-  // Built with DOM APIs rather than a template string: data.message comes
-  // from another user's action (e.g. a chat message or file name) and must
-  // never be parsed as markup, even though CSP already stops it from
-  // executing as a script.
-  buildNotificationElement(data) {
-    const link = document.createElement("a")
-    link.href = data.url
-    link.dataset.turboFrame = "_top"
-    link.className = "flex items-start gap-3 px-4 py-3 hover:bg-background-tertiary transition-colors border-b border-border-light bg-accent-light/30"
-    link.dataset.action = "click->notifications#markAsRead"
-    link.dataset.notificationId = data.id
-
-    const iconWrap = document.createElement("div")
-    iconWrap.className = "flex-shrink-0 mt-0.5 text-text-secondary"
-    iconWrap.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>'
-
-    const textWrap = document.createElement("div")
-    textWrap.className = "flex-1 min-w-0"
-
-    const message = document.createElement("p")
-    message.className = "text-sm text-text-primary leading-snug font-medium"
-    message.textContent = data.message
-
-    const timeAgo = document.createElement("p")
-    timeAgo.className = "text-xs text-text-tertiary mt-0.5"
-    timeAgo.textContent = "just now"
-
-    textWrap.append(message, timeAgo)
-
-    const dotWrap = document.createElement("div")
-    dotWrap.className = "flex-shrink-0 mt-1.5"
-    const dot = document.createElement("span")
-    dot.className = "block w-2 h-2 rounded-full bg-accent"
-    dotWrap.appendChild(dot)
-
-    link.append(iconWrap, textWrap, dotWrap)
-    return link
   }
 }
