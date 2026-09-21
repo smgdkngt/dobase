@@ -18,7 +18,8 @@ module Tools
           @item.move_to(list, position: params[:position], by: current_user)
 
           respond_to do |format|
-            format.html { redirect_to tool_todo_path(@tool) }
+            # From the todo's own list picker, inside its dialog: the todo again
+            format.html { redirect_to tool_todo_item_path(@tool, @item) }
             format.json { render "tools/todos/items/show" }
           end
         end

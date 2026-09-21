@@ -23,6 +23,8 @@
     <div class="detail-modal-aside">
       <div>
 
+        <% lists = @tool.todo_lists.order(:position) %>
+        <%= render "tools/todos/items/list", item: @item, tool: @tool, lists: lists if lists.size > 1 %>
         <%= render "tools/todos/items/assignee", item: @item, tool: @tool %>
         <%= render "tools/todos/items/attachments", item: @item, tool: @tool %>
         <%= render "tools/todos/items/due_date", item: @item, tool: @tool %>

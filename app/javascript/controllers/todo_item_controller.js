@@ -99,6 +99,12 @@ export default class extends Controller {
     this._save({ recurrence_rule: rule || null })
   }
 
+  // ── List ──
+
+  moveToList(event) {
+    event.target.form.requestSubmit()
+  }
+
   // ── Attachment ──
 
   submitAttachment(event) {

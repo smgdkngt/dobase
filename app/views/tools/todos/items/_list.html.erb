@@ -1,0 +1,17 @@
+        <%# ── List ────────────────────────────────────────────────────── %>
+        <%# Dragging needs a mouse; this moves the todo from a phone or the
+            keyboard too. It lands at the bottom of the list, and the dialog
+            shows the todo again; the page catches up when it closes. %>
+        <div class="p-3">
+          <label for="todo-list-<%= item.id %>" class="block text-xs font-medium text-text-tertiary px-1 mb-1">List</label>
+          <%= form_with url: tool_todo_item_position_path(tool, item), method: :patch, data: { turbo_frame: "item-detail-content" } do %>
+            <%= select_tag :todo_list_id,
+                  options_from_collection_for_select(lists, :id, :title, item.todo_list_id),
+                  id: "todo-list-#{item.id}",
+                  class: "input py-1.5",
+                  data: { action: "change->todo-item#moveToList" } %>
+          <% end %>
+        </div>
+
+        <div class="h-px bg-border-light"></div>
+
