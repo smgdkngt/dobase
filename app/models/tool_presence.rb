@@ -22,11 +22,14 @@ class ToolPresence
       end
     end
 
-    # True when this was the person's last connection to the tool.
+    # True when this was the person's last connection to the tool. A connection
+    # this process never counted says nothing about whether they left — their
+    # other tabs may be right here — so it doesn't announce a departure; the
+    # pages forget anyone who stops checking in anyway.
     def disconnect(tool_id, user_id)
       @lock.synchronize do
         key = key_for(tool_id, user_id)
-        return true unless @connections.key?(key)
+        return false unless @connections.key?(key)
 
         @connections[key] -= 1
         @connections.delete(key) if @connections[key] <= 0

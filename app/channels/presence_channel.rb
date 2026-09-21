@@ -20,7 +20,7 @@ class PresenceChannel < ApplicationCable::Channel
     ToolPresence.connect(@tool.id, current_user.id)
     stream_for @tool
     transmit({ type: "welcome", user_id: current_user.id })
-    broadcast(type: "here", context: nil, hello: true)
+    broadcast(type: "here", context: nil, hello: true, at: nil)
   end
 
   # Where this person is now: on arrival, on a heartbeat, and whenever they open
@@ -31,14 +31,15 @@ class PresenceChannel < ApplicationCable::Channel
     return unless @tool
 
     data = with_indifferent_access(data)
-    broadcast(type: "here", context: context_from(data), hello: data[:hello].present?)
+    broadcast(type: "here", context: context_from(data), hello: data[:hello].present?, at: said_at(data))
   end
 
   # The answer to someone else's hello. Same payload, without the question.
   def answer(data)
     return unless @tool
 
-    broadcast(type: "here", context: context_from(with_indifferent_access(data)), hello: false)
+    data = with_indifferent_access(data)
+    broadcast(type: "here", context: context_from(data), hello: false, at: said_at(data))
   end
 
   # Someone is writing a comment on the card or todo in the context. Passed on
@@ -91,6 +92,13 @@ class PresenceChannel < ApplicationCable::Channel
 
   def with_indifferent_access(data)
     ActiveSupport::HashWithIndifferentAccess.new(data)
+  end
+
+  # When the page said it, by its own clock. Action Cable hands messages to its
+  # workers in no fixed order, so a page that just left can be heard after the
+  # one that replaced it; listeners keep whichever a person said last.
+  def said_at(data)
+    data[:at].to_i if data[:at].to_s.match?(/\A\d{1,15}\z/)
   end
 
   def context_from(data)

@@ -18,11 +18,16 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
       source: "navigator.serviceWorker.register = () => Promise.resolve()")
   end
 
-  # The app server runs in this process, so the per-process tab counts outlive a
-  # test: the browser is torn down by loading a blank page, which leaves its
-  # sockets to time out rather than unsubscribe. A person counted twice never
-  # leaves, so every test starts from zero.
+  # The app server runs in this process, so the sockets of the last test outlive
+  # it: the browser is torn down by loading a blank page, which leaves them to
+  # time out rather than unsubscribe. One closing halfway through the next test
+  # says its person left while they are on the page. So they are closed first,
+  # and the per-process tab counts start from zero.
   setup do
+    ActionCable.server.connections.dup.each(&:close)
+    deadline = Time.current + 2.seconds
+    sleep 0.05 until ActionCable.server.connections.empty? || Time.current > deadline
+
     ChatPresence.reset!
     ToolPresence.reset!
     DocumentPresence.reset!

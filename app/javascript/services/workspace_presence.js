@@ -13,6 +13,7 @@ class WorkspacePresence {
     this.userId = userId
     this.byTool = new Map() // tool id -> Map(user id -> person)
     this.listeners = new Set()
+    this.lastHeard = new Map() // user id -> when their page last said where they are
 
     this.channel = consumer.subscriptions.create(
       { channel: "WorkspacePresenceChannel" },
@@ -31,6 +32,9 @@ class WorkspacePresence {
     if (data.type === "gone") {
       this.byTool.get(toolId)?.delete(data.user.id)
     } else if (data.type === "here") {
+      // An older word from a page they have since left says nothing new
+      if (data.at && this.lastHeard.get(data.user.id) > data.at) return
+      if (data.at) this.lastHeard.set(data.user.id, data.at)
       // Arriving somewhere means leaving wherever the sidebar last saw them
       this.byTool.forEach((people, id) => { if (id !== toolId) people.delete(data.user.id) })
       if (!this.byTool.has(toolId)) this.byTool.set(toolId, new Map())

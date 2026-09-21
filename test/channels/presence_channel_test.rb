@@ -32,8 +32,8 @@ class PresenceChannelTest < ActionCable::Channel::TestCase
     stub_connection current_user: @user
     subscribe tool_id: @tool.id
 
-    assert_broadcast_on(PresenceChannel.broadcasting_for(@tool), here(context: "card:12")) do
-      perform :answer, context: "card:12"
+    assert_broadcast_on(PresenceChannel.broadcasting_for(@tool), here(context: "card:12", at: 1789000000000)) do
+      perform :answer, context: "card:12", at: "1789000000000"
     end
   end
 
@@ -93,8 +93,8 @@ class PresenceChannelTest < ActionCable::Channel::TestCase
 
   private
 
-  def here(context: nil, hello: false)
-    { type: "here", context: context, hello: hello, tool_id: @tool.id, user: user_payload }
+  def here(context: nil, hello: false, at: nil)
+    { type: "here", context: context, hello: hello, at: at, tool_id: @tool.id, user: user_payload }
   end
 
   def user_payload
