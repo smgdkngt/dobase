@@ -106,11 +106,48 @@
     @apply w-full h-full object-contain;
   }
 
-  /* While a screen share is spotlighted, the participant grid steps aside —
-     audio keeps playing (the <audio> elements are unaffected by display:none
-     on an ancestor), only the video thumbnails are hidden. */
-  .room-content-area[data-has-spotlight] .room-video-grid {
-    @apply hidden!;
+  /* While someone shares their screen, the screen takes the room and everyone's
+     camera moves into a strip beside it, so you still see the presenter's face.
+     On a phone the strip runs along the bottom instead. */
+  [data-room-mode-value="full"] .room-content-area[data-has-spotlight] {
+    @apply flex gap-2 p-4;
+  }
+
+  [data-room-mode-value="full"] .room-content-area[data-has-spotlight] .room-spotlight {
+    @apply relative inset-auto flex-1 min-w-0;
+  }
+
+  [data-room-mode-value="full"] .room-content-area[data-has-spotlight] .room-video-grid {
+    @apply flex-none w-56 h-full flex-col flex-nowrap justify-start content-stretch p-0 overflow-y-auto;
+  }
+
+  [data-room-mode-value="full"] .room-content-area[data-has-spotlight] [data-participant-id] {
+    @apply w-full;
+  }
+
+  /* Your own camera stays in the corner of the screen being shared, clear of the strip */
+  [data-room-mode-value="full"] .room-content-area[data-has-spotlight]:has(.room-video-grid:not(.hidden)) .room-local-video {
+    right: calc(14rem + 2rem);
+    bottom: 2rem;
+  }
+
+  @media (max-width: 1023px) {
+    [data-room-mode-value="full"] .room-content-area[data-has-spotlight] {
+      @apply flex-col;
+    }
+
+    [data-room-mode-value="full"] .room-content-area[data-has-spotlight] .room-video-grid {
+      @apply w-full h-24 flex-row overflow-x-auto overflow-y-hidden;
+    }
+
+    [data-room-mode-value="full"] .room-content-area[data-has-spotlight] [data-participant-id] {
+      @apply w-auto h-full;
+    }
+
+    [data-room-mode-value="full"] .room-content-area[data-has-spotlight]:has(.room-video-grid:not(.hidden)) .room-local-video {
+      right: 1.5rem;
+      bottom: calc(6rem + 2rem);
+    }
   }
 
   /* ── Controls bar ────────────────────────────────────────────── */
@@ -222,6 +259,11 @@
     @apply rounded-none;
   }
 
+  /* No room for a strip in PiP: the shared screen alone */
+  [data-room-mode-value="pip"] .room-content-area[data-has-spotlight] .room-video-grid {
+    @apply hidden!;
+  }
+
   /* ── "In another call" state ───────────────────────────────────── */
 
   .room-in-another-call {
@@ -276,7 +318,14 @@
     @apply w-44 bottom-2 right-2;
   }
 
+  /* Above the bottom bar, so Mute and Leave can be reached */
   [data-room-mode-value="full"] {
     left: 0;
+    bottom: var(--mobile-bar-clearance);
+    height: auto;
+  }
+
+  [data-room-mode-value="full"] .room-local-video {
+    @apply w-28;
   }
 }
