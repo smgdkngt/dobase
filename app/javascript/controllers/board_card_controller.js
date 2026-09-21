@@ -110,6 +110,12 @@ export default class extends Controller {
     this._save({ assigned_user_id: userId || null })
   }
 
+  // ── Column ──
+
+  moveToColumn(event) {
+    event.target.form.requestSubmit()
+  }
+
   // ── Attachment upload ──
 
   submitAttachment(event) {

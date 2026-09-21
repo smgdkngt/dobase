@@ -20,6 +20,7 @@
     <div class="detail-modal-aside">
       <div>
 
+        <%= render "tools/boards/cards/column", card: @card, tool: @tool unless @card.archived? %>
         <%= render "tools/boards/cards/assignee", card: @card, tool: @tool %>
         <%= render "tools/boards/cards/due_date", card: @card, tool: @tool %>
         <%= render "tools/boards/cards/label", card: @card, tool: @tool %>
