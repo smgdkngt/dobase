@@ -11,9 +11,13 @@ import { recentlyReportedContext } from "services/presence"
 // and as a ring around the card, item or file itself.
 const HEARTBEAT_MS = 30000
 const FORGET_AFTER_MS = 90000
+// "Anna is typing" lasts this long after the last keystroke anyone heard
+const TYPING_SHOWS_FOR_MS = 4000
+// And a page says it at most this often while someone keeps typing
+const TYPING_SAYS_EVERY_MS = 2000
 
 export default class extends Controller {
-  static targets = ["facepile"]
+  static targets = ["facepile", "watchers", "typing"]
   static values = {
     toolId: Number,
     userId: Number,
@@ -22,6 +26,7 @@ export default class extends Controller {
 
   connect() {
     this.people = new Map()
+    this.typists = new Map() // context -> Map(user id -> { name, until })
     // A page that opened straight onto a card said so before this controller
     // was here to hear it
     this.contextValue = this.contextValue || recentlyReportedContext()
@@ -38,6 +43,7 @@ export default class extends Controller {
 
   disconnect() {
     clearInterval(this.heartbeat)
+    clearTimeout(this.typingSweep)
     window.removeEventListener("presence:context", this._onContext)
     document.removeEventListener("turbo:morph", this._onRedraw)
     document.removeEventListener("turbo:frame-render", this._onRedraw)
@@ -91,7 +97,11 @@ export default class extends Controller {
         break
       case "gone":
         this.people.delete(data.user.id)
+        this.typists.forEach((people) => people.delete(data.user.id))
         break
+      case "typing":
+        this.heardTyping(data)
+        return
       default:
         return
     }
@@ -120,6 +130,66 @@ export default class extends Controller {
   render() {
     this.renderFacepile()
     this.renderItems()
+    this.watchersTargets.forEach((slot) => this.renderWatchers(slot))
+  }
+
+  // Keystrokes in a comment box: data-action="keydown->presence#typing" with
+  // data-presence-context-param="card:12" on the element around it
+  typing(event) {
+    const context = event.params.context
+    const now = Date.now()
+    if (!context || (this.lastTypingSent?.context === context && now - this.lastTypingSent.at < TYPING_SAYS_EVERY_MS)) return
+
+    this.lastTypingSent = { context, at: now }
+    this.channel?.perform("typing", { context })
+  }
+
+  heardTyping(data) {
+    if (!data.context) return
+
+    if (!this.typists.has(data.context)) this.typists.set(data.context, new Map())
+    this.typists.get(data.context).set(data.user.id, { name: data.user.name, until: Date.now() + TYPING_SHOWS_FOR_MS })
+    this.typingTargets.forEach((slot) => this.renderTyping(slot))
+
+    clearTimeout(this.typingSweep)
+    this.typingSweep = setTimeout(() => this.typingTargets.forEach((slot) => this.renderTyping(slot)), TYPING_SHOWS_FOR_MS + 100)
+  }
+
+  renderTyping(slot) {
+    const now = Date.now()
+    const people = this.typists.get(slot.dataset.presenceFor) || new Map()
+    people.forEach((typist, id) => { if (typist.until < now) people.delete(id) })
+
+    const names = Array.from(people.values()).map((typist) => typist.name)
+    slot.textContent = names.length === 0 ? ""
+      : names.length === 1 ? `${names[0]} is writing a comment…`
+      : `${names.length} people are writing comments…`
+    slot.hidden = names.length === 0
+  }
+
+  typingTargetConnected(slot) {
+    if (this.typists) this.renderTyping(slot)
+  }
+
+  // A card or todo dialog arrives after the page does, fetched when it opens
+  watchersTargetConnected(slot) {
+    if (this.people) this.renderWatchers(slot)
+  }
+
+  // Inside an open card, todo or document: the others who have it open too
+  renderWatchers(slot) {
+    const people = Array.from(this.people.values())
+      .filter((person) => person.context === slot.dataset.presenceFor)
+      .sort((a, b) => a.name.localeCompare(b.name))
+
+    slot.replaceChildren(...people.map((person) => this.faceFor(person)))
+    if (people.length > 0) {
+      const label = document.createElement("span")
+      label.className = "presence-watchers-label"
+      label.textContent = people.length === 1 ? `${people[0].name} is here too` : `${people.length} others are here too`
+      slot.appendChild(label)
+    }
+    slot.hidden = people.length === 0
   }
 
   renderFacepile() {

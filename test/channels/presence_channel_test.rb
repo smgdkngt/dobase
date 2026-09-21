@@ -77,6 +77,20 @@ class PresenceChannelTest < ActionCable::Channel::TestCase
       "the picture should be made when a browser asks for it, not while someone is arriving"
   end
 
+  test "writing a comment is passed on, and only with a proper context" do
+    stub_connection current_user: @user
+    subscribe tool_id: @tool.id
+
+    assert_broadcast_on(PresenceChannel.broadcasting_for(@tool),
+      type: "typing", context: "card:12", tool_id: @tool.id, user: user_payload) do
+      perform :typing, context: "card:12"
+    end
+
+    assert_no_broadcasts(PresenceChannel.broadcasting_for(@tool)) do
+      perform :typing, context: "<b>nope</b>"
+    end
+  end
+
   private
 
   def here(context: nil, hello: false)

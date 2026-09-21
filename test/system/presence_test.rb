@@ -76,6 +76,45 @@ class PresenceTest < ApplicationSystemTestCase
       text: @colleague.initials
   end
 
+  test "an open card says who else has it open" do
+    column = boards(:shared).columns.create!(name: "Doing", position: 0)
+    card = column.cards.create!(title: "Shared work", position: 0)
+
+    sign_in_as(@user)
+    visit tool_board_path(@tool, card: card.id)
+    wait_for_stimulus "presence"
+    assert_selector "dialog[open] h2", text: "Shared work"
+
+    using_session("colleague") do
+      open_board_as(@colleague, @tool, card: card.id)
+    end
+
+    within("dialog[open]") do
+      assert_selector ".presence-watchers", text: "#{@colleague.name} is here too"
+    end
+  end
+
+  test "you see someone else writing a comment on the card you have open" do
+    column = boards(:shared).columns.create!(name: "Doing", position: 0)
+    card = column.cards.create!(title: "Shared work", position: 0)
+
+    sign_in_as(@user)
+    visit tool_board_path(@tool, card: card.id)
+    wait_for_stimulus "presence"
+    assert_selector "dialog[open] h2", text: "Shared work"
+
+    using_session("colleague") do
+      open_board_as(@colleague, @tool, card: card.id)
+      within("dialog[open]") { find(".rich-text-input .ProseMirror").send_keys("On it") }
+    end
+
+    within("dialog[open]") do
+      assert_selector ".presence-typing", text: "#{@colleague.name} is writing a comment…"
+    end
+    # And it goes by itself once they stop
+    assert_no_selector ".presence-typing", wait: 8
+  end
+
   private
 
   # Two things to work around here: signing in lands you on the page you last

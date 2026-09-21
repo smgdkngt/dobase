@@ -41,6 +41,15 @@ class PresenceChannel < ApplicationCable::Channel
     broadcast(type: "here", context: context_from(with_indifferent_access(data)), hello: false)
   end
 
+  # Someone is writing a comment on the card or todo in the context. Passed on
+  # and forgotten: a page shows it for a few seconds unless it hears it again.
+  def typing(data)
+    return unless @tool
+
+    context = context_from(with_indifferent_access(data))
+    broadcast(type: "typing", context: context) if context
+  end
+
   # One tab closing doesn't mean the person left; only the last one to go does.
   def unsubscribed
     return unless @tool
