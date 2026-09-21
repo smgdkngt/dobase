@@ -58,6 +58,13 @@ class WorkspaceSearchTest < ActiveSupport::TestCase
     assert_equal [ "Zeta open", "Zeta finished" ], todos
   end
 
+  test "a word that only appears inside the HTML of a text doesn't count as a match" do
+    docs_documents(:meeting_notes).update!(content: %(<p>See <a href="https://example.com">the plan</a>.</p>))
+
+    assert_not search(users(:one), "href").any? { |hit| hit.kind == :document }
+    assert search(users(:one), "the plan").any? { |hit| hit.kind == :document }
+  end
+
   private
 
   def search(user, query)

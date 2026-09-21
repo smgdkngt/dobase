@@ -59,6 +59,7 @@ class WorkspaceSearch
       .left_joins(:rich_text_content)
       .where("documents.title LIKE :q OR action_text_rich_texts.body LIKE :q", q: pattern)
       .includes(:rich_text_content).ordered.limit(PER_KIND)
+      .select { |document| mentions?(document.title) || mentions?(document.content&.to_plain_text) }
       .map { |document| hit(:document, document.title, document, routes.tool_docs_document_path(document.tool_id, document), excerpt_of(document.content&.to_plain_text)) }
   end
 
@@ -77,6 +78,7 @@ class WorkspaceSearch
       .where(chats: { tool_id: tools.keys }).where("action_text_rich_texts.body LIKE ?", pattern)
       .select("chat_messages.*, chats.tool_id AS found_in")
       .includes(:user, :rich_text_body).order(created_at: :desc).limit(PER_KIND)
+      .select { |message| mentions?(message.body&.to_plain_text) }
       .map do |message|
         hit(:message, message.user&.name || "Someone", message,
           routes.tool_chat_path(message.found_in, anchor: ActionView::RecordIdentifier.dom_id(message)),
@@ -104,6 +106,12 @@ class WorkspaceSearch
   def hit(kind, title, record, path, excerpt = nil)
     tool = tools[record.try(:found_in) || record.try(:tool_id)]
     Hit.new(kind: kind, title: title.to_s, excerpt: excerpt, tool: tool, path: path)
+  end
+
+  # Rich text is stored as HTML, so the query can match inside a tag ("href",
+  # "strong") where nobody would see it. Only a match in the words counts.
+  def mentions?(text)
+    text.to_s.downcase.include?(query.downcase)
   end
 
   # The part of a long text around the first place the query appears

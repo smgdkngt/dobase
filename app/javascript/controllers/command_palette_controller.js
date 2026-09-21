@@ -143,7 +143,9 @@ export default class extends Controller {
   }
 
   #activateSelected() {
-    const selected = this.#selectedItem
+    // Results can arrive a moment before the palette marks the first one, and
+    // Enter pressed in that moment means that first one
+    const selected = this.#selectedItem || this.#visibleItems[0]
     if (!selected) return
 
     // Action items have a hotkey trigger — click the hotkey element
