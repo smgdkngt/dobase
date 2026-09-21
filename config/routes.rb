@@ -93,7 +93,11 @@ Rails.application.routes.draw do
 
       resource :chat, only: :show do
         scope module: :chats do
-          resources :messages, only: %i[index show edit create update destroy]
+          resources :messages, only: %i[index show edit create update destroy] do
+            scope module: :messages do
+              resources :reactions, only: %i[create destroy], param: :emoji
+            end
+          end
           resource :read, only: :create
         end
       end

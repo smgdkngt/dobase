@@ -19,4 +19,11 @@ json.files message.files do |file|
   json.(file, :content_type, :byte_size)
   json.download_url rails_blob_url(file, disposition: "attachment")
 end
+json.reactions message.reaction_groups do |emoji, users|
+  json.emoji emoji
+  json.count users.size
+  json.users users do |user|
+    json.partial! "users/user", user: user
+  end
+end
 json.(message, :edited_at, :created_at)

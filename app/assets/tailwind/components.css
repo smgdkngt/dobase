@@ -686,11 +686,11 @@
   }
 
   /* Chat empty state: hide when messages exist */
-  #chat_messages:has([data-controller="message"]) > #chat-empty-state {
+  #chat_messages:has([data-controller~="message"]) > #chat-empty-state {
     @apply hidden!;
   }
 
-  #chat_messages:not(:has([data-controller="message"])) > [role="separator"] {
+  #chat_messages:not(:has([data-controller~="message"])) > [role="separator"] {
     @apply hidden!;
   }
 

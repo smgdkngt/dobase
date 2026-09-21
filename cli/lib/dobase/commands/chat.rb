@@ -5,6 +5,9 @@ module Dobase
     class Chat < Command
       noun "chat", "Messages in a chat (chat tools)"
 
+      # The emoji the app offers; anything else is refused
+      REACTIONS = %w[👍 ❤️ 😂 🎉 😮 🙏 👀 ✅].freeze
+
       command "chat list", "Show the latest messages in a chat, oldest first (doesn't mark it read)", args: %w[TOOL],
         flags: {
           limit: [ "N", "Number of messages (default 50, max 200)" ],
@@ -24,6 +27,8 @@ module Dobase
             say "  > #{message.dig("reply_to", "user_name")}: #{message.dig("reply_to", "preview")}" if message["reply_to"]
             paragraph message["body"]
             message["files"].each { |file| say "  File: #{file["filename"]} (#{bytes(file["byte_size"])}) #{file["download_url"]}" }
+            reactions = message.fetch("reactions", []).map { |reaction| "#{reaction["emoji"]} #{reaction["users"].map { |user| user["name"] }.join(", ")}" }
+            say "  Reactions: #{reactions.join(" · ")}" if reactions.any?
           end
         end
       end
@@ -48,6 +53,14 @@ module Dobase
         chat_tool, id = tool_and_id(ref, "chat", "message")
         delete("/tools/#{chat_tool["id"]}/chat/messages/#{id}")
         output(nil) { say "Deleted message #{chat_tool["id"]}/#{id}." }
+      end
+
+      command "chat react", "Put an emoji on a message, or take yours off (#{REACTIONS.join(" ")})", args: %w[TOOL/MESSAGE EMOJI],
+        flags: { remove: [ nil, "Take your emoji off instead" ] } do |ref, emoji, remove: false|
+        chat_tool, id = tool_and_id(ref, "chat", "message")
+        path = "/tools/#{chat_tool["id"]}/chat/messages/#{id}/reactions"
+        message = remove ? delete("#{path}/#{URI.encode_www_form_component(emoji)}") : post(path, emoji: emoji)
+        output(message) { say "#{remove ? "Took #{emoji} off" : "Put #{emoji} on"} message #{chat_tool["id"]}/#{id}." }
       end
 
       command "chat read", "Mark a chat as read up to its latest message", args: %w[TOOL] do |ref|

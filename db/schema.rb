@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_18_160000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_21_150000) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -203,6 +203,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_160000) do
     t.index ["chat_id"], name: "index_chat_messages_on_chat_id"
     t.index ["reply_to_id"], name: "index_chat_messages_on_reply_to_id"
     t.index ["user_id"], name: "index_chat_messages_on_user_id"
+  end
+
+  create_table "chat_reactions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "emoji", null: false
+    t.integer "message_id", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["message_id", "user_id", "emoji"], name: "index_chat_reactions_on_message_id_and_user_id_and_emoji", unique: true
+    t.index ["message_id"], name: "index_chat_reactions_on_message_id"
+    t.index ["user_id"], name: "index_chat_reactions_on_user_id"
   end
 
   create_table "chat_read_receipts", force: :cascade do |t|
@@ -630,6 +641,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_160000) do
   add_foreign_key "chat_messages", "chat_messages", column: "reply_to_id"
   add_foreign_key "chat_messages", "chats"
   add_foreign_key "chat_messages", "users"
+  add_foreign_key "chat_reactions", "chat_messages", column: "message_id"
+  add_foreign_key "chat_reactions", "users"
   add_foreign_key "chat_read_receipts", "chat_messages", column: "last_read_message_id"
   add_foreign_key "chat_read_receipts", "chats"
   add_foreign_key "chat_read_receipts", "users"
