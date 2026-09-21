@@ -9,15 +9,20 @@ class PresenceChannelTest < ActionCable::Channel::TestCase
     ToolPresence.reset!
   end
 
-  test "someone on the tool arrives with a hello" do
+  test "someone on the tool is let in, and says hello themselves" do
     stub_connection current_user: @user
 
-    assert_broadcast_on(PresenceChannel.broadcasting_for(@tool), here(hello: true)) do
+    # The page says hello once connected, with what it has open and when; a
+    # hello from here would carry neither and could arrive after the page's own
+    assert_no_broadcasts(PresenceChannel.broadcasting_for(@tool)) do
       subscribe tool_id: @tool.id
     end
-
     assert subscription.confirmed?
     assert_has_stream_for @tool
+
+    assert_broadcast_on(PresenceChannel.broadcasting_for(@tool), here(context: "card:3", hello: true, at: 1789000000000)) do
+      perform :announce, context: "card:3", hello: "1", at: "1789000000000"
+    end
   end
 
   test "someone who can't reach the tool is turned away" do
@@ -70,6 +75,7 @@ class PresenceChannelTest < ActionCable::Channel::TestCase
     stub_connection current_user: @user
 
     subscribe tool_id: @tool.id
+    perform :announce, hello: "1"
 
     avatar_url = broadcasts(PresenceChannel.broadcasting_for(@tool)).last.then { |message| JSON.parse(message)["user"]["avatar_url"] }
     assert_match %r{\A/rails/active_storage/representations/}, avatar_url

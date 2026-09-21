@@ -20,7 +20,9 @@ class PresenceChannel < ApplicationCable::Channel
     ToolPresence.connect(@tool.id, current_user.id)
     stream_for @tool
     transmit({ type: "welcome", user_id: current_user.id })
-    broadcast(type: "here", context: nil, hello: true, at: nil)
+    # No hello from here: the page says hello itself once it's connected, with
+    # what it has open and when. One sent from here carries neither, and the
+    # workers can deliver it after the page's own, wiping what it said.
   end
 
   # Where this person is now: on arrival, on a heartbeat, and whenever they open

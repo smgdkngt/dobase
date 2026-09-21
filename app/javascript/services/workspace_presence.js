@@ -33,7 +33,7 @@ class WorkspacePresence {
       this.byTool.get(toolId)?.delete(data.user.id)
     } else if (data.type === "here") {
       // An older word from a page they have since left says nothing new
-      if (data.at && this.lastHeard.get(data.user.id) > data.at) return
+      if (this.lastHeard.get(data.user.id) > (data.at || 0)) return
       if (data.at) this.lastHeard.set(data.user.id, data.at)
       // Arriving somewhere means leaving wherever the sidebar last saw them
       this.byTool.forEach((people, id) => { if (id !== toolId) people.delete(data.user.id) })
