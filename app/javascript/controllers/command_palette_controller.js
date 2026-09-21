@@ -1,9 +1,14 @@
 import { Controller } from "@hotwired/stimulus"
 
+// Past this many characters the palette also searches every tool you share
+const SEARCH_FROM_LENGTH = 2
+const SEARCH_AFTER_MS = 200
+
 export default class extends Controller {
-  static targets = ["input", "results", "item", "sectionHeader", "sectionDivider"]
+  static targets = ["input", "results", "item", "sectionHeader", "sectionDivider", "searchFrame"]
 
   open() {
+    clearTimeout(this.searchTimer)
     this.inputTarget.value = ""
     this.filter()
     this.element.showModal()
@@ -14,6 +19,9 @@ export default class extends Controller {
     const query = this.inputTarget.value.toLowerCase().trim()
 
     this.itemTargets.forEach(item => {
+      // Search results already match; the server chose them
+      if (item.dataset.searchResult) return
+
       if (!query) {
         item.classList.remove("hidden")
       } else {
@@ -26,6 +34,28 @@ export default class extends Controller {
 
     this._toggleEmptySections()
     this.#selectFirst()
+    this._search(query)
+  }
+
+  // Asks the server for everything else that matches, once typing pauses
+  _search(query) {
+    if (!this.hasSearchFrameTarget) return
+
+    clearTimeout(this.searchTimer)
+    if (query.length < SEARCH_FROM_LENGTH) {
+      this.searchFrameTarget.removeAttribute("src")
+      this.searchFrameTarget.replaceChildren()
+      return
+    }
+
+    this.searchTimer = setTimeout(() => {
+      this.searchFrameTarget.src = `/search?q=${encodeURIComponent(query)}`
+    }, SEARCH_AFTER_MS)
+  }
+
+  // The results arrived; if nothing above them matched, the first one is selected
+  searched() {
+    if (!this.#selectedItem || this.#selectedItem.classList.contains("hidden")) this.#selectFirst()
   }
 
   // Hide a section's header (and, for actions, the divider after it) once
@@ -34,7 +64,7 @@ export default class extends Controller {
   _toggleEmptySections() {
     const visible = (item) => !item.classList.contains("hidden")
     const hasVisibleAction = this.itemTargets.some(item => item.dataset.type === "action" && visible(item))
-    const hasVisibleTool = this.itemTargets.some(item => item.dataset.type !== "action" && visible(item))
+    const hasVisibleTool = this.itemTargets.some(item => item.dataset.type !== "action" && !item.dataset.searchResult && visible(item))
 
     this.sectionHeaderTargets.forEach(header => {
       header.classList.toggle("hidden", !(header.dataset.section === "action" ? hasVisibleAction : hasVisibleTool))
@@ -113,7 +143,9 @@ export default class extends Controller {
   }
 
   #activateSelected() {
-    const selected = this.#selectedItem
+    // Results can arrive a moment before the palette marks the first one, and
+    // Enter pressed in that moment means that first one
+    const selected = this.#selectedItem || this.#visibleItems[0]
     if (!selected) return
 
     // Action items have a hotkey trigger — click the hotkey element
