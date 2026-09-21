@@ -92,8 +92,9 @@ export default class extends Controller {
 
     switch (data.type) {
       case "here":
-        // An older word from a page they have since left says nothing new
-        if (data.at && this.people.get(data.user.id)?.at > data.at) return
+        // An older word from a page they have since left says nothing new, and
+        // an undated one can't say it's newer than what we have
+        if (this.people.get(data.user.id)?.at > (data.at || 0)) return
         this.people.set(data.user.id, { ...data.user, context: data.context, at: data.at, seenAt: Date.now() })
         if (data.hello) this.answer()
         break

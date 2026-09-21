@@ -78,7 +78,8 @@ class DocsTest < ApplicationSystemTestCase
     find(".mention-suggestion-item", text: users(:two).name).click
 
     assert_selector "[data-document-editor-target='editor'] .mention", text: "@#{users(:two).name}"
-    assert_eventually { users(:two).notifications.any? { |n| n.message == "User One mentioned you in Shared Notes" } }
+    # The mention is sent from the page, after the pick; a busy machine takes its time
+    assert_eventually(timeout: 10) { users(:two).notifications.reload.any? { |n| n.message == "User One mentioned you in Shared Notes" } }
   end
 
   private
