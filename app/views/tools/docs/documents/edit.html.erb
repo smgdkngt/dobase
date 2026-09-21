@@ -5,7 +5,9 @@
      data-document-editor-document-id-value="<%= @document.id %>"
      data-document-editor-save-url-value="<%= tool_docs_document_path(@tool, @document) %>"
      data-document-editor-user-name-value="<%= current_user.name %>"
-     data-document-editor-user-color-value="<%= user_color(current_user) %>">
+     data-document-editor-user-color-value="<%= user_color(current_user) %>"
+     data-document-editor-mentions-value="<%= @tool.users.where.not(id: current_user.id).map { |user| { id: user.id, name: user.name } }.to_json %>"
+     data-document-editor-mention-url-value="<%= tool_docs_document_mentions_path(@tool, @document) %>">
 
   <% title_input = capture do %>
     <label for="document-title" class="sr-only">Document title</label>

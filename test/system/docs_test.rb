@@ -68,6 +68,19 @@ class DocsTest < ApplicationSystemTestCase
     assert_selector ".collaboration-carets__label", text: users(:two).name, visible: :all
   end
 
+  test "mentioning a colleague in a document tells them" do
+    tool = tools(:shared_docs)
+    document = docs_documents(:shared_notes)
+    visit edit_tool_docs_document_path(tool, document)
+    wait_for_stimulus "document-editor"
+
+    find("[data-document-editor-target='editor'] .ProseMirror").send_keys(:end, "Over to @Us")
+    find(".mention-suggestion-item", text: users(:two).name).click
+
+    assert_selector "[data-document-editor-target='editor'] .mention", text: "@#{users(:two).name}"
+    assert_eventually { users(:two).notifications.any? { |n| n.message == "User One mentioned you in Shared Notes" } }
+  end
+
   private
 
   def assert_eventually(timeout: 5)

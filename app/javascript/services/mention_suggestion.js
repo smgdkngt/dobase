@@ -5,7 +5,10 @@
 // users:         array of { id, name }
 // onStateChange: called with true when the dropdown opens, false when it closes,
 //                so the host controller can suppress enter-to-submit while open.
-export function createMentionSuggestion({ users, onStateChange }) {
+// onPick:        called with the user picked, only on the page where it was
+//                picked — a shared document hears the mention arrive on every
+//                page, but only the one who wrote it should send it.
+export function createMentionSuggestion({ users, onStateChange, onPick }) {
   return {
     char: "@",
 
@@ -68,6 +71,7 @@ export function createMentionSuggestion({ users, onStateChange }) {
         const item = currentItems[index]
         if (item && currentCommand) {
           currentCommand({ id: String(item.id), label: item.name })
+          onPick?.(item)
         }
       }
 

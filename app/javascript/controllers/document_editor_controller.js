@@ -1,7 +1,9 @@
 import { Controller } from "@hotwired/stimulus"
-import { Collaboration, CollaborationCaret } from "rhino-editor"
+import { Collaboration, CollaborationCaret, Mention } from "rhino-editor"
 import { applyPlaceholder } from "services/rhino_placeholder"
 import { DocumentSync } from "services/document_sync"
+import { createMentionSuggestion } from "services/mention_suggestion"
+import { api } from "services/api"
 
 export default class extends Controller {
   static targets = ["form", "title", "editor", "saveIndicator"]
@@ -9,7 +11,9 @@ export default class extends Controller {
     documentId: Number,
     saveUrl: String,
     userName: String,
-    userColor: String
+    userColor: String,
+    mentions: Array,
+    mentionUrl: String
   }
 
   connect() {
@@ -47,7 +51,15 @@ export default class extends Controller {
 
     this.editorTarget.addExtensions(
       Collaboration.configure({ document: this.sync.doc }),
-      CollaborationCaret.configure({ provider: this.sync, user: { name: this.userNameValue, color: this.userColorValue } })
+      CollaborationCaret.configure({ provider: this.sync, user: { name: this.userNameValue, color: this.userColorValue } }),
+      Mention.configure({
+        HTMLAttributes: { class: "mention" },
+        suggestion: createMentionSuggestion({
+          users: this.mentionsValue,
+          // Only the page where the name was picked tells the colleague
+          onPick: (user) => api(this.mentionUrlValue, "POST", { user_id: user.id })
+        })
+      })
     )
 
     // The shared copy keeps the history — one editor undoing its own steps on
