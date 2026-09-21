@@ -20,6 +20,9 @@
              data-action="blur->todo-item#saveTitle keydown->todo-item#titleKeydown">
     </div>
 
+    <%# Who else has this open right now; filled in by presence_controller.js %>
+    <span class="presence-watchers" hidden aria-live="polite" data-presence-target="watchers" data-presence-for="todo:<%= item.id %>"></span>
+
     <%= render "components/icon_button",
         icon: "x",
         title: "Close",

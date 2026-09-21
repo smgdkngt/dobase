@@ -13,7 +13,7 @@ const HEARTBEAT_MS = 30000
 const FORGET_AFTER_MS = 90000
 
 export default class extends Controller {
-  static targets = ["facepile"]
+  static targets = ["facepile", "watchers"]
   static values = {
     toolId: Number,
     userId: Number,
@@ -120,6 +120,28 @@ export default class extends Controller {
   render() {
     this.renderFacepile()
     this.renderItems()
+    this.watchersTargets.forEach((slot) => this.renderWatchers(slot))
+  }
+
+  // A card or todo dialog arrives after the page does, fetched when it opens
+  watchersTargetConnected(slot) {
+    if (this.people) this.renderWatchers(slot)
+  }
+
+  // Inside an open card, todo or document: the others who have it open too
+  renderWatchers(slot) {
+    const people = Array.from(this.people.values())
+      .filter((person) => person.context === slot.dataset.presenceFor)
+      .sort((a, b) => a.name.localeCompare(b.name))
+
+    slot.replaceChildren(...people.map((person) => this.faceFor(person)))
+    if (people.length > 0) {
+      const label = document.createElement("span")
+      label.className = "presence-watchers-label"
+      label.textContent = people.length === 1 ? `${people[0].name} is here too` : `${people.length} others are here too`
+      slot.appendChild(label)
+    }
+    slot.hidden = people.length === 0
   }
 
   renderFacepile() {
