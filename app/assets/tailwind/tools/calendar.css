@@ -15,9 +15,13 @@
     @apply min-w-max;
   }
 
-  /* Header */
+  /* Header: day names and the all-day row, above the events and the now line */
+  .week-head {
+    @apply sticky top-0 z-30 bg-surface;
+  }
+
   .week-header {
-    @apply sticky top-0 z-10 grid bg-surface;
+    @apply grid bg-surface;
     grid-template-columns: 64px repeat(7, minmax(140px, 1fr));
   }
 
@@ -35,7 +39,7 @@
 
   /* All-day events row */
   .all-day-row {
-    @apply sticky top-[52px] z-10 grid bg-surface border-b border-border-light;
+    @apply grid bg-surface border-b border-border-light;
     grid-template-columns: 64px 1fr;
     min-height: 32px;
   }

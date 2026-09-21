@@ -50,20 +50,18 @@ export default class extends Controller {
     }
   }
 
+  // Opens the week at the hour the grid asks for (the one before now, in the
+  // viewer's time zone), measured from the grid itself: the header above it
+  // sticks, and is taller with an all-day row
   scrollToCurrentTime() {
     if (!this.hasGridTarget) return
 
     requestAnimationFrame(() => {
-      const now = new Date()
-      const hour = now.getHours()
-      const hourHeight = 60 // Each hour slot is 60px
-      const headerHeight = 52 // Week header height
+      const body = this.gridTarget.querySelector("[data-scroll-hour]")
+      const slot = body?.querySelector(`[data-hour="${body.dataset.scrollHour}"]`)
+      if (!slot) return
 
-      // Scroll to current hour minus 2 hours for context
-      const targetHour = Math.max(0, hour - 2)
-      const scrollTop = headerHeight + (targetHour * hourHeight)
-
-      this.gridTarget.scrollTop = scrollTop
+      this.gridTarget.scrollTop = slot.getBoundingClientRect().top - body.getBoundingClientRect().top
     })
   }
 
