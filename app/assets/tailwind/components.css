@@ -549,8 +549,10 @@
     @apply relative outline-2 outline-accent/60 outline-offset-1 rounded-lg;
   }
 
+  /* Inside the corner, not over the edge: a board column and a files grid
+     scroll, and anything past a card's edge is cut off by them */
   .presence-badge {
-    @apply absolute -top-2 -right-1 px-1.5 py-px rounded-full bg-accent-solid text-text-inverse text-[0.625rem] font-semibold tracking-wide shadow-sm pointer-events-none;
+    @apply absolute top-1.5 right-1.5 px-1.5 py-px rounded-full bg-accent-solid text-text-inverse text-[0.625rem] font-semibold tracking-wide shadow-sm pointer-events-none;
   }
 
   /* Rouge marks up a code file; these are the colours it gets */
