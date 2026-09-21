@@ -72,7 +72,7 @@ export default class extends Controller {
   }
 
   announce(options = {}) {
-    this.channel?.perform("announce", { context: this.contextValue, hello: options.hello ? "1" : "" })
+    this.channel?.perform("announce", { context: this.contextValue, hello: options.hello ? "1" : "", at: Date.now() })
   }
 
   beat() {
@@ -92,7 +92,9 @@ export default class extends Controller {
 
     switch (data.type) {
       case "here":
-        this.people.set(data.user.id, { ...data.user, context: data.context, seenAt: Date.now() })
+        // An older word from a page they have since left says nothing new
+        if (data.at && this.people.get(data.user.id)?.at > data.at) return
+        this.people.set(data.user.id, { ...data.user, context: data.context, at: data.at, seenAt: Date.now() })
         if (data.hello) this.answer()
         break
       case "gone":
@@ -110,7 +112,7 @@ export default class extends Controller {
   }
 
   answer() {
-    this.channel?.perform("answer", { context: this.contextValue })
+    this.channel?.perform("answer", { context: this.contextValue, at: Date.now() })
   }
 
   forgetTheQuiet() {
