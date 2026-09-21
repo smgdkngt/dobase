@@ -48,6 +48,34 @@ class PresenceTest < ApplicationSystemTestCase
     assert_selector "#board-card-#{card.id} [data-presence-badge]", text: @colleague.initials
   end
 
+  test "the sidebar shows who has a tool open, wherever you are yourself" do
+    sign_in_as(@user)
+    visit tool_board_path(tools(:project_board))
+    wait_for_stimulus "sidebar-presence"
+    slot = "[data-sidebar-presence-target='slot'][data-tool-id='#{@tool.id}']"
+    assert_no_selector "#{slot} .sidebar-presence-face"
+
+    using_session("colleague") do
+      open_board_as(@colleague, @tool)
+    end
+
+    assert_selector "#{slot} .sidebar-presence-face", text: @colleague.initials
+  end
+
+  test "someone already in a tool shows in the sidebar of a page opened after them" do
+    using_session("colleague") do
+      open_board_as(@colleague, @tool)
+    end
+
+    sign_in_as(@user)
+    visit tool_board_path(tools(:project_board))
+    wait_for_stimulus "sidebar-presence"
+
+    # The roll call gets their answer, well before their next heartbeat
+    assert_selector "[data-sidebar-presence-target='slot'][data-tool-id='#{@tool.id}'] .sidebar-presence-face",
+      text: @colleague.initials
+  end
+
   private
 
   # Two things to work around here: signing in lands you on the page you last

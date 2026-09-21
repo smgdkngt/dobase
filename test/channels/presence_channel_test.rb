@@ -59,7 +59,7 @@ class PresenceChannelTest < ActionCable::Channel::TestCase
     ToolPresence.reset!
     ToolPresence.connect(@tool.id, @user.id)
 
-    assert_broadcast_on(PresenceChannel.broadcasting_for(@tool), type: "gone", user: user_payload) do
+    assert_broadcast_on(PresenceChannel.broadcasting_for(@tool), type: "gone", tool_id: @tool.id, user: user_payload) do
       unsubscribe
     end
   end
@@ -80,7 +80,7 @@ class PresenceChannelTest < ActionCable::Channel::TestCase
   private
 
   def here(context: nil, hello: false)
-    { type: "here", context: context, hello: hello, user: user_payload }
+    { type: "here", context: context, hello: hello, tool_id: @tool.id, user: user_payload }
   end
 
   def user_payload

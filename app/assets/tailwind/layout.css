@@ -66,6 +66,19 @@
     @apply flex items-center gap-3 flex-1 min-w-0 -my-2 py-2 text-inherit no-underline;
   }
 
+  /* Faces of the people who have a tool open right now */
+  .sidebar-presence {
+    @apply flex items-center shrink-0 pl-1;
+  }
+
+  .sidebar-presence-face {
+    @apply w-4.5 h-4.5 -ml-1 text-[0.5rem] font-semibold ring-2 ring-sidebar-bg;
+  }
+
+  .sidebar-presence-more {
+    @apply ml-1 text-[0.625rem] font-medium text-text-tertiary;
+  }
+
   /* Unread activity dot */
   .sidebar-tool-link[data-unread]::after {
     @apply w-1.5 h-1.5 rounded-full bg-accent shrink-0;

@@ -18,6 +18,16 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
       source: "navigator.serviceWorker.register = () => Promise.resolve()")
   end
 
+  # The app server runs in this process, so the per-process tab counts outlive a
+  # test: the browser is torn down by loading a blank page, which leaves its
+  # sockets to time out rather than unsubscribe. A person counted twice never
+  # leaves, so every test starts from zero.
+  setup do
+    ChatPresence.reset!
+    ToolPresence.reset!
+    DocumentPresence.reset!
+  end
+
   private
 
   # Controllers register asynchronously after Turbo has loaded the page (each one is a

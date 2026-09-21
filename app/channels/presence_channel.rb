@@ -52,7 +52,7 @@ class PresenceChannel < ApplicationCable::Channel
   private
 
   def broadcast(payload)
-    PresenceChannel.broadcast_to(@tool, payload.merge(user: user_payload))
+    PresenceChannel.broadcast_to(@tool, payload.merge(tool_id: @tool.id, user: user_payload))
   end
 
   # The identity comes from the connection, never from the browser: a page can
