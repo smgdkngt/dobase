@@ -25,6 +25,19 @@ module Files
       assert item.markdown?
     end
 
+    test "code files are shown as text, whatever their content type says" do
+      %w[app.ts App.tsx index.mjs main.go query.graphql].each do |name|
+        assert upload(name, "const x = 1\n", content_type: "application/octet-stream").text?, "#{name} should preview as text"
+      end
+    end
+
+    test "a video with a code file's extension is still a video" do
+      item = upload("clip.ts", "G@\x00\x10", content_type: "video/mp2t")
+      item.file.blob.update!(content_type: "video/mp2t")
+
+      assert_not item.reload.text?
+    end
+
     test "an image is not text" do
       item = upload("photo.png", "\x89PNG\r\n", content_type: "image/png")
 

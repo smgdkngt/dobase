@@ -12,7 +12,12 @@ module Files
 
     # Files worth showing as text, and how much of one to read into a page
     TEXT_CONTENT_TYPES = %w[application/json application/xml application/x-yaml application/yaml application/toml].freeze
-    TEXT_EXTENSIONS = %w[txt md markdown csv tsv json yml yaml toml xml log rb erb py rs go java sql css scss conf ini env].freeze
+    TEXT_EXTENSIONS = %w[
+      txt md markdown csv tsv log conf ini env
+      json yml yaml toml xml
+      rb erb rake py rs go java kt swift c h cpp hpp cs php pl lua ex exs
+      mjs cjs ts jsx tsx vue svelte sql css scss sass less graphql
+    ].freeze
     MARKDOWN_EXTENSIONS = %w[md markdown].freeze
     MAX_PREVIEW_BYTES = 512.kilobytes
 
@@ -62,7 +67,9 @@ module Files
     def text?
       return false unless file.attached?
 
-      content_type.to_s.start_with?("text/") || content_type.in?(TEXT_CONTENT_TYPES) || extension.in?(TEXT_EXTENSIONS)
+      content_type.to_s.start_with?("text/") || content_type.in?(TEXT_CONTENT_TYPES) ||
+        # By name only when the content isn't media: a .ts is TypeScript, or a video
+        (extension.in?(TEXT_EXTENSIONS) && !content_type.to_s.start_with?("video/", "audio/", "image/"))
     end
 
     def markdown?
