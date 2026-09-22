@@ -52,12 +52,13 @@ class DocumentSyncChannel < ApplicationCable::Channel
     broadcast(type: "update", update: data["update"], origin: data["origin"])
   end
 
-  # Where someone's caret is. Passed on, never kept.
+  # Where someone's caret is. Passed on, never kept. A page that just arrived
+  # says hello with it, and everyone else answers with theirs.
   def move_caret(data)
     return unless @document
     return if data["awareness"].to_s.empty?
 
-    broadcast(type: "awareness", awareness: data["awareness"], origin: data["origin"])
+    broadcast(type: "awareness", awareness: data["awareness"], origin: data["origin"], hello: data["hello"].present?)
   end
 
   # The pile, merged into one by a browser that had the whole document

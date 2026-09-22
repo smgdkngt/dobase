@@ -48,10 +48,15 @@ export default class extends Controller {
       onSynced: ({ seed, compact }) => this.onSynced(seed, compact)
     })
     this.sync.describeMe({ name: this.userNameValue, color: this.userColorValue })
+    this.sync.awareness.on("change", (changes, origin) => this._showNamesOfMoved(changes, origin))
 
     this.editorTarget.addExtensions(
       Collaboration.configure({ document: this.sync.doc }),
-      CollaborationCaret.configure({ provider: this.sync, user: { name: this.userNameValue, color: this.userColorValue } }),
+      CollaborationCaret.configure({
+        provider: this.sync,
+        user: { name: this.userNameValue, color: this.userColorValue },
+        render: (user) => this._caretFor(user)
+      }),
       Mention.configure({
         HTMLAttributes: { class: "mention" },
         suggestion: createMentionSuggestion({
@@ -70,6 +75,43 @@ export default class extends Controller {
     this.savedHtml = input?.value || ""
     if (input) input.value = ""
     this.editorTarget.startEditor()
+  }
+
+  // Someone else's caret: a line in their colour with their name on it, the
+  // markup the caret styles expect. The name shows for a moment where the caret
+  // lands, then fades (see docs.css).
+  _caretFor(user) {
+    const caret = document.createElement("span")
+    caret.classList.add("collaboration-carets__caret")
+    caret.style.borderColor = user.color
+
+    const label = document.createElement("div")
+    label.classList.add("collaboration-carets__label")
+    label.style.backgroundColor = user.color
+    label.dataset.caretName = user.name
+    label.textContent = user.name
+    caret.appendChild(label)
+    return caret
+  }
+
+  // The editor keeps a moved caret's element, so its name wouldn't show again
+  // by itself: play it again for everyone whose caret just changed
+  _showNamesOfMoved({ added, updated }, origin) {
+    if (origin !== this.sync) return
+
+    const states = this.sync.awareness.getStates()
+    const names = added.concat(updated).map((id) => states.get(id)?.user?.name).filter(Boolean)
+    if (names.length === 0) return
+
+    requestAnimationFrame(() => {
+      this.editorTarget.querySelectorAll("[data-caret-name]").forEach((label) => {
+        if (!names.includes(label.dataset.caretName)) return
+        label.getAnimations().forEach((animation) => {
+          animation.cancel()
+          animation.play()
+        })
+      })
+    })
   }
 
   // The first page to open a document since this was built fills the shared copy

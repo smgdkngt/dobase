@@ -30,7 +30,9 @@ export class DocumentSync {
       this.queue(update)
     })
 
-    this.awareness.on("update", ({ added, updated, removed }) => {
+    this.awareness.on("update", ({ added, updated, removed }, origin) => {
+      // Only our own caret goes out; everyone sends their own
+      if (origin === this) return
       const changed = added.concat(updated, removed)
       if (changed.length === 0) return
       this.send("move_caret", { awareness: encode(encodeAwarenessUpdate(this.awareness, changed)) })
@@ -93,6 +95,9 @@ export class DocumentSync {
       case "awareness":
         if (data.origin === this.origin) return
         applyAwarenessUpdate(this.awareness, decode(data.awareness), this)
+        // Someone who just arrived knows nobody's caret yet, and a caret that
+        // stands still isn't sent again for a while
+        if (data.hello) this.sendMyCaret()
         break
     }
   }
@@ -106,6 +111,7 @@ export class DocumentSync {
     }, this)
 
     this.synced = true
+    this.sendMyCaret({ hello: true })
     // A document nobody has opened since this was built starts from the text as
     // it was last saved; every later page joins the copy that page made.
     this.onSynced?.({ seed: data.seed, compact: data.compact })
@@ -116,6 +122,13 @@ export class DocumentSync {
     if (!this.synced) return
 
     this.send("merge_updates", { snapshot: encode(Y.encodeStateAsUpdate(this.doc)) })
+  }
+
+  sendMyCaret({ hello = false } = {}) {
+    if (!this.awareness.getLocalState()) return
+
+    const awareness = encode(encodeAwarenessUpdate(this.awareness, [ this.doc.clientID ]))
+    this.send("move_caret", hello ? { awareness, hello: "1" } : { awareness })
   }
 
   forgetMyCaret() {

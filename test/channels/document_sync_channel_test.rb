@@ -45,9 +45,18 @@ class DocumentSyncChannelTest < ActionCable::Channel::TestCase
 
     assert_no_difference -> { Docs::Update.count } do
       assert_broadcast_on(DocumentSyncChannel.broadcasting_for(@document),
-        type: "awareness", awareness: "AQI=", origin: "abc") do
+        type: "awareness", awareness: "AQI=", origin: "abc", hello: false) do
         perform :move_caret, awareness: "AQI=", origin: "abc"
       end
+    end
+  end
+
+  test "a page that just arrived asks for everyone's caret with its own" do
+    subscribe document_id: @document.id
+
+    assert_broadcast_on(DocumentSyncChannel.broadcasting_for(@document),
+      type: "awareness", awareness: "AQI=", origin: "abc", hello: true) do
+      perform :move_caret, awareness: "AQI=", origin: "abc", hello: "1"
     end
   end
 

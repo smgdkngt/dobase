@@ -68,6 +68,33 @@ class DocsTest < ApplicationSystemTestCase
     assert_selector ".collaboration-carets__label", text: users(:two).name, visible: :all
   end
 
+  test "you see where someone already in the document is, as soon as you open it" do
+    tool = tools(:shared_docs)
+    document = docs_documents(:shared_notes)
+    visit edit_tool_docs_document_path(tool, document)
+    wait_for_stimulus "document-editor"
+    find("[data-document-editor-target='editor'] .ProseMirror").send_keys(:end, "Here")
+
+    using_session("colleague") do
+      sign_in_as users(:two)
+      assert_selector "aside.sidebar"
+      page.execute_script("Turbo.visit('#{Rails.application.routes.url_helpers.edit_tool_docs_document_path(tools(:shared_docs), docs_documents(:shared_notes))}')")
+      wait_for_stimulus "document-editor"
+
+      # Without the first one moving: well before their page's own refresh
+      assert_selector ".collaboration-carets__label", text: users(:one).name, wait: 5
+      # The name steps out of the way after a moment...
+      assert_no_selector ".collaboration-carets__label", text: users(:one).name, wait: 6
+    end
+
+    find("[data-document-editor-target='editor'] .ProseMirror").send_keys(" and there")
+
+    # ...and shows again when they move
+    using_session("colleague") do
+      assert_selector ".collaboration-carets__label", text: users(:one).name
+    end
+  end
+
   test "mentioning a colleague in a document tells them" do
     tool = tools(:shared_docs)
     document = docs_documents(:shared_notes)
