@@ -120,19 +120,25 @@ rhino-editor.document-editor .trix-content,
   white-space: nowrap;
   color: #fff;
   user-select: none;
-  /* Out of the way until the caret moves, so a row of names doesn't cover the text */
-  opacity: 0;
-  transition: opacity 150ms ease;
+  /* The name shows where the caret lands, then steps out of the way so a row
+     of names doesn't cover the text. The caret is drawn anew each time it
+     moves, which plays this again. */
+  animation: caret-label 3s ease forwards;
 }
 
-.collaboration-carets__caret:hover .collaboration-carets__label,
-.document-editor:focus-within .collaboration-carets__label {
+.collaboration-carets__caret:hover .collaboration-carets__label {
+  animation: none;
   opacity: 1;
+}
+
+@keyframes caret-label {
+  0%, 80% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .collaboration-carets__label {
-    transition: none;
+    animation-timing-function: steps(1, end);
   }
 }
 
