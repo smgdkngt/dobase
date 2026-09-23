@@ -129,9 +129,8 @@ module Files
     end
 
     def file_size_limit
-      limit = Demo.upload_limit(MAX_FILE_SIZE)
-      if file.blob.byte_size > limit
-        errors.add(:file, "is too large. Maximum size is #{limit / 1.megabyte}MB")
+      if file.blob.byte_size > MAX_FILE_SIZE
+        errors.add(:file, "is too large. Maximum size is #{MAX_FILE_SIZE / 1.megabyte}MB")
       end
     end
   end

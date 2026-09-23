@@ -2,6 +2,7 @@
 
 class ProfilesController < ApplicationController
   allow_access_tokens only: :show
+  restrict_in_demo only: :update, if: -> { params.dig(:user, :avatar).present? }
 
   def show
     respond_to do |format|

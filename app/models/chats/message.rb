@@ -110,10 +110,9 @@ module Chats
     def validate_file_sizes
       return unless files.attached?
 
-      limit = Demo.upload_limit(MAX_FILE_SIZE)
       files.each do |file|
-        if file.blob.byte_size > limit
-          errors.add(:files, "must be smaller than #{limit / 1.megabyte}MB each")
+        if file.blob.byte_size > MAX_FILE_SIZE
+          errors.add(:files, "must be smaller than #{MAX_FILE_SIZE / 1.megabyte}MB each")
           break
         end
       end

@@ -7,7 +7,6 @@
 module Demo
   EMAIL_DOMAIN = "visitors.demo.invalid"
   LIFETIME = 1.day
-  MAX_UPLOAD_SIZE = 10.megabytes
 
   def self.enabled? = ENV["DEMO_MODE"] == "true"
 
@@ -23,12 +22,20 @@ module Demo
         last_name: "Visitor",
         email_address: "visitor-#{SecureRandom.hex(8)}@#{EMAIL_DOMAIN}",
         password: SecureRandom.base58(24)
-      ).tap { |visitor| Workspace.new(visitor).build }
+      ).tap { |visitor| allowing_uploads { Workspace.new(visitor).build } }
     end
   end
 
-  # Uploads stay small in the demo, whatever the usual limit
-  def self.upload_limit(limit)
-    enabled? ? [ limit, MAX_UPLOAD_SIZE ].min : limit
+  # Visitors can't upload anything: a public demo shouldn't host strangers' files.
+  # Only the example workspace brings its own.
+  def self.uploads_allowed?
+    !enabled? || ActiveSupport::IsolatedExecutionState[:demo_uploads]
+  end
+
+  def self.allowing_uploads
+    ActiveSupport::IsolatedExecutionState[:demo_uploads] = true
+    yield
+  ensure
+    ActiveSupport::IsolatedExecutionState[:demo_uploads] = nil
   end
 end

@@ -1,11 +1,16 @@
 # frozen_string_literal: true
 
-# Files, chat and attachments check the demo's upload limit themselves. Direct uploads,
-# like an image pasted into a doc, only make a blob, so the demo checks blobs too.
+# Visitors to the demo can't upload anything (Demo.uploads_allowed?). The upload
+# forms say so (restrict_in_demo); this catches every other way a file comes in,
+# like an image pasted into a doc, which makes a blob through a direct upload.
 ActiveSupport.on_load(:active_storage_blob) do
-  validate on: :create, if: -> { Demo.enabled? } do
-    if byte_size.to_i > Demo::MAX_UPLOAD_SIZE
-      errors.add(:byte_size, "is too large for the demo (max #{Demo::MAX_UPLOAD_SIZE / 1.megabyte} MB)")
-    end
+  validate on: :create do
+    errors.add(:base, "Uploads are switched off in the demo") unless Demo.uploads_allowed?
+  end
+end
+
+Rails.application.config.to_prepare do
+  ActiveStorage::DirectUploadsController.before_action do
+    render json: { error: "Uploads are switched off in the demo" }, status: :forbidden unless Demo.uploads_allowed?
   end
 end

@@ -5,6 +5,8 @@ module Tools
     class UploadsController < ApplicationController
       include ToolScoped
 
+      restrict_in_demo only: :create
+
       allow_access_tokens
 
       # Takes files[] (or a single file) and an optional folder_id. Either every

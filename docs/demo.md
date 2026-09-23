@@ -22,7 +22,7 @@ Everything that reaches outside the app:
 - **Public links.** Files and folders can't be shared by link.
 - **Invitations.** Nobody can be invited to a tool.
 - **Signing up.** Visitors don't need an account, so registration is closed.
-- **Uploads** are 10 MB at most, per file.
+- **Uploads** are off: files, attachments, chat files, avatars and images pasted into docs. The example workspace brings its own files.
 
 Refused actions answer with "That's switched off in the demo." (JSON: `403` with
 `{ "error": "Not available in the demo" }`). The jobs that talk to mail and calendar

@@ -6,6 +6,8 @@ module Tools
       class AttachmentsController < ApplicationController
         include ToolScoped
 
+        restrict_in_demo only: :create
+
         allow_access_tokens
         before_action :set_item
         before_action :set_attachment, only: :destroy
@@ -16,11 +18,10 @@ module Tools
           files = uploaded_files
           head :unprocessable_entity and return if files.empty?
 
-          limit = Demo.upload_limit(MAX_ATTACHMENT_SIZE)
-          if files.any? { |file| file.size > limit }
+          if files.any? { |file| file.size > MAX_ATTACHMENT_SIZE }
             respond_to do |format|
-              format.html { redirect_to tool_todo_item_path(@tool, @item), alert: "File too large (max #{limit / 1.megabyte} MB)." }
-              format.json { render json: { errors: [ "File too large (max #{limit / 1.megabyte} MB)" ] }, status: :unprocessable_entity }
+              format.html { redirect_to tool_todo_item_path(@tool, @item), alert: "File too large (max 25 MB)." }
+              format.json { render json: { errors: [ "File too large (max 25 MB)" ] }, status: :unprocessable_entity }
             end
             return
           end

@@ -42,6 +42,40 @@ class DemoRestrictionsTest < ActionDispatch::IntegrationTest
     assert_not mails_accounts(:primary).reload.syncing?
   end
 
+  test "uploading" do
+    file = -> { Rack::Test::UploadedFile.new(StringIO.new("hi"), "text/plain", original_filename: "notes.txt") }
+
+    in_demo_mode do
+      assert_no_difference "Files::Item.count" do
+        post tool_files_uploads_path(tools(:my_files)), params: { file: file.call }, headers: { "Accept" => "application/json" }
+      end
+      assert_response :forbidden
+
+      post rails_direct_uploads_path, params: { blob: { filename: "a.png", byte_size: 2, checksum: "x", content_type: "image/png" } }, as: :json
+      assert_response :forbidden
+    end
+
+    assert_difference "Files::Item.count" do
+      post tool_files_uploads_path(tools(:my_files)), params: { file: file.call }, headers: { "Accept" => "application/json" }
+    end
+  end
+
+  test "a chat message may be sent, but without files" do
+    chat_tool = Tool.create!(name: "Team Chat", owner: users(:one), tool_type: ToolType.find_by(slug: "chat") || ToolType.create!(slug: "chat", name: "Chat", icon: "message-circle"))
+    file = Rack::Test::UploadedFile.new(StringIO.new("hi"), "text/plain", original_filename: "notes.txt")
+
+    in_demo_mode do
+      assert_no_difference "Chats::Message.count" do
+        post tool_chat_messages_path(chat_tool), params: { message: { body: "<p>Look</p>", files: [ file ] } }, headers: { "Accept" => "application/json" }
+      end
+      assert_response :forbidden
+
+      assert_difference "Chats::Message.count" do
+        post tool_chat_messages_path(chat_tool), params: { message: { body: "<p>Hi</p>" } }, as: :json
+      end
+    end
+  end
+
   test "sharing a file publicly" do
     file = file_items(:report)
 

@@ -36,24 +36,14 @@ class DemoTest < ActiveSupport::TestCase
     end
   end
 
-  test "uploads stay small" do
-    assert_equal 200.megabytes, Demo.upload_limit(200.megabytes)
+  test "visitors can't upload files, but the example workspace brings its own" do
+    blob = -> { ActiveStorage::Blob.new(filename: "a.txt", byte_size: 2, checksum: "x", content_type: "text/plain") }
 
+    assert blob.call.valid?
     in_demo_mode do
-      assert_equal 10.megabytes, Demo.upload_limit(200.megabytes)
-      assert_equal 5.megabytes, Demo.upload_limit(5.megabytes)
-
-      blob = ActiveStorage::Blob.new(filename: "big.bin", byte_size: 11.megabytes, checksum: "x", content_type: "application/octet-stream")
-      assert_not blob.valid?
+      assert_not blob.call.valid?
+      Demo.allowing_uploads { assert blob.call.valid? }
+      assert_not blob.call.valid?
     end
-  end
-
-  test "a file over the demo's limit is refused" do
-    item = tools(:my_files).file_items.new(name: "big.bin", created_by: users(:one), updated_by: users(:one))
-    item.file.attach(io: StringIO.new("x" * (Demo::MAX_UPLOAD_SIZE + 1)), filename: "big.bin")
-
-    assert item.valid?
-    in_demo_mode { assert_not item.valid? }
-    assert_includes item.errors[:file], "is too large. Maximum size is 10MB"
   end
 end
