@@ -41,7 +41,9 @@
 /config/*.key
 
 /config/deploy.dobase.yml
-/.kamal/secrets.dobase
+/config/deploy.demo.yml
+# Secrets per Kamal destination; secrets-common only names where they come from
+/.kamal/secrets.*
 
 
 /app/assets/builds/*
