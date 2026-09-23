@@ -36,6 +36,19 @@ class DemosControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
   end
 
+  test "a full demo asks visitors to come back later" do
+    in_demo_mode do
+      stub_const(Demo, :MAX_VISITORS, 0) do
+        assert_no_difference "User.count" do
+          post demo_path
+        end
+      end
+    end
+
+    assert_redirected_to new_session_path
+    assert_match "busy", flash[:alert]
+  end
+
   test "there is no demo outside demo mode" do
     assert_no_difference -> { User.count } do
       post demo_path

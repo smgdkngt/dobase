@@ -7,8 +7,12 @@
 module Demo
   EMAIL_DOMAIN = "visitors.demo.invalid"
   LIFETIME = 1.day
+  # How many visitors can have a workspace at once; the database and disk stay bounded
+  MAX_VISITORS = 500
 
   def self.enabled? = ENV["DEMO_MODE"] == "true"
+
+  def self.full? = visitors.count >= MAX_VISITORS
 
   def self.visitors
     User.where("email_address LIKE ?", "%@#{EMAIL_DOMAIN}")

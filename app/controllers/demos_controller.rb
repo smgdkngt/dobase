@@ -9,6 +9,7 @@ class DemosController < ApplicationController
 
   def create
     return redirect_to root_path if authenticated?
+    return redirect_to new_session_path, alert: "The demo is busy right now. Try again in an hour or so." if Demo.full?
 
     visitor = Demo.create_visitor!
     start_new_session_for visitor

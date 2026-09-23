@@ -28,7 +28,16 @@ Refused actions answer with "That's switched off in the demo." (JSON: `403` with
 `{ "error": "Not available in the demo" }`). The jobs that talk to mail and calendar
 servers are never queued, and those servers are refused even if something tried.
 
-Visitors can make API access tokens and use the API and the `dobase` CLI.
+## What keeps it small
+
+- **No API tokens.** Visitors can't make access tokens, so the demo can't be scripted
+  through the API.
+- **60 changes a minute** per visitor (or per address, when signed out), across the whole
+  app. More gets "You're going a bit fast for the demo" (JSON: `429`).
+- **5 new demos per address** every 10 minutes, and at most 500 visitors at once
+  (`Demo::MAX_VISITORS`). After that the sign-in page says the demo is busy.
+- **Limit request bodies** at the proxy too (see the deploy example below), since text
+  fields have no length limit of their own.
 
 ## Cleanup
 
@@ -45,7 +54,9 @@ another installation, give the demo a room prefix so its rooms never meet the ot
 LIVEKIT_ROOM_PREFIX=demo-
 ```
 
-Without LiveKit the demo's room says video isn't set up; the rest works.
+Without LiveKit the demo's room says video isn't set up; the rest works. We recommend
+leaving LiveKit out: a room token lets anyone signed in to the same visitor use your
+LiveKit server for calls, and video costs bandwidth.
 
 ## Deploying with Kamal
 
@@ -57,11 +68,18 @@ service: dobase-demo
 
 servers:
   web:
-    - your-server-ip
+    hosts:
+      - your-server-ip
+    # On a server that also runs a real installation, keep the demo within bounds
+    options:
+      memory: 1g
+      cpus: 1
 
 proxy:
   ssl: true
   host: demo.example.com
+  buffering:
+    max_request_body: 2_000_000
 
 env:
   secret:

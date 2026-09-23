@@ -76,6 +76,19 @@ class DemoRestrictionsTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "making an API access token" do
+    in_demo_mode do
+      assert_no_difference "AccessToken.count" do
+        post profile_access_tokens_path, params: { name: "Script", permission: "write" }, headers: { "Referer" => edit_profile_path }
+      end
+    end
+    assert_refused_in_demo
+
+    assert_difference "AccessToken.count" do
+      post profile_access_tokens_path, params: { name: "Script", permission: "write" }
+    end
+  end
+
   test "sharing a file publicly" do
     file = file_items(:report)
 
