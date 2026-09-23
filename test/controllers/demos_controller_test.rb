@@ -78,3 +78,54 @@ class DemosControllerTest < ActionDispatch::IntegrationTest
     end
   end
 end
+
+class DemosControllerTogetherTest < ActionDispatch::IntegrationTest
+  setup { create_demo_tool_types }
+
+  test "the banner offers links to join as each of your teammates" do
+    in_demo_mode do
+      post demo_path
+      visitor = Demo.visitors.last
+      get tool_path(visitor.owned_tools.find_by!(name: "Team Chat"))
+      follow_redirect!
+
+      assert_select ".demo-banner button[popovertarget='demo-together']", text: "Try it together"
+      assert_select "#demo-together[popover] .demo-together-person", count: 3
+      assert_equal Demo.teammates_of(visitor).order(:id).to_a, joinable_from_banner
+    end
+  end
+
+  test "a teammate's banner offers the other teammates, not the visitor" do
+    visitor = in_demo_mode { Demo.create_visitor! }
+    marcus, priya, jake = Demo.teammates_of(visitor).order(:id).to_a
+
+    in_demo_mode do
+      post demo_joins_path, params: { token: Demo.join_token(marcus) }
+      follow_redirect!
+      follow_redirect!
+
+      assert_select ".demo-banner", text: /You're trying the .* demo/
+      assert_select "#demo-together .demo-together-name", text: /\A(Priya Patel|Jake Thompson)\z/, count: 2
+      assert_equal [ priya, jake ], joinable_from_banner
+    end
+  end
+
+  test "someone outside a demo party gets no links to share" do
+    sign_in_as users(:one)
+
+    in_demo_mode { get tool_files_path(tools(:my_files)) }
+
+    assert_select ".demo-banner"
+    assert_select "#demo-together", count: 0
+  end
+
+  private
+
+  # Whom the links in the banner join as
+  def joinable_from_banner
+    css_select("#demo-together input[type=hidden]").map do |input|
+      token = input["value"].delete_prefix(demo_joins_url + "/")
+      User.find_signed(token, purpose: :demo_join)
+    end
+  end
+end

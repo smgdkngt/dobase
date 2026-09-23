@@ -53,7 +53,7 @@ if ENV["SEED_DEMO"]
     end
   end
 
-  Demo::Workspace.new(sophie).build
+  Demo::Workspace.new(sophie, teammates: [ marcus, priya, jake ]).build
 
   puts "  Created #{sophie.owned_tools.count} tools for #{sophie.name}: #{sophie.owned_tools.order(:id).pluck(:name).join(", ")}"
   puts "\nDemo data seeded successfully!"

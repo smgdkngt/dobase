@@ -6,7 +6,8 @@ module Demo
   # Moonshot Snacks, a snack startup aiming for space tourists: a board, a chat, todos,
   # docs, files, a room, a mailbox and a calendar full of examples, shared with three
   # teammates. The owner plays the founder. The seeds build it for Sophie
-  # (SEED_DEMO=1), the demo for every visitor.
+  # (SEED_DEMO=1) with the teammates below, the demo for every visitor with
+  # teammates of their own (Demo.create_visitor!).
   #
   # Dates are relative to now, so every workspace looks fresh, and nothing reaches
   # outside the app: the mailbox and calendar are only rows, the images are drawn here.
@@ -17,7 +18,8 @@ module Demo
       { first_name: "Jake", last_name: "Thompson", email_address: "jake@moonshot-snacks.com" }
     ].freeze
 
-    # Shared by every workspace. Nobody signs in as them unless the seeds gave them a password.
+    # The seeds' teammates, shared by every workspace built without teammates of its own.
+    # Nobody signs in as them unless the seeds gave them a password.
     def self.teammates(password: SecureRandom.base58(24))
       TEAMMATES.map do |attributes|
         User.find_or_create_by!(email_address: attributes[:email_address]) do |user|
@@ -29,13 +31,15 @@ module Demo
 
     attr_reader :owner
 
-    def initialize(owner)
+    # teammates: Marcus, Priya and Jake, in that order
+    def initialize(owner, teammates: nil)
       @owner = owner
+      @teammates = teammates
     end
 
     def build
       ApplicationRecord.transaction do
-        @marcus, @priya, @jake = self.class.teammates
+        @marcus, @priya, @jake = @teammates || self.class.teammates
 
         launch_board = build_launch_board
         team_chat = build_team_chat

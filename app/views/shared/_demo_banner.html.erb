@@ -1,7 +1,30 @@
 <%# Signed-in pages of a demo instance say so, along the bottom of the page (layout.css) %>
+<% teammates = Demo.teammates_of(current_user).where.not(id: current_user.id).order(:id) %>
 <%= tag.aside class: "demo-banner", aria: { label: "Demo" } do %>
   <span class="demo-banner-text">
     You're trying the <%= app_name %> demo.<span class="demo-banner-detail"> What you do here is removed after a day.</span>
   </span>
+  <% if teammates.any? %>
+    <%= tag.button "Try it together", type: "button", class: "demo-banner-link", popovertarget: "demo-together",
+          style: "anchor-name: --demo-together" %>
+    <%# Anchored in layout.css: above the button, or the whole banner on a phone %>
+    <%= tag.div id: "demo-together", popover: "auto", class: "popover-menu demo-together" do %>
+      <p class="demo-together-intro">
+        Open a link in a private window or send it to a friend to see each other type, chat and call live.
+      </p>
+      <ul>
+        <% teammates.each do |teammate| %>
+          <li class="demo-together-person" data-controller="clipboard">
+            <%= render "shared/avatar", user: teammate, size: :sm %>
+            <span class="demo-together-name"><%= teammate.name %></span>
+            <%= tag.input type: "hidden", value: demo_join_url(Demo.join_token(teammate)), data: { clipboard_target: "source" } %>
+            <%= render "components/button", text: "Copy link", variant: :secondary, size: :sm, type: :button,
+                  title: "Copy a link to join as #{teammate.first_name}",
+                  data: { clipboard_target: "button", action: "clipboard#copy" } %>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  <% end %>
   <%= link_to "Get Dobase", "https://github.com/smgdkngt/dobase", class: "demo-banner-link", target: "_blank", rel: "noopener" %>
 <% end %>

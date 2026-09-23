@@ -271,6 +271,7 @@
   .demo-banner {
     @apply fixed right-0 bottom-0 z-30 flex items-center justify-center gap-3 px-4
            text-xs text-text-secondary border-t border-border-light;
+    anchor-name: --demo-banner;
     left: var(--sidebar-width);
     height: var(--demo-banner-height);
     /* The accent tint on solid ground: in dark mode the tint is see-through, and pages scroll on behind the banner */
@@ -282,7 +283,26 @@
   }
 
   .demo-banner-link {
-    @apply font-medium text-accent whitespace-nowrap hover:underline;
+    @apply font-medium text-accent whitespace-nowrap hover:underline cursor-pointer;
+  }
+
+  /* "Try it together": links to join as one of your teammates, above the banner */
+  .popover-menu.demo-together {
+    @apply w-80 p-3 mb-2 text-sm;
+    position-anchor: --demo-together;
+    position-area: block-start span-inline-start;
+  }
+
+  .demo-together-intro {
+    @apply mb-3 text-text-secondary;
+  }
+
+  .demo-together-person {
+    @apply flex items-center gap-2 py-1;
+  }
+
+  .demo-together-name {
+    @apply flex-1 min-w-0 truncate text-text-primary;
   }
 }
 
@@ -309,6 +329,13 @@
 
   .demo-banner-detail {
     @apply hidden;
+  }
+
+  /* Links to share sit on the banner, as wide as it is */
+  .popover-menu.demo-together {
+    position-anchor: --demo-banner;
+    position-area: block-start;
+    width: anchor-size(width);
   }
 
   /* ── Bottom bar visible ── */
