@@ -2,6 +2,9 @@ module ApplicationHelper
   def app_name = Rails.application.config.x.app.name
   def app_logo_path = Rails.application.config.x.app.logo_path
 
+  # Who wrote something, once they may have deleted their account
+  def author_name(user) = user&.name || "Former member"
+
   def absolute_url(path)
     return path if path.start_with?("http")
     "#{root_url.chomp('/')}#{path}"

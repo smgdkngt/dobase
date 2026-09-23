@@ -26,7 +26,7 @@
      data-message-user-id-value="<%= message.user_id %>"
      data-reactions-url-value="<%= tool_chat_message_reactions_path(tool, message) %>"
      data-message-id="<%= message.id %>"
-     data-message-author="<%= message.user.name %>"
+     data-message-author="<%= author_name(message.user) %>"
      data-message-content="<%= truncate(message.body.to_plain_text, length: 100) %>">
 
   <!-- Avatar column -->
@@ -46,7 +46,7 @@
     <% unless is_continuation %>
       <!-- Header: name and timestamp -->
       <div class="flex items-baseline gap-2 mb-0.5">
-        <span class="font-semibold text-sm text-text-primary"><%= message.user.name %></span>
+        <span class="font-semibold text-sm text-text-primary"><%= author_name(message.user) %></span>
         <span class="text-xs text-text-tertiary"><%= timestamp %></span>
       </div>
     <% end %>
@@ -54,7 +54,7 @@
     <% if reply_to %>
       <!-- Reply quote -->
       <div class="mb-2 pl-3 py-1.5 border-l-2 border-accent/50 bg-background-secondary/50 rounded-r">
-        <div class="text-xs font-medium text-accent mb-0.5"><%= reply_to.user.name %></div>
+        <div class="text-xs font-medium text-accent mb-0.5"><%= author_name(reply_to.user) %></div>
         <div class="text-sm text-text-secondary line-clamp-2"><%= reply_to.body.to_plain_text.truncate(200) %></div>
       </div>
     <% end %>

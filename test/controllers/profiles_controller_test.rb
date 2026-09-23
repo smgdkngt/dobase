@@ -46,6 +46,20 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_session_path
   end
 
+  test "deleting an account whose tool lives on with a co-owner keeps what they wrote" do
+    tool = tools(:shared_board)
+    tool.collaborators.find_by(user: users(:two)).update!(role: "owner")
+    card = tool.board.columns.create!(name: "Doing", position: 0).cards.create!(title: "Plan", created_by: @user, updated_by: @user)
+
+    assert_difference "User.count", -1 do
+      delete profile_path
+    end
+
+    assert_redirected_to new_session_path
+    assert Tool.exists?(tool.id)
+    assert_nil card.reload.created_by
+  end
+
   test "changing the password needs the current one" do
     old_digest = @user.password_digest
 

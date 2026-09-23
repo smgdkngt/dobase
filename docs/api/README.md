@@ -74,3 +74,7 @@ things read.
 | `404 Not Found` | No such record in this tool: `{"error": "Not found"}` |
 | `409 Conflict` | Someone else is editing (documents): `{"error": "..."}` |
 | `422 Unprocessable Content` | Validation failed: `{"errors": ["Title can't be blank"]}` |
+
+When someone deletes their account, what they wrote stays. Its author (`user`,
+`created_by`, `updated_by`, an assignee) is then `null`, and a reply quote shows
+`"user_name": "Former member"`.

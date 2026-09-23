@@ -23,7 +23,7 @@ module Dobase
 
           chat["messages"].each do |message|
             say
-            say "#{message.dig("user", "name")} · #{moment(message["created_at"])}#{" (edited)" if message["edited_at"]} [message #{chat_tool["id"]}/#{message["id"]}]"
+            say "#{message.dig("user", "name") || "Former member"} · #{moment(message["created_at"])}#{" (edited)" if message["edited_at"]} [message #{chat_tool["id"]}/#{message["id"]}]"
             say "  > #{message.dig("reply_to", "user_name")}: #{message.dig("reply_to", "preview")}" if message["reply_to"]
             paragraph message["body"]
             message["files"].each { |file| say "  File: #{file["filename"]} (#{bytes(file["byte_size"])}) #{file["download_url"]}" }

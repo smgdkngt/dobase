@@ -54,7 +54,7 @@ module Dobase
           say
           say "Comments (#{card["comments"].size}):"
           card["comments"].each do |comment|
-            say "  #{comment.dig("user", "name")} · #{moment(comment["created_at"])} [comment #{comment["id"]}]"
+            say "  #{comment.dig("user", "name") || "Former member"} · #{moment(comment["created_at"])} [comment #{comment["id"]}]"
             paragraph comment["body"], indent: 4
           end
 

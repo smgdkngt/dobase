@@ -22,6 +22,24 @@ module Tools
       assert_queries_independent_of(add_messages) { get tool_chat_path(@tool) }
     end
 
+    test "a message whose author deleted their account shows as a former member" do
+      first = @chat.messages.create!(user: @other_user, body: "<p>Bye all</p>", created_at: 2.minutes.ago)
+      @chat.messages.create!(user: @user, body: "<p>Bye!</p>", reply_to: first, created_at: 1.minute.ago)
+      first.update_column(:user_id, nil)
+
+      get tool_chat_path(@tool), headers: @headers
+
+      message, reply = response.parsed_body["messages"]
+      assert_nil message["user"]
+      assert_equal "Former member", reply.dig("reply_to", "user_name")
+
+      sign_in_as @user
+      get tool_chat_path(@tool)
+
+      assert_response :success
+      assert_select "span", text: "Former member"
+    end
+
     test "chat lists messages oldest first with their author, reply and files" do
       first = @chat.messages.create!(user: @other_user, body: "<p>Hello <strong>team</strong>, this is the first message</p>", created_at: 2.minutes.ago)
       reply = @chat.messages.create!(user: @user, body: "<p>Hi!</p>", reply_to: first, created_at: 1.minute.ago)
