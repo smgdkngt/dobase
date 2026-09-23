@@ -82,6 +82,18 @@ class DemoTest < ActiveSupport::TestCase
     end
   end
 
+  test "the example pictures get their thumbnails in the background, as in production" do
+    create_demo_tool_types
+
+    in_demo_mode do
+      visitor = perform_enqueued_jobs(only: ActiveStorage::TransformJob) { Demo.create_visitor! }
+      pictures = Files::Item.where(tool: visitor.owned_tools).select { |item| item.file.image? }
+
+      assert pictures.any?
+      pictures.each { |item| assert ActiveStorage::VariantRecord.find_by(blob_id: item.file.blob.id)&.image&.attached?, "#{item.name} has no thumbnail" }
+    end
+  end
+
   test "thumbnails of files already here are still made" do
     item = tools(:my_files).file_items.create!(name: "dot.png", created_by: users(:one), updated_by: users(:one))
     item.file.attach(io: file_fixture_png, filename: "dot.png", content_type: "image/png")
