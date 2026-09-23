@@ -88,6 +88,10 @@ Kamal handles SSL certificates (Let's Encrypt), asset bridging, and rolling rest
 
 To run a public demo next to it, where visitors try Dobase in a throwaway workspace without signing up, deploy a second Kamal destination with `DEMO_MODE=true`. See [docs/demo.md](docs/demo.md).
 
+### Deploy on Railway
+
+No server of your own? [Railway](https://railway.com) builds Dobase from this repository and runs it with a volume for the database. See [docs/railway.md](docs/railway.md) for the settings.
+
 ### Docker
 
 ```bash
