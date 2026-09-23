@@ -44,6 +44,18 @@ class Demo::WorkspaceTest < ActiveSupport::TestCase
     assert_operator @owner.owned_tools.find_by!(name: "Calendar").calendar_account.events.count, :>=, 17
   end
 
+  test "shares the team tools with the teammates it is given" do
+    teammates = %w[Ann Bob Cy].map { |name| User.create!(first_name: name, last_name: "Mate", email_address: "#{name.downcase}@example.com", password: "password123") }
+
+    assert_no_difference -> { User.count } do
+      Demo::Workspace.new(@owner, teammates: teammates).build
+    end
+
+    board = @owner.owned_tools.find_by!(name: "Product Launch")
+    assert_equal teammates.map(&:id).sort, board.users.where.not(id: @owner.id).ids.sort
+    assert_equal teammates.first, board.board.cards.find_by!(title: "Write press release for launch day").assigned_user
+  end
+
   test "makes the teammates once" do
     assert_difference -> { User.count }, 3 do
       Demo::Workspace.new(@owner).build

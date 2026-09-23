@@ -1,0 +1,32 @@
+<% content_for :title, "Join Moonshot Snacks - #{app_name}" %>
+
+<div class="flex items-center justify-center min-h-full py-12">
+  <div class="w-full max-w-sm">
+    <div class="text-center mb-8">
+      <img src="<%= app_logo_path %>" alt="<%= app_name %>" class="w-16 h-16 mx-auto mb-4">
+      <h1 class="text-2xl font-semibold text-text-primary">Join Moonshot Snacks</h1>
+      <p class="text-text-secondary mt-1">as <strong><%= @teammate.name %></strong></p>
+    </div>
+
+    <div class="auth-card">
+      <div class="card-body text-center">
+        <div class="flex justify-center mb-4">
+          <%= render "shared/avatar", user: @teammate, size: :lg %>
+        </div>
+
+        <p class="text-sm text-text-secondary mb-6">
+          This signs this window in as <%= @teammate.first_name %>.
+          <% if authenticated? %>
+            You're signed in as <%= current_user.name %> here, and would leave that workspace behind in this window.
+          <% end %>
+          To keep your own session, open the link in a private window or on another device.
+        </p>
+
+        <%= form_with url: demo_joins_path do %>
+          <%= hidden_field_tag :token, params[:token] %>
+          <%= render "components/button", text: "Join as #{@teammate.first_name}", full_width: true %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

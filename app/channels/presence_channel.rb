@@ -12,6 +12,34 @@ class PresenceChannel < ApplicationCable::Channel
   # looking at ..." — a type and an id, never free text from the browser.
   CONTEXT_FORMAT = /\A[a-z_]+(:\d+)?\z/
 
+  # Says someone is here from the server, as their page would: the demo's
+  # made-up teammates have no page to say it from.
+  def self.announce(tool, user, context: nil)
+    broadcast_to(tool, { type: "here", context: context, hello: false, at: (Time.current.to_f * 1000).to_i,
+      tool_id: tool.id, user: person(user) })
+  end
+
+  # The identity comes from the connection, never from the browser: a page can
+  # say what it is looking at, not who is looking.
+  def self.person(user)
+    { id: user.id, name: user.name, initials: user.initials, avatar_url: avatar_url(user) }
+  end
+
+  def self.avatar_url(user)
+    avatar = user.avatar
+    return nil unless avatar.attached? && avatar.blob&.persisted?
+
+    # Not .processed: that would resize the picture while the channel is still
+    # answering someone's arrival. The link stands on its own and the picture is
+    # made when a browser asks for it, as everywhere else in the app.
+    Rails.application.routes.url_helpers.rails_representation_path(
+      avatar.variant(resize_to_fill: [ 200, 200 ]), only_path: true
+    )
+  rescue StandardError
+    nil
+  end
+  private_class_method :avatar_url
+
   def subscribed
     tool = Tool.find_by(id: params[:tool_id])
     reject and return unless tool&.accessible_by?(current_user)
@@ -64,32 +92,7 @@ class PresenceChannel < ApplicationCable::Channel
   private
 
   def broadcast(payload)
-    PresenceChannel.broadcast_to(@tool, payload.merge(tool_id: @tool.id, user: user_payload))
-  end
-
-  # The identity comes from the connection, never from the browser: a page can
-  # say what it is looking at, not who is looking.
-  def user_payload
-    {
-      id: current_user.id,
-      name: current_user.name,
-      initials: current_user.initials,
-      avatar_url: avatar_url
-    }
-  end
-
-  def avatar_url
-    avatar = current_user.avatar
-    return nil unless avatar.attached? && avatar.blob&.persisted?
-
-    # Not .processed: that would resize the picture while the channel is still
-    # answering someone's arrival. The link stands on its own and the picture is
-    # made when a browser asks for it, as everywhere else in the app.
-    Rails.application.routes.url_helpers.rails_representation_path(
-      avatar.variant(resize_to_fill: [ 200, 200 ]), only_path: true
-    )
-  rescue StandardError
-    nil
+    PresenceChannel.broadcast_to(@tool, payload.merge(tool_id: @tool.id, user: PresenceChannel.person(current_user)))
   end
 
   def with_indifferent_access(data)

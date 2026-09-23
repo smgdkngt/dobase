@@ -10,6 +10,10 @@ ActiveSupport.on_load(:active_storage_blob) do
 end
 
 Rails.application.config.to_prepare do
+  # Thumbnails and previews are made from files already here, so they may be stored
+  ActiveStorage::VariantWithRecord.prepend Demo::DerivedImages
+  ActiveStorage::Preview.prepend Demo::DerivedImages
+
   ActiveStorage::DirectUploadsController.before_action do
     render json: { error: "Uploads are switched off in the demo" }, status: :forbidden unless Demo.uploads_allowed?
   end

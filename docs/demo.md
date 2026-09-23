@@ -4,10 +4,32 @@ With `DEMO_MODE=true`, an installation becomes a public demo. The sign-in page g
 **Try the demo** button. A visitor who presses it is signed in on the spot, without an
 account or an email address, to a workspace of their own: Moonshot Snacks, the same
 example company that `SEED_DEMO=1 bin/rails db:seed` makes, with a board, a chat, todos,
-docs, files, a room, a mailbox and a calendar, shared with three made-up teammates.
+docs, files, a room, a mailbox and a calendar, shared with three made-up teammates of
+their own.
 
 Run the demo as its own app with its own database, never on an installation people use
 for real work.
+
+## Teammates
+
+Every visitor gets their own Marcus, Priya and Jake (`Demo.create_visitor!`), known by
+the key in their addresses: `visitor-<key>@visitors.demo.invalid` and
+`marcus-<key>@team.demo.invalid` (`Demo.party_of`, `Demo.teammates_of`).
+
+**They do things by themselves.** For about two minutes after a visitor arrives,
+`Demo::TeammatesJob` plays a short script: Marcus turns up in Team Chat, types and says
+hello, Priya opens a card on Product Launch and comments on it, Jake hands the visitor a
+new todo, and Marcus comes back to suggest trying it together. It goes through the
+models like anyone would, so the messages, the mentions and the assignment arrive live
+with their notifications, and the teammates' faces show on the tools they're in. A step
+whose card, tool or visitor is gone is skipped; a teammate someone has joined as is left
+to them.
+
+**Try it together.** The banner links to join as each teammate (signed, expiring with
+the demo). Opened in a private window, on another device or by a friend, the link signs
+that window in as the teammate, and the two see each other type, chat and call live.
+Only a demo teammate can be joined as this way, never a visitor or an account. Teammates
+are demo users like visitors, with the same limits.
 
 ## What the demo switches off
 
@@ -47,8 +69,8 @@ servers are never queued, and those servers are refused even if something tried.
 ## Cleanup
 
 `Demo::CleanupJob` runs every hour (`config/recurring.yml`) and removes visitors who came
-more than a day ago, with all their tools and files. A visitor's page says so in a banner
-along the bottom. The teammates stay; they're shared by every workspace.
+more than a day ago, with their teammates and all their tools and files. A visitor's page
+says so in a banner along the bottom.
 
 ## Video rooms
 
@@ -60,8 +82,8 @@ LIVEKIT_ROOM_PREFIX=demo-
 ```
 
 Without LiveKit the demo's room says video isn't set up; the rest works. Sharing a
-LiveKit server is cheap: a visitor's teammates are made up and invitations are off, so
-a visitor is alone in their rooms, and LiveKit receives one camera and sends it nowhere.
+LiveKit server is cheap: invitations are off, so a room holds at most a visitor and the
+few people they asked over with a teammate link.
 
 ## Deploying with Kamal
 
@@ -109,7 +131,7 @@ kamal setup -d demo    # first deploy
 kamal deploy -d demo   # after that
 ```
 
-The first start creates the database and the tool types; the first visitor creates the
+The first start creates the database and the tool types; each visitor brings their own
 teammates. There's nothing else to set up.
 
 ### Keeping the demo on the same version

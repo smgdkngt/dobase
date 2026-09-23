@@ -19,6 +19,10 @@ Rails.application.routes.draw do
 
   # A throwaway workspace for visitors of a demo instance (DEMO_MODE=true)
   resource :demo, only: :create
+  namespace :demo do
+    # Joining a visitor's workspace as one of their teammates, by a link from the banner
+    resources :joins, only: %i[show create], param: :token
+  end
 
   scope "login" do
     resource :two_factor_challenge, only: %i[new create], path: "verify"
