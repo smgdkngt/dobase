@@ -106,3 +106,23 @@ kamal deploy -d demo   # after that
 
 The first start creates the database and the tool types; the first visitor creates the
 teammates. There's nothing else to set up.
+
+### Keeping the demo on the same version
+
+A Kamal `post-deploy` hook can make the demo follow every deploy of your real
+installation. The image is already built and pushed, so the demo only boots new
+containers, and a demo that fails to follow doesn't fail the deploy. In
+`.kamal/hooks/post-deploy` (with `production` being your destination):
+
+```sh
+#!/bin/sh
+if [ "$KAMAL_DESTINATION" = "production" ] && [ -f config/deploy.demo.yml ]; then
+  kamal deploy -d demo --skip-push --skip-hooks --version="$KAMAL_VERSION" ||
+    echo "WARNING: the demo did not follow; run: kamal deploy -d demo --skip-push"
+fi
+```
+
+Why not a role in the same deploy file? Roles share the volumes and secrets of
+the service, so the demo would share the real installation's database, files and
+`SECRET_KEY_BASE`, and a demo that fails to boot would stop the real deploy.
+
