@@ -115,15 +115,16 @@ teammates. There's nothing else to set up.
 ### Keeping the demo on the same version
 
 A Kamal `post-deploy` hook can make the demo follow every deploy of your real
-installation. The image is already built and pushed, so the demo only boots new
-containers, and a demo that fails to follow doesn't fail the deploy. In
-`.kamal/hooks/post-deploy` (with `production` being your destination):
+installation. Kamal wants an image labelled with the demo's own service name, so the
+demo builds its own; the build cache the real deploy just filled makes that quick.
+A demo that fails to follow doesn't fail the deploy. In `.kamal/hooks/post-deploy`
+(with `production` being your destination):
 
 ```sh
 #!/bin/sh
 if [ "$KAMAL_DESTINATION" = "production" ] && [ -f config/deploy.demo.yml ]; then
-  kamal deploy -d demo --skip-push --skip-hooks --version="$KAMAL_VERSION" ||
-    echo "WARNING: the demo did not follow; run: kamal deploy -d demo --skip-push"
+  kamal deploy -d demo --skip-hooks ||
+    echo "WARNING: the demo did not follow; run: kamal deploy -d demo"
 fi
 ```
 
