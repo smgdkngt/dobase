@@ -9,6 +9,8 @@ module Tools
     class MessagesController < ApplicationController
       include ToolScoped
 
+      restrict_in_demo only: :create, if: -> { Array(params.dig(:message, :files)).compact_blank.any? }
+
       # index pages the page itself back through the chat and answers a turbo
       # stream; the API reads the chat's own JSON, which already pages.
       allow_access_tokens except: %i[index edit]

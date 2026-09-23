@@ -8,8 +8,10 @@ module Rooms
 
     validates :tool_id, uniqueness: { message: "already has a room" }
 
+    # LIVEKIT_ROOM_PREFIX keeps apart the rooms of apps sharing one LiveKit server,
+    # like a demo next to the real thing
     def livekit_room_name
-      "room-#{tool_id}"
+      "#{ENV["LIVEKIT_ROOM_PREFIX"]}room-#{tool_id}"
     end
 
     def generate_token_for(user)

@@ -26,6 +26,8 @@
     <div class="mt-4 pt-4 border-t border-border flex justify-end">
       <%= render "components/button", text: "Remove Share", variant: :danger, size: :sm, href: share_url, method: :delete, turbo_confirm: "Remove public access?", data: { turbo_frame: "_top", turbo_confirm_button: "Remove" } %>
     </div>
+  <% elsif Demo.enabled? %>
+    <p class="text-sm text-text-secondary">Public links are switched off in the demo.</p>
   <% else %>
     <%= form_with url: share_url, method: :post, data: { action: "turbo:submit-end->file-preview#onShareCreated" } do |f| %>
       <% if errors&.any? %>

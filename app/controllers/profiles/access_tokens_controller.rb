@@ -2,6 +2,9 @@
 
 module Profiles
   class AccessTokensController < ApplicationController
+    # The API would let a script fill the demo far faster than a person clicking
+    restrict_in_demo only: :create
+
     def create
       access_token = current_user.access_tokens.new(params.permit(:name, :permission))
 

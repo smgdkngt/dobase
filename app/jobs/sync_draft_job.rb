@@ -2,6 +2,7 @@
 
 class SyncDraftJob < ApplicationJob
   queue_as :default
+  skip_in_demo
 
   def perform(draft_id)
     draft = Mails::Message.find_by(id: draft_id)

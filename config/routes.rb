@@ -17,6 +17,9 @@ Rails.application.routes.draw do
   post "signup", to: "registrations#create"
   get "altcha/challenge", to: "altcha#challenge"
 
+  # A throwaway workspace for visitors of a demo instance (DEMO_MODE=true)
+  resource :demo, only: :create
+
   scope "login" do
     resource :two_factor_challenge, only: %i[new create], path: "verify"
   end

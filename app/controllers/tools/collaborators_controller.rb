@@ -7,6 +7,8 @@ module Tools
     before_action :set_tool
     before_action -> { authorize_tool_owner!(@tool) }, except: [ :leave ]
     before_action -> { authorize_tool_access!(@tool) }, only: [ :leave ]
+    # Invitations go out by email
+    restrict_in_demo only: :create
 
     def leave
       collaborator = @tool.collaborators.find_by(user: current_user)

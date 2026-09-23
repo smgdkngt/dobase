@@ -2,6 +2,7 @@
 
 class ImapSyncJob < ApplicationJob
   queue_as :default
+  skip_in_demo
 
   def perform(mail_account_id, action, uid, folder, *args)
     mail_account = Mails::Account.find_by(id: mail_account_id)

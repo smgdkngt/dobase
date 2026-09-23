@@ -16,6 +16,7 @@ All branding is configurable via environment variables (defaults to "Dobase"):
 | `APP_LOGO_PATH` | `/icon.svg` | Path to logo image (sidebar, auth pages) |
 | `APP_HOST` | `localhost:3000` | Host for mailer URLs (production) |
 | `APP_FROM_EMAIL` | `notifications@dobase.co` | Sender address for emails |
+| `DEMO_MODE` | — | `true` makes a public demo (`Demo`, `docs/demo.md`): throwaway visitor workspaces, and whatever reaches outside the app refused via `restrict_in_demo` / `skip_in_demo` |
 
 Config lives in `config/initializers/app_config.rb`. View helpers: `app_name`, `app_logo_path`.
 

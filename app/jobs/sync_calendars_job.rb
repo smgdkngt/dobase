@@ -2,6 +2,7 @@
 
 class SyncCalendarsJob < ApplicationJob
   queue_as :default
+  skip_in_demo
 
   # Recurring syncs don't look for new calendars (a few requests every 15 minutes for
   # something that rarely changes), unless the account has none yet. A sync someone

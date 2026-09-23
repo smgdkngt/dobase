@@ -47,6 +47,8 @@ class RegistrationsController < ApplicationController
   private
 
   def registration_allowed?
+    # Visitors of the demo try it without an account
+    return false if Demo.enabled?
     # Open registration when no users exist (first user setup)
     return true if User.none?
     # Allow registration via a valid invitation link

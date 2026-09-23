@@ -6,6 +6,8 @@ module Tools
 
     before_action :set_tool
     before_action -> { authorize_tool_owner!(@tool) }
+    # Invitations go out by email
+    restrict_in_demo only: :resend
 
     def resend
       invitation = @tool.invitations.find(params[:id])

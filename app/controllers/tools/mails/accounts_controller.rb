@@ -8,6 +8,7 @@ module Tools
       before_action :set_tool
       before_action -> { authorize_tool_owner!(@tool) }
       before_action :set_mail_account, only: [ :update ]
+      restrict_in_demo only: %i[create update]
 
       def new
         @mail_account = @tool.build_mail_account

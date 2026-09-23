@@ -2,6 +2,7 @@
 
 class SyncEmailsJob < ApplicationJob
   queue_as :default
+  skip_in_demo
 
   # The mail page asks for a sync every minute in every open tab. One sync per account at a time is enough.
   limits_concurrency key: ->(mail_account_id) { mail_account_id }, duration: 15.minutes, on_conflict: :discard

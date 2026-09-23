@@ -2,6 +2,7 @@
 
 class SyncAllCalendarsJob < ApplicationJob
   queue_as :default
+  skip_in_demo
 
   def perform
     Calendars::Account.where.not(provider: "local").find_each do |account|

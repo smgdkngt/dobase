@@ -6,6 +6,8 @@ module Tools
       class AttachmentsController < ApplicationController
         include ToolScoped
 
+        restrict_in_demo only: :create
+
         allow_access_tokens
         before_action :set_item
         before_action :set_attachment, only: :destroy
