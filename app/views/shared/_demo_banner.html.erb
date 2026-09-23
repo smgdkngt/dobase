@@ -1,0 +1,7 @@
+<%# Signed-in pages of a demo instance say so, along the bottom of the page (layout.css) %>
+<%= tag.aside class: "demo-banner", aria: { label: "Demo" } do %>
+  <span class="demo-banner-text">
+    You're trying the <%= app_name %> demo.<span class="demo-banner-detail"> What you do here is removed after a day.</span>
+  </span>
+  <%= link_to "Get Dobase", "https://github.com/smgdkngt/dobase", class: "demo-banner-link", target: "_blank", rel: "noopener" %>
+<% end %>

@@ -51,6 +51,8 @@ class ProfilesController < ApplicationController
 
   def profile_params
     permitted = params.require(:user).permit(:first_name, :last_name, :email_address, :avatar, :timezone, :notification_digest, :password, :password_confirmation)
+    # Demo visitors are known by their address, which is how they are cleaned up
+    permitted.delete(:email_address) if Demo.enabled?
     if permitted[:password].blank?
       permitted.delete(:password)
       permitted.delete(:password_confirmation)

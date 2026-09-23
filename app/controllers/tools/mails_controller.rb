@@ -7,6 +7,7 @@ module Tools
 
     # The compose form and deleting mail for good stay in the browser.
     allow_access_tokens only: %i[index show create]
+    restrict_in_demo only: :create
     before_action :require_mail_account
     before_action :set_message, only: [ :show, :destroy ]
     before_action :build_compose_defaults, only: [ :new ]

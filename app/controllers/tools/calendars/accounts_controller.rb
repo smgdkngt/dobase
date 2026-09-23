@@ -8,6 +8,8 @@ module Tools
       before_action :set_tool
       before_action -> { authorize_tool_owner!(@tool) }
       before_action :set_calendar_account, only: %i[edit update]
+      # A local calendar stays in the app, so the demo keeps it
+      restrict_in_demo only: %i[create update], unless: :local_calendar?
 
       def new
         @calendar_account = @tool.build_calendar_account
@@ -54,6 +56,11 @@ module Tools
           :password,
           calendars_attributes: [ :id, :name, :color, :enabled ]
         )
+      end
+
+      def local_calendar?
+        provider = params.dig(:calendars_account, :provider)
+        @calendar_account ? @calendar_account.local? && provider.in?([ nil, "local" ]) : provider == "local"
       end
 
       def create_local_account

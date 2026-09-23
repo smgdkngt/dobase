@@ -203,12 +203,18 @@
     @apply min-h-dvh bg-background;
     margin-left: var(--sidebar-width);
     padding-right: env(safe-area-inset-right);
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: calc(env(safe-area-inset-bottom) + var(--demo-banner-height));
   }
 
   /* Full-height tool layouts */
   .main-content:has(> .tool-layout) {
-    @apply h-dvh overflow-hidden p-0;
+    @apply overflow-hidden p-0 min-h-0;
+    height: calc(100dvh - var(--demo-banner-height));
+  }
+
+  /* Some tools ask for the whole screen (h-screen); they get the main area */
+  .main-content > .tool-layout {
+    max-height: 100%;
   }
 
   .sidebar-overlay {
@@ -260,12 +266,49 @@
   .mobile-bottom-bar-item:active {
     @apply bg-sidebar-hover/50;
   }
+
+  /* ── Demo banner: one line along the bottom of the page (see docs/demo.md) ── */
+  .demo-banner {
+    @apply fixed right-0 bottom-0 z-30 flex items-center justify-center gap-3 px-4
+           text-xs text-text-secondary border-t border-border-light;
+    left: var(--sidebar-width);
+    height: var(--demo-banner-height);
+    /* The accent tint on solid ground: in dark mode the tint is see-through, and pages scroll on behind the banner */
+    background: linear-gradient(var(--color-accent-light), var(--color-accent-light)), var(--color-sidebar-bg);
+  }
+
+  .demo-banner-text {
+    @apply truncate;
+  }
+
+  .demo-banner-link {
+    @apply font-medium text-accent whitespace-nowrap hover:underline;
+  }
+}
+
+/* The demo banner takes its height from the bottom of the page. Without one it's nothing. */
+:root {
+  --demo-banner-height: 0px;
+}
+
+:root:has(.demo-banner) {
+  --demo-banner-height: 1.75rem;
 }
 
 /* Responsive: Mobile */
 @media (max-width: 1023px) {
   :root {
-    --mobile-bar-clearance: calc(var(--mobile-bottom-bar-height) + 1.5rem + env(safe-area-inset-bottom));
+    --mobile-bar-clearance: calc(var(--mobile-bottom-bar-height) + 1.5rem + env(safe-area-inset-bottom) + var(--demo-banner-height));
+  }
+
+  /* The demo banner sits just above the bottom bar */
+  .demo-banner {
+    @apply left-3 right-3 rounded-lg border;
+    bottom: calc(var(--mobile-bar-clearance) - var(--demo-banner-height));
+  }
+
+  .demo-banner-detail {
+    @apply hidden;
   }
 
   /* ── Bottom bar visible ── */
@@ -406,7 +449,7 @@
 /* Use vh instead of dvh — iOS standalone reports dvh as if Safari's toolbar still exists */
 @media (display-mode: standalone) and (max-width: 1023px) {
   :root {
-    --mobile-bar-clearance: calc(var(--mobile-bottom-bar-height) + env(safe-area-inset-bottom));
+    --mobile-bar-clearance: calc(var(--mobile-bottom-bar-height) + env(safe-area-inset-bottom) + var(--demo-banner-height));
   }
 
   .main-content {

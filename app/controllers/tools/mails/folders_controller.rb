@@ -6,6 +6,8 @@ module Tools
       include ToolScoped
       include FolderValidation
 
+      restrict_in_demo only: :create
+
       # POST /tools/:tool_id/mails/folder
       def create
         folder_name = params[:folder_name].to_s.strip

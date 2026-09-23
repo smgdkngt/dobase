@@ -95,7 +95,7 @@
             <label for="user_email_address" class="label">Email</label>
             <%= f.email_field :email_address,
               class: "input #{@user.errors[:email_address].any? ? 'input-error' : ''}",
-              required: true, autocomplete: "email" %>
+              required: true, autocomplete: "email", readonly: Demo.enabled? %>
           </div>
 
           <div class="form-field">

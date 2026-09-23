@@ -3,9 +3,25 @@
 <div class="w-full max-w-sm">
   <div class="text-center mb-8">
     <img src="<%= app_logo_path %>" alt="<%= app_name %>" class="w-16 h-16 mx-auto mb-4">
-    <h1 class="text-2xl font-semibold text-text-primary">Welcome back</h1>
-    <p class="text-text-secondary mt-1">Sign in to your <%= app_name %> account</p>
+    <% if Demo.enabled? %>
+      <h1 class="text-2xl font-semibold text-text-primary">Try <%= app_name %></h1>
+      <p class="text-text-secondary mt-1">A workspace of your own, full of examples</p>
+    <% else %>
+      <h1 class="text-2xl font-semibold text-text-primary">Welcome back</h1>
+      <p class="text-text-secondary mt-1">Sign in to your <%= app_name %> account</p>
+    <% end %>
   </div>
+
+  <% if Demo.enabled? %>
+    <div class="auth-card mb-6">
+      <div class="card-body text-center">
+        <%= form_with url: demo_path do %>
+          <%= render "components/button", text: "Try the demo", icon: "rocket", full_width: true %>
+        <% end %>
+        <p class="text-sm text-text-secondary mt-3">No account needed. Everything is removed after a day.</p>
+      </div>
+    </div>
+  <% end %>
 
   <div class="auth-card">
     <div class="card-body">
@@ -37,12 +53,12 @@
           %>
         </div>
 
-        <%= render "components/button", text: "Sign In", full_width: true %>
+        <%= render "components/button", text: "Sign In", variant: (Demo.enabled? ? :secondary : :primary), full_width: true %>
       <% end %>
     </div>
   </div>
 
-  <% if ENV["OPEN_REGISTRATION"] == "true" || User.none? %>
+  <% if !Demo.enabled? && (ENV["OPEN_REGISTRATION"] == "true" || User.none?) %>
     <p class="text-center text-sm text-text-secondary mt-6">
       Don't have an account?
       <%= link_to "Sign up", signup_path, class: "text-accent hover:underline font-medium" %>

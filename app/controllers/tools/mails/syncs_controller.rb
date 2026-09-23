@@ -6,6 +6,7 @@ module Tools
       include ToolScoped
 
       allow_access_tokens
+      restrict_in_demo only: :create
 
       # POST /tools/:tool_id/sync
       def create

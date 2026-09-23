@@ -86,6 +86,8 @@ kamal deploy   # Subsequent deploys
 
 Kamal handles SSL certificates (Let's Encrypt), asset bridging, and rolling restarts automatically. LiveKit can run as a Kamal accessory — uncomment the `livekit` section in `config/deploy.yml`.
 
+To run a public demo next to it, where visitors try Dobase in a throwaway workspace without signing up, deploy a second Kamal destination with `DEMO_MODE=true`. See [docs/demo.md](docs/demo.md).
+
 ### Docker
 
 ```bash
@@ -142,6 +144,7 @@ volumes:
 | `APP_FROM_EMAIL` | `notifications@dobase.co` | Sender address for emails |
 | `DISABLE_SSL` | — | Set to `true` for non-TLS deployments (ONCE sets this automatically on localhost) |
 | `OPEN_REGISTRATION` | — | Set to `true` to allow public signup (default: invite-only) |
+| `DEMO_MODE` | — | Set to `true` for a public demo: visitors get a throwaway example workspace, and email, mail and calendar servers, public links and invitations are off. See [docs/demo.md](docs/demo.md) |
 | `SENTRY_DSN` | — | Report errors to a Sentry-compatible collector — self-hosted [Bugsink](https://www.bugsink.com) or GlitchTip work. Off when unset; nothing leaves the server |
 | `SENTRY_ENV` | Rails environment | Name this installation in those reports |
 | `ALLOW_PRIVATE_NETWORK_HOSTS` | — | Set to `true` to let mail and calendar accounts use servers on a private network (10.x, 172.16–31.x, 192.168.x). Local addresses are always refused |
@@ -175,6 +178,7 @@ LiveKit runs as a separate container — browsers connect to it directly via Web
 | `LIVEKIT_URL` | — | **Public** WebSocket URL browsers connect to (e.g. `wss://room.your-domain.com`) |
 | `LIVEKIT_API_KEY` | — | LiveKit API key |
 | `LIVEKIT_API_SECRET` | — | LiveKit API secret |
+| `LIVEKIT_ROOM_PREFIX` | — | Prefix for room names, for installations sharing one LiveKit server (e.g. `demo-`) |
 
 Example with Docker Compose (uncomment in `docker-compose.yml`):
 

@@ -14,6 +14,15 @@ module Rooms
       assert_equal "room-#{room.tool_id}", room.livekit_room_name
     end
 
+    test "livekit_room_name starts with LIVEKIT_ROOM_PREFIX, so apps can share a LiveKit server" do
+      room = rooms(:team_standup)
+      previous, ENV["LIVEKIT_ROOM_PREFIX"] = ENV["LIVEKIT_ROOM_PREFIX"], "demo-"
+
+      assert_equal "demo-room-#{room.tool_id}", room.livekit_room_name
+    ensure
+      ENV["LIVEKIT_ROOM_PREFIX"] = previous
+    end
+
     test "validates uniqueness of tool" do
       room = rooms(:team_standup)
       duplicate = Rooms::Room.new(tool: room.tool)

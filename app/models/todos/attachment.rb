@@ -20,7 +20,8 @@ module Todos
     private
 
     def file_size_within_limit
-      errors.add(:file, "is too large (max 25 MB)") if file_size.present? && file_size > MAX_FILE_SIZE
+      limit = Demo.upload_limit(MAX_FILE_SIZE)
+      errors.add(:file, "is too large (max #{limit / 1.megabyte} MB)") if file_size.present? && file_size > limit
     end
   end
 end

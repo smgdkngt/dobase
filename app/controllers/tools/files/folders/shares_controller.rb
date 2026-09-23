@@ -10,6 +10,7 @@ module Tools
         # with a leaked token would outlive revoking it.
         allow_access_tokens only: :show
         before_action :set_folder
+        restrict_in_demo only: :create
 
         def show
           @share = @folder.share

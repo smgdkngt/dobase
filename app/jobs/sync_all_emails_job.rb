@@ -2,6 +2,7 @@
 
 class SyncAllEmailsJob < ApplicationJob
   queue_as :default
+  skip_in_demo
 
   def perform
     Mails::Account.find_each do |account|

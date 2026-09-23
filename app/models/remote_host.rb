@@ -22,6 +22,8 @@ module RemoteHost
   mattr_accessor :resolver, default: ->(host) { Addrinfo.getaddrinfo(host, nil, nil, :STREAM).map(&:ip_address) }
 
   def self.verify!(host)
+    # Belt and braces: the demo switches off whatever talks to these servers
+    raise Forbidden, "Mail and calendar servers can't be reached from the demo" if Demo.enabled?
     return host if Rails.env.development?
 
     addresses_for(host).each do |address|

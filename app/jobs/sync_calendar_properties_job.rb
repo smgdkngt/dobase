@@ -2,6 +2,7 @@
 
 class SyncCalendarPropertiesJob < ApplicationJob
   queue_as :default
+  skip_in_demo
 
   def perform(calendar_id)
     calendar = Calendars::Calendar.find_by(id: calendar_id)

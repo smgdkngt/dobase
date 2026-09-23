@@ -2,6 +2,7 @@
 
 class PushEventJob < ApplicationJob
   queue_as :default
+  skip_in_demo
 
   retry_on CaldavSyncService::ConnectionError, wait: :polynomially_longer, attempts: 5
 
