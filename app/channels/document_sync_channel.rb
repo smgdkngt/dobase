@@ -13,6 +13,11 @@
 class DocumentSyncChannel < ApplicationCable::Channel
   # Past this many stored changes, ask for a merged copy
   COMPACT_AFTER = 200
+  # A change this big is no longer typing: whole books are a few MB of text.
+  # The limits keep one page from filling the database.
+  MAX_UPDATE_SIZE = 5.megabytes
+  MAX_DOCUMENT_SIZE = 50.megabytes
+  MAX_CARET_SIZE = 64.kilobytes
 
   def subscribed
     document = Docs::Document.find_by(id: params[:document_id])
@@ -42,10 +47,14 @@ class DocumentSyncChannel < ApplicationCable::Channel
   def apply_update(data)
     return unless @document
 
+    # Measured before decoding, so a huge one is never decoded at all
+    return refuse("This change is too large to share") if data["update"].to_s.bytesize > encoded_size(MAX_UPDATE_SIZE)
+
     payload = decode(data["update"])
     # Not blank?: these are bytes, and a change that happens to be whitespace
     # is still a change
     return if payload.nil? || payload.empty?
+    return refuse("This document is too large to share more changes") if stored_size + payload.bytesize > MAX_DOCUMENT_SIZE
 
     @document.updates.create!(data: payload)
     hold_editing_open
@@ -56,7 +65,7 @@ class DocumentSyncChannel < ApplicationCable::Channel
   # says hello with it, and everyone else answers with theirs.
   def move_caret(data)
     return unless @document
-    return if data["awareness"].to_s.empty?
+    return if data["awareness"].to_s.empty? || data["awareness"].to_s.bytesize > MAX_CARET_SIZE
 
     broadcast(type: "awareness", awareness: data["awareness"], origin: data["origin"], hello: data["hello"].present?)
   end
@@ -64,6 +73,8 @@ class DocumentSyncChannel < ApplicationCable::Channel
   # The pile, merged into one by a browser that had the whole document
   def merge_updates(data)
     return unless @document
+
+    return if data["snapshot"].to_s.bytesize > encoded_size(MAX_DOCUMENT_SIZE)
 
     payload = decode(data["snapshot"])
     return if payload.nil? || payload.empty?
@@ -104,6 +115,20 @@ class DocumentSyncChannel < ApplicationCable::Channel
     Base64.strict_decode64(value.to_s)
   rescue ArgumentError
     nil
+  end
+
+  # Changes arrive as Base64, a third longer than the bytes it carries
+  def encoded_size(bytes)
+    (bytes + 2) / 3 * 4
+  end
+
+  def stored_size
+    @document.updates.sum("length(data)")
+  end
+
+  # Only the page that sent it hears; the others never got the change
+  def refuse(reason)
+    transmit({ type: "refused", reason: reason })
   end
 
   # The documents list and the API ask whether anyone has this open. Taking it

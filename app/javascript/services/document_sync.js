@@ -16,11 +16,12 @@ import { Y, Awareness, applyAwarenessUpdate, encodeAwarenessUpdate, removeAwaren
 const SEND_EVERY_MS = 250
 
 export class DocumentSync {
-  constructor(documentId, { onSynced } = {}) {
+  constructor(documentId, { onSynced, onRefused } = {}) {
     this.doc = new Y.Doc()
     this.awareness = new Awareness(this.doc)
     this.origin = Math.random().toString(36).slice(2)
     this.onSynced = onSynced
+    this.onRefused = onRefused
     this.synced = false
 
     this.pending = []
@@ -98,6 +99,9 @@ export class DocumentSync {
         // Someone who just arrived knows nobody's caret yet, and a caret that
         // stands still isn't sent again for a while
         if (data.hello) this.sendMyCaret()
+        break
+      case "refused":
+        this.onRefused?.(data.reason)
         break
     }
   }
