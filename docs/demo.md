@@ -54,9 +54,9 @@ another installation, give the demo a room prefix so its rooms never meet the ot
 LIVEKIT_ROOM_PREFIX=demo-
 ```
 
-Without LiveKit the demo's room says video isn't set up; the rest works. We recommend
-leaving LiveKit out: a room token lets anyone signed in to the same visitor use your
-LiveKit server for calls, and video costs bandwidth.
+Without LiveKit the demo's room says video isn't set up; the rest works. Sharing a
+LiveKit server is cheap: a visitor's teammates are made up and invitations are off, so
+a visitor is alone in their rooms, and LiveKit receives one camera and sends it nowhere.
 
 ## Deploying with Kamal
 
