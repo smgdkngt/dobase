@@ -40,6 +40,45 @@ class DocumentSyncChannelTest < ActionCable::Channel::TestCase
     end
   end
 
+  test "a change too large to be typing is refused, and only its sender hears" do
+    subscribe document_id: @document.id
+    change = Base64.strict_encode64("x" * 2_000)
+
+    stub_const(DocumentSyncChannel, :MAX_UPDATE_SIZE, 1_000) do
+      assert_no_difference -> { @document.updates.where(seed: false).count } do
+        assert_no_broadcasts(DocumentSyncChannel.broadcasting_for(@document)) do
+          perform :apply_update, update: change, origin: "abc"
+        end
+      end
+    end
+
+    assert_equal({ "type" => "refused", "reason" => "This change is too large to share" }, transmissions.last)
+  end
+
+  test "a document that has grown too large takes no more changes" do
+    subscribe document_id: @document.id
+    @document.updates.create!(data: "x" * 900)
+
+    stub_const(DocumentSyncChannel, :MAX_DOCUMENT_SIZE, 1_000) do
+      assert_no_difference -> { @document.updates.count } do
+        perform :apply_update, update: Base64.strict_encode64("y" * 200), origin: "abc"
+      end
+    end
+
+    assert_equal({ "type" => "refused", "reason" => "This document is too large to share more changes" }, transmissions.last)
+  end
+
+  test "a merged copy larger than a document may be is not kept" do
+    subscribe document_id: @document.id
+    @document.updates.create!(data: "\x01")
+
+    stub_const(DocumentSyncChannel, :MAX_DOCUMENT_SIZE, 100) do
+      perform :merge_updates, snapshot: Base64.strict_encode64("z" * 200)
+    end
+
+    assert_equal [ "\x01" ], @document.updates.where(seed: false).pluck(:data)
+  end
+
   test "a caret is passed on but never kept" do
     subscribe document_id: @document.id
 

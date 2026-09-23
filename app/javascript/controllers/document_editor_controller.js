@@ -45,7 +45,9 @@ export default class extends Controller {
   // on every visit.
   startSharedEditing() {
     this.sync = new DocumentSync(this.documentIdValue, {
-      onSynced: ({ seed, compact }) => this.onSynced(seed, compact)
+      onSynced: ({ seed, compact }) => this.onSynced(seed, compact),
+      // The others don't have that change, so saying "Saved" would be wrong
+      onRefused: (reason) => this.showSaveIndicator(reason, true)
     })
     this.sync.describeMe({ name: this.userNameValue, color: this.userColorValue })
     this.sync.awareness.on("change", (changes, origin) => this._showNamesOfMoved(changes, origin))
