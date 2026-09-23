@@ -8,7 +8,9 @@ module Chats
     MAX_FILES = 10
 
     belongs_to :chat, class_name: "Chats::Chat"
-    belongs_to :user
+    # Kept when the author deletes their account (the column is nullified)
+    belongs_to :user, optional: true
+    validates :user, presence: true, on: :create
     belongs_to :reply_to, class_name: "Chats::Message", optional: true
 
     has_many :replies, class_name: "Chats::Message", foreign_key: :reply_to_id, dependent: :nullify

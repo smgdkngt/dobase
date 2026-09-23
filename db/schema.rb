@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_21_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_23_120000) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -198,7 +198,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_150000) do
     t.datetime "edited_at"
     t.bigint "reply_to_id"
     t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
+    t.bigint "user_id"
     t.index ["chat_id", "created_at"], name: "index_chat_messages_on_chat_id_and_created_at"
     t.index ["chat_id"], name: "index_chat_messages_on_chat_id"
     t.index ["reply_to_id"], name: "index_chat_messages_on_reply_to_id"
@@ -278,7 +278,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_150000) do
     t.bigint "card_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
+    t.bigint "user_id"
     t.index ["card_id"], name: "index_comments_on_card_id"
     t.index ["user_id"], name: "index_comments_on_user_id"
   end
@@ -349,7 +349,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_150000) do
 
   create_table "file_shares", force: :cascade do |t|
     t.datetime "created_at", null: false
-    t.bigint "created_by_id", null: false
+    t.bigint "created_by_id"
     t.integer "download_count", default: 0, null: false
     t.datetime "expires_at"
     t.string "password_digest"
@@ -528,7 +528,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_150000) do
     t.datetime "created_at", null: false
     t.integer "todo_item_id", null: false
     t.datetime "updated_at", null: false
-    t.integer "user_id", null: false
+    t.integer "user_id"
     t.index ["todo_item_id"], name: "index_todo_comments_on_todo_item_id"
     t.index ["user_id"], name: "index_todo_comments_on_user_id"
   end
@@ -628,50 +628,50 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_150000) do
   add_foreign_key "calendar_accounts", "tools"
   add_foreign_key "calendar_calendars", "calendar_accounts"
   add_foreign_key "calendar_events", "calendar_calendars", column: "calendar_id"
-  add_foreign_key "calendar_events", "users", column: "created_by_id"
-  add_foreign_key "calendar_events", "users", column: "updated_by_id"
+  add_foreign_key "calendar_events", "users", column: "created_by_id", on_delete: :nullify
+  add_foreign_key "calendar_events", "users", column: "updated_by_id", on_delete: :nullify
   add_foreign_key "calendar_invites", "calendar_calendars", column: "added_to_calendar_id", on_delete: :nullify
   add_foreign_key "calendar_invites", "calendar_events", column: "created_event_id", on_delete: :nullify
   add_foreign_key "calendar_invites", "mail_messages"
   add_foreign_key "card_attachments", "cards"
   add_foreign_key "cards", "columns"
-  add_foreign_key "cards", "users", column: "assigned_user_id"
-  add_foreign_key "cards", "users", column: "created_by_id"
-  add_foreign_key "cards", "users", column: "updated_by_id"
+  add_foreign_key "cards", "users", column: "assigned_user_id", on_delete: :nullify
+  add_foreign_key "cards", "users", column: "created_by_id", on_delete: :nullify
+  add_foreign_key "cards", "users", column: "updated_by_id", on_delete: :nullify
   add_foreign_key "chat_messages", "chat_messages", column: "reply_to_id"
   add_foreign_key "chat_messages", "chats"
-  add_foreign_key "chat_messages", "users"
+  add_foreign_key "chat_messages", "users", on_delete: :nullify
   add_foreign_key "chat_reactions", "chat_messages", column: "message_id"
-  add_foreign_key "chat_reactions", "users"
+  add_foreign_key "chat_reactions", "users", on_delete: :cascade
   add_foreign_key "chat_read_receipts", "chat_messages", column: "last_read_message_id"
   add_foreign_key "chat_read_receipts", "chats"
-  add_foreign_key "chat_read_receipts", "users"
+  add_foreign_key "chat_read_receipts", "users", on_delete: :cascade
   add_foreign_key "chats", "tools"
   add_foreign_key "collaborators", "tools"
   add_foreign_key "collaborators", "users"
   add_foreign_key "column_collapses", "columns"
-  add_foreign_key "column_collapses", "users"
+  add_foreign_key "column_collapses", "users", on_delete: :cascade
   add_foreign_key "columns", "boards"
-  add_foreign_key "columns", "users", column: "created_by_id"
-  add_foreign_key "columns", "users", column: "updated_by_id"
+  add_foreign_key "columns", "users", column: "created_by_id", on_delete: :nullify
+  add_foreign_key "columns", "users", column: "updated_by_id", on_delete: :nullify
   add_foreign_key "comments", "cards"
-  add_foreign_key "comments", "users"
+  add_foreign_key "comments", "users", on_delete: :nullify
   add_foreign_key "document_updates", "documents"
   add_foreign_key "documents", "tools"
-  add_foreign_key "documents", "users", column: "created_by_id"
+  add_foreign_key "documents", "users", column: "created_by_id", on_delete: :nullify
   add_foreign_key "documents", "users", column: "locked_by_id", on_delete: :nullify
-  add_foreign_key "documents", "users", column: "updated_by_id"
+  add_foreign_key "documents", "users", column: "updated_by_id", on_delete: :nullify
   add_foreign_key "file_folders", "file_folders", column: "parent_id"
   add_foreign_key "file_folders", "tools"
-  add_foreign_key "file_folders", "users", column: "created_by_id"
-  add_foreign_key "file_folders", "users", column: "updated_by_id"
+  add_foreign_key "file_folders", "users", column: "created_by_id", on_delete: :nullify
+  add_foreign_key "file_folders", "users", column: "updated_by_id", on_delete: :nullify
   add_foreign_key "file_items", "file_folders", column: "folder_id"
   add_foreign_key "file_items", "tools"
-  add_foreign_key "file_items", "users", column: "created_by_id"
-  add_foreign_key "file_items", "users", column: "updated_by_id"
-  add_foreign_key "file_shares", "users", column: "created_by_id"
+  add_foreign_key "file_items", "users", column: "created_by_id", on_delete: :nullify
+  add_foreign_key "file_items", "users", column: "updated_by_id", on_delete: :nullify
+  add_foreign_key "file_shares", "users", column: "created_by_id", on_delete: :nullify
   add_foreign_key "invitations", "tools"
-  add_foreign_key "invitations", "users", column: "invited_by_id"
+  add_foreign_key "invitations", "users", column: "invited_by_id", on_delete: :cascade
   add_foreign_key "mail_accounts", "tools"
   add_foreign_key "mail_attachments", "mail_messages"
   add_foreign_key "mail_contacts", "mail_accounts"
@@ -682,15 +682,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_150000) do
   add_foreign_key "sidebar_memberships", "sidebar_groups"
   add_foreign_key "sidebar_memberships", "tools"
   add_foreign_key "todo_comments", "todo_items"
-  add_foreign_key "todo_comments", "users"
+  add_foreign_key "todo_comments", "users", on_delete: :nullify
   add_foreign_key "todo_item_attachments", "todo_items"
   add_foreign_key "todo_items", "todo_lists"
-  add_foreign_key "todo_items", "users", column: "assigned_user_id"
-  add_foreign_key "todo_items", "users", column: "created_by_id"
-  add_foreign_key "todo_items", "users", column: "updated_by_id"
+  add_foreign_key "todo_items", "users", column: "assigned_user_id", on_delete: :nullify
+  add_foreign_key "todo_items", "users", column: "created_by_id", on_delete: :nullify
+  add_foreign_key "todo_items", "users", column: "updated_by_id", on_delete: :nullify
   add_foreign_key "todo_lists", "tools"
-  add_foreign_key "todo_lists", "users", column: "created_by_id"
-  add_foreign_key "todo_lists", "users", column: "updated_by_id"
+  add_foreign_key "todo_lists", "users", column: "created_by_id", on_delete: :nullify
+  add_foreign_key "todo_lists", "users", column: "updated_by_id", on_delete: :nullify
   add_foreign_key "tools", "tool_types"
   add_foreign_key "tools", "users", column: "owner_id"
 end

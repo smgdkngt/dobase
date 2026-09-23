@@ -7,7 +7,8 @@ module Files
     has_secure_password validations: false
 
     belongs_to :shareable, polymorphic: true
-    belongs_to :created_by, class_name: "User"
+    belongs_to :created_by, class_name: "User", optional: true
+    validates :created_by, presence: true, on: :create
 
     validates :token, presence: true, uniqueness: true
 

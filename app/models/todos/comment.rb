@@ -7,7 +7,9 @@ module Todos
     include Mentionable
 
     belongs_to :item, class_name: "Todos::Item", foreign_key: :todo_item_id
-    belongs_to :user
+    # Kept when the author deletes their account (the column is nullified)
+    belongs_to :user, optional: true
+    validates :user, presence: true, on: :create
 
     has_rich_text :body
 

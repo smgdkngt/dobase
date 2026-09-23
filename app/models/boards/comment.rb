@@ -7,7 +7,9 @@ module Boards
     include Mentionable
 
     belongs_to :card, class_name: "Boards::Card"
-    belongs_to :user
+    # Kept when the author deletes their account (the column is nullified)
+    belongs_to :user, optional: true
+    validates :user, presence: true, on: :create
 
     has_rich_text :body
 

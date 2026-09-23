@@ -10,7 +10,7 @@
   <%= render "shared/avatar", user: comment.user, size: :sm %>
   <div class="flex-1 min-w-0">
     <div class="flex items-baseline gap-2 mb-0.5">
-      <span class="text-sm font-semibold text-text-primary"><%= comment.user.name %></span>
+      <span class="text-sm font-semibold text-text-primary"><%= author_name(comment.user) %></span>
       <span class="text-xs text-text-tertiary"><%= time_ago_in_words(comment.created_at) %> ago</span>
     </div>
     <div class="text-sm text-text-primary leading-snug rich-text-content"><%= comment.body %></div>
