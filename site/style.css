@@ -279,6 +279,12 @@ img, svg {
 }
 
 /* Buttons */
+.hero-note {
+  font-size: 0.8125rem;
+  color: var(--text-tertiary);
+  margin-top: 0.75rem;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
