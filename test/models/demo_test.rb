@@ -36,6 +36,12 @@ class DemoTest < ActiveSupport::TestCase
     end
   end
 
+  test "the notification digest sends nothing in the demo" do
+    in_demo_mode do
+      assert_no_enqueued_jobs { NotificationDigestJob.perform_later }
+    end
+  end
+
   test "visitors can't upload files, but the example workspace brings its own" do
     blob = -> { ActiveStorage::Blob.new(filename: "a.txt", byte_size: 2, checksum: "x", content_type: "text/plain") }
 

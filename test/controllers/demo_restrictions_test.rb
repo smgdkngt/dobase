@@ -76,6 +76,40 @@ class DemoRestrictionsTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "a visitor has only so many tools" do
+    params = { tool: { name: "One more", tool_type_id: tool_types(:board).id } }
+
+    in_demo_mode do
+      stub_const(Demo, :MAX_TOOLS_PER_VISITOR, users(:one).owned_tools.count) do
+        assert_no_difference "Tool.count" do
+          post tools_path, params: params, headers: { "Referer" => root_path }
+        end
+      end
+    end
+    assert_equal "That's as many tools as the demo holds.", flash[:alert]
+
+    assert_difference "Tool.count" do
+      post tools_path, params: params
+    end
+  end
+
+  test "a demo over its storage budget takes no more changes, but still lets people delete and sign out" do
+    in_demo_mode do
+      stub_const(Demo, :STORAGE_BUDGET, 0) do
+        assert Demo.over_budget?
+
+        assert_no_difference "Tool.count" do
+          post tools_path, params: { tool: { name: "One more", tool_type_id: tool_types(:board).id } }, headers: { "Accept" => "application/json" }
+        end
+        assert_response :insufficient_storage
+
+        delete session_path
+        assert_redirected_to new_session_path
+      end
+    end
+    assert_not Demo.over_budget?
+  end
+
   test "making an API access token" do
     in_demo_mode do
       assert_no_difference "AccessToken.count" do

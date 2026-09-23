@@ -2,6 +2,7 @@
 
 class NotificationDigestJob < ApplicationJob
   queue_as :default
+  skip_in_demo
 
   def perform
     User.where.not(notification_digest: "off").find_each do |user|

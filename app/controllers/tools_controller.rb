@@ -31,6 +31,10 @@ class ToolsController < ApplicationController
   end
 
   def create
+    if Demo.enabled? && current_user.owned_tools.count >= Demo::MAX_TOOLS_PER_VISITOR
+      return refuse_in_demo("That's as many tools as the demo holds.", status: :unprocessable_entity)
+    end
+
     @tool = current_user.owned_tools.build(tool_params)
 
     respond_to do |format|

@@ -9,12 +9,17 @@ module DemoRestricted
 
   REFUSAL = "That's switched off in the demo."
   SLOW_DOWN = "You're going a bit fast for the demo. Try again in a minute."
+  FULL = "The demo is full right now. Try again in an hour or so."
 
   included do
     # A visitor clicks; a script floods. Every change counts, across the whole app.
     rate_limit to: 60, within: 1.minute, scope: "demo-changes", by: -> { Current.user&.id || request.remote_ip },
       if: -> { Demo.enabled? && !request.get? && !request.head? },
       with: -> { refuse_in_demo(SLOW_DOWN, status: :too_many_requests) }
+
+    # Deleting stays possible, signing out included
+    before_action -> { refuse_in_demo(FULL, status: :insufficient_storage) },
+      if: -> { !request.get? && !request.head? && !request.delete? && Demo.over_budget? }
   end
 
   class_methods do

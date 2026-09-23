@@ -68,6 +68,20 @@ class DocumentSyncChannelTest < ActionCable::Channel::TestCase
     assert_equal({ "type" => "refused", "reason" => "This document is too large to share more changes" }, transmissions.last)
   end
 
+  test "a demo over its storage budget takes no more changes" do
+    subscribe document_id: @document.id
+
+    in_demo_mode do
+      stub_const(Demo, :STORAGE_BUDGET, 0) do
+        assert_no_difference -> { @document.updates.count } do
+          perform :apply_update, update: Base64.strict_encode64("y"), origin: "abc"
+        end
+      end
+    end
+
+    assert_equal "The demo is full right now", transmissions.last["reason"]
+  end
+
   test "a merged copy larger than a document may be is not kept" do
     subscribe document_id: @document.id
     @document.updates.create!(data: "\x01")

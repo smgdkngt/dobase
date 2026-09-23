@@ -9,10 +9,22 @@ module Demo
   LIFETIME = 1.day
   # How many visitors can have a workspace at once; the database and disk stay bounded
   MAX_VISITORS = 500
+  MAX_TOOLS_PER_VISITOR = 30
+  # The demo shares its disk with whatever else runs on the server. Past this, it takes
+  # no more changes until the cleanup has made room, whatever a script finds to fill.
+  STORAGE_BUDGET = 2.gigabytes
 
   def self.enabled? = ENV["DEMO_MODE"] == "true"
 
-  def self.full? = visitors.count >= MAX_VISITORS
+  def self.full? = visitors.count >= MAX_VISITORS || over_budget?
+
+  def self.over_budget? = enabled? && database_size > STORAGE_BUDGET
+
+  # SQLite keeps recent writes in a -wal file next to the database
+  def self.database_size
+    path = ActiveRecord::Base.connection_db_config.database.to_s
+    [ path, "#{path}-wal" ].sum { |file| File.exist?(file) ? File.size(file) : 0 }
+  end
 
   def self.visitors
     User.where("email_address LIKE ?", "%@#{EMAIL_DOMAIN}")
