@@ -19,8 +19,35 @@
   <meta name="twitter:description" content="Open-source, self-hosted workspace with 8 installable tools. Deploy with ONCE, Kamal, or Docker.">
   <meta name="twitter:image" content="https://dobase.co/screenshots/board-launch.png">
 
+  <link rel="canonical" href="https://dobase.co/">
   <link rel="stylesheet" href="style.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='%230071e3'/><g transform='translate(50 56) scale(12.5)'><path fill-rule='evenodd' d='M6 2H11A18 14 0 0 1 13 30A2 2 0 0 1 11 28V24H6A2 2 0 0 1 4 22V4A2 2 0 0 1 6 2ZM11 8A12 8 0 0 1 11 24Z' fill='white'/></g></svg>">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "name": "Dobase",
+        "url": "https://dobase.co/"
+      },
+      {
+        "@type": "SoftwareApplication",
+        "name": "Dobase",
+        "url": "https://dobase.co/",
+        "description": "An open-source, self-hosted workspace with installable tools: mail, boards, docs, chat, todos, files, calendar and video rooms.",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Linux, Docker",
+        "license": "https://opensource.org/licenses/MIT",
+        "image": "https://dobase.co/screenshots/board-launch.png",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+        "sameAs": ["https://github.com/smgdkngt/dobase"]
+      }
+    ]
+  }
+  </script>
+  <link rel="icon" href="/favicon.ico" sizes="32x32">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 </head>
 <body>
 
@@ -51,12 +78,14 @@
           Open-source app that replaces your scattered SaaS tools with a single self-hosted workspace. Mail, boards, docs, chat, and more &mdash; all under your control.
         </p>
         <div class="hero-actions">
-          <a href="https://github.com/smgdkngt/dobase" class="btn btn-primary">
+          <a href="https://demo.dobase.co" class="btn btn-primary">Try the demo</a>
+          <a href="https://github.com/smgdkngt/dobase" class="btn btn-secondary">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.73.083-.73 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.605-.015 2.896-.015 3.286 0 .315.21.694.825.576C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"/></svg>
             View on GitHub
           </a>
           <a href="https://github.com/smgdkngt/dobase#self-hosting" class="btn btn-secondary">Self-host</a>
         </div>
+        <p class="hero-note">The demo needs no account. Your workspace is removed after a day.</p>
       </div>
       <div class="hero-screenshots" aria-hidden="true">
         <img src="screenshots/board-launch.png" alt="Kanban board with cards, due dates, and assignees" class="hero-screenshot" loading="eager">
@@ -334,6 +363,7 @@
           </span>
         </div>
         <div class="footer-right">
+          <a href="https://demo.dobase.co">Demo</a>
           <a href="https://github.com/smgdkngt/dobase">GitHub</a>
           <a href="https://github.com/smgdkngt/dobase#self-hosting">Docs</a>
           <a href="https://github.com/smgdkngt/dobase/tree/main/docs/api">API</a>
