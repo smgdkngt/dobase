@@ -36,6 +36,11 @@ servers are never queued, and those servers are refused even if something tried.
   app. More gets "You're going a bit fast for the demo" (JSON: `429`).
 - **5 new demos per address** every 10 minutes, and at most 500 visitors at once
   (`Demo::MAX_VISITORS`). After that the sign-in page says the demo is busy.
+- **30 tools per visitor** (`Demo::MAX_TOOLS_PER_VISITOR`).
+- **A storage budget.** Once the database passes 2 GB (`Demo::STORAGE_BUDGET`), the demo
+  takes no more changes, over HTTP or in shared documents, until the cleanup has made
+  room; deleting and signing out still work. This keeps a demo on a shared server from
+  filling the disk, whatever a script finds to write.
 - **Limit request bodies** at the proxy too (see the deploy example below), since text
   fields have no length limit of their own.
 
@@ -79,7 +84,7 @@ proxy:
   ssl: true
   host: demo.example.com
   buffering:
-    max_request_body: 2_000_000
+    max_request_body: 512_000
 
 env:
   secret:

@@ -55,6 +55,7 @@ class DocumentSyncChannel < ApplicationCable::Channel
     # is still a change
     return if payload.nil? || payload.empty?
     return refuse("This document is too large to share more changes") if stored_size + payload.bytesize > MAX_DOCUMENT_SIZE
+    return refuse("The demo is full right now") if Demo.over_budget?
 
     @document.updates.create!(data: payload)
     hold_editing_open
