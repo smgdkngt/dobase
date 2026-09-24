@@ -9,6 +9,7 @@ pub fn definitions() -> Vec<Definition> {
         command("login", "Save the server URL and an access token for this machine", &["[URL]"], vec![], login),
         command("logout", "Forget the saved URL and token (revoke the token under Profile → API)", &[], vec![], logout),
         command("whoami", "Show who the token belongs to and what it may do", &[], vec![], whoami),
+        command("ui", "Open the interactive app (what dobase does without arguments in a terminal)", &[], vec![], ui),
     ]
 }
 
@@ -57,6 +58,13 @@ fn whoami(ctx: &mut Ctx, _args: &Args) -> Result<()> {
         }
         Ok(())
     })
+}
+
+fn ui(ctx: &mut Ctx, _args: &Args) -> Result<()> {
+    if !std::io::stdin().is_terminal() || !std::io::stdout().is_terminal() {
+        usage!("The app needs a terminal to draw in. Scripts can use the commands instead: dobase help");
+    }
+    crate::tui::run(&mut ctx.config, &ctx.user_agent)
 }
 
 /// Prompts only when someone is typing; a piped token is read silently.

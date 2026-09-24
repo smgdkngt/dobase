@@ -45,6 +45,30 @@ DOBASE_URL=http://localhost:3000 DOBASE_TOKEN=dobase_... dobase tool list
 Pick **Read only** if you only want to look things up. A read-only token
 can't change anything.
 
+## Look around
+
+Run `dobase` without anything after it and it opens as a full-screen app:
+your tools and what's new, boards with their columns side by side, todo lists,
+chats that keep up by themselves, documents, your agenda, files and mail.
+
+```
+     _       _
+  __| | ___ | |__   __ _ ___  ___
+ / _` |/ _ \| '_ \ / _` / __|/ _ \
+| (_| | (_) | |_) | (_| \__ \  __/
+ \__,_|\___/|_.__/ \__,_|___/\___|
+```
+
+Arrow keys (or `h j k l`) move, `enter` opens, `esc` goes back and `?` shows
+the keys of the screen you're on. On a board, `c` adds a card and `H`/`L` move
+it to the previous or next column; in a todo list, `space` ticks a todo off;
+in a chat, `i` starts a message. `/` searches everything, `n` shows your
+notifications, `]` and `[` hop between tools, and `o` opens whatever you're
+looking at in the browser. `q` quits.
+
+`dobase ui` does the same. When the output goes to a script or a pipe, plain
+`dobase` prints the help instead.
+
 ## Use
 
 ```bash
@@ -91,6 +115,10 @@ cargo fmt
 
 Try it against `bin/dev` with `DOBASE_URL=http://localhost:3010` and a token
 from Profile → API in `DOBASE_TOKEN`.
+
+The full-screen app lives in `src/tui/`: one file per kind of tool in
+`src/tui/screens/`, drawn with [ratatui](https://ratatui.rs). Its tests drive
+it with key presses against a fake server on a virtual terminal.
 
 Commands are declared per noun in `src/commands/*.rs` with
 `command("noun verb", summary, &[ARGS], vec![flags], function)`; `dobase help`

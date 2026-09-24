@@ -32,9 +32,10 @@ Everything in your tools is also reachable through a JSON API. Create a
 personal access token under **Profile → API**; tokens are read-only or
 read-and-write and can't touch account settings. See [docs/api](docs/api/README.md).
 
-The [`dobase` CLI](cli/README.md) is built on that API and doubles as a Claude
-Code skill, so an AI assistant can read your board, add todos or draft a reply
-for you:
+The [`dobase` CLI](cli/README.md) is built on that API. Run it on its own and
+it opens a full-screen app for your boards, todos and chats; give it a command
+and it's made for scripts, and a Claude Code skill, so an AI assistant can read
+your board, add todos or draft a reply for you:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/smgdkngt/dobase/main/cli/install.sh | sh
