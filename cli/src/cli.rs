@@ -1,6 +1,6 @@
 //! Finds the command in the arguments, runs it, and prints help.
 
-use std::io::Write;
+use std::io::{IsTerminal, Write};
 
 use crate::command::{Ctx, Definition, Error, clean, ljust};
 use crate::commands;
@@ -27,6 +27,16 @@ pub fn run(argv: Vec<String>, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
     let argv: Vec<String> = argv.into_iter().filter(|arg| arg != "--json").collect();
 
     match argv.first().map(String::as_str) {
+        // A person at a terminal gets the app; scripts and pipes get the help.
+        None if !json && std::io::stdin().is_terminal() && std::io::stdout().is_terminal() => {
+            return match crate::tui::run(&mut Config::default(), &format!("dobase-cli/{VERSION}")) {
+                Ok(()) => 0,
+                Err(error) => {
+                    let _ = writeln!(err, "Error: {}", clean(&error_message(error)));
+                    1
+                }
+            };
+        }
         None | Some("help" | "--help" | "-h") => {
             help(&definitions, argv.get(1).map(String::as_str), out);
             return 0;
@@ -63,6 +73,12 @@ pub fn run(argv: Vec<String>, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
             let _ = writeln!(err, "Error: {}", clean(&message));
             1
         }
+    }
+}
+
+fn error_message(error: Error) -> String {
+    match error {
+        Error::Usage(message) | Error::Failed(message) | Error::Help(message) => message,
     }
 }
 

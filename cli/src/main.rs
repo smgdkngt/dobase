@@ -5,6 +5,7 @@ mod client;
 mod command;
 mod commands;
 mod config;
+mod tui;
 mod value;
 
 #[cfg(test)]
