@@ -70,4 +70,19 @@
   <% else %>
     <%= render "components/empty_state", title: "No access tokens", description: "Create one to use Dobase from the command line.", icon: "key-round" %>
   <% end %>
+
+  <h3 class="text-sm font-semibold text-text-primary mt-8 mb-1">Command line</h3>
+  <p class="text-xs text-text-tertiary mb-3">
+    Install <code>dobase</code> on macOS or Linux, then sign in with a token.
+    <%= link_to "Windows and more", "https://github.com/smgdkngt/dobase/tree/main/cli#readme", class: "underline", target: "_blank", rel: "noopener" %>
+  </p>
+  <div class="space-y-2">
+    <% [ [ "Install command", "curl -fsSL https://raw.githubusercontent.com/smgdkngt/dobase/main/cli/install.sh | sh" ],
+         [ "Sign-in command", "dobase login #{root_url.chomp("/")}" ] ].each do |label, command| %>
+      <div class="flex gap-2" data-controller="clipboard">
+        <input type="text" readonly value="<%= command %>" class="input flex-1 font-mono text-xs" aria-label="<%= label %>" data-clipboard-target="source">
+        <%= render "components/button", text: "Copy", variant: :secondary, size: :sm, type: :button, data: { action: "clipboard#copy", clipboard_target: "button" } %>
+      </div>
+    <% end %>
+  </div>
 <% end %>

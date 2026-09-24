@@ -5,15 +5,27 @@ chat, notifications, mail, calendar and files. It talks to the
 [Dobase API](../docs/api/README.md) with a personal access token. It suits
 scripts and AI assistants just as well as people.
 
-It is a single Ruby program with no gems to install. It needs Ruby 3.1 or newer.
+It is a single program with nothing else to install, built for macOS, Linux
+and Windows with every [release](https://github.com/smgdkngt/dobase/releases).
 
 ## Install
 
-Link the script onto your `PATH`:
+On macOS or Linux:
 
 ```bash
-ln -s "$PWD/cli/dobase" /usr/local/bin/dobase
+curl -fsSL https://raw.githubusercontent.com/smgdkngt/dobase/main/cli/install.sh | sh
 ```
+
+The script downloads the build for your machine from the latest release,
+checks its checksum and puts `dobase` in `~/.local/bin`. Set
+`DOBASE_INSTALL_DIR` to put it elsewhere, or `DOBASE_VERSION` (a release such as
+`2026.09.24`) to match an older Dobase server.
+
+On Windows, download `dobase-x86_64-pc-windows-msvc.zip` from the
+[latest release](https://github.com/smgdkngt/dobase/releases/latest) and put
+`dobase.exe` somewhere on your `PATH`.
+
+`dobase --version` shows which release you have.
 
 Then sign in. In the browser, create a token under **Profile → API**, then run:
 
@@ -56,10 +68,31 @@ dobase help                                   # everything; `dobase help card` f
 
 This directory is also a Claude Code skill. `SKILL.md` tells Claude when and
 how to use the CLI, including rules about sending mail, posting and deleting.
-Install it by linking the directory into your skills:
+Install `dobase` as above, then copy the skill into your skills:
 
 ```bash
-ln -s "$PWD/cli" ~/.claude/skills/dobase
+mkdir -p ~/.claude/skills/dobase
+curl -fsSL https://raw.githubusercontent.com/smgdkngt/dobase/main/cli/SKILL.md -o ~/.claude/skills/dobase/SKILL.md
 ```
 
 Run `dobase login` yourself first. Claude never needs to see your token.
+
+## Development
+
+The CLI is written in Rust and lives in this directory, next to the app whose
+API it uses. Build and test it with Cargo:
+
+```bash
+cargo build                  # target/debug/dobase
+cargo test                   # also checks that the commands in these docs exist
+cargo clippy --all-targets
+cargo fmt
+```
+
+Try it against `bin/dev` with `DOBASE_URL=http://localhost:3010` and a token
+from Profile → API in `DOBASE_TOKEN`.
+
+Commands are declared per noun in `src/commands/*.rs` with
+`command("noun verb", summary, &[ARGS], vec![flags], function)`; `dobase help`
+is generated from those. Publishing a GitHub release builds the binaries and
+attaches them to it (`.github/workflows/cli-release.yml`).

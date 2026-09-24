@@ -149,7 +149,7 @@ The API is the web app answering JSON: same routes and controllers, `respond_to`
 - **Gotcha**: `wrap_parameters` is on for JSON — a flat param named like the controller's singular (e.g. `position` in a `PositionsController`) gets wrapped; use `wrap_parameters false`.
 - **Tests**: `api_headers(user, permission:)` from `test/test_helpers/api_test_helper.rb`; API tests live in `test/controllers/**/*_api_test.rb`.
 
-`cli/` holds the `dobase` command-line client (plain Ruby, stdlib only — no gems) and its Claude Code skill (`cli/SKILL.md`). Commands are declared per tool in `cli/lib/dobase/commands/*.rb` with `command "noun verb", summary, args:, flags:`; `dobase help` is generated from those. `test/cli/dobase_cli_test.rb` loads every command. When adding an endpoint the CLI should use, add the command, update `cli/SKILL.md` if it changes how an agent should behave, and smoke-test against `bin/dev` with `DOBASE_URL`/`DOBASE_TOKEN`.
+`cli/` holds the `dobase` command-line client (Rust, one binary per platform, attached to every GitHub release by `.github/workflows/cli-release.yml`; `cli/install.sh` downloads it) and its Claude Code skill (`cli/SKILL.md`). Commands are declared per noun in `cli/src/commands/*.rs` with `command("noun verb", summary, &[ARGS], vec![flags], function)`; `dobase help` is generated from those. `cargo test` in `cli/` checks every command and that the examples in `cli/SKILL.md` and the READMEs exist; the CI `cli` job runs it with clippy and rustfmt. When adding an endpoint the CLI should use, add the command, update `cli/SKILL.md` if it changes how an agent should behave, and smoke-test against `bin/dev` with `DOBASE_URL`/`DOBASE_TOKEN` (`cargo run -- ...`).
 
 ### Real-time (ActionCable)
 

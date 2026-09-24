@@ -19,6 +19,13 @@ module Profiles
       assert_includes response.body, "Read and write"
     end
 
+    test "the api tab shows how to install the command-line tool and sign in here" do
+      get edit_profile_path(tab: "api")
+
+      assert_includes response.body, "cli/install.sh | sh"
+      assert_includes response.body, "dobase login http://www.example.com"
+    end
+
     test "create reveals the new token once" do
       assert_difference -> { @user.access_tokens.count }, 1 do
         post profile_access_tokens_path, params: { name: "Claude", permission: "write" }

@@ -1,0 +1,83 @@
+name: Build the CLI for a release
+
+# Every release gets a dobase binary per platform, which cli/install.sh downloads.
+# Pull requests that touch the CLI build them too, without uploading anything.
+on:
+  pull_request:
+    paths: [ "cli/**", ".github/workflows/cli-release.yml" ]
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to build for, e.g. 2026.09.24"
+        required: true
+
+permissions:
+  contents: write # upload release assets
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            runner: macos-latest
+          - target: x86_64-apple-darwin
+            runner: macos-latest
+          - target: x86_64-unknown-linux-musl
+            runner: ubuntu-latest
+          - target: aarch64-unknown-linux-musl
+            runner: ubuntu-24.04-arm
+          - target: x86_64-pc-windows-msvc
+            runner: windows-latest
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: cli
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag || 'pr-build' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.sha || env.TAG }}
+
+      - name: Install musl
+        if: contains(matrix.target, 'musl')
+        run: |
+          sudo apt-get update && sudo apt-get install --no-install-recommends -y musl-tools
+          echo "TARGET_CC=musl-gcc" >> "$GITHUB_ENV" # ring's C code has to be compiled against musl too
+
+      - name: Set up Rust
+        run: rustup toolchain install stable --profile minimal --target ${{ matrix.target }} && rustup default stable
+
+      - name: Build
+        run: cargo build --release --locked --target ${{ matrix.target }}
+        env:
+          DOBASE_VERSION: ${{ env.TAG }}
+
+      - name: Package
+        run: |
+          binary=target/${{ matrix.target }}/release/dobase
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            archive=dobase-${{ matrix.target }}.zip
+            7z a "$archive" "./$binary.exe" > /dev/null
+          else
+            archive=dobase-${{ matrix.target }}.tar.gz
+            tar -czf "$archive" -C "$(dirname "$binary")" dobase
+          fi
+          if command -v sha256sum > /dev/null; then sha256sum "$archive" > "$archive.sha256"; else shasum -a 256 "$archive" > "$archive.sha256"; fi
+          echo "ARCHIVE=$archive" >> "$GITHUB_ENV"
+
+      - name: Smoke test
+        if: matrix.target != 'x86_64-apple-darwin'
+        run: target/${{ matrix.target }}/release/dobase --version | grep -F "$TAG"
+
+      - name: Upload to the release
+        if: github.event_name != 'pull_request'
+        run: gh release upload "$TAG" "$ARCHIVE" "$ARCHIVE.sha256" --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
