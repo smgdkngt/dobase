@@ -107,7 +107,12 @@ impl Mail {
                 [Span::styled(folder.to_string(), style), Span::raw("  ")]
             })
             .collect();
-        let title = format!("{} {} · {}", theme::tool_icon("mail"), self.tool["name"].s(), self.mailbox["account"]["email_address"].s());
+        let (name, address) = (self.tool["name"].s(), self.mailbox["account"]["email_address"].s());
+        let title = if address.is_empty() || name.eq_ignore_ascii_case(&address) {
+            format!("{} {name}", theme::tool_icon("mail"))
+        } else {
+            format!("{} {name} · {address}", theme::tool_icon("mail"))
+        };
         let block = panel(title, true).title_bottom(Line::from(tabs).right_aligned());
 
         let conversations = self.conversations();
