@@ -4,6 +4,7 @@
 //! loop draws a spinner, then runs it. So the screen always shows what's going on.
 
 use std::collections::VecDeque;
+use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::time::{Duration, Instant};
 
 use ratatui::Frame;
@@ -18,7 +19,7 @@ use super::popups::{self, Popup};
 use super::screens::{self, Screen, View};
 use super::theme;
 use super::widgets::{self, Confetti};
-use crate::client::{Api, Method};
+use crate::client::{Api, Client, Method};
 use crate::command::{Error, Result};
 use crate::value::Json;
 
@@ -37,6 +38,27 @@ struct Toast {
     tone: Tone,
     at: Instant,
 }
+
+/// The last change you made, and how to take it back.
+struct Undo {
+    label: String,
+    job: Job,
+    at: Instant,
+}
+
+/// Refreshes live screens on another thread, so keys never wait for the server.
+struct Background {
+    client: Client,
+    inflight: Option<Inflight>,
+}
+
+struct Inflight {
+    receiver: Receiver<Result<Value>>,
+    started: Instant,
+    tool: Option<i64>,
+}
+
+const UNDO_FOR: Duration = Duration::from_secs(60);
 
 struct Pending {
     label: String,
@@ -88,6 +110,10 @@ pub struct App {
     jobs: VecDeque<Pending>,
     busy: Option<String>,
     last_refresh: Instant,
+    /// When a job last changed something, so an older background refresh can't undo it on screen.
+    last_change: Instant,
+    undo: Option<Undo>,
+    background: Option<Background>,
 }
 
 impl App {
@@ -108,7 +134,20 @@ impl App {
             jobs: VecDeque::new(),
             busy: None,
             last_refresh: Instant::now(),
+            last_change: Instant::now(),
+            undo: None,
+            background: None,
         }
+    }
+
+    /// Refreshes live screens in the background with this client.
+    pub fn refresh_in_background(&mut self, client: Client) {
+        self.background = Some(Background { client, inflight: None });
+    }
+
+    /// Lets `u` take back what was just done, for a minute.
+    pub fn offer_undo(&mut self, label: impl Into<String>, job: impl FnOnce(&mut App) -> Result<()> + 'static) {
+        self.undo = Some(Undo { label: label.into(), job: Box::new(job), at: Instant::now() });
     }
 
     // -- API -----------------------------------------------------------------
@@ -209,6 +248,17 @@ impl App {
                     fx.open_tool = Some(self.tools[next]["id"].int());
                 }
             }
+            KeyCode::Char('u') => match self.undo.take().filter(|undo| undo.at.elapsed() < UNDO_FOR) {
+                Some(undo) => {
+                    let job = undo.job;
+                    fx.job(format!("Undoing {}", undo.label), move |app| {
+                        job(app)?;
+                        app.toast("Undone ↩", Tone::Info);
+                        Ok(())
+                    });
+                }
+                None => fx.toast("Nothing to undo", Tone::Info),
+            },
             KeyCode::Char('o') => {
                 fx.open_url = Some(match self.screen.tool() {
                     Some(tool) => self.tool_url(tool),
@@ -343,6 +393,7 @@ impl App {
         let Some(pending) = self.jobs.pop_front() else { return };
         let result = (pending.job)(self);
         self.busy = None;
+        self.last_change = Instant::now();
         if let Err(error) = result {
             let message = match error {
                 Error::Usage(message) | Error::Failed(message) | Error::Help(message) => message,
@@ -368,12 +419,35 @@ impl App {
         if self.toast.as_ref().is_some_and(|toast| toast.at.elapsed() > Duration::from_secs(4)) {
             self.toast = None;
         }
-        if self.jobs.is_empty() && self.popup.is_none() && self.last_refresh.elapsed() > Duration::from_secs(10) {
-            self.last_refresh = Instant::now();
-            if let Some(job) = self.screen.live_refresh() {
-                self.jobs.push_back(Pending { label: String::new(), quiet: true, job });
+        self.poll_background();
+    }
+
+    /// Picks up a finished background refresh, and starts the next one every ten seconds.
+    fn poll_background(&mut self) {
+        let Some(background) = self.background.as_mut() else { return };
+        let tool = self.screen.tool().map(|tool| tool["id"].int());
+
+        if let Some(inflight) = &background.inflight {
+            match inflight.receiver.try_recv() {
+                Err(TryRecvError::Empty) => return,
+                Ok(Ok(value)) if inflight.tool == tool && inflight.started > self.last_change => self.screen.apply_live(value),
+                _ => {}
             }
+            background.inflight = None;
         }
+
+        if self.last_refresh.elapsed() < Duration::from_secs(10) || !self.jobs.is_empty() {
+            return;
+        }
+        self.last_refresh = Instant::now();
+        let Some((path, params)) = self.screen.live_request() else { return };
+        let (sender, receiver) = mpsc::channel();
+        let mut client = background.client.clone();
+        std::thread::spawn(move || {
+            let params: Vec<(&str, String)> = params.iter().map(|(name, value)| (*name, value.clone())).collect();
+            let _ = sender.send(client.request(Method::Get, &path, &params, &Value::Null));
+        });
+        background.inflight = Some(Inflight { receiver, started: Instant::now(), tool });
     }
 
     // -- Drawing -------------------------------------------------------------
@@ -414,10 +488,13 @@ impl App {
     }
 
     fn draw_footer(&self, frame: &mut Frame, area: Rect) {
-        let hints = match &self.popup {
+        let mut hints = match &self.popup {
             Some(popup) => popups::hints(popup),
             None => self.screen.hints(),
         };
+        if self.popup.is_none() && self.undo.as_ref().is_some_and(|undo| undo.at.elapsed() < UNDO_FOR) {
+            hints.insert(0, ("u", "undo"));
+        }
         let mut pairs: Vec<(&str, &str)> = hints.iter().map(|(key, action)| (*key, *action)).collect();
         pairs.push(("?", "help"));
         let mut line = widgets::hints(&pairs);

@@ -163,8 +163,10 @@ fn shift(tool: Value, start: Date, days: i64) -> Job {
 /// Whether `event` takes place on `day` (it may span several).
 fn on_day(event: &Value, day: Date) -> bool {
     let date = |value: &Value| value.s().chars().take(10).collect::<String>().parse::<Date>().ok();
-    match (date(&event["starts_at"]), date(&event["ends_at"])) {
-        (Some(starts), Some(ends)) => starts <= day && day <= ends.max(starts),
-        _ => false,
+    let (Some(starts), Some(mut ends)) = (date(&event["starts_at"]), date(&event["ends_at"])) else { return false };
+    // Something that ends at midnight is over before that day begins.
+    if ends > starts && event["ends_at"].s().get(11..16) == Some("00:00") {
+        ends = ends.yesterday().unwrap_or(ends);
     }
+    starts <= day && day <= ends.max(starts)
 }

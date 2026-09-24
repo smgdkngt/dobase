@@ -148,12 +148,25 @@ impl Screen {
         }
     }
 
-    /// Screens that change while you look at them reload every few seconds.
-    pub fn live_refresh(&self) -> Option<Job> {
+    /// What a screen that changes while you look at it reloads every few seconds, in the background.
+    pub fn live_request(&self) -> Option<(String, Vec<(&'static str, String)>)> {
         match self {
-            Screen::Chat(screen) if !screen.typing() => Some(screen.refresh()),
-            Screen::Board(_) | Screen::Todos(_) => self.refresh(),
+            Screen::Home(_) => Some(("/notifications".into(), vec![("limit", home::NOTIFICATIONS.to_string())])),
+            Screen::Board(screen) => Some((format!("/tools/{}/board", screen.tool["id"].s()), vec![])),
+            Screen::Todos(screen) => Some((format!("/tools/{}/todo", screen.tool["id"].s()), vec![])),
+            Screen::Chat(screen) => Some((format!("/tools/{}/chat", screen.tool["id"].s()), vec![("limit", chat::PAGE.to_string())])),
             _ => None,
+        }
+    }
+
+    /// Takes in what `live_request` fetched, keeping your place.
+    pub fn apply_live(&mut self, value: Value) {
+        match self {
+            Screen::Home(screen) => screen.replace_notifications(value.items().to_vec()),
+            Screen::Board(screen) => screen.replace(value["columns"].items().to_vec(), None),
+            Screen::Todos(screen) => screen.replace(value["lists"].items().to_vec(), None),
+            Screen::Chat(screen) => screen.merge(value),
+            _ => {}
         }
     }
 

@@ -38,10 +38,20 @@ pub struct Home {
     on_notifications: bool,
 }
 
+/// How many notifications home shows.
+pub const NOTIFICATIONS: usize = 12;
+
 impl Home {
     pub fn load(app: &mut App) -> Result<Self> {
-        let notifications = app.get("/notifications", &[("limit", "12".to_string())])?.items().to_vec();
+        let notifications = app.get("/notifications", &[("limit", NOTIFICATIONS.to_string())])?.items().to_vec();
         Ok(Self { notifications, ..Self::default() })
+    }
+
+    pub fn replace_notifications(&mut self, notifications: Vec<Value>) {
+        let selected = self.notifications.get(self.notification).map(|notification| notification["id"].int());
+        self.notifications = notifications;
+        self.notification =
+            selected.and_then(|id| self.notifications.iter().position(|notification| notification["id"].int() == id)).unwrap_or(0);
     }
 
     pub fn key(&mut self, key: KeyEvent, view: &View, fx: &mut Fx) -> bool {
@@ -64,9 +74,8 @@ impl Home {
                 true
             }
             KeyCode::Enter if self.on_notifications => {
-                match self.notifications.get(self.notification).and_then(|notification| notification["url"].opt()) {
-                    Some(url) => fx.open_link = Some(url),
-                    None => fx.toast("That notification doesn't lead anywhere.", Tone::Info),
+                if let Some(notification) = self.notifications.get_mut(self.notification) {
+                    open_notification(notification, fx);
                 }
                 true
             }
@@ -193,4 +202,17 @@ pub fn tool_id_in(url: &str) -> Option<i64> {
     let rest = url.split("/tools/").nth(1)?;
     let digits: String = rest.chars().take_while(char::is_ascii_digit).collect();
     digits.parse().ok()
+}
+
+/// Opens what a notification is about, and marks it read like the web app does.
+pub fn open_notification(notification: &mut Value, fx: &mut Fx) {
+    if !notification["read"].truthy() {
+        notification["read"] = json!(true);
+        let id = notification["id"].s();
+        fx.job("Marking it read", move |app| app.post(&format!("/notifications/{id}/read"), json!({})).map(drop));
+    }
+    match notification["url"].opt() {
+        Some(url) => fx.open_link = Some(url),
+        None => fx.toast("That notification doesn't lead anywhere.", Tone::Info),
+    }
 }

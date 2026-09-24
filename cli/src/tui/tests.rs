@@ -215,3 +215,88 @@ fn a_tiny_terminal_asks_for_room() {
 
     assert!(harness.screen().contains("bigger"));
 }
+
+#[test]
+fn u_undoes_a_move() {
+    let mut harness = Harness::new();
+    harness.press(KeyCode::Char('2')).press(KeyCode::Char('L'));
+    assert!(harness.screen().contains("u undo"));
+
+    harness.press(KeyCode::Char('u'));
+    assert_eq!(harness.sent(Method::Patch, "/tools/10/board/cards/101/position"), Some(json!({ "column_id": 1, "position": 0 })));
+    assert!(!harness.screen().contains("u undo"));
+}
+
+#[test]
+fn e_renames_a_card_starting_from_its_title() {
+    let mut harness = Harness::new();
+    harness.press(KeyCode::Char('2')).press(KeyCode::Char('e'));
+    assert!(harness.screen().contains("Fix login"));
+
+    harness.press(KeyCode::Backspace).typing("ns").press(KeyCode::Enter);
+    assert_eq!(harness.sent(Method::Patch, "/tools/10/board/cards/101"), Some(json!({ "card": { "title": "Fix logins" } })));
+}
+
+#[test]
+fn d_sets_a_due_date_in_words() {
+    let mut harness = Harness::new();
+    harness.press(KeyCode::Char('2')).press(KeyCode::Char('d')).typing("tomorrow").press(KeyCode::Enter);
+
+    let tomorrow = crate::command::today().tomorrow().unwrap().to_string();
+    assert_eq!(harness.sent(Method::Patch, "/tools/10/board/cards/101"), Some(json!({ "card": { "due_date": tomorrow } })));
+}
+
+#[test]
+fn due_dates_read_like_people_write_them() {
+    use super::widgets::due_date;
+    let today = crate::command::today();
+
+    assert_eq!(due_date("none"), Ok(None));
+    assert_eq!(due_date("+3"), Ok(Some(today.checked_add(jiff::Span::new().days(3)).unwrap())));
+    assert_eq!(due_date("2026-10-01"), Ok(Some(jiff::civil::date(2026, 10, 1))));
+    let friday = due_date("fri").unwrap().unwrap();
+    assert_eq!(friday.weekday(), jiff::civil::Weekday::Friday);
+    assert!(friday > today && friday <= today.checked_add(jiff::Span::new().days(7)).unwrap());
+    assert!(due_date("someday").is_err());
+}
+
+#[test]
+fn a_refresh_keeps_the_selected_card_when_cards_move() {
+    let mut harness = Harness::new();
+    harness.press(KeyCode::Char('2')).press(KeyCode::Down);
+    let super::screens::Screen::Board(board) = &mut harness.app.screen else { panic!("not on the board") };
+
+    // Someone else put a card above it.
+    board.replace(
+        vec![
+            json!({ "id": 1, "name": "To Do", "cards": [card(100, "New one"), card(101, "Fix login"), card(102, "Write post")] }),
+            json!({ "id": 2, "name": "Done", "cards": [] }),
+        ],
+        None,
+    );
+    harness.press(KeyCode::Enter);
+    assert!(harness.calls.borrow().iter().any(|(_, path, _)| path == "/tools/10/board/cards/102"));
+}
+
+#[test]
+fn new_chat_messages_join_the_ones_already_loaded() {
+    let mut harness = Harness::new();
+    harness.press(KeyCode::Char('3'));
+    let super::screens::Screen::Chat(chat) = &mut harness.app.screen else { panic!("not in the chat") };
+
+    chat.merge(json!({ "messages": [
+        { "id": 1, "user": { "name": "Ann" }, "body": "Morning!", "created_at": "2026-09-24T08:00:00Z", "reactions": [] },
+        { "id": 2, "user": { "name": "Bo" }, "body": "Hey Ann", "created_at": "2026-09-24T08:01:00Z", "reactions": [] }
+    ] }));
+    let screen = harness.screen();
+    assert!(screen.contains("Morning!") && screen.contains("Hey Ann"), "{screen}");
+}
+
+#[test]
+fn opening_a_notification_marks_it_read() {
+    let mut harness = Harness::new();
+    harness.press(KeyCode::Tab).press(KeyCode::Enter);
+
+    assert!(harness.sent(Method::Post, "/notifications/5/read").is_some());
+    assert!(harness.screen().contains("Safari logs people out."));
+}

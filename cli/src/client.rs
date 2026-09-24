@@ -31,6 +31,7 @@ pub trait Api {
     fn download(&mut self, path: &str, destination: &Path) -> Result<Option<String>>;
 }
 
+#[derive(Clone)]
 pub struct Client {
     base: Url,
     token: String,

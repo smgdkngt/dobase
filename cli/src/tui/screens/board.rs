@@ -13,23 +13,27 @@ use serde_json::{Value, json};
 use crate::command::{Result, bytes, today};
 use crate::tui::app::{App, Fx, Job, Tone};
 use crate::tui::popups::{self, CommentOn, Detail, Popup};
+use crate::tui::screens::Screen;
 use crate::tui::theme;
-use crate::tui::widgets::{ago, panel, truncate, wrap};
+use crate::tui::widgets::{ago, due_date, panel, truncate, wrap};
 use crate::value::Json;
 
 pub const HINTS: [(&str, &str); 6] =
-    [("←→↑↓", "move"), ("enter", "open"), ("c", "new card"), ("H L", "move card"), ("i", "assign me"), ("esc", "home")];
+    [("←→↑↓", "move"), ("enter", "open"), ("c", "new"), ("H L", "move card"), ("e d", "rename, due"), ("esc", "home")];
 
-pub const HELP: [(&str, &str); 11] = [
+pub const HELP: [(&str, &str); 14] = [
     ("← → / h l", "Previous or next column"),
     ("↑ ↓ / j k", "Previous or next card"),
     ("enter", "Open the card: description and comments"),
     ("c", "New card at the bottom of this column"),
     ("H L", "Move the card to the previous or next column"),
     ("K J", "Move the card up or down its column"),
+    ("e", "Rename the card"),
+    ("d", "Set its due date: fri, +3, tomorrow, 2026-10-01 or none"),
     ("i", "Assign the card to yourself, or unassign"),
     ("a", "Archive the card"),
     ("o", "Open the card in your browser"),
+    ("u", "Undo the last change"),
     ("r", "Reload the board"),
     ("esc", "Back home"),
 ];
@@ -61,22 +65,19 @@ impl Board {
     }
 
     pub fn refresh(&self) -> Job {
-        let tool = self.tool.clone();
-        let (column, selected) = (self.column, self.card().map(|card| card["id"].int()));
-        Box::new(move |app: &mut App| {
-            let fresh = Board::load(app, tool)?;
-            if let crate::tui::screens::Screen::Board(board) = &mut app.screen {
-                let old_cards = std::mem::take(&mut board.cards);
-                *board = Board { cards: old_cards, ..fresh };
-                board.column = column.min(board.columns.len().saturating_sub(1));
-                board.cards.resize(board.columns.len(), 0);
-                if let Some(id) = selected {
-                    board.select_card(id);
-                }
-                board.clamp();
-            }
-            Ok(())
-        })
+        Box::new(|app: &mut App| reload(app, None))
+    }
+
+    /// Takes in fresh columns, keeping the selection on the same card (or `select`).
+    pub fn replace(&mut self, columns: Vec<Value>, select: Option<i64>) {
+        let selected = select.or_else(|| self.card().map(|card| card["id"].int()));
+        self.columns = columns;
+        self.cards.resize(self.columns.len(), 0);
+        self.column = self.column.min(self.columns.len().saturating_sub(1));
+        if let Some(id) = selected {
+            self.select_card(id);
+        }
+        self.clamp();
     }
 
     /// Selects the card with this id, wherever it is.
@@ -133,11 +134,42 @@ impl Board {
                     fx.job("Assigning", move |app| {
                         let mine = assignee == app.me["id"];
                         let value = if mine { Value::Null } else { app.me["id"].clone() };
-                        app.patch(&format!("/tools/{tool}/board/cards/{id}"), json!({ "card": { "assigned_user_id": value } }))?;
-                        reload(app, Some(id))?;
+                        update_card(app, tool, id, json!({ "assigned_user_id": value }))?;
                         app.toast(if mine { "Unassigned" } else { "It's yours now 👍" }, Tone::Success);
+                        app.offer_undo("the assignment", move |app| update_card(app, tool, id, json!({ "assigned_user_id": assignee })));
                         Ok(())
                     });
+                }
+            }
+            KeyCode::Char('e') => {
+                if let Some(card) = self.card() {
+                    let (tool, id, old) = (self.tool_id(), card["id"].int(), card["title"].s());
+                    fx.popup = Some(
+                        Popup::input("Rename the card", "A new title", "Renaming", move |app, title| {
+                            update_card(app, tool, id, json!({ "title": title }))?;
+                            app.offer_undo("the rename", move |app| update_card(app, tool, id, json!({ "title": old })));
+                            Ok(())
+                        })
+                        .prefilled(&card["title"].s()),
+                    );
+                }
+            }
+            KeyCode::Char('d') => {
+                if let Some(card) = self.card() {
+                    let (tool, id, old) = (self.tool_id(), card["id"].int(), card["due_date"].clone());
+                    fx.popup = Some(
+                        Popup::input("Due date", "fri, +3, tomorrow, 2026-10-01 or none", "Setting the due date", move |app, text| {
+                            let due = due_date(&text).map_err(crate::command::Error::usage)?;
+                            update_card(app, tool, id, json!({ "due_date": due.map(|date| date.to_string()) }))?;
+                            app.toast(
+                                due.map_or("No due date".to_string(), |date| format!("Due {}", short_date(&date.to_string()))),
+                                Tone::Success,
+                            );
+                            app.offer_undo("the due date", move |app| update_card(app, tool, id, json!({ "due_date": old })));
+                            Ok(())
+                        })
+                        .prefilled(&card["due_date"].s()),
+                    );
                 }
             }
             KeyCode::Char('a') => {
@@ -150,6 +182,10 @@ impl Board {
                             app.post(&format!("/tools/{tool}/board/cards/{id}/archive"), json!({}))?;
                             reload(app, None)?;
                             app.toast("Archived 📦", Tone::Success);
+                            app.offer_undo("the archiving", move |app| {
+                                app.delete(&format!("/tools/{tool}/board/cards/{id}/archive"))?;
+                                reload(app, Some(id))
+                            });
                             Ok(())
                         },
                     ));
@@ -170,6 +206,7 @@ impl Board {
         if target >= self.columns.len() || self.card().is_none() {
             return;
         }
+        let (from_column, from_position) = (self.columns[self.column]["id"].clone(), self.cards[self.column]);
         let card = self.take_card(self.column, self.cards[self.column]);
         let (tool, id, column_id, column_name) =
             (self.tool_id(), card["id"].int(), self.columns[target]["id"].clone(), self.columns[target]["name"].s());
@@ -181,7 +218,13 @@ impl Board {
         }
         fx.job(format!("Moving to {column_name}"), move |app| {
             app.patch(&format!("/tools/{tool}/board/cards/{id}/position"), json!({ "column_id": column_id }))?;
-            reload(app, Some(id))
+            reload(app, Some(id))?;
+            app.offer_undo("the move", move |app| {
+                let back = json!({ "column_id": from_column, "position": from_position });
+                app.patch(&format!("/tools/{tool}/board/cards/{id}/position"), back)?;
+                reload(app, Some(id))
+            });
+            Ok(())
         });
     }
 
@@ -199,7 +242,12 @@ impl Board {
         let (tool, id) = (self.tool_id(), self.columns[column]["cards"][target]["id"].int());
         fx.job("Moving", move |app| {
             app.patch(&format!("/tools/{tool}/board/cards/{id}/position"), json!({ "position": target }))?;
-            reload(app, Some(id))
+            reload(app, Some(id))?;
+            app.offer_undo("the move", move |app| {
+                app.patch(&format!("/tools/{tool}/board/cards/{id}/position"), json!({ "position": index }))?;
+                reload(app, Some(id))
+            });
+            Ok(())
         });
     }
 
@@ -293,18 +341,18 @@ fn push_card(column: &mut Value, card: Value) {
 
 /// Reloads the board on screen, selecting `card` when given.
 fn reload(app: &mut App, card: Option<i64>) -> Result<()> {
-    let crate::tui::screens::Screen::Board(board) = &app.screen else { return Ok(()) };
-    let (tool, column, cards) = (board.tool.clone(), board.column, board.cards.clone());
-    let mut fresh = Board::load(app, tool)?;
-    fresh.cards = cards;
-    fresh.cards.resize(fresh.columns.len(), 0);
-    fresh.column = column.min(fresh.columns.len().saturating_sub(1));
-    if let Some(id) = card {
-        fresh.select_card(id);
+    let Screen::Board(board) = &app.screen else { return Ok(()) };
+    let path = format!("/tools/{}/board", board.tool["id"].s());
+    let fresh = app.get(&path, &[])?;
+    if let Screen::Board(board) = &mut app.screen {
+        board.replace(fresh["columns"].items().to_vec(), card);
     }
-    fresh.clamp();
-    app.screen = crate::tui::screens::Screen::Board(fresh);
     Ok(())
+}
+
+fn update_card(app: &mut App, tool: i64, id: i64, attributes: Value) -> Result<()> {
+    app.patch(&format!("/tools/{tool}/board/cards/{id}"), json!({ "card": attributes }))?;
+    reload(app, Some(id))
 }
 
 /// The lines inside a card: its title, then due date, assignee and counts.
