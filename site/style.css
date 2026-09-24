@@ -749,6 +749,146 @@ img, svg {
 }
 
 
+/* --- Terminal Section --- */
+.terminal-section {
+  padding-block: clamp(4rem, 8vh, 6rem);
+  border-top: 1px solid var(--border-light);
+}
+
+.terminal-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 0.65fr) minmax(0, 1.35fr);
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  align-items: center;
+}
+
+.terminal-text h2 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.terminal-text p {
+  margin-top: 0.75rem;
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+.terminal-text code,
+.terminal-text kbd {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  color: var(--text);
+}
+
+.terminal-text kbd {
+  padding: 0.05em 0.35em;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.terminal-install {
+  margin-top: 1.25rem;
+}
+
+.terminal-install .code-body {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.terminal-text .terminal-note {
+  font-size: 0.875rem;
+  color: var(--text-tertiary);
+}
+
+.terminal-note a {
+  color: var(--accent);
+}
+
+.terminal-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.terminal-tabs input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.terminal-tabs label {
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.terminal-tabs input:checked + label {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+.terminal-tabs input:focus-visible + label {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* A terminal stays dark, whatever the page's appearance. */
+.terminal-window {
+  container-type: inline-size;
+  background: #131316;
+  border: 1px solid #2a2a31;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.45);
+}
+
+.terminal-window .code-dots span {
+  background: #3a3a42;
+}
+
+.terminal-screen {
+  margin: 0;
+  padding: 10px 14px 14px;
+  font-family: var(--font-mono);
+  /* The capture is 92 columns wide: size the text so all of them fit. */
+  font-size: 11px;
+  font-size: min(13px, calc((100cqi - 28px) / 92 / 0.61));
+  line-height: 1.3;
+  color: #d4d4d8;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.terminal-screen .wide {
+  display: inline-block;
+  width: 2ch;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+
+.terminal-screen-board,
+.terminal-demo:has(#terminal-board:checked) .terminal-screen-home {
+  display: none;
+}
+
+.terminal-demo:has(#terminal-board:checked) .terminal-screen-board {
+  display: block;
+}
+
+@media (max-width: 900px) {
+  .terminal-inner {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+
 /* --- Footer --- */
 .site-footer {
   border-top: 1px solid var(--border-light);
