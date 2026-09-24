@@ -85,6 +85,14 @@ impl Popup {
         })
     }
 
+    /// An input popup that starts with `text` in its field, for editing.
+    pub fn prefilled(mut self, text: &str) -> Self {
+        if let Popup::Input(input) = &mut self {
+            input.input = TextInput::with(text);
+        }
+        self
+    }
+
     pub fn confirm(question: impl Into<String>, label: &str, job: impl FnOnce(&mut App) -> Result<()> + 'static) -> Self {
         Popup::Confirm { question: question.into(), label: label.to_string(), job: Some(Box::new(job)) }
     }
@@ -172,8 +180,8 @@ pub fn key(popup: &mut Popup, key: KeyEvent, fx: &mut Fx) {
             KeyCode::Down | KeyCode::Char('j') => *selected = (*selected + 1).min(items.len().saturating_sub(1)),
             KeyCode::Up | KeyCode::Char('k') => *selected = selected.saturating_sub(1),
             KeyCode::Enter => {
-                if let Some(item) = items.get(*selected) {
-                    fx.open_link = item["url"].opt();
+                if let Some(item) = items.get_mut(*selected) {
+                    super::screens::home::open_notification(item, fx);
                     fx.close_popup = true;
                 }
             }

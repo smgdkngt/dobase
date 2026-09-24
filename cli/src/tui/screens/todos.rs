@@ -17,20 +17,23 @@ use crate::tui::app::{App, Fx, Job, Tone};
 use crate::tui::popups::{self, CommentOn, Detail, Popup};
 use crate::tui::screens::Screen;
 use crate::tui::theme;
-use crate::tui::widgets::{ago, panel, truncate};
+use crate::tui::widgets::{ago, due_date, panel, truncate};
 use crate::value::Json;
 
 pub const HINTS: [(&str, &str); 6] =
-    [("↑↓", "choose"), ("space", "done"), ("enter", "open"), ("c", "new todo"), ("i", "assign me"), ("esc", "home")];
+    [("↑↓", "choose"), ("space", "done"), ("enter", "open"), ("c", "new"), ("e d", "rename, due"), ("esc", "home")];
 
-pub const HELP: [(&str, &str); 9] = [
+pub const HELP: [(&str, &str); 12] = [
     ("↑ ↓ / j k", "Choose a todo"),
     ("space / x", "Tick it off, or reopen it"),
     ("enter", "Open it: description and comments"),
     ("c", "New todo at the bottom of this list"),
     ("N", "New list"),
+    ("e", "Rename it"),
+    ("d", "Set its due date: fri, +3, tomorrow, 2026-10-01 or none"),
     ("i", "Assign it to yourself, or unassign"),
     ("o", "Open it in your browser"),
+    ("u", "Undo the last change"),
     ("r", "Reload"),
     ("esc", "Back home"),
 ];
@@ -97,8 +100,18 @@ impl Todos {
     }
 
     pub fn refresh(&self) -> Job {
-        let selected = self.item().map(|item| item["id"].int());
-        Box::new(move |app: &mut App| reload(app, selected))
+        Box::new(|app: &mut App| reload(app, None))
+    }
+
+    /// Takes in fresh lists, keeping the selection on the same todo (or `select`).
+    pub fn replace(&mut self, lists: Vec<Value>, select: Option<i64>) {
+        let selected = select.or_else(|| self.item().map(|item| item["id"].int()));
+        self.lists = lists;
+        self.index();
+        self.selected = self.selected.min(self.rows.len().saturating_sub(1));
+        if let Some(id) = selected {
+            self.select_item(id);
+        }
     }
 
     pub fn key(&mut self, key: KeyEvent, fx: &mut Fx) -> bool {
@@ -138,11 +151,42 @@ impl Todos {
                     fx.job("Assigning", move |app| {
                         let mine = assignee == app.me["id"];
                         let value = if mine { Value::Null } else { app.me["id"].clone() };
-                        app.patch(&format!("/tools/{tool}/todo/items/{id}"), json!({ "item": { "assigned_user_id": value } }))?;
-                        reload(app, Some(id))?;
+                        update_item(app, tool, id, json!({ "assigned_user_id": value }))?;
                         app.toast(if mine { "Unassigned" } else { "It's yours now 👍" }, Tone::Success);
+                        app.offer_undo("the assignment", move |app| update_item(app, tool, id, json!({ "assigned_user_id": assignee })));
                         Ok(())
                     });
+                }
+            }
+            KeyCode::Char('e') => {
+                if let Some(item) = self.item() {
+                    let (tool, id, old) = (self.tool_id(), item["id"].int(), item["title"].s());
+                    fx.popup = Some(
+                        Popup::input("Rename the todo", "A new title", "Renaming", move |app, title| {
+                            update_item(app, tool, id, json!({ "title": title }))?;
+                            app.offer_undo("the rename", move |app| update_item(app, tool, id, json!({ "title": old })));
+                            Ok(())
+                        })
+                        .prefilled(&item["title"].s()),
+                    );
+                }
+            }
+            KeyCode::Char('d') => {
+                if let Some(item) = self.item() {
+                    let (tool, id, old) = (self.tool_id(), item["id"].int(), item["due_date"].clone());
+                    fx.popup = Some(
+                        Popup::input("Due date", "fri, +3, tomorrow, 2026-10-01 or none", "Setting the due date", move |app, text| {
+                            let due = due_date(&text).map_err(crate::command::Error::usage)?;
+                            update_item(app, tool, id, json!({ "due_date": due.map(|date| date.to_string()) }))?;
+                            app.toast(
+                                due.map_or("No due date".to_string(), |date| format!("Due {}", short_date(&date.to_string()))),
+                                Tone::Success,
+                            );
+                            app.offer_undo("the due date", move |app| update_item(app, tool, id, json!({ "due_date": old })));
+                            Ok(())
+                        })
+                        .prefilled(&item["due_date"].s()),
+                    );
                 }
             }
             KeyCode::Char('o') => match self.item() {
@@ -170,7 +214,17 @@ impl Todos {
             let item = if done { app.post(&path, json!({}))? } else { app.delete(&path)? };
             reload(app, Some(id))?;
             if done && item["recurrence_rule"].truthy() {
+                // Its next one is already on the list, so there's nothing simple to undo.
                 app.toast(format!("Done! It's back {} 🔁", item["recurrence_rule"].s()), Tone::Success);
+            } else {
+                app.offer_undo(if done { "the tick" } else { "the reopening" }, move |app| {
+                    if done {
+                        app.delete(&path)?
+                    } else {
+                        app.post(&path, json!({}))?
+                    };
+                    reload(app, Some(id))
+                });
             }
             Ok(())
         });
@@ -237,14 +291,17 @@ fn item_line(item: &Value, width: usize) -> ListItem<'static> {
 /// Reloads the todos on screen, selecting `item` when given.
 fn reload(app: &mut App, item: Option<i64>) -> Result<()> {
     let Screen::Todos(screen) = &app.screen else { return Ok(()) };
-    let (tool, selected) = (screen.tool.clone(), screen.selected);
-    let mut fresh = Todos::load(app, tool)?;
-    fresh.selected = selected.min(fresh.rows.len().saturating_sub(1));
-    if let Some(id) = item {
-        fresh.select_item(id);
+    let path = format!("/tools/{}/todo", screen.tool["id"].s());
+    let fresh = app.get(&path, &[])?;
+    if let Screen::Todos(screen) = &mut app.screen {
+        screen.replace(fresh["lists"].items().to_vec(), item);
     }
-    app.screen = Screen::Todos(fresh);
     Ok(())
+}
+
+fn update_item(app: &mut App, tool: i64, id: i64, attributes: Value) -> Result<()> {
+    app.patch(&format!("/tools/{tool}/todo/items/{id}"), json!({ "item": attributes }))?;
+    reload(app, Some(id))
 }
 
 pub fn todo_detail(app: &mut App, tool: i64, id: i64) -> Result<Detail> {

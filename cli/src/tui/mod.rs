@@ -22,7 +22,8 @@ use app::App;
 pub fn run(config: &mut Config, user_agent: &str) -> Result<()> {
     let url = config.url();
     let client = Client::new(url.clone(), config.token(), user_agent)?;
-    let mut app = App::new(Box::new(client), url.unwrap_or_default());
+    let mut app = App::new(Box::new(client.clone()), url.unwrap_or_default());
+    app.refresh_in_background(client);
     eprint!("Loading your workspace…");
     app.start()?;
     eprint!("\r\x1b[2K");

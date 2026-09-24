@@ -19,6 +19,12 @@ pub struct TextInput {
 }
 
 impl TextInput {
+    /// A field that starts with `text`, the cursor at its end.
+    pub fn with(text: &str) -> Self {
+        let chars: Vec<char> = text.chars().collect();
+        Self { cursor: chars.len(), chars }
+    }
+
     pub fn text(&self) -> String {
         self.chars.iter().collect()
     }
@@ -256,4 +262,37 @@ pub fn local(value: &serde_json::Value) -> Option<jiff::Zoned> {
     use crate::value::Json;
     let timestamp = value.s().parse::<jiff::Timestamp>().ok()?;
     Some(timestamp.to_zoned(jiff::tz::TimeZone::system()))
+}
+
+/// A due date as people type it: today, tomorrow, a weekday (the next one),
+/// +3 (days from now), 2026-10-01, or none to clear it.
+pub fn due_date(text: &str) -> std::result::Result<Option<jiff::civil::Date>, String> {
+    use jiff::civil::Weekday;
+    let text = text.trim().to_lowercase();
+    let today = crate::command::today();
+    let days = |count: i64| today.checked_add(jiff::Span::new().days(count)).ok();
+    let weekday = match text.get(..3).unwrap_or("") {
+        "mon" | "maa" => Some(Weekday::Monday),
+        "tue" | "din" => Some(Weekday::Tuesday),
+        "wed" | "woe" => Some(Weekday::Wednesday),
+        "thu" | "don" => Some(Weekday::Thursday),
+        "fri" | "vri" => Some(Weekday::Friday),
+        "sat" | "zat" => Some(Weekday::Saturday),
+        "sun" | "zon" => Some(Weekday::Sunday),
+        _ => None,
+    };
+    let date = match text.as_str() {
+        "" | "none" | "-" => return Ok(None),
+        "today" | "vandaag" => Some(today),
+        "tomorrow" | "morgen" => days(1),
+        "next week" => days(7),
+        _ if text.starts_with('+') => text[1..].trim_end_matches('d').parse::<i64>().ok().and_then(days),
+        _ if weekday.is_some() => {
+            let target = weekday.unwrap().to_monday_one_offset();
+            let ahead = (i64::from(target) - i64::from(today.weekday().to_monday_one_offset())).rem_euclid(7);
+            days(if ahead == 0 { 7 } else { ahead })
+        }
+        _ => text.parse::<jiff::civil::Date>().ok(),
+    };
+    date.map(Some).ok_or_else(|| format!("“{text}” isn't a date. Try fri, +3, tomorrow or 2026-10-01."))
 }

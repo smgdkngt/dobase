@@ -62,9 +62,14 @@ chats that keep up by themselves, documents, your agenda, files and mail.
 Arrow keys (or `h j k l`) move, `enter` opens, `esc` goes back and `?` shows
 the keys of the screen you're on. On a board, `c` adds a card and `H`/`L` move
 it to the previous or next column; in a todo list, `space` ticks a todo off;
-in a chat, `i` starts a message. `/` searches everything, `n` shows your
+`e` renames and `d` sets a due date (`fri`, `+3`, `tomorrow`). In a chat, `i`
+starts a message and scrolling up past the top loads older ones. Made a
+mistake? `u` undoes the last change. `/` searches everything, `n` shows your
 notifications, `]` and `[` hop between tools, and `o` opens whatever you're
 looking at in the browser. `q` quits.
+
+Boards, todos, chats and your notifications keep up by themselves while you
+look at them.
 
 `dobase ui` does the same. When the output goes to a script or a pipe, plain
 `dobase` prints the help instead.

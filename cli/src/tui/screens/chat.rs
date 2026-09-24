@@ -15,34 +15,54 @@ use crate::tui::theme;
 use crate::tui::widgets::{TextInput, local, panel, wrap};
 use crate::value::Json;
 
-pub const HELP: [(&str, &str); 8] = [
+pub const HELP: [(&str, &str); 10] = [
     ("i / enter", "Write a message"),
     ("enter", "Send it (while writing)"),
     ("esc", "Stop writing; again to go home"),
     ("↑ ↓ / j k", "Scroll"),
     ("end / G", "Jump to the newest message"),
+    ("home", "Jump to the oldest loaded; again for older ones"),
     ("+", "Put a 👍 on the newest message"),
+    ("u", "Undo: unsend your message, or take the 👍 back"),
     ("o", "Open the chat in your browser"),
     ("r", "Reload (it also reloads by itself)"),
 ];
 
+/// How many messages a chat loads at a time.
+pub const PAGE: usize = 60;
+
 pub struct Chat {
     pub tool: Value,
     messages: Vec<Value>,
+    /// Whether the server has older messages than the first one here.
+    has_more: bool,
+    loading_older: bool,
     input: TextInput,
     writing: bool,
     /// Lines scrolled up from the newest message.
     scroll: usize,
+    /// Messages that came in while you were scrolled up.
+    unseen: usize,
+    /// The size last drawn at, to keep your place when messages come in.
+    width: usize,
+    height: usize,
 }
 
 impl Chat {
     pub fn load(app: &mut App, tool: Value) -> Result<Self> {
-        let messages = fetch(app, &tool)?;
-        Ok(Self { tool, messages, input: TextInput::default(), writing: false, scroll: 0 })
-    }
-
-    pub fn typing(&self) -> bool {
-        self.writing
+        let chat = fetch(app, &tool, None)?;
+        Ok(Self {
+            tool,
+            messages: chat["messages"].items().to_vec(),
+            has_more: chat["has_more"].truthy(),
+            loading_older: false,
+            input: TextInput::default(),
+            writing: false,
+            scroll: 0,
+            unseen: 0,
+            width: 80,
+            height: 20,
+        })
     }
 
     pub fn hints(&self) -> Vec<(&'static str, &'static str)> {
@@ -53,16 +73,61 @@ impl Chat {
         }
     }
 
-    /// Reloads the messages, keeping what you're writing.
     pub fn refresh(&self) -> Job {
-        let tool = self.tool.clone();
-        Box::new(move |app: &mut App| {
-            let messages = fetch(app, &tool)?;
-            if let Screen::Chat(chat) = &mut app.screen {
-                chat.messages = messages;
-            }
-            Ok(())
-        })
+        Box::new(reload)
+    }
+
+    /// Takes in the newest messages, keeping older ones already loaded, what
+    /// you're writing, and the spot you scrolled to.
+    pub fn merge(&mut self, chat: Value) {
+        let fresh = chat["messages"].items();
+        let Some(first) = fresh.first().map(|message| message["id"].int()) else { return };
+        let known: Vec<i64> = self.messages.iter().map(|message| message["id"].int()).collect();
+        let arrived = fresh.iter().filter(|message| !known.contains(&message["id"].int())).count();
+        let before = self.lines(self.width).len();
+
+        let mut messages: Vec<Value> = self.messages.iter().filter(|message| message["id"].int() < first).cloned().collect();
+        if messages.is_empty() {
+            self.has_more = chat["has_more"].truthy();
+        }
+        messages.extend(fresh.iter().cloned());
+        self.messages = messages;
+
+        if self.scroll > 0 {
+            self.scroll += self.lines(self.width).len().saturating_sub(before);
+            self.unseen += arrived;
+        }
+    }
+
+    fn top(&self) -> usize {
+        self.lines(self.width).len().saturating_sub(self.height)
+    }
+
+    fn scroll_up(&mut self, lines: usize, fx: &mut Fx) {
+        let top = self.top();
+        if self.scroll >= top && self.has_more && !self.loading_older {
+            self.loading_older = true;
+            let (tool, before) = (self.tool.clone(), self.messages.first().map(|message| message["id"].int()));
+            fx.job("Loading older messages", move |app| {
+                let older = fetch(app, &tool, before)?;
+                if let Screen::Chat(chat) = &mut app.screen {
+                    let mut messages = older["messages"].items().to_vec();
+                    messages.append(&mut chat.messages);
+                    chat.messages = messages;
+                    chat.has_more = older["has_more"].truthy();
+                    chat.loading_older = false;
+                }
+                Ok(())
+            });
+        }
+        self.scroll = (self.scroll + lines).min(top.max(self.scroll));
+    }
+
+    fn scroll_down(&mut self, lines: usize) {
+        self.scroll = self.scroll.saturating_sub(lines);
+        if self.scroll == 0 {
+            self.unseen = 0;
+        }
     }
 
     pub fn key(&mut self, key: KeyEvent, fx: &mut Fx) -> bool {
@@ -73,11 +138,18 @@ impl Chat {
                     if !self.input.is_blank() {
                         let text = self.input.text().trim().to_string();
                         self.input.clear();
-                        self.scroll = 0;
+                        self.scroll_down(usize::MAX);
                         let tool = self.tool["id"].int();
                         fx.job("Sending", move |app| {
-                            app.post(&format!("/tools/{tool}/chat/messages"), json!({ "message": { "body": paragraphs(&text) } }))?;
-                            reload(app)
+                            let message =
+                                app.post(&format!("/tools/{tool}/chat/messages"), json!({ "message": { "body": paragraphs(&text) } }))?;
+                            reload(app)?;
+                            let id = message["id"].int();
+                            app.offer_undo("the message", move |app| {
+                                app.delete(&format!("/tools/{tool}/chat/messages/{id}"))?;
+                                reload(app)
+                            });
+                            Ok(())
                         });
                     }
                 }
@@ -90,19 +162,26 @@ impl Chat {
 
         match key.code {
             KeyCode::Char('i') | KeyCode::Enter | KeyCode::Char('c') => self.writing = true,
-            KeyCode::Up | KeyCode::Char('k') => self.scroll += 1,
-            KeyCode::Down | KeyCode::Char('j') => self.scroll = self.scroll.saturating_sub(1),
-            KeyCode::PageUp => self.scroll += 10,
-            KeyCode::PageDown => self.scroll = self.scroll.saturating_sub(10),
-            KeyCode::End | KeyCode::Char('G') => self.scroll = 0,
+            KeyCode::Up | KeyCode::Char('k') => self.scroll_up(1, fx),
+            KeyCode::Down | KeyCode::Char('j') => self.scroll_down(1),
+            KeyCode::PageUp => self.scroll_up(self.height.saturating_sub(2).max(1), fx),
+            KeyCode::PageDown | KeyCode::Char(' ') => self.scroll_down(self.height.saturating_sub(2).max(1)),
+            KeyCode::Home => self.scroll_up(usize::MAX / 2, fx),
+            KeyCode::End | KeyCode::Char('G') => self.scroll_down(usize::MAX),
             KeyCode::Char('+') => {
                 if let Some(message) = self.messages.last() {
                     let (tool, id) = (self.tool["id"].int(), message["id"].int());
                     let author = message["user"]["name"].opt().unwrap_or_else(|| "someone".into());
+                    let path = format!("/tools/{tool}/chat/messages/{id}/reactions");
                     fx.job("Reacting", move |app| {
-                        app.post(&format!("/tools/{tool}/chat/messages/{id}/reactions"), json!({ "emoji": "👍" }))?;
+                        app.post(&path, json!({ "emoji": "👍" }))?;
                         reload(app)?;
                         app.toast(format!("👍 for {author}"), Tone::Success);
+                        app.offer_undo("the 👍", move |app| {
+                            let emoji: String = url::form_urlencoded::byte_serialize("👍".as_bytes()).collect();
+                            app.delete(&format!("{path}/{emoji}"))?;
+                            reload(app)
+                        });
                         Ok(())
                     });
                 }
@@ -118,7 +197,9 @@ impl Chat {
         let inner = block.inner(messages_area);
         frame.render_widget(block, messages_area);
 
-        let lines = self.lines(usize::from(inner.width.saturating_sub(2)));
+        self.width = usize::from(inner.width.saturating_sub(2));
+        self.height = usize::from(inner.height);
+        let lines = self.lines(self.width);
         if lines.is_empty() {
             frame.render_widget(Paragraph::new("It's quiet in here. Press i and say hi 👋").style(theme::dim()), inner);
         } else {
@@ -132,8 +213,23 @@ impl Chat {
             let area = Rect { y: inner.y + pad, height: inner.height - pad, ..inner };
             frame.render_widget(Paragraph::new(visible), area.inner(ratatui::layout::Margin { horizontal: 1, vertical: 0 }));
             if self.scroll > 0 {
-                let note = Span::styled(format!(" ↓ {} newer lines · G to jump ", self.scroll), Style::new().fg(theme::accent()));
+                let text = match self.unseen {
+                    0 => " ↓ newer below · G to jump ".to_string(),
+                    1 => " ↓ 1 new message · G to jump ".to_string(),
+                    count => format!(" ↓ {count} new messages · G to jump "),
+                };
+                let note = Span::styled(text, Style::new().fg(theme::accent()).add_modifier(Modifier::BOLD));
                 frame.render_widget(Line::from(note).right_aligned(), Rect { y: messages_area.bottom() - 1, height: 1, ..messages_area });
+            }
+            if start == 0 && lines.len() > height {
+                let top = if self.loading_older {
+                    " ↑ loading older messages… "
+                } else if self.has_more {
+                    " ↑ scroll up for older messages "
+                } else {
+                    " the beginning of this chat 🌱 "
+                };
+                frame.render_widget(Line::from(Span::styled(top, theme::dim())).centered(), Rect { height: 1, ..messages_area });
             }
         }
 
@@ -204,17 +300,19 @@ impl Chat {
     }
 }
 
-fn fetch(app: &mut App, tool: &Value) -> Result<Vec<Value>> {
-    let chat = app.get(&format!("/tools/{}/chat", tool["id"].s()), &[("limit", "100".to_string())])?;
-    Ok(chat["messages"].items().to_vec())
+/// The newest page of messages, or the page before message `before`.
+fn fetch(app: &mut App, tool: &Value, before: Option<i64>) -> Result<Value> {
+    let mut params = vec![("limit", PAGE.to_string())];
+    params.extend(before.map(|id| ("before", id.to_string())));
+    app.get(&format!("/tools/{}/chat", tool["id"].s()), &params)
 }
 
 fn reload(app: &mut App) -> Result<()> {
     let Screen::Chat(chat) = &app.screen else { return Ok(()) };
     let tool = chat.tool.clone();
-    let messages = fetch(app, &tool)?;
+    let fresh = fetch(app, &tool, None)?;
     if let Screen::Chat(chat) = &mut app.screen {
-        chat.messages = messages;
+        chat.merge(fresh);
     }
     Ok(())
 }
