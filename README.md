@@ -37,6 +37,7 @@ Code skill, so an AI assistant can read your board, add todos or draft a reply
 for you:
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/smgdkngt/dobase/main/cli/install.sh | sh
 dobase login https://dobase.example.com
 dobase card list "Product Launch"
 dobase todo create "Launch Tasks" "Book the venue" --due tomorrow --assignee me

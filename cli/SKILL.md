@@ -6,13 +6,15 @@ description: Work in the user's Dobase workspace through the `dobase` CLI. Cover
 # Dobase
 
 Dobase is the user's self-hosted workspace. `dobase` talks to its JSON API with
-a personal access token. It needs Ruby 3.1+ and nothing else.
+a personal access token. It is a single program with nothing else to install.
 
 ```bash
-D=~/.claude/skills/dobase/dobase
-$D whoami            # who and where; says whether the token can write
-$D help              # every command; `$D help card` shows a noun's flags
+dobase whoami                            # who and where; says whether the token can write
+dobase help                              # every command; `dobase help card` shows a noun's flags
 ```
+
+If `dobase` isn't found, ask the user to install it (`cli/README.md` in the
+Dobase repository says how). Don't install it yourself.
 
 If `whoami` says you're not signed in, ask the user to run `dobase login URL`
 in their own terminal. They create a token under Profile → API. Never ask for
@@ -23,11 +25,11 @@ token. Tell them; don't look for a way around it.
 ## How references work
 
 - TOOL is a tool id or a unique part of its name (`12`, `roadmap`). Start with
-  `$D tool list`. The `*` marks activity the user hasn't seen yet.
+  `dobase tool list`. The `*` marks activity the user hasn't seen yet.
 - Things inside a tool are TOOL/ID (`12/104`). List commands print these; copy
   them instead of guessing ids.
 - USER is `me`, `none`, an id, an email address, or part of a name, matched
-  against the tool's collaborators (`$D tool show TOOL`).
+  against the tool's collaborators (`dobase tool show TOOL`).
 - A TEXT argument of `-` reads stdin (one per command). Use a heredoc for anything
   longer than a line.
 - Text is plain by default: paragraphs on blank lines, line breaks kept. Pass
@@ -42,7 +44,7 @@ token. Tell them; don't look for a way around it.
 ## Search
 
 ```bash
-$D search launch plan                 # cards, todos, docs, files, chat, events, mail across every tool
+dobase search launch plan                # cards, todos, docs, files, chat, events, mail across every tool
 ```
 
 When the user asks where something is, or refers to a card, doc or message
@@ -52,45 +54,45 @@ url in each result opens it; the tool name tells you which TOOL to pass on.
 ## Boards
 
 ```bash
-$D card list roadmap                  # columns with cards; --archived for the archive
-$D card show 12/104                   # description, comments, attachments
-$D card create roadmap "Fix login" --column "To Do" --assignee marcus --due 2026-10-01 --color red
-$D card create roadmap "Launch post" --description - <<'TXT'
+dobase card list roadmap                 # columns with cards; --archived for the archive
+dobase card show 12/104                  # description, comments, attachments
+dobase card create roadmap "Fix login" --column "To Do" --assignee marcus --due 2026-10-01 --color red
+dobase card create roadmap "Launch post" --description - <<'TXT'
 First paragraph.
 
 Second paragraph.
 TXT
-$D card update 12/104 --title "Fix SSO login" --assignee none --due none
-$D card move 12/104 Done              # --position 1 = top
-$D card comment 12/104 "Deployed to staging."
-$D card archive 12/104                # card unarchive brings it back
-$D card attach 12/104 ~/Desktop/trace.txt
-$D column create roadmap "Review"
+dobase card update 12/104 --title "Fix SSO login" --assignee none --due none
+dobase card move 12/104 Done             # --position 1 = top
+dobase card comment 12/104 "Deployed to staging."
+dobase card archive 12/104               # card unarchive brings it back
+dobase card attach 12/104 ~/Desktop/trace.txt
+dobase column create roadmap "Review"
 ```
 
 ## Todos
 
 ```bash
-$D todo list chores                   # open items per list (+ recently done); --completed
-$D todo show 3/55
-$D todo create chores "Renew passport" --list Personal --due 2026-11-01 --assignee me
-$D todo create chores "Water plants" --repeat weekly
-$D todo finish 3/55                   # todo reopen undoes it; recurring items respawn
-$D todo update 3/55 --title "..." --description "..."
-$D todo move 3/55 "Later"
-$D todo comment 3/55 "Booked for Friday."
-$D todolist create chores "Groceries"
+dobase todo list chores                  # open items per list (+ recently done); --completed
+dobase todo show 3/55
+dobase todo create chores "Renew passport" --list Personal --due 2026-11-01 --assignee me
+dobase todo create chores "Water plants" --repeat weekly
+dobase todo finish 3/55                  # todo reopen undoes it; recurring items respawn
+dobase todo update 3/55 --title "..." --description "..."
+dobase todo move 3/55 "Later"
+dobase todo comment 3/55 "Booked for Friday."
+dobase todolist create chores "Groceries"
 ```
 
 ## Docs
 
 ```bash
-$D doc list notes
-$D doc show 4/9                       # plain text; --html for the stored HTML
-$D doc create notes "Meeting notes 14 Sep" --html --content - <<'HTML'
+dobase doc list notes
+dobase doc show 4/9                      # plain text; --html for the stored HTML
+dobase doc create notes "Meeting notes 14 Sep" --html --content - <<'HTML'
 <h2>Decisions</h2><ul><li>Ship the API</li></ul>
 HTML
-$D doc update 4/9 --title "..."
+dobase doc update 4/9 --title "..."
 ```
 
 To edit a document without losing its formatting, take `doc show 4/9 --html`,
@@ -101,18 +103,18 @@ don't retry in a loop.
 ## Chat
 
 ```bash
-$D chat list team --limit 30          # oldest first; --before ID for older pages
-$D chat post team "The build is green again."
-$D chat post team "Agreed" --reply-to 88
-$D chat react team/88 👍                # or --remove; 👍 ❤️ 😂 🎉 😮 🙏 👀 ✅ only
-$D chat read team                     # mark the chat read for the user
+dobase chat list team --limit 30         # oldest first; --before ID for older pages
+dobase chat post team "The build is green again."
+dobase chat post team "Agreed" --reply-to 88
+dobase chat react team/88 👍              # or --remove; 👍 ❤️ 😂 🎉 😮 🙏 👀 ✅ only
+dobase chat read team                    # mark the chat read for the user
 ```
 
 ## Notifications
 
 ```bash
-$D notification list --unread
-$D notification read 512              # or: notification read --all
+dobase notification list --unread
+dobase notification read 512             # or: notification read --all
 ```
 
 ## Mail (the Dobase mail tool)
@@ -121,19 +123,19 @@ A mail tool is a real mailbox. Flags, archiving and moves are copied to the mail
 server, and sending sends real email.
 
 ```bash
-$D mail list inbox                    # --folder sent|starred|archive|drafts|NAME, --search Q, --page N
-$D mail show 8/310                    # the whole conversation as text; --html for bodies
-$D mail archive 8/310                 # also: read, unread, star, unstar, unarchive
-$D mail move 8/310 Receipts           # INBOX, Sent or a custom folder
-$D mail reply 8/310 --body "Thanks, I'll take a look."          # saves a DRAFT; --all to reply all
-$D mail draft 8 --to a@example.com --subject "Invoice" --body - <<'TXT'
+dobase mail list inbox                   # --folder sent|starred|archive|drafts|NAME, --search Q, --page N
+dobase mail show 8/310                   # the whole conversation as text; --html for bodies
+dobase mail archive 8/310                # also: read, unread, star, unstar, unarchive
+dobase mail move 8/310 Receipts          # INBOX, Sent or a custom folder
+dobase mail reply 8/310 --body "Thanks, I'll take a look."  # saves a DRAFT; --all to reply all
+dobase mail draft 8 --to a@example.com --subject "Invoice" --body - <<'TXT'
 Hi Anna,
 
 The invoice is attached in Dobase.
 TXT
-$D mail contacts 8 anna               # find an address
-$D mail send 8 --draft 312            # sends real email: see the rules below
-$D mail sync 8
+dobase mail contacts 8 anna              # find an address
+dobase mail send 8 --draft 312           # sends real email: see the rules below
+dobase mail sync 8
 ```
 
 The CLI can't trash or delete mail. Trashing deletes the message on the mail
@@ -142,13 +144,13 @@ server right away, so it stays in the browser. Archive instead.
 ## Calendar
 
 ```bash
-$D event list agenda --days 7         # or --from 2026-09-15 --to 2026-09-21
-$D event show 9/77
-$D event create agenda "Dentist" --start "2026-09-18 14:30" --duration 45m --location "Main St 1"
-$D event create agenda "Offsite" --start 2026-10-02 --all-day
-$D event update 9/77 --start "2026-09-18 15:00"   # keeps the length; --end or --duration to change it
-$D event create agenda "Standup" --start "2026-09-21 09:00" --duration 15m --repeat weekly --repeat-count 10
-$D calendar list agenda               # which calendars exist and which are writable
+dobase event list agenda --days 7        # or --from 2026-09-15 --to 2026-09-21
+dobase event show 9/77
+dobase event create agenda "Dentist" --start "2026-09-18 14:30" --duration 45m --location "Main St 1"
+dobase event create agenda "Offsite" --start 2026-10-02 --all-day
+dobase event update 9/77 --start "2026-09-18 15:00"  # keeps the length; --end or --duration to change it
+dobase event create agenda "Standup" --start "2026-09-21 09:00" --duration 15m --repeat weekly --repeat-count 10
+dobase calendar list agenda              # which calendars exist and which are writable
 ```
 
 Updating or deleting a repeating event changes the whole series. There is no
@@ -157,14 +159,14 @@ per-occurrence edit.
 ## Files
 
 ```bash
-$D file list team-files               # root; pass a folder id to go deeper
-$D file show 5/31                     # includes its public link, if the user made one
-$D file upload team-files ~/Downloads/contract.pdf --folder 7
-$D file download 5/31 --output /tmp/contract.pdf
-$D file rename 5/31 "Contract 2026.pdf"
-$D file move 5/31 root
-$D folder create team-files "Invoices" --parent 7
-$D folder download 5/7 --output /tmp/    # a zip of everything inside
+dobase file list team-files              # root; pass a folder id to go deeper
+dobase file show 5/31                    # includes its public link, if the user made one
+dobase file upload team-files ~/Downloads/contract.pdf --folder 7
+dobase file download 5/31 --output /tmp/contract.pdf
+dobase file rename 5/31 "Contract 2026.pdf"
+dobase file move 5/31 root
+dobase folder create team-files "Invoices" --parent 7
+dobase folder download 5/7 --output /tmp/  # a zip of everything inside
 ```
 
 ## Rules

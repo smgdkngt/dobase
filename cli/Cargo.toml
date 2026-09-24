@@ -1,0 +1,22 @@
+[package]
+name = "dobase"
+version = "1.0.0"
+edition = "2024"
+rust-version = "1.88"
+description = "Work in your Dobase tools from the command line"
+license = "MIT"
+repository = "https://github.com/smgdkngt/dobase"
+homepage = "https://github.com/smgdkngt/dobase/tree/main/cli"
+publish = false
+
+[dependencies]
+jiff = "0.2"
+rpassword = "7"
+serde_json = { version = "1", features = ["preserve_order"] }
+ureq = { version = "3", default-features = false, features = ["rustls", "platform-verifier"] }
+url = "2"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
