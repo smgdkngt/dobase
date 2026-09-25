@@ -185,6 +185,7 @@ export default class extends Controller {
     this._boundPageHide = () => this._pingActivity(false)
     window.addEventListener("pagehide", this._boundPageHide)
     this._guardAgainstUnload()
+    this._keepCallThroughDeploys()
 
     // Move into persistent container
     const container = document.getElementById("persistent-room")
@@ -216,6 +217,7 @@ export default class extends Controller {
 
     window.removeEventListener("beforeunload", this.element._guardUnload)
     delete this.element._guardUnload
+    this._releaseCallFromDeploys()
 
     // Clear DOM-stored state
     delete this.element._liveKitRoom
@@ -253,6 +255,65 @@ export default class extends Controller {
       event.returnValue = ""
     }
     window.addEventListener("beforeunload", element._guardUnload)
+  }
+
+  // After a deploy, the next click makes Turbo reload the whole page to pick
+  // up the new stylesheets and scripts (data-turbo-track="reload"). In a call
+  // that reload would end the call, or, with the guard above, stop at "Leave
+  // site?" on every click, so you couldn't go to another tool at all. While
+  // connected, the page takes on the new tracked elements from that response
+  // instead and makes the visit again; the new scripts load once the call ends.
+  _keepCallThroughDeploys() {
+    const adapter = Turbo.session.adapter
+    if (adapter._pageInvalidatedOutsideCall) return
+
+    const element = this.element
+    adapter._pageInvalidatedOutsideCall = adapter.pageInvalidated
+    adapter.pageInvalidated = function (reason) {
+      const visit = Turbo.session.navigator.currentVisit
+      const html = visit?.response?.responseHTML
+      const live = element._liveKitRoom && element._liveKitRoom.state !== "disconnected"
+
+      if (!live || reason?.reason !== "tracked_element_mismatch" || !html) {
+        return this._pageInvalidatedOutsideCall(reason)
+      }
+
+      const newHead = new DOMParser().parseFromString(html, "text/html").head
+      const outdated = [ ...document.head.querySelectorAll("[data-turbo-track='reload']") ]
+      const loading = [ ...newHead.querySelectorAll("[data-turbo-track='reload']") ].map((tracked) => {
+        const loaded = new Promise((resolve) => {
+          tracked.addEventListener("load", resolve, { once: true })
+          tracked.addEventListener("error", resolve, { once: true })
+        })
+        document.head.appendChild(tracked)
+        return tracked.rel === "stylesheet" ? loaded : null
+      })
+      // Untracked at once so the visit goes ahead; the old stylesheets stay
+      // until the new ones have loaded, so the page never shows unstyled
+      outdated.forEach((old) => old.removeAttribute("data-turbo-track"))
+      Promise.all(loading).then(() => outdated.forEach((old) => old.remove()))
+      document.documentElement.dataset.scriptsOutdated = ""
+
+      Turbo.visit(visit.location, { action: visit.action === "restore" ? "replace" : visit.action })
+    }
+  }
+
+  // Back to reloading on a deploy; if one happened during the call, the next
+  // visit reloads for the new scripts
+  _releaseCallFromDeploys() {
+    const adapter = Turbo.session.adapter
+    if (adapter._pageInvalidatedOutsideCall) {
+      adapter.pageInvalidated = adapter._pageInvalidatedOutsideCall
+      delete adapter._pageInvalidatedOutsideCall
+    }
+
+    if ("scriptsOutdated" in document.documentElement.dataset) {
+      delete document.documentElement.dataset.scriptsOutdated
+      const marker = document.createElement("meta")
+      marker.name = "scripts-outdated"
+      marker.dataset.turboTrack = "reload"
+      document.head.appendChild(marker)
+    }
   }
 
   retryAfterError() {
