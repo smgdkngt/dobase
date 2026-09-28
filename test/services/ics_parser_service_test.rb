@@ -259,4 +259,23 @@ class IcsParserServiceTest < ActiveSupport::TestCase
     assert_not_nil result[:starts_at]
     assert_not_nil result[:ends_at]
   end
+
+  test "floating times and time zones that can't be looked up are in the given time zone" do
+    ics = <<~ICS
+      BEGIN:VCALENDAR
+      VERSION:2.0
+      BEGIN:VEVENT
+      UID:floating@example.com
+      DTSTART:20260905T080000
+      DTEND;TZID=Nowhere/Special:20260905T100000
+      SUMMARY:Floating
+      END:VEVENT
+      END:VCALENDAR
+    ICS
+
+    result = IcsParserService.new(ics, time_zone: "Amsterdam").parse
+
+    assert_equal Time.utc(2026, 9, 5, 6), result[:starts_at]
+    assert_equal Time.utc(2026, 9, 5, 8), result[:ends_at]
+  end
 end
