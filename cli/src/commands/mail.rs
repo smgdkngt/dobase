@@ -1,6 +1,10 @@
+use std::path::{Path, PathBuf};
+
 use serde_json::{Value, json};
 
-use crate::command::{Args, Ctx, Definition, Error, Result, bytes, command, count, escape_html, fail, flag, moment, quoted, switch, usage};
+use crate::command::{
+    Args, Ctx, Definition, Error, Result, bytes, command, count, escape_html, fail, flag, moment, paragraphs, quoted, switch, usage,
+};
 use crate::value::{Json, is_digits, join};
 
 const VIEWS: [(&str, &str); 6] =
@@ -9,6 +13,7 @@ const VIEWS: [(&str, &str); 6] =
 const TO: &str = "Recipients, comma-separated";
 const CC: &str = "Cc recipients, comma-separated";
 const BODY: &str = "Message (plain text, or HTML with --html)";
+const OPEN: &str = "Open the saved draft in your browser, ready to edit and send";
 
 pub fn definitions() -> Vec<Definition> {
     let views: Vec<&str> = VIEWS.iter().map(|(view, _)| *view).collect();
@@ -60,6 +65,7 @@ pub fn definitions() -> Vec<Definition> {
                 flag("subject", "TEXT", "Subject"),
                 flag("body", "TEXT", BODY),
                 switch("html", "The body is HTML"),
+                switch("open", OPEN),
             ],
             draft,
         ),
@@ -72,8 +78,34 @@ pub fn definitions() -> Vec<Definition> {
                 switch("all", "Reply to all: cc everyone else on the message"),
                 switch("html", "The body is HTML"),
                 switch("send", "Send it now through the mail server instead of saving a draft"),
+                switch("open", OPEN),
             ],
             reply,
+        ),
+        command(
+            "mail forward",
+            "Forward a message with its attachments: saves a draft, or sends real email right away with --send",
+            &["TOOL/MESSAGE"],
+            vec![
+                flag("to", "ADDRS", TO),
+                flag("cc", "ADDRS", CC),
+                flag("body", "TEXT", "A note above the forwarded message (plain text, or HTML with --html)"),
+                switch("html", "The body is HTML"),
+                switch("send", "Send it now through the mail server instead of saving a draft"),
+                switch("open", OPEN),
+            ],
+            forward,
+        ),
+        command(
+            "mail attachments",
+            "List a message's attachments, or download them with --save or --name",
+            &["TOOL/MESSAGE"],
+            vec![
+                flag("save", "DIR", "Download every attachment into DIR"),
+                flag("name", "FILENAME", "Only this attachment (into the current directory unless --save)"),
+                switch("force", "Overwrite existing files"),
+            ],
+            attachments,
         ),
         command(
             "mail send",
@@ -279,11 +311,13 @@ fn draft(ctx: &mut Ctx, args: &Args) -> Result<()> {
             draft["id"].s()
         ));
         Ok(())
-    })
+    })?;
+    open_draft(ctx, args, &draft)
 }
 
 fn reply(ctx: &mut Ctx, args: &Args) -> Result<()> {
     require_flags(args, &["body"])?;
+    refuse_open_with_send(args)?;
     let (tool, id) = ctx.tool_and_id(args.at(0), "mail", "message")?;
     let conversation = ctx.get(&format!("/tools/{}/mails/{id}", tool["id"].s()), &[])?;
     let Some(original) = conversation["messages"].items().iter().find(|message| message["id"].int() == id) else {
@@ -322,8 +356,128 @@ fn reply(ctx: &mut Ctx, args: &Args) -> Result<()> {
                 draft["id"].s()
             ));
             Ok(())
-        })
+        })?;
+        open_draft(ctx, args, &draft)
     }
+}
+
+fn forward(ctx: &mut Ctx, args: &Args) -> Result<()> {
+    require_flags(args, &["to"])?;
+    refuse_open_with_send(args)?;
+    let (tool, id) = ctx.tool_and_id(args.at(0), "mail", "message")?;
+    let original = message_in_conversation(ctx, &tool, id)?;
+    if original["draft"].truthy() {
+        fail!("{}/{id} is a draft; only sent or received mail can be forwarded.", tool["id"].s());
+    }
+
+    let note = match args.flag("body") {
+        Some(body) => ctx.rich_text(body, args.on("html"))?,
+        None => String::new(),
+    };
+    let attachment_ids: Vec<Value> = original["attachments"]
+        .items()
+        .iter()
+        .filter(|attachment| attachment["download_url"].opt().is_some())
+        .map(|attachment| attachment["id"].clone())
+        .collect();
+
+    let email = json!({
+        "to": args.flag("to"),
+        "cc": args.flag("cc"),
+        "subject": format!("Fwd: {}", strip_reply_prefix(&original["subject"].s())),
+        "body": format!("{note}{}", forwarded_message(&original)),
+        "forward_attachment_ids": attachment_ids,
+    });
+    let attached = count(attachment_ids.len() as i64, "attachment");
+    if args.on("send") {
+        let sent = ctx.post(&format!("/tools/{}/mails", tool["id"].s()), email)?;
+        ctx.output(&sent, |ctx| {
+            ctx.say(format!("Forwarded {} to {} with {attached}.", quoted(&sent["subject"].s()), recipients(&sent)));
+            Ok(())
+        })
+    } else {
+        let draft = ctx.post(&format!("/tools/{}/mails/drafts", tool["id"].s()), email)?;
+        ctx.output(&draft, |ctx| {
+            ctx.say(format!(
+                "Saved forward draft {} to {} with {attached}. Send it with: dobase mail send {} --draft {}",
+                describe(&tool, &draft),
+                recipients(&draft),
+                tool["id"].s(),
+                draft["id"].s()
+            ));
+            Ok(())
+        })?;
+        open_draft(ctx, args, &draft)
+    }
+}
+
+fn attachments(ctx: &mut Ctx, args: &Args) -> Result<()> {
+    let (tool, id) = ctx.tool_and_id(args.at(0), "mail", "message")?;
+    let message = message_in_conversation(ctx, &tool, id)?;
+    let mut chosen = message["attachments"].items().to_vec();
+
+    if let Some(name) = args.flag("name") {
+        let exact: Vec<Value> = chosen.iter().filter(|attachment| attachment["filename"].s() == name).cloned().collect();
+        chosen = if exact.is_empty() {
+            chosen.into_iter().filter(|attachment| attachment["filename"].s().eq_ignore_ascii_case(name)).collect()
+        } else {
+            exact
+        };
+        if chosen.is_empty() {
+            let names: Vec<String> = message["attachments"].items().iter().map(|attachment| quoted(&attachment["filename"].s())).collect();
+            let names = if names.is_empty() { "none".to_string() } else { names.join(", ") };
+            fail!("{}/{id} has no attachment called {}. It has: {names}.", tool["id"].s(), quoted(name));
+        }
+    }
+
+    if !args.any(&["save", "name"]) {
+        return ctx.output(&Value::Array(chosen.clone()), |ctx| {
+            if chosen.is_empty() {
+                ctx.say(format!("{} has no attachments.", describe(&tool, &message)));
+            }
+            let rows = chosen.iter().map(|attachment| vec![attachment["filename"].s(), bytes(&attachment["file_size"])]).collect();
+            ctx.table(rows, 0);
+            Ok(())
+        });
+    }
+
+    if chosen.is_empty() {
+        fail!("{} has no attachments.", describe(&tool, &message));
+    }
+    if let Some(stored) = chosen.iter().find(|attachment| attachment["download_url"].opt().is_none()) {
+        fail!("{} isn't stored in Dobase (too big when it was synced).", quoted(&stored["filename"].s()));
+    }
+    let directory = PathBuf::from(args.flag("save").unwrap_or("."));
+    if !directory.is_dir() {
+        fail!("{} is not a directory.", directory.display());
+    }
+
+    // Decide every path before downloading anything, so nothing is half done
+    let mut destinations: Vec<PathBuf> = Vec::new();
+    for attachment in &chosen {
+        let destination = unused_path(&directory, &attachment_filename(&attachment["filename"].s()), &destinations);
+        if destination.exists() && !args.on("force") {
+            fail!("{} already exists. Use --force to overwrite it.", destination.display());
+        }
+        destinations.push(destination);
+    }
+
+    let mut saved = Vec::new();
+    for (attachment, destination) in chosen.iter().zip(&destinations) {
+        ctx.api()?.download(&attachment["download_url"].s(), destination)?;
+        saved.push(json!({
+            "id": attachment["id"],
+            "filename": attachment["filename"],
+            "file_size": attachment["file_size"],
+            "path": destination.display().to_string(),
+        }));
+    }
+    ctx.output(&Value::Array(saved.clone()), |ctx| {
+        for file in &saved {
+            ctx.say(format!("Saved {} ({}) to {}.", file["filename"].s(), bytes(&file["file_size"]), file["path"].s()));
+        }
+        Ok(())
+    })
 }
 
 fn send(ctx: &mut Ctx, args: &Args) -> Result<()> {
@@ -356,6 +510,7 @@ fn send(ctx: &mut Ctx, args: &Args) -> Result<()> {
             "body": body,
             "in_reply_to": saved["in_reply_to"],
             "draft_id": saved["id"],
+            "forward_attachment_ids": saved["attachments"].items().iter().map(|attachment| attachment["id"].clone()).collect::<Vec<_>>(),
         })
     } else {
         require_flags(args, &["to", "subject", "body"])?;
@@ -416,6 +571,64 @@ fn change_message(ctx: &mut Ctx, args: &Args, add: bool, action: &str, done: fn(
         ctx.say(done(describe(&tool, &message)));
         Ok(())
     })
+}
+
+fn message_in_conversation(ctx: &mut Ctx, tool: &Value, id: i64) -> Result<Value> {
+    let conversation = ctx.get(&format!("/tools/{}/mails/{id}", tool["id"].s()), &[])?;
+    match conversation["messages"].items().iter().find(|message| message["id"].int() == id) {
+        Some(message) => Ok(message.clone()),
+        None => fail!("{}/{id} is not in its conversation.", tool["id"].s()),
+    }
+}
+
+fn refuse_open_with_send(args: &Args) -> Result<()> {
+    if args.on("open") && args.on("send") {
+        usage!("--open opens a saved draft; with --send nothing is saved to open.");
+    }
+    Ok(())
+}
+
+/// With --open, shows the saved draft in the browser, on the page where it is edited and sent.
+fn open_draft(ctx: &mut Ctx, args: &Args, draft: &Value) -> Result<()> {
+    if !args.on("open") {
+        return Ok(());
+    }
+    let url = draft["url"].s();
+    if let Err(error) = (ctx.browser)(&url) {
+        fail!("The draft is saved, but it didn't open in the browser ({error}). It is at {url}");
+    }
+    Ok(())
+}
+
+/// The forwarded message below the note, with the header block other mail clients add.
+fn forwarded_message(message: &Value) -> String {
+    let body = message["body_html"].opt().filter(|html| !html.trim().is_empty()).unwrap_or_else(|| paragraphs(&message["body"].s()));
+    format!(
+        "<br><br><p>---------- Forwarded message ----------<br>From: {}<br>Date: {}<br>Subject: {}<br>To: {}</p>{body}",
+        escape_html(&address(&message["from_name"], &message["from_address"])),
+        escape_html(&moment(&message["sent_at"]).unwrap_or_default()),
+        escape_html(&message["subject"].s()),
+        escape_html(&list_of(&message["to"])),
+    )
+}
+
+/// Only the last path segment of a name from the mail, never an empty or dot-only one.
+fn attachment_filename(name: &str) -> String {
+    let name = name.rsplit(['/', '\\']).next().unwrap_or_default().trim();
+    if name.replace('.', "").is_empty() { "attachment".to_string() } else { name.to_string() }
+}
+
+/// `name` in `directory`, numbered like "scan (2).pdf" when another attachment already took it.
+fn unused_path(directory: &Path, name: &str, taken: &[PathBuf]) -> PathBuf {
+    let (stem, extension) = match name.rsplit_once('.') {
+        Some((stem, extension)) if !stem.is_empty() => (stem, format!(".{extension}")),
+        _ => (name, String::new()),
+    };
+    (1..)
+        .map(|number| if number == 1 { name.to_string() } else { format!("{stem} ({number}){extension}") })
+        .map(|name| directory.join(name))
+        .find(|path| !taken.contains(path))
+        .unwrap()
 }
 
 fn require_flags(args: &Args, names: &[&str]) -> Result<()> {

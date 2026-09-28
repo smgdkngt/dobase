@@ -19,6 +19,7 @@ module Tools
         @draft.from_name = @mail_account.display_name
         @draft.read = true
         @draft.sent_at = Time.current
+        attach_forwarded_attachments
 
         if @draft.save
           SyncDraftJob.perform_later(@draft.id)
@@ -82,6 +83,20 @@ module Tools
         end
         attributes[:in_reply_to] = params[:in_reply_to] if params.key?(:in_reply_to)
         attributes
+      end
+
+      # A forward keeps the attachments of the mail it forwards, only from this
+      # account's own mail. The copies share the stored file with the original.
+      def attach_forwarded_attachments
+        return if params[:forward_attachment_ids].blank?
+
+        @mail_account.attachments.where(id: params[:forward_attachment_ids]).includes(file_attachment: :blob).each do |original|
+          next unless original.file.attached?
+
+          copy = @draft.attachments.build(original.slice(:filename, :content_type, :file_size))
+          copy.file.attach(original.file.blob)
+        end
+        @draft.has_attachments = @draft.attachments.any?
       end
 
       def address_list(value)

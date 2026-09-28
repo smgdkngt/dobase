@@ -60,6 +60,7 @@ module Tools
         @subject = @draft.subject || ""
         @body = @draft.body_html || @draft.body_plain || ""
         @in_reply_to = @draft.in_reply_to
+        @forward_attachments = @draft.attachments.select { |attachment| attachment.file.attached? }
       end
     end
 
