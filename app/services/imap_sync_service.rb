@@ -13,6 +13,8 @@ class ImapSyncService
 
   # New mail fetched per folder per sync, newest first: a big folder fills in over several syncs
   BACKFILL_BATCH = 500
+  # A folder bigger than this, like the archive of an old account, only gets its last three months
+  FULL_SYNC_MAX = 10_000
   # Messages per FETCH, so a batch of full messages isn't held in memory at once
   FETCH_SLICE = 50
 
@@ -213,7 +215,7 @@ class ImapSyncService
     end
   end
 
-  # Every folder is synced the same way, whatever the age of its mail: messages
+  # Every folder is synced the same way, whatever the age of its mail (except in very big folders): messages
   # gone from the server are removed, new ones fetched, and the flags of the most
   # recent ones refreshed, so read and starred changes made in other clients show up.
   def fetch_recent_emails(imap, folder_name, limit)
@@ -221,7 +223,11 @@ class ImapSyncService
     reconcile_local_messages(folder_name, server_uids)
 
     existing_uids = @account.messages.where(folder: folder_name).where.not(uid: nil).pluck(:uid)
-    new_uids = (server_uids - existing_uids).last(BACKFILL_BATCH)
+    new_uids = server_uids - existing_uids
+    if server_uids.size > FULL_SYNC_MAX && !folder_name.in?(%w[INBOX Sent])
+      new_uids &= imap.uid_search([ "SINCE", 3.months.ago.strftime("%d-%b-%Y") ]) || []
+    end
+    new_uids = new_uids.last(BACKFILL_BATCH)
     recent_existing = (server_uids & existing_uids).last(limit)
     uids = (new_uids + recent_existing).uniq.sort
     return if uids.empty?

@@ -417,6 +417,16 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "a very big folder only gets its recent mail" do
+    imap = FakeImap.new(uids: (1..5).to_a, recent_uids: [ 5 ], messages: (1..5).map { |uid| fetch_data(uid, mail_with_id("m-#{uid}").to_s) })
+
+    stub_const(ImapSyncService, :FULL_SYNC_MAX, 3) do
+      @service.send(:fetch_recent_emails, imap, "Old archive", 50)
+    end
+
+    assert_equal [ 5 ], @account.messages.where(folder: "Old archive").pluck(:uid)
+  end
+
   test "mail that left another folder on the server is removed there" do
     incoming_message.send(:save_email, fetch_data(1, mail_with_id("gone-1").to_s), "Projects")
     incoming_message.send(:save_email, fetch_data(2, mail_with_id("kept-2").to_s), "Projects")
