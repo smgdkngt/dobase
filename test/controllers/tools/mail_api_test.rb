@@ -417,6 +417,36 @@ module Tools
       assert_equal [ attachment.file.blob ], @smtp.sent.sole[:attachments]
     end
 
+    test "a forward draft keeps the attachments of this account's own mail, sharing their files" do
+      attachment = mails_messages(:inbox_unread).attachments.create!(filename: "report.txt", content_type: "text/plain", file_size: 5)
+      attachment.file.attach(io: StringIO.new("hello"), filename: "report.txt", content_type: "text/plain")
+      foreign = mails_messages(:other_inbox).attachments.create!(filename: "agenda.txt", content_type: "text/plain", file_size: 5)
+      foreign.file.attach(io: StringIO.new("board"), filename: "agenda.txt", content_type: "text/plain")
+
+      post tool_mail_drafts_path(@tool), headers: @headers, as: :json, params: {
+        to: "friend@example.com", subject: "Fwd: Welcome", body: "<p>FYI</p>", forward_attachment_ids: [ attachment.id, foreign.id ]
+      }
+
+      assert_response :created
+      shown = response.parsed_body["attachments"].sole
+      assert_equal [ "report.txt", "text/plain", 5 ], shown.values_at("filename", "content_type", "file_size")
+      assert shown["download_url"].present?
+      draft = ::Mails::Message.find(response.parsed_body["id"])
+      assert draft.has_attachments
+      assert_equal attachment.file.blob, draft.attachments.sole.file.blob
+
+      post tool_mails_path(@tool), headers: @headers, as: :json, params: {
+        to: "friend@example.com", subject: "Fwd: Welcome", body: "<p>FYI</p>", draft_id: draft.id,
+        forward_attachment_ids: [ draft.attachments.sole.id ]
+      }
+
+      assert_response :created
+      assert_equal [ attachment.file.blob ], @smtp.sent.sole[:attachments]
+      assert_not ::Mails::Message.exists?(draft.id)
+      perform_enqueued_jobs only: ActiveStorage::PurgeJob
+      assert_equal "hello", attachment.reload.file.download
+    end
+
     test "sync starts a sync and reports its status" do
       post tool_sync_path(@tool), headers: @headers, as: :json
 

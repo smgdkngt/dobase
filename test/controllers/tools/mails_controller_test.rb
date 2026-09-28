@@ -338,6 +338,17 @@ module Tools
       assert_equal [ own_attachment.file.blob ], deliveries.first[:attachments]
     end
 
+    test "a draft with forwarded attachments sends them along from the compose page" do
+      draft = mails_messages(:draft_message)
+      attachment = attachment_on(draft, "report.pdf")
+
+      get new_tool_mail_path(@tool, draft_id: draft.id)
+
+      assert_response :success
+      assert_select "input[type=hidden][name='forward_attachment_ids[]'][value=?]", attachment.id.to_s
+      assert_select ".compose-attachment-item", text: /report\.pdf/
+    end
+
     private
 
     def attachment_on(message, filename)

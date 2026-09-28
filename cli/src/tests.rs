@@ -154,10 +154,18 @@ fn tool_and_id_references_must_end_in_a_numeric_id() {
     assert!(matches!(ctx.tool_and_id("roadmap/abc", "boards", "card"), Err(Error::Usage(_))));
 }
 
-/// Answers GETs from a fixed set of paths and records every POST body.
+/// Answers GETs from a fixed set of paths, records every POST body and the paths
+/// it posted or downloaded from, and saves downloads as "data from PATH".
 struct FakeApi {
     responses: Value,
     sent: Rc<RefCell<Vec<Value>>>,
+    paths: Rc<RefCell<Vec<String>>>,
+}
+
+impl FakeApi {
+    fn new(responses: Value, sent: &Rc<RefCell<Vec<Value>>>) -> Self {
+        Self { responses, sent: sent.clone(), paths: Rc::default() }
+    }
 }
 
 impl Api for FakeApi {
@@ -166,7 +174,9 @@ impl Api for FakeApi {
             Method::Get => Ok(self.responses[path].clone()),
             _ => {
                 self.sent.borrow_mut().push(body.clone());
-                Ok(json!({ "subject": body["subject"], "to": ["ann@example.com"], "cc": [] }))
+                self.paths.borrow_mut().push(path.to_string());
+                Ok(json!({ "id": 400, "subject": body["subject"], "to": ["ann@example.com"], "cc": [],
+                           "url": "https://dobase.test/tools/8/mails/new?draft_id=400" }))
             }
         }
     }
@@ -175,8 +185,10 @@ impl Api for FakeApi {
         unreachable!()
     }
 
-    fn download(&mut self, _path: &str, _destination: &Path) -> Result<Option<String>> {
-        unreachable!()
+    fn download(&mut self, path: &str, destination: &Path) -> Result<Option<String>> {
+        self.paths.borrow_mut().push(path.to_string());
+        std::fs::write(destination, format!("data from {path}")).unwrap();
+        Ok(None)
     }
 }
 
@@ -196,6 +208,13 @@ fn replies_sent_from_the_cli_name_the_message_they_answer() {
             { "id": 310, "draft": false, "from_address": "ann@example.com", "to": ["me@example.com", "bob@example.com"],
               "cc": ["ANN@example.com", "cy@example.com"], "subject": "Re: Plans", "message_id": "plans@example.com" }
         ] },
+        "/tools/8/mails/311": { "messages": [
+            { "id": 311, "draft": false, "subject": "Scans", "attachments": [
+                { "id": 71, "filename": "../../scan.pdf", "file_size": 1, "download_url": "https://dobase.test/blobs/71" },
+                { "id": 72, "filename": "scan.pdf", "file_size": 1, "download_url": "https://dobase.test/blobs/72" },
+                { "id": 73, "filename": "..", "file_size": 1, "download_url": "https://dobase.test/blobs/73" }
+            ] }
+        ] },
         "/tools/8/mails/312": { "messages": [
             { "id": 312, "draft": true, "to": ["ann@example.com"], "cc": [], "subject": "Re: Plans",
               "body_html": "<p>Yes</p>", "in_reply_to": "plans@example.com" }
@@ -203,7 +222,7 @@ fn replies_sent_from_the_cli_name_the_message_they_answer() {
     });
     let mut out = Vec::new();
     let mut ctx = Ctx::new(Config::default(), &mut out, false, "test".into());
-    ctx.set_api(Box::new(FakeApi { responses, sent: sent.clone() }));
+    ctx.set_api(Box::new(FakeApi::new(responses, &sent)));
 
     invoke(&mut ctx, "mail reply", &["8/310", "--body", "Sure", "--send", "--all"]).unwrap();
     invoke(&mut ctx, "mail send", &["8", "--draft", "312"]).unwrap();
@@ -218,6 +237,121 @@ fn replies_sent_from_the_cli_name_the_message_they_answer() {
     drop(sent);
     drop(ctx);
     assert!(String::from_utf8(out).unwrap().contains("Sent \"Re: Plans\" to ann@example.com."));
+}
+
+fn mail_with_attachments() -> Value {
+    json!({
+        "/tools": [{ "id": 8, "name": "Inbox", "type": "mail" }],
+        "/tools/8/mails/310": { "account": { "email_address": "me@example.com" }, "messages": [
+            { "id": 310, "draft": false, "from_name": "Ann <Lee>", "from_address": "ann@example.com", "to": ["me@example.com"],
+              "cc": [], "subject": "Re: Plans", "sent_at": "2026-09-24T14:05:00.000+02:00", "body": "Plan A & B\n\nOK?", "body_html": null,
+              "attachments": [
+                { "id": 51, "filename": "plan.pdf", "file_size": 2048, "download_url": "https://dobase.test/blobs/51/plan.pdf" },
+                { "id": 52, "filename": "../plan.pdf", "file_size": 10, "download_url": "https://dobase.test/blobs/52/plan.pdf" },
+                { "id": 53, "filename": "huge.mov", "file_size": 99, "download_url": null }
+              ] }
+        ] },
+        "/tools/8/mails/311": { "messages": [
+            { "id": 311, "draft": false, "subject": "Scans", "attachments": [
+                { "id": 71, "filename": "../../scan.pdf", "file_size": 1, "download_url": "https://dobase.test/blobs/71" },
+                { "id": 72, "filename": "scan.pdf", "file_size": 1, "download_url": "https://dobase.test/blobs/72" },
+                { "id": 73, "filename": "..", "file_size": 1, "download_url": "https://dobase.test/blobs/73" }
+            ] }
+        ] },
+        "/tools/8/mails/312": { "messages": [
+            { "id": 312, "draft": true, "to": ["bob@example.com"], "cc": [], "subject": "Fwd: Plans", "body_html": "<p>FYI</p>",
+              "in_reply_to": null, "attachments": [{ "id": 61, "filename": "plan.pdf", "file_size": 2048, "download_url": "https://dobase.test/blobs/61" }] }
+        ] }
+    })
+}
+
+fn mail_ctx<'a>(out: &'a mut Vec<u8>, json: bool, api: FakeApi, opened: &Rc<RefCell<Vec<String>>>) -> Ctx<'a> {
+    let mut ctx = Ctx::new(Config::default(), out, json, "test".into());
+    ctx.set_api(Box::new(api));
+    let opened = opened.clone();
+    ctx.browser = Box::new(move |url| {
+        opened.borrow_mut().push(url.to_string());
+        Ok(())
+    });
+    ctx
+}
+
+#[test]
+fn forwards_quote_the_original_and_carry_its_stored_attachments() {
+    let sent = Rc::new(RefCell::new(Vec::new()));
+    let opened = Rc::new(RefCell::new(Vec::new()));
+    let api = FakeApi::new(mail_with_attachments(), &sent);
+    let paths = api.paths.clone();
+    let mut out = Vec::new();
+    let mut ctx = mail_ctx(&mut out, false, api, &opened);
+
+    invoke(&mut ctx, "mail forward", &["8/310", "--to", "bob@example.com", "--body", "See below", "--open"]).unwrap();
+    invoke(&mut ctx, "mail send", &["8", "--draft", "312"]).unwrap();
+
+    let sent = sent.borrow();
+    assert_eq!(*paths.borrow(), vec!["/tools/8/mails/drafts", "/tools/8/mails"]);
+    assert_eq!(sent[0]["to"], "bob@example.com");
+    assert_eq!(sent[0]["subject"], "Fwd: Plans");
+    assert_eq!(sent[0]["forward_attachment_ids"], json!([51, 52]));
+    assert_eq!(
+        sent[0]["body"],
+        "<p>See below</p><br><br><p>---------- Forwarded message ----------<br>From: Ann &lt;Lee&gt; &lt;ann@example.com&gt;<br>\
+         Date: 2026-09-24 14:05<br>Subject: Re: Plans<br>To: me@example.com</p><p>Plan A &amp; B</p><p>OK?</p>"
+    );
+    assert_eq!(*opened.borrow(), vec!["https://dobase.test/tools/8/mails/new?draft_id=400"]);
+    assert_eq!(sent[1]["forward_attachment_ids"], json!([61]));
+    drop(sent);
+    drop(ctx);
+    assert!(String::from_utf8(out).unwrap().contains("Saved forward draft 8/400 \"Fwd: Plans\" to ann@example.com with 2 attachments."));
+}
+
+#[test]
+fn open_is_only_for_drafts() {
+    let (status, _, err) = run(&["mail", "forward", "8/310", "--to", "a@example.com", "--send", "--open"]);
+    assert_eq!(status, 2);
+    assert!(err.contains("--open opens a saved draft"));
+
+    let (status, _, err) = run(&["mail", "reply", "8/310", "--body", "Hi", "--send", "--open"]);
+    assert_eq!(status, 2);
+    assert!(err.contains("--open opens a saved draft"));
+}
+
+#[test]
+fn attachments_are_listed_and_saved_under_their_own_names() {
+    let directory = std::env::temp_dir().join(format!("dobase-attachments-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let sent = Rc::new(RefCell::new(Vec::new()));
+    let opened = Rc::new(RefCell::new(Vec::new()));
+
+    let mut out = Vec::new();
+    let mut ctx = mail_ctx(&mut out, true, FakeApi::new(mail_with_attachments(), &sent), &opened);
+    invoke(&mut ctx, "mail attachments", &["8/310"]).unwrap();
+    drop(ctx);
+    let listed: Value = serde_json::from_slice(&out).unwrap();
+    assert_eq!(listed.as_array().unwrap().len(), 3);
+
+    // huge.mov was never stored, so saving everything fails before anything is downloaded
+    let mut out = Vec::new();
+    let api = FakeApi::new(mail_with_attachments(), &sent);
+    let paths = api.paths.clone();
+    let mut ctx = mail_ctx(&mut out, false, api, &opened);
+    let save = directory.to_str().unwrap();
+    assert!(matches!(invoke(&mut ctx, "mail attachments", &["8/310", "--save", save]), Err(Error::Failed(_))));
+    assert!(paths.borrow().is_empty());
+
+    invoke(&mut ctx, "mail attachments", &["8/310", "--save", save, "--name", "PLAN.PDF"]).unwrap();
+    assert_eq!(std::fs::read_to_string(directory.join("plan.pdf")).unwrap(), "data from https://dobase.test/blobs/51/plan.pdf");
+    assert!(matches!(invoke(&mut ctx, "mail attachments", &["8/310", "--save", save, "--name", "plan.pdf"]), Err(Error::Failed(_))));
+    assert!(matches!(invoke(&mut ctx, "mail attachments", &["8/310", "--name", "nope.txt"]), Err(Error::Failed(_))));
+
+    // Names from the mail stay inside the directory, and the same name twice gets a number
+    invoke(&mut ctx, "mail attachments", &["8/311", "--save", save]).unwrap();
+    for (name, blob) in [("scan.pdf", 71), ("scan (2).pdf", 72), ("attachment", 73)] {
+        assert_eq!(std::fs::read_to_string(directory.join(name)).unwrap(), format!("data from https://dobase.test/blobs/{blob}"));
+    }
+    drop(ctx);
+    assert!(String::from_utf8(out).unwrap().contains(&format!("Saved plan.pdf (2.0 KB) to {save}/plan.pdf.")));
+    std::fs::remove_dir_all(&directory).unwrap();
 }
 
 /// Splits a command line like a shell: spaces separate words, quotes group them.

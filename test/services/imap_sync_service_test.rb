@@ -192,6 +192,20 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_equal 9, draft.reload.uid
   end
 
+  test "a draft is saved with its attachments, next to its text and HTML" do
+    draft = mails_messages(:draft_message)
+    attachment = draft.attachments.create!(filename: "report.txt", content_type: "text/plain", file_size: 5)
+    attachment.file.attach(io: StringIO.new("hello"), filename: "report.txt", content_type: "text/plain")
+
+    raw = Mail.new(@service.send(:build_raw_email, draft.reload))
+
+    assert raw.multipart?
+    assert_equal [ "multipart/alternative", "text/plain" ], raw.parts.map(&:mime_type)
+    assert_equal [ "report.txt" ], raw.attachments.map(&:filename)
+    assert_equal "hello", raw.attachments.sole.decoded
+    assert_equal "<p>This is a draft message.</p>", raw.html_part.decoded
+  end
+
   test "the server's sent and drafts folders are listed as Sent and Drafts" do
     server = FakeImapServer.new(folders: [ "INBOX", "Receipts", [ "[Gmail]/Sent Mail", :Sent ], "[Gmail]/Drafts", "[Gmail]/Spam" ])
 

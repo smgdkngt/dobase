@@ -219,6 +219,9 @@ impl Args {
 
 // -- Context -----------------------------------------------------------------
 
+/// Opens a URL; `open_in_browser` unless a test swaps it.
+pub type Browser = dyn FnMut(&str) -> std::io::Result<()>;
+
 pub struct Ctx<'a> {
     pub config: Config,
     out: &'a mut dyn Write,
@@ -227,11 +230,12 @@ pub struct Ctx<'a> {
     api: Option<Box<dyn Api>>,
     me: Option<Value>,
     tools: Option<Vec<Value>>,
+    pub browser: Box<Browser>,
 }
 
 impl<'a> Ctx<'a> {
     pub fn new(config: Config, out: &'a mut dyn Write, json: bool, user_agent: String) -> Self {
-        Self { config, out, json, user_agent, api: None, me: None, tools: None }
+        Self { config, out, json, user_agent, api: None, me: None, tools: None, browser: Box::new(open_in_browser) }
     }
 
     /// Talks to `api` instead of the configured server.
@@ -432,6 +436,14 @@ fn matching_tools(tools: &[Value], reference: &str) -> Vec<Value> {
 }
 
 // -- Helpers -----------------------------------------------------------------
+
+/// Opens `url` in the default browser: `open` on macOS, `xdg-open` elsewhere.
+pub fn open_in_browser(url: &str) -> std::io::Result<()> {
+    let opener = if cfg!(target_os = "macos") { "open" } else { "xdg-open" };
+    let status =
+        std::process::Command::new(opener).arg(url).stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).status()?;
+    if status.success() { Ok(()) } else { Err(std::io::Error::other(format!("{opener} exited with {status}"))) }
+}
 
 /// Characters stripped from what's printed: C0 controls except tab and newline, DEL and C1 controls.
 pub fn clean(text: &str) -> String {

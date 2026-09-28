@@ -305,14 +305,31 @@ class ImapSyncService
     mail.date = message.sent_at || Time.current
     mail.in_reply_to = message.in_reply_to if message.in_reply_to.present?
 
+    attachments = message.attachments.select { |attachment| attachment.file.attached? }
+
     if message.body_html.present?
-      mail.html_part = Mail::Part.new(content_type: "text/html; charset=UTF-8", body: message.body_html)
-      mail.text_part = Mail::Part.new(content_type: "text/plain; charset=UTF-8", body: message.body_plain || "") if message.body_plain.present?
+      # A forwarded draft carries the attachments it will be sent with, next to the text and HTML
+      if attachments.any?
+        mail.part(content_type: "multipart/alternative") { |alternative| add_text_and_html(alternative, message) }
+      else
+        add_text_and_html(mail, message)
+      end
+    elsif attachments.any?
+      mail.text_part = Mail::Part.new(content_type: "text/plain; charset=UTF-8", body: message.body_plain || "")
     else
       mail.body = message.body_plain || ""
       mail.content_type = "text/plain; charset=UTF-8"
     end
 
+    attachments.each do |attachment|
+      mail.add_file(filename: attachment.filename, content: attachment.file.download, content_type: attachment.content_type.presence || "application/octet-stream")
+    end
+
     mail.to_s
+  end
+
+  def add_text_and_html(mail, message)
+    mail.html_part = Mail::Part.new(content_type: "text/html; charset=UTF-8", body: message.body_html)
+    mail.text_part = Mail::Part.new(content_type: "text/plain; charset=UTF-8", body: message.body_plain || "") if message.body_plain.present?
   end
 end
