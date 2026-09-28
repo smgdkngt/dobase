@@ -139,6 +139,104 @@ module Tools
         response.parsed_body["events"].map { |event| event.values_at("starts_at", "ends_at") }
     end
 
+    # --- Series synced from a CalDAV server, the way iCloud stores them ---------
+
+    test "a synced series keeps its local time after a change to summer time" do
+      sync_event <<~ICS
+        BEGIN:VEVENT
+        UID:lekkertjes@icloud
+        DTSTART;TZID=Europe/Amsterdam:20240201T193000
+        DTEND;TZID=Europe/Amsterdam:20240201T220000
+        RRULE:FREQ=MONTHLY;BYDAY=1TH
+        SUMMARY:Lekkertjes
+        END:VEVENT
+      ICS
+
+      get tool_calendar_path(@tool, start_date: "2026-08-01", end_date: "2026-09-30"), headers: @headers
+
+      assert_equal [ [ "2026-08-06T19:30:00.000+02:00", "2026-08-06T22:00:00.000+02:00" ], [ "2026-09-03T19:30:00.000+02:00", "2026-09-03T22:00:00.000+02:00" ] ],
+        synced_events.map { |event| event.values_at("starts_at", "ends_at") }
+      assert_equal [ "lekkertjes@icloud" ], synced_events.map { |event| event["uid"] }.uniq
+    end
+
+    test "floating times of a synced series are in the calendar owner's time zone" do
+      sync_event <<~ICS
+        BEGIN:VEVENT
+        UID:repaircafe@icloud
+        DTSTART:20240205T080000
+        DTEND:20240205T100000
+        RRULE:FREQ=MONTHLY;BYDAY=1MO
+        SUMMARY:Repaircafé
+        END:VEVENT
+      ICS
+
+      get tool_calendar_path(@tool, start_date: "2026-09-01", end_date: "2026-09-30"), headers: @headers
+
+      assert_equal [ [ "2026-09-07T08:00:00.000+02:00", "2026-09-07T10:00:00.000+02:00" ] ],
+        synced_events.map { |event| event.values_at("starts_at", "ends_at") }
+    end
+
+    test "a synced series leaves out its exceptions and lists moved occurrences at their new time" do
+      sync_event <<~ICS
+        BEGIN:VEVENT
+        UID:zwemles@icloud
+        RECURRENCE-ID;TZID=Europe/Amsterdam:20260919T110000
+        DTSTART;TZID=Europe/Amsterdam:20260919T131500
+        DTEND;TZID=Europe/Amsterdam:20260919T141500
+        SUMMARY:Zwemles
+        LOCATION:Het Bad
+        END:VEVENT
+        BEGIN:VEVENT
+        UID:zwemles@icloud
+        DTSTART;TZID=Europe/Amsterdam:20251101T110000
+        DTEND;TZID=Europe/Amsterdam:20251101T120000
+        RRULE:FREQ=WEEKLY;BYDAY=SA
+        EXDATE;TZID=Europe/Amsterdam:20260905T110000
+        SUMMARY:Zwemles
+        END:VEVENT
+        BEGIN:VEVENT
+        UID:zwemles@icloud
+        RECURRENCE-ID;TZID=Europe/Amsterdam:20260926T110000
+        DTSTART;TZID=Europe/Amsterdam:20260926T110000
+        DTEND;TZID=Europe/Amsterdam:20260926T120000
+        STATUS:CANCELLED
+        SUMMARY:Zwemles
+        END:VEVENT
+      ICS
+
+      get tool_calendar_path(@tool, start_date: "2026-08-29", end_date: "2026-10-03"), headers: @headers
+
+      events = synced_events
+      assert_equal [
+        [ "2026-08-29T11:00:00.000+02:00", "2026-08-29T12:00:00.000+02:00", nil ],
+        [ "2026-09-12T11:00:00.000+02:00", "2026-09-12T12:00:00.000+02:00", nil ],
+        [ "2026-09-19T13:15:00.000+02:00", "2026-09-19T14:15:00.000+02:00", "Het Bad" ],
+        [ "2026-10-03T11:00:00.000+02:00", "2026-10-03T12:00:00.000+02:00", nil ]
+      ], events.map { |event| event.values_at("starts_at", "ends_at", "location") }
+      assert_equal [ true ] * 4, events.map { |event| event["occurrence"] }
+      assert_equal [ "zwemles@icloud" ], events.map { |event| event["uid"] }.uniq
+
+      # A moved occurrence is listed where it went, also from outside the range it came from
+      get tool_calendar_path(@tool, start_date: "2026-09-19", end_date: "2026-09-19"), headers: @headers
+      assert_equal [ "2026-09-19T13:15:00.000+02:00" ], synced_events.map { |event| event["starts_at"] }
+    end
+
+    test "a synced series that was ended ends" do
+      sync_event <<~ICS
+        BEGIN:VEVENT
+        UID:zwemles-old@icloud
+        DTSTART;TZID=Europe/Amsterdam:20251101T120000
+        DTEND;TZID=Europe/Amsterdam:20251101T130000
+        RRULE:FREQ=WEEKLY;BYDAY=SA;UNTIL=20260822T095959Z
+        SUMMARY:Zwemles
+        END:VEVENT
+      ICS
+
+      get tool_calendar_path(@tool, start_date: "2026-08-15", end_date: "2026-09-05"), headers: @headers
+
+      assert_equal [ "2026-08-15T12:00:00.000+02:00" ], synced_events.map { |event| event["starts_at"] }
+    end
+
     test "event shows a recurring event as the series" do
       standup = create_event(@personal, "Standup", "2030-01-07 09:30", "2030-01-07 09:45",
         recurrence_frequency: "daily", recurrence_end_type: "count", recurrence_count: 5, description: "Quick sync")
@@ -386,6 +484,17 @@ module Tools
     end
 
     private
+      # One resource as the CalDAV server sends it, synced the way a sync saves it
+      def synced_events
+        response.parsed_body["events"].select { |event| event["uid"].end_with?("@icloud") }
+      end
+
+      def sync_event(vevents)
+        ics = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Apple Inc.//iPhone OS 18//EN\n#{vevents}END:VCALENDAR\n"
+        service = CaldavSyncService.new(@tool.calendar_account)
+        service.send(:save_event, @personal, service.send(:parse_event, ics))
+      end
+
 
     # Creates an event with times given in the user's time zone.
     def create_event(calendar, summary, starts_at, ends_at, **attributes)

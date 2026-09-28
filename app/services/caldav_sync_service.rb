@@ -441,7 +441,7 @@ class CaldavSyncService
         etag = resp.at_xpath(".//*[local-name()='getetag']")&.text&.gsub('"', "")
 
         if calendar_data.present?
-          parsed = IcsParserService.new(calendar_data).parse
+          parsed = parse_event(calendar_data)
           if parsed[:uid].present?
             save_event(calendar, parsed.merge(etag: etag, remote_url: resolve_url(href)))
           end
@@ -485,13 +485,18 @@ class CaldavSyncService
 
       next unless calendar_data.present?
 
-      parsed = IcsParserService.new(calendar_data).parse
+      parsed = parse_event(calendar_data)
       next unless parsed[:uid].present?
 
       events << parsed.merge(etag: etag, remote_url: resolve_url(href))
     end
 
     events
+  end
+
+  # Times without a time zone are the calendar owner's local time
+  def parse_event(calendar_data)
+    IcsParserService.new(calendar_data, time_zone: @account.tool.owner.timezone).parse
   end
 
   # An event Dobase can't take is skipped, so it doesn't hold up the rest of the calendar
@@ -512,6 +517,7 @@ class CaldavSyncService
       is_recurring: event_data[:rrule].present?,
       rrule: event_data[:rrule],
       recurrence_schedule: event_data[:recurrence_schedule],
+      recurrence_overrides: event_data[:recurrence_overrides],
       etag: event_data[:etag],
       remote_href: event_data[:remote_url],
       raw_icalendar: event_data[:raw_icalendar]

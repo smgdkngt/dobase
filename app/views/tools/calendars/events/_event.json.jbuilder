@@ -2,7 +2,7 @@
 calendar = local_assigns.fetch(:calendar) { event.calendar }
 creator = local_assigns.fetch(:creator) { event.created_by }
 
-json.(event, :id, :summary, :description, :location)
+json.(event, :id, :uid, :summary, :description, :location)
 if event.all_day?
   # Like an all-day event is created: from the start of its first day to the end of its last
   json.starts_at event.first_day.beginning_of_day

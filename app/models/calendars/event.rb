@@ -140,6 +140,18 @@ module Calendars
       self.attendees_json = list.to_json
     end
 
+    # The moved occurrences of a synced series, as the server has them
+    def recurrence_overrides
+      return [] if recurrence_overrides_json.blank?
+      JSON.parse(recurrence_overrides_json)
+    rescue JSON::ParserError
+      []
+    end
+
+    def recurrence_overrides=(list)
+      self.recurrence_overrides_json = list.presence&.to_json
+    end
+
     def duration_minutes
       ((ends_at - starts_at) / 60).to_i
     end

@@ -4,8 +4,11 @@ require "icalendar"
 require "ice_cube"
 
 class IcsParserService
-  def initialize(ics_data)
+  # time_zone: the zone of floating times ("DTSTART:20260905T110000") and of time zones
+  # that can't be looked up
+  def initialize(ics_data, time_zone: nil)
     @ics_data = ics_data
+    @time_zone = ActiveSupport::TimeZone[time_zone.presence || "UTC"] || ActiveSupport::TimeZone["UTC"]
   end
 
   def parse
@@ -15,8 +18,11 @@ class IcsParserService
     return empty_result if calendars.empty?
 
     calendar = calendars.first
-    event = calendar.events.first
+    # A series comes with its moved and cancelled occurrences, which have a RECURRENCE-ID
+    event = calendar.events.find { |component| component.recurrence_id.nil? } || calendar.events.first
     return empty_result unless event
+
+    overrides = calendar.events.select { |component| component.recurrence_id && component.uid.to_s == event.uid.to_s && component != event }
 
     {
       uid: event.uid.to_s,
@@ -31,7 +37,8 @@ class IcsParserService
       organizer_name: extract_name(event.organizer),
       attendees: parse_attendees(event.attendee),
       rrule: extract_rrule(event),
-      recurrence_schedule: build_schedule(event),
+      recurrence_schedule: build_schedule(event, overrides),
+      recurrence_overrides: event.rrule.present? ? parse_overrides(overrides) : [],
       status: event.status&.to_s&.downcase,
       raw_icalendar: @ics_data
     }
@@ -57,21 +64,30 @@ class IcsParserService
       attendees: [],
       rrule: nil,
       recurrence_schedule: nil,
+      recurrence_overrides: [],
       status: nil,
       raw_icalendar: @ics_data
     }
   end
 
-  def parse_datetime(dt)
+  # A time in its own time zone, so a series built on it keeps its local time
+  # after a change to or from summer time
+  def parse_datetime(dt, zone: @time_zone)
     return nil unless dt
 
     # A date is the same day everywhere, so it's kept at midnight UTC, like all-day events
     if dt.is_a?(Icalendar::Values::Date)
       dt.to_date.in_time_zone("UTC")
+    elsif dt.respond_to?(:value) && dt.value.respond_to?(:time_zone)
+      dt.value.to_time.in_time_zone(dt.value.time_zone)
+    elsif dt.respond_to?(:value) && dt.value.is_a?(::DateTime)
+      # Floating, or in a time zone that can't be looked up: the time on the clock in the given zone
+      time = dt.value
+      zone.local(time.year, time.month, time.day, time.hour, time.min, time.sec)
     elsif dt.respond_to?(:to_time)
-      dt.to_time.in_time_zone
+      dt.to_time.in_time_zone(zone)
     else
-      Time.zone.parse(dt.to_s)
+      zone.parse(dt.to_s)
     end
   rescue ArgumentError
     nil
@@ -175,7 +191,28 @@ class IcsParserService
     end
   end
 
-  def build_schedule(event)
+  # The occurrences that were moved or changed; cancelled ones are only left out of the series
+  def parse_overrides(overrides)
+    overrides.filter_map do |override|
+      next if override.status.to_s.casecmp?("CANCELLED")
+
+      recurrence_id = parse_datetime(override.recurrence_id)
+      starts_at = parse_datetime(override.dtstart)
+      next unless recurrence_id && starts_at
+
+      {
+        "recurrence_id" => recurrence_id.iso8601,
+        "starts_at" => starts_at.iso8601,
+        "ends_at" => parse_end_datetime(override).iso8601,
+        "all_day" => all_day?(override),
+        "summary" => override.summary&.to_s,
+        "description" => override.description&.to_s,
+        "location" => override.location&.to_s
+      }
+    end
+  end
+
+  def build_schedule(event, overrides = [])
     return nil unless event.rrule.present?
 
     start_time = parse_datetime(event.dtstart)
@@ -192,10 +229,16 @@ class IcsParserService
     if event.exdate.present?
       event.exdate.each do |exdate|
         Array(exdate).each do |date|
-          parsed = parse_datetime(date)
+          parsed = parse_datetime(date, zone: start_time.time_zone)
           schedule.add_exception_time(parsed) if parsed
         end
       end
+    end
+
+    # Moved and cancelled occurrences are left out where they were
+    overrides.each do |override|
+      original = parse_datetime(override.recurrence_id, zone: start_time.time_zone)
+      schedule.add_exception_time(original) if original
     end
 
     schedule.to_yaml
@@ -233,7 +276,7 @@ class IcsParserService
     # Until
     until_date = extract_rrule_param(rrule, :until)
     if until_date
-      parsed_until = parse_datetime(until_date)
+      parsed_until = parse_datetime(until_date, zone: start_time.time_zone)
       rule = rule.until(parsed_until) if parsed_until
     end
 

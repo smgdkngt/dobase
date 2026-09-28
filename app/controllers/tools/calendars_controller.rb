@@ -116,26 +116,40 @@ module Tools
       duration = event.ends_at - event.starts_at
 
       # Occurrences of all-day events start at midnight UTC on their dates
-      occurrences = if event.all_day?
-        schedule.occurrences_between(start_date.to_time(:utc), (end_date + 1).to_time(:utc) - 1)
+      first, last = if event.all_day?
+        [ start_date.to_time(:utc), (end_date + 1).to_time(:utc) - 1 ]
       else
-        schedule.occurrences_between(start_date.beginning_of_day, end_date.end_of_day)
+        [ start_date.beginning_of_day, end_date.end_of_day ]
       end
 
-      occurrences.map do |occurrence_start|
-        # Create a virtual event object for this occurrence
-        occurrence_event = event.dup
-        occurrence_event.id = event.id
-        occurrence_event.starts_at = occurrence_start
-        occurrence_event.ends_at = occurrence_start + duration
-        occurrence_event.readonly!
-        occurrence_event.define_singleton_method(:occurrence?) { true }
-        occurrence_event.define_singleton_method(:master_event_id) { event.id }
-        occurrence_event
+      occurrences = schedule.occurrences_between(first, last).map do |occurrence_start|
+        occurrence_of(event, occurrence_start, occurrence_start + duration)
       end
+
+      # Moved occurrences are listed at their new time, wherever they were moved from
+      moved = event.recurrence_overrides.filter_map do |override|
+        starts_at = Time.zone.parse(override["starts_at"])
+        next unless starts_at.between?(first, last)
+
+        occurrence_of(event, starts_at, Time.zone.parse(override["ends_at"]),
+          **override.slice("summary", "description", "location").compact_blank.symbolize_keys)
+      end
+
+      occurrences + moved
     rescue StandardError => e
       Rails.logger.warn("Failed to expand recurrence for event #{event.id}: #{e.message}")
       []
+    end
+
+    # A virtual event for one occurrence of a series, with the series' id
+    def occurrence_of(event, starts_at, ends_at, **changes)
+      occurrence = event.dup
+      occurrence.id = event.id
+      occurrence.assign_attributes(starts_at: starts_at, ends_at: ends_at, **changes)
+      occurrence.readonly!
+      occurrence.define_singleton_method(:occurrence?) { true }
+      occurrence.define_singleton_method(:master_event_id) { event.id }
+      occurrence
     end
 
     def group_events_by_day(events, week_start, week_end)
