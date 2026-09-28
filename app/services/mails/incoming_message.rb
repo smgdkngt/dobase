@@ -51,7 +51,8 @@ module Mails
       attachment_parts = parsed_mail ? attachment_parts_of(parsed_mail) : []
       has_attachments = attachment_parts.any?
 
-      email = @account.messages.find_or_initialize_by(message_id: message_id)
+      # A message in several folders on the server has a copy here for each of them
+      email = @account.messages.find_or_initialize_by(message_id: message_id, folder: folder_name)
       is_new_email = email.new_record?
 
       email.assign_attributes(

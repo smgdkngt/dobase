@@ -383,6 +383,50 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_nothing_raised { @service.sync_folder("Projects") }
   end
 
+  # --- Folders -----------------------------------------------------------------
+  # A message can be in several folders on the server (Mail.app lists it in each),
+  # and folders other than INBOX and Sent hold mail of any age.
+
+  test "a message in two folders is kept in both" do
+    incoming_message.send(:save_email, fetch_data(5, report_mail.to_s), "INBOX")
+    incoming_message.send(:save_email, fetch_data(9, report_mail.to_s), "Archive")
+    incoming_message.send(:save_email, fetch_data(5, report_mail.to_s), "INBOX")
+
+    copies = @account.messages.where(message_id: "report-9@example.com").order(:folder)
+    assert_equal [ [ "Archive", 9 ], [ "INBOX", 5 ] ], copies.pluck(:folder, :uid)
+    assert_equal 1, copies.distinct.count(:thread_id)
+  end
+
+  test "old mail in other folders is synced too" do
+    imap = FakeImap.new(uids: [ 1, 2 ], recent_uids: [ 2 ], messages: [ fetch_data(1, mail_with_id("old-1").to_s), fetch_data(2, mail_with_id("new-2").to_s) ])
+
+    @service.send(:fetch_recent_emails, imap, "Projects", 50)
+
+    assert_equal [ 1, 2 ], @account.messages.where(folder: "Projects").order(:uid).pluck(:uid)
+  end
+
+  test "a big folder is filled in from its newest mail, a batch per sync" do
+    imap = FakeImap.new(uids: (1..5).to_a, messages: (1..5).map { |uid| fetch_data(uid, mail_with_id("m-#{uid}").to_s) })
+
+    stub_const(ImapSyncService, :BACKFILL_BATCH, 2) do
+      @service.send(:fetch_recent_emails, imap, "Projects", 50)
+      assert_equal [ 4, 5 ], @account.messages.where(folder: "Projects").order(:uid).pluck(:uid)
+
+      @service.send(:fetch_recent_emails, imap, "Projects", 50)
+      assert_equal [ 2, 3, 4, 5 ], @account.messages.where(folder: "Projects").order(:uid).pluck(:uid)
+    end
+  end
+
+  test "mail that left another folder on the server is removed there" do
+    incoming_message.send(:save_email, fetch_data(1, mail_with_id("gone-1").to_s), "Projects")
+    incoming_message.send(:save_email, fetch_data(2, mail_with_id("kept-2").to_s), "Projects")
+    imap = FakeImap.new(uids: [ 2 ], messages: [ fetch_data(2, mail_with_id("kept-2").to_s) ])
+
+    @service.send(:fetch_recent_emails, imap, "Projects", 50)
+
+    assert_equal [ "kept-2@example.com" ], @account.messages.where(folder: "Projects").pluck(:message_id)
+  end
+
   private
     def special_folder(folder, folders)
       mailboxes = folders.map { |name, *attributes| Net::IMAP::MailboxList.new(attributes, "/", name) }
@@ -392,17 +436,23 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     class FakeImap
       attr_reader :fetched_attrs
 
-      def initialize(uids:, messages:)
+      # recent_uids: what a SINCE search finds
+      def initialize(uids:, messages:, recent_uids: uids)
         @uids = uids
+        @recent_uids = recent_uids
         @messages = messages
       end
 
-      def uid_search(_criteria) = @uids
+      def uid_search(criteria) = criteria.first == "SINCE" ? @recent_uids : @uids
 
-      def uid_fetch(_uids, attrs)
+      def uid_fetch(uids, attrs)
         @fetched_attrs = attrs
-        @messages
+        @messages.select { |message| message.attr["UID"].in?(uids) }
       end
+    end
+
+    def mail_with_id(id)
+      Mail.new(from: "ann@example.com", to: "me@example.com", subject: id, message_id: "<#{id}@example.com>", body: "Hello")
     end
 
     def report_mail

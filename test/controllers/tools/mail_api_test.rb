@@ -94,6 +94,18 @@ module Tools
       assert_equal 3, response.parsed_body["total_count"]
     end
 
+    test "a message that is in two folders on the server is listed in both" do
+      message = mails_messages(:inbox_unread)
+      copy_of(message, folder: "Archive")
+
+      get tool_mails_path(@tool), headers: @headers
+      assert_includes response.parsed_body["conversations"].map { |conversation| conversation["subject"] }, "Welcome to Dobase"
+
+      get tool_mails_path(@tool, folder: "Archive"), headers: @headers
+      welcome = response.parsed_body["conversations"].find { |conversation| conversation["subject"] == "Welcome to Dobase" }
+      assert_equal 1, welcome["messages_count"]
+    end
+
     test "index pages through conversations, newest first" do
       31.times do |index|
         @tool.mail_account.messages.create!(message_id: "bulk-#{index}@example.com", folder: "INBOX", subject: "Bulk #{index}",
@@ -180,6 +192,15 @@ module Tools
 
       assert_not message.reload.read
       assert_no_enqueued_jobs
+    end
+
+    test "show lists a message that is in two folders once, the copy that was asked for" do
+      message = mails_messages(:inbox_unread)
+      copy = copy_of(message, folder: "Archive")
+
+      get tool_mail_path(@tool, copy), headers: @headers
+
+      assert_equal [ [ copy.id, "Archive" ] ], response.parsed_body["messages"].map { |each| each.values_at("id", "folder") }
     end
 
     test "show gives the text of HTML-only messages and lists attachments and calendar invites" do
@@ -276,6 +297,16 @@ module Tools
       assert_equal "Receipts", response.parsed_body["folder"]
       assert_equal "Receipts", message.reload.folder
       assert_enqueued_with job: ImapSyncJob, args: [ @account.id, "move_to_folder", 102, "INBOX", "Receipts" ]
+    end
+
+    test "move to a folder that already has a copy of the message keeps one copy there" do
+      message = mails_messages(:inbox_read)
+      copy_of(message, folder: "Receipts")
+
+      post tool_mail_move_path(@tool, message), params: { folder: "Receipts" }, headers: @headers, as: :json
+
+      assert_response :success
+      assert_equal [ message.id ], @account.messages.where(message_id: message.message_id, folder: "Receipts").pluck(:id)
     end
 
     test "move refuses invalid folder names" do
@@ -534,6 +565,9 @@ module Tools
     end
 
     private
+      def copy_of(message, folder:)
+        @account.messages.create!(message.attributes.except("id", "uid", "created_at", "updated_at").merge("folder" => folder, "uid" => 900))
+      end
 
     def fake_service(service, fake)
       service.singleton_class.define_method(:new) { |*| fake }

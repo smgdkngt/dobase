@@ -11,6 +11,11 @@ class ImapSyncService
     "Drafts" => [ :Drafts, [ "Drafts", "INBOX.Drafts", "[Gmail]/Drafts", "Draft" ] ]
   }.freeze
 
+  # New mail fetched per folder per sync, newest first: a big folder fills in over several syncs
+  BACKFILL_BATCH = 500
+  # Messages per FETCH, so a batch of full messages isn't held in memory at once
+  FETCH_SLICE = 50
+
   def initialize(email_account)
     @account = email_account
   end
@@ -208,31 +213,24 @@ class ImapSyncService
     end
   end
 
+  # Every folder is synced the same way, whatever the age of its mail: messages
+  # gone from the server are removed, new ones fetched, and the flags of the most
+  # recent ones refreshed, so read and starred changes made in other clients show up.
   def fetch_recent_emails(imap, folder_name, limit)
-    primary_folder = folder_name.in?(%w[INBOX Sent])
+    server_uids = (imap.uid_search([ "ALL" ]) || []).sort
+    reconcile_local_messages(folder_name, server_uids)
 
-    if primary_folder
-      all_server_uids = (imap.uid_search([ "ALL" ]) || []).sort
-      reconcile_local_messages(folder_name, all_server_uids)
-
-      existing_uids = @account.messages.where(folder: folder_name).where.not(uid: nil).pluck(:uid)
-      new_uids = all_server_uids - existing_uids
-      # Re-fetch the most recent existing messages too, so flag changes (read/starred) made in other clients get picked up.
-      recent_existing = (all_server_uids & existing_uids).last(limit)
-      uids = (new_uids + recent_existing).uniq.sort
-    else
-      since_date = 3.months.ago.strftime("%d-%b-%Y")
-      uids = ((imap.uid_search([ "SINCE", since_date ]) || []).sort).last(limit)
-    end
+    existing_uids = @account.messages.where(folder: folder_name).where.not(uid: nil).pluck(:uid)
+    new_uids = (server_uids - existing_uids).last(BACKFILL_BATCH)
+    recent_existing = (server_uids & existing_uids).last(limit)
+    uids = (new_uids + recent_existing).uniq.sort
     return if uids.empty?
 
     # No BODYSTRUCTURE: attachments are read from the full message. Some servers send
     # BODYSTRUCTUREs with NIL where a string belongs, and net-imap then drops the connection.
-    messages = imap.uid_fetch(uids, [ "UID", "ENVELOPE", "FLAGS", "INTERNALDATE", "BODY.PEEK[]" ])
-    return unless messages
-
-    messages.each do |msg|
-      incoming_message.save(msg, folder_name)
+    uids.reverse.each_slice(FETCH_SLICE) do |slice|
+      messages = imap.uid_fetch(slice, [ "UID", "ENVELOPE", "FLAGS", "INTERNALDATE", "BODY.PEEK[]" ])
+      Array(messages).each { |msg| incoming_message.save(msg, folder_name) }
     end
   end
 
@@ -242,8 +240,8 @@ class ImapSyncService
     scope = @account.messages
       .where(folder: folder_name, trashed: false, archived: false, draft: false)
       .where.not(uid: nil)
-    stale = server_uids.any? ? scope.where.not(uid: server_uids) : scope
-    stale.destroy_all
+    stale_uids = scope.pluck(:uid) - server_uids
+    scope.where(uid: stale_uids).destroy_all if stale_uids.any?
   end
 
   # The email is already saved; a broken invite must not stop the rest of the batch from syncing.

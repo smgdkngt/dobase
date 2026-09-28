@@ -28,7 +28,7 @@ module Tools
           else
             @selected_message = @message
             @current_folder = params[:folder] || "inbox"
-            @conversation_messages = @message.conversation.to_a
+            @conversation_messages = @message.conversation_without_copies
             @message.conversation.unread.find_each(&:mark_as_read!)
 
             unless turbo_frame_request?
@@ -39,7 +39,7 @@ module Tools
         end
         # Reading through the API leaves the conversation unread; it has its own read endpoints.
         format.json do
-          @conversation_messages = @message.conversation.includes(:calendar_invites, attachments: { file_attachment: :blob })
+          @conversation_messages = @message.conversation_without_copies(@message.conversation.includes(:calendar_invites, attachments: { file_attachment: :blob }))
         end
       end
     end
@@ -256,7 +256,8 @@ module Tools
       rows = scope.group(:thread_id).pluck(
         :thread_id,
         Arel.sql("MAX(mail_messages.sent_at)"),
-        Arel.sql("COUNT(*)"),
+        # A message in two folders on the server, like the archive's, counts once
+        Arel.sql("COUNT(DISTINCT mail_messages.message_id)"),
         Arel.sql("SUM(CASE WHEN mail_messages.read = 0 THEN 1 ELSE 0 END)"),
         Arel.sql("MAX(CASE WHEN mail_messages.starred = 1 AND mail_messages.trashed = 0 AND mail_messages.draft = 0 THEN 1 ELSE 0 END)"),
         Arel.sql("MAX(CASE WHEN mail_messages.has_attachments = 1 THEN 1 ELSE 0 END)")

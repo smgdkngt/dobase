@@ -8,7 +8,7 @@ module Mails
     has_many :attachments, class_name: "Mails::Attachment", foreign_key: "mail_message_id", dependent: :destroy
     has_many :calendar_invites, class_name: "Calendars::Invite", foreign_key: "mail_message_id", dependent: :destroy
 
-    validates :message_id, presence: true, uniqueness: { scope: :mail_account_id }
+    validates :message_id, presence: true, uniqueness: { scope: %i[mail_account_id folder] }
 
     # When a message went to the trash: the trash is emptied of messages older than 30 days
     before_save -> { self.trashed_at = trashed? ? Time.current : nil }, if: :trashed_changed?
@@ -107,6 +107,20 @@ module Mails
     def conversation
       return account.messages.where(id: id) if thread_id.blank?
       account.messages.in_thread(thread_id)
+    end
+
+    # The conversation as it reads: a message that is in several folders on the
+    # server once, this message's copy for its own
+    def conversation_without_copies(scope = conversation)
+      messages = scope.to_a
+      kept = messages.group_by(&:message_id).values.map { |copies| copies.find { |copy| copy == self } || copies.first }
+      messages & kept
+    end
+
+    # Moving to a folder that already has a copy of the message leaves one copy there
+    def move_to_folder!(target_folder)
+      account.messages.where(folder: target_folder, message_id: message_id).where.not(id: id).destroy_all
+      update!(folder: target_folder, archived: false, trashed: false)
     end
 
     def conversation_count

@@ -62,7 +62,7 @@ module Tools
             messages = conversations_of(messages, folder)
             messages.find_each do |message|
               source_folder = message.folder || "INBOX"
-              message.update!(folder: target_folder, archived: false, trashed: false)
+              message.move_to_folder!(target_folder)
               if message.uid.present?
                 ImapSyncJob.perform_later(@mail_account.id, "move_to_folder", message.uid, source_folder, target_folder)
               end
