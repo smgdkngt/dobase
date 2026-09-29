@@ -60,14 +60,8 @@ module Tools
           target_folder = params[:target_folder].to_s.strip
           if valid_folder_name?(target_folder)
             messages = conversations_of(messages, folder)
-            messages.find_each do |message|
-              source_folder = message.folder || "INBOX"
-              message.move_to_folder!(target_folder)
-              if message.uid.present?
-                ImapSyncJob.perform_later(@mail_account.id, "move_to_folder", message.uid, source_folder, target_folder)
-              end
-            end
-            "#{messages.count} email(s) moved to #{target_folder}."
+            moved = messages.to_a.each { |message| message.move_to_folder!(target_folder) }
+            "#{moved.size} email(s) moved to #{target_folder}."
           else
             "Invalid folder name."
           end

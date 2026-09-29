@@ -3,6 +3,7 @@
 require "test_helper"
 
 class ImapSyncServiceTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
   setup do
     @account = mails_accounts(:primary)
     @service = ImapSyncService.new(@account)
@@ -550,6 +551,20 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     end
 
     assert_equal [ 5 ], @account.messages.where(folder: "Old archive").pluck(:uid)
+  end
+
+  test "mail moved here stays while the server moves it, and keeps its place once it has" do
+    incoming_message.send(:save_email, fetch_data(7, mail_with_id("moved-7").to_s), "INBOX")
+    moved = @account.messages.find_by!(message_id: "moved-7@example.com")
+    assert_enqueued_with(job: ImapSyncJob, args: [ @account.id, "move_to_folder", 7, "INBOX", "Projects" ]) do
+      moved.move_to_folder!("Projects")
+    end
+
+    # A sync before the server has moved it, and one after, when it has a new UID there
+    @service.send(:fetch_recent_emails, FakeImap.new(uids: [ 3 ], messages: [ fetch_data(3, mail_with_id("other-3").to_s) ]), "Projects", 50)
+    assert_nil moved.reload.uid
+    @service.send(:fetch_recent_emails, FakeImap.new(uids: [ 3, 4 ], messages: [ fetch_data(4, mail_with_id("moved-7").to_s) ]), "Projects", 50)
+    assert_equal [ "Projects", 4 ], [ moved.reload.folder, moved.uid ]
   end
 
   test "mail that left another folder on the server is removed there" do

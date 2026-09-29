@@ -108,11 +108,13 @@ module Mails
     def mark_as_read!
       update!(read: true)
       sync_read_flag_to_imap(true)
+      account.broadcast_unread_mail
     end
 
     def mark_as_unread!
       update!(read: false)
       sync_read_flag_to_imap(false)
+      account.broadcast_unread_mail
     end
 
     def toggle_starred!
@@ -138,10 +140,15 @@ module Mails
       messages & kept
     end
 
-    # Moving to a folder that already has a copy of the message leaves one copy there
+    # Moving to a folder that already has a copy of the message leaves one copy there.
+    # On the server the message gets a new UID in its new folder, and the next sync of that
+    # folder finds it by its Message-ID. Until then it has no UID: with the old one that sync
+    # would take it for mail gone from the folder, and remove it.
     def move_to_folder!(target_folder)
+      source_folder, source_uid = folder || "INBOX", uid
       account.messages.where(folder: target_folder, message_id: message_id).where.not(id: id).destroy_all
-      update!(folder: target_folder, archived: false, trashed: false)
+      update!(folder: target_folder, archived: false, trashed: false, uid: nil)
+      ImapSyncJob.perform_later(account.id, "move_to_folder", source_uid, source_folder, target_folder) if source_uid
     end
 
     def conversation_count
