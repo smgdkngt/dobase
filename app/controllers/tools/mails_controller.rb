@@ -57,6 +57,7 @@ module Tools
       if @draft
         @to = @draft.to_addresses_list.join(", ")
         @cc = @draft.cc_addresses_list.join(", ")
+        @bcc = @draft.bcc_addresses_list.join(", ")
         @subject = @draft.subject || ""
         @body = @draft.body_html || @draft.body_plain || ""
         @in_reply_to = @draft.in_reply_to
@@ -80,49 +81,20 @@ module Tools
         return
       end
 
-      body_html = params[:body]
-      body_plain = ::Mails::PlainText.from_html(body_html)
-
-      all_attachments = Array(params[:attachments])
-
-      # Include forwarded attachments (Active Storage blobs), only from this account's own mail
-      if params[:forward_attachment_ids].present?
-        @mail_account.attachments.where(id: params[:forward_attachment_ids]).each do |att|
-          all_attachments << att.file.blob if att.file.attached?
-        end
+      # From the compose page the mail goes out in the background, so the page doesn't wait
+      # for the mail server. The API sends it right away, to say whether it went.
+      if request.format.json?
+        send_now(to: to, cc: cc, bcc: bcc)
+      else
+        draft = outgoing_draft(to: to, cc: cc, bcc: bcc)
+        SendMailJob.perform_later(draft, Current.user)
+        redirect_to tool_mails_path(@tool, folder: params[:folder].presence || "inbox"), notice: "Sending your email…"
       end
-
-      service = SmtpSendService.new(@mail_account)
-      service.send_email(
-        to: to,
-        cc: cc,
-        bcc: bcc,
-        subject: params[:subject],
-        body: body_plain,
-        body_html: body_html,
-        attachments: all_attachments.presence,
-        in_reply_to: params[:in_reply_to].presence
-      )
-
-      if params[:draft_id].present?
-        draft = @mail_account.messages.drafts.find_by(id: params[:draft_id])
-        if draft
-          ImapSyncService.new(@mail_account).delete_draft(draft.uid)
-          draft.destroy
-        end
-      end
-
-      respond_to do |format|
-        format.html { redirect_to tool_mails_path(@tool, folder: "sent"), notice: "Email sent successfully." }
-        format.json { render json: { to: to, cc: cc.to_a, bcc: bcc.to_a, subject: params[:subject] }, status: :created }
-      end
-    rescue SmtpSendService::SendError => e
-      render_send_error e.message
     end
 
     def destroy
       if @message.draft?
-        ImapSyncService.new(@tool.mail_account).delete_draft(@message.uid)
+        ImapSyncJob.perform_later(@tool.mail_account.id, "delete_draft", @message.uid, "Drafts") if @message.uid
         @message.destroy
         redirect_to tool_mails_path(@tool, folder: "drafts"), notice: "Draft deleted."
         return
@@ -341,8 +313,54 @@ module Tools
     def sync_delete_to_imap(messages)
       on_server = messages.select { |message| message.uid.present? && message.folder.present? }
       on_server.group_by(&:folder).each do |folder, in_folder|
-        ImapSyncService.new(@tool.mail_account).delete_message(in_folder.map(&:uid), folder: folder)
+        ImapSyncJob.perform_later(@tool.mail_account.id, "delete_message", in_folder.map(&:uid), folder)
       end
+    end
+
+    def send_now(to:, cc:, bcc:)
+      body_html = params[:body]
+      attachments = Array(params[:attachments])
+      # Forwarded attachments (Active Storage blobs), only from this account's own mail
+      if params[:forward_attachment_ids].present?
+        @mail_account.attachments.where(id: params[:forward_attachment_ids]).each do |attachment|
+          attachments << attachment.file.blob if attachment.file.attached?
+        end
+      end
+
+      SmtpSendService.new(@mail_account).send_email(
+        to: to, cc: cc, bcc: bcc, subject: params[:subject],
+        body: ::Mails::PlainText.from_html(body_html), body_html: body_html,
+        attachments: attachments.presence, in_reply_to: params[:in_reply_to].presence
+      )
+      discard_draft(@mail_account.messages.drafts.find_by(id: params[:draft_id])) if params[:draft_id].present?
+
+      render json: { to: to, cc: cc.to_a, bcc: bcc.to_a, subject: params[:subject] }, status: :created
+    rescue SmtpSendService::SendError => e
+      render_send_error e.message
+    end
+
+    # What the compose page sends is kept as a draft until SendMailJob has sent it, so mail
+    # that can't be sent is still there to try again
+    def outgoing_draft(to:, cc:, bcc:)
+      draft = @mail_account.messages.drafts.find_by(id: params[:draft_id]) || @mail_account.new_draft
+      draft.assign_attributes(
+        to_addresses: to.to_json, cc_addresses: cc&.to_json, bcc_addresses: bcc&.to_json,
+        subject: params[:subject], body_html: params[:body], body_plain: ::Mails::PlainText.from_html(params[:body]),
+        in_reply_to: params[:in_reply_to].presence, sent_at: Time.current
+      )
+      # Forwarded attachments, only from this account's own mail; a saved draft already has its own
+      forwarded = @mail_account.attachments.where(id: params[:forward_attachment_ids]).where.not(mail_message_id: draft.id) if params[:forward_attachment_ids].present?
+      draft.copy_attachments(forwarded.includes(file_attachment: :blob)) if forwarded
+      draft.attach_uploads(Array(params[:attachments])) if params[:attachments].present?
+      draft.save!
+      draft
+    end
+
+    def discard_draft(draft)
+      return unless draft
+
+      ImapSyncJob.perform_later(@mail_account.id, "delete_draft", draft.uid, "Drafts") if draft.uid
+      draft.destroy
     end
   end
 end

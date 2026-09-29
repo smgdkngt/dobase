@@ -55,7 +55,7 @@ module Tools
       def sync_delete_to_imap(messages)
         on_server = messages.select { |message| message.uid.present? && message.folder.present? }
         on_server.group_by(&:folder).each do |folder, in_folder|
-          ImapSyncService.new(@tool.mail_account).delete_message(in_folder.map(&:uid), folder: folder)
+          ImapSyncJob.perform_later(@tool.mail_account.id, "delete_message", in_folder.map(&:uid), folder)
         end
       end
     end

@@ -170,7 +170,7 @@ the server calls it) or one of the `custom_folders`. An invalid name returns
 { "to": "rachel@northstarvc.com", "subject": "Re: Seed Round Follow-up", "body": "<p>Thursday at 2pm works. See you then!</p>", "in_reply_to": "<004@moonshot-snacks.com>" }
 ```
 
-`to` and `cc` are comma-separated addresses, and `body` is HTML. `in_reply_to`
+`to`, `cc` and `bcc` are comma-separated addresses, and `body` is HTML. `in_reply_to`
 is the `message_id` of the message you're replying to, and puts the draft in
 its conversation. Returns `201` and the draft, which is copied to the server's
 Drafts folder in the background.
@@ -191,6 +191,8 @@ address can have a name in front of it, as in `Rachel Kim <rachel@northstarvc.co
 A reply sends `in_reply_to`, the `message_id` of the message it answers: the
 email gets `In-Reply-To` and `References` headers, so mail programs keep it in
 that conversation, and its copy in Sent joins the conversation in Dobase.
+The API sends right away and says whether it went (the compose page sends in the
+background instead, and keeps mail that couldn't be sent as a draft).
 It returns `201` with the recipients and subject, and a copy goes into Sent:
 
 ```json

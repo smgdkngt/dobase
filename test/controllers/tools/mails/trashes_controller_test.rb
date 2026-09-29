@@ -26,7 +26,7 @@ module Tools
         older, newer = create_mail_thread
         server = FakeImapServer.new
 
-        connect_to_imap(server) { post tool_mail_trash_path(@tool, newer, folder: "inbox") }
+        connect_to_imap(server) { perform_enqueued_jobs(only: ImapSyncJob) { post tool_mail_trash_path(@tool, newer, folder: "inbox") } }
 
         assert [ older, newer ].all? { |message| message.reload.trashed? }
         assert_equal [ [ 201, 202 ] ], server.stored.map { |uids, _action, _flags| uids.sort }
