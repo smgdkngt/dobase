@@ -4,6 +4,7 @@ require "test_helper"
 
 module Mails
   class MessageTest < ActiveSupport::TestCase
+    include ActionCable::TestHelper
     setup do
       @message = mails_messages(:inbox_unread)
     end
@@ -41,6 +42,15 @@ module Mails
       assert_equal({ "image001.png@01dd4ffc.8e9c6530" => logo }, @message.inline_images)
       assert_equal %(<img src="data:image/png;base64,UE5H"><img src="cid:missing@example.com">), @message.body_html_with_inline_images
       assert_empty @message.listed_attachments
+    end
+
+    test "reading a message tells its tool's people how much unread mail they have left" do
+      user = @message.account.tool.users.first
+      unread = user.unread_mail_count
+
+      assert_broadcast_on("notifications:#{user.id}", { type: "unread_mail", count: unread - 1 }) do
+        @message.mark_as_read!
+      end
     end
   end
 end

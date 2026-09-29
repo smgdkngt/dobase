@@ -3,7 +3,7 @@ import consumer from "channels/consumer"
 
 export default class extends Controller {
   static targets = ["badge", "badgeStatus", "trigger", "popover", "list", "markAllRead", "desktopOffer"]
-  static values = { userId: Number, unreadCount: Number, appName: String }
+  static values = { userId: Number, unreadCount: Number, unreadMailCount: Number, appName: String }
 
   connect() {
     this.updateBadge()
@@ -29,6 +29,12 @@ export default class extends Controller {
     // toggles the same in-call indicator the room controller uses for itself.
     if (data.type === "room_activity") {
       this.updateInCallIndicator(data.tool_id, data.active)
+      return
+    }
+
+    // Unread mail changed: new mail came in, or something was read somewhere
+    if (data.type === "unread_mail") {
+      this.unreadMailCountValue = data.count
       return
     }
 
@@ -168,7 +174,27 @@ export default class extends Controller {
     })
   }
 
+  // A Turbo morph refresh brings the server's counts along
+  unreadCountValueChanged() {
+    this.updateAppBadge()
+  }
+
+  unreadMailCountValueChanged() {
+    this.updateAppBadge()
+  }
+
+  // The installed app's icon counts unread mail and notifications together, like a mail
+  // program's dock icon (the Badging API; the browser ignores it outside an installed app)
+  updateAppBadge() {
+    if (!("setAppBadge" in navigator)) return
+
+    const count = this.unreadCountValue + this.unreadMailCountValue
+    const badged = count > 0 ? navigator.setAppBadge(count) : navigator.clearAppBadge()
+    badged.catch(() => {})
+  }
+
   updateBadge() {
+    this.updateAppBadge()
     if (!this.hasBadgeTarget) return
 
     if (this.unreadCountValue > 0) {

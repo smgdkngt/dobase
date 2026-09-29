@@ -48,6 +48,13 @@ module Mails
       sync_error? && sync_error == AUTHENTICATION_FAILED
     end
 
+    # The installed app's icon counts unread mail, on every page each of the tool's people has open
+    def broadcast_unread_mail
+      tool.users.each do |user|
+        ActionCable.server.broadcast("notifications:#{user.id}", { type: "unread_mail", count: user.unread_mail_count })
+      end
+    end
+
     def record_contact(email, name = nil)
       contact = contacts.find_or_initialize_by(email_address: email.downcase.strip)
       contact.name = name if name.present?

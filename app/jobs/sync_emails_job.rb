@@ -19,6 +19,8 @@ class SyncEmailsJob < ApplicationJob
     mail_account.custom_folders.each do |folder|
       service.sync_folder(folder, limit: 50)
     end
+
+    mail_account.broadcast_unread_mail
   # Every failure is shown on the account, or the mail page says "Syncing..." forever.
   # A rejected login waits for new settings or a sync by hand, a server that can't be reached
   # is tried again on the next scheduled sync. Unexpected failures still fail the job, so they can be looked into.
