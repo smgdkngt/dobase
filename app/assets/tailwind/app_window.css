@@ -1,0 +1,33 @@
+/* Installed app window - behaves like a native app instead of a web page.
+   Only when Dobase runs as an installed app (html[data-app-window], set in
+   application.js), never in a browser tab.
+
+   Deliberately outside @layer: it has to win over the cursor-pointer and
+   select-* utilities and components, which all live in cascade layers. */
+
+/* The page doesn't bounce when scrolled past its edge */
+html[data-app-window],
+html[data-app-window] body {
+  overscroll-behavior: none;
+}
+
+/* Controls get the arrow, like in native apps */
+html[data-app-window] :where(a, button, summary, label, select, [role="button"], [role="tab"], [role="menuitem"], input[type="checkbox"], input[type="radio"], .cursor-pointer, .sidebar-item, .hour-slot):not(.cursor-text, .cursor-grab, .cursor-move) {
+  cursor: default;
+}
+
+/* Links in what people wrote are still links */
+html[data-app-window] :is(.rich-text-content, .trix-content) a[href] {
+  cursor: pointer;
+}
+
+/* The interface itself can't be selected, what people wrote can */
+html[data-app-window] :is(.sidebar, .mobile-bottom-bar, .tool-topbar, .tabs, .popover-menu, button, label, summary, [role="button"], [role="tab"], [role="menuitem"]) {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html[data-app-window] :is(input, textarea, [contenteditable="true"]) {
+  -webkit-user-select: text;
+  user-select: text;
+}

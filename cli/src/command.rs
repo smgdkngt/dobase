@@ -437,11 +437,18 @@ fn matching_tools(tools: &[Value], reference: &str) -> Vec<Value> {
 
 // -- Helpers -----------------------------------------------------------------
 
-/// Opens `url` in the default browser: `open` on macOS, `xdg-open` elsewhere.
+/// Opens `url` in the default browser, or the installed Dobase app when it handles the link:
+/// `open` on macOS, `start` on Windows, `xdg-open` elsewhere.
 pub fn open_in_browser(url: &str) -> std::io::Result<()> {
-    let opener = if cfg!(target_os = "macos") { "open" } else { "xdg-open" };
+    let (opener, args): (&str, Vec<&str>) = if cfg!(target_os = "macos") {
+        ("open", vec![url])
+    } else if cfg!(target_os = "windows") {
+        ("cmd", vec!["/C", "start", "", url])
+    } else {
+        ("xdg-open", vec![url])
+    };
     let status =
-        std::process::Command::new(opener).arg(url).stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).status()?;
+        std::process::Command::new(opener).args(args).stdin(std::process::Stdio::null()).stdout(std::process::Stdio::null()).status()?;
     if status.success() { Ok(()) } else { Err(std::io::Error::other(format!("{opener} exited with {status}"))) }
 }
 
