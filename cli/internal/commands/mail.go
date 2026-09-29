@@ -20,7 +20,7 @@ const (
 	mailTo   = "Recipients, comma-separated"
 	mailCc   = "Cc recipients, comma-separated"
 	mailBody = "Message (plain text, or HTML with --html)"
-	mailOpen = "Open the saved draft in your browser, ready to edit and send"
+	mailOpen = "Open the saved draft in the Dobase app or your browser, ready to edit and send"
 )
 
 func mail() []*Definition {
@@ -723,14 +723,14 @@ func refuseOpenWithSend(args *Args) error {
 	return nil
 }
 
-// openMailDraft shows the saved draft in the browser with --open, on the page where it is edited and sent.
+// openMailDraft shows the saved draft with --open, in the installed app or the browser, on the page where it is edited and sent.
 func openMailDraft(ctx *Ctx, args *Args, draft api.Value) error {
 	if !args.On("open") {
 		return nil
 	}
 	url := draft.Get("url").S()
 	if err := ctx.Browser(url); err != nil {
-		return api.Failf("The draft is saved, but it didn't open in the browser (%v). It is at %s", err, url)
+		return api.Failf("The draft is saved, but it didn't open (%v). It is at %s", err, url)
 	}
 	return nil
 }

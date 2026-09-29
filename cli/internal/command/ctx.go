@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
-	"runtime"
 	"strconv"
 	"strings"
 	"unicode"
@@ -20,7 +18,7 @@ type Ctx struct {
 	Out       io.Writer
 	JSON      bool
 	UserAgent string
-	// Browser opens a URL; OpenInBrowser unless a test swaps it.
+	// Browser opens a URL; Open on the configured server unless a test swaps it.
 	Browser func(url string) error
 	// Stdin is where a TEXT of "-" is read from.
 	Stdin io.Reader
@@ -31,7 +29,9 @@ type Ctx struct {
 }
 
 func NewCtx(cfg *config.Config, out io.Writer, json bool, userAgent string) *Ctx {
-	return &Ctx{Config: cfg, Out: out, JSON: json, UserAgent: userAgent, Browser: OpenInBrowser, Stdin: os.Stdin}
+	ctx := &Ctx{Config: cfg, Out: out, JSON: json, UserAgent: userAgent, Stdin: os.Stdin}
+	ctx.Browser = func(url string) error { return Open(cfg.URL(), url) }
+	return ctx
 }
 
 // SetAPI talks to a instead of the configured server.
@@ -315,20 +315,4 @@ func (c *Ctx) Paragraph(text string, indent int) {
 			c.Say(strings.Repeat(" ", indent) + strings.TrimRightFunc(line, unicode.IsSpace))
 		}
 	}
-}
-
-// OpenInBrowser opens url in the default browser, or the installed Dobase app when it
-// handles the link: `open` on macOS, `start` on Windows, `xdg-open` elsewhere.
-func OpenInBrowser(url string) error {
-	opener, args := "xdg-open", []string{url}
-	switch runtime.GOOS {
-	case "darwin":
-		opener = "open"
-	case "windows":
-		opener, args = "cmd", []string{"/C", "start", "", url}
-	}
-	if err := exec.Command(opener, args...).Run(); err != nil {
-		return fmt.Errorf("%s: %w", opener, err)
-	}
-	return nil
 }

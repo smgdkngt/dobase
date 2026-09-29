@@ -20,7 +20,7 @@ func Run(cfg *config.Config, userAgent string) error {
 	if err != nil {
 		return err
 	}
-	app := NewApp(client, url, command.OpenInBrowser)
+	app := NewApp(client, url, func(link string) error { return command.Open(url, link) })
 	app.refreshInBackground(client)
 	fmt.Fprint(os.Stderr, "Loading your workspace…")
 	err = app.Start()
