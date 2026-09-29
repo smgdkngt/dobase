@@ -1,0 +1,22 @@
+<%# Locals: label, name, value, hidden (false), field_target (nil), input_target (nil), toggles ([]) %>
+<% toggles = local_assigns.fetch(:toggles, []) %>
+<div class="compose-field <%= 'hidden' if local_assigns[:hidden] %>"
+     <%= tag.attributes(data: { compose_target: local_assigns[:field_target] }.compact) %>
+     data-controller="email-autocomplete"
+     data-email-autocomplete-url-value="<%= tool_mails_contacts_path(@tool) %>">
+  <label class="compose-field-label" for="compose_<%= name %>"><%= label %></label>
+  <div class="flex-1 flex flex-wrap items-center gap-1.5 min-w-0">
+    <span data-email-autocomplete-target="tags" class="contents"></span>
+    <input type="hidden" name="<%= name %>" value="<%= value %>" data-email-autocomplete-target="hidden">
+    <%= tag.input type: "text", id: "compose_#{name}",
+          class: "flex-1 min-w-24 text-sm text-text-primary bg-transparent outline-none",
+          autocomplete: "off",
+          data: { email_autocomplete_target: "input", compose_target: local_assigns[:input_target] }.compact %>
+  </div>
+  <% toggles.each do |field, text| %>
+    <button type="button" class="compose-field-toggle"
+            data-action="compose#showField" data-compose-field-param="<%= field %>"><%= text %></button>
+  <% end %>
+  <div class="hidden absolute left-12 top-full mt-1 w-72 bg-surface border border-border-light rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto"
+       data-email-autocomplete-target="results"></div>
+</div>

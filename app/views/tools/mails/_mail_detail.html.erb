@@ -12,15 +12,15 @@
   <h1 class="text-base font-semibold text-text-primary flex-1 min-w-0"><%= @selected_message.normalized_subject.presence || "(No subject)" %></h1>
   <div class="flex items-center gap-1 flex-shrink-0">
     <%= render "components/icon_button", icon: "reply", title: "Reply (r)",
-        href: new_tool_mail_path(@tool, reply_to: last_message.id),
+        href: new_tool_mail_path(@tool, reply_to: last_message.id, folder: @current_folder),
         data: { controller: "hotkey", hotkey: "r" } %>
     <% if has_multiple_recipients %>
       <%= render "components/icon_button", icon: "reply-all", title: "Reply All (a)",
-          href: new_tool_mail_path(@tool, reply_to: last_message.id, reply_all: true),
+          href: new_tool_mail_path(@tool, reply_to: last_message.id, folder: @current_folder, reply_all: true),
           data: { controller: "hotkey", hotkey: "a" } %>
     <% end %>
     <%= render "components/icon_button", icon: "forward", title: "Forward (f)",
-        href: new_tool_mail_path(@tool, forward: last_message.id),
+        href: new_tool_mail_path(@tool, forward: last_message.id, folder: @current_folder),
         data: { controller: "hotkey", hotkey: "f" } %>
     <span class="w-px h-4 bg-border-light mx-1"></span>
     <% if @current_folder == "trash" %>
@@ -94,7 +94,7 @@
 
 <div class="bg-surface border-t border-border-light p-3.5">
   <div class="flex items-center gap-2">
-    <%= link_to new_tool_mail_path(@tool, reply_to: last_message.id), class: "flex items-center gap-3 px-3.5 py-2.5 bg-background-secondary border border-border-light rounded-lg no-underline transition-all hover:border-accent hover:shadow-md flex-1" do %>
+    <%= link_to new_tool_mail_path(@tool, reply_to: last_message.id, folder: @current_folder), class: "flex items-center gap-3 px-3.5 py-2.5 bg-background-secondary border border-border-light rounded-lg no-underline transition-all hover:border-accent hover:shadow-md flex-1" do %>
       <div class="w-7 h-7 rounded-full bg-accent-light flex items-center justify-center">
         <span class="text-[0.6875rem] font-semibold text-accent"><%= current_user.first_name[0]&.upcase %></span>
       </div>
@@ -106,7 +106,7 @@
           icon: "reply-all",
           size: :sm,
           variant: :secondary,
-          href: new_tool_mail_path(@tool, reply_to: last_message.id, reply_all: true) %>
+          href: new_tool_mail_path(@tool, reply_to: last_message.id, folder: @current_folder, reply_all: true) %>
     <% end %>
   </div>
 </div>

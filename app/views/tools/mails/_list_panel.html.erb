@@ -65,7 +65,7 @@
         <% if @conversations.any? %>
           <%= render partial: "tools/mails/conversation_item",
                   collection: @conversations, as: :conversation,
-                  locals: { tool: @tool, current_folder: @current_folder, selected_message: @selected_message } %>
+                  locals: { tool: @tool, current_folder: @current_folder, selected_message: @selected_message || @composing_from || @draft } %>
 
           <% if @total_pages > 1 %>
             <div class="p-3 flex items-center justify-center gap-2 border-t border-border-light">

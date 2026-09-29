@@ -62,6 +62,8 @@ module Tools
         @in_reply_to = @draft.in_reply_to
         @forward_attachments = @draft.attachments.select { |attachment| attachment.file.attached? }
       end
+
+      render_compose
     end
 
     def create
@@ -179,10 +181,19 @@ module Tools
           @draft = @mail_account.messages.drafts.find_by(id: params[:draft_id]) if params[:draft_id].present?
           @forward_attachments = @mail_account.attachments.where(id: params[:forward_attachment_ids]).select { |attachment| attachment.file.attached? } if params[:forward_attachment_ids].present?
           @unsent = true
-          render :new, status: :unprocessable_entity
+          render_compose status: :unprocessable_entity
         end
         format.json { render json: { errors: [ message ] }, status: :unprocessable_entity }
       end
+    end
+
+    # The message is written in the reading pane, next to the folder it was started from
+    def render_compose(status: :ok)
+      @composing = true
+      @heading = "Edit Draft" if @draft
+      @current_folder = params[:folder] || "inbox"
+      load_index_data
+      render :index, status: status
     end
 
     def set_message
@@ -284,6 +295,7 @@ module Tools
         original = @tool.mail_account.messages.find_by(id: params[:reply_to])
         if original
           @heading = params[:reply_all] ? "Reply All" : "Reply"
+          @composing_from = original
           @in_reply_to = original.message_id
           @to = original.from_address
           @subject = "Re: #{original.normalized_subject}" unless @subject.present?
@@ -300,6 +312,7 @@ module Tools
         original = @tool.mail_account.messages.find_by(id: params[:forward])
         if original
           @heading = "Forward"
+          @composing_from = original
           @subject = "Fwd: #{original.normalized_subject}" unless @subject.present?
           @body = build_forward_body(original) unless @body.present?
           @forward_attachments = original.attachments.select { |a| a.file.attached? }

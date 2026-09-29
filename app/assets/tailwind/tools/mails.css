@@ -13,49 +13,77 @@
   }
 
   .mail-content {
-    @apply bg-surface grid overflow-hidden;
+    @apply bg-surface grid overflow-hidden min-w-0;
     grid-template-rows: auto 1fr auto;
   }
 
-  /* Compose: the top and bottom bars span the page, the message is a centered column */
-  .compose-layout {
-    @apply grid h-screen bg-surface;
-    grid-template-rows: 52px 1fr auto;
+  /* Compose, in the reading pane: the fields on top, the message under them with its
+     formatting bar at the bottom, next to Send (like Gmail's compose window) */
+  .compose {
+    @apply grid min-h-0 min-w-0 overflow-hidden bg-surface;
+    grid-row: 1 / -1;
+    grid-template-rows: auto 1fr auto;
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .compose-scroll {
-    @apply overflow-y-auto min-h-0;
+  .compose-header {
+    @apply flex items-center gap-3 px-4 py-3 border-b border-border-light;
   }
 
-  .compose-sheet {
-    @apply flex flex-col w-full min-h-full max-w-3xl mx-auto px-6 pt-2;
+  .compose-back {
+    @apply hidden max-lg:flex items-center justify-center w-8 h-8 -ml-1 rounded-lg shrink-0 text-text-secondary hover:bg-background-tertiary transition-colors;
+  }
+
+  .compose-body {
+    @apply flex flex-col min-h-0;
   }
 
   .compose-field {
-    @apply relative flex items-center gap-3 py-2.5 border-b border-border-light;
+    @apply relative flex items-center gap-2 mx-4 min-h-11 py-1.5 border-b border-border-light;
   }
 
   .compose-field-label {
-    @apply w-14 shrink-0 text-sm text-text-tertiary;
+    @apply w-10 shrink-0 text-sm text-text-tertiary;
+  }
+
+  .compose-field-toggle {
+    @apply shrink-0 px-1 text-sm text-text-tertiary rounded-sm hover:text-text-primary hover:underline;
   }
 
   .compose-subject {
-    @apply flex-1 min-w-0 bg-transparent outline-none text-base font-medium text-text-primary;
+    @apply flex-1 min-w-0 bg-transparent outline-none text-sm text-text-primary placeholder:text-text-tertiary;
   }
 
-  /* Lined up with the column above it */
   .compose-footer {
-    @apply flex items-center gap-3 py-3 border-t border-border-light;
-    padding-inline: max(1.5rem, calc((100% - 48rem) / 2 + 1.5rem));
+    @apply px-4 pb-3;
   }
 
-  /* The editor grows with the message; its toolbar stays in reach while scrolling */
+  .compose-attachments {
+    @apply flex flex-wrap gap-2 pb-3 empty:hidden;
+  }
+
+  .compose-actions {
+    @apply flex items-center gap-1.5;
+  }
+
+  /* The message scrolls under the fields; its formatting bar stays at the bottom */
   rhino-editor.compose-editor {
-    @apply flex flex-col flex-1;
+    @apply flex flex-col flex-1 min-h-0;
+  }
+  rhino-editor.compose-editor::part(editor-wrapper) {
+    @apply flex-1 min-h-0 overflow-y-auto;
+  }
+  rhino-editor.compose-editor::part(editor) {
+    @apply flex flex-col min-h-full;
   }
   rhino-editor.compose-editor::part(toolbar) {
-    @apply sticky top-0 z-10 bg-surface border-b border-border-light py-1.5 px-0;
+    @apply order-1 self-start max-w-[calc(100%-2rem)] overflow-x-auto mx-4 mb-2 px-1 py-0.5 rounded-xl border border-border-light bg-background-secondary;
   }
+  /* Attachments go with the mail (the paperclip next to Send), not into its text */
+  rhino-editor.compose-editor::part(toolbar__button--attach-files) {
+    @apply hidden;
+  }
+
   /* HTML email: always on a light page, framed as a light card in dark mode */
   .email-frame {
     @apply rounded-lg;
@@ -82,7 +110,7 @@
 /* The compose editor's text, spaced and quoted the way Mails::OutgoingHtml styles it for
    the mail programs it's sent to. Unlayered, to win over rhino-editor's own padding and `.trix-content * { margin: 0 }`. */
 rhino-editor.compose-editor .trix-content {
-  @apply flex-1 w-full px-0 py-6 text-[15px] leading-relaxed;
+  @apply flex-1 w-full px-4 py-5 text-[15px] leading-relaxed;
   min-height: 16rem;
 
   p, ul, ol, blockquote, pre {
@@ -131,15 +159,6 @@ rhino-editor.compose-editor .trix-content {
   /* Fill the main area; an open email is anchored above the bottom bar (layout.css) */
   .mail-layout {
     @apply h-full;
-  }
-
-  .compose-sheet,
-  .compose-footer {
-    @apply px-4;
-  }
-
-  .compose-layout {
-    height: calc(100dvh - env(safe-area-inset-top) - var(--mobile-bar-clearance));
   }
 
   /* Topbar in two rows: title + actions, then search + folder picker */

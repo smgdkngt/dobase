@@ -4,7 +4,7 @@ import { formatFileSize } from "services/file_size"
 const FILE_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>'
 
 export default class extends Controller {
-  static targets = ["to", "bccField", "fileInput", "attachmentsList"]
+  static targets = ["to", "ccField", "bccField", "fileInput", "attachmentsList"]
   static values = { unsent: Boolean }
 
   connect() {
@@ -24,8 +24,18 @@ export default class extends Controller {
         }
       }
     }
+    // A conversation picked from the list opens in the pane this form is in, without a visit
+    this._frameClick = (e) => {
+      const link = e.target.closest?.("a[data-turbo-frame]:not([data-turbo-frame='_top'])")
+      if (!link || this.element.contains(link)) return
+      if (this._hasChanges() && !this._submitting && !confirm("You have an unsent message. Discard it?")) {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+      }
+    }
     window.addEventListener("beforeunload", this._beforeUnload)
     document.addEventListener("turbo:before-visit", this._beforeVisit)
+    document.addEventListener("click", this._frameClick, true)
 
     this.element.addEventListener("submit", () => { this._submitting = true })
   }
@@ -33,6 +43,7 @@ export default class extends Controller {
   disconnect() {
     window.removeEventListener("beforeunload", this._beforeUnload)
     document.removeEventListener("turbo:before-visit", this._beforeVisit)
+    document.removeEventListener("click", this._frameClick, true)
   }
 
   // Changes count from when someone first reaches for the form, before their input lands.
@@ -64,14 +75,12 @@ export default class extends Controller {
     this._submitting = true // skip confirmation
   }
 
-  toggleBcc(event) {
-    event.preventDefault()
-    if (this.hasBccFieldTarget) {
-      this.bccFieldTarget.classList.toggle("hidden")
-      if (!this.bccFieldTarget.classList.contains("hidden")) {
-        this.bccFieldTarget.querySelector("input")?.focus()
-      }
-    }
+  // Cc and Bcc wait behind their buttons in the To field until they're wanted
+  showField({ currentTarget, params: { field } }) {
+    const target = this[`${field}FieldTarget`]
+    target.classList.remove("hidden")
+    target.querySelector("input[type=text]")?.focus()
+    currentTarget.remove()
   }
 
   // Picking files again replaces what the input holds, so put back the ones picked before
