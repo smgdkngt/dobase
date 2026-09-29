@@ -110,8 +110,10 @@ class SmtpSendService
     smtp = Net::SMTP.new(@account.smtp_host, @account.smtp_port)
 
     if @account.smtp_tls
+      # set_params brings the system's certificate authorities and a host name check;
+      # a bare context trusts no one, so every certificate failed to verify
       ssl_context = OpenSSL::SSL::SSLContext.new
-      ssl_context.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      ssl_context.set_params(verify_mode: OpenSSL::SSL::VERIFY_PEER)
       smtp.enable_starttls_auto(ssl_context)
     end
 
@@ -152,7 +154,7 @@ class SmtpSendService
 
   def add_text_and_html(message, text, html)
     message.text_part = Mail::Part.new(body: text, content_type: "text/plain; charset=UTF-8")
-    message.html_part = Mail::Part.new(body: html, content_type: "text/html; charset=UTF-8") if html.present?
+    message.html_part = Mail::Part.new(body: Mails::OutgoingHtml.from(html), content_type: "text/html; charset=UTF-8") if html.present?
   end
 
   def add_attachment(mail, attachment)

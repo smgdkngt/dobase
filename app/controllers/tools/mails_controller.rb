@@ -79,7 +79,7 @@ module Tools
       end
 
       body_html = params[:body]
-      body_plain = ActionController::Base.helpers.strip_tags(body_html)&.gsub(/\s+/, " ")&.strip
+      body_plain = ::Mails::PlainText.from_html(body_html)
 
       all_attachments = Array(params[:attachments])
 
@@ -175,6 +175,9 @@ module Tools
         format.html do
           flash.now[:alert] = message
           build_compose_defaults
+          # Still the draft it was, with the attachments it forwards
+          @draft = @mail_account.messages.drafts.find_by(id: params[:draft_id]) if params[:draft_id].present?
+          @forward_attachments = @mail_account.attachments.where(id: params[:forward_attachment_ids]).select { |attachment| attachment.file.attached? } if params[:forward_attachment_ids].present?
           @unsent = true
           render :new, status: :unprocessable_entity
         end
@@ -307,7 +310,8 @@ module Tools
     def build_reply_body(message)
       date_str = message.sent_at&.strftime("%a, %b %-d, %Y at %-I:%M %p")
       quoted = message.body_html.presence || helpers.simple_format(message.body_plain.to_s)
-      "<br><br><p>On #{date_str}, #{message.display_from} &lt;#{message.from_address}&gt; wrote:</p><blockquote>#{quoted}</blockquote>"
+      from = ERB::Util.html_escape("#{message.display_from} <#{message.from_address}>")
+      "<br><br><p>On #{date_str}, #{from} wrote:</p><blockquote>#{quoted}</blockquote>"
     end
 
     def build_forward_body(message)

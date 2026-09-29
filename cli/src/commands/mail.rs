@@ -71,7 +71,7 @@ pub fn definitions() -> Vec<Definition> {
         ),
         command(
             "mail reply",
-            "Reply to a message: saves a draft, or sends real email right away with --send",
+            "Reply to a message, quoting it below your text: saves a draft, or sends real email right away with --send",
             &["TOOL/MESSAGE"],
             vec![
                 flag("body", "TEXT", "Your reply (plain text, or HTML with --html)"),
@@ -336,7 +336,7 @@ fn reply(ctx: &mut Ctx, args: &Args) -> Result<()> {
         "to": to.join(", "),
         "cc": cc.join(", "),
         "subject": format!("Re: {}", strip_reply_prefix(&original["subject"].s())),
-        "body": ctx.rich_text(args.flag("body").unwrap(), args.on("html"))?,
+        "body": format!("{}{}", ctx.rich_text(args.flag("body").unwrap(), args.on("html"))?, quoted_message(original)),
         "in_reply_to": original["message_id"],
     });
     if args.on("send") {
@@ -601,8 +601,18 @@ fn open_draft(ctx: &mut Ctx, args: &Args, draft: &Value) -> Result<()> {
 }
 
 /// The forwarded message below the note, with the header block other mail clients add.
+/// The message a reply answers, quoted below it like the compose page's own replies do.
+fn quoted_message(message: &Value) -> String {
+    format!(
+        "<p>On {}, {} wrote:</p><blockquote>{}</blockquote>",
+        escape_html(&moment(&message["sent_at"]).unwrap_or_default()),
+        escape_html(&address(&message["from_name"], &message["from_address"])),
+        message_html(message)
+    )
+}
+
 fn forwarded_message(message: &Value) -> String {
-    let body = message["body_html"].opt().filter(|html| !html.trim().is_empty()).unwrap_or_else(|| paragraphs(&message["body"].s()));
+    let body = message_html(message);
     format!(
         "<br><br><p>---------- Forwarded message ----------<br>From: {}<br>Date: {}<br>Subject: {}<br>To: {}</p>{body}",
         escape_html(&address(&message["from_name"], &message["from_address"])),
@@ -610,6 +620,11 @@ fn forwarded_message(message: &Value) -> String {
         escape_html(&message["subject"].s()),
         escape_html(&list_of(&message["to"])),
     )
+}
+
+/// The HTML of a message, or its text as paragraphs when it has none.
+fn message_html(message: &Value) -> String {
+    message["body_html"].opt().filter(|html| !html.trim().is_empty()).unwrap_or_else(|| paragraphs(&message["body"].s()))
 }
 
 /// Only the last path segment of a name from the mail, never an empty or dot-only one.

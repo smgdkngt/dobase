@@ -79,7 +79,7 @@ module Tools
         attributes[:subject] = params[:subject] if params.key?(:subject)
         if params.key?(:body)
           attributes[:body_html] = params[:body]
-          attributes[:body_plain] = ActionController::Base.helpers.strip_tags(params[:body])&.gsub(/\s+/, " ")&.strip
+          attributes[:body_plain] = ::Mails::PlainText.from_html(params[:body])
         end
         attributes[:in_reply_to] = params[:in_reply_to] if params.key?(:in_reply_to)
         attributes
