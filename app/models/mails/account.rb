@@ -42,6 +42,15 @@ module Mails
       []
     end
 
+    # The folders synced besides the inbox and sent mail: the account's own, and the archive
+    # folder, where other mail programs archive to as well
+    def other_folders_to_sync
+      archive = archive_folder.presence if JSON.parse(synced_folders.presence || "[]").include?(archive_folder)
+      [ *custom_folders, archive ].compact
+    rescue JSON::ParserError
+      custom_folders
+    end
+
     # Syncing again with the same credentials only gets turned down again, so the scheduled
     # sync skips the account until its settings change or someone asks for a sync
     def authentication_failed?

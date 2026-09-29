@@ -16,7 +16,7 @@ class SyncEmailsJob < ApplicationJob
     service.sync_inbox(limit: 50)
     service.sync_sent(limit: 50)
 
-    mail_account.custom_folders.each do |folder|
+    mail_account.other_folders_to_sync.each do |folder|
       service.sync_folder(folder, limit: 50)
     end
 
