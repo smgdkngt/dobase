@@ -241,6 +241,21 @@ class MailsTest < ApplicationSystemTestCase
     assert_current_path new_tool_mail_path(@tool, forward: message.id)
   end
 
+  test "a draft opens in the editor with space between its paragraphs and lists" do
+    draft = mails_messages(:draft_message)
+    draft.update!(body_html: "<p>First</p><p>Second</p><ul><li>Item</li></ul><p>Last</p>")
+
+    visit new_tool_mail_path(@tool, draft_id: draft.id)
+    wait_for_compose_editor
+
+    gaps = evaluate_script(<<~JS)
+      [...document.querySelectorAll("rhino-editor .trix-content > *")].map((block, index, blocks) =>
+        index == 0 ? 0 : Math.round(block.getBoundingClientRect().top - blocks[index - 1].getBoundingClientRect().bottom))
+    JS
+    assert_equal 4, gaps.size
+    assert gaps.drop(1).all?(&:positive?), "Blocks sit right under each other: #{gaps}"
+  end
+
   test "leaving a message that failed to send asks to discard it" do
     visit new_tool_mail_path(@tool)
     wait_for_compose_editor
@@ -252,6 +267,25 @@ class MailsTest < ApplicationSystemTestCase
 
     dismiss_confirm("You have an unsent message. Discard it?") { click_on "Project Board" }
     assert_selector "input[name='to'][value='not-an-address']", visible: :hidden
+  end
+
+  test "a draft that fails to send comes back whole, still as the draft" do
+    draft = mails_messages(:draft_message)
+    draft.update!(body_html: "<p>Hello there</p>")
+    SmtpSendService.alias_method :send_email_without_failure, :send_email
+    SmtpSendService.define_method(:send_email) { |**| raise SmtpSendService::SendError, "Error: certificate verify failed" }
+
+    visit new_tool_mail_path(@tool, draft_id: draft.id)
+    wait_for_compose_editor
+    click_on "Send"
+
+    assert_text "Error: certificate verify failed"
+    assert_selector "[data-email-autocomplete-target=tags]", text: "recipient@example.com"
+    assert_selector "rhino-editor [contenteditable]", text: "Hello there"
+    assert_selector "input[name=draft_id][value='#{draft.id}']", visible: :hidden
+  ensure
+    SmtpSendService.alias_method :send_email, :send_email_without_failure
+    SmtpSendService.remove_method :send_email_without_failure
   end
 
   test "bulk select and archive" do

@@ -338,6 +338,44 @@ module Tools
       assert_equal [ own_attachment.file.blob ], deliveries.first[:attachments]
     end
 
+    test "sent mail has a text part with the paragraphs of its HTML" do
+      deliveries = capture_sent_mail do
+        post tool_mails_path(@tool), params: { to: "friend@example.com", subject: "Plans", body: "<p>Hi,</p><p>Thursday works.</p>" }
+      end
+
+      assert_equal "<p>Hi,</p><p>Thursday works.</p>", deliveries.first[:body_html]
+      assert_equal "Hi,\n\nThursday works.", deliveries.first[:body]
+    end
+
+    test "a reply from the compose page quotes the original under its sender" do
+      original = mails_messages(:inbox_read)
+      original.update!(from_name: "Ann <Lee>", body_html: "<p>Lunch?</p>")
+
+      get new_tool_mail_path(@tool, reply_to: original.id)
+
+      body = css_select("input[type=hidden][name=body]").first["value"]
+      assert_includes body, "Ann &lt;Lee&gt; &lt;#{original.from_address}&gt; wrote:</p><blockquote><p>Lunch?</p></blockquote>"
+    end
+
+    test "a draft that fails to send is shown again as that draft, with its forwarded attachments" do
+      draft = mails_messages(:draft_message)
+      attachment = attachment_on(draft, "report.pdf")
+      SmtpSendService.alias_method :send_email_without_failure, :send_email
+      SmtpSendService.define_method(:send_email) { |**| raise SmtpSendService::SendError, "Error: certificate verify failed" }
+
+      post tool_mails_path(@tool), params: {
+        draft_id: draft.id, to: "friend@example.com", subject: "Plans", body: "<p>Hi</p>", forward_attachment_ids: [ attachment.id ]
+      }
+
+      assert_response :unprocessable_entity
+      assert_select "input[type=hidden][name=draft_id][value=?]", draft.id.to_s
+      assert_select "input[type=hidden][name='forward_attachment_ids[]'][value=?]", attachment.id.to_s
+      assert_select "meta[name=turbo-refresh-method][content=replace]"
+    ensure
+      SmtpSendService.alias_method :send_email, :send_email_without_failure
+      SmtpSendService.remove_method :send_email_without_failure
+    end
+
     test "a draft with forwarded attachments sends them along from the compose page" do
       draft = mails_messages(:draft_message)
       attachment = attachment_on(draft, "report.pdf")

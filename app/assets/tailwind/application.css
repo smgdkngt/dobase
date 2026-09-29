@@ -15,3 +15,6 @@
 @import "./tools/mails.css";
 @import "./tools/room.css";
 @import "./tools/todo.css";
+
+/* Installed app window (unlayered, see the file) */
+@import "./app_window.css";

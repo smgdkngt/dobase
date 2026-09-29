@@ -77,6 +77,22 @@ Turbo.config.forms.confirm = (message, element, submitter) => {
   })
 }
 
+// Mark an installed app window, so app_window.css can make it feel like a native app.
+// Remembered for the window, in case it stops matching standalone in full screen.
+const appWindow = window.matchMedia("(display-mode: standalone), (display-mode: window-controls-overlay)")
+
+function markAppWindow() {
+  try {
+    if (appWindow.matches) sessionStorage.setItem("app-window", "1")
+    if (sessionStorage.getItem("app-window")) document.documentElement.dataset.appWindow = ""
+  } catch {
+    if (appWindow.matches) document.documentElement.dataset.appWindow = ""
+  }
+}
+
+markAppWindow()
+document.addEventListener("turbo:load", markAppWindow)
+
 // Register service worker for PWA support
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/service-worker.js", { scope: "/" })

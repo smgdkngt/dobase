@@ -11,6 +11,25 @@ class SmtpSendServiceTest < ActiveSupport::TestCase
     @service.define_singleton_method(:build_smtp) { smtp }
   end
 
+  test "STARTTLS checks the server's certificate against the system's authorities and its host name" do
+    smtp = SmtpSendService.new(@account).send(:build_smtp)
+    context = smtp.instance_variable_get(:@ssl_context_starttls)
+
+    assert smtp.starttls_auto?
+    assert_equal OpenSSL::SSL::VERIFY_PEER, context.verify_mode
+    assert context.verify_hostname
+    assert_not_nil context.cert_store
+  end
+
+  test "the HTML part carries the editor's spacing inline, the text part has its paragraphs" do
+    @service.send_email(to: [ "friend@example.com" ], subject: "Plans", body: "Hi\n\nThursday", body_html: "<p>Hi</p><p>Thursday</p>")
+
+    mail = Mail.new(@smtp.deliveries.sole[:message])
+    assert_includes mail.html_part.decoded, '<p style="margin:0 0 1em 0">Hi</p><p style="margin:0 0 1em 0">Thursday</p>'
+    assert_equal "Hi\n\nThursday", mail.text_part.decoded
+    assert_equal "<p>Hi</p><p>Thursday</p>", @account.messages.find_by!(subject: "Plans").body_html
+  end
+
   test "sending delivers the email and keeps a copy in Sent" do
     assert_difference -> { @account.messages.sent.count }, 1 do
       @service.send_email(to: [ "friend@example.com" ], cc: [ "colleague@example.com" ], subject: "Hello",
@@ -116,7 +135,7 @@ class SmtpSendServiceTest < ActiveSupport::TestCase
     assert_equal [ "multipart/alternative", "text/plain" ], mail.parts.map(&:mime_type)
     assert_equal [ "text/plain", "text/html" ], mail.parts.first.parts.map(&:mime_type)
     assert_equal [ "notes.txt" ], mail.attachments.map(&:filename)
-    assert_equal [ "Attached", "<p>Attached</p>" ], [ mail.text_part.decoded, mail.html_part.decoded ]
+    assert_equal [ "Attached", %(<p style="margin:0 0 1em 0">Attached</p>) ], [ mail.text_part.decoded, mail.html_part.decoded ]
   end
 
   test "an email without attachments has its text and HTML as alternatives" do
