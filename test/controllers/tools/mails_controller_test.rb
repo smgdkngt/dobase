@@ -253,13 +253,13 @@ module Tools
     end
 
     test "create sends to recipients written with their name" do
-      deliveries = capture_smtp_deliveries do
+      deliveries = capture_smtp_deliveries_in_the_background do
         post tool_mails_path(@tool), params: {
           to: "Friendly Sender <sender@example.com>", cc: "Reports Bot <reports@example.com>, boss@example.com", subject: "Hello", body: "<p>Hi</p>"
         }
       end
 
-      assert_redirected_to tool_mails_path(@tool, folder: "sent")
+      assert_redirected_to tool_mails_path(@tool, folder: "inbox")
       assert_equal [ "sender@example.com", "reports@example.com", "boss@example.com" ], deliveries.sole[:recipients]
       assert_match "To: Friendly Sender <sender@example.com>", deliveries.sole[:message]
     end
@@ -280,13 +280,13 @@ module Tools
       get new_tool_mail_path(@tool, reply_to: original.id)
       assert_select "input[name=in_reply_to][value=?]", original.message_id
 
-      deliveries = capture_smtp_deliveries do
+      deliveries = capture_smtp_deliveries_in_the_background do
         post tool_mails_path(@tool), params: {
           to: "reports@example.com", subject: "Re: Your weekly report", body: "<p>Thanks</p>", in_reply_to: original.message_id
         }
       end
 
-      assert_redirected_to tool_mails_path(@tool, folder: "sent")
+      assert_redirected_to tool_mails_path(@tool, folder: "inbox")
       assert_match "In-Reply-To: <msg-002@example.com>", deliveries.sole[:message]
       assert_match(/References: <msg-000@example.com>\s+<msg-002@example.com>/, deliveries.sole[:message])
 
@@ -371,7 +371,7 @@ module Tools
         }
       end
 
-      assert_redirected_to tool_mails_path(@tool, folder: "sent")
+      assert_redirected_to tool_mails_path(@tool, folder: "inbox")
       assert_equal 1, deliveries.size
       assert_equal [ own_attachment.file.blob ], deliveries.first[:attachments]
     end
@@ -395,20 +395,44 @@ module Tools
       assert_includes body, "Ann &lt;Lee&gt; &lt;#{original.from_address}&gt; wrote:</p><blockquote><p>Lunch?</p></blockquote>"
     end
 
-    test "a draft that fails to send is shown again as that draft, with its forwarded attachments" do
+    test "mail goes out in the background, and the draft it was is gone once it has" do
       draft = mails_messages(:draft_message)
-      attachment = attachment_on(draft, "report.pdf")
+      draft.update!(uid: 9)
+
+      post tool_mails_path(@tool), params: { draft_id: draft.id, folder: "archive", to: "friend@example.com", bcc: "me@example.com", subject: "Plans", body: "<p>Hi</p>" }
+
+      assert_redirected_to tool_mails_path(@tool, folder: "archive")
+      assert_enqueued_with(job: SendMailJob, args: [ draft, users(:one) ])
+      assert_equal [ [ "friend@example.com" ], [ "me@example.com" ], "Plans" ], [ draft.reload.to_addresses_list, draft.bcc_addresses_list, draft.subject ]
+
+      deliveries = capture_smtp_deliveries { perform_enqueued_jobs(only: SendMailJob) }
+
+      assert_equal [ "friend@example.com", "me@example.com" ], deliveries.sole[:recipients]
+      assert_not ::Mails::Message.exists?(draft.id)
+      assert_enqueued_with(job: ImapSyncJob, args: [ @account.id, "delete_draft", 9, "Drafts" ])
+      assert @account.messages.sent.exists?(subject: "Plans")
+    end
+
+    test "mail that can't be sent stays a draft, with its attachments, and the sender hears why" do
+      attachment = attachment_on(mails_messages(:inbox_read), "report.pdf")
       SmtpSendService.alias_method :send_email_without_failure, :send_email
       SmtpSendService.define_method(:send_email) { |**| raise SmtpSendService::SendError, "Error: certificate verify failed" }
 
-      post tool_mails_path(@tool), params: {
-        draft_id: draft.id, to: "friend@example.com", subject: "Plans", body: "<p>Hi</p>", forward_attachment_ids: [ attachment.id ]
-      }
+      perform_enqueued_jobs(only: SendMailJob) do
+        post tool_mails_path(@tool), params: {
+          to: "friend@example.com", subject: "Plans", body: "<p>Hi</p>", forward_attachment_ids: [ attachment.id ],
+          attachments: [ fixture_file_upload("sample.png", "image/png") ]
+        }
+      end
 
-      assert_response :unprocessable_entity
-      assert_select "input[type=hidden][name=draft_id][value=?]", draft.id.to_s
-      assert_select "input[type=hidden][name='forward_attachment_ids[]'][value=?]", attachment.id.to_s
-      assert_select "meta[name=turbo-refresh-method][content=replace]"
+      draft = @account.messages.drafts.find_by!(subject: "Plans")
+      assert_equal [ "report.pdf", "sample.png" ], draft.attachments.map(&:filename).sort
+      assert_enqueued_with(job: SyncDraftJob, args: [ draft.id ])
+
+      notification = users(:one).notifications.order(:created_at).last
+      assert_equal "MailNotSentNotifier", notification.event.type
+      assert_equal "Couldn't send “Plans”, it's in your drafts: Error: certificate verify failed", notification.message
+      assert_equal new_tool_mail_path(@tool, draft_id: draft.id), notification.url
     ensure
       SmtpSendService.alias_method :send_email, :send_email_without_failure
       SmtpSendService.remove_method :send_email_without_failure
@@ -433,12 +457,17 @@ module Tools
       end
     end
 
+    # The compose page sends mail with SendMailJob
+    def capture_smtp_deliveries_in_the_background(&block)
+      capture_smtp_deliveries { perform_enqueued_jobs(only: SendMailJob, &block) }
+    end
+
     # Records what would have been sent instead of talking to an SMTP server.
     def capture_sent_mail
       deliveries = []
       SmtpSendService.alias_method :send_email_without_capture, :send_email
       SmtpSendService.define_method(:send_email) { |**options| deliveries << options }
-      yield
+      perform_enqueued_jobs(only: SendMailJob) { yield }
       deliveries
     ensure
       SmtpSendService.alias_method :send_email, :send_email_without_capture

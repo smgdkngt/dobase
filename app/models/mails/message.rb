@@ -62,6 +62,33 @@ module Mails
       self.cc_addresses = list.to_json
     end
 
+    # Only drafts have a Bcc: mail that came in doesn't show one
+    def bcc_addresses_list
+      return [] if bcc_addresses.blank?
+      JSON.parse(bcc_addresses)
+    rescue JSON::ParserError
+      []
+    end
+
+    # Attachments of other mail, like the one a draft forwards. The copies share the
+    # stored file with the original.
+    def copy_attachments(originals)
+      originals.each do |original|
+        next unless original.file.attached?
+
+        attachments.build(original.slice(:filename, :content_type, :file_size)).file.attach(original.file.blob)
+      end
+      self.has_attachments = attachments.any?
+    end
+
+    # Files uploaded with the compose form
+    def attach_uploads(files)
+      files.each do |file|
+        attachments.build(filename: file.original_filename, content_type: file.content_type, file_size: file.size).file.attach(file)
+      end
+      self.has_attachments = attachments.any?
+    end
+
     def body
       body_html.presence || body_plain
     end

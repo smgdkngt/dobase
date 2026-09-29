@@ -374,17 +374,19 @@ module Tools
       assert_equal mails_messages(:inbox_read).message_id, @smtp.sent.sole[:in_reply_to]
     end
 
-    test "sending a draft deletes the draft" do
+    test "sending a draft deletes the draft, here and on the server" do
       draft = mails_messages(:draft_message)
+      draft.update!(uid: 9)
 
-      post tool_mails_path(@tool), headers: @headers, as: :json, params: {
-        to: "recipient@example.com", subject: "Draft email", body: "<p>This is a draft message.</p>", draft_id: draft.id
-      }
+      assert_enqueued_with(job: ImapSyncJob, args: [ @tool.mail_account.id, "delete_draft", 9, "Drafts" ]) do
+        post tool_mails_path(@tool), headers: @headers, as: :json, params: {
+          to: "recipient@example.com", subject: "Draft email", body: "<p>This is a draft message.</p>", draft_id: draft.id
+        }
+      end
 
       assert_response :created
       assert_equal 1, @smtp.sent.size
       assert_not ::Mails::Message.exists?(draft.id)
-      assert_equal [ [ :delete_draft, nil ] ], @imap.calls
     end
 
     test "send refuses invalid addresses without sending anything" do

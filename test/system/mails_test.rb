@@ -3,6 +3,7 @@
 require "application_system_test_case"
 
 class MailsTest < ApplicationSystemTestCase
+  include ActiveJob::TestHelper
   setup do
     @user = users(:one)
     @tool = tools(:my_mail)
@@ -180,8 +181,10 @@ class MailsTest < ApplicationSystemTestCase
       assert_equal "sender@example.com", find("input[name='to']", visible: :hidden).value
 
       find("input[name='subject']").set("Hello")
-      click_on "Send"
-      assert_text "Email sent successfully."
+      perform_enqueued_jobs(only: SendMailJob) do
+        click_on "Send"
+        assert_text "Sending your email…"
+      end
     end
 
     assert_equal [ "sender@example.com" ], deliveries.sole[:recipients]
@@ -200,8 +203,10 @@ class MailsTest < ApplicationSystemTestCase
       assert_text "report.txt"
       assert_text "notes.txt"
 
-      click_on "Send"
-      assert_text "Email sent successfully."
+      perform_enqueued_jobs(only: SendMailJob) do
+        click_on "Send"
+        assert_text "Sending your email…"
+      end
     end
 
     assert_match "report.txt", deliveries.sole[:message]
@@ -319,7 +324,7 @@ class MailsTest < ApplicationSystemTestCase
     assert_selector "input[name='to'][value='not-an-address']", visible: :hidden
   end
 
-  test "a draft that fails to send comes back whole, still as the draft" do
+  test "a draft that fails to send stays whole, and the sender hears why" do
     draft = mails_messages(:draft_message)
     draft.update!(body_html: "<p>Hello there</p>")
     SmtpSendService.alias_method :send_email_without_failure, :send_email
@@ -327,9 +332,14 @@ class MailsTest < ApplicationSystemTestCase
 
     visit new_tool_mail_path(@tool, draft_id: draft.id)
     wait_for_compose_editor
-    click_on "Send"
+    perform_enqueued_jobs(only: SendMailJob) do
+      click_on "Send"
+      assert_text "Sending your email…"
+    end
 
-    assert_text "Error: certificate verify failed"
+    assert_match "Error: certificate verify failed", users(:one).notifications.order(:created_at).last.message
+    visit new_tool_mail_path(@tool, draft_id: draft.id)
+    wait_for_compose_editor
     assert_selector "[data-email-autocomplete-target=tags]", text: "recipient@example.com"
     assert_selector "rhino-editor [contenteditable]", text: "Hello there"
     assert_selector "input[name=draft_id][value='#{draft.id}']", visible: :hidden

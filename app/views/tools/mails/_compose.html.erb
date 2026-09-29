@@ -10,6 +10,8 @@
                 "beforeinput->compose#startEditing:capture dragenter->compose#startEditing:capture " \
                 "turbo:submit-end->compose#submitEnded"
       } do %>
+  <%# Where the page goes back to once the mail is on its way %>
+  <%= hidden_field_tag :folder, @current_folder %>
   <% if @draft %>
     <%= hidden_field_tag :draft_id, @draft.id %>
   <% end %>

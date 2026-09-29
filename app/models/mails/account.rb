@@ -64,6 +64,12 @@ module Mails
       end
     end
 
+    # A draft written from here: it's saved in the server's Drafts folder by SyncDraftJob
+    def new_draft(**attributes)
+      messages.new(draft: true, message_id: "<draft-#{SecureRandom.uuid}@local>", folder: "Drafts",
+        from_address: email_address, from_name: display_name, read: true, sent_at: Time.current, **attributes)
+    end
+
     def record_contact(email, name = nil)
       contact = contacts.find_or_initialize_by(email_address: email.downcase.strip)
       contact.name = name if name.present?
