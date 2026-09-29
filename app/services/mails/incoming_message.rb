@@ -27,7 +27,7 @@ module Mails
 
       from = envelope.from&.first
       from_address = from ? "#{from.mailbox}@#{from.host}" : nil
-      from_name = decode_rfc2047(from&.name)
+      from_name = unquote(decode_rfc2047(from&.name))
 
       to_list = (envelope.to || []).map { |addr| "#{addr.mailbox}@#{addr.host}" }
       cc_list = (envelope.cc || []).map { |addr| "#{addr.mailbox}@#{addr.host}" }
@@ -153,6 +153,13 @@ module Mails
       safe_utf8(decoded)
     rescue
       safe_utf8(str)
+    end
+
+    # Some servers hand over a name as it's written in the header, in quotes and with its
+    # specials escaped: "Ann Example \(Acme\)" is Ann Example (Acme)
+    def unquote(name)
+      return name unless name&.match?(/\A\s*".*"\s*\z/m)
+      name.strip[1..-2].gsub(/\\+(.)/m, '\1').strip
     end
 
     def safe_utf8(str)
