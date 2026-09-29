@@ -68,23 +68,36 @@
 
     safe_srcdoc = srcdoc_for.call(images_stripped, policy: remote_content_policy)
     full_srcdoc = srcdoc_for.call(sanitized)
+    images_trusted = has_remote_images && message.account.shows_images_from?(message.from_address)
+    can_trust_sender = message.from_address.present? && !message.from_address.casecmp?(message.account.email_address)
   %>
   <div data-controller="email-frame"
        data-email-frame-full-srcdoc-value="<%= full_srcdoc %>">
-    <% if has_remote_images %>
-      <div class="flex items-center gap-2 px-3 py-2 mb-2 rounded-md bg-background-secondary text-xs text-text-secondary"
-           data-email-frame-target="banner">
+    <% if images_trusted %>
+      <% if can_trust_sender %>
+        <div class="email-images-note">
+          <%= render "shared/icon", name: "image", size: 14, class: "text-text-tertiary shrink-0" %>
+          <span>Images from <%= message.from_address %> are always shown.</span>
+          <%= button_to "Stop", tool_mail_trusted_sender_path(message.account.tool, message), method: :delete,
+                class: "email-images-action", form_class: "contents" %>
+        </div>
+      <% end %>
+    <% elsif has_remote_images %>
+      <div class="email-images-note" data-email-frame-target="banner">
         <%= render "shared/icon", name: "image", size: 14, class: "text-text-tertiary shrink-0" %>
         <span>Images are hidden to protect your privacy.</span>
-        <button type="button"
-                class="font-medium text-accent hover:underline bg-transparent border-none cursor-pointer p-0 text-xs"
-                data-action="email-frame#showImages">Show images</button>
+        <button type="button" class="email-images-action" data-action="email-frame#showImages">Show images</button>
+        <% if can_trust_sender %>
+          <span aria-hidden="true">&middot;</span>
+          <%= button_to "Always show from #{message.from_address}", tool_mail_trusted_sender_path(message.account.tool, message),
+                class: "email-images-action", form_class: "contents" %>
+        <% end %>
       </div>
     <% end %>
     <div class="email-frame">
       <iframe
         sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-        srcdoc="<%= safe_srcdoc %>"
+        srcdoc="<%= images_trusted ? full_srcdoc : safe_srcdoc %>"
         data-email-frame-target="frame"
         style="width: 100%; border: none; height: 0; overflow: hidden; display: block;"
       ></iframe>

@@ -385,6 +385,18 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert @account.messages.exists?(folder: "Projects", uid: 7)
   end
 
+  test "a sender's name loses the quotes and escapes of the header" do
+    incoming_message.send(:save_email, fetch_data(9, report_mail.to_s, from_name: '"Ann Example \\\\(Acme\\\\)"'), "INBOX")
+
+    assert_equal "Ann Example (Acme)", @account.messages.find_by!(message_id: "report-9@example.com").from_name
+  end
+
+  test "a sender's name keeps quotes around a part of it" do
+    incoming_message.send(:save_email, fetch_data(9, report_mail.to_s, from_name: 'Ann "The Boss" Example'), "INBOX")
+
+    assert_equal 'Ann "The Boss" Example', @account.messages.find_by!(message_id: "report-9@example.com").from_name
+  end
+
   test "saves attachments from the downloaded message, with decoded names" do
     incoming_message.send(:save_email, fetch_data(9, report_mail.to_s), "INBOX")
 
@@ -553,10 +565,10 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     @incoming_message ||= Mails::IncomingMessage.new(@account)
   end
 
-  def fetch_data(uid, raw)
+  def fetch_data(uid, raw, from_name: "Ann")
       message_id = Mail.new(raw).message_id
       envelope = Net::IMAP::Envelope.new(
-        nil, "Test", [ Net::IMAP::Address.new("Ann", nil, "ann", "example.com") ], nil, nil,
+        nil, "Test", [ Net::IMAP::Address.new(from_name, nil, "ann", "example.com") ], nil, nil,
         [ Net::IMAP::Address.new(nil, nil, "me", "example.com") ], nil, nil, nil, "<#{message_id}>"
       )
       Net::IMAP::FetchData.new(1, { "UID" => uid, "ENVELOPE" => envelope, "FLAGS" => [], "INTERNALDATE" => Time.current, "BODY[]" => raw })
