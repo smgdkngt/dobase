@@ -317,18 +317,17 @@ func (c *Ctx) Paragraph(text string, indent int) {
 	}
 }
 
-// OpenInBrowser opens url in the default browser: `open` on macOS, `xdg-open` elsewhere.
+// OpenInBrowser opens url in the default browser, or the installed Dobase app when it
+// handles the link: `open` on macOS, `start` on Windows, `xdg-open` elsewhere.
 func OpenInBrowser(url string) error {
-	opener := "xdg-open"
+	opener, args := "xdg-open", []string{url}
 	switch runtime.GOOS {
 	case "darwin":
 		opener = "open"
 	case "windows":
-		return exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Run()
+		opener, args = "cmd", []string{"/C", "start", "", url}
 	}
-	cmd := exec.Command(opener, url)
-	cmd.Stdin, cmd.Stdout = nil, nil
-	if err := cmd.Run(); err != nil {
+	if err := exec.Command(opener, args...).Run(); err != nil {
 		return fmt.Errorf("%s: %w", opener, err)
 	}
 	return nil
