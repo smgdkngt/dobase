@@ -215,6 +215,27 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_equal %w[INBOX Receipts Sent Drafts], JSON.parse(@account.reload.synced_folders)
   end
 
+  test "an account without an archive folder archives to the server's, and mail archived before moves there" do
+    archived = mails_messages(:inbox_unread)
+    archived.update!(archived: true, uid: 41)
+    server = FakeImapServer.new(folders: [ "INBOX", "Receipts", [ "Archives", :Archive ] ])
+
+    assert_enqueued_with(job: ImapSyncJob, args: [ @account.id, "move_to_folder", 41, "INBOX", "Archives" ]) do
+      connect_to_imap(server) { @service.sync_folders }
+    end
+    assert_equal "Archives", @account.reload.archive_folder
+
+    assert_no_enqueued_jobs(only: ImapSyncJob) { connect_to_imap(server) { @service.sync_folders } }
+  end
+
+  test "an archive folder that was set stays" do
+    @account.update!(archive_folder: "Done")
+
+    connect_to_imap(FakeImapServer.new(folders: [ "INBOX", "Done", "Archive" ])) { @service.sync_folders }
+
+    assert_equal "Done", @account.reload.archive_folder
+  end
+
   # --- Sent mail on the server --------------------------------------------------
   # Mail sent over SMTP only lands in the server's sent folder when the server puts it
   # there itself (Gmail, Office 365). Otherwise the sync adds it.

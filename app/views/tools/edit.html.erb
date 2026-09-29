@@ -248,7 +248,7 @@
             <div class="mb-5">
               <h3 class="text-sm font-semibold text-text-primary mb-3">Archive Folder</h3>
               <%= f.text_field :archive_folder, class: "input", "aria-label": "Archive folder", placeholder: "Archive" %>
-              <p class="help-text">IMAP folder to move archived emails to. Leave blank to just mark as read.</p>
+              <p class="help-text">IMAP folder to move archived emails to. Left blank, the server's archive folder is used, or archiving only marks mail as read if it has none.</p>
             </div>
 
             <%# Auto-refresh %>
