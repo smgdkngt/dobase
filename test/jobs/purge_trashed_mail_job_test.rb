@@ -18,6 +18,15 @@ class PurgeTrashedMailJobTest < ActiveJob::TestCase
     assert Mails::Message.where(trashed: false).exists?
   end
 
+  test "leaves mail in the server's trash to the server" do
+    in_server_trash = trash(mails_messages(:inbox_unread), 31.days.ago)
+    in_server_trash.update_columns(folder: "Trash")
+
+    PurgeTrashedMailJob.perform_now
+
+    assert Mails::Message.exists?(in_server_trash.id)
+  end
+
   private
 
   def trash(message, at)

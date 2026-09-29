@@ -14,9 +14,7 @@ module Tools
       def create
         folder = params[:folder] || "inbox"
         next_msg = find_next_message(@message, folder)
-        messages = with_their_conversations([ @message ], folder: folder).reject(&:trashed?)
-        messages.each { |message| message.update!(trashed: true, archived: false) }
-        sync_delete_to_imap(messages)
+        @tool.mail_account.trash(with_their_conversations([ @message ], folder: folder))
 
         respond_to do |format|
           format.html { redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Email moved to trash.") }
@@ -27,7 +25,7 @@ module Tools
       # DELETE /tools/:tool_id/mails/:mail_id/trash
       def destroy
         next_msg = find_next_message(@message, "trash")
-        with_their_conversations([ @message ], folder: "trash").each { |message| message.update!(trashed: false) }
+        @tool.mail_account.restore(with_their_conversations([ @message ], folder: "trash"))
 
         respond_to do |format|
           format.html { redirect_to_next_mail_or_fallback(next_msg, folder: "trash", notice: "Email restored.") }
@@ -37,11 +35,7 @@ module Tools
 
       # DELETE /tools/:tool_id/mails/trash (empty trash)
       def destroy_all
-        trashed = @tool.mail_account.messages.trashed
-        trashed.where.not(uid: nil).find_each do |message|
-          ImapSyncJob.perform_later(@tool.mail_account.id, "delete_message", message.uid, message.folder || "INBOX")
-        end
-        count = trashed.destroy_all.count
+        count = @tool.mail_account.delete_for_good(@tool.mail_account.messages.trashed.to_a).size
         redirect_to tool_mails_path(@tool, folder: "trash"), notice: "#{count} email(s) permanently deleted."
       end
 
@@ -49,14 +43,6 @@ module Tools
 
       def set_message
         @message = ::Mails::Message.where(account: @tool.mail_account).find(params[:mail_id])
-      end
-
-      # One connection per folder
-      def sync_delete_to_imap(messages)
-        on_server = messages.select { |message| message.uid.present? && message.folder.present? }
-        on_server.group_by(&:folder).each do |folder, in_folder|
-          ImapSyncJob.perform_later(@tool.mail_account.id, "delete_message", in_folder.map(&:uid), folder)
-        end
       end
     end
   end

@@ -171,11 +171,17 @@ module Mails
     # On the server the message gets a new UID in its new folder, and the next sync of that
     # folder finds it by its Message-ID. Until then it has no UID: with the old one that sync
     # would take it for mail gone from the folder, and remove it.
-    def move_to_folder!(target_folder)
+    def move_to_folder!(target_folder, on_server: true)
       source_folder, source_uid = folder || "INBOX", uid
       account.messages.where(folder: target_folder, message_id: message_id).where.not(id: id).destroy_all
       update!(folder: target_folder, archived: false, trashed: false, uid: nil)
-      ImapSyncJob.perform_later(account.id, "move_to_folder", source_uid, source_folder, target_folder) if source_uid
+      ImapSyncJob.perform_later(account.id, "move_to_folder", source_uid, source_folder, target_folder) if on_server && source_uid
+    end
+
+    # Into the server's trash, where Mails::Account#trash moves it on the server
+    def move_to_trash!
+      account.messages.where(folder: Account::TRASH, message_id: message_id).where.not(id: id).destroy_all
+      update!(folder: Account::TRASH, trashed: true, archived: false, uid: nil)
     end
 
     def conversation_count

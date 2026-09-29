@@ -16,6 +16,21 @@ module Tools
         assert msg.reload.trashed
       end
 
+      test "with a trash on the server, trashing moves mail there and restoring brings it back" do
+        @tool.mail_account.update!(synced_folders: %w[INBOX Sent Trash].to_json)
+        msg = mails_messages(:inbox_read)
+        msg.update!(uid: 21)
+
+        server = FakeImapServer.new(folders: [ "INBOX", [ "Deleted Messages", :Trash ] ])
+        connect_to_imap(server) { perform_enqueued_jobs(only: ImapSyncJob) { post tool_mail_trash_path(@tool, msg, folder: "inbox") } }
+
+        assert_equal [ "Trash", true ], [ msg.reload.folder, msg.trashed? ]
+        assert_equal [ [ [ 21 ], "Deleted Messages" ] ], server.copied
+
+        delete tool_mail_trash_path(@tool, msg)
+        assert_equal [ "INBOX", false ], [ msg.reload.folder, msg.trashed? ]
+      end
+
       test "destroy restores a message from trash" do
         msg = mails_messages(:trashed_message)
         delete tool_mail_trash_path(@tool, msg)

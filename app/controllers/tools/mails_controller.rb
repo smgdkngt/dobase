@@ -103,14 +103,10 @@ module Tools
       folder = params[:folder] || (@message.trashed? ? "trash" : "inbox")
       next_msg = find_next_message(@message, folder)
       if @message.trashed?
-        messages = with_their_conversations([ @message ], folder: "trash").select(&:trashed?)
-        sync_delete_to_imap(messages)
-        messages.each(&:destroy)
+        @tool.mail_account.delete_for_good(with_their_conversations([ @message ], folder: "trash"))
         redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Email permanently deleted.")
       else
-        messages = with_their_conversations([ @message ], folder: folder).reject(&:trashed?)
-        messages.each { |message| message.update(trashed: true) }
-        sync_delete_to_imap(messages)
+        @tool.mail_account.trash(with_their_conversations([ @message ], folder: folder))
         redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Email moved to trash.")
       end
     end
@@ -307,14 +303,6 @@ module Tools
         "Subject: #{ERB::Util.html_escape(message.subject)}<br>" \
         "To: #{ERB::Util.html_escape(message.to_addresses_list.join(', '))}</p>" \
         "#{forwarded}"
-    end
-
-    # One connection per folder
-    def sync_delete_to_imap(messages)
-      on_server = messages.select { |message| message.uid.present? && message.folder.present? }
-      on_server.group_by(&:folder).each do |folder, in_folder|
-        ImapSyncJob.perform_later(@tool.mail_account.id, "delete_message", in_folder.map(&:uid), folder)
-      end
     end
 
     def send_now(to:, cc:, bcc:)
