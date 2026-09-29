@@ -141,6 +141,7 @@ Rails.application.routes.draw do
           resource :archive, only: %i[create destroy]
           resource :trash, only: %i[create destroy]
           resource :move, only: :create
+          resource :trusted_sender, only: %i[create destroy]
         end
       end
 

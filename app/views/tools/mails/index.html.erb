@@ -12,6 +12,10 @@
 
   <%= render "tools/mails/topbar" %>
 
+  <nav class="tool-scroll-area mail-folder-rail" aria-label="Mail folders">
+    <%= render "tools/mails/folder_links", rail: true,
+          folders: mail_folders(inbox_unread: @inbox_unread, drafts_count: @drafts_count, trash_count: @trash_count) %>
+  </nav>
 
   <!-- Message List -->
   <%= render "tools/mails/list_panel" %>
