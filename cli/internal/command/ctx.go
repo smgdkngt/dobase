@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/smgdkngt/dobase/cli/internal/api"
 	"github.com/smgdkngt/dobase/cli/internal/config"
@@ -294,7 +295,7 @@ func (c *Ctx) Table(rows [][]string, indent int) {
 				cells[index] = Ljust(cell, widths[index])
 			}
 		}
-		c.Say(strings.TrimRight(strings.Repeat(" ", indent)+strings.Join(cells, "  "), " \t\n"))
+		c.Say(strings.TrimRightFunc(strings.Repeat(" ", indent)+strings.Join(cells, "  "), unicode.IsSpace))
 	}
 }
 
@@ -311,7 +312,7 @@ func (c *Ctx) Paragraph(text string, indent int) {
 		if strings.TrimSpace(line) == "" {
 			c.Say("")
 		} else {
-			c.Say(strings.Repeat(" ", indent) + strings.TrimRight(line, " \t\r\n"))
+			c.Say(strings.Repeat(" ", indent) + strings.TrimRightFunc(line, unicode.IsSpace))
 		}
 	}
 }

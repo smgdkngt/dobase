@@ -163,6 +163,9 @@ func TestPlainTextBecomesEscapedParagraphs(t *testing.T) {
 	if want := "<p>Hello &lt;b&gt;you&lt;/b&gt;<br>second line</p><p>New paragraph</p>"; got != want {
 		t.Fatalf("got %q", got)
 	}
+	if got := command.Paragraphs("One\r\n  \r\nTwo  \n\t\nThree"); got != "<p>One</p><p>Two</p><p>Three</p>" {
+		t.Fatalf("got %q", got)
+	}
 }
 
 func TestDatesAcceptKeywordsAndISODatesOnly(t *testing.T) {

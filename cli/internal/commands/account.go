@@ -3,8 +3,8 @@ package commands
 import (
 	"bufio"
 	"errors"
-	"io"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 

@@ -53,5 +53,7 @@
 
 .DS_Store
 
-# Rust build output of the CLI.
-/cli/target/
+# Build output of the CLI.
+/cli/build/
+/cli/dist/
+/cli/dobase

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/smgdkngt/dobase/cli/internal/api"
@@ -22,17 +23,26 @@ func Clean(text string) string {
 	}, text)
 }
 
-// Paragraphs turns plain text into HTML paragraphs: blank lines separate them,
-// single newlines become <br>.
+// Paragraphs turns plain text into HTML: a paragraph per run of lines, split at
+// blank lines (also ones holding only spaces), and a line break within a paragraph.
 func Paragraphs(text string) string {
-	text = strings.ReplaceAll(strings.TrimSpace(text), "\r\n", "\n")
-	var html strings.Builder
-	for text != "" {
-		paragraph, next, _ := strings.Cut(text, "\n\n")
-		html.WriteString("<p>" + strings.ReplaceAll(EscapeHTML(paragraph), "\n", "<br>") + "</p>")
-		text = strings.TrimLeft(next, "\n")
+	var html, paragraph []string
+	flush := func() {
+		if len(paragraph) > 0 {
+			html = append(html, "<p>"+strings.Join(paragraph, "<br>")+"</p>")
+			paragraph = nil
+		}
 	}
-	return html.String()
+	for _, line := range strings.Split(strings.TrimSuffix(text, "\n"), "\n") {
+		line = strings.TrimRightFunc(line, unicode.IsSpace)
+		if line == "" {
+			flush()
+		} else {
+			paragraph = append(paragraph, EscapeHTML(line))
+		}
+	}
+	flush()
+	return strings.Join(html, "")
 }
 
 func EscapeHTML(text string) string {
