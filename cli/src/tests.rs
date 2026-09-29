@@ -134,6 +134,7 @@ fn plain_text_becomes_escaped_paragraphs() {
         paragraphs("Hello <b>you</b>\nsecond line\n\n\nNew paragraph\n"),
         "<p>Hello &lt;b&gt;you&lt;/b&gt;<br>second line</p><p>New paragraph</p>"
     );
+    assert_eq!(paragraphs("One\r\n  \r\nTwo  \n\t\nThree"), "<p>One</p><p>Two</p><p>Three</p>");
 }
 
 #[test]
@@ -232,7 +233,7 @@ fn replies_sent_from_the_cli_name_the_message_they_answer() {
     assert_eq!(sent[0]["to"], "ann@example.com");
     assert_eq!(sent[0]["cc"], "bob@example.com, cy@example.com");
     assert_eq!(sent[0]["subject"], "Re: Plans");
-    assert_eq!(sent[0]["body"], "<p>Sure</p>");
+    assert!(sent[0]["body"].as_str().unwrap().starts_with("<p>Sure</p><p>On , ann@example.com wrote:</p><blockquote>"));
     assert_eq!(sent[1]["draft_id"], 312);
     drop(sent);
     drop(ctx);
@@ -303,6 +304,34 @@ fn forwards_quote_the_original_and_carry_its_stored_attachments() {
     drop(sent);
     drop(ctx);
     assert!(String::from_utf8(out).unwrap().contains("Saved forward draft 8/400 \"Fwd: Plans\" to ann@example.com with 2 attachments."));
+}
+
+#[test]
+fn replies_quote_the_message_they_answer() {
+    let sent = Rc::new(RefCell::new(Vec::new()));
+    let opened = Rc::new(RefCell::new(Vec::new()));
+    let mut responses = mail_with_attachments();
+    responses["/tools/8/mails/313"] = json!({ "account": { "email_address": "me@example.com" }, "messages": [
+        { "id": 313, "draft": false, "from_name": "", "from_address": "bob@example.com", "to": ["me@example.com"], "cc": [],
+          "subject": "Lunch", "sent_at": "2026-09-25T12:30:00.000+02:00", "body": "Lunch?", "body_html": "<div>Lunch <b>today</b>?</div>" }
+    ] });
+    let mut out = Vec::new();
+    let mut ctx = mail_ctx(&mut out, false, FakeApi::new(responses, &sent), &opened);
+
+    invoke(&mut ctx, "mail reply", &["8/310", "--body", "Plan B.\n\nSee you then."]).unwrap();
+    invoke(&mut ctx, "mail reply", &["8/313", "--body", "<p>Yes</p><ul><li>12:30</li></ul>", "--html"]).unwrap();
+
+    let sent = sent.borrow();
+    assert_eq!(
+        sent[0]["body"],
+        "<p>Plan B.</p><p>See you then.</p><p>On 2026-09-24 14:05, Ann &lt;Lee&gt; &lt;ann@example.com&gt; wrote:</p>\
+         <blockquote><p>Plan A &amp; B</p><p>OK?</p></blockquote>"
+    );
+    assert_eq!(
+        sent[1]["body"],
+        "<p>Yes</p><ul><li>12:30</li></ul><p>On 2026-09-25 12:30, bob@example.com wrote:</p>\
+         <blockquote><div>Lunch <b>today</b>?</div></blockquote>"
+    );
 }
 
 #[test]

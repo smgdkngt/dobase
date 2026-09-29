@@ -23,6 +23,16 @@ module Tools
         assert_enqueued_with job: SyncDraftJob, args: [ draft.id ]
       end
 
+      test "the text part of a draft keeps its paragraphs, lists and quote" do
+        post tool_mail_drafts_path(@tool), params: {
+          to: "ann@example.com", subject: "Re: Plans", in_reply_to: "<msg-001@example.com>",
+          body: "<p>Yes.</p><ul><li>Thursday</li></ul><p>On Mon, Ann wrote:</p><blockquote><p>Lunch?</p><p>Or dinner?</p></blockquote>"
+        }
+
+        draft = ::Mails::Message.drafts.order(:created_at).last
+        assert_equal "Yes.\n\n- Thursday\n\nOn Mon, Ann wrote:\n\n> Lunch?\n>\n> Or dinner?", draft.body_plain
+      end
+
       test "update replaces the draft with the compose form" do
         draft = mails_messages(:draft_message)
 

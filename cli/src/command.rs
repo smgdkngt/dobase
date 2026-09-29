@@ -450,19 +450,15 @@ pub fn clean(text: &str) -> String {
     text.chars().filter(|&char| !matches!(char, '\u{0}'..='\u{8}' | '\u{b}'..='\u{1f}' | '\u{7f}'..='\u{9f}')).collect()
 }
 
+/// Plain text as HTML: a paragraph per run of lines, split at blank lines (also ones
+/// holding only spaces), and a line break within a paragraph.
 pub fn paragraphs(text: &str) -> String {
-    let text = text.trim().replace("\r\n", "\n");
-    let mut html = String::new();
-    let mut rest = text.as_str();
-    while !rest.is_empty() {
-        let (paragraph, next) = match rest.find("\n\n") {
-            Some(index) => (&rest[..index], rest[index..].trim_start_matches('\n')),
-            None => (rest, ""),
-        };
-        html.push_str(&format!("<p>{}</p>", escape_html(paragraph).replace('\n', "<br>")));
-        rest = next;
-    }
-    html
+    let lines: Vec<&str> = text.lines().map(str::trim_end).collect();
+    lines
+        .split(|line| line.is_empty())
+        .filter(|paragraph| !paragraph.is_empty())
+        .map(|paragraph| format!("<p>{}</p>", paragraph.iter().map(|line| escape_html(line)).collect::<Vec<_>>().join("<br>")))
+        .collect()
 }
 
 pub fn escape_html(text: &str) -> String {

@@ -59,6 +59,22 @@
   }
 }
 
+/* Paragraphs in the compose editor are spaced like mail programs show them once sent.
+   Unlayered, to win over rhino-editor's `.trix-content * { margin: 0 }`. */
+rhino-editor.compose-editor .trix-content {
+  p, ul, ol, blockquote, pre {
+    margin-block: 1em;
+  }
+
+  > :first-child {
+    margin-top: 0;
+  }
+
+  li > p {
+    margin-block: 0;
+  }
+}
+
 /* Responsive: Mobile */
 @media (max-width: 1023px) {
   /* Single column layout on mobile */

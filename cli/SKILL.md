@@ -127,7 +127,7 @@ dobase mail list inbox                   # --folder sent|starred|archive|drafts|
 dobase mail show 8/310                   # the whole conversation as text; --html for bodies
 dobase mail archive 8/310                # also: read, unread, star, unstar, unarchive
 dobase mail move 8/310 Receipts          # INBOX, Sent or a custom folder
-dobase mail reply 8/310 --body "Thanks, I'll take a look."  # saves a DRAFT; --all to reply all
+dobase mail reply 8/310 --body "Thanks, I'll take a look."  # a DRAFT with the original quoted below; --all to reply all
 dobase mail forward 8/310 --to bob@example.com --body "FYI"  # a DRAFT with the original quoted and its attachments
 dobase mail attachments 8/310            # list them; --save DIR downloads all, --name FILE just one
 dobase mail draft 8 --to a@example.com --subject "Invoice" --body - <<'TXT'
@@ -139,6 +139,9 @@ dobase mail contacts 8 anna              # find an address
 dobase mail send 8 --draft 312           # sends real email: see the rules below
 dobase mail sync 8
 ```
+
+A plain-text `--body` becomes paragraphs at its blank lines. With `--html`, write
+separate `<p>`, `<ul>` and `<ol>` blocks; don't add empty `<p><br></p>` for spacing.
 
 `--open` on `draft`, `reply` and `forward` opens the saved draft in the browser,
 ready to edit and send. Only when someone is at the computer.

@@ -241,6 +241,21 @@ class MailsTest < ApplicationSystemTestCase
     assert_current_path new_tool_mail_path(@tool, forward: message.id)
   end
 
+  test "a draft opens in the editor with space between its paragraphs and lists" do
+    draft = mails_messages(:draft_message)
+    draft.update!(body_html: "<p>First</p><p>Second</p><ul><li>Item</li></ul><p>Last</p>")
+
+    visit new_tool_mail_path(@tool, draft_id: draft.id)
+    wait_for_compose_editor
+
+    gaps = evaluate_script(<<~JS)
+      [...document.querySelectorAll("rhino-editor .trix-content > *")].map((block, index, blocks) =>
+        index == 0 ? 0 : Math.round(block.getBoundingClientRect().top - blocks[index - 1].getBoundingClientRect().bottom))
+    JS
+    assert_equal 4, gaps.size
+    assert gaps.drop(1).all?(&:positive?), "Blocks sit right under each other: #{gaps}"
+  end
+
   test "leaving a message that failed to send asks to discard it" do
     visit new_tool_mail_path(@tool)
     wait_for_compose_editor
