@@ -57,6 +57,7 @@ class ImapSyncService
 
       imap.select(sent_folder)
       fetch_recent_emails(imap, "Sent", limit)
+      file_sent_mail(imap, sent_folder)
     end
   end
 
@@ -159,13 +160,12 @@ class ImapSyncService
   end
 
   # A moved message gets a new UID in its new folder, so mail that was moved before, like
-  # archived mail, is found by its Message-ID. The search matches parts of a header,
-  # so it's done with the angle brackets: only this whole Message-ID matches.
+  # archived mail, is found by its Message-ID.
   def move_to_folder_by_message_id(message_id, source_folder:, destination_folder:)
     connect do |imap|
       source, destination = server_folder_names(imap, source_folder, destination_folder)
       imap.select(source)
-      uids = imap.uid_search([ "HEADER", "Message-ID", "<#{message_id.delete("<>")}>" ])
+      uids = find_by_message_id(imap, message_id)
       next if uids.empty?
 
       imap.uid_copy(uids, destination)
@@ -258,6 +258,28 @@ class ImapSyncService
   # The parts a mail client lists as attachments: marked "attachment", or inline with a
   # file name (like pasted images). Parts without a disposition belong to the body.
 
+  # Mail sent from here goes out over SMTP, and most servers don't keep a copy of that
+  # (Gmail and Office 365 do). Sent mail that has no copy on the server yet gets one, so
+  # other mail programs show it too. A copy the server made itself is found by its
+  # Message-ID and not added again. Either way the mail gets the UID of the copy.
+  def file_sent_mail(imap, sent_folder)
+    @account.messages.where(folder: "Sent", uid: nil, draft: false, trashed: false, archived: false).find_each do |message|
+      uid = find_by_message_id(imap, message.message_id).last
+      unless uid
+        imap.append(sent_folder, build_raw_email(message), [ :Seen ], message.sent_at || Time.current)
+        uid = find_by_message_id(imap, message.message_id).last
+      end
+      message.update_column(:uid, uid) if uid
+    rescue Net::IMAP::Error, ActiveStorage::FileNotFoundError => e
+      Rails.logger.warn("Could not file sent email #{message.id} on the server: #{e.class}: #{e.message}")
+    end
+  end
+
+  # A search matches parts of a header, so it's done with the angle brackets: only this whole Message-ID matches
+  def find_by_message_id(imap, message_id)
+    imap.uid_search([ "HEADER", "Message-ID", "<#{message_id.delete("<>")}>" ]) || []
+  end
+
   def find_sent_folder(imap)
     find_special_folder(imap.list("", "*"), "Sent")
   end
@@ -298,12 +320,13 @@ class ImapSyncService
   def build_raw_email(message)
     mail = Mail.new
     mail.message_id = message.message_id
-    mail.from = message.from_address
+    mail.from = message.from_name.present? ? Mail::Address.new(message.from_address).tap { |address| address.display_name = message.from_name }.to_s : message.from_address
     mail.to = JSON.parse(message.to_addresses || "[]")
     mail.cc = JSON.parse(message.cc_addresses || "[]") if message.cc_addresses.present?
     mail.subject = message.subject
     mail.date = message.sent_at || Time.current
     mail.in_reply_to = message.in_reply_to if message.in_reply_to.present?
+    mail.references = message.references if message.references.present?
 
     attachments = message.attachments.select { |attachment| attachment.file.attached? }
 

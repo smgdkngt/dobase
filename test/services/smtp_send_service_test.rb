@@ -3,6 +3,8 @@
 require "test_helper"
 
 class SmtpSendServiceTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
   setup do
     @account = mails_accounts(:primary)
     @service = SmtpSendService.new(@account)
@@ -47,6 +49,12 @@ class SmtpSendServiceTest < ActiveSupport::TestCase
     assert_equal [ "colleague@example.com" ], sent.cc_addresses_list
     assert_equal "<p>Hi there</p>", sent.body_html
     assert_equal [ "colleague@example.com", "friend@example.com" ], @account.contacts.pluck(:email_address).sort
+  end
+
+  test "sending asks for a sync, which puts a copy in the server's sent folder" do
+    assert_enqueued_with(job: SyncEmailsJob, args: [ @account.id ]) do
+      @service.send_email(to: [ "friend@example.com" ], subject: "Hello", body: "Hi")
+    end
   end
 
   test "recipients keep their names in the headers, and only their addresses go to the mail server" do

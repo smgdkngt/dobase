@@ -98,9 +98,11 @@ class SmtpSendService
 
   # The email has gone out by now. Failing to keep contacts or the sent copy is
   # reported, not raised: callers would otherwise think the send failed and try again.
+  # The sync puts a copy in the server's sent folder, for other mail programs.
   def file_sent_email(mail, **email)
     record_contacts(to: email[:to], cc: email[:cc], bcc: email[:bcc])
     save_sent_email(mail, **email)
+    SyncEmailsJob.perform_later(@account.id)
   rescue StandardError => error
     Rails.error.report(error, context: { mail_account_id: @account.id, message_id: mail.message_id })
   end
