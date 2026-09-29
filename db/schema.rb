@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_29_130000) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -462,6 +462,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
     t.index ["trashed_at"], name: "index_mail_messages_on_trashed_at"
   end
 
+  create_table "mail_trusted_senders", force: :cascade do |t|
+    t.integer "mail_account_id", null: false
+    t.string "email_address", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mail_account_id", "email_address"], name: "index_mail_trusted_senders_on_account_and_address", unique: true
+  end
+
   create_table "noticed_events", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "notifications_count"
@@ -677,6 +685,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_120000) do
   add_foreign_key "mail_attachments", "mail_messages"
   add_foreign_key "mail_contacts", "mail_accounts"
   add_foreign_key "mail_messages", "mail_accounts"
+  add_foreign_key "mail_trusted_senders", "mail_accounts"
   add_foreign_key "rooms", "tools"
   add_foreign_key "sessions", "users"
   add_foreign_key "sidebar_groups", "users"

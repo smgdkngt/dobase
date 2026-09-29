@@ -10,6 +10,7 @@ module Mails
     has_many :messages, class_name: "Mails::Message", foreign_key: "mail_account_id", dependent: :destroy
     has_many :attachments, through: :messages
     has_many :contacts, class_name: "Mails::Contact", foreign_key: "mail_account_id", dependent: :destroy
+    has_many :trusted_senders, class_name: "Mails::TrustedSender", foreign_key: "mail_account_id", dependent: :delete_all
 
     validates :email_address, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP, allow_blank: true }
     validates :imap_host, presence: true
@@ -26,6 +27,12 @@ module Mails
     CONNECTION_SETTINGS = %w[imap_host imap_port imap_ssl username encrypted_password].freeze
 
     BUILT_IN_FOLDERS = %w[INBOX Sent Drafts Trash Spam INBOX.spam INBOX.Spam Junk].freeze
+
+    # Images load straight away in mail from a trusted sender, and in your own
+    def shows_images_from?(address)
+      return false if address.blank?
+      address.casecmp?(email_address) || trusted_senders.exists?(email_address: address)
+    end
 
     def custom_folders
       return [] if synced_folders.blank?

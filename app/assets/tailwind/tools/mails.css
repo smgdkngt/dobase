@@ -75,6 +75,15 @@
   rhino-editor.compose-editor::part(toolbar) {
     @apply sticky top-0 z-10 bg-surface border-b border-border-light py-1.5 px-0;
   }
+  /* Above an HTML email: its images are hidden, or shown because the sender is trusted */
+  .email-images-note {
+    @apply flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 mb-2 rounded-md bg-background-secondary text-xs text-text-secondary;
+  }
+
+  .email-images-action {
+    @apply font-medium text-accent hover:underline bg-transparent border-none cursor-pointer p-0 text-xs;
+  }
+
   /* HTML email: always on a light page, framed as a light card in dark mode */
   .email-frame {
     @apply rounded-lg;
