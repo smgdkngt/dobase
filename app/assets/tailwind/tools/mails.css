@@ -12,6 +12,25 @@
     @apply pr-4 mr-1 border-r border-border-light;
   }
 
+  /* Folders as a column beside the list, on screens wide enough for it (below) */
+  .mail-folder-rail {
+    @apply hidden flex-col gap-0.5 py-2 bg-surface border-r border-border-light overflow-y-auto;
+  }
+
+  .mail-folder-link {
+    @apply flex items-center gap-2.5 px-3 py-1.5 mx-2 rounded-lg text-sm text-text-secondary
+           hover:bg-background-tertiary hover:text-text-primary transition-colors text-left;
+  }
+
+  .mail-folder-link[aria-current="page"] {
+    @apply font-medium text-accent;
+    background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+  }
+
+  .mail-folder-divider {
+    @apply my-1.5 mx-3 border-t border-border-light;
+  }
+
   .mail-content {
     @apply bg-surface grid overflow-hidden;
     grid-template-rows: auto 1fr auto;
@@ -104,6 +123,21 @@ rhino-editor.compose-editor .trix-content {
 
   li > p {
     margin-block: 0;
+  }
+}
+
+/* Wide screens: the folders get their own column instead of the menu */
+@media (min-width: 1440px) {
+  .mail-layout {
+    grid-template-columns: 200px 320px 1fr;
+  }
+
+  .mail-folder-rail {
+    @apply flex;
+  }
+
+  .mail-topbar > .mail-folder-picker {
+    @apply hidden;
   }
 }
 

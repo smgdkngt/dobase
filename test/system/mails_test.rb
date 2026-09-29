@@ -54,6 +54,25 @@ class MailsTest < ApplicationSystemTestCase
     assert_no_text "Your weekly report"
   end
 
+  test "wide screens list the folders beside the messages" do
+    page.driver.browser.manage.window.resize_to(1600, 1000)
+    visit tool_mails_path(@tool)
+    wait_for_turbo
+
+    assert_no_selector "button[popovertarget='mail-folder-menu']"
+
+    within "nav[aria-label='Mail folders']" do
+      assert_link "Receipts"
+      click_on "Starred"
+      assert_selector "a[aria-current='page']", text: "Starred"
+    end
+
+    assert_text "Important info"
+    assert_no_text "Welcome to Dobase"
+  ensure
+    page.driver.browser.manage.window.resize_to(1400, 1400)
+  end
+
   test "starring a message from detail view" do
     message = mails_messages(:inbox_unread)
     visit tool_mail_path(@tool, message)

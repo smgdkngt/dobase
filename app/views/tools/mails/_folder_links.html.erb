@@ -1,0 +1,31 @@
+<%# The folders to switch between: in the topbar menu, or as a column beside the list on wide screens (rail: true) %>
+<%
+  custom_folders = @custom_folders.map { |folder| { key: folder, label: folder, icon: "folder" } }
+  item_class = rail ? "mail-folder-link" : "dropdown-item flex items-center gap-2"
+%>
+<% [ folders, custom_folders ].reject(&:empty?).each_with_index do |group, index| %>
+  <% if index > 0 %>
+    <%= tag.div class: rail ? "mail-folder-divider" : "dropdown-divider" %>
+  <% end %>
+  <% group.each do |folder| %>
+    <% current = @current_folder == folder[:key] %>
+    <%= link_to tool_mails_path(@tool, folder: folder[:key]),
+          class: [ item_class, ("text-accent font-medium" if current && !rail) ],
+          aria: { current: ("page" if current) } do %>
+      <%= render "shared/icon", name: folder[:icon], size: 16 %>
+      <span class="flex-1 truncate"><%= folder[:label] %></span>
+      <% if folder[:badge].to_i > 0 %>
+        <%= render "components/badge", text: folder[:badge], variant: :muted %>
+      <% end %>
+      <% if current && !rail %>
+        <%= render "shared/icon", name: "check", size: 14, class: "text-accent" %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
+<%= tag.div class: rail ? "mail-folder-divider" : "dropdown-divider" %>
+<button type="button" class="<%= rail ? "mail-folder-link" : "dropdown-item flex items-center gap-2 w-full" %>"
+        commandfor="create-folder-modal" command="show-modal">
+  <%= render "shared/icon", name: "folder-plus", size: 16 %>
+  <span>New Folder</span>
+</button>
