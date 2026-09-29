@@ -9,9 +9,11 @@ class FakeImapServer
 
   # folders: names, or [name, *attributes] for folders with SPECIAL-USE attributes like :Drafts
   # message_ids: { [folder, "<message-id>"] => [uid, ...] }
-  def initialize(folders: [ "INBOX" ], message_ids: {}, capabilities: %w[IMAP4REV1 UIDPLUS])
+  # messages: { [folder, uid] => raw message }, for fetching them
+  def initialize(folders: [ "INBOX" ], message_ids: {}, messages: {}, capabilities: %w[IMAP4REV1 UIDPLUS])
     @folders = folders
     @message_ids = message_ids
+    @messages = messages
     @capabilities = capabilities
     @selected, @searched, @stored, @copied, @appended, @appended_messages, @expunged, @lists = [], [], [], [], [], [], [], 0
   end
@@ -41,6 +43,14 @@ class FakeImapServer
   def select(folder) = @selected << folder
   def uid_store(uids, action, flags) = @stored << [ uids, action, flags ]
   def uid_copy(uids, folder) = @copied << [ uids, folder ]
+
+  # Only fetches whole messages, from the selected folder
+  def uid_fetch(uids, _attrs)
+    Array(uids).filter_map do |uid|
+      raw = @messages[[ @selected.last, uid ]]
+      Net::IMAP::FetchData.new(uid, { "UID" => uid, "BODY[]" => raw }) if raw
+    end
+  end
 
   # Only knows searches for a Message-ID header, in the selected folder
   def uid_search(criteria)

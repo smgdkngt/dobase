@@ -8,6 +8,9 @@ module Mails
     has_many :attachments, class_name: "Mails::Attachment", foreign_key: "mail_message_id", inverse_of: :message, dependent: :destroy
     has_many :calendar_invites, class_name: "Calendars::Invite", foreign_key: "mail_message_id", dependent: :destroy
 
+    CONTENT_ID_URL = /\bcid:[^"'\s)>]+/i
+    INLINE_IMAGE_MAX_SIZE = 5.megabytes
+
     validates :message_id, presence: true, uniqueness: { scope: %i[mail_account_id folder] }
 
     # When a message went to the trash: the trash is emptied of messages older than 30 days
@@ -82,14 +85,36 @@ module Mails
       body_plain.gsub(/\s+/, " ").strip.truncate(120)
     end
 
+    # The attachments the HTML shows as pictures (<img src="cid:...">), by the ID it uses
+    def inline_images
+      @inline_images ||= body_html.to_s.scan(CONTENT_ID_URL).map { |url| content_id_of(url) }.uniq.filter_map do |id|
+        image = attachments.find { |attachment| attachment.content_id?(id) }
+        [ id, image ] if image&.file&.attached? && image.file_size.to_i <= INLINE_IMAGE_MAX_SIZE
+      end.to_h
+    end
+
+    # The rest are listed below the message
+    def listed_attachments
+      attachments.to_a - inline_images.values
+    end
+
+    # The HTML with its pictures in it, so they show without loading anything
+    def body_html_with_inline_images
+      data_urls = inline_images.transform_values { |image| "data:#{image.content_type};base64,#{Base64.strict_encode64(image.file.download)}" }
+
+      body_html.to_s.gsub(CONTENT_ID_URL) { |url| data_urls.fetch(content_id_of(url), url) }
+    end
+
     def mark_as_read!
       update!(read: true)
       sync_read_flag_to_imap(true)
+      account.broadcast_unread_mail
     end
 
     def mark_as_unread!
       update!(read: false)
       sync_read_flag_to_imap(false)
+      account.broadcast_unread_mail
     end
 
     def toggle_starred!
@@ -115,10 +140,15 @@ module Mails
       messages & kept
     end
 
-    # Moving to a folder that already has a copy of the message leaves one copy there
+    # Moving to a folder that already has a copy of the message leaves one copy there.
+    # On the server the message gets a new UID in its new folder, and the next sync of that
+    # folder finds it by its Message-ID. Until then it has no UID: with the old one that sync
+    # would take it for mail gone from the folder, and remove it.
     def move_to_folder!(target_folder)
+      source_folder, source_uid = folder || "INBOX", uid
       account.messages.where(folder: target_folder, message_id: message_id).where.not(id: id).destroy_all
-      update!(folder: target_folder, archived: false, trashed: false)
+      update!(folder: target_folder, archived: false, trashed: false, uid: nil)
+      ImapSyncJob.perform_later(account.id, "move_to_folder", source_uid, source_folder, target_folder) if source_uid
     end
 
     def conversation_count
@@ -143,6 +173,10 @@ module Mails
     end
 
     private
+
+    def content_id_of(url)
+      CGI.unescapeURIComponent(url[4..]).downcase
+    end
 
     def sync_read_flag_to_imap(is_read)
       return unless uid.present? && account.present?

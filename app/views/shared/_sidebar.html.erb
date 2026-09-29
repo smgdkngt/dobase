@@ -136,7 +136,8 @@
   <div data-controller="notifications"
        data-notifications-user-id-value="<%= current_user.id %>"
        data-notifications-app-name-value="<%= app_name %>"
-       data-notifications-unread-count-value="<%= sidebar_unread_count %>">
+       data-notifications-unread-count-value="<%= sidebar_unread_count %>"
+       data-notifications-unread-mail-count-value="<%= current_user.unread_mail_count %>">
     <div class="sidebar-bottom-bar">
       <%# User menu trigger — avatar with name %>
       <button type="button"

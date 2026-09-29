@@ -10,6 +10,7 @@ class ImapSyncService
     "Sent" => [ :Sent, [ "Sent", "INBOX.Sent", "[Gmail]/Sent Mail", "Sent Messages", "Sent Items" ] ],
     "Drafts" => [ :Drafts, [ "Drafts", "INBOX.Drafts", "[Gmail]/Drafts", "Draft" ] ]
   }.freeze
+  ARCHIVE_FOLDER = [ :Archive, [ "Archive", "Archives", "INBOX.Archive" ] ].freeze
 
   # New mail fetched per folder per sync, newest first: a big folder fills in over several syncs
   BACKFILL_BATCH = 500
@@ -31,6 +32,7 @@ class ImapSyncService
       folders = mailboxes.map(&:name).reject { |f| f.start_with?("[Gmail]/") && !special.key?(f) }
       normalized = folders.map { |f| special.fetch(f, f) }.uniq
       @account.update!(synced_folders: normalized.to_json)
+      adopt_archive_folder(mailboxes)
       normalized
     end
   end
@@ -175,6 +177,30 @@ class ImapSyncService
     Rails.logger.error("Failed to move email #{message_id} from #{source_folder} to #{destination_folder}: #{e.message}")
   end
 
+  # Mail saved before attachments kept their Content-IDs shows the pictures in its text
+  # once it has them, so it's fetched again for them
+  def fill_in_content_ids
+    messages = @account.messages.where("body_html LIKE ?", "%cid:%").where.not(uid: nil)
+      .where(id: Mails::Attachment.where(content_id: nil).select(:mail_message_id))
+      .select(:id, :mail_account_id, :uid, :folder)
+    return if messages.none?
+
+    connect do |imap|
+      messages.group_by(&:folder).each do |folder, in_folder|
+        select_folder(imap, folder)
+        in_folder.each_slice(FETCH_SLICE) do |slice|
+          by_uid = slice.index_by(&:uid)
+          Array(imap.uid_fetch(slice.map(&:uid), [ "UID", "BODY.PEEK[]" ])).each do |msg|
+            message = by_uid[msg.attr["UID"]]
+            incoming_message.fill_in_content_ids(message, msg.attr["BODY[]"]) if message && msg.attr["BODY[]"]
+          end
+        end
+      rescue Net::IMAP::NoResponseError => e
+        Rails.logger.warn("Couldn't fetch the Content-IDs in #{folder}: #{e.message}")
+      end
+    end
+  end
+
   private
 
   def incoming_message
@@ -307,12 +333,26 @@ class ImapSyncService
     folders.map { |folder| (mailboxes && find_special_folder(mailboxes, folder)) || folder }
   end
 
-  # The folder the server marks with the SPECIAL-USE attribute (RFC 6154),
-  # or else the first one with a name servers commonly use
+  # An account without an archive folder of its own archives to the server's. Mail archived
+  # before that moves there too, or other mail programs keep showing it in the inbox.
+  def adopt_archive_folder(mailboxes)
+    return if @account.archive_folder.present?
+    archive_folder = find_folder(mailboxes, *ARCHIVE_FOLDER) or return
+
+    @account.update!(archive_folder: archive_folder)
+    @account.messages.archived.not_trashed.not_draft.where(folder: "INBOX").where.not(uid: nil).find_each do |message|
+      ImapSyncJob.perform_later(@account.id, "move_to_folder", message.uid, "INBOX", archive_folder)
+    end
+  end
+
   def find_special_folder(mailboxes, folder)
     attribute, names = SPECIAL_FOLDERS[folder]
-    return unless attribute
+    find_folder(mailboxes, attribute, names) if attribute
+  end
 
+  # The folder the server marks with the SPECIAL-USE attribute (RFC 6154),
+  # or else the first one with a name servers commonly use
+  def find_folder(mailboxes, attribute, names)
     mailboxes.find { |mailbox| mailbox.attr.include?(attribute) }&.name ||
       names.find { |name| mailboxes.any? { |mailbox| mailbox.name == name } }
   end

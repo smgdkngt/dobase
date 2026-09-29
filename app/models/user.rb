@@ -54,6 +54,11 @@ class User < ApplicationRecord
     ActionCable.server.broadcast("notifications:#{id}", { type: "unread_count", count: notifications.unread.count })
   end
 
+  # Unread mail in the inboxes of the user's mail tools, counted like the sidebar counts it
+  def unread_mail_count
+    Mails::Message.inbox.not_archived.unread.joins(:account).where(mail_accounts: { tool_id: collaborations.select(:tool_id) }).count
+  end
+
   def prune_notifications!
     cutoff_id = notifications.order(created_at: :desc, id: :desc)
                              .offset(NOTIFICATION_LIMIT).limit(1).pick(:id)

@@ -15,6 +15,20 @@ module Mails
       save_email(msg, folder_name)
     end
 
+    # Attachments saved before their Content-IDs were kept get them from the message
+    # as fetched again, matched on name and size
+    def fill_in_content_ids(email, raw_message)
+      remaining = email.attachments.where(content_id: nil).to_a
+      attachment_parts_of(Mail.read_from_string(raw_message)).each do |part|
+        content_id = content_id_of(part) or next
+        attachment = remaining.find { |candidate| candidate.filename == safe_utf8(part.filename) && candidate.file_size == part.decoded.bytesize }
+        next unless attachment
+
+        attachment.update!(content_id: content_id)
+        remaining.delete(attachment)
+      end
+    end
+
     private
 
     def save_email(msg, folder_name)
@@ -106,14 +120,17 @@ module Mails
       plain = if mail.multipart?
                 mail.text_part&.decoded
       else
-                mail.content_type&.start_with?("text/") ? mail.body.decoded : nil
+                mail.mime_type.to_s.start_with?("text/") && mail.mime_type != "text/html" ? mail.body.decoded : nil
       end
 
       html = if mail.multipart?
                mail.html_part&.decoded
       else
-               mail.content_type&.start_with?("text/html") ? mail.body.decoded : nil
+               mail.mime_type == "text/html" ? mail.body.decoded : nil
       end
+
+      # A mail with only HTML gets its text for the list's preview and for search
+      plain ||= PlainText.from_html(safe_utf8(html)) if html.present?
 
       { plain: plain, html: html, mail: mail }
     rescue StandardError => e
@@ -136,11 +153,15 @@ module Mails
 
         filename = safe_utf8(part.filename)
         content_type = part.mime_type || "application/octet-stream"
-        attachment = email.attachments.create!(filename: filename, content_type: content_type, file_size: content.bytesize)
+        attachment = email.attachments.create!(filename: filename, content_type: content_type, file_size: content.bytesize, content_id: content_id_of(part))
         attachment.file.attach(io: StringIO.new(content), filename: filename, content_type: content_type)
       rescue StandardError => e
         Rails.logger.error("Failed to save attachment #{part.filename} for email #{email.id}: #{e.message}")
       end
+    end
+
+    def content_id_of(part)
+      safe_utf8(part.content_id)&.delete("<>").presence
     end
 
     def decode_rfc2047(str)

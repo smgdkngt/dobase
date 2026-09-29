@@ -3,6 +3,7 @@
 require "test_helper"
 
 class ImapSyncServiceTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
   setup do
     @account = mails_accounts(:primary)
     @service = ImapSyncService.new(@account)
@@ -214,6 +215,27 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_equal %w[INBOX Receipts Sent Drafts], JSON.parse(@account.reload.synced_folders)
   end
 
+  test "an account without an archive folder archives to the server's, and mail archived before moves there" do
+    archived = mails_messages(:inbox_unread)
+    archived.update!(archived: true, uid: 41)
+    server = FakeImapServer.new(folders: [ "INBOX", "Receipts", [ "Archives", :Archive ] ])
+
+    assert_enqueued_with(job: ImapSyncJob, args: [ @account.id, "move_to_folder", 41, "INBOX", "Archives" ]) do
+      connect_to_imap(server) { @service.sync_folders }
+    end
+    assert_equal "Archives", @account.reload.archive_folder
+
+    assert_no_enqueued_jobs(only: ImapSyncJob) { connect_to_imap(server) { @service.sync_folders } }
+  end
+
+  test "an archive folder that was set stays" do
+    @account.update!(archive_folder: "Done")
+
+    connect_to_imap(FakeImapServer.new(folders: [ "INBOX", "Done", "Archive" ])) { @service.sync_folders }
+
+    assert_equal "Done", @account.reload.archive_folder
+  end
+
   # --- Sent mail on the server --------------------------------------------------
   # Mail sent over SMTP only lands in the server's sent folder when the server puts it
   # there itself (Gmail, Office 365). Otherwise the sync adds it.
@@ -420,6 +442,46 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_equal [ "photo.png" ], email.attachments.map(&:filename)
   end
 
+  test "a mail with only HTML gets the HTML's text as its text" do
+    mail = Mail.new(from: "ann@example.com", to: "me@example.com", subject: "Code", message_id: "<html-only@example.com>",
+      content_type: "text/html; charset=UTF-8", body: "<!DOCTYPE html><html><head><title>Code</title></head><body><p>Your code is 1234</p></body></html>")
+
+    incoming_message.send(:save_email, fetch_data(5, mail.to_s), "INBOX")
+
+    email = @account.messages.find_by!(message_id: "html-only@example.com")
+    assert_equal "Your code is 1234", email.body_plain
+    assert_includes email.body_html, "<p>Your code is 1234</p>"
+  end
+
+  test "a picture in the text keeps its Content-ID" do
+    mail = Mail.new(from: "ann@example.com", to: "me@example.com", subject: "Logo", message_id: "<logo-6@example.com>")
+    mail.html_part = Mail::Part.new(content_type: "text/html; charset=UTF-8", body: %(<img src="cid:image001.png@01DD">))
+    mail.add_part Mail::Part.new(content_type: "image/png", content_disposition: "inline; filename=image001.png", content_id: "<image001.png@01DD>", body: "PNG")
+
+    incoming_message.send(:save_email, fetch_data(6, mail.to_s), "INBOX")
+
+    assert_equal "image001.png@01DD", @account.messages.find_by!(message_id: "logo-6@example.com").attachments.sole.content_id
+  end
+
+  test "attachments saved without their Content-IDs get them from the server" do
+    email = @account.messages.create!(message_id: "screenshot@example.com", folder: "Clients", uid: 12, subject: "Look",
+      from_address: "ann@example.com", body_html: %(<img src="cid:AF1A5176-1D79">), sent_at: Time.current)
+    screenshot = email.attachments.create!(filename: "Screenshot.png", content_type: "image/png", file_size: 3)
+    report = email.attachments.create!(filename: "report.pdf", content_type: "application/pdf", file_size: 3)
+
+    mail = Mail.new(from: "ann@example.com", to: "me@example.com", subject: "Look", message_id: "<screenshot@example.com>")
+    mail.html_part = Mail::Part.new(content_type: "text/html; charset=UTF-8", body: %(<img src="cid:AF1A5176-1D79">))
+    mail.add_part Mail::Part.new(content_type: "image/png", content_disposition: "inline; filename=Screenshot.png", content_id: "<AF1A5176-1D79>", body: "PNG")
+    mail.add_part Mail::Part.new(content_type: "application/pdf", content_disposition: "attachment; filename=report.pdf", body: "PDF")
+    server = FakeImapServer.new(folders: [ "INBOX", "Clients" ], messages: { [ "Clients", 12 ] => mail.to_s })
+
+    connect_to_imap(server) { @service.fill_in_content_ids }
+
+    assert_equal [ "Clients" ], server.selected
+    assert_equal "AF1A5176-1D79", screenshot.reload.content_id
+    assert_nil report.reload.content_id
+  end
+
   test "an invitation sent inline, the way Outlook does, is found" do
     mail = Mail.new(from: "olivia@example.com", to: "me@example.com", subject: "Invitation: Budget review", message_id: "<outlook-invite@example.com>")
     mail.text_part = Mail::Part.new(content_type: "text/plain; charset=UTF-8", body: "You're invited")
@@ -510,6 +572,20 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     end
 
     assert_equal [ 5 ], @account.messages.where(folder: "Old archive").pluck(:uid)
+  end
+
+  test "mail moved here stays while the server moves it, and keeps its place once it has" do
+    incoming_message.send(:save_email, fetch_data(7, mail_with_id("moved-7").to_s), "INBOX")
+    moved = @account.messages.find_by!(message_id: "moved-7@example.com")
+    assert_enqueued_with(job: ImapSyncJob, args: [ @account.id, "move_to_folder", 7, "INBOX", "Projects" ]) do
+      moved.move_to_folder!("Projects")
+    end
+
+    # A sync before the server has moved it, and one after, when it has a new UID there
+    @service.send(:fetch_recent_emails, FakeImap.new(uids: [ 3 ], messages: [ fetch_data(3, mail_with_id("other-3").to_s) ]), "Projects", 50)
+    assert_nil moved.reload.uid
+    @service.send(:fetch_recent_emails, FakeImap.new(uids: [ 3, 4 ], messages: [ fetch_data(4, mail_with_id("moved-7").to_s) ]), "Projects", 50)
+    assert_equal [ "Projects", 4 ], [ moved.reload.folder, moved.uid ]
   end
 
   test "mail that left another folder on the server is removed there" do

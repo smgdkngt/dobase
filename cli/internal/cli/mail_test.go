@@ -119,7 +119,7 @@ func TestForwardsQuoteTheOriginalAndCarryItsStoredAttachments(t *testing.T) {
 		t.Errorf("forward_attachment_ids %s", got)
 	}
 	want := "<p>See below</p><br><br><p>---------- Forwarded message ----------<br>From: Ann &lt;Lee&gt; &lt;ann@example.com&gt;<br>" +
-		"Date: 2026-09-24 14:05<br>Subject: Re: Plans<br>To: me@example.com</p><p>Plan A &amp; B</p><p>OK?</p>"
+		"Date: Thu, Sep 24, 2026 at 2:05 PM<br>Subject: Re: Plans<br>To: me@example.com</p><p>Plan A &amp; B</p><p>OK?</p>"
 	if got := sent[0].Get("body").S(); got != want {
 		t.Errorf("body %q", got)
 	}
@@ -151,12 +151,12 @@ func TestRepliesQuoteTheMessageTheyAnswer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	want := "<p>Plan B.</p><p>See you then.</p><p>On 2026-09-24 14:05, Ann &lt;Lee&gt; &lt;ann@example.com&gt; wrote:</p>" +
+	want := "<p>Plan B.</p><p>See you then.</p><p>On Thu, Sep 24, 2026 at 2:05 PM, Ann &lt;Lee&gt; &lt;ann@example.com&gt; wrote:</p>" +
 		"<blockquote><p>Plan A &amp; B</p><p>OK?</p></blockquote>"
 	if got := sent[0].Get("body").S(); got != want {
 		t.Errorf("body %q", got)
 	}
-	want = "<p>Yes</p><ul><li>12:30</li></ul><p>On 2026-09-25 12:30, bob@example.com wrote:</p>" +
+	want = "<p>Yes</p><ul><li>12:30</li></ul><p>On Fri, Sep 25, 2026 at 12:30 PM, bob@example.com wrote:</p>" +
 		"<blockquote><div>Lunch <b>today</b>?</div></blockquote>"
 	if got := sent[1].Get("body").S(); got != want {
 		t.Errorf("body %q", got)
