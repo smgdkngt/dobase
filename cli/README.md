@@ -108,24 +108,24 @@ Run `dobase login` yourself first. Claude never needs to see your token.
 
 ## Development
 
-The CLI is written in Rust and lives in this directory, next to the app whose
-API it uses. Build and test it with Cargo:
+The CLI is written in Go and lives in this directory, next to the app whose
+API it uses. Build and test it with the Go tools:
 
 ```bash
-cargo build                  # target/debug/dobase
-cargo test                   # also checks that the commands in these docs exist
-cargo clippy --all-targets
-cargo fmt
+go build .                   # ./dobase
+go test ./...                # also checks that the commands in these docs exist
+go vet ./...
+gofmt -l .
 ```
 
 Try it against `bin/dev` with `DOBASE_URL=http://localhost:3010` and a token
-from Profile → API in `DOBASE_TOKEN`.
+from Profile → API in `DOBASE_TOKEN` (`go run . tool list`).
 
-The full-screen app lives in `src/tui/`: one file per kind of tool in
-`src/tui/screens/`, drawn with [ratatui](https://ratatui.rs). Its tests drive
-it with key presses against a fake server on a virtual terminal.
+The full-screen app lives in `internal/tui/`, drawn with
+[tcell](https://github.com/gdamore/tcell). Its tests drive it with key presses
+against a fake server on a simulated screen.
 
-Commands are declared per noun in `src/commands/*.rs` with
-`command("noun verb", summary, &[ARGS], vec![flags], function)`; `dobase help`
+Commands are declared per noun in `internal/commands/*.go` with
+`New("noun verb", summary, []string{ARGS}, []Flag{flags}, function)`; `dobase help`
 is generated from those. Publishing a GitHub release builds the binaries and
 attaches them to it (`.github/workflows/cli-release.yml`).

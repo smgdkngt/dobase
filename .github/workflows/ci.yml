@@ -127,14 +127,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Set up Rust
-        run: rustup toolchain install stable --profile minimal --component clippy,rustfmt && rustup default stable
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: cli/go.mod
+          cache-dependency-path: cli/go.sum
 
       - name: Check formatting
-        run: cargo fmt --check
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
 
       - name: Lint
-        run: cargo clippy --locked --all-targets -- -D warnings
+        run: go vet ./...
 
       - name: Run tests
-        run: cargo test --locked
+        run: go test ./...
