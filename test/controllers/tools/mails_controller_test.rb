@@ -89,6 +89,35 @@ module Tools
       assert_includes on_request, "https://tracker.example/pixel.gif"
     end
 
+    test "show leaves out the text of scripts and the title" do
+      msg = mails_messages(:inbox_unread)
+      msg.update!(body_html: %(<html><head><title>Notification</title></head><body><p>Hi</p><script type="application/ld+json">{"@context": "http://schema.org"}</script></body></html>))
+
+      get tool_mail_path(@tool, msg)
+
+      shown = css_select("iframe[data-email-frame-target='frame']").first["srcdoc"]
+      assert_includes shown, "<p>Hi</p>"
+      assert_not_includes shown, "schema.org"
+      assert_not_includes shown, "Notification"
+    end
+
+    test "show puts the pictures a message carries in its text, and lists only the other attachments" do
+      msg = mails_messages(:inbox_unread)
+      msg.update!(body_html: %(<p>Look</p><img src="cid:logo@example.com">))
+      logo = msg.attachments.create!(filename: "logo.png", content_type: "image/png", file_size: 3, content_id: "logo@example.com")
+      logo.file.attach(io: StringIO.new("PNG"), filename: "logo.png", content_type: "image/png")
+      report = msg.attachments.create!(filename: "report.pdf", content_type: "application/pdf", file_size: 3)
+      report.file.attach(io: StringIO.new("PDF"), filename: "report.pdf", content_type: "application/pdf")
+
+      get tool_mail_path(@tool, msg)
+
+      shown = css_select("iframe[data-email-frame-target='frame']").first["srcdoc"]
+      assert_includes shown, %(src="data:image/png;base64,#{Base64.strict_encode64("PNG")}")
+      assert_includes response.body, "1 attachment"
+      assert_includes response.body, "report.pdf"
+      assert_not_includes response.body, "logo.png"
+    end
+
     test "show offers to load images when only CSS pulls in remote content" do
       msg = mails_messages(:inbox_unread)
       msg.update!(body_html: %(<style>body { background: url('https://tracker.example/open.gif') }</style><p>Hi</p>))

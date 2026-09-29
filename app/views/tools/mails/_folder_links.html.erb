@@ -1,6 +1,6 @@
 <%# The folders to switch between: in the topbar menu, or as a column beside the list on wide screens (rail: true) %>
 <%
-  custom_folders = @custom_folders.map { |folder| { key: folder, label: folder, icon: "folder" } }
+  custom_folders = mail_folder_tree(@custom_folders)
   item_class = rail ? "mail-folder-link" : "dropdown-item flex items-center gap-2"
 %>
 <% [ folders, custom_folders ].reject(&:empty?).each_with_index do |group, index| %>
@@ -9,8 +9,11 @@
   <% end %>
   <% group.each do |folder| %>
     <% current = @current_folder == folder[:key] %>
+    <% nested = folder[:depth].to_i > 0 %>
     <%= link_to tool_mails_path(@tool, folder: folder[:key]),
-          class: [ item_class, ("text-accent font-medium" if current && !rail) ],
+          class: [ item_class, ("mail-folder-nested" if nested), ("text-accent font-medium" if current && !rail) ],
+          style: ("--depth: #{folder[:depth]}" if nested),
+          title: (folder[:key] if folder[:label] != folder[:key]),
           aria: { current: ("page" if current) } do %>
       <%= render "shared/icon", name: folder[:icon], size: 16 %>
       <span class="flex-1 truncate"><%= folder[:label] %></span>

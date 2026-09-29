@@ -36,13 +36,13 @@
 
       <%= render "tools/mails/email_body", message: email_message %>
 
-      <% if email_message.attachments.any? %>
+      <% if email_message.listed_attachments.any? %>
         <div class="mt-4 pt-4 border-t border-border-light">
           <div class="text-xs font-medium text-text-secondary mb-2">
             <%= render "shared/icon", name: "paperclip", size: 12, class: "inline mr-1" %>
-            <%= pluralize(email_message.attachments.count, "attachment") %>
+            <%= pluralize(email_message.listed_attachments.count, "attachment") %>
           </div>
-          <% email_message.attachments.each do |attachment| %>
+          <% email_message.listed_attachments.each do |attachment| %>
             <% if attachment.file.attached? %>
               <%= link_to rails_blob_path(attachment.file, disposition: "attachment"), class: "inline-flex items-center gap-2 px-3 py-2 bg-background-secondary rounded-md text-sm text-text-primary no-underline mr-2 mb-2 hover:bg-background-tertiary" do %>
                 <%= render "shared/icon", name: "file", size: 14 %>

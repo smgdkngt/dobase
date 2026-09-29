@@ -32,5 +32,15 @@ module Mails
       @message.references = "<root@example.com> <parent@example.com>"
       assert_equal "<root@example.com> <parent@example.com> <msg-001@example.com>", @message.reply_references
     end
+
+    test "an Outlook picture saved before Content-IDs were kept is found by its file name" do
+      @message.update!(body_html: %(<img src="cid:image001.png@01DD4FFC.8E9C6530"><img src="cid:missing@example.com">))
+      logo = @message.attachments.create!(filename: "image001.png", content_type: "image/png", file_size: 3)
+      logo.file.attach(io: StringIO.new("PNG"), filename: "image001.png", content_type: "image/png")
+
+      assert_equal({ "image001.png@01dd4ffc.8e9c6530" => logo }, @message.inline_images)
+      assert_equal %(<img src="data:image/png;base64,UE5H"><img src="cid:missing@example.com">), @message.body_html_with_inline_images
+      assert_empty @message.listed_attachments
+    end
   end
 end

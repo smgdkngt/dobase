@@ -12,4 +12,21 @@ module MailsHelper
       { key: "trash",   label: "Trash",   icon: "trash-2",  badge: trash_count }
     ]
   end
+
+  # The account's own folders as the server nests them: in alphabetical order, each
+  # subfolder under its parent and named by its own part ("Clients/Acme" is Acme)
+  def mail_folder_tree(folders)
+    # The server separates the levels with a / or a ., depending on the server
+    parents = folders.index_with do |folder|
+      folders.select { |other| other != folder && folder.start_with?("#{other}/", "#{other}.") }.max_by(&:length)
+    end
+
+    branch = ->(parent, depth) do
+      folders.select { |folder| parents[folder] == parent }.sort_by(&:downcase).flat_map do |folder|
+        label = parent ? folder.delete_prefix(parent)[1..] : folder
+        [ { key: folder, label: label, icon: "folder", depth: depth }, *branch.(folder, depth + 1) ]
+      end
+    end
+    branch.(nil, 0)
+  end
 end

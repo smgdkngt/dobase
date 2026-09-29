@@ -420,6 +420,27 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_equal [ "photo.png" ], email.attachments.map(&:filename)
   end
 
+  test "a mail with only HTML gets the HTML's text as its text" do
+    mail = Mail.new(from: "ann@example.com", to: "me@example.com", subject: "Code", message_id: "<html-only@example.com>",
+      content_type: "text/html; charset=UTF-8", body: "<!DOCTYPE html><html><head><title>Code</title></head><body><p>Your code is 1234</p></body></html>")
+
+    incoming_message.send(:save_email, fetch_data(5, mail.to_s), "INBOX")
+
+    email = @account.messages.find_by!(message_id: "html-only@example.com")
+    assert_equal "Your code is 1234", email.body_plain
+    assert_includes email.body_html, "<p>Your code is 1234</p>"
+  end
+
+  test "a picture in the text keeps its Content-ID" do
+    mail = Mail.new(from: "ann@example.com", to: "me@example.com", subject: "Logo", message_id: "<logo-6@example.com>")
+    mail.html_part = Mail::Part.new(content_type: "text/html; charset=UTF-8", body: %(<img src="cid:image001.png@01DD">))
+    mail.add_part Mail::Part.new(content_type: "image/png", content_disposition: "inline; filename=image001.png", content_id: "<image001.png@01DD>", body: "PNG")
+
+    incoming_message.send(:save_email, fetch_data(6, mail.to_s), "INBOX")
+
+    assert_equal "image001.png@01DD", @account.messages.find_by!(message_id: "logo-6@example.com").attachments.sole.content_id
+  end
+
   test "an invitation sent inline, the way Outlook does, is found" do
     mail = Mail.new(from: "olivia@example.com", to: "me@example.com", subject: "Invitation: Budget review", message_id: "<outlook-invite@example.com>")
     mail.text_part = Mail::Part.new(content_type: "text/plain; charset=UTF-8", body: "You're invited")

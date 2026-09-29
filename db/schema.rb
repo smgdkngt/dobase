@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_29_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_29_150100) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -412,6 +412,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_130000) do
     t.string "filename", null: false
     t.bigint "mail_message_id", null: false
     t.datetime "updated_at", null: false
+    t.string "content_id"
     t.index ["mail_message_id"], name: "index_mail_attachments_on_mail_message_id"
   end
 

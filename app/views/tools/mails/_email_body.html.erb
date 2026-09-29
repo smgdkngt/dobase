@@ -19,7 +19,12 @@
       cellpadding cellspacing colspan rowspan
     ]
 
-    sanitized = sanitize(message.body_html,
+    # Sanitizing drops tags it doesn't allow but keeps their text, which for these isn't meant to be read
+    # (like the JSON-LD in GitHub's notifications)
+    readable = Loofah.html5_fragment(message.body_html_with_inline_images)
+    readable.css("script, template, title").each(&:remove)
+
+    sanitized = sanitize(readable.to_html,
       tags: allowed_tags,
       attributes: allowed_attributes
     )

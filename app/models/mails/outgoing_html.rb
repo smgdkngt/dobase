@@ -33,7 +33,8 @@ module Mails
     private
 
     def style_for(element)
-      if element.name == "p" && element.parent&.name == "li"
+      # Quoted mail is written in lines, the way the compose editor shows it
+      if element.name == "p" && (element.parent&.name == "li" || element.ancestors("blockquote").any?)
         "margin:0"
       else
         STYLES[element.name]

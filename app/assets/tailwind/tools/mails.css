@@ -27,6 +27,11 @@
     background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
   }
 
+  /* A subfolder sits under its parent, indented a step per level */
+  .mail-folder-nested > svg:first-child {
+    margin-inline-start: calc(var(--depth) * 1.25rem);
+  }
+
   .mail-folder-divider {
     @apply my-1.5 mx-3 border-t border-border-light;
   }
@@ -159,6 +164,12 @@ rhino-editor.compose-editor .trix-content {
   }
 
   li > p {
+    margin-block: 0;
+  }
+
+  /* Quoted mail is written in lines, with an empty one between paragraphs (Outlook,
+     Apple Mail and Gmail all write it so), so its lines sit close like theirs */
+  blockquote p {
     margin-block: 0;
   }
 }

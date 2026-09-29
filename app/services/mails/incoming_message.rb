@@ -106,14 +106,17 @@ module Mails
       plain = if mail.multipart?
                 mail.text_part&.decoded
       else
-                mail.content_type&.start_with?("text/") ? mail.body.decoded : nil
+                mail.mime_type.to_s.start_with?("text/") && mail.mime_type != "text/html" ? mail.body.decoded : nil
       end
 
       html = if mail.multipart?
                mail.html_part&.decoded
       else
-               mail.content_type&.start_with?("text/html") ? mail.body.decoded : nil
+               mail.mime_type == "text/html" ? mail.body.decoded : nil
       end
+
+      # A mail with only HTML gets its text for the list's preview and for search
+      plain ||= PlainText.from_html(safe_utf8(html)) if html.present?
 
       { plain: plain, html: html, mail: mail }
     rescue StandardError => e
@@ -136,7 +139,8 @@ module Mails
 
         filename = safe_utf8(part.filename)
         content_type = part.mime_type || "application/octet-stream"
-        attachment = email.attachments.create!(filename: filename, content_type: content_type, file_size: content.bytesize)
+        content_id = safe_utf8(part.content_id)&.delete("<>")
+        attachment = email.attachments.create!(filename: filename, content_type: content_type, file_size: content.bytesize, content_id: content_id)
         attachment.file.attach(io: StringIO.new(content), filename: filename, content_type: content_type)
       rescue StandardError => e
         Rails.logger.error("Failed to save attachment #{part.filename} for email #{email.id}: #{e.message}")
