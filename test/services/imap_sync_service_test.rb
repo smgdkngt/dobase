@@ -203,7 +203,7 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_equal [ "multipart/alternative", "text/plain" ], raw.parts.map(&:mime_type)
     assert_equal [ "report.txt" ], raw.attachments.map(&:filename)
     assert_equal "hello", raw.attachments.sole.decoded
-    assert_equal "<p>This is a draft message.</p>", raw.html_part.decoded
+    assert_equal %(<p style="margin:0 0 1em 0">This is a draft message.</p>), raw.html_part.decoded
   end
 
   test "the server's sent and drafts folders are listed as Sent and Drafts" do

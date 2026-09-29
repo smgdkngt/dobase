@@ -329,7 +329,8 @@ class ImapSyncService
   end
 
   def add_text_and_html(mail, message)
-    mail.html_part = Mail::Part.new(content_type: "text/html; charset=UTF-8", body: message.body_html)
+    # Styled like sent mail, so other mail programs show the draft the way the editor does
+    mail.html_part = Mail::Part.new(content_type: "text/html; charset=UTF-8", body: Mails::OutgoingHtml.from(message.body_html))
     mail.text_part = Mail::Part.new(content_type: "text/plain; charset=UTF-8", body: message.body_plain || "") if message.body_plain.present?
   end
 end

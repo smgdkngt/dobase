@@ -175,6 +175,9 @@ module Tools
         format.html do
           flash.now[:alert] = message
           build_compose_defaults
+          # Still the draft it was, with the attachments it forwards
+          @draft = @mail_account.messages.drafts.find_by(id: params[:draft_id]) if params[:draft_id].present?
+          @forward_attachments = @mail_account.attachments.where(id: params[:forward_attachment_ids]).select { |attachment| attachment.file.attached? } if params[:forward_attachment_ids].present?
           @unsent = true
           render :new, status: :unprocessable_entity
         end

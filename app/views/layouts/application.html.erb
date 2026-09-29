@@ -14,7 +14,8 @@
     <%= csp_meta_tag %>
     <%# No prefetch on hover: page visits have effects (marking mail read, the docs edit lock, activity dots) %>
     <meta name="turbo-prefetch" content="false">
-    <meta name="turbo-refresh-method" content="morph">
+    <%# A page whose widgets can't be morphed (the compose form) asks for "replace" %>
+    <meta name="turbo-refresh-method" content="<%= content_for(:turbo_refresh_method).presence || "morph" %>">
     <meta name="turbo-refresh-scroll" content="preserve">
     <meta name="view-transition" content="same-origin">
 

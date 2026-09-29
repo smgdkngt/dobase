@@ -269,6 +269,25 @@ class MailsTest < ApplicationSystemTestCase
     assert_selector "input[name='to'][value='not-an-address']", visible: :hidden
   end
 
+  test "a draft that fails to send comes back whole, still as the draft" do
+    draft = mails_messages(:draft_message)
+    draft.update!(body_html: "<p>Hello there</p>")
+    SmtpSendService.alias_method :send_email_without_failure, :send_email
+    SmtpSendService.define_method(:send_email) { |**| raise SmtpSendService::SendError, "Error: certificate verify failed" }
+
+    visit new_tool_mail_path(@tool, draft_id: draft.id)
+    wait_for_compose_editor
+    click_on "Send"
+
+    assert_text "Error: certificate verify failed"
+    assert_selector "[data-email-autocomplete-target=tags]", text: "recipient@example.com"
+    assert_selector "rhino-editor [contenteditable]", text: "Hello there"
+    assert_selector "input[name=draft_id][value='#{draft.id}']", visible: :hidden
+  ensure
+    SmtpSendService.alias_method :send_email, :send_email_without_failure
+    SmtpSendService.remove_method :send_email_without_failure
+  end
+
   test "bulk select and archive" do
     visit tool_mails_path(@tool)
 
