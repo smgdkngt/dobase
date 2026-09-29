@@ -214,6 +214,65 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_equal %w[INBOX Receipts Sent Drafts], JSON.parse(@account.reload.synced_folders)
   end
 
+  # --- Sent mail on the server --------------------------------------------------
+  # Mail sent over SMTP only lands in the server's sent folder when the server puts it
+  # there itself (Gmail, Office 365). Otherwise the sync adds it.
+
+  test "sent mail without a copy on the server is added to its sent folder" do
+    sent = @account.messages.create!(message_id: "sent-1@example.com", folder: "Sent", subject: "Plans",
+      from_address: "testuser@example.com", from_name: "Test User", to_addresses: '["friend@example.com"]',
+      body_plain: "Thursday?", body_html: "<p>Thursday?</p>", in_reply_to: "plans@example.com",
+      references: "<plans@example.com>", read: true, sent_at: Time.utc(2026, 9, 29, 10, 32))
+    server = FakeImapServer.new(folders: [ "INBOX", [ "Sent Messages", :Sent ] ])
+    server.select("Sent Messages")
+
+    connect_to_imap(server) { @service.send(:file_sent_mail, server, "Sent Messages") }
+
+    assert_equal [ [ "Sent Messages", [ :Seen ] ] ], server.appended
+    copy = Mail.new(server.appended_messages.sole[:message])
+    assert_equal Time.utc(2026, 9, 29, 10, 32), server.appended_messages.sole[:date]
+    assert_equal [ "sent-1@example.com", "Plans", "plans@example.com", "plans@example.com" ], [ copy.message_id, copy.subject, copy.in_reply_to, copy.references ]
+    assert_equal "Test User <testuser@example.com>", copy[:from].value
+    assert_equal [ "friend@example.com" ], copy.to
+    assert_equal %(<p style="margin:0 0 1em 0">Thursday?</p>), copy.html_part.decoded
+    assert_equal 201, sent.reload.uid
+  end
+
+  test "sent mail the server already filed itself isn't added again" do
+    sent = @account.messages.create!(message_id: "sent-2@example.com", folder: "Sent", subject: "Hi",
+      from_address: "testuser@example.com", to_addresses: "[]", sent_at: Time.current)
+    server = FakeImapServer.new(folders: [ "INBOX", "[Gmail]/Sent Mail" ], message_ids: { [ "[Gmail]/Sent Mail", "<sent-2@example.com>" ] => [ 77 ] })
+    server.select("[Gmail]/Sent Mail")
+
+    connect_to_imap(server) { @service.send(:file_sent_mail, server, "[Gmail]/Sent Mail") }
+
+    assert_empty server.appended
+    assert_equal 77, sent.reload.uid
+  end
+
+  test "only sent mail without a UID gets a copy, drafts and trashed mail don't" do
+    @account.messages.create!(message_id: "draft-9@local", folder: "Sent", draft: true, from_address: "testuser@example.com", to_addresses: "[]")
+    @account.messages.create!(message_id: "trashed-9@example.com", folder: "Sent", trashed: true, from_address: "testuser@example.com", to_addresses: "[]")
+    server = FakeImapServer.new(folders: [ "INBOX", "Sent" ])
+
+    connect_to_imap(server) { @service.send(:file_sent_mail, server, "Sent") }
+
+    assert_empty server.appended
+    assert_empty server.searched
+  end
+
+  test "syncing the sent folder adds the copies after fetching" do
+    @account.messages.create!(message_id: "sent-3@example.com", folder: "Sent", subject: "Hi",
+      from_address: "testuser@example.com", to_addresses: "[]", sent_at: Time.current)
+    server = FakeImapServer.new(folders: [ "INBOX", [ "Sent Messages", :Sent ] ])
+    server.define_singleton_method(:uid_search) { |criteria| criteria == [ "ALL" ] ? [] : super(criteria) }
+
+    connect_to_imap(server) { @service.sync_sent }
+
+    assert_equal [ "Sent Messages" ], server.selected
+    assert_equal [ [ "Sent Messages", [ :Seen ] ] ], server.appended
+  end
+
   # --- Moving mail by Message-ID ----------------------------------------------
   # A moved message gets a new UID in its new folder, so the UID stored before the
   # move can belong to another message there.

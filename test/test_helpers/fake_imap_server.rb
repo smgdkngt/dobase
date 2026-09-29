@@ -5,7 +5,7 @@ require "net/imap"
 # An IMAP server for tests. It lists its folders, finds messages by Message-ID
 # and records what it's asked to do. `connect_to_imap` sends connections to it.
 class FakeImapServer
-  attr_reader :selected, :searched, :stored, :copied, :appended, :expunged, :lists
+  attr_reader :selected, :searched, :stored, :copied, :appended, :appended_messages, :expunged, :lists
 
   # folders: names, or [name, *attributes] for folders with SPECIAL-USE attributes like :Drafts
   # message_ids: { [folder, "<message-id>"] => [uid, ...] }
@@ -13,7 +13,7 @@ class FakeImapServer
     @folders = folders
     @message_ids = message_ids
     @capabilities = capabilities
-    @selected, @searched, @stored, @copied, @appended, @expunged, @lists = [], [], [], [], [], [], 0
+    @selected, @searched, @stored, @copied, @appended, @appended_messages, @expunged, @lists = [], [], [], [], [], [], [], 0
   end
 
   def login(_username, _password) = nil
@@ -26,7 +26,12 @@ class FakeImapServer
   def expunge = @expunged << :all
   def uid_expunge(uids) = @expunged << uids
 
-  def append(folder, _message, flags) = @appended << [ folder, flags ]
+  # An appended message is found by its Message-ID afterwards, under a new UID
+  def append(folder, message, flags, date = nil)
+    @appended << [ folder, flags ]
+    @appended_messages << { message: message, date: date }
+    @message_ids[[ folder, "<#{Mail.new(message).message_id}>" ]] ||= [ 200 + @appended.size ]
+  end
 
   def list(_reference, _pattern)
     @lists += 1
