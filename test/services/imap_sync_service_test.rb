@@ -441,6 +441,25 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_equal "image001.png@01DD", @account.messages.find_by!(message_id: "logo-6@example.com").attachments.sole.content_id
   end
 
+  test "attachments saved without their Content-IDs get them from the server" do
+    email = @account.messages.create!(message_id: "screenshot@example.com", folder: "Clients", uid: 12, subject: "Look",
+      from_address: "ann@example.com", body_html: %(<img src="cid:AF1A5176-1D79">), sent_at: Time.current)
+    screenshot = email.attachments.create!(filename: "Screenshot.png", content_type: "image/png", file_size: 3)
+    report = email.attachments.create!(filename: "report.pdf", content_type: "application/pdf", file_size: 3)
+
+    mail = Mail.new(from: "ann@example.com", to: "me@example.com", subject: "Look", message_id: "<screenshot@example.com>")
+    mail.html_part = Mail::Part.new(content_type: "text/html; charset=UTF-8", body: %(<img src="cid:AF1A5176-1D79">))
+    mail.add_part Mail::Part.new(content_type: "image/png", content_disposition: "inline; filename=Screenshot.png", content_id: "<AF1A5176-1D79>", body: "PNG")
+    mail.add_part Mail::Part.new(content_type: "application/pdf", content_disposition: "attachment; filename=report.pdf", body: "PDF")
+    server = FakeImapServer.new(folders: [ "INBOX", "Clients" ], messages: { [ "Clients", 12 ] => mail.to_s })
+
+    connect_to_imap(server) { @service.fill_in_content_ids }
+
+    assert_equal [ "Clients" ], server.selected
+    assert_equal "AF1A5176-1D79", screenshot.reload.content_id
+    assert_nil report.reload.content_id
+  end
+
   test "an invitation sent inline, the way Outlook does, is found" do
     mail = Mail.new(from: "olivia@example.com", to: "me@example.com", subject: "Invitation: Budget review", message_id: "<outlook-invite@example.com>")
     mail.text_part = Mail::Part.new(content_type: "text/plain; charset=UTF-8", body: "You're invited")

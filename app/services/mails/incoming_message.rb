@@ -15,6 +15,20 @@ module Mails
       save_email(msg, folder_name)
     end
 
+    # Attachments saved before their Content-IDs were kept get them from the message
+    # as fetched again, matched on name and size
+    def fill_in_content_ids(email, raw_message)
+      remaining = email.attachments.where(content_id: nil).to_a
+      attachment_parts_of(Mail.read_from_string(raw_message)).each do |part|
+        content_id = content_id_of(part) or next
+        attachment = remaining.find { |candidate| candidate.filename == safe_utf8(part.filename) && candidate.file_size == part.decoded.bytesize }
+        next unless attachment
+
+        attachment.update!(content_id: content_id)
+        remaining.delete(attachment)
+      end
+    end
+
     private
 
     def save_email(msg, folder_name)
@@ -139,12 +153,15 @@ module Mails
 
         filename = safe_utf8(part.filename)
         content_type = part.mime_type || "application/octet-stream"
-        content_id = safe_utf8(part.content_id)&.delete("<>")
-        attachment = email.attachments.create!(filename: filename, content_type: content_type, file_size: content.bytesize, content_id: content_id)
+        attachment = email.attachments.create!(filename: filename, content_type: content_type, file_size: content.bytesize, content_id: content_id_of(part))
         attachment.file.attach(io: StringIO.new(content), filename: filename, content_type: content_type)
       rescue StandardError => e
         Rails.logger.error("Failed to save attachment #{part.filename} for email #{email.id}: #{e.message}")
       end
+    end
+
+    def content_id_of(part)
+      safe_utf8(part.content_id)&.delete("<>").presence
     end
 
     def decode_rfc2047(str)
