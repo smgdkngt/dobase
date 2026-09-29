@@ -397,7 +397,7 @@ func (a *App) openLink(url string) {
 	a.jobs = append(a.jobs, pending{"Opening it", func(app *App) error { return focus(app, url) }})
 }
 
-// openURL opens url in the browser; a path is on this server.
+// openURL opens url in the installed app or the browser; a path is on this server.
 func (a *App) openURL(url string) {
 	if strings.HasPrefix(url, "/") {
 		url = a.base + url
@@ -407,10 +407,10 @@ func (a *App) openURL(url string) {
 		return
 	}
 	if err := a.browser(url); err != nil {
-		a.say("Couldn't start a browser. The link: "+url, ToneError)
+		a.say("Couldn't open it. The link: "+url, ToneError)
 		return
 	}
-	a.say("Opened in your browser", ToneInfo)
+	a.say("Opened it", ToneInfo)
 }
 
 // -- The loop -------------------------------------------------------------------

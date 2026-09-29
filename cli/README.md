@@ -68,6 +68,12 @@ mistake? `u` undoes the last change. `/` searches everything, `n` shows your
 notifications, `]` and `[` hop between tools, and `o` opens whatever you're
 looking at in the browser. `q` quits.
 
+`o` and `--open` (on mail drafts) use Dobase installed as an app when there is
+one: Safari's web app at `~/Applications/Dobase.app` on a Mac, or a Chrome, Edge
+or Vivaldi app, which opens `web+dobase://` links. Otherwise they use your
+browser. Set `DOBASE_APP` to the app to use when yours has another name, e.g.
+`DOBASE_APP="/Applications/Our Tools.app"`.
+
 Boards, todos, chats and your notifications keep up by themselves while you
 look at them.
 

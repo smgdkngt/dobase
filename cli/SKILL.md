@@ -143,8 +143,8 @@ dobase mail sync 8
 A plain-text `--body` becomes paragraphs at its blank lines. With `--html`, write
 separate `<p>`, `<ul>` and `<ol>` blocks; don't add empty `<p><br></p>` for spacing.
 
-`--open` on `draft`, `reply` and `forward` opens the saved draft in the browser,
-ready to edit and send. Only when someone is at the computer.
+`--open` on `draft`, `reply` and `forward` opens the saved draft in the installed
+Dobase app or the browser, ready to edit and send. Only when someone is at the computer.
 
 The CLI can't trash or delete mail. Trashing deletes the message on the mail
 server right away, so it stays in the browser. Archive instead.
