@@ -260,6 +260,37 @@ class MailsTest < ApplicationSystemTestCase
     assert_current_path new_tool_mail_path(@tool, forward: message.id)
   end
 
+  test "writing a message keeps the folder next to it, and picking a conversation asks to discard the message" do
+    visit new_tool_mail_path(@tool)
+    wait_for_compose_editor
+    assert_selector ".mail-list-item", text: "Welcome to Dobase"
+
+    find("rhino-editor [contenteditable]").send_keys("Hello")
+    assert_selector "rhino-editor [contenteditable]", text: "Hello"
+    wait_for_turbo
+
+    dismiss_confirm("You have an unsent message. Discard it?") { find(".mail-list-item", text: "Welcome to Dobase").click }
+    assert_selector "rhino-editor [contenteditable]", text: "Hello"
+
+    accept_confirm("You have an unsent message. Discard it?") { find(".mail-list-item", text: "Welcome to Dobase").click }
+    assert_text "Welcome to Dobase! We hope you enjoy the platform.", wait: 5
+    assert_no_selector "rhino-editor"
+  end
+
+  test "cc and bcc open from the to field" do
+    visit new_tool_mail_path(@tool)
+    wait_for_stimulus "compose"
+    assert_no_field "compose_cc"
+
+    click_on "Cc"
+    assert_field "compose_cc", focused: true
+    assert_no_button "Cc"
+    assert_no_field "compose_bcc"
+
+    click_on "Bcc"
+    assert_field "compose_bcc", focused: true
+  end
+
   test "a draft opens in the editor with space between its paragraphs and lists" do
     draft = mails_messages(:draft_message)
     draft.update!(body_html: "<p>First</p><p>Second</p><ul><li>Item</li></ul><p>Last</p>")

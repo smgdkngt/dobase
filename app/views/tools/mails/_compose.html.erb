@@ -1,0 +1,111 @@
+<%# The compose form, in the reading pane. Expected instance variables: @heading, @to, @cc, @bcc,
+    @subject, @body, @draft, @in_reply_to, @forward_attachments, @mail_account, @current_folder %>
+<% folder_path = tool_mails_path(@tool, folder: @current_folder) %>
+
+<%= form_with url: tool_mails_path(@tool), method: :post, multipart: true, class: "compose",
+      data: {
+        controller: "compose",
+        compose_unsent_value: @unsent,
+        action: "pointerdown->compose#startEditing:capture keydown->compose#startEditing:capture " \
+                "beforeinput->compose#startEditing:capture dragenter->compose#startEditing:capture " \
+                "turbo:submit-end->compose#submitEnded"
+      } do %>
+  <% if @draft %>
+    <%= hidden_field_tag :draft_id, @draft.id %>
+  <% end %>
+  <% if @in_reply_to.present? %>
+    <%= hidden_field_tag :in_reply_to, @in_reply_to %>
+  <% end %>
+  <% @forward_attachments&.each do |att| %>
+    <%= hidden_field_tag "forward_attachment_ids[]", att.id %>
+  <% end %>
+
+  <div class="compose-header">
+    <%= link_to folder_path, class: "compose-back", title: "Back", "aria-label": "Back" do %>
+      <%= render "shared/icon", name: "arrow-left", size: 18 %>
+    <% end %>
+    <h1 class="flex-1 min-w-0 truncate text-base font-semibold text-text-primary"><%= @heading %></h1>
+    <%= render "components/icon_button", icon: "x", title: "Close", href: folder_path, class: "max-lg:hidden" %>
+  </div>
+
+  <div class="compose-body">
+    <div class="compose-fields">
+      <div class="compose-field">
+        <span class="compose-field-label">From</span>
+        <span class="min-w-0 truncate text-sm text-text-secondary">
+          <% if @mail_account.display_name.present? %>
+            <%= @mail_account.display_name %> <span class="text-text-tertiary">&lt;<%= @mail_account.email_address %>&gt;</span>
+          <% else %>
+            <%= @mail_account.email_address %>
+          <% end %>
+        </span>
+      </div>
+
+      <%= render "tools/mails/recipient_field", label: "To", name: "to", value: @to, input_target: "to",
+            toggles: { cc: ("Cc" if @cc.blank?), bcc: ("Bcc" if @bcc.blank?) }.compact %>
+      <%= render "tools/mails/recipient_field", label: "Cc", name: "cc", value: @cc, field_target: "ccField", hidden: @cc.blank? %>
+      <%= render "tools/mails/recipient_field", label: "Bcc", name: "bcc", value: @bcc, field_target: "bccField", hidden: @bcc.blank? %>
+
+      <div class="compose-field">
+        <input type="text"
+               name="subject"
+               value="<%= @subject %>"
+               placeholder="Subject"
+               aria-label="Subject"
+               class="compose-subject"
+               autocomplete="off">
+      </div>
+    </div>
+
+    <% input_id = "compose_body_#{SecureRandom.hex(4)}" %>
+    <%= hidden_field_tag "body", @body, id: input_id %>
+    <rhino-editor input="<%= input_id %>"
+      class="compose-editor"
+      placeholder="Compose your message..."
+      data-blob-url-template="<%= rails_service_blob_url(":signed_id", ":filename") %>"
+      data-direct-upload-url="<%= rails_direct_uploads_url %>">
+    </rhino-editor>
+  </div>
+
+  <div class="compose-footer">
+    <div class="compose-attachments" data-compose-target="attachmentsList">
+      <% @forward_attachments&.each do |att| %>
+        <div class="compose-attachment-item">
+          <%= render "shared/icon", name: "paperclip", size: 14 %>
+          <span><%= att.filename %></span>
+          <span class="compose-attachment-size"><%= att.human_file_size %></span>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="compose-actions">
+      <%= render "components/button", text: "Send", icon: "send", type: :submit %>
+      <% if @draft %>
+        <%= render "components/button", text: "Save Draft", variant: :ghost, type: :submit,
+              formaction: tool_mail_draft_path(@tool, @draft), name: "_method", value: "patch" %>
+      <% else %>
+        <%= render "components/button", text: "Save Draft", variant: :ghost, type: :submit,
+              formaction: tool_mail_drafts_path(@tool) %>
+      <% end %>
+      <label class="icon-btn cursor-pointer" title="Attach files" aria-label="Attach files">
+        <%= render "shared/icon", name: "paperclip", size: 16 %>
+        <input type="file"
+               name="attachments[]"
+               multiple
+               class="hidden"
+               data-compose-target="fileInput"
+               data-action="change->compose#handleFiles">
+      </label>
+
+      <span class="ml-auto"></span>
+      <% if @draft %>
+        <%= render "components/icon_button", icon: "trash-2", title: "Delete draft",
+              href: tool_mail_path(@tool, @draft), method: :delete, turbo_confirm: "Delete this draft?",
+              data: { action: "click->compose#discard" } %>
+      <% else %>
+        <%= render "components/icon_button", icon: "trash-2", title: "Discard",
+              href: folder_path, data: { action: "click->compose#discard" } %>
+      <% end %>
+    </div>
+  </div>
+<% end %>
