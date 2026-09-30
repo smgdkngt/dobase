@@ -180,7 +180,7 @@ module Tools
       @custom_folders = @mail_account.custom_folders
 
       base_scope = case @current_folder
-      when "sent"    then @mail_account.messages.sent
+      when "sent"    then @mail_account.messages.sent.not_archived
       when "starred" then @mail_account.messages.starred
       when "trash"   then @mail_account.messages.trashed
       when "drafts"  then @mail_account.messages.drafts
@@ -192,7 +192,7 @@ module Tools
           @mail_account.messages.archived.not_trashed.not_draft
         end
       when "inbox"   then @mail_account.messages.inbox.not_archived
-      else                @mail_account.messages.where(folder: @current_folder).not_trashed.not_draft
+      else                @mail_account.messages.where(folder: @current_folder).not_archived.not_trashed.not_draft
       end
 
       base_scope = base_scope.search(params[:q]) if params[:q].present?

@@ -37,12 +37,12 @@ module NextMailNavigation
   def mail_folder_scope(folder)
     account = @tool.mail_account
     case folder
-    when "sent"    then account.messages.sent
+    when "sent"    then account.messages.sent.not_archived
     when "starred" then account.messages.starred
     when "trash"   then account.messages.trashed
     when "archive" then account.messages.archived.not_trashed
     when "inbox"   then account.messages.inbox.not_archived
-    else                account.messages.where(folder: folder).not_trashed
+    else                account.messages.where(folder: folder).not_archived.not_trashed
     end
   end
 end
