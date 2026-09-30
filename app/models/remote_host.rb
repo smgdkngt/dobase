@@ -10,6 +10,8 @@ require "socket"
 # addresses with ALLOW_PRIVATE_NETWORK_HOSTS=true. Local addresses are never allowed.
 module RemoteHost
   class Forbidden < StandardError; end
+  # The name server didn't answer this time. Asking again later may work.
+  class LookupFailed < Forbidden; end
 
   LOCAL = %w[
     0.0.0.0/8 127.0.0.0/8 169.254.0.0/16 224.0.0.0/4 240.0.0.0/4
@@ -43,14 +45,26 @@ module RemoteHost
   def self.addresses_for(host)
     raise Forbidden, "No server name given" if host.blank?
 
-    IPAddr.new(host.delete_prefix("[").delete_suffix("]"))
-    [ host.delete_prefix("[").delete_suffix("]") ]
-  rescue IPAddr::InvalidAddressError
+    address = host.delete_prefix("[").delete_suffix("]")
+    return [ address ] if ip_address?(address)
+
     addresses = Array(resolver.call(host)).uniq
     raise Forbidden, "#{host} could not be found" if addresses.empty?
     addresses
-  rescue SocketError
+  rescue SocketError => error
+    raise LookupFailed, "#{host} could not be looked up: #{error.message}" if temporary?(error)
     raise Forbidden, "#{host} could not be found"
+  end
+
+  def self.ip_address?(address)
+    IPAddr.new(address)
+    true
+  rescue IPAddr::InvalidAddressError
+    false
+  end
+
+  def self.temporary?(error)
+    error.respond_to?(:error_code) && error.error_code == Socket::EAI_AGAIN
   end
 
   def self.private_networks_allowed?

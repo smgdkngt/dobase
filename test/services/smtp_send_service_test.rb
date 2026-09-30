@@ -161,4 +161,22 @@ class SmtpSendServiceTest < ActiveSupport::TestCase
     end
     assert_match "private network", error.message
   end
+
+  test "a mail server that can't be reached is told apart, since nothing went out" do
+    @smtp.define_singleton_method(:start) { |*| raise Errno::ECONNREFUSED }
+
+    error = assert_raises(SmtpSendService::Unreachable) do
+      @service.send_email(to: "ann@example.com", subject: "Hi", body: "Hello")
+    end
+    assert_equal "Couldn't reach #{@account.smtp_host}: Connection refused", error.message
+  end
+
+  test "a connection lost after the mail server was reached isn't, since the mail may have gone out" do
+    @smtp.define_singleton_method(:send_message) { |*| raise Errno::ETIMEDOUT }
+
+    error = assert_raises(SmtpSendService::SendError) do
+      @service.send_email(to: "ann@example.com", subject: "Hi", body: "Hello")
+    end
+    assert_not_kind_of SmtpSendService::Unreachable, error
+  end
 end
