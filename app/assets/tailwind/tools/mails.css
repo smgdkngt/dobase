@@ -90,18 +90,44 @@
     @apply flex items-center gap-1.5;
   }
 
-  /* The message scrolls under the fields; its formatting bar stays at the bottom */
+  /* The message scrolls under the fields, the quoted mail below it; its formatting bar
+     stays at the bottom while the text scrolls */
+  .compose-message {
+    @apply flex flex-col flex-1 min-h-0 overflow-y-auto;
+  }
   rhino-editor.compose-editor {
-    @apply flex flex-col flex-1 min-h-0;
+    @apply flex flex-col grow shrink-0;
+  }
+  /* With a quote below it, the text takes the room it needs, so the quote shows under it */
+  .compose-message:has(.compose-quote) rhino-editor.compose-editor {
+    @apply grow-0;
   }
   rhino-editor.compose-editor::part(editor-wrapper) {
-    @apply flex-1 min-h-0 overflow-y-auto;
+    @apply flex-1;
   }
   rhino-editor.compose-editor::part(editor) {
-    @apply flex flex-col min-h-full;
+    @apply flex flex-col h-full;
   }
   rhino-editor.compose-editor::part(toolbar) {
-    @apply order-1 self-start max-w-[calc(100%-2rem)] overflow-x-auto mx-4 mb-2 px-1 py-0.5 rounded-xl border border-border-light bg-background-secondary;
+    @apply order-1 sticky bottom-2 z-10 self-start max-w-[calc(100%-2rem)] overflow-x-auto mx-4 mb-2 px-1 py-0.5 rounded-xl border border-border-light bg-background-secondary;
+  }
+
+  /* The mail a reply or forward quotes: sent along as it is, so it's shown, not edited */
+  .compose-quote {
+    @apply mx-4 mb-4;
+  }
+  .compose-quote-toggle {
+    @apply inline-flex items-center justify-center h-5 px-2 rounded-full bg-background-tertiary text-text-secondary cursor-pointer list-none
+           hover:bg-border-light;
+  }
+  .compose-quote-toggle::-webkit-details-marker {
+    display: none;
+  }
+  .compose-quote-content {
+    @apply mt-3 pl-3 border-l-3 border-border text-sm text-text-secondary;
+  }
+  .compose-quote-remove {
+    @apply mt-2 text-xs text-text-tertiary hover:text-error hover:underline;
   }
   /* Attachments go with the mail (the paperclip next to Send), not into its text */
   rhino-editor.compose-editor::part(toolbar__button--attach-files) {

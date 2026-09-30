@@ -7,6 +7,8 @@ module Mails
     belongs_to :account, class_name: "Mails::Account", foreign_key: "mail_account_id"
     has_many :attachments, class_name: "Mails::Attachment", foreign_key: "mail_message_id", inverse_of: :message, dependent: :destroy
     has_many :calendar_invites, class_name: "Calendars::Invite", foreign_key: "mail_message_id", dependent: :destroy
+    # The mail a draft answers or forwards, added below its text when it goes out (Mails::Quote)
+    belongs_to :quoted_message, class_name: "Mails::Message", optional: true
 
     CONTENT_ID_URL = /\bcid:[^"'\s)>]+/i
     INLINE_IMAGE_MAX_SIZE = 5.megabytes
@@ -130,6 +132,16 @@ module Mails
       data_urls = inline_images.transform_values { |image| "data:#{image.content_type};base64,#{Base64.strict_encode64(image.file.download)}" }
 
       body_html.to_s.gsub(CONTENT_ID_URL) { |url| data_urls.fetch(content_id_of(url), url) }
+    end
+
+    # The HTML with each picture's cid: link as the block gives it
+    def body_html_with_image_urls
+      body_html.to_s.gsub(CONTENT_ID_URL) { |url| (image = inline_images[content_id_of(url)]) ? yield(image) : url }
+    end
+
+    # The text written here, then the mail it answers or forwards, as it goes out
+    def outgoing_html
+      [ body_html, Quote.of(self)&.to_html ].compact.join
     end
 
     def mark_as_read!

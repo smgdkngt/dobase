@@ -12,11 +12,12 @@ class SendMailJob < ApplicationJob
   def perform(draft, sender)
     account = draft.account
 
+    body_html = draft.outgoing_html
     SmtpSendService.new(account).send_email(
       to: draft.to_addresses_list, cc: draft.cc_addresses_list.presence, bcc: draft.bcc_addresses_list.presence,
-      subject: draft.subject, body: draft.body_plain, body_html: draft.body_html,
+      subject: draft.subject, body: Mails::PlainText.from_html(body_html), body_html: body_html,
       attachments: draft.attachments.filter_map { |attachment| attachment.file.blob if attachment.file.attached? }.presence,
-      in_reply_to: draft.in_reply_to
+      inline_images: Mails::Quote.of(draft)&.inline_images.presence, in_reply_to: draft.in_reply_to
     )
 
     ImapSyncJob.perform_later(account.id, "delete_draft", draft.uid, "Drafts") if draft.uid

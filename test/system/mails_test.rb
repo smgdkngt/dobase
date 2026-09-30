@@ -190,6 +190,29 @@ class MailsTest < ApplicationSystemTestCase
     assert_equal [ "sender@example.com" ], deliveries.sole[:recipients]
   end
 
+  test "a reply shows the mail it quotes below the editor, and goes out without it once it's removed" do
+    original = mails_messages(:inbox_read)
+    original.update!(body_html: "<p>Lunch on Friday?</p>")
+    visit new_tool_mail_path(@tool, reply_to: original.id)
+    wait_for_compose_editor
+
+    assert_no_text "Lunch on Friday?"
+    find(".compose-quote-toggle").click
+    assert_text "wrote:"
+    within_frame(find(".compose-quote iframe")) { assert_text "Lunch on Friday?" }
+
+    click_on "Remove quote"
+    assert_no_selector ".compose-quote"
+    deliveries = capture_smtp_deliveries do
+      perform_enqueued_jobs(only: SendMailJob) do
+        click_on "Send"
+        assert_text "Sending your email…"
+      end
+    end
+
+    assert_no_match "Lunch on Friday?", deliveries.sole[:message]
+  end
+
   test "attachments go out with the email, however many times files are picked" do
     visit new_tool_mail_path(@tool)
     wait_for_compose_editor
