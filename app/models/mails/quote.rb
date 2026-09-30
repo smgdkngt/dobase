@@ -39,15 +39,18 @@ module Mails
     end
 
     # "On Tue, Sep 29, 2026 at 10:23 AM, Ann <ann@example.com> wrote:", or the header block of a forward
-    def header_html
-      from = ERB::Util.html_escape("#{message.display_from} <#{message.from_address}>")
-      html = if forward?
-        "<p>---------- Forwarded message ----------<br>From: #{from}<br>Date: #{sent_at}<br>" \
-          "Subject: #{ERB::Util.html_escape(message.subject)}<br>To: #{ERB::Util.html_escape(message.to_addresses_list.join(', '))}</p>"
+    def header_lines
+      from = "#{message.display_from} <#{message.from_address}>"
+      if forward?
+        [ "---------- Forwarded message ----------", "From: #{from}", "Date: #{sent_at}",
+          "Subject: #{message.subject}", "To: #{message.to_addresses_list.join(', ')}" ]
       else
-        "<p>On #{sent_at}, #{from} wrote:</p>"
+        [ "On #{sent_at}, #{from} wrote:" ]
       end
-      html.html_safe # everything from the mail in it is escaped
+    end
+
+    def header_html
+      "<p>#{header_lines.map { |line| ERB::Util.html_escape(line) }.join('<br>')}</p>"
     end
 
     # The pictures the quote shows, as the mail's inline parts
