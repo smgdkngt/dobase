@@ -78,7 +78,7 @@
             <%= render "shared/icon", name: "more-horizontal", size: 14 %>
           </summary>
           <div class="compose-quote-content">
-            <div class="mb-2"><%= quote.header_html.html_safe %></div>
+            <div class="mb-2"><%= quote.header_html %></div>
             <%= render "tools/mails/email_body", message: @quoted_message, actions: false %>
           </div>
           <button type="button" class="compose-quote-remove" data-action="compose#removeQuote">Remove quote</button>
