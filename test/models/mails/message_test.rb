@@ -52,5 +52,15 @@ module Mails
         @message.mark_as_read!
       end
     end
+
+    test "a draft whose quoted mail was deleted has no quote" do
+      draft = mails_messages(:draft_message)
+      draft.update!(quoted_message: @message)
+
+      @message.destroy
+
+      assert_nil draft.reload.quoted_message
+      assert_equal draft.body_html, draft.outgoing_html
+    end
   end
 end

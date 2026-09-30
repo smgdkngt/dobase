@@ -695,7 +695,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_120000) do
   add_foreign_key "mail_attachments", "mail_messages"
   add_foreign_key "mail_contacts", "mail_accounts"
   add_foreign_key "mail_messages", "mail_accounts"
-  add_foreign_key "mail_messages", "mail_messages", column: "quoted_message_id", on_delete: :nullify
   add_foreign_key "mail_trusted_senders", "mail_accounts"
   add_foreign_key "rooms", "tools"
   add_foreign_key "sessions", "users"
