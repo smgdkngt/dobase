@@ -1,7 +1,9 @@
 <%# Renders the email detail content (header, body, reply bar).
     Expected instance variables: @selected_message, @conversation_messages, @tool, @current_folder, @custom_folders %>
 <%
-  last_message = @conversation_messages.last
+  # Replies answer the last mail that was sent; a draft in the conversation is continued, not answered
+  last_message = @conversation_messages.reject(&:draft?).last || @conversation_messages.last
+  reply_draft = @conversation_messages.find { |message| message.draft? && message.in_reply_to == last_message.message_id }
   has_multiple_recipients = last_message.to_addresses_list.length > 1 || last_message.cc_addresses_list.any?
 %>
 <div class="mail-detail-header bg-surface border-b border-border-light px-4 py-3 flex items-center justify-between gap-4">
@@ -98,7 +100,7 @@
       <div class="w-7 h-7 rounded-full bg-accent-light flex items-center justify-center">
         <span class="text-[0.6875rem] font-semibold text-accent"><%= current_user.first_name[0]&.upcase %></span>
       </div>
-      <span class="text-[0.8125rem] text-text-tertiary">Click to reply...</span>
+      <span class="text-[0.8125rem] text-text-tertiary"><%= reply_draft ? "Continue your reply…" : "Click to reply..." %></span>
     <% end %>
     <% if has_multiple_recipients %>
       <%= render "components/button",
