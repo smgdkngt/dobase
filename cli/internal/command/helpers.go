@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 	"unicode"
@@ -24,7 +25,8 @@ func Clean(text string) string {
 }
 
 // Paragraphs turns plain text into HTML: a paragraph per run of lines, split at
-// blank lines (also ones holding only spaces), and a line break within a paragraph.
+// blank lines (also ones holding only spaces), a line break within a paragraph,
+// and a link for every http(s) URL, as the web editor makes of a pasted one.
 func Paragraphs(text string) string {
 	var html, paragraph []string
 	flush := func() {
@@ -38,11 +40,47 @@ func Paragraphs(text string) string {
 		if line == "" {
 			flush()
 		} else {
-			paragraph = append(paragraph, EscapeHTML(line))
+			paragraph = append(paragraph, linkURLs(line))
 		}
 	}
 	flush()
 	return strings.Join(html, "")
+}
+
+var urlPattern = regexp.MustCompile(`(?i)\bhttps?://[^\s<>"]+`)
+
+// linkURLs escapes a line of text and turns the URLs in it into links. Punctuation
+// that ends a sentence isn't part of the URL, nor is a ")" that closes a bracket
+// opened before it: "(see https://example.com)." links https://example.com.
+func linkURLs(line string) string {
+	var html strings.Builder
+	rest := 0
+	for _, match := range urlPattern.FindAllStringIndex(line, -1) {
+		url := trimURL(line[match[0]:match[1]])
+		if strings.HasSuffix(url, "://") {
+			continue
+		}
+		html.WriteString(EscapeHTML(line[rest:match[0]]))
+		html.WriteString(`<a href="` + EscapeHTML(url) + `">` + EscapeHTML(url) + "</a>")
+		rest = match[0] + len(url)
+	}
+	html.WriteString(EscapeHTML(line[rest:]))
+	return html.String()
+}
+
+func trimURL(url string) string {
+	for url != "" {
+		last := url[len(url)-1]
+		switch {
+		case strings.IndexByte(".,:;!?'*_", last) >= 0:
+		case last == ')' && strings.Count(url, "(") < strings.Count(url, ")"):
+		case last == ']' && strings.Count(url, "[") < strings.Count(url, "]"):
+		default:
+			return url
+		}
+		url = url[:len(url)-1]
+	}
+	return url
 }
 
 func EscapeHTML(text string) string {

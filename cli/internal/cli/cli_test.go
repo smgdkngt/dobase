@@ -168,6 +168,21 @@ func TestPlainTextBecomesEscapedParagraphs(t *testing.T) {
 	}
 }
 
+func TestPlainTextLinksURLs(t *testing.T) {
+	for text, want := range map[string]string{
+		"see https://example.com":                                                     `<p>see <a href="https://example.com">https://example.com</a></p>`,
+		"Done: https://example.com/a?x=1&y=<2>.":                                      `<p>Done: <a href="https://example.com/a?x=1&amp;y=">https://example.com/a?x=1&amp;y=</a>&lt;2&gt;.</p>`,
+		"(https://example.com/wiki/Go_(game)), then":                                  `<p>(<a href="https://example.com/wiki/Go_(game)">https://example.com/wiki/Go_(game)</a>), then</p>`,
+		"HTTP://Example.com/x; and http://a.b:8080/c":                                 `<p><a href="HTTP://Example.com/x">HTTP://Example.com/x</a>; and <a href="http://a.b:8080/c">http://a.b:8080/c</a></p>`,
+		"say \"https://example.com/it's\"!\nnext":                                     `<p>say &quot;<a href="https://example.com/it&#39;s">https://example.com/it&#39;s</a>&quot;!<br>next</p>`,
+		"not a link: ftp://example.com, https://, xhttps://example.com and https://.": `<p>not a link: ftp://example.com, https://, xhttps://example.com and https://.</p>`,
+	} {
+		if got := command.Paragraphs(text); got != want {
+			t.Errorf("%q:\ngot  %s\nwant %s", text, got, want)
+		}
+	}
+}
+
 func TestDatesAcceptKeywordsAndISODatesOnly(t *testing.T) {
 	for value, want := range map[string]string{"none": "", "today": command.Today().Format(command.DateLayout), "2026-10-01": "2026-10-01"} {
 		if got, err := command.DateParam(value); err != nil || got != want {
@@ -258,6 +273,12 @@ func TestChatPostsParagraphsAndRepliesToTheMessageGiven(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := sent[0].JSON(); got != `{"message":{"body":"<p>Hi &lt;you&gt;</p><p>Bye</p>","reply_to_id":"77"}}` {
+		t.Errorf("sent %s", got)
+	}
+	if err := invoke(ctx, "chat post", "team", "see https://example.com", "--html"); err != nil {
+		t.Fatal(err)
+	}
+	if got := sent[1].JSON(); got != `{"message":{"body":"see https://example.com"}}` {
 		t.Errorf("sent %s", got)
 	}
 	if err := invoke(ctx, "chat post", "board", "Hi"); err == nil || !strings.Contains(err.Error(), "Team board (13) is a boards tool, not chat.") {
