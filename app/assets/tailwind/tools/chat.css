@@ -60,6 +60,17 @@
     transition: background-color 140ms var(--ease-out), color 140ms var(--ease-out);
   }
 
+  /* A message's text. Shift+Enter in the chat editor is a line break, so separate
+     paragraphs come from pasted text and the API, and get room between them
+     instead of reading as one block. */
+  .chat-message-text {
+    @apply text-sm sm:text-base text-text-primary;
+
+    :is(p, ul, ol, blockquote, pre, h1, h2, h3, h4) + :is(p, ul, ol, blockquote, pre, h1, h2, h3, h4) {
+      @apply mt-2;
+    }
+  }
+
   /* A message being rewritten in place, in the frame its text normally fills. */
   .chat-message-edit {
     @apply mt-1 max-w-2xl;
