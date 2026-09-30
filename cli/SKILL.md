@@ -146,8 +146,9 @@ separate `<p>`, `<ul>` and `<ol>` blocks; don't add empty `<p><br></p>` for spac
 `--open` on `draft`, `reply` and `forward` opens the saved draft in the installed
 Dobase app or the browser, ready to edit and send. Only when someone is at the computer.
 
-The CLI can't trash or delete mail. Trashing deletes the message on the mail
-server right away, so it stays in the browser. Archive instead.
+The CLI can't trash or delete mail. Trashing moves the message to the mail
+server's trash (or deletes it, on a server without one), so it stays in the
+browser. Archive instead.
 
 ## Calendar
 

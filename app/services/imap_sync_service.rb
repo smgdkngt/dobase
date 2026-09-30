@@ -8,7 +8,8 @@ class ImapSyncService
 
   SPECIAL_FOLDERS = {
     "Sent" => [ :Sent, [ "Sent", "INBOX.Sent", "[Gmail]/Sent Mail", "Sent Messages", "Sent Items" ] ],
-    "Drafts" => [ :Drafts, [ "Drafts", "INBOX.Drafts", "[Gmail]/Drafts", "Draft" ] ]
+    "Drafts" => [ :Drafts, [ "Drafts", "INBOX.Drafts", "[Gmail]/Drafts", "Draft" ] ],
+    "Trash" => [ :Trash, [ "Trash", "Deleted Messages", "Deleted Items", "INBOX.Trash", "[Gmail]/Trash", "Bin" ] ]
   }.freeze
   ARCHIVE_FOLDER = [ :Archive, [ "Archive", "Archives", "INBOX.Archive" ] ].freeze
 
@@ -26,11 +27,12 @@ class ImapSyncService
   def sync_folders
     connect do |imap|
       mailboxes = imap.list("", "*") || []
-      # The server's sent and drafts folders are known here as "Sent" and "Drafts"
+      # The server's sent, drafts and trash folders are known here as "Sent", "Drafts" and "Trash"
       special = SPECIAL_FOLDERS.keys.index_by { |folder| find_special_folder(mailboxes, folder) }.except(nil)
       # Leave out Gmail's other system folders
       folders = mailboxes.map(&:name).reject { |f| f.start_with?("[Gmail]/") && !special.key?(f) }
       normalized = folders.map { |f| special.fetch(f, f) }.uniq
+      special.each { |server_name, folder| adopt_special_folder(server_name, folder) }
       @account.update!(synced_folders: normalized.to_json)
       adopt_archive_folder(mailboxes)
       normalized
@@ -161,6 +163,16 @@ class ImapSyncService
     Rails.logger.error("Failed to move email #{uid} from #{source_folder} to #{destination_folder}: #{e.message}")
   end
 
+  def delete_message_by_message_id(message_id, folder:)
+    connect do |imap|
+      select_folder(imap, folder)
+      uids = find_by_message_id(imap, message_id)
+      remove_from_folder(imap, uids) if uids.any?
+    end
+  rescue StandardError => e
+    Rails.logger.error("Failed to delete email #{message_id} from #{folder}: #{e.message}")
+  end
+
   # A moved message gets a new UID in its new folder, so mail that was moved before, like
   # archived mail, is found by its Message-ID.
   def move_to_folder_by_message_id(message_id, source_folder:, destination_folder:)
@@ -270,8 +282,10 @@ class ImapSyncService
     # Remove local messages that no longer exist on the server in this folder.
     # Skip trashed/archived/draft rows — those are kept intentionally in other views.
     scope = @account.messages
-      .where(folder: folder_name, trashed: false, archived: false, draft: false)
+      .where(folder: folder_name, archived: false, draft: false)
       .where.not(uid: nil)
+    # Mail in the server's trash is trashed here too, and leaves when the server empties it
+    scope = scope.where(trashed: false) unless folder_name == Mails::Account::TRASH
     stale_uids = scope.pluck(:uid) - server_uids
     scope.where(uid: stale_uids).destroy_all if stale_uids.any?
   end
@@ -331,6 +345,18 @@ class ImapSyncService
   def server_folder_names(imap, *folders)
     mailboxes = imap.list("", "*") if folders.intersect?(SPECIAL_FOLDERS.keys)
     folders.map { |folder| (mailboxes && find_special_folder(mailboxes, folder)) || folder }
+  end
+
+  # Mail synced from a special folder before it was known as one (like iCloud's "Deleted
+  # Messages", synced as a folder of its own before the trash was) moves under its name here
+  def adopt_special_folder(server_name, folder)
+    return if server_name == folder
+
+    earlier = @account.messages.where(folder: server_name)
+    return unless earlier.exists?
+
+    earlier.where(message_id: @account.messages.where(folder: folder).select(:message_id)).delete_all
+    earlier.update_all(folder: folder, **(folder == Mails::Account::TRASH ? { trashed: true, trashed_at: Time.current } : {}))
   end
 
   # An account without an archive folder of its own archives to the server's. Mail archived

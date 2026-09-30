@@ -236,6 +236,36 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_equal "Done", @account.reload.archive_folder
   end
 
+  test "the server's trash is known as Trash, and mail synced from it before is trashed mail" do
+    earlier = mails_messages(:inbox_read)
+    earlier.update!(folder: "Deleted Messages", uid: 5)
+    server = FakeImapServer.new(folders: [ "INBOX", [ "Deleted Messages", :Trash ] ])
+
+    connect_to_imap(server) { @service.sync_folders }
+
+    assert_equal %w[INBOX Trash], JSON.parse(@account.reload.synced_folders)
+    assert_equal [ "Trash", true, 5 ], [ earlier.reload.folder, earlier.trashed?, earlier.uid ]
+  end
+
+  test "mail in the server's trash is trashed here, and leaves when the server empties it" do
+    incoming_message.send(:save_email, fetch_data(1, mail_with_id("binned-1").to_s), "Trash")
+    binned = @account.messages.find_by!(message_id: "binned-1@example.com")
+    assert binned.trashed?
+
+    @service.send(:fetch_recent_emails, FakeImap.new(uids: [], messages: []), "Trash", 50)
+
+    assert_not Mails::Message.exists?(binned.id)
+  end
+
+  test "mail is deleted from the server's trash by its Message-ID" do
+    server = FakeImapServer.new(folders: [ "INBOX", [ "Deleted Messages", :Trash ] ], message_ids: { [ "Deleted Messages", "<binned@example.com>" ] => [ 31 ] })
+
+    connect_to_imap(server) { @service.delete_message_by_message_id("binned@example.com", folder: "Trash") }
+
+    assert_equal [ "Deleted Messages" ], server.selected
+    assert_equal [ [ [ 31 ], "+FLAGS", [ :Deleted ] ] ], server.stored
+  end
+
   # --- Sent mail on the server --------------------------------------------------
   # Mail sent over SMTP only lands in the server's sent folder when the server puts it
   # there itself (Gmail, Office 365). Otherwise the sync adds it.

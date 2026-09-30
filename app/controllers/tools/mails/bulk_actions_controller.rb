@@ -26,15 +26,10 @@ module Tools
 
         notice = case action
         when "trash"
-          messages = conversations_of(messages, folder).where(trashed: false)
-          messages.where.not(uid: nil).find_each do |message|
-            ImapSyncJob.perform_later(@mail_account.id, "delete_message", message.uid, message.folder || "INBOX")
-          end
-          count = messages.update_all(trashed: true, trashed_at: Time.current, archived: false)
+          count = @mail_account.trash(conversations_of(messages, folder).to_a).size
           "#{count} email(s) moved to trash."
         when "restore"
-          # Local only, like TrashesController#destroy: trashing already expunged these on the IMAP server.
-          count = conversations_of(messages, "trash").trashed.update_all(trashed: false, trashed_at: nil)
+          count = @mail_account.restore(conversations_of(messages, "trash").to_a).size
           "#{count} email(s) restored."
         when "archive"
           messages = conversations_of(messages, folder).where(archived: false)
@@ -66,11 +61,7 @@ module Tools
             "Invalid folder name."
           end
         when "delete"
-          trashed = conversations_of(messages, "trash").trashed
-          trashed.where.not(uid: nil).find_each do |message|
-            ImapSyncJob.perform_later(@mail_account.id, "delete_message", message.uid, message.folder || "INBOX")
-          end
-          count = trashed.destroy_all.count
+          count = @mail_account.delete_for_good(conversations_of(messages, "trash").to_a).size
           "#{count} email(s) permanently deleted."
         else
           "Unknown action."

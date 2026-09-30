@@ -27,6 +27,8 @@ module Mails
     CONNECTION_SETTINGS = %w[imap_host imap_port imap_ssl username encrypted_password].freeze
 
     BUILT_IN_FOLDERS = %w[INBOX Sent Drafts Trash Spam INBOX.spam INBOX.Spam Junk].freeze
+    # The server's trash, whatever the server calls it ("Deleted Messages", "[Gmail]/Trash", ...)
+    TRASH = "Trash"
 
     # Images load straight away in mail from a trusted sender, and in your own
     def shows_images_from?(address)
@@ -43,12 +45,59 @@ module Mails
     end
 
     # The folders synced besides the inbox and sent mail: the account's own, and the archive
-    # folder, where other mail programs archive to as well
+    # and trash, where other mail programs archive and delete to as well
     def other_folders_to_sync
-      archive = archive_folder.presence if JSON.parse(synced_folders.presence || "[]").include?(archive_folder)
-      [ *custom_folders, archive ].compact
+      [ *custom_folders, archive_folder.presence, TRASH ].compact.uniq.select { |folder| folder.in?(server_folders) }
+    end
+
+    def server_folders
+      JSON.parse(synced_folders.presence || "[]")
     rescue JSON::ParserError
-      custom_folders
+      []
+    end
+
+    def server_trash?
+      TRASH.in?(server_folders)
+    end
+
+    # Trashed mail goes to the server's trash, as in other mail programs, so it can be restored
+    # there too. A server without a trash deletes it, and it's only kept here for 30 days.
+    def trash(messages)
+      messages = messages.reject(&:trashed?)
+      on_server = uids_by_folder(messages)
+
+      if server_trash?
+        messages.each(&:move_to_trash!)
+        on_server.each { |folder, uids| ImapSyncJob.perform_later(id, "move_to_folder", uids, folder, TRASH) }
+      else
+        messages.each { |message| message.update!(trashed: true, archived: false) }
+        on_server.each { |folder, uids| ImapSyncJob.perform_later(id, "delete_message", uids, folder) }
+      end
+      messages
+    end
+
+    # Mail in the server's trash goes back to the inbox. Mail deleted on the server before
+    # (it had no trash) can only come back here.
+    def restore(messages)
+      messages.select(&:trashed?).each do |message|
+        if message.folder == TRASH
+          # The trash gave it a new UID, so it's found by its Message-ID; the inbox's next sync gives it its UID there
+          ImapSyncJob.perform_later(id, "move_to_folder_by_message_id", nil, TRASH, "INBOX", message.message_id)
+          message.move_to_folder!("INBOX", on_server: false)
+        else
+          message.update!(trashed: false)
+        end
+      end
+    end
+
+    def delete_for_good(messages)
+      messages = messages.select(&:trashed?)
+      uids_by_folder(messages).each { |folder, uids| ImapSyncJob.perform_later(id, "delete_message", uids, folder) }
+      # Just trashed, and not synced since: found in the server's trash by its Message-ID
+      messages.select { |message| message.folder == TRASH && message.uid.blank? }.each do |message|
+        ImapSyncJob.perform_later(id, "delete_message_by_message_id", nil, TRASH, message.message_id)
+      end
+      messages.each(&:destroy)
     end
 
     # Syncing again with the same credentials only gets turned down again, so the scheduled
@@ -80,6 +129,10 @@ module Mails
     end
 
     private
+
+    def uids_by_folder(messages)
+      messages.select { |message| message.uid.present? }.group_by { |message| message.folder || "INBOX" }.transform_values { |in_folder| in_folder.map(&:uid) }
+    end
 
     def encryption_salt
       "mail account password"
