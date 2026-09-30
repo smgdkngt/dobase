@@ -36,7 +36,29 @@ class RemoteHostTest < ActiveSupport::TestCase
     assert_raises(RemoteHost::Forbidden) { RemoteHost.verify!("") }
   end
 
+  test "a name server that doesn't answer this time is told apart from a name that doesn't exist" do
+    with_failing_lookup(Socket::EAI_AGAIN) do
+      error = assert_raises(RemoteHost::LookupFailed) { RemoteHost.verify!("mail.example.com") }
+      assert_match "Temporary failure in name resolution", error.message
+    end
+
+    with_failing_lookup(Socket::EAI_NONAME) do
+      error = assert_raises(RemoteHost::Forbidden) { RemoteHost.verify!("mail.example.com") }
+      assert_not_kind_of RemoteHost::LookupFailed, error
+    end
+  end
+
   private
+
+  def with_failing_lookup(code)
+    error = Socket::ResolutionError.new("getaddrinfo: Temporary failure in name resolution")
+    error.define_singleton_method(:error_code) { code }
+    resolver = RemoteHost.resolver
+    RemoteHost.resolver = ->(_host) { raise error }
+    yield
+  ensure
+    RemoteHost.resolver = resolver
+  end
 
   def with_env(values)
     previous = values.keys.to_h { |key| [ key, ENV[key] ] }

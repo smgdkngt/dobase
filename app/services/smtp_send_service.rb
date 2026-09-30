@@ -4,6 +4,12 @@ require "net/smtp"
 
 class SmtpSendService
   class SendError < StandardError; end
+  # The mail server wasn't reached, so nothing went out and sending again is safe
+  class Unreachable < SendError; end
+
+  # Failures to find or connect to the mail server, which may pass
+  UNREACHABLE = [ RemoteHost::LookupFailed, SocketError, Net::OpenTimeout, Errno::ECONNREFUSED,
+                  Errno::EHOSTUNREACH, Errno::ENETUNREACH, Errno::ETIMEDOUT ].freeze
 
   # Common MIME types for attachments
   MIME_TYPES = {
@@ -77,6 +83,7 @@ class SmtpSendService
   end
 
   def deliver(**email)
+    reached = false
     mail = build_mail(**email)
 
     smtp = build_smtp
@@ -86,6 +93,7 @@ class SmtpSendService
       @account.password,
       @account.smtp_auth.to_sym
     ) do |server|
+      reached = true
       # The addresses of To, Cc and Bcc, without the names the headers may give them
       server.send_message(mail.to_s, @account.email_address, mail.smtp_envelope_to)
     end
@@ -94,6 +102,7 @@ class SmtpSendService
   rescue Net::SMTPError => e
     raise SendError, "Failed to send email: #{e.message}"
   rescue StandardError => e
+    raise Unreachable, "Couldn't reach #{@account.smtp_host}: #{e.message}" if !reached && UNREACHABLE.any? { |error| e.is_a?(error) }
     raise SendError, "Error: #{e.message}"
   end
 
