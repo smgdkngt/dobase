@@ -62,6 +62,7 @@ module Tools
         @body = @draft.body_html || @draft.body_plain || ""
         @in_reply_to = @draft.in_reply_to
         @forward_attachments = @draft.attachments.select { |attachment| attachment.file.attached? }
+        @quoted_message = @draft.quoted_message
       end
 
       render_compose
@@ -150,6 +151,7 @@ module Tools
           # Still the draft it was, with the attachments it forwards
           @draft = @mail_account.messages.drafts.find_by(id: params[:draft_id]) if params[:draft_id].present?
           @forward_attachments = @mail_account.attachments.where(id: params[:forward_attachment_ids]).select { |attachment| attachment.file.attached? } if params[:forward_attachment_ids].present?
+          @quoted_message = quoted_message_param
           @unsent = true
           render_compose status: :unprocessable_entity
         end
@@ -269,7 +271,7 @@ module Tools
           @in_reply_to = original.message_id
           @to = original.from_address
           @subject = "Re: #{original.normalized_subject}" unless @subject.present?
-          @body = build_reply_body(original) unless @body.present?
+          @quoted_message = original
 
           if params[:reply_all]
             all_recipients = original.to_addresses_list + original.cc_addresses_list
@@ -284,35 +286,22 @@ module Tools
           @heading = "Forward"
           @composing_from = original
           @subject = "Fwd: #{original.normalized_subject}" unless @subject.present?
-          @body = build_forward_body(original) unless @body.present?
-          @forward_attachments = original.attachments.select { |a| a.file.attached? }
+          @quoted_message = original
+          # The pictures in its text go along with the quote
+          @forward_attachments = original.listed_attachments.select { |attachment| attachment.file.attached? }
         end
       end
     end
 
-    def build_reply_body(message)
-      date_str = message.sent_at&.strftime("%a, %b %-d, %Y at %-I:%M %p")
-      quoted = message.body_html.presence || helpers.simple_format(message.body_plain.to_s)
-      from = ERB::Util.html_escape("#{message.display_from} <#{message.from_address}>")
-      "<br><br><p>On #{date_str}, #{from} wrote:</p><blockquote>#{quoted}</blockquote>"
-    end
-
-    def build_forward_body(message)
-      forwarded = message.body_html.presence || helpers.simple_format(message.body_plain.to_s)
-      "<br><br><p>---------- Forwarded message ----------<br>" \
-        "From: #{message.display_from} &lt;#{message.from_address}&gt;<br>" \
-        "Date: #{message.sent_at&.strftime('%a, %b %-d, %Y at %-I:%M %p')}<br>" \
-        "Subject: #{ERB::Util.html_escape(message.subject)}<br>" \
-        "To: #{ERB::Util.html_escape(message.to_addresses_list.join(', '))}</p>" \
-        "#{forwarded}"
-    end
-
     def send_now(to:, cc:, bcc:)
-      body_html = params[:body]
+      message = @mail_account.messages.new(body_html: params[:body], in_reply_to: params[:in_reply_to].presence, quoted_message: quoted_message_param)
+      quote = ::Mails::Quote.of(message)
+      body_html = message.outgoing_html
       attachments = Array(params[:attachments])
-      # Forwarded attachments (Active Storage blobs), only from this account's own mail
+      # Forwarded attachments (Active Storage blobs), only from this account's own mail. The
+      # pictures in a quote's text go along with the quote.
       if params[:forward_attachment_ids].present?
-        @mail_account.attachments.where(id: params[:forward_attachment_ids]).each do |attachment|
+        @mail_account.attachments.where(id: params[:forward_attachment_ids]).where.not(id: quote&.image_ids).each do |attachment|
           attachments << attachment.file.blob if attachment.file.attached?
         end
       end
@@ -320,7 +309,7 @@ module Tools
       SmtpSendService.new(@mail_account).send_email(
         to: to, cc: cc, bcc: bcc, subject: params[:subject],
         body: ::Mails::PlainText.from_html(body_html), body_html: body_html,
-        attachments: attachments.presence, in_reply_to: params[:in_reply_to].presence
+        attachments: attachments.presence, inline_images: quote&.inline_images.presence, in_reply_to: params[:in_reply_to].presence
       )
       discard_draft(@mail_account.messages.drafts.find_by(id: params[:draft_id])) if params[:draft_id].present?
 
@@ -338,12 +327,20 @@ module Tools
         subject: params[:subject], body_html: params[:body], body_plain: ::Mails::PlainText.from_html(params[:body]),
         in_reply_to: params[:in_reply_to].presence, sent_at: Time.current
       )
-      # Forwarded attachments, only from this account's own mail; a saved draft already has its own
-      forwarded = @mail_account.attachments.where(id: params[:forward_attachment_ids]).where.not(mail_message_id: draft.id) if params[:forward_attachment_ids].present?
+      draft.quoted_message = quoted_message_param if params.key?(:quoted_message_id)
+      # Forwarded attachments, only from this account's own mail; a saved draft already has its
+      # own, and the pictures in a quote's text go along with the quote
+      forwarded = @mail_account.attachments.where(id: params[:forward_attachment_ids]).where.not(mail_message_id: draft.id)
+        .where.not(id: ::Mails::Quote.of(draft)&.image_ids) if params[:forward_attachment_ids].present?
       draft.copy_attachments(forwarded.includes(file_attachment: :blob)) if forwarded
       draft.attach_uploads(Array(params[:attachments])) if params[:attachments].present?
       draft.save!
       draft
+    end
+
+    # The mail a reply or forward quotes below its text, only from this account's own mail
+    def quoted_message_param
+      @mail_account.messages.find_by(id: params[:quoted_message_id]) if params[:quoted_message_id].present?
     end
 
     def discard_draft(draft)

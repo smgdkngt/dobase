@@ -6,7 +6,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/smgdkngt/dobase/cli/internal/api"
 	. "github.com/smgdkngt/dobase/cli/internal/command"
@@ -361,8 +360,10 @@ func replyMail(ctx *Ctx, args *Args) error {
 		"to", strings.Join(to, ", "),
 		"cc", strings.Join(cc, ", "),
 		"subject", "Re: "+stripReplyPrefix(original.Get("subject").S()),
-		"body", body+quotedMessage(original),
+		"body", body,
 		"in_reply_to", original.Get("message_id"),
+		// The server quotes it below the text as it was written, like the compose page does
+		"quoted_message_id", original.Get("id"),
 	)
 	if args.On("send") {
 		sent, err := ctx.Post(fmt.Sprintf("/tools/%s/mails", tool.Get("id").S()), reply)
@@ -425,7 +426,9 @@ func forwardMail(ctx *Ctx, args *Args) error {
 		"to", args.Value("to"),
 		"cc", optionalMailFlag(args, "cc"),
 		"subject", "Fwd: "+stripReplyPrefix(original.Get("subject").S()),
-		"body", note+forwardedMessage(original),
+		"body", note,
+		// The server adds it below the note as it was written, with the header block of a forward
+		"quoted_message_id", original.Get("id"),
 		"forward_attachment_ids", attachmentIDs,
 	)
 	attached := Count(int64(len(attachmentIDs)), "attachment")
@@ -596,6 +599,7 @@ func sendMail(ctx *Ctx, args *Args) error {
 			"subject", saved.Get("subject"),
 			"body", body,
 			"in_reply_to", saved.Get("in_reply_to"),
+			"quoted_message_id", saved.Get("quoted_message_id"),
 			"draft_id", saved.Get("id"),
 			"forward_attachment_ids", attachmentIDs,
 		)
@@ -734,41 +738,6 @@ func openMailDraft(ctx *Ctx, args *Args, draft api.Value) error {
 		return api.Failf("The draft is saved, but it didn't open (%v). It is at %s", err, url)
 	}
 	return nil
-}
-
-// quotedMessage is the message a reply answers, quoted below it like the compose page's own replies do.
-func quotedMessage(message api.Value) string {
-	return fmt.Sprintf("<p>On %s, %s wrote:</p><blockquote>%s</blockquote>",
-		EscapeHTML(quotedMoment(message.Get("sent_at"))),
-		EscapeHTML(mailAddress(message.Get("from_name"), message.Get("from_address"))),
-		messageHTML(message))
-}
-
-// forwardedMessage is the forwarded message below the note, with the header block other mail clients add.
-func forwardedMessage(message api.Value) string {
-	return fmt.Sprintf("<br><br><p>---------- Forwarded message ----------<br>From: %s<br>Date: %s<br>Subject: %s<br>To: %s</p>%s",
-		EscapeHTML(mailAddress(message.Get("from_name"), message.Get("from_address"))),
-		EscapeHTML(quotedMoment(message.Get("sent_at"))),
-		EscapeHTML(message.Get("subject").S()),
-		EscapeHTML(mailList(message.Get("to"))),
-		messageHTML(message))
-}
-
-// quotedMoment is when a quoted message was sent, written like the compose page writes it: "Tue, Sep 29, 2026 at 10:23 AM".
-func quotedMoment(sentAt api.Value) string {
-	moment, err := time.Parse(time.RFC3339, sentAt.S())
-	if err != nil {
-		return Moment(sentAt)
-	}
-	return moment.Format("Mon, Jan 2, 2006 at 3:04 PM")
-}
-
-// messageHTML is the HTML of a message, or its text as paragraphs when it has none.
-func messageHTML(message api.Value) string {
-	if html := message.Get("body_html").S(); !isBlank(html) {
-		return html
-	}
-	return Paragraphs(message.Get("body").S())
 }
 
 // attachmentFilename is only the last path segment of a name from the mail, never an empty or dot-only one.

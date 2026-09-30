@@ -207,6 +207,21 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_equal %(<p style="margin:0 0 1em 0">This is a draft message.</p>), raw.html_part.decoded
   end
 
+  test "a draft on the server has its quote, so other mail programs show all of it" do
+    original = mails_messages(:inbox_read)
+    original.update!(body_html: %(<p>Lunch?</p><img src="cid:logo@example.com">))
+    logo = original.attachments.create!(filename: "logo.png", content_type: "image/png", file_size: 3, content_id: "logo@example.com")
+    logo.file.attach(io: StringIO.new("PNG"), filename: "logo.png", content_type: "image/png")
+    draft = mails_messages(:draft_message)
+    draft.update!(quoted_message: original, in_reply_to: original.message_id)
+
+    raw = Mail.new(@service.send(:build_raw_email, draft))
+
+    assert_match %r{This is a draft message\.</p><p[^>]*>On .*wrote:</p><blockquote[^>]*><p[^>]*>Lunch\?</p><img src="cid:quote-#{logo.id}@dobase">}, raw.html_part.decoded
+    assert_equal [ "<quote-#{logo.id}@dobase>" ], raw.attachments.map(&:content_id)
+    assert_match "> Lunch?", raw.text_part.decoded
+  end
+
   test "the server's sent and drafts folders are listed as Sent and Drafts" do
     server = FakeImapServer.new(folders: [ "INBOX", "Receipts", [ "[Gmail]/Sent Mail", :Sent ], "[Gmail]/Drafts", "[Gmail]/Spam" ])
 

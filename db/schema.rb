@@ -460,6 +460,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_120000) do
     t.integer "uid"
     t.datetime "updated_at", null: false
     t.text "bcc_addresses"
+    t.integer "quoted_message_id"
     t.index ["mail_account_id", "archived"], name: "index_mail_messages_on_mail_account_id_and_archived"
     t.index ["mail_account_id", "folder", "sent_at"], name: "index_mail_messages_on_mail_account_id_and_folder_and_sent_at"
     t.index ["mail_account_id", "message_id", "folder"], name: "index_mail_messages_on_account_message_id_and_folder", unique: true
@@ -694,6 +695,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_120000) do
   add_foreign_key "mail_attachments", "mail_messages"
   add_foreign_key "mail_contacts", "mail_accounts"
   add_foreign_key "mail_messages", "mail_accounts"
+  add_foreign_key "mail_messages", "mail_messages", column: "quoted_message_id", on_delete: :nullify
   add_foreign_key "mail_trusted_senders", "mail_accounts"
   add_foreign_key "rooms", "tools"
   add_foreign_key "sessions", "users"

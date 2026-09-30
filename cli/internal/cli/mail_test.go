@@ -81,8 +81,11 @@ func TestRepliesSentFromTheCLINameTheMessageTheyAnswer(t *testing.T) {
 			t.Errorf("%s: got %q", key, got)
 		}
 	}
-	if got := sent[0].Get("body").S(); !strings.HasPrefix(got, "<p>Sure</p><p>On , ann@example.com wrote:</p><blockquote>") {
+	if got := sent[0].Get("body").S(); got != "<p>Sure</p>" {
 		t.Errorf("body %q", got)
+	}
+	if got := sent[0].Get("quoted_message_id").JSON(); got != "310" {
+		t.Errorf("quoted_message_id %s", got)
 	}
 	if got := sent[1].Get("draft_id").JSON(); got != "312" {
 		t.Errorf("draft_id %s", got)
@@ -92,7 +95,7 @@ func TestRepliesSentFromTheCLINameTheMessageTheyAnswer(t *testing.T) {
 	}
 }
 
-func TestForwardsQuoteTheOriginalAndCarryItsStoredAttachments(t *testing.T) {
+func TestForwardsNameTheOriginalAndCarryItsStoredAttachments(t *testing.T) {
 	var sent []api.Value
 	var opened []string
 	var out bytes.Buffer
@@ -118,10 +121,12 @@ func TestForwardsQuoteTheOriginalAndCarryItsStoredAttachments(t *testing.T) {
 	if got := sent[0].Get("forward_attachment_ids").JSON(); got != "[51,52]" {
 		t.Errorf("forward_attachment_ids %s", got)
 	}
-	want := "<p>See below</p><br><br><p>---------- Forwarded message ----------<br>From: Ann &lt;Lee&gt; &lt;ann@example.com&gt;<br>" +
-		"Date: Thu, Sep 24, 2026 at 2:05 PM<br>Subject: Re: Plans<br>To: me@example.com</p><p>Plan A &amp; B</p><p>OK?</p>"
-	if got := sent[0].Get("body").S(); got != want {
+	// The server adds the forwarded mail below the note
+	if got := sent[0].Get("body").S(); got != "<p>See below</p>" {
 		t.Errorf("body %q", got)
+	}
+	if got := sent[0].Get("quoted_message_id").JSON(); got != "310" {
+		t.Errorf("quoted_message_id %s", got)
 	}
 	if want := []string{"https://dobase.test/tools/8/mails/new?draft_id=400"}; !slices.Equal(opened, want) {
 		t.Errorf("opened %v", opened)
@@ -134,32 +139,21 @@ func TestForwardsQuoteTheOriginalAndCarryItsStoredAttachments(t *testing.T) {
 	}
 }
 
-func TestRepliesQuoteTheMessageTheyAnswer(t *testing.T) {
+func TestRepliesLeaveTheQuoteToTheServer(t *testing.T) {
 	var sent []api.Value
 	var opened []string
 	var out bytes.Buffer
-	responses := api.MustParse(mailWithAttachments).With("/tools/8/mails/313", api.MustParse(`{ "account": { "email_address": "me@example.com" }, "messages": [
-		{ "id": 313, "draft": false, "from_name": "", "from_address": "bob@example.com", "to": ["me@example.com"], "cc": [],
-		  "subject": "Lunch", "sent_at": "2026-09-25T12:30:00.000+02:00", "body": "Lunch?", "body_html": "<div>Lunch <b>today</b>?</div>" }
-	] }`))
-	ctx := mailCtx(&out, false, newFakeAPI(responses.JSON(), &sent), &opened)
+	ctx := mailCtx(&out, false, newFakeAPI(mailWithAttachments, &sent), &opened)
 
 	if err := invoke(ctx, "mail reply", "8/310", "--body", "Plan B.\n\nSee you then."); err != nil {
 		t.Fatal(err)
 	}
-	if err := invoke(ctx, "mail reply", "8/313", "--body", "<p>Yes</p><ul><li>12:30</li></ul>", "--html"); err != nil {
-		t.Fatal(err)
-	}
 
-	want := "<p>Plan B.</p><p>See you then.</p><p>On Thu, Sep 24, 2026 at 2:05 PM, Ann &lt;Lee&gt; &lt;ann@example.com&gt; wrote:</p>" +
-		"<blockquote><p>Plan A &amp; B</p><p>OK?</p></blockquote>"
-	if got := sent[0].Get("body").S(); got != want {
+	if got := sent[0].Get("body").S(); got != "<p>Plan B.</p><p>See you then.</p>" {
 		t.Errorf("body %q", got)
 	}
-	want = "<p>Yes</p><ul><li>12:30</li></ul><p>On Fri, Sep 25, 2026 at 12:30 PM, bob@example.com wrote:</p>" +
-		"<blockquote><div>Lunch <b>today</b>?</div></blockquote>"
-	if got := sent[1].Get("body").S(); got != want {
-		t.Errorf("body %q", got)
+	if got := sent[0].Get("quoted_message_id").JSON(); got != "310" {
+		t.Errorf("quoted_message_id %s", got)
 	}
 }
 

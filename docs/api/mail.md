@@ -172,8 +172,11 @@ the server calls it) or one of the `custom_folders`. An invalid name returns
 
 `to`, `cc` and `bcc` are comma-separated addresses, and `body` is HTML. `in_reply_to`
 is the `message_id` of the message you're replying to, and puts the draft in
-its conversation. Returns `201` and the draft, which is copied to the server's
-Drafts folder in the background.
+its conversation. `quoted_message_id` is the `id` of the message a reply answers
+or a forward forwards: it's kept out of `body` and added below it as it was
+written (a reply's quote, or a forward's header block) when the mail goes out,
+with the pictures it shows. Returns `201` and the draft, which is copied to the
+server's Drafts folder in the background, quote included.
 
 `PATCH /tools/:tool_id/mails/drafts/:id` with any of the same fields changes
 only those and returns the draft. Drafts are deleted in the browser.
@@ -190,7 +193,9 @@ only those and returns the draft. Drafts are deleted in the browser.
 address can have a name in front of it, as in `Rachel Kim <rachel@northstarvc.com>`.
 A reply sends `in_reply_to`, the `message_id` of the message it answers: the
 email gets `In-Reply-To` and `References` headers, so mail programs keep it in
-that conversation, and its copy in Sent joins the conversation in Dobase.
+that conversation, and its copy in Sent joins the conversation in Dobase. With
+`quoted_message_id` the answered (or forwarded) message is quoted below `body`,
+as for drafts.
 The API sends right away and says whether it went (the compose page sends in the
 background instead, and keeps mail that couldn't be sent as a draft).
 It returns `201` with the recipients and subject, and a copy goes into Sent:

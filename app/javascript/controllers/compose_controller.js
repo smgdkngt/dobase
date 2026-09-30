@@ -4,7 +4,7 @@ import { formatFileSize } from "services/file_size"
 const FILE_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>'
 
 export default class extends Controller {
-  static targets = ["to", "ccField", "bccField", "fileInput", "attachmentsList"]
+  static targets = ["to", "ccField", "bccField", "fileInput", "attachmentsList", "quote", "quotedMessage"]
   static values = { unsent: Boolean }
 
   connect() {
@@ -66,13 +66,19 @@ export default class extends Controller {
 
   _formSnapshot() {
     const form = new FormData(this.element)
-    const fields = ["to", "cc", "bcc", "subject", "body"].map(name => form.get(name))
+    const fields = ["to", "cc", "bcc", "subject", "body", "quoted_message_id"].map(name => form.get(name))
     const files = form.getAll("attachments[]").map(file => file.name)
     return JSON.stringify([...fields, ...files])
   }
 
   discard() {
     this._submitting = true // skip confirmation
+  }
+
+  // The reply goes out without the mail it answers
+  removeQuote() {
+    this.quotedMessageTarget.value = ""
+    this.quoteTarget.remove()
   }
 
   // Cc and Bcc wait behind their buttons in the To field until they're wanted

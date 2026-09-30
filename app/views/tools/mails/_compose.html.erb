@@ -61,12 +61,30 @@
 
     <% input_id = "compose_body_#{SecureRandom.hex(4)}" %>
     <%= hidden_field_tag "body", @body, id: input_id %>
-    <rhino-editor input="<%= input_id %>"
-      class="compose-editor"
-      placeholder="Compose your message..."
-      data-blob-url-template="<%= rails_service_blob_url(":signed_id", ":filename") %>"
-      data-direct-upload-url="<%= rails_direct_uploads_url %>">
-    </rhino-editor>
+    <div class="compose-message">
+      <rhino-editor input="<%= input_id %>"
+        class="compose-editor"
+        placeholder="Compose your message..."
+        data-blob-url-template="<%= rails_service_blob_url(":signed_id", ":filename") %>"
+        data-direct-upload-url="<%= rails_direct_uploads_url %>">
+      </rhino-editor>
+
+      <% if @quoted_message %>
+        <%# Kept out of the editor, which would flatten its layout: it goes out as it is %>
+        <% quote = Mails::Quote.new(@quoted_message, forward: @in_reply_to != @quoted_message.message_id) %>
+        <%= hidden_field_tag :quoted_message_id, @quoted_message.id, data: { compose_target: "quotedMessage" } %>
+        <details class="compose-quote" data-compose-target="quote">
+          <summary class="compose-quote-toggle" title="Show the quoted mail" aria-label="Show the quoted mail">
+            <%= render "shared/icon", name: "more-horizontal", size: 14 %>
+          </summary>
+          <div class="compose-quote-content">
+            <div class="mb-2"><%= quote.header_html.html_safe %></div>
+            <%= render "tools/mails/email_body", message: @quoted_message, actions: false %>
+          </div>
+          <button type="button" class="compose-quote-remove" data-action="compose#removeQuote">Remove quote</button>
+        </details>
+      <% end %>
+    </div>
   </div>
 
   <div class="compose-footer">
