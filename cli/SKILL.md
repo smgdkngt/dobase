@@ -32,7 +32,8 @@ token. Tell them; don't look for a way around it.
   against the tool's collaborators (`dobase tool show TOOL`).
 - A TEXT argument of `-` reads stdin (one per command). Use a heredoc for anything
   longer than a line.
-- Text is plain by default: paragraphs on blank lines, line breaks kept. Pass
+- Text is plain by default: paragraphs on blank lines, line breaks kept, and
+  http(s) URLs become links, so a bare URL needs no `--html`. Pass
   `--html` to send HTML (`<p>`, `<strong>`, `<em>`, `<a>`, `<ul>/<ol>/<li>`,
   `<h1>`–`<h3>`, `<blockquote>`, `<pre>`, `<code>`). `@Name` in plain text is
   just text, not a mention.
