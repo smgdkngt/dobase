@@ -12,7 +12,7 @@ class ChatMessageNotifier < Noticed::Event
     def message
       sender = event.params[:sender]
       tool = event.params[:tool]
-      "#{sender&.name || 'Someone'} sent a message in #{tool&.name || 'a chat'}"
+      "#{event.params[:message].try(:byline) || sender&.name || 'Someone'} sent a message in #{tool&.name || 'a chat'}"
     end
 
     def url

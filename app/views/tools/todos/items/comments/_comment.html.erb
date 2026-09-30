@@ -7,10 +7,10 @@
     tool    — the todos tool, for the delete path and the ownership check
 %>
 <div class="flex gap-2.5 group" id="<%= dom_id(comment) %>">
-  <%= render "shared/avatar", user: comment.user, size: :sm %>
+  <%= render "shared/avatar", user: comment.user, agent: comment.agent?, size: :sm %>
   <div class="flex-1 min-w-0">
     <div class="flex items-baseline gap-2 mb-0.5">
-      <span class="text-sm font-semibold text-text-primary"><%= author_name(comment.user) %></span>
+      <%= render "shared/posted_by", record: comment %>
       <span class="text-xs text-text-tertiary"><%= time_ago_in_words(comment.created_at) %> ago</span>
     </div>
     <div class="text-sm text-text-primary leading-snug rich-text-content"><%= comment.body %></div>

@@ -62,6 +62,8 @@ A completed item has `"completed": true` and `completed_at` set, e.g.
       "body": "Quote is €1,200",
       "body_html": "<p>Quote is <strong>€1,200</strong></p>",
       "user": { "id": 1, "name": "Sophie Chen", "email_address": "sophie@moonshot-snacks.com" },
+      "via": null,
+      "agent": false,
       "created_at": "..."
     }
   ],

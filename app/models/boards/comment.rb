@@ -5,6 +5,7 @@ module Boards
     self.table_name = "comments"
 
     include Mentionable
+    include PostedVia
 
     belongs_to :card, class_name: "Boards::Card"
     # Kept when the author deletes their account (the column is nullified)
@@ -21,10 +22,10 @@ module Boards
 
     def notify_collaborators
       tool = card.column.board.tool
-      audience = tool.notifiable_users.where.not(id: user_id)
+      audience = notification_audience(tool)
       return if audience.none?
 
-      mentioned = mentioned_users_in(tool, excluding: user).to_a
+      mentioned = mentioned_users_in(tool, excluding: author_to_skip).to_a
       mentioned_ids = mentioned.map(&:id)
 
       generic = audience.where.not(id: mentioned_ids)
@@ -32,7 +33,7 @@ module Boards
 
       if mentioned.any?
         MentionNotifier.with(
-          mentioner: user, tool: tool, context: "a comment on #{card.title}",
+          mentioner: user, byline: (byline if agent?), tool: tool, context: "a comment on #{card.title}",
           url: Rails.application.routes.url_helpers.tool_board_path(tool, card: card.id)
         ).deliver(mentioned)
       end

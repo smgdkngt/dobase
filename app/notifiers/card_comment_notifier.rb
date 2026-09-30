@@ -12,7 +12,7 @@ class CardCommentNotifier < Noticed::Event
     def message
       commenter = event.params[:commenter]
       card = event.params[:card]
-      "#{commenter&.name || 'Someone'} commented on #{card&.title || 'a card'}"
+      "#{event.params[:comment].try(:byline) || commenter&.name || 'Someone'} commented on #{card&.title || 'a card'}"
     end
 
     def url

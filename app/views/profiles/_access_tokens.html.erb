@@ -18,7 +18,7 @@
   <% end %>
 
   <%= form_with url: profile_access_tokens_path, class: "mb-6" do %>
-    <div class="grid grid-cols-[1fr_auto] gap-3 max-lg:grid-cols-1">
+    <div class="grid grid-cols-[1fr_auto_auto] gap-3 max-lg:grid-cols-1">
       <%= render "components/form_field",
             label: "Name",
             name: "name",
@@ -32,7 +32,17 @@
             type: :select,
             value: access_token.permission,
             options: [ [ "Read only", "read" ], [ "Read and write", "write" ] ] %>
+      <%= render "components/form_field",
+            label: "Posts as",
+            name: "agent",
+            type: :select,
+            value: access_token.agent?.to_s,
+            options: [ [ "You", "false" ], [ "Itself, for you", "true" ] ] %>
     </div>
+    <p class="text-xs text-text-tertiary mt-2">
+      Posting as you puts your name on messages and comments, with "via" and the token's name.
+      Posting as itself shows the token's name instead, as an agent working for you, and tells you what it posted.
+    </p>
     <div class="flex justify-end mt-3">
       <%= render "components/button", text: "Create token", icon: "plus", size: :sm %>
     </div>
@@ -49,6 +59,9 @@
             <div class="flex items-center gap-2">
               <p class="text-sm font-medium text-text-primary truncate"><%= token.name %></p>
               <%= render "components/badge", text: token.write? ? "Read and write" : "Read only", variant: token.write? ? :warning : :muted, size: :sm %>
+              <% if token.agent? %>
+                <%= render "components/badge", text: "Agent", size: :sm %>
+              <% end %>
             </div>
             <p class="text-xs text-text-tertiary">
               Created <%= time_ago_in_words(token.created_at) %> ago
@@ -56,6 +69,12 @@
               <%= token.last_used_at ? "Last used #{time_ago_in_words(token.last_used_at)} ago" : "Never used" %>
             </p>
           </div>
+          <%= render "components/icon_button",
+                icon: token.agent? ? "user" : "bot",
+                title: token.agent? ? "Post as you" : "Post as itself, for you",
+                size: :sm,
+                href: profile_access_token_path(token, agent: !token.agent?),
+                method: :patch %>
           <%= render "components/icon_button",
                 icon: "x",
                 title: "Revoke token",

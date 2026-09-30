@@ -59,7 +59,7 @@ class NotificationFeed
   def chat_group(notifications)
     actors = notifications.filter_map { |n| actor_of(n) }.uniq
     tool = params(notifications.first)[:tool]
-    names = actors.map(&:first_name)
+    names = notifications.filter_map { |n| agent_byline(n) || actor_of(n)&.first_name }.uniq
     who = names.size <= 2 ? names.to_sentence : "#{names.first(2).join(', ')} and #{names.size - 2} more"
 
     Entry.new(
@@ -82,13 +82,27 @@ class NotificationFeed
     notification.event&.params || {}
   end
 
+  # An agent posts on its owner's behalf, so their face would say they wrote it
   def actor_of(notification)
+    return if agent_byline(notification)
+
     ACTOR_PARAMS.lazy.map { |key| params(notification)[key] }.find { |value| value.is_a?(User) }
+  end
+
+  # "Claude for Sem", when an agent posted it
+  def agent_byline(notification)
+    record = record_of(notification)
+    params(notification)[:byline].presence || (record.byline if record.try(:agent?))
+  end
+
+  # The chat message or the comment it's about, if any
+  def record_of(notification)
+    params(notification)[:message] || params(notification)[:comment]
   end
 
   # What was said, when there's something to quote: the chat message or the comment
   def excerpt_of(notification)
-    record = params(notification)[:message] || params(notification)[:comment]
+    record = record_of(notification)
     text = record.try(:body)&.to_plain_text.to_s.squish
     text.truncate(EXCERPT_LENGTH).presence
   rescue StandardError

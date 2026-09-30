@@ -191,6 +191,10 @@ dobase folder download 5/7 --output /tmp/  # a zip of everything inside
 - **Posting is visible.** Chat messages, comments, assignments and moves notify
   collaborators. Post what the user asked for. If you wrote the text yourself,
   show it first unless they told you to go ahead.
+- **Know whose voice you post in.** If `whoami` says the token posts as itself,
+  chat messages and comments show under the token's name ("Claude for Sophie"),
+  so write as their assistant, not in their first person. Otherwise they show
+  under the user's own name with "via" and the token's name.
 - **Deleting is permanent.** `card delete`, `todo delete`, `doc delete`,
   `chat delete`, `event delete`, `file delete`, `folder delete`, `column delete`
   and `todolist delete` can't be undone, and a column or folder takes its

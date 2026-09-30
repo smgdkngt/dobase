@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_29_170000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_30_120000) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -19,6 +19,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_170000) do
     t.string "token_digest", null: false
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
+    t.boolean "agent", default: false, null: false
     t.index ["token_digest"], name: "index_access_tokens_on_token_digest", unique: true
     t.index ["user_id"], name: "index_access_tokens_on_user_id"
   end
@@ -200,6 +201,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_170000) do
     t.bigint "reply_to_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id"
+    t.string "via"
+    t.boolean "agent", default: false, null: false
     t.index ["chat_id", "created_at"], name: "index_chat_messages_on_chat_id_and_created_at"
     t.index ["chat_id"], name: "index_chat_messages_on_chat_id"
     t.index ["reply_to_id"], name: "index_chat_messages_on_reply_to_id"
@@ -280,6 +283,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_170000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id"
+    t.string "via"
+    t.boolean "agent", default: false, null: false
     t.index ["card_id"], name: "index_comments_on_card_id"
     t.index ["user_id"], name: "index_comments_on_user_id"
   end
@@ -540,6 +545,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_29_170000) do
     t.integer "todo_item_id", null: false
     t.datetime "updated_at", null: false
     t.integer "user_id"
+    t.string "via"
+    t.boolean "agent", default: false, null: false
     t.index ["todo_item_id"], name: "index_todo_comments_on_todo_item_id"
     t.index ["user_id"], name: "index_todo_comments_on_user_id"
   end

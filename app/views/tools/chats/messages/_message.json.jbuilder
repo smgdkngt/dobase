@@ -1,11 +1,12 @@
 json.id message.id
 json.partial! "shared/rich_text", name: "body", rich_text: message.body
 json.partial! "users/optional_user", key: "user", user: message.user
+json.(message, :via, :agent)
 
 if (reply_to = message.reply_to)
   json.reply_to do
     json.id reply_to.id
-    json.user_name author_name(reply_to.user)
+    json.user_name poster_name(reply_to)
     json.preview reply_to.preview_text
   end
 else

@@ -4,15 +4,17 @@
     render "shared/avatar", user: current_user
     render "shared/avatar", user: current_user, size: :lg
     render "shared/avatar", initials: "JD", size: :sm
+    render "shared/avatar", user: message.user, agent: message.agent?
 
   Options:
     user: User object (will use avatar or generate initials from name)
+    agent: true for something an agent posted on the user's behalf (a bot, not their face)
     initials: Custom initials (used if no user provided)
     size: :sm, :md (default), :lg, :xl, :"2xl"
     class: Additional CSS classes
 %>
 <%
-  user = local_assigns[:user]
+  user = local_assigns[:user] unless local_assigns[:agent]
   initials = local_assigns[:initials]
   size = local_assigns[:size] || :md
   extra_class = local_assigns[:class] || ""
@@ -41,7 +43,9 @@
   end
 %>
 <div class="avatar <%= size_classes[size] %> <%= extra_class %>">
-  <% if has_image %>
+  <% if local_assigns[:agent] %>
+    <%= render "shared/icon", name: "bot", size: { sm: 14, md: 18, lg: 22, xl: 24, "2xl": 32 }[size], label: "Agent" %>
+  <% elsif has_image %>
     <%= image_tag image_url, alt: user&.name || "Avatar", class: "w-full h-full object-cover" %>
   <% else %>
     <span><%= initials %></span>

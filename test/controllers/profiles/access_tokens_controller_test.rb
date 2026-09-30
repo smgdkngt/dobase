@@ -53,6 +53,41 @@ module Profiles
       assert_includes response.body, "can&#39;t be blank"
     end
 
+    test "create makes an agent token when asked" do
+      post profile_access_tokens_path, params: { name: "Claude", permission: "write", agent: "true" }
+
+      assert @user.access_tokens.last.agent?
+      assert_includes response.body, "Agent"
+    end
+
+    test "update switches a token between posting as you and as itself" do
+      access_token = @user.access_tokens.create!(name: "Claude", permission: "write")
+
+      patch profile_access_token_path(access_token, agent: true)
+      assert_response :success
+      assert access_token.reload.agent?
+
+      patch profile_access_token_path(access_token, agent: false)
+      assert_not access_token.reload.agent?
+    end
+
+    test "cannot switch another user's token" do
+      access_token = users(:two).access_tokens.create!(name: "Theirs")
+
+      patch profile_access_token_path(access_token, agent: true)
+
+      assert_not access_token.reload.agent?
+    end
+
+    test "a token can't make itself an agent" do
+      access_token = @user.access_tokens.create!(name: "Claude", permission: "write")
+
+      patch profile_access_token_path(access_token, agent: true), headers: api_headers(@user)
+
+      assert_response :forbidden
+      assert_not access_token.reload.agent?
+    end
+
     test "destroy revokes the token" do
       access_token = @user.access_tokens.create!(name: "Old")
 

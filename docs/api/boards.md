@@ -56,6 +56,8 @@ cards. Add `?archived=true` to get the archived cards instead.
       "body": "Love it",
       "body_html": "<p>Love it</p>",
       "user": { "id": 2, "name": "Marcus Rivera", "email_address": "marcus@moonshot-snacks.com" },
+      "via": null,
+      "agent": false,
       "created_at": "..."
     }
   ],

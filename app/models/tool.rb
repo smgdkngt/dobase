@@ -81,10 +81,10 @@ class Tool < ApplicationRecord
 
     unread = Set.new
 
-    # Chat messages. Your own count as read the moment you send them.
+    # Chat messages. Your own count as read the moment you send them, your agent's don't.
     Chats::Chat.where(tool_id: candidate_ids)
       .joins(:messages)
-      .where.not(chat_messages: { user_id: user.id })
+      .merge(Chats::Message.not_written_by(user))
       .group(:tool_id)
       .maximum("chat_messages.created_at")
       .each do |tid, max_at|
