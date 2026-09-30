@@ -113,6 +113,16 @@
     @apply flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 mb-2 rounded-md bg-background-secondary text-xs text-text-secondary;
   }
 
+  /* A draft in a conversation: not sent, with a way to finish it */
+  .mail-draft-avatar {
+    @apply w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-warning border border-dashed border-warning;
+  }
+
+  .mail-draft-note {
+    @apply flex items-center gap-2 px-3 py-2 mb-3 rounded-md text-sm text-text-secondary;
+    background: color-mix(in srgb, var(--color-warning) 10%, var(--color-surface));
+  }
+
   .email-images-action {
     @apply font-medium text-accent hover:underline bg-transparent border-none cursor-pointer p-0 text-xs;
   }

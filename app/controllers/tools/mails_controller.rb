@@ -96,7 +96,9 @@ module Tools
       if @message.draft?
         ImapSyncJob.perform_later(@tool.mail_account.id, "delete_draft", @message.uid, "Drafts") if @message.uid
         @message.destroy
-        redirect_to tool_mails_path(@tool, folder: "drafts"), notice: "Draft deleted."
+        # Discarded where it shows in its conversation, the conversation stays open
+        answered = @message.conversation.not_draft.last if params[:from] == "conversation"
+        redirect_to answered ? tool_mail_path(@tool, answered, folder: params[:folder]) : tool_mails_path(@tool, folder: "drafts"), notice: "Draft deleted."
         return
       end
 
