@@ -6,7 +6,7 @@
 %>
 <%= turbo_frame_tag dom_id(message, :body) do %>
   <% if message.body.present? %>
-    <div class="text-sm sm:text-base text-text-primary rich-text-content"><%= message.body %></div>
+    <div class="chat-message-text rich-text-content"><%= message.body %></div>
   <% end %>
 
   <% if message.edited_at %>
