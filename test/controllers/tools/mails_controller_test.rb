@@ -116,6 +116,13 @@ module Tools
       assert_includes response.body, "1 attachment"
       assert_includes response.body, "report.pdf"
       assert_not_includes response.body, "logo.png"
+      assert_select "button span[title='1 attachment'] svg[aria-label='1 attachment']", 1, "a paperclip in the message's header"
+    end
+
+    test "show leaves the paperclip out of the header of a message without attachments" do
+      get tool_mail_path(@tool, mails_messages(:inbox_unread))
+
+      assert_select "button span[title$='attachment']", 0
     end
 
     test "show offers to load images when only CSS pulls in remote content" do
