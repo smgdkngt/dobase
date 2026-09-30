@@ -1,7 +1,10 @@
 json.(message, :id, :subject, :from_name, :from_address)
 json.to message.to_addresses_list
 json.cc message.cc_addresses_list
-json.bcc message.bcc_addresses_list if message.draft?
+if message.draft?
+  json.bcc message.bcc_addresses_list
+  json.quoted_message_id message.quoted_message_id
+end
 json.(message, :sent_at, :read, :starred, :archived, :trashed, :draft, :folder, :message_id, :in_reply_to)
 json.body message.plain_text_body
 json.body_html message.body_html

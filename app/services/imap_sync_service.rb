@@ -395,31 +395,39 @@ class ImapSyncService
     mail.references = message.references if message.references.present?
 
     attachments = message.attachments.select { |attachment| attachment.file.attached? }
+    # Pictures shown in the text by their Content-ID (a sent quote's) go inline, like a draft's quote
+    pictures, files = attachments.partition { |attachment| attachment.content_id.present? }
+    quote = Mails::Quote.of(message)
+    inline_images = pictures.map { |picture| picture.slice(:filename, :content_type, :content_id).symbolize_keys.merge(content: picture.file.download) }
+    inline_images += quote.inline_images if quote
+    html = message.outgoing_html
+    text = quote ? Mails::PlainText.from_html(html) : message.body_plain
 
-    if message.body_html.present?
+    if html.present?
       # A forwarded draft carries the attachments it will be sent with, next to the text and HTML
-      if attachments.any?
-        mail.part(content_type: "multipart/alternative") { |alternative| add_text_and_html(alternative, message) }
+      if files.any? || inline_images.any?
+        mail.part(content_type: "multipart/alternative") { |alternative| add_text_and_html(alternative, html, text) }
       else
-        add_text_and_html(mail, message)
+        add_text_and_html(mail, html, text)
       end
-    elsif attachments.any?
+    elsif files.any?
       mail.text_part = Mail::Part.new(content_type: "text/plain; charset=UTF-8", body: message.body_plain || "")
     else
       mail.body = message.body_plain || ""
       mail.content_type = "text/plain; charset=UTF-8"
     end
 
-    attachments.each do |attachment|
+    files.each do |attachment|
       mail.add_file(filename: attachment.filename, content: attachment.file.download, content_type: attachment.content_type.presence || "application/octet-stream")
     end
+    Mails::Quote.add_inline_images(mail, inline_images) if html.present?
 
     mail.to_s
   end
 
-  def add_text_and_html(mail, message)
+  def add_text_and_html(mail, html, text)
     # Styled like sent mail, so other mail programs show the draft the way the editor does
-    mail.html_part = Mail::Part.new(content_type: "text/html; charset=UTF-8", body: Mails::OutgoingHtml.from(message.body_html))
-    mail.text_part = Mail::Part.new(content_type: "text/plain; charset=UTF-8", body: message.body_plain || "") if message.body_plain.present?
+    mail.html_part = Mail::Part.new(content_type: "text/html; charset=UTF-8", body: Mails::OutgoingHtml.from(html))
+    mail.text_part = Mail::Part.new(content_type: "text/plain; charset=UTF-8", body: text) if text.present?
   end
 end

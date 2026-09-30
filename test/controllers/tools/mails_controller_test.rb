@@ -411,14 +411,56 @@ module Tools
       assert_equal "Hi,\n\nThursday works.", deliveries.first[:body]
     end
 
-    test "a reply from the compose page quotes the original under its sender" do
+    test "a reply from the compose page quotes the original below the editor, not in it" do
       original = mails_messages(:inbox_read)
       original.update!(from_name: "Ann <Lee>", body_html: "<p>Lunch?</p>")
 
       get new_tool_mail_path(@tool, reply_to: original.id)
 
-      body = css_select("input[type=hidden][name=body]").first["value"]
-      assert_includes body, "Ann &lt;Lee&gt; &lt;#{original.from_address}&gt; wrote:</p><blockquote><p>Lunch?</p></blockquote>"
+      assert_equal "", css_select("input[type=hidden][name=body]").first["value"]
+      assert_select "input[type=hidden][name=quoted_message_id][value=?]", original.id.to_s
+      assert_select ".compose-quote", text: /Ann <Lee> <#{original.from_address}> wrote:/
+    end
+
+    test "a reply goes out with the mail it answers quoted as it is, and its pictures" do
+      original = mails_messages(:inbox_read)
+      original.update!(body_html: %(<table style="background: url('https://example.com/bg.png')"><tr><td><img src="cid:logo@example.com">Ann</td></tr></table>))
+      logo = original.attachments.create!(filename: "logo.png", content_type: "image/png", file_size: 3, content_id: "logo@example.com")
+      logo.file.attach(io: StringIO.new("PNG"), filename: "logo.png", content_type: "image/png")
+
+      deliveries = capture_smtp_deliveries_in_the_background do
+        post tool_mails_path(@tool), params: {
+          to: "reports@example.com", subject: "Re: Lunch", body: "<p>Sure</p>", in_reply_to: original.message_id, quoted_message_id: original.id
+        }
+      end
+
+      sent = Mail.new(deliveries.sole[:message])
+      html = sent.html_part.decoded
+      assert_match %r{<p[^>]*>Sure</p><p[^>]*>On .*wrote:</p><blockquote}, html
+      assert_includes html, %(background: url('https://example.com/bg.png'))
+      assert_includes html, %(src="cid:quote-#{logo.id}@dobase")
+      picture = sent.attachments.sole
+      assert_equal [ "logo.png", "<quote-#{logo.id}@dobase>", "PNG" ], [ picture.filename, picture.content_id, picture.decoded ]
+      assert_match "> Ann", sent.text_part.decoded
+
+      copy = @account.messages.sent.find_by!(subject: "Re: Lunch")
+      assert_includes copy.body_html, "wrote:"
+      assert_equal [ "quote-#{logo.id}@dobase" ], copy.attachments.map(&:content_id)
+    end
+
+    test "a draft keeps the mail it quotes, and without it goes out without a quote" do
+      original = mails_messages(:inbox_read)
+
+      post tool_mail_drafts_path(@tool), params: { to: "reports@example.com", subject: "Re: Lunch", body: "<p>Sure</p>", in_reply_to: original.message_id, quoted_message_id: original.id }
+      draft = @account.messages.drafts.find_by!(subject: "Re: Lunch")
+      assert_equal original, draft.quoted_message
+
+      get new_tool_mail_path(@tool, draft_id: draft.id)
+      assert_select "input[type=hidden][name=quoted_message_id][value=?]", original.id.to_s
+
+      patch tool_mail_draft_path(@tool, draft), params: { quoted_message_id: "" }
+      assert_nil draft.reload.quoted_message
+      assert_equal "<p>Sure</p>", draft.outgoing_html
     end
 
     test "mail goes out in the background, and the draft it was is gone once it has" do

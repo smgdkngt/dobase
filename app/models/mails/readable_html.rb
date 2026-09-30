@@ -2,8 +2,8 @@
 
 module Mails
   # The HTML of a mail as the reading pane shows it, in a sandboxed frame that runs no
-  # scripts. Its pictures are in it (Message#body_html_with_inline_images), and only
-  # elements and attributes that lay out text are kept.
+  # scripts, with its pictures in it (Message#body_html_with_inline_images); and as a quote
+  # carries it along (Mails::Quote). Only elements and attributes that lay out text are kept.
   class ReadableHtml
     TAGS = %w[
       p br div span a strong b em i u s strike del ins q cite tt big nobr wbr
@@ -38,6 +38,13 @@ module Mails
 
       private
 
+      # A picture the mail carries along keeps its link to it
+      def scrub_attribute(node, attr_node)
+        return if attr_node.node_name == "src" && attr_node.value.match?(/\A\s*cid:/i)
+
+        super
+      end
+
       def scrub_css_attribute(node)
         style = node.attributes["style"]
         style.value = style.value.gsub(SCRIPT_HOOKS, "") if style
@@ -45,15 +52,15 @@ module Mails
     end
 
     def self.from(message)
-      new(message).to_s
+      new(message.body_html_with_inline_images).to_s
     end
 
-    def initialize(message)
-      @message = message
+    def initialize(html)
+      @html = html
     end
 
     def to_s
-      fragment = Loofah.html5_fragment(@message.body_html_with_inline_images)
+      fragment = Loofah.html5_fragment(@html.to_s)
       # Scrubbing drops elements it doesn't allow but keeps their text, which for these isn't
       # meant to be read (like the JSON-LD in GitHub's notifications)
       fragment.css("script, template, title").each(&:remove)

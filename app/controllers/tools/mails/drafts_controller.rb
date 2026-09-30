@@ -12,8 +12,12 @@ module Tools
       # POST /tools/:tool_id/mails/drafts
       def create
         @draft = @mail_account.new_draft(**draft_params)
-        # A forward keeps the attachments of the mail it forwards, only from this account's own mail
-        @draft.copy_attachments(@mail_account.attachments.where(id: params[:forward_attachment_ids]).includes(file_attachment: :blob)) if params[:forward_attachment_ids].present?
+        # A forward keeps the attachments of the mail it forwards, only from this account's own
+        # mail. The pictures in a quote's text go along with the quote.
+        if params[:forward_attachment_ids].present?
+          @draft.copy_attachments(@mail_account.attachments.where(id: params[:forward_attachment_ids])
+            .where.not(id: ::Mails::Quote.of(@draft)&.image_ids).includes(file_attachment: :blob))
+        end
 
         if @draft.save
           SyncDraftJob.perform_later(@draft.id)
@@ -77,6 +81,8 @@ module Tools
           attributes[:body_plain] = ::Mails::PlainText.from_html(params[:body])
         end
         attributes[:in_reply_to] = params[:in_reply_to] if params.key?(:in_reply_to)
+        # The mail it answers or forwards, quoted below its text; only this account's own mail
+        attributes[:quoted_message] = @mail_account.messages.find_by(id: params[:quoted_message_id].presence) if params.key?(:quoted_message_id)
         attributes
       end
 

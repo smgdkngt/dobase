@@ -54,10 +54,11 @@ class SmtpSendService
   end
 
   # A reply passes the message_id of the message it answers as in_reply_to.
-  def send_email(to:, subject:, body:, body_html: nil, cc: nil, bcc: nil, attachments: nil, in_reply_to: nil)
+  # inline_images are the pictures the HTML shows by cid: (a quote's, Mails::Quote#inline_images).
+  def send_email(to:, subject:, body:, body_html: nil, cc: nil, bcc: nil, attachments: nil, inline_images: nil, in_reply_to: nil)
     in_reply_to = in_reply_to.presence
     email = { to: to, subject: subject, body: body, body_html: body_html, cc: cc, bcc: bcc, attachments: attachments,
-              in_reply_to: in_reply_to, references: references_for(in_reply_to) }
+              inline_images: inline_images, in_reply_to: in_reply_to, references: references_for(in_reply_to) }
 
     mail = deliver(**email)
     file_sent_email(mail, **email)
@@ -122,7 +123,7 @@ class SmtpSendService
     smtp
   end
 
-  def build_mail(to:, subject:, body:, body_html:, cc:, bcc:, attachments:, in_reply_to:, references:)
+  def build_mail(to:, subject:, body:, body_html:, cc:, bcc:, attachments:, inline_images:, in_reply_to:, references:)
     mail = Mail.new
 
     mail.from = @account.display_name.present? ? "#{@account.display_name} <#{@account.email_address}>" : @account.email_address
@@ -138,7 +139,7 @@ class SmtpSendService
       mail.references = references
     end
 
-    if body_html.present? && attachments.present?
+    if body_html.present? && (attachments.present? || inline_images.present?)
       # The text and HTML are the message in two forms; attachments go next to them, not among them
       mail.part(content_type: "multipart/alternative") { |message| add_text_and_html(message, body, body_html) }
     elsif body_html.present? || attachments.present?
@@ -150,6 +151,7 @@ class SmtpSendService
     Array(attachments).each do |attachment|
       add_attachment(mail, attachment)
     end
+    Mails::Quote.add_inline_images(mail, inline_images) if body_html.present?
 
     mail
   end
@@ -243,7 +245,7 @@ class SmtpSendService
     [ nil, nil ]
   end
 
-  def save_sent_email(mail, subject:, body:, body_html:, attachments:, in_reply_to:, references:, **)
+  def save_sent_email(mail, subject:, body:, body_html:, attachments:, inline_images:, in_reply_to:, references:, **)
     email = @account.messages.create!(
       message_id: mail.message_id,
       in_reply_to: in_reply_to,
@@ -264,6 +266,11 @@ class SmtpSendService
 
     # Save attachments to the email record if present
     save_attachments(email, attachments) if attachments.present?
+    # The copy shows its quote's pictures too
+    Array(inline_images).each do |image|
+      email.attachments.create!(image.slice(:filename, :content_type, :content_id).merge(file_size: image[:content].bytesize))
+        .file.attach(io: StringIO.new(image[:content]), filename: image[:filename], content_type: image[:content_type])
+    end
 
     email
   end

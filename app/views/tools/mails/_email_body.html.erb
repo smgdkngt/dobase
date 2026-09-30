@@ -1,4 +1,4 @@
-<%# Locals: message %>
+<%# Locals: message, actions (false inside a form, like the compose page's quote: no buttons that are forms themselves) %>
 <% if message.body_html.present? %>
   <%
     sanitized = Mails::ReadableHtml.from(message)
@@ -49,7 +49,7 @@
     safe_srcdoc = srcdoc_for.call(images_stripped, policy: remote_content_policy)
     full_srcdoc = srcdoc_for.call(sanitized)
     images_trusted = has_remote_images && message.account.shows_images_from?(message.from_address)
-    can_trust_sender = message.from_address.present? && !message.from_address.casecmp?(message.account.email_address)
+    can_trust_sender = local_assigns.fetch(:actions, true) && message.from_address.present? && !message.from_address.casecmp?(message.account.email_address)
   %>
   <div data-controller="email-frame"
        data-email-frame-full-srcdoc-value="<%= full_srcdoc %>">
