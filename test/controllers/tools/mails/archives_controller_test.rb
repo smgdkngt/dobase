@@ -59,6 +59,38 @@ module Tools
         assert_not mails_messages(:sent_message).reload.archived?, "same thread, but in Sent"
       end
 
+      test "archiving a message in a folder takes it out of the folder and back in on unarchiving" do
+        @tool.mail_account.update!(archive_folder: "Archive")
+        msg = @tool.mail_account.messages.create!(message_id: "<invoice@example.com>", folder: "Receipts", uid: 7, subject: "Invoice",
+          from_address: "shop@example.com", to_addresses: "[]", sent_at: 1.hour.ago)
+
+        post tool_mail_archive_path(@tool, msg, folder: "Receipts")
+
+        assert msg.reload.archived?
+        assert_enqueued_with job: ImapSyncJob, args: [ msg.mail_account_id, "move_to_folder", 7, "Receipts", "Archive" ]
+        get tool_mails_path(@tool, folder: "Receipts")
+        assert_no_match "Invoice", response.body
+        get tool_mails_path(@tool, folder: "archive")
+        assert_match "Invoice", response.body
+
+        delete tool_mail_archive_path(@tool, msg)
+
+        assert_not msg.reload.archived?
+        assert_enqueued_with job: ImapSyncJob, args: [ msg.mail_account_id, "move_to_folder_by_message_id", nil, "Archive", "Receipts", "<invoice@example.com>" ]
+        get tool_mails_path(@tool, folder: "Receipts")
+        assert_match "Invoice", response.body
+      end
+
+      test "archiving sent mail takes it out of Sent" do
+        msg = mails_messages(:sent_message)
+
+        post tool_mail_archive_path(@tool, msg, folder: "sent")
+
+        assert msg.reload.archived?
+        get tool_mails_path(@tool, folder: "sent")
+        assert_no_match msg.normalized_subject, response.body
+      end
+
       test "unarchiving without an archive folder marks the message unread on the server" do
         msg = mails_messages(:archived_message)
 
