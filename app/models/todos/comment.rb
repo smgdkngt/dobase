@@ -5,6 +5,7 @@ module Todos
     self.table_name = "todo_comments"
 
     include Mentionable
+    include PostedVia
 
     belongs_to :item, class_name: "Todos::Item", foreign_key: :todo_item_id
     # Kept when the author deletes their account (the column is nullified)
@@ -21,10 +22,10 @@ module Todos
 
     def notify_collaborators
       tool = item.list.tool
-      audience = tool.notifiable_users.where.not(id: user_id)
+      audience = notification_audience(tool)
       return if audience.none?
 
-      mentioned = mentioned_users_in(tool, excluding: user).to_a
+      mentioned = mentioned_users_in(tool, excluding: author_to_skip).to_a
       mentioned_ids = mentioned.map(&:id)
 
       generic = audience.where.not(id: mentioned_ids)
@@ -32,7 +33,7 @@ module Todos
 
       if mentioned.any?
         MentionNotifier.with(
-          mentioner: user, tool: tool, context: "a comment on #{item.title}",
+          mentioner: user, byline: (byline if agent?), tool: tool, context: "a comment on #{item.title}",
           url: Rails.application.routes.url_helpers.tool_todo_path(tool, item: item.id)
         ).deliver(mentioned)
       end

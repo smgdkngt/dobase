@@ -18,6 +18,7 @@ module Chats
     has_many :read_receipts_as_last_read, class_name: "Chats::ReadReceipt", foreign_key: :last_read_message_id, dependent: :nullify
 
     include Mentionable
+    include PostedVia
 
     has_rich_text :body
     has_many_attached :files
@@ -82,10 +83,10 @@ module Chats
 
     def notify_collaborators
       tool = chat.tool
-      audience = tool.notifiable_users.where.not(id: user_id)
+      audience = notification_audience(tool)
       return if audience.none?
 
-      mentioned = mentioned_users_in(tool, excluding: user).to_a
+      mentioned = mentioned_users_in(tool, excluding: author_to_skip).to_a
       mentioned_ids = mentioned.map(&:id)
 
       generic = audience.where.not(id: mentioned_ids)
@@ -93,7 +94,7 @@ module Chats
 
       if mentioned.any?
         MentionNotifier.with(
-          mentioner: user, tool: tool, context: "a chat message",
+          mentioner: user, byline: (byline if agent?), tool: tool, context: "a chat message",
           url: Rails.application.routes.url_helpers.tool_chat_path(tool)
         ).deliver(mentioned)
       end

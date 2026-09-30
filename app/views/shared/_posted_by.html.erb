@@ -1,0 +1,14 @@
+<%#
+  Who posted a chat message or comment, and how: "Sem via Claude" when an
+  access token posted it as its owner, "Claude for Sem" when it posted as an
+  agent (see PostedVia). Goes where the author's name would.
+
+  Required:
+    record: a Chats::Message, Boards::Comment or Todos::Comment
+%>
+<span class="text-sm font-semibold text-text-primary"><%= poster_name(record) %></span>
+<% if record.agent? %>
+  <span class="text-xs text-text-tertiary">for <%= record.user&.first_name || "a former member" %></span>
+<% elsif record.via %>
+  <span class="text-xs text-text-tertiary">via <%= record.via %></span>
+<% end %>

@@ -100,6 +100,22 @@ func Person(user api.Value) string {
 	return fmt.Sprintf("%s <%s>", user.Get("name").S(), user.Get("email_address").S())
 }
 
+// Poster names who posted a chat message or comment: "Sophie Chen", "Sophie
+// Chen via Claude" when a token posted it as her, "Claude for Sophie Chen"
+// when an agent token did, or the fallback once the author is gone.
+func Poster(record api.Value, fallback string) string {
+	name := record.Get("user", "name").Or(fallback)
+	via := record.Get("via").S()
+	switch {
+	case via == "":
+		return name
+	case record.Get("agent").Truthy():
+		return via + " for " + name
+	default:
+		return name + " via " + via
+	}
+}
+
 // Day is "2026-09-24", or "" for null.
 func Day(value api.Value) string { return firstChars(value.S(), 10) }
 

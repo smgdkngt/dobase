@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 class MentionNotifier < Noticed::Event
+  # Optional: byline, when an agent did the mentioning ("Claude for Sem")
   required_params :mentioner, :tool, :url, :context
 
   deliver_by :custom_action_cable,
@@ -12,7 +13,7 @@ class MentionNotifier < Noticed::Event
     def message
       mentioner = event.params[:mentioner]
       context = event.params[:context]
-      "#{mentioner&.name || 'Someone'} mentioned you in #{context || 'a message'}"
+      "#{event.params[:byline] || mentioner&.name || 'Someone'} mentioned you in #{context || 'a message'}"
     end
 
     def url

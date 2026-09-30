@@ -6,7 +6,10 @@ module ChatsHelper
   def chat_continuation?(previous, message)
     return false if previous.nil?
 
+    # The header names who posted it and how, so a change in either starts a new group
     previous.user_id == message.user_id &&
+      previous.agent? == message.agent? &&
+      previous.via == message.via &&
       previous.created_at.to_date == message.created_at.to_date &&
       (message.created_at - previous.created_at) < 5.minutes
   end

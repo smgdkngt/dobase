@@ -6,13 +6,19 @@ module Profiles
     restrict_in_demo only: :create
 
     def create
-      access_token = current_user.access_tokens.new(params.permit(:name, :permission))
+      access_token = current_user.access_tokens.new(params.permit(:name, :permission, :agent))
 
       if access_token.save
         render_access_tokens created_token: access_token.token
       else
         render_access_tokens access_token: access_token, status: :unprocessable_entity
       end
+    end
+
+    # Switches between posting as its owner and posting as an agent
+    def update
+      current_user.access_tokens.find(params[:id]).update!(params.permit(:agent))
+      render_access_tokens
     end
 
     def destroy

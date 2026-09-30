@@ -63,7 +63,7 @@ func listChat(ctx *Ctx, args *Args) error {
 
 		for _, message := range messages {
 			ctx.Blank()
-			ctx.Sayf("%s · %s%s [message %s/%s]", message.Get("user", "name").Or("Former member"), Moment(message.Get("created_at")),
+			ctx.Sayf("%s · %s%s [message %s/%s]", Poster(message, "Former member"), Moment(message.Get("created_at")),
 				If(message.Get("edited_at").Truthy(), " (edited)"), tool.Get("id").S(), message.Get("id").S())
 			if message.Get("reply_to").Truthy() {
 				ctx.Sayf("  > %s: %s", message.Get("reply_to", "user_name").S(), message.Get("reply_to", "preview").S())

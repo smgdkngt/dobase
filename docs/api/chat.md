@@ -16,6 +16,8 @@ scroll up):
       "body": "Reply to a long one",
       "body_html": "<p>Reply to a long one</p>",
       "user": { "id": 1, "name": "Sophie Chen", "email_address": "sophie@moonshot-snacks.com" },
+      "via": null,
+      "agent": false,
       "reply_to": {
         "id": 13,
         "user_name": "Jake Thompson",
@@ -33,6 +35,8 @@ scroll up):
       "body": "With a file",
       "body_html": "<p>With a file</p>",
       "user": { "id": 1, "name": "Sophie Chen", "email_address": "sophie@moonshot-snacks.com" },
+      "via": "Claude",
+      "agent": true,
       "reply_to": null,
       "files": [
         { "filename": "notes.txt", "content_type": "text/plain", "byte_size": 18, "download_url": "..." }
@@ -49,6 +53,10 @@ scroll up):
 - `limit` sets how many messages you get, up to 200.
 - `has_more` is true when there are older messages. To page back, pass the
   first message's id as `before`: `GET /tools/2/chat?before=19`.
+- `via` is the name of the access token that posted the message, and `agent`
+  whether it posted as itself on the user's behalf (see
+  [Authentication](README.md#authentication)). `reply_to.user_name` is then the
+  token's name.
 - `reply_to` is the message this one answers, with a short plain-text preview,
   or `null`.
 - `reactions` are the emoji on the message, in the order they were first

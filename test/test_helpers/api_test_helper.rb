@@ -1,7 +1,7 @@
 module ApiTestHelper
   # Headers for a JSON API request authenticated with a fresh access token.
-  def api_headers(user, permission: "write")
-    token = user.access_tokens.create!(name: "Test token", permission: permission).token
+  def api_headers(user, permission: "write", name: "Test token", agent: false)
+    token = user.access_tokens.create!(name: name, permission: permission, agent: agent).token
     { "Authorization" => "Bearer #{token}", "Accept" => "application/json" }
   end
 end

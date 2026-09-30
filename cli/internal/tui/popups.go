@@ -356,7 +356,7 @@ func comments(lines *[]Line, record api.Value) {
 		*lines = append(*lines, StyledLine("  No comments yet. Press c to write the first one.", dim()))
 	}
 	for _, comment := range all {
-		author := comment.Get("user", "name").Or("Former member")
+		author := command.Poster(comment, "Former member")
 		*lines = append(*lines, RawLine(""), LineOf(
 			Styled("  "+author, Style{}.Fg(personColor(author)).With(Bold)),
 			Styled(" · "+ago(comment.Get("created_at")), dim())))

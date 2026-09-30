@@ -5,6 +5,9 @@ module ApplicationHelper
   # Who wrote something, once they may have deleted their account
   def author_name(user) = user&.name || "Former member"
 
+  # The name a message or comment goes by: its agent's, or its author's
+  def poster_name(record) = record.agent? ? record.via : author_name(record.user)
+
   def absolute_url(path)
     return path if path.start_with?("http")
     "#{root_url.chomp('/')}#{path}"

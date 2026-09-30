@@ -31,7 +31,7 @@ Rails.application.routes.draw do
 
   resource :profile, only: %i[show edit update destroy] do
     scope module: :profiles do
-      resources :access_tokens, only: %i[create destroy]
+      resources :access_tokens, only: %i[create update destroy]
     end
   end
   resource :two_factor_setup, only: %i[new create destroy]

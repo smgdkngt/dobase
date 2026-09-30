@@ -21,7 +21,7 @@ func showDetails(ctx *Ctx, record api.Value) {
 	ctx.Blank()
 	ctx.Sayf("Comments (%d):", len(comments))
 	for _, comment := range comments {
-		ctx.Sayf("  %s · %s [comment %s]", comment.Get("user", "name").Or("Former member"), Moment(comment.Get("created_at")), comment.Get("id").S())
+		ctx.Sayf("  %s · %s [comment %s]", Poster(comment, "Former member"), Moment(comment.Get("created_at")), comment.Get("id").S())
 		ctx.Paragraph(comment.Get("body").S(), 4)
 	}
 

@@ -72,7 +72,8 @@ func login(ctx *Ctx, args *Args) error {
 	if profile.Get("access_token", "permission").S() == "write" {
 		permission = "read and write"
 	}
-	ctx.Sayf("Token %s can %s.", Quoted(profile.Get("access_token", "name").S()), permission)
+	ctx.Sayf("Token %s can %s%s.", Quoted(profile.Get("access_token", "name").S()), permission,
+		If(profile.Get("access_token", "agent").Truthy(), ", and posts as itself for you"))
 	return nil
 }
 
@@ -96,7 +97,8 @@ func whoami(ctx *Ctx, _ *Args) error {
 			if token.Get("permission").S() == "write" {
 				permission = "read and write"
 			}
-			ctx.Sayf("Token %s (%s)", Quoted(token.Get("name").S()), permission)
+			ctx.Sayf("Token %s (%s%s)", Quoted(token.Get("name").S()), permission,
+				If(token.Get("agent").Truthy(), ", posts as itself"))
 		}
 		return nil
 	})

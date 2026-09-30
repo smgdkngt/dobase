@@ -28,9 +28,9 @@ module Chats
       User.where(id: tool.collaborators.select(:user_id))
     end
 
-    # Your own messages are never unread for you.
+    # Your own messages are never unread for you, your agent's are.
     def unread_count_for(user)
-      from_others = messages.where.not(user_id: user.id)
+      from_others = messages.not_written_by(user)
       receipt = read_receipts.find_by(user: user)
       return from_others.count if receipt.nil?
 

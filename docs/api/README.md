@@ -26,6 +26,19 @@ name and pick a permission:
 
 The token is shown once. Dobase stores only a digest of it.
 
+A token also says who its chat messages and comments come from:
+
+- **You** (the default): they show under your name, marked "via" and the
+  token's name.
+- **Itself, for you**: they show under the token's name with an agent avatar,
+  as "Claude for Sophie". You get notified of them and see them as unread,
+  since you didn't write them yourself.
+
+Either way you stay the author (`user`), so you can edit and delete them. Each
+message and comment carries `via` (the name of the token that posted it, or
+`null`) and `agent`. Switch a token under **Profile → API**. `GET /profile`
+shows the current token's `agent`.
+
 Send it as a bearer token and ask for JSON:
 
 ```bash

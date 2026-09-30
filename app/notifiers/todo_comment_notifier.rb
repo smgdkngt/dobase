@@ -12,7 +12,7 @@ class TodoCommentNotifier < Noticed::Event
     def message
       commenter = event.params[:commenter]
       item = event.params[:item]
-      "#{commenter&.name || 'Someone'} commented on #{item&.title || 'a todo'}"
+      "#{event.params[:comment].try(:byline) || commenter&.name || 'Someone'} commented on #{item&.title || 'a todo'}"
     end
 
     def url

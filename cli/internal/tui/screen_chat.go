@@ -204,7 +204,7 @@ func (s *Chat) Key(key Key, view *View, fx *Fx) bool {
 		if len(s.messages) > 0 {
 			message := s.messages[len(s.messages)-1]
 			tool, id := s.tool.Get("id").Int(), message.Get("id").Int()
-			author := message.Get("user", "name").Or("someone")
+			author := command.Poster(message, "someone")
 			path := fmt.Sprintf("/tools/%d/chat/messages/%d/reactions", tool, id)
 			fx.job("Reacting", func(app *App) error {
 				if _, err := app.post(path, api.Object("emoji", "👍")); err != nil {
@@ -311,7 +311,7 @@ func (s *Chat) lines(width int) []Line {
 		}
 
 		// A name heads each run of messages by one person, and again after a pause.
-		author := message.Get("user", "name").Or("Former member")
+		author := command.Poster(message, "Former member")
 		continues := hasPrevious && previousAuthor == author && created.Sub(previousAt) < 5*time.Minute
 		if !continues {
 			edited := ""
