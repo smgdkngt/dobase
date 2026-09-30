@@ -87,6 +87,8 @@ module Mails
         has_attachments: has_attachments,
         thread_id: nil
       )
+      # Mail in the server's trash shows in the trash here
+      email.trashed = true if folder_name == Account::TRASH
       email.save!
 
       # Save attachments for new emails, or existing ones missing attachments

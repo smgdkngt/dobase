@@ -1,16 +1,26 @@
 <%# Locals: email_message, is_last %>
 <div class="border-b border-border-light last:border-b-0" data-controller="collapse" data-collapse-open-value="<%= is_last %>">
   <button type="button" class="w-full flex items-start gap-3 p-4 bg-transparent border-none cursor-pointer text-left hover:bg-background-tertiary" data-action="click->collapse#toggle">
-    <div class="w-10 h-10 rounded-full bg-accent-light flex items-center justify-center flex-shrink-0">
-      <span class="text-sm font-semibold text-accent"><%= email_message.display_from.to_s[0]&.upcase %></span>
-    </div>
+    <% if email_message.draft? %>
+      <div class="mail-draft-avatar">
+        <%= render "shared/icon", name: "file-pen", size: 16 %>
+      </div>
+    <% else %>
+      <div class="w-10 h-10 rounded-full bg-accent-light flex items-center justify-center flex-shrink-0">
+        <span class="text-sm font-semibold text-accent"><%= email_message.display_from.to_s[0]&.upcase %></span>
+      </div>
+    <% end %>
     <div class="flex-1 min-w-0">
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-sm font-semibold text-text-primary"><%= email_message.display_from %></span>
-        <% if email_message.from_name.present? && email_message.from_name != email_message.from_address %>
+        <% if email_message.draft? %>
+          <%= render "components/badge", text: "Draft", variant: :warning, size: :sm %>
+        <% elsif email_message.from_name.present? && email_message.from_name != email_message.from_address %>
           <span class="text-xs text-text-tertiary"><%= email_message.from_address %></span>
         <% end %>
-        <span class="text-xs text-text-tertiary ml-auto"><%= format_datetime(email_message.sent_at) %></span>
+        <span class="text-xs text-text-tertiary ml-auto">
+          <%= email_message.draft? ? "Saved #{format_datetime(email_message.sent_at)}" : format_datetime(email_message.sent_at) %>
+        </span>
       </div>
       <div class="text-xs text-text-tertiary mt-0.5 <%= 'hidden' if is_last %>" data-collapse-target="preview">
         To: <%= email_message.to_addresses_list.join(", ").truncate(50) %>
@@ -25,6 +35,16 @@
   </button>
   <div data-collapse-target="content" class="<%= is_last ? '' : 'hidden' %>">
     <div class="px-4 pb-4 pl-[4.25rem]">
+      <% if email_message.draft? %>
+        <div class="mail-draft-note">
+          <span class="flex-1">Not sent yet.</span>
+          <%= render "components/button", text: "Discard", variant: :ghost, size: :sm,
+                href: tool_mail_path(@tool, email_message, from: "conversation", folder: @current_folder), method: :delete,
+                turbo_confirm: "Discard this draft?", data: { turbo_frame: "_top" } %>
+          <%= render "components/button", text: "Edit draft", icon: "edit", size: :sm,
+                href: new_tool_mail_path(@tool, draft_id: email_message.id, folder: @current_folder), data: { turbo_frame: "_top" } %>
+        </div>
+      <% end %>
       <% invitations = email_message.calendar_invites.reject(&:reply?) %>
       <% if invitations.any? %>
         <div class="mb-4 space-y-3">

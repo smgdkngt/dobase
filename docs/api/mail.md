@@ -7,8 +7,8 @@ are copied to the server in the background, and sending sends real email.
 If the tool's mail account isn't connected yet, mail endpoints answer `404`
 with `{"error": "Mail account not configured"}`. Connect it in the browser.
 
-Tokens can't move mail to the trash (that deletes it on the mail server right
-away), permanently delete mail, empty the trash, run bulk actions, or connect or
+Tokens can't move mail to the trash (it goes to the mail server's trash, or is
+deleted right away on a server without one), permanently delete mail, empty the trash, run bulk actions, or connect or
 change the mail account. Those actions answer `403`. Archive instead.
 
 ## Conversations

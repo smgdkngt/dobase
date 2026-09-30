@@ -341,6 +341,32 @@ module Tools
       assert_select "div", text: /hasn't connected a mail account yet/
     end
 
+    test "a draft reply shows as not sent in its conversation, and replying continues it" do
+      original = mails_messages(:inbox_read)
+      draft = mails_messages(:draft_message)
+      original.update!(thread_id: "lunch-plans")
+      draft.update!(in_reply_to: original.message_id, thread_id: "lunch-plans")
+
+      get tool_mail_path(@tool, original)
+
+      assert_select ".badge", text: "Draft"
+      assert_select ".mail-draft-note", text: /Not sent yet/
+      assert_select ".mail-draft-note a[href=?]", new_tool_mail_path(@tool, draft_id: draft.id, folder: "inbox")
+      assert_select "a[href=?]", new_tool_mail_path(@tool, reply_to: original.id, folder: "inbox"), text: /Continue your reply/
+    end
+
+    test "a draft discarded in its conversation leaves the conversation open" do
+      original = mails_messages(:inbox_read)
+      draft = mails_messages(:draft_message)
+      original.update!(thread_id: "lunch-plans")
+      draft.update!(in_reply_to: original.message_id, thread_id: "lunch-plans")
+
+      delete tool_mail_path(@tool, draft, from: "conversation", folder: "inbox")
+
+      assert_redirected_to tool_mail_path(@tool, original, folder: "inbox")
+      assert_not ::Mails::Message.exists?(draft.id)
+    end
+
     test "destroy from inbox trashes message" do
       msg = mails_messages(:inbox_read)
       delete tool_mail_path(@tool, msg)

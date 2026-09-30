@@ -1,39 +1,14 @@
 <%# Locals: message %>
 <% if message.body_html.present? %>
   <%
-    allowed_tags = %w[
-      p br div span a strong b em i u ul ol li
-      h1 h2 h3 h4 h5 h6 blockquote pre code
-      table thead tbody tfoot tr th td caption col colgroup
-      img hr center font
-      header footer section article figure figcaption
-      abbr address details summary mark small sub sup dl dt dd
-      style
-    ]
-
-    allowed_attributes = %w[
-      href alt title src
-      style class id dir lang
-      width height align valign
-      bgcolor color border
-      cellpadding cellspacing colspan rowspan
-    ]
-
-    # Sanitizing drops tags it doesn't allow but keeps their text, which for these isn't meant to be read
-    # (like the JSON-LD in GitHub's notifications)
-    readable = Loofah.html5_fragment(message.body_html_with_inline_images)
-    readable.css("script, template, title").each(&:remove)
-
-    sanitized = sanitize(readable.to_html,
-      tags: allowed_tags,
-      attributes: allowed_attributes
-    )
+    sanitized = Mails::ReadableHtml.from(message)
 
     # Strip any on* event handler attributes that slipped through
     sanitized = sanitized.gsub(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/i, "")
 
     # Strip remote images: replace src with blank, track if any were found
-    has_remote_images = sanitized.match?(/<img\b[^>]*?\bsrc\s*=\s*["']https?:\/\//i) || sanitized.match?(/url\(\s*["']?\s*https?:/i)
+    has_remote_images = sanitized.match?(/<img\b[^>]*?\bsrc\s*=\s*["']https?:\/\//i) || sanitized.match?(/url\(\s*["']?\s*https?:/i) ||
+      sanitized.match?(/\bbackground\s*=\s*["']?\s*https?:/i)
     images_stripped = sanitized.gsub(/(<img\b[^>]*?)\bsrc\s*=\s*["']https?:\/\/[^"']*["']/i, '\1data-blocked-src=""')
 
     # Emails are designed for a light page, so they keep one in dark mode too (like other

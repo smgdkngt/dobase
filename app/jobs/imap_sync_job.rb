@@ -26,6 +26,8 @@ class ImapSyncJob < ApplicationJob
       service.move_to_folder_by_message_id(message_id, source_folder: folder, destination_folder: destination)
     when "delete_message"
       service.delete_message(uid, folder: folder)
+    when "delete_message_by_message_id"
+      service.delete_message_by_message_id(args.first, folder: folder)
     when "delete_draft"
       service.delete_draft(uid)
     end
