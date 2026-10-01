@@ -323,6 +323,16 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     assert_not_equal old_token, calendar.sync_token
   end
 
+  test "a request the server answers with 401 is an authentication error" do
+    calendar = calendars_calendars(:personal)
+    stub_request(:any, /caldav\.icloud\.com/).to_return(status: 401)
+
+    assert_raises(CaldavSyncService::AuthenticationError) { @service.sync_all_calendars }
+    assert_raises(CaldavSyncService::AuthenticationError) { @service.discover_calendars }
+    assert_raises(CaldavSyncService::AuthenticationError) { @service.update_event(calendars_events(:meeting)) }
+    assert_equal "abc123", calendar.reload.ctag
+  end
+
   # Event push tests
 
   test "a calendar server on a local address isn't contacted" do

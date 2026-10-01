@@ -70,14 +70,21 @@ class CaldavSyncService
     save_discovered_calendars(calendars)
   end
 
+  # A calendar the server refuses doesn't hold up the others. When it refused them all nothing was
+  # synced, and the sync fails with what the server said about the first.
   def sync_all_calendars
     return if @account.local?
 
-    @account.calendars.enabled.find_each do |calendar|
+    calendars = @account.calendars.enabled.to_a
+    failures = calendars.filter_map do |calendar|
       sync_calendar(calendar)
+      nil
     rescue SyncError => e
       Rails.logger.warn("Skipping calendar #{calendar.name} (#{calendar.id}): #{e.message}")
+      e.message
     end
+
+    raise SyncError, failures.first if calendars.any? && failures.size == calendars.size
   end
 
   def sync_calendar(calendar)
@@ -216,6 +223,7 @@ class CaldavSyncService
   # A server error may pass, so it counts as a connection error and the change is sent again later
   def check_change!(response, failure)
     return if response.success?
+    raise AuthenticationError, Calendars::Account::AUTHENTICATION_FAILED if response.status == 401
 
     error = response.status >= 500 ? ConnectionError : SyncError
     raise error, "#{failure}: #{response.status}"
@@ -272,6 +280,9 @@ class CaldavSyncService
     if response.is_a?(Net::HTTPRedirection) && redirects.positive? && (location = same_host_location(uri, response["location"]))
       return make_webdav_request(method, location, body, extra_headers, redirects: redirects - 1)
     end
+
+    # The same username and password get the same answer for every calendar
+    raise AuthenticationError, Calendars::Account::AUTHENTICATION_FAILED if response.is_a?(Net::HTTPUnauthorized)
 
     # Wrap in a simple struct to match interface
     OpenStruct.new(
@@ -391,7 +402,7 @@ class CaldavSyncService
       return
     end
 
-    raise SyncError, "Full sync failed: #{response.status}" unless response.success?
+    raise SyncError, "The calendar server answered #{response.status} for #{calendar.name}" unless response.success?
 
     doc = Caldav::Xml.parse(response.body)
     events_data = parse_calendar_data_response(doc)
@@ -422,7 +433,7 @@ class CaldavSyncService
       return full_sync(calendar)
     end
 
-    raise SyncError, "Delta sync failed: #{response.status}" unless response.success?
+    raise SyncError, "The calendar server answered #{response.status} for #{calendar.name}" unless response.success?
 
     doc = Caldav::Xml.parse(response.body)
 

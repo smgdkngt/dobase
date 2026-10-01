@@ -24,7 +24,11 @@ class DeleteCalendarEventJob < ApplicationJob
     CaldavSyncService.new(calendar.account).delete_event(event)
   rescue CaldavSyncService::SyncError => e
     Rails.logger.error("Failed to delete event from CalDAV: #{e.message}")
-  rescue CaldavSyncService::ConnectionError, CaldavSyncService::AuthenticationError => e
+  rescue CaldavSyncService::AuthenticationError => e
+    # Trying again gets the same answer, so it shows on the account instead
+    Rails.logger.error("Failed to delete event from CalDAV: #{e.message}")
+    calendar.account.mark_sync_error!(e.message)
+  rescue CaldavSyncService::ConnectionError => e
     Rails.logger.error("Connection error deleting event: #{e.message}")
     raise # Retry
   end

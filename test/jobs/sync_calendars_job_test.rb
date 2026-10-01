@@ -43,6 +43,62 @@ class SyncCalendarsJobTest < ActiveJob::TestCase
     assert_requested @discovery
   end
 
+  test "a sync the server turns down for the password says so and isn't marked synced" do
+    add_calendar
+    @account.update!(last_synced_at: nil)
+    stub_request(:any, /caldav\.example\.com/).to_return(status: 401)
+
+    SyncCalendarsJob.perform_now(@account.id)
+
+    @account.reload
+    assert_equal [ "error", "The calendar server didn't accept the username or password" ], [ @account.sync_status, @account.sync_error ]
+    assert @account.authentication_failed?
+    assert_nil @account.last_synced_at
+  end
+
+  test "a wrong password while looking for calendars isn't reported as a wrong address" do
+    stub_request(:any, /caldav\.example\.com/).to_return(status: 401)
+
+    SyncCalendarsJob.perform_now(@account.id, discover: true)
+
+    assert @account.reload.authentication_failed?
+  end
+
+  test "a sync in which the server refused every calendar isn't marked synced" do
+    add_calendar
+    @account.update!(last_synced_at: nil)
+    stub_request(:any, /caldav\.example\.com\/cal\/work/).to_return(status: 503)
+
+    SyncCalendarsJob.perform_now(@account.id)
+
+    @account.reload
+    assert_equal "error", @account.sync_status
+    assert_match "503", @account.sync_error
+    assert_not @account.authentication_failed?
+    assert_nil @account.last_synced_at
+  end
+
+  test "one calendar the server refuses doesn't stop the others from syncing" do
+    add_calendar
+    @account.calendars.create!(name: "Shared", remote_id: "/cal/shared/", remote_url: "https://caldav.example.com/cal/shared/")
+    stub_request(:any, /caldav\.example\.com\/cal\/shared/).to_return(status: 403)
+
+    SyncCalendarsJob.perform_now(@account.id)
+
+    assert_equal "synced", @account.reload.sync_status
+  end
+
+  test "the scheduled sync skips an account whose password was turned down, until its settings change or someone asks for a sync" do
+    @account.mark_sync_error!(Calendars::Account::AUTHENTICATION_FAILED)
+
+    SyncAllCalendarsJob.perform_now
+    assert_not_includes enqueued_jobs.map { |job| job["arguments"].first }, @account.id
+
+    # The sync button and new settings mark the account as syncing first
+    @account.mark_syncing!
+    assert_enqueued_with(job: SyncCalendarsJob, args: [ @account.id ]) { SyncAllCalendarsJob.perform_now }
+  end
+
   private
 
   def add_calendar

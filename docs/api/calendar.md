@@ -194,3 +194,9 @@ Dobase syncs every CalDAV account every 15 minutes.
 `GET /tools/:tool_id/calendar/sync` returns the same until `status` is `synced`
 or `error`. A local account has nothing to fetch, so it is `synced` again as soon
 as the background job has run.
+
+The status is `error` when the server could not be reached or refused every
+calendar, and `last_synced_at` stays at the last sync that worked. When the
+server turns down the username or password, the scheduled sync stops trying. It
+starts again when the account's connection settings change, or after a
+`POST /tools/:tool_id/calendar/sync`.

@@ -34,6 +34,16 @@ class PushEventJobTest < ActiveJob::TestCase
     assert_requested deleted
   end
 
+  test "a change the server turns down for the password shows on the account" do
+    stub_request(:put, @event.remote_href).to_return(status: 401)
+
+    assert_nothing_raised { PushEventJob.perform_now(@event.id, :update) }
+
+    assert @event.calendar.account.reload.authentication_failed?
+    assert_not @event.calendar.reload.read_only?
+    assert_no_enqueued_jobs
+  end
+
   test "marks the calendar read-only when the server refuses changes" do
     stub_request(:put, @event.remote_href).to_return(status: 403)
 

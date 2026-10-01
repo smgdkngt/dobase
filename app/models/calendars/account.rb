@@ -22,9 +22,17 @@ module Calendars
     validates :encrypted_password, presence: true, unless: :local?
 
     PROVIDERS = %w[fastmail icloud nextcloud google custom local].freeze
+    AUTHENTICATION_FAILED = "The calendar server didn't accept the username or password"
+    CONNECTION_SETTINGS = %w[caldav_url username encrypted_password].freeze
 
     def local?
       provider == "local"
+    end
+
+    # Syncing again with the same credentials only gets turned down again, so the scheduled
+    # sync skips the account until its settings change or someone asks for a sync
+    def authentication_failed?
+      sync_error? && sync_error == AUTHENTICATION_FAILED
     end
 
     private
