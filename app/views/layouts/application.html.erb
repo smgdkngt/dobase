@@ -2,7 +2,7 @@
 <html data-turbo-not-loaded>
   <head>
     <title><%= content_for(:title) || app_name %></title>
-    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <meta name="viewport" content="<%= viewport_content %>">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="application-name" content="<%= app_name %>">
@@ -61,7 +61,7 @@
     <%= render "shared/turbo_confirm_dialog" %>
     <% if user_signed_in? %>
       <%= render "shared/flash" %>
-      <div data-controller="mobile-sidebar">
+      <div data-controller="mobile-sidebar standalone-scroll">
         <%# Sidebar overlay %>
         <div class="sidebar-overlay" data-mobile-sidebar-target="overlay" data-action="click->mobile-sidebar#close"></div>
 

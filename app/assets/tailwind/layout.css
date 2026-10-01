@@ -478,7 +478,8 @@
 }
 
 /* PWA standalone mode: flush bottom bar like native iOS tab bar */
-/* Use vh instead of dvh — iOS standalone reports dvh as if Safari's toolbar still exists */
+/* Use vh instead of dvh: on iOS, dvh and whatever is fixed to the bottom can stop the
+   height of the status bar short of the screen (see body below); vh is the whole screen */
 @media (display-mode: standalone) and (max-width: 1023px) {
   :root {
     --mobile-bar-clearance: calc(var(--mobile-bottom-bar-height) + env(safe-area-inset-bottom) + var(--demo-banner-height));
@@ -503,6 +504,21 @@
     border: none;
     box-shadow: none;
     padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* iOS stretches a home screen app's viewport to the bottom of the screen only under a
+     page that is that high. Under a shorter one (chat, a call and an open email stop
+     above the bottom bar) it ends the height of the status bar early: the bottom bar
+     floats that far up, over the composer, with a dead strip below it. */
+  body {
+    min-height: 100vh;
+  }
+
+  /* That leaves a tool that fills the screen a page the height of the status bar to
+     scroll: it stays put under a finger, and standalone_scroll_controller.js puts it
+     back when the keyboard has moved it */
+  html:has(.main-content > .tool-layout) {
+    overflow: hidden;
   }
 }
 

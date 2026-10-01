@@ -231,6 +231,30 @@ class ChatTest < ApplicationSystemTestCase
     sleep 0.3
   end
 
+  test "on a phone a message's text runs the width of the row, and a closed emoji picker takes no taps" do
+    @tool.chat.messages.create!(user: @user, body: "<p>#{"A long enough message to wrap on a phone. " * 4}</p>")
+    page.driver.browser.manage.window.resize_to(390, 844)
+
+    visit tool_chat_path(@tool)
+    wait_for_stimulus "reactions"
+    assert_text "A long enough message"
+
+    # The hidden actions used to sit in the row, and took a third of it from the text
+    row, text = page.evaluate_script(<<~JS)
+      (() => {
+        const message = document.querySelector(".chat-message")
+        return [message.getBoundingClientRect().right, message.querySelector(".chat-message-text").getBoundingClientRect().right]
+      })()
+    JS
+    assert_operator row - text, :<, 24, "the text stops #{(row - text).round}px short of the row's edge"
+
+    # A picker that is laid out while closed sits over the messages, see-through, and reacts to a tap
+    assert_equal "none", page.evaluate_script("getComputedStyle(document.querySelector('.chat-reaction-picker')).display")
+    assert_equal "none", page.evaluate_script("getComputedStyle(document.querySelector('.chat-message-actions')).pointerEvents")
+  ensure
+    page.driver.browser.manage.window.resize_to(1400, 1400)
+  end
+
   test "an emoji put on a message shows for everyone, marked as yours for you" do
     colleague = users(:two)
     @tool.collaborators.create!(user: colleague, role: "collaborator")

@@ -21,7 +21,7 @@
   is_continuation = local_assigns.fetch(:is_continuation, false)
 %>
 <div id="<%= dom_id(message) %>"
-     class="group/message flex gap-2.5 sm:gap-3 px-2 sm:px-4 py-1.5 sm:py-2 hover:bg-background-tertiary/50 <%= is_continuation ? '' : 'mt-2 sm:mt-3' %>"
+     class="chat-message group/message flex gap-2.5 sm:gap-3 px-2 sm:px-4 py-1.5 sm:py-2 hover:bg-background-tertiary/50 <%= is_continuation ? '' : 'mt-2 sm:mt-3' %>"
      data-controller="message reactions"
      data-message-user-id-value="<%= message.user_id %>"
      data-reactions-url-value="<%= tool_chat_message_reactions_path(tool, message) %>"
@@ -92,9 +92,9 @@
     <%= render "tools/chats/reactions", message: message %>
   </div>
 
-  <!-- Actions (show on hover) -->
-  <div class="flex-shrink-0 opacity-0 group-hover/message:opacity-100 group-focus-within/message:opacity-100 transition-opacity">
-    <div class="flex items-center -mt-1 bg-surface border border-border-light rounded-lg shadow-sm">
+  <%# Actions float over the top right corner on hover or tap, so they take no width from the text %>
+  <div class="chat-message-actions">
+    <div class="flex items-center bg-surface border border-border-light rounded-lg shadow-sm">
       <button type="button"
               class="icon-btn icon-btn-group-left"
               title="Add a reaction"
