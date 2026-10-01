@@ -58,7 +58,8 @@ module Mails
 
       # Extract threading headers from parsed message
       parsed_mail = parsed[:mail]
-      in_reply_to = parsed_mail&.in_reply_to rescue nil
+      # A reply to several messages names them all; the first one is the one it hangs under
+      in_reply_to = Array(parsed_mail&.in_reply_to).first rescue nil
       references_val = parsed_mail&.references rescue nil
       references_str = Array(references_val).join(" ") if references_val
 

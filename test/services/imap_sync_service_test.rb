@@ -498,6 +498,15 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_includes email.body_html, "<p>Your code is 1234</p>"
   end
 
+  test "a reply to several messages is saved, as a reply to the first" do
+    mail = mail_with_id("reply-4")
+    mail.header["In-Reply-To"] = "<first@example.com> <second@example.com>"
+
+    incoming_message.send(:save_email, fetch_data(4, mail.to_s), "INBOX")
+
+    assert_equal "first@example.com", @account.messages.find_by!(message_id: "reply-4@example.com").in_reply_to
+  end
+
   test "a picture in the text keeps its Content-ID" do
     mail = Mail.new(from: "ann@example.com", to: "me@example.com", subject: "Logo", message_id: "<logo-6@example.com>")
     mail.html_part = Mail::Part.new(content_type: "text/html; charset=UTF-8", body: %(<img src="cid:image001.png@01DD">))
