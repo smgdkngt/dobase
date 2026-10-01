@@ -65,7 +65,7 @@ export default class extends Controller {
     this.sortable = new Sortable(this.element, opts)
   }
 
-  onEnd(evt) {
+  async onEnd(evt) {
     // Defer resetting dragInProgress until after MutationObserver callbacks
     // have been processed. SortableJS DOM cleanup (ghost removal, class changes)
     // triggers Stimulus disconnect/connect via MutationObserver. If we reset
@@ -74,13 +74,19 @@ export default class extends Controller {
     requestAnimationFrame(() => { dragInProgress = false })
 
     if (evt.from !== evt.to) {
+      // Whoever hears the move may have to tell the server first (the sidebar moves the
+      // tool to its new group). The order is only saved once that is done: saved earlier,
+      // it would not include an item the server doesn't know to be there yet.
+      const pending = []
       this.dispatch("move", {
         detail: {
           itemId: evt.item.dataset.sortId,
           fromId: evt.from.dataset.groupId,
-          toId: evt.to.dataset.groupId
+          toId: evt.to.dataset.groupId,
+          waitUntil: (promise) => pending.push(promise)
         }
       })
+      await Promise.all(pending)
     }
 
     // Save the order of the target container
