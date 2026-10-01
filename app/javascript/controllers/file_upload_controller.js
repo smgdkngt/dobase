@@ -4,9 +4,13 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = ["dropzone", "form", "input", "folderId"]
 
+  // The page refreshes with a morph after the upload, which keeps this input and the
+  // file picked in it: picking the same file again would change nothing, and nothing
+  // would happen. The form has taken the files by the time requestSubmit returns.
   upload(event) {
     if (event.target.files.length > 0) {
       this.formTarget.requestSubmit()
+      event.target.value = ""
     }
   }
 
