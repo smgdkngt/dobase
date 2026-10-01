@@ -4,6 +4,7 @@ package tui
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -238,6 +239,15 @@ func hintsLine(pairs []hint) Line {
 		spans = append(spans, Styled(pair.key, Style{}.Fg(accent()).With(Bold)), Styled(" "+pair.action, dim()))
 	}
 	return LineOf(spans...)
+}
+
+// fitting is the hints that fit in width: the ones before the last (? help) go
+// first, from the end.
+func fitting(hints []hint, width int) []hint {
+	for len(hints) > 1 && hintsLine(hints).Width() > width {
+		hints = append(slices.Clone(hints[:len(hints)-2]), hints[len(hints)-1])
+	}
+	return hints
 }
 
 // panel is a rounded block with a title; highlighted when it has the focus.

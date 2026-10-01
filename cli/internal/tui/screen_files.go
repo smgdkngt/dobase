@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -67,6 +68,16 @@ func (s *Files) entries() []fileEntry {
 		entries = append(entries, fileEntry{file, false})
 	}
 	return entries
+}
+
+// selectFile selects the file with this id, when it's in the folder shown.
+func (s *Files) selectFile(id int64) {
+	position := slices.IndexFunc(s.entries(), func(entry fileEntry) bool {
+		return !entry.folder && entry.value.Get("id").Int() == id
+	})
+	if position >= 0 {
+		s.selected = position
+	}
 }
 
 func (s *Files) Refresh() Job {

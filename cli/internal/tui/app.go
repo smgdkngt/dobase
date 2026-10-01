@@ -594,9 +594,17 @@ func (a *App) drawHeader(b *Buffer, area Rect) {
 	if _, rest, found := strings.Cut(a.base, "://"); found {
 		host, _, _ = strings.Cut(rest, "://")
 	}
-	right := LineOf(Raw(a.me.Get("name").S()), Styled(" · "+host+" ", dim())).RightAligned()
 	b.RenderLine(LineOf(left...), area)
-	b.RenderLine(right, area)
+
+	// Who and where go in the room the tool's name leaves: both, only who, or neither.
+	room := area.W - LineOf(left...).Width() - 1
+	who := Raw(a.me.Get("name").S())
+	for _, right := range []Line{LineOf(who, Styled(" · "+host+" ", dim())), LineOf(who, Raw(" "))} {
+		if right.Width() <= room {
+			b.RenderLine(right.RightAligned(), area)
+			break
+		}
+	}
 }
 
 func (a *App) drawFooter(b *Buffer, area Rect) {
@@ -610,7 +618,7 @@ func (a *App) drawFooter(b *Buffer, area Rect) {
 		hints = append([]hint{{"u", "undo"}}, hints...)
 	}
 	hints = append(hints, hint{"?", "help"})
-	line := hintsLine(hints)
+	line := hintsLine(fitting(hints, area.W-2))
 	line.Spans = append([]Span{Raw(" ")}, line.Spans...)
 	b.RenderLine(line, area)
 

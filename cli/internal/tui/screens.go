@@ -57,7 +57,7 @@ func openScreen(app *App, tool api.Value) (Screen, error) {
 }
 
 // focus shows what a link points at after its tool opened from it (a search
-// result, a notification): a card, todo, document, folder or conversation.
+// result, a notification): a card, todo, document, file, folder or conversation.
 func focus(app *App, url string) error {
 	current, ok := app.screen.Tool()
 	if !ok {
@@ -102,6 +102,20 @@ func focus(app *App, url string) error {
 		}
 		if docs, ok := app.screen.(*Docs); ok {
 			docs.show(content)
+		}
+	} else if file, ok := numberAfter("/files/items/"); ok {
+		if _, ok := app.screen.(*Files); ok {
+			// A file's link doesn't say where it is; the file does.
+			item, err := app.get(fmt.Sprintf("/tools/%d/files/items/%d", tool, file))
+			if err != nil {
+				return err
+			}
+			files, err := loadFiles(app, current, item.Get("folder_id").Int())
+			if err != nil {
+				return err
+			}
+			files.selectFile(file)
+			app.screen = files
 		}
 	} else if folder, ok := numberAfter("folder_id="); ok {
 		if _, ok := app.screen.(*Files); ok {

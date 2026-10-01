@@ -19,6 +19,8 @@ type call struct {
 	method api.Method
 	path   string
 	body   api.Value
+	// query is the query string: "limit=60&before=12".
+	query string
 }
 
 // fakeServer answers from a map of paths (and records every request). A
@@ -30,7 +32,11 @@ type fakeServer struct {
 }
 
 func (f *fakeServer) Request(method api.Method, path string, params []api.Param, body any) (api.Value, error) {
-	*f.calls = append(*f.calls, call{method, path, api.Of(body)})
+	query := make([]string, len(params))
+	for i, param := range params {
+		query[i] = param.Name + "=" + param.Value
+	}
+	*f.calls = append(*f.calls, call{method, path, api.Of(body), strings.Join(query, "&")})
 	key := path
 	if method != api.Get {
 		key = string(method[0]) + strings.ToLower(string(method[1:])) + " " + path

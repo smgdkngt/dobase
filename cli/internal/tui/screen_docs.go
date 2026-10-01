@@ -170,5 +170,9 @@ func (s *Docs) Draw(b *Buffer, area Rect, view *View) {
 	for _, line := range splitLines(command.Clean(content)) {
 		lines = append(lines, RawLine(line))
 	}
-	Paragraph{Lines: lines, Wrap: true, Block: panel(document.Get("title").S(), s.reading), Scroll: s.scroll}.Render(b, pageArea)
+	frame := panel(document.Get("title").S(), s.reading)
+	// Scrolling stops with the last line in view.
+	page := frame.Inner(pageArea)
+	s.scroll = min(s.scroll, sat(wrappedHeight(lines, page.W, false)-page.H))
+	Paragraph{Lines: lines, Wrap: true, Block: frame, Scroll: s.scroll}.Render(b, pageArea)
 }
