@@ -57,6 +57,30 @@ class SmtpSendServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "the sender's name is one name, whatever is in it" do
+    { "Acme, Inc." => %(From: "Acme, Inc." <testuser@example.com>), "Ann (Acme)" => %(From: "Ann (Acme)" <testuser@example.com>),
+      'Ann "The Boss" Example' => %(From: "Ann \\"The Boss\\" Example" <testuser@example.com>),
+      "Ann; Bob: Acme" => %(From: "Ann; Bob: Acme" <testuser@example.com>) }.each do |name, header|
+      @account.update!(display_name: name)
+      @service.send_email(to: [ "friend@example.com" ], subject: name, body: "Hi")
+
+      delivery = @smtp.deliveries.last
+      assert_includes delivery[:message], "#{header}\r\n"
+      assert_equal [ [ name, "testuser@example.com" ] ], Mail.new(delivery[:message])[:from].addrs.map { |address| [ address.display_name, address.address ] }
+      assert_equal "testuser@example.com", delivery[:from]
+    end
+  end
+
+  test "a sender's name that needs no quoting goes out as it did" do
+    { "Test User" => "From: Test User <testuser@example.com>", "J. Example" => %(From: "J. Example" <testuser@example.com>),
+      "Zoë Example" => "From: =?UTF-8?B?Wm/DqyBFeGFtcGxl?= <testuser@example.com>", "" => "From: testuser@example.com" }.each do |name, header|
+      @account.update!(display_name: name)
+      @service.send_email(to: [ "friend@example.com" ], subject: "Hello", body: "Hi")
+
+      assert_includes @smtp.deliveries.last[:message], "#{header}\r\n"
+    end
+  end
+
   test "recipients keep their names in the headers, and only their addresses go to the mail server" do
     @service.send_email(to: [ "Friendly Sender <sender@example.com>" ], cc: [ "Reports Bot <reports@example.com>" ],
       bcc: [ "Archive <archive@example.com>" ], subject: "Hello", body: "Hi")
