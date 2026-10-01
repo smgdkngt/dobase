@@ -84,6 +84,11 @@ func (s *Chat) ApplyLive(value api.Value) { s.merge(value) }
 func (s *Chat) merge(chat api.Value) {
 	fresh := chat.Get("messages").Items()
 	if len(fresh) == 0 {
+		// The newest page is empty and nothing is older: the last message was deleted.
+		if !chat.Get("has_more").Truthy() {
+			s.messages, s.hasMore = nil, false
+			s.scroll, s.unseen = 0, 0
+		}
 		return
 	}
 	first := fresh[0].Get("id").Int()
@@ -129,13 +134,14 @@ func (s *Chat) scrollUp(lines int, fx *Fx) {
 		}
 		fx.job("Loading older messages", func(app *App) error {
 			older, err := fetchChat(app, tool, before)
+			// Also when it failed, so scrolling up asks again.
+			s.loadingOlder = false
 			if err != nil {
 				return err
 			}
 			if chat, ok := app.screen.(*Chat); ok {
 				chat.messages = append(slices.Clone(older.Get("messages").Items()), chat.messages...)
 				chat.hasMore = older.Get("has_more").Truthy()
-				chat.loadingOlder = false
 			}
 			return nil
 		})
