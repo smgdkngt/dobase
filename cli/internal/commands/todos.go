@@ -36,6 +36,7 @@ func todos() []*Definition {
 			[]Flag{F("position", "N", "Position in the list, 1 = top (default: bottom)")}, moveTodo),
 		New("todo delete", "Delete a todo permanently, with its comments and attachments", []string{"TOOL/ITEM"}, nil, deleteTodo),
 		New("todo comment", "Comment on a todo", []string{"TOOL/ITEM", "TEXT"}, []Flag{Switch("html", "TEXT is HTML")}, commentTodo),
+		New("todo uncomment", "Delete a comment from a todo: one of your own, or anyone's on a tool you own", []string{"TOOL/ITEM", "COMMENT"}, nil, uncommentTodo),
 		New("todo attach", "Attach files to a todo (25 MB max each)", []string{"TOOL/ITEM", "PATH..."}, nil, attachTodo),
 		New("todolist create", "Add a list to the end of a todos tool", []string{"TOOL", "TITLE"}, nil, createTodoList),
 		New("todolist rename", "Rename a list", []string{"TOOL/LIST", "TITLE"}, nil, renameTodoList),
@@ -255,6 +256,15 @@ func commentTodo(ctx *Ctx, args *Args) error {
 		ctx.Sayf("Commented on todo %s/%d [comment %s].", tool.Get("id").S(), id, comment.Get("id").S())
 		return nil
 	})
+}
+
+func uncommentTodo(ctx *Ctx, args *Args) error {
+	tool, id, err := ctx.ToolAndID(args.At(0), "todos", "item")
+	if err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/tools/%s/todo/items/%d/comments", tool.Get("id").S(), id)
+	return deleteComment(ctx, path, args.At(1), fmt.Sprintf("todo %s/%d", tool.Get("id").S(), id))
 }
 
 func attachTodo(ctx *Ctx, args *Args) error {

@@ -27,7 +27,8 @@ Usage: dobase NOUN VERB [ARGS] [OPTIONS] [--json]
 
 TOOL is a tool id or (part of) its name. Things inside a tool are TOOL/ID,
 e.g. 12/104; list commands print these references. A TEXT value of "-" is
-read from stdin. --json prints the raw API response instead of text.
+read from stdin. --json prints the raw API response instead of text. After
+"--" everything is an argument, for a TEXT such as "--force".
 ` + "`dobase help NOUN`" + ` shows the options of every command for that noun.`
 
 func init() {
@@ -39,8 +40,7 @@ func userAgent() string { return "dobase-cli/" + Version }
 // Run runs the CLI and returns its exit status.
 func Run(argv []string, out, errOut io.Writer) int {
 	definitions := commands.Definitions()
-	json := slices.Contains(argv, "--json")
-	argv = slices.DeleteFunc(slices.Clone(argv), func(arg string) bool { return arg == "--json" })
+	argv, json := withoutJSON(argv)
 
 	first := ""
 	if len(argv) > 0 {
@@ -91,6 +91,17 @@ func Run(argv []string, out, errOut io.Writer) int {
 	}
 	fmt.Fprintf(errOut, "Error: %s\n", command.Clean(err.Error()))
 	return 1
+}
+
+// withoutJSON takes --json out of the arguments and says whether it was there.
+// After "--" it's an argument like any other.
+func withoutJSON(argv []string) ([]string, bool) {
+	end := slices.Index(argv, "--")
+	if end < 0 {
+		end = len(argv)
+	}
+	options := slices.DeleteFunc(slices.Clone(argv[:end]), func(arg string) bool { return arg == "--json" })
+	return append(options, argv[end:]...), len(options) < end
 }
 
 func find(definitions []*command.Definition, argv []string) (*command.Definition, []string) {

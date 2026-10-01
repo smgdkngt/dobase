@@ -42,6 +42,9 @@ type undo struct {
 type background struct {
 	client   api.API
 	inflight *inflight
+	// theme is an answer under way to "which theme is this person in?"
+	theme        chan liveResult
+	themeChecked time.Time
 }
 
 type liveResult struct {
@@ -116,7 +119,13 @@ type App struct {
 	// lastChange is when a job last changed something, so an older background refresh can't undo it on screen.
 	lastChange time.Time
 	undo       *undo
-	background *background
+	// changed and offered say whether the running job changed something on the
+	// server, and whether it offered an undo for that.
+	changed, offered bool
+	background       *background
+	// pasting is on between the start and the end of pasted text; pastedBreak
+	// says whether the last character of it was a line break.
+	pasting, pastedBreak bool
 }
 
 func NewApp(server api.API, base string, browser func(string) error) *App {
@@ -139,6 +148,7 @@ func (a *App) refreshInBackground(client api.API) {
 // offerUndo lets `u` take back what was just done, for a minute.
 func (a *App) offerUndo(label string, job Job) {
 	a.undo = &undo{label: label, job: job, at: time.Now()}
+	a.offered = true
 }
 
 // -- API ------------------------------------------------------------------------
@@ -148,15 +158,22 @@ func (a *App) get(path string, params ...api.Param) (api.Value, error) {
 }
 
 func (a *App) post(path string, body api.Value) (api.Value, error) {
-	return a.api.Request(api.Post, path, nil, body)
+	return a.change(api.Post, path, body)
 }
 
 func (a *App) patch(path string, body api.Value) (api.Value, error) {
-	return a.api.Request(api.Patch, path, nil, body)
+	return a.change(api.Patch, path, body)
 }
 
 func (a *App) delete(path string) (api.Value, error) {
-	return a.api.Request(api.Delete, path, nil, nil)
+	return a.change(api.Delete, path, nil)
+}
+
+// change sends a request that changes something, and notes that it did.
+func (a *App) change(method api.Method, path string, body any) (api.Value, error) {
+	value, err := a.api.Request(method, path, nil, body)
+	a.changed = a.changed || err == nil
+	return value, err
 }
 
 // Start loads who's signed in, their tools and the home screen.
@@ -230,6 +247,41 @@ func (a *App) Key(key Key) {
 		a.globalKey(key, fx)
 	}
 	a.apply(fx)
+}
+
+// input is the text field being written in, if there is one.
+func (a *App) input() *TextInput {
+	switch popup := a.popup.(type) {
+	case *InputPopup:
+		return &popup.input
+	case *SearchPopup:
+		return &popup.input
+	case nil:
+		if chat, ok := a.screen.(*Chat); ok && chat.writing {
+			return &chat.input
+		}
+	}
+	return nil
+}
+
+// Paste takes in a character of pasted text. It goes into the field being
+// written in, with a space for a tab or a run of line breaks, so a pasted
+// line is never sent by itself. Without a field it goes nowhere: pasted text
+// isn't keys to run.
+func (a *App) Paste(char rune) {
+	input := a.input()
+	if input == nil {
+		return
+	}
+	lineBreak := char == '\n' || char == '\r'
+	if lineBreak && a.pastedBreak {
+		return
+	}
+	a.pastedBreak = lineBreak
+	if lineBreak || char == '\t' {
+		char = ' '
+	}
+	input.Key(Key{Code: KeyRune, Rune: char})
 }
 
 func (a *App) globalKey(key Key, fx *Fx) {
@@ -431,7 +483,13 @@ func (a *App) runJob() {
 	}
 	next := a.jobs[0]
 	a.jobs = a.jobs[1:]
+	a.changed, a.offered = false, false
 	err := next.job(a)
+	// `u` takes back the last change only: after one that can't be undone,
+	// the offer for an earlier one is over.
+	if a.changed && !a.offered {
+		a.undo = nil
+	}
 	a.busy = ""
 	a.lastChange = time.Now()
 	if err != nil {
@@ -471,6 +529,7 @@ func (a *App) pollBackground() {
 	if bg == nil {
 		return
 	}
+	a.pollTheme(bg)
 	tool := a.screenTool()
 
 	if bg.inflight != nil {
@@ -500,6 +559,34 @@ func (a *App) pollBackground() {
 		results <- liveResult{value, err}
 	}()
 	bg.inflight = &inflight{results: results, started: time.Now(), tool: tool}
+}
+
+// pollTheme asks which theme the person is in, at the start and every ten seconds
+// after, so the app changes colour along with the web app (and with an Omarchy
+// desktop that Dobase follows).
+func (a *App) pollTheme(bg *background) {
+	if bg.theme != nil {
+		select {
+		case result := <-bg.theme:
+			bg.theme = nil
+			if result.err == nil {
+				wearTheme(result.value)
+			}
+		default:
+		}
+		return
+	}
+	if time.Since(bg.themeChecked) < 10*time.Second {
+		return
+	}
+	bg.themeChecked = time.Now()
+	results := make(chan liveResult, 1)
+	client := bg.client
+	go func() {
+		value, err := client.Request(api.Get, "/appearance", nil, nil)
+		results <- liveResult{value, err}
+	}()
+	bg.theme = results
 }
 
 // -- Drawing --------------------------------------------------------------------
@@ -539,9 +626,17 @@ func (a *App) drawHeader(b *Buffer, area Rect) {
 	if _, rest, found := strings.Cut(a.base, "://"); found {
 		host, _, _ = strings.Cut(rest, "://")
 	}
-	right := LineOf(Raw(a.me.Get("name").S()), Styled(" · "+host+" ", dim())).RightAligned()
 	b.RenderLine(LineOf(left...), area)
-	b.RenderLine(right, area)
+
+	// Who and where go in the room the tool's name leaves: both, only who, or neither.
+	room := area.W - LineOf(left...).Width() - 1
+	who := Raw(a.me.Get("name").S())
+	for _, right := range []Line{LineOf(who, Styled(" · "+host+" ", dim())), LineOf(who, Raw(" "))} {
+		if right.Width() <= room {
+			b.RenderLine(right.RightAligned(), area)
+			break
+		}
+	}
 }
 
 func (a *App) drawFooter(b *Buffer, area Rect) {
@@ -555,7 +650,7 @@ func (a *App) drawFooter(b *Buffer, area Rect) {
 		hints = append([]hint{{"u", "undo"}}, hints...)
 	}
 	hints = append(hints, hint{"?", "help"})
-	line := hintsLine(hints)
+	line := hintsLine(fitting(hints, area.W-2))
 	line.Spans = append([]Span{Raw(" ")}, line.Spans...)
 	b.RenderLine(line, area)
 

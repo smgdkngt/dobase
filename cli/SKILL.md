@@ -31,7 +31,8 @@ token. Tell them; don't look for a way around it.
 - USER is `me`, `none`, an id, an email address, or part of a name, matched
   against the tool's collaborators (`dobase tool show TOOL`).
 - A TEXT argument of `-` reads stdin (one per command). Use a heredoc for anything
-  longer than a line.
+  longer than a line. Text may start with a dash (`"- first point"`); only a
+  TEXT that looks like an option needs `--` before it (`-- "--force"`).
 - Text is plain by default: paragraphs on blank lines, line breaks kept, and
   http(s) URLs become links, so a bare URL needs no `--html`. Pass
   `--html` to send HTML (`<p>`, `<strong>`, `<em>`, `<a>`, `<ul>/<ol>/<li>`,
@@ -66,6 +67,7 @@ TXT
 dobase card update 12/104 --title "Fix SSO login" --assignee none --due none
 dobase card move 12/104 Done             # --position 1 = top
 dobase card comment 12/104 "Deployed to staging."
+dobase card uncomment 12/104 77          # deletes comment 77; card show prints the ids
 dobase card archive 12/104               # card unarchive brings it back
 dobase card attach 12/104 ~/Desktop/trace.txt
 dobase column create roadmap "Review"
@@ -81,7 +83,7 @@ dobase todo create chores "Water plants" --repeat weekly
 dobase todo finish 3/55                  # todo reopen undoes it; recurring items respawn
 dobase todo update 3/55 --title "..." --description "..."
 dobase todo move 3/55 "Later"
-dobase todo comment 3/55 "Booked for Friday."
+dobase todo comment 3/55 "Booked for Friday."   # todo uncomment 3/55 78 deletes one
 dobase todolist create chores "Groceries"
 ```
 
@@ -136,6 +138,7 @@ Hi Anna,
 
 The invoice is attached in Dobase.
 TXT
+dobase mail update 8/312 --subject "Invoice for September"  # change a saved draft; only what you pass changes
 dobase mail contacts 8 anna              # find an address
 dobase mail send 8 --draft 312           # sends real email: see the rules below
 dobase mail sync 8
@@ -144,8 +147,9 @@ dobase mail sync 8
 A plain-text `--body` becomes paragraphs at its blank lines. With `--html`, write
 separate `<p>`, `<ul>` and `<ol>` blocks; don't add empty `<p><br></p>` for spacing.
 
-`--open` on `draft`, `reply` and `forward` opens the saved draft in the installed
-Dobase app or the browser, ready to edit and send. Only when someone is at the computer.
+`--open` on `draft`, `update`, `reply` and `forward` opens the saved draft in the
+installed Dobase app or the browser, ready to edit and send. Only when someone
+is at the computer.
 
 The CLI can't trash or delete mail. Trashing moves the message to the mail
 server's trash (or deletes it, on a server without one), so it stays in the
@@ -171,6 +175,7 @@ per-occurrence edit.
 ```bash
 dobase file list team-files              # root; pass a folder id to go deeper
 dobase file show 5/31                    # includes its public link, if the user made one
+dobase folder show 5/7                   # where it is, how much it holds, and its public link
 dobase file upload team-files ~/Downloads/contract.pdf --folder 7
 dobase file download 5/31 --output /tmp/contract.pdf
 dobase file rename 5/31 "Contract 2026.pdf"
@@ -197,9 +202,9 @@ dobase folder download 5/7 --output /tmp/  # a zip of everything inside
   so write as their assistant, not in their first person. Otherwise they show
   under the user's own name with "via" and the token's name.
 - **Deleting is permanent.** `card delete`, `todo delete`, `doc delete`,
-  `chat delete`, `event delete`, `file delete`, `folder delete`, `column delete`
-  and `todolist delete` can't be undone, and a column or folder takes its
-  contents with it. Only delete what the user explicitly asked you to delete,
+  `chat delete`, `event delete`, `file delete`, `folder delete`, `column delete`,
+  `todolist delete`, `card uncomment` and `todo uncomment` can't be undone, and
+  a column or folder takes its contents with it. Only delete what the user explicitly asked you to delete,
   and name it first. Prefer the reversible options: archive a card, finish a
   todo, archive an email.
 - The token can't change the account, connect mail or calendar accounts, invite

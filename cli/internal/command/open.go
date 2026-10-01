@@ -8,7 +8,11 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 )
+
+// startWait is how long a started program gets to fail before it's left running.
+const startWait = time.Second
 
 // The system the opener runs on; tests swap these.
 var (
@@ -17,6 +21,23 @@ var (
 	// run starts a program and says whether it succeeded. Its output is dropped,
 	// so it never draws over the full-screen app.
 	run = func(name string, args ...string) error { return exec.Command(name, args...).Run() }
+	// start starts a program that may keep running, as xdg-open does while the
+	// browser it started is open. It waits a moment, to tell when the program
+	// fails right away, and then lets it be.
+	start = func(name string, args ...string) error {
+		command := exec.Command(name, args...)
+		if err := command.Start(); err != nil {
+			return err
+		}
+		done := make(chan error, 1)
+		go func() { done <- command.Wait() }()
+		select {
+		case err := <-done:
+			return err
+		case <-time.After(startWait):
+			return nil
+		}
+	}
 	// output runs a program and returns what it printed.
 	output = func(name string, args ...string) (string, error) {
 		out, err := exec.Command(name, args...).Output()
@@ -45,16 +66,17 @@ func Open(base, link string) error {
 }
 
 // openWith opens link with the system's opener: `open` on macOS, `start` on
-// Windows, `xdg-open` elsewhere.
+// Windows, `xdg-open` elsewhere. The first two hand the link over and are done;
+// xdg-open isn't waited for.
 func openWith(link string) error {
-	opener, args := "xdg-open", []string{link}
+	opener, args, launch := "xdg-open", []string{link}, start
 	switch goos {
 	case "darwin":
-		opener = "open"
+		opener, launch = "open", run
 	case "windows":
-		opener, args = "cmd", []string{"/C", "start", "", link}
+		opener, args, launch = "cmd", []string{"/C", "start", "", link}, run
 	}
-	if err := run(opener, args...); err != nil {
+	if err := launch(opener, args...); err != nil {
 		return fmt.Errorf("%s: %w", opener, err)
 	}
 	return nil

@@ -84,6 +84,11 @@ func (s *Chat) ApplyLive(value api.Value) { s.merge(value) }
 func (s *Chat) merge(chat api.Value) {
 	fresh := chat.Get("messages").Items()
 	if len(fresh) == 0 {
+		// The newest page is empty and nothing is older: the last message was deleted.
+		if !chat.Get("has_more").Truthy() {
+			s.messages, s.hasMore = nil, false
+			s.scroll, s.unseen = 0, 0
+		}
 		return
 	}
 	first := fresh[0].Get("id").Int()
@@ -129,13 +134,14 @@ func (s *Chat) scrollUp(lines int, fx *Fx) {
 		}
 		fx.job("Loading older messages", func(app *App) error {
 			older, err := fetchChat(app, tool, before)
+			// Also when it failed, so scrolling up asks again.
+			s.loadingOlder = false
 			if err != nil {
 				return err
 			}
 			if chat, ok := app.screen.(*Chat); ok {
 				chat.messages = append(slices.Clone(older.Get("messages").Items()), chat.messages...)
 				chat.hasMore = older.Get("has_more").Truthy()
-				chat.loadingOlder = false
 			}
 			return nil
 		})
@@ -164,6 +170,10 @@ func (s *Chat) Key(key Key, view *View, fx *Fx) bool {
 				fx.job("Sending", func(app *App) error {
 					message, err := app.post(fmt.Sprintf("/tools/%d/chat/messages", tool), api.Object("message", api.Object("body", command.Paragraphs(text))))
 					if err != nil {
+						// Nothing was sent, so what was written comes back to send again.
+						if s.input.IsBlank() {
+							s.input = textInputWith(text)
+						}
 						return err
 					}
 					if err := reloadChat(app); err != nil {
@@ -206,6 +216,7 @@ func (s *Chat) Key(key Key, view *View, fx *Fx) bool {
 			tool, id := s.tool.Get("id").Int(), message.Get("id").Int()
 			author := command.Poster(message, "someone")
 			path := fmt.Sprintf("/tools/%d/chat/messages/%d/reactions", tool, id)
+			already := reacted(message, "👍", view.me)
 			fx.job("Reacting", func(app *App) error {
 				if _, err := app.post(path, api.Object("emoji", "👍")); err != nil {
 					return err
@@ -214,6 +225,10 @@ func (s *Chat) Key(key Key, view *View, fx *Fx) bool {
 					return err
 				}
 				app.say("👍 for "+author, ToneSuccess)
+				// A 👍 you gave before stays yours: undoing this one would take that away.
+				if already {
+					return nil
+				}
 				app.offerUndo("the 👍", func(app *App) error {
 					if _, err := app.delete(path + "/" + url.QueryEscape("👍")); err != nil {
 						return err
@@ -227,6 +242,21 @@ func (s *Chat) Key(key Key, view *View, fx *Fx) bool {
 		return false
 	}
 	return true
+}
+
+// reacted says whether user already put emoji on message.
+func reacted(message api.Value, emoji string, user api.Value) bool {
+	for _, reaction := range message.Get("reactions").Items() {
+		if reaction.Get("emoji").S() != emoji {
+			continue
+		}
+		for _, other := range reaction.Get("users").Items() {
+			if other.Get("id").Equal(user.Get("id")) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (s *Chat) Draw(b *Buffer, area Rect, view *View) {

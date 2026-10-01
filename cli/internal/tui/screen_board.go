@@ -302,7 +302,11 @@ func (s *Board) moveAcross(forward bool, fx *Fx) {
 	})
 }
 
+// moveWithin moves the selected card up or down its column, right away on screen.
 func (s *Board) moveWithin(down bool, fx *Fx) {
+	if _, ok := s.card(); !ok {
+		return
+	}
 	column, index := s.column, s.cards[s.column]
 	cards := slices.Clone(cardsOf(s.columns[column]))
 	target := index - 1

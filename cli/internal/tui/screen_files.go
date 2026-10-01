@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -69,6 +70,16 @@ func (s *Files) entries() []fileEntry {
 	return entries
 }
 
+// selectFile selects the file with this id, when it's in the folder shown.
+func (s *Files) selectFile(id int64) {
+	position := slices.IndexFunc(s.entries(), func(entry fileEntry) bool {
+		return !entry.folder && entry.value.Get("id").Int() == id
+	})
+	if position >= 0 {
+		s.selected = position
+	}
+}
+
 func (s *Files) Refresh() Job {
 	tool, folder, selected := s.tool, s.folder, s.selected
 	return func(app *App) error {
@@ -117,10 +128,10 @@ func (s *Files) Key(key Key, view *View, fx *Fx) bool {
 		}
 	case key.Is('d'):
 		if entry != nil && !entry.folder {
-			id, name := entry.value.Get("id").Int(), entry.value.Get("name").S()
+			id, name, size := entry.value.Get("id").Int(), entry.value.Get("name").S(), entry.value.Get("file_size")
 			destination := downloadPath(name)
 			fx.popup = confirmPopup(fmt.Sprintf("Download “%s” to %s?", name, destination), "Downloading", func(app *App) error {
-				if _, err := app.api.Download(fmt.Sprintf("/tools/%d/files/items/%d/download", tool, id), destination); err != nil {
+				if _, err := api.DownloadWhole(app.api, fmt.Sprintf("/tools/%d/files/items/%d/download", tool, id), destination, size); err != nil {
 					return err
 				}
 				app.say(fmt.Sprintf("Saved to %s 📥", destination), ToneSuccess)
@@ -178,7 +189,7 @@ func (s *Files) Draw(b *Buffer, area Rect, view *View) {
 		}
 		items[i] = Item(LineOf(
 			Raw(" "+fileIcon(name)+" "),
-			Raw(fmt.Sprintf("%-*s", width, truncate(name, width))),
+			Raw(padded(truncate(name, width), width)),
 			Styled(fmt.Sprintf("  %8s  %s", command.Bytes(entry.value.Get("file_size")), command.Day(entry.value.Get("created_at"))), dim()),
 			Styled(shared, dim())))
 	}

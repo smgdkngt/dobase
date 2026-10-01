@@ -130,11 +130,10 @@ func popupKey(popup Popup, key Key, fx *Fx) {
 		}
 	case *ConfirmPopup:
 		fx.closePopup = true
-		if key.Is('y', 'Y') || key.Code == KeyEnter {
-			if p.job != nil {
-				fx.job(p.label, p.job)
-				p.job = nil
-			}
+		// Only y says yes: enter is too easily pressed twice.
+		if key.Is('y', 'Y') && p.job != nil {
+			fx.job(p.label, p.job)
+			p.job = nil
 		}
 	case *SearchPopup:
 		switch key.Code {
@@ -249,7 +248,7 @@ func drawPopup(popup Popup, b *Buffer) {
 	case *Detail:
 		width := min(max(screen.W*3/4, 50), 100)
 		area := popupArea(b, truncate(p.title, width-6), width, sat(screen.H-4))
-		total := wrappedHeight(p.lines, area.W)
+		total := wrappedHeight(p.lines, area.W, false)
 		p.scroll = min(p.scroll, sat(total-area.H))
 		Paragraph{Lines: p.lines, Wrap: true, Scroll: p.scroll}.Render(b, area)
 	case *InputPopup:
@@ -261,8 +260,10 @@ func drawPopup(popup Popup, b *Buffer) {
 		p.input.Render(b, field, p.placeholder, true)
 		b.RenderLine(StyledLine("enter to save · esc to cancel", dim()), hintRow)
 	case *ConfirmPopup:
-		area := popupArea(b, "Sure?", 60, 5)
 		lines := []Line{RawLine(p.question), RawLine(""), StyledLine("y yes · any other key no", dim())}
+		// As high as the question is long, so the keys under it always show.
+		width := min(60, sat(screen.W-2))
+		area := popupArea(b, "Sure?", width, wrappedHeight(lines, sat(width-4), true)+2)
 		Paragraph{Lines: lines, Wrap: true, Trim: true}.Render(b, area)
 	case *SearchPopup:
 		area := popupArea(b, "🔎 Search everything", 76, min(sat(screen.H-6), 24))
@@ -315,12 +316,12 @@ func notificationItem(item api.Value, width int) ListItem {
 		StyledLine("  "+ago(item.Get("created_at")), dim()))
 }
 
-// wrappedHeight is about how many rows lines take when wrapped at width.
-func wrappedHeight(lines []Line, width int) int {
-	width = max(width, 1)
+// wrappedHeight is how many rows lines take when a Paragraph wraps them at
+// width, trimming the spaces a row starts with or not.
+func wrappedHeight(lines []Line, width int, trim bool) int {
 	total := 0
 	for _, line := range lines {
-		total += (max(line.Width(), 1) + width - 1) / width
+		total += len(wordWrap(line.graphemes(Style{}), max(width, 1), trim))
 	}
 	return total
 }

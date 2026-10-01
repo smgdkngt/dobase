@@ -36,6 +36,7 @@ func boards() []*Definition {
 		New("card unarchive", "Bring an archived card back", []string{"TOOL/CARD"}, nil, unarchiveCard),
 		New("card delete", "Delete a card permanently, with its comments and attachments", []string{"TOOL/CARD"}, nil, deleteCard),
 		New("card comment", "Comment on a card", []string{"TOOL/CARD", "TEXT"}, []Flag{Switch("html", "TEXT is HTML")}, commentCard),
+		New("card uncomment", "Delete a comment from a card: one of your own, or anyone's on a board you own", []string{"TOOL/CARD", "COMMENT"}, nil, uncommentCard),
 		New("card attach", "Attach files to a card (25 MB max each)", []string{"TOOL/CARD", "PATH..."}, nil, attachCard),
 		New("column create", "Add a column to the end of a board", []string{"TOOL", "NAME"}, nil, createColumn),
 		New("column rename", "Rename a column", []string{"TOOL/COLUMN", "NAME"}, nil, renameColumn),
@@ -243,6 +244,15 @@ func commentCard(ctx *Ctx, args *Args) error {
 		ctx.Sayf("Commented on card %s/%d [comment %s].", tool.Get("id").S(), id, comment.Get("id").S())
 		return nil
 	})
+}
+
+func uncommentCard(ctx *Ctx, args *Args) error {
+	tool, id, err := ctx.ToolAndID(args.At(0), "boards", "card")
+	if err != nil {
+		return err
+	}
+	path := fmt.Sprintf("/tools/%s/board/cards/%d/comments", tool.Get("id").S(), id)
+	return deleteComment(ctx, path, args.At(1), fmt.Sprintf("card %s/%d", tool.Get("id").S(), id))
 }
 
 func attachCard(ctx *Ctx, args *Args) error {

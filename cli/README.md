@@ -116,6 +116,9 @@ switch; open Dobase pages change colour on the spot. `dobase theme follow --stop
 removes the hook. Anything else that has a `colors.toml` in that format works
 with `dobase theme sync --file PATH --name NAME`.
 
+The full-screen app wears your theme too: its accent, selection, card labels and
+logo take the theme's colours, and it follows a switch within ten seconds.
+
 ## With Claude Code
 
 This directory is also a Claude Code skill. `SKILL.md` tells Claude when and

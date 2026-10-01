@@ -37,6 +37,21 @@ func showDetails(ctx *Ctx, record api.Value) {
 	}
 }
 
+// deleteComment deletes a comment, by the id `show` prints, from the comments
+// at path. label is what it was on: "card 12/104".
+func deleteComment(ctx *Ctx, path, comment, label string) error {
+	if !IsDigits(comment) {
+		return api.Usagef("Expected a comment id like 77, got %s. `show` prints them as [comment ID].", Quoted(comment))
+	}
+	if _, err := ctx.Delete(path + "/" + comment); err != nil {
+		return err
+	}
+	return ctx.Output(api.Null, func() error {
+		ctx.Sayf("Deleted comment %s from %s.", comment, label)
+		return nil
+	})
+}
+
 // zeroBased turns "3" (1 = top) into the API's 0-based position.
 func zeroBased(position string) int64 {
 	n, _ := strconv.ParseInt(strings.TrimSpace(position), 10, 64)

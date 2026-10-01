@@ -18,7 +18,13 @@ const calendarResponses = `{
 		"starts_at": "2026-10-01T09:00:00+02:00", "ends_at": "2026-10-01T09:45:00+02:00"},
 	"/tools/22/calendar/events/6": {"id": 6, "all_day": true, "recurring": true,
 		"starts_at": "2026-10-03T00:00:00+02:00", "ends_at": "2026-10-05T23:59:59+02:00"},
-	"/tools/19/files/items/7": {"id": 7, "name": "../../etc/report.pdf", "file_size": 2048}
+	"/tools/19/files/items/7": {"id": 7, "name": "../../etc/report.pdf", "file_size": 42},
+	"/tools/19/files/items/8": {"id": 8, "name": "film.mov", "file_size": 2048},
+	"/tools/19/files": {"url": "https://dobase.test/tools/19/files?folder_id=5", "folder": {"id": 5, "name": "Photos", "parent_id": 1},
+		"breadcrumbs": [{"id": 1, "name": "Brand", "parent_id": null}], "folders": [{"id": 6, "name": "Launch"}],
+		"files": [{"id": 7, "name": "a.png"}, {"id": 8, "name": "b.png"}]},
+	"/tools/19/files/folders/5/share": {"url": "https://dobase.test/s/abc", "expires_at": "2026-10-01T00:00:00.000Z",
+		"password_protected": true, "download_count": 1}
 }`
 
 func calendarCtx(sent *[]api.Value) (*command.Ctx, *bytes.Buffer) {
@@ -158,7 +164,7 @@ func TestFileDownloadsKeepOnlyTheLastPartOfTheName(t *testing.T) {
 	if data, err := os.ReadFile("report.pdf"); err != nil || string(data) != "data from /tools/19/files/items/7/download" {
 		t.Errorf("saved %q, %v", data, err)
 	}
-	if want := "Downloaded ../../etc/report.pdf (2.0 KB) to report.pdf.\n"; out.String() != want {
+	if want := "Downloaded ../../etc/report.pdf (42 B) to report.pdf.\n"; out.String() != want {
 		t.Errorf("out %q", out.String())
 	}
 
@@ -178,6 +184,76 @@ func TestFileDownloadsKeepOnlyTheLastPartOfTheName(t *testing.T) {
 		t.Errorf("out %q, %v", out.String(), err)
 	}
 	if err := invoke(ctx, "file download", "19/7", "--output", "missing/x.pdf"); err == nil || err.Error() != "missing is not a directory." {
+		t.Errorf("got %v", err)
+	}
+}
+
+func TestADownloadThatCameUpShortFailsAndLeavesNoFile(t *testing.T) {
+	t.Chdir(t.TempDir())
+	var sent []api.Value
+	ctx, out := calendarCtx(&sent)
+
+	// The fake sends 42 bytes of a file the API says is 2048 bytes long
+	err := invoke(ctx, "file download", "19/8")
+	if err == nil || err.Error() != "Download failed: film.mov came in at 42 of 2048 bytes. Try again." {
+		t.Errorf("got %v, out %q", err, out.String())
+	}
+	if _, err := os.Stat("film.mov"); !os.IsNotExist(err) {
+		t.Errorf("the cut-off file is still there: %v", err)
+	}
+}
+
+func TestAFailedCalendarSyncFailsWithJSONToo(t *testing.T) {
+	for _, json := range []bool{false, true} {
+		var sent []api.Value
+		var out bytes.Buffer
+		ctx := command.NewCtx(&config.Config{}, &out, json, "test")
+		// The fake answers the sync with something that isn't "synced" or "syncing"
+		ctx.SetAPI(newFakeAPI(calendarResponses, &sent))
+
+		err := invoke(ctx, "calendar sync", "family")
+		if err == nil || api.KindOf(err) != api.Failed || !strings.Contains(err.Error(), "Syncing Family (calendar 22) failed") {
+			t.Errorf("json %v: %v", json, err)
+		}
+		if json && !strings.Contains(out.String(), `"id": 400`) {
+			t.Errorf("the status wasn't printed: %q", out.String())
+		}
+	}
+}
+
+func TestFolderShowSaysWhatIsInItAndWhetherItIsShared(t *testing.T) {
+	var sent []api.Value
+	var out bytes.Buffer
+	fake := newFakeAPI(calendarResponses, &sent)
+	ctx := command.NewCtx(&config.Config{}, &out, false, "test")
+	ctx.SetAPI(fake)
+
+	if err := invoke(ctx, "folder show", "stuff/5"); err != nil {
+		t.Fatal(err)
+	}
+	want := `Photos (folder 19/5)
+Inside:     Stuff / Brand
+Holds:      1 folder, 2 files
+URL:        https://dobase.test/tools/19/files?folder_id=5
+Shared:     https://dobase.test/s/abc (expires 2026-10-01, password protected, downloaded 1 time)
+`
+	if out.String() != want {
+		t.Errorf("out %q", out.String())
+	}
+
+	// A folder without a link: the server answers 404 for it
+	out.Reset()
+	ctx.JSON = true
+	fake.errors = map[string]error{"/tools/19/files/folders/5/share": &api.Error{Kind: api.Failed, Message: "This folder has no share link (HTTP 404)", Status: 404}}
+	if err := invoke(ctx, "folder show", "19/5"); err != nil {
+		t.Fatal(err)
+	}
+	if shown := api.MustParse(out.String()); shown.Get("name").S() != "Photos" || !shown.Has("share") || !shown.Get("share").IsNull() || shown.Get("shared").Truthy() {
+		t.Errorf("out %s", out.String())
+	}
+
+	fake.errors = map[string]error{"/tools/19/files/folders/5/share": api.Failf("Could not reach the server")}
+	if err := invoke(ctx, "folder show", "19/5"); err == nil || err.Error() != "Could not reach the server" {
 		t.Errorf("got %v", err)
 	}
 }

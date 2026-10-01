@@ -112,7 +112,24 @@ func (d *Definition) flag(name string) (Flag, bool) {
 	return Flag{}, false
 }
 
-// Parse splits argv into positional arguments and flags, which may come in any order.
+// optionLike says whether name could be the name of an option: letters, digits
+// and dashes, starting with a letter.
+func optionLike(name string) bool {
+	for i := 0; i < len(name); i++ {
+		char := name[i]
+		letter := ('a' <= char && char <= 'z') || ('A' <= char && char <= 'Z')
+		if !letter && (i == 0 || (char != '-' && (char < '0' || char > '9'))) {
+			return false
+		}
+	}
+	return name != ""
+}
+
+// Parse splits argv into positional arguments and flags, which may come in any
+// order. A word is a flag when it's --name or --name=value; anything else is
+// an argument, also text that starts with a dash ("- first point", "-5"). Only
+// what looks like a flag the command doesn't have is refused. After "--" every
+// word is an argument.
 func (d *Definition) Parse(argv []string) (*Args, error) {
 	args := &Args{values: map[string]string{}}
 
@@ -125,14 +142,15 @@ func (d *Definition) Parse(argv []string) (*Args, error) {
 		if word == "--help" || word == "-h" {
 			return nil, &api.Error{Kind: api.Help, Message: d.Help()}
 		}
-		if !strings.HasPrefix(word, "-") || word == "-" {
+
+		name, inline, hasInline := strings.Cut(word, "=")
+		bare, dashed := strings.CutPrefix(name, "--")
+		flag, ok := d.flag(bare)
+		if !dashed || (!ok && !optionLike(bare)) {
 			args.Positional = append(args.Positional, word)
 			continue
 		}
-
-		name, inline, hasInline := strings.Cut(word, "=")
-		flag, ok := d.flag(strings.TrimPrefix(name, "--"))
-		if !strings.HasPrefix(name, "--") || !ok {
+		if !ok {
 			return nil, api.Usagef("invalid option: %s\n\n%s", word, d.Help())
 		}
 

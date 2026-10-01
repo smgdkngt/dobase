@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/smgdkngt/dobase/cli/internal/api"
 	. "github.com/smgdkngt/dobase/cli/internal/command"
@@ -19,6 +20,7 @@ var mailViews = [][2]string{
 const (
 	mailTo   = "Recipients, comma-separated"
 	mailCc   = "Cc recipients, comma-separated"
+	mailBcc  = "Bcc recipients, comma-separated"
 	mailBody = "Message (plain text, or HTML with --html)"
 	mailOpen = "Open the saved draft in the Dobase app or your browser, ready to edit and send"
 )
@@ -50,11 +52,22 @@ func mail() []*Definition {
 			[]Flag{
 				F("to", "ADDRS", mailTo),
 				F("cc", "ADDRS", mailCc),
+				F("bcc", "ADDRS", mailBcc),
 				F("subject", "TEXT", "Subject"),
 				F("body", "TEXT", mailBody),
 				Switch("html", "The body is HTML"),
 				Switch("open", mailOpen),
 			}, draftMail),
+		New("mail update", "Change a saved draft: only what you pass changes, and nothing is sent", []string{"TOOL/DRAFT"},
+			[]Flag{
+				F("to", "ADDRS", mailTo),
+				F("cc", "ADDRS", mailCc),
+				F("bcc", "ADDRS", mailBcc),
+				F("subject", "TEXT", "Subject"),
+				F("body", "TEXT", mailBody),
+				Switch("html", "The body is HTML"),
+				Switch("open", mailOpen),
+			}, updateMailDraft),
 		New("mail reply", "Reply to a message, quoting it below your text: saves a draft, or sends real email right away with --send", []string{"TOOL/MESSAGE"},
 			[]Flag{
 				F("body", "TEXT", "Your reply (plain text, or HTML with --html)"),
@@ -83,7 +96,7 @@ func mail() []*Definition {
 			[]Flag{
 				F("to", "ADDRS", mailTo),
 				F("cc", "ADDRS", mailCc),
-				F("bcc", "ADDRS", "Bcc recipients, comma-separated"),
+				F("bcc", "ADDRS", mailBcc),
 				F("subject", "TEXT", "Subject"),
 				F("body", "TEXT", mailBody),
 				Switch("html", "The body is HTML"),
@@ -308,7 +321,7 @@ func draftMail(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	email := api.Object("to", args.Value("to"), "cc", optionalMailFlag(args, "cc"), "subject", subject, "body", body)
+	email := api.Object("to", args.Value("to"), "cc", optionalMailFlag(args, "cc"), "bcc", optionalMailFlag(args, "bcc"), "subject", subject, "body", body)
 	draft, err := ctx.Post(fmt.Sprintf("/tools/%s/mails/drafts", tool.Get("id").S()), email)
 	if err != nil {
 		return err
@@ -316,6 +329,48 @@ func draftMail(ctx *Ctx, args *Args) error {
 	err = ctx.Output(draft, func() error {
 		ctx.Sayf("Saved draft %s to %s. Send it with: dobase mail send %s --draft %s",
 			mailDescribe(tool, draft), mailList(draft.Get("to")), tool.Get("id").S(), draft.Get("id").S())
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return openMailDraft(ctx, args, draft)
+}
+
+func updateMailDraft(ctx *Ctx, args *Args) error {
+	tool, id, err := ctx.ToolAndID(args.At(0), "mail", "draft")
+	if err != nil {
+		return err
+	}
+
+	// Only what was given is sent; an empty --cc or --bcc clears it.
+	fields := map[string]any{}
+	for _, name := range []string{"to", "cc", "bcc"} {
+		if value, ok := args.Flag(name); ok {
+			fields[name] = value
+		}
+	}
+	if subject, ok := args.Flag("subject"); ok {
+		if fields["subject"], err = ctx.Text(subject); err != nil {
+			return err
+		}
+	}
+	if body, ok := args.Flag("body"); ok {
+		if fields["body"], err = ctx.RichText(body, args.On("html")); err != nil {
+			return err
+		}
+	}
+	if len(fields) == 0 {
+		return api.Usagef("Nothing to update. See `dobase help mail`.")
+	}
+
+	draft, err := ctx.Patch(fmt.Sprintf("/tools/%s/mails/drafts/%d", tool.Get("id").S(), id), fields)
+	if err != nil {
+		return err
+	}
+	err = ctx.Output(draft, func() error {
+		ctx.Sayf("Updated draft %s to %s. Send it with: dobase mail send %s --draft %s",
+			mailDescribe(tool, draft), mailRecipients(draft), tool.Get("id").S(), draft.Get("id").S())
 		return nil
 	})
 	if err != nil {
@@ -596,6 +651,7 @@ func sendMail(ctx *Ctx, args *Args) error {
 		request = api.Object(
 			"to", mailList(saved.Get("to")),
 			"cc", mailList(saved.Get("cc")),
+			"bcc", mailList(saved.Get("bcc")),
 			"subject", saved.Get("subject"),
 			"body", body,
 			"in_reply_to", saved.Get("in_reply_to"),
@@ -655,7 +711,7 @@ func syncMail(ctx *Ctx, args *Args) error {
 
 func mailContacts(ctx *Ctx, args *Args) error {
 	query := strings.TrimSpace(args.At(1))
-	if Width(query) < 2 {
+	if utf8.RuneCountInString(query) < 2 {
 		return api.Usagef("QUERY needs at least 2 characters.")
 	}
 

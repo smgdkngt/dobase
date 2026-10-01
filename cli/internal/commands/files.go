@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -25,6 +26,7 @@ func files() []*Definition {
 		New("file rename", "Rename a file", []string{"TOOL/FILE", "NAME"}, nil, renameFile),
 		New("file move", "Move a file into FOLDER (a folder id), or to the top level with root", []string{"TOOL/FILE", "FOLDER"}, nil, moveFile),
 		New("file delete", "Delete a file permanently", []string{"TOOL/FILE"}, nil, deleteFile),
+		New("folder show", "Show a folder: where it is, how much is in it, and its public link, if it has one", []string{"TOOL/FOLDER"}, nil, showFolder),
 		New("folder create", "Create a folder, at the top level unless --parent", []string{"TOOL", "NAME"},
 			[]Flag{F("parent", "FOLDER", "Folder id to create it in")}, createFolder),
 		New("folder rename", "Rename a folder", []string{"TOOL/FOLDER", "NAME"}, nil, renameFolder),
@@ -171,7 +173,7 @@ func downloadFile(ctx *Ctx, args *Args) error {
 		return err
 	}
 
-	path, err := saveDownload(ctx, fmt.Sprintf("/tools/%s/files/items/%d/download", tool.Get("id").S(), id), file.Get("name").S(), args)
+	path, err := saveDownload(ctx, fmt.Sprintf("/tools/%s/files/items/%d/download", tool.Get("id").S(), id), file.Get("name").S(), file.Get("file_size"), args)
 	if err != nil {
 		return err
 	}
@@ -256,6 +258,41 @@ func createFolder(ctx *Ctx, args *Args) error {
 	})
 }
 
+func showFolder(ctx *Ctx, args *Args) error {
+	tool, id, err := ctx.ToolAndID(args.At(0), "files", "folder")
+	if err != nil {
+		return err
+	}
+	listing, err := ctx.Get(fmt.Sprintf("/tools/%s/files", tool.Get("id").S()), "folder_id", strconv.FormatInt(id, 10))
+	if err != nil {
+		return err
+	}
+	share, err := ctx.Get(fmt.Sprintf("/tools/%s/files/folders/%d/share", tool.Get("id").S(), id))
+	// A folder without a link is a 404 there
+	if api.StatusOf(err) == http.StatusNotFound {
+		share, err = api.Null, nil
+	}
+	if err != nil {
+		return err
+	}
+
+	folder := listing.Get("folder").With("url", listing.Get("url")).With("shared", !share.IsNull()).With("share", share)
+	return ctx.Output(folder, func() error {
+		ctx.Sayf("%s (folder %s/%d)", folder.Get("name").S(), tool.Get("id").S(), id)
+		trail := []string{tool.Get("name").S()}
+		for _, crumb := range listing.Get("breadcrumbs").Items() {
+			trail = append(trail, crumb.Get("name").S())
+		}
+		ctx.Field("Inside", strings.Join(trail, " / "))
+		ctx.Field("Holds", Count(int64(len(listing.Get("folders").Items())), "folder")+", "+Count(int64(len(listing.Get("files").Items())), "file"))
+		ctx.Field("URL", folder.Get("url").S())
+		if !share.IsNull() {
+			ctx.Field("Shared", shareSummary(share))
+		}
+		return nil
+	})
+}
+
 func renameFolder(ctx *Ctx, args *Args) error {
 	tool, id, err := ctx.ToolAndID(args.At(0), "files", "folder")
 	if err != nil {
@@ -316,7 +353,8 @@ func downloadFolder(ctx *Ctx, args *Args) error {
 	folder := listing.Get("folder")
 
 	name := folder.Get("name").S() + ".zip"
-	path, err := saveDownload(ctx, fmt.Sprintf("/tools/%s/files/folders/%d/download", tool.Get("id").S(), id), name, args)
+	// A zip is made as it's sent, so nothing says how big it will be.
+	path, err := saveDownload(ctx, fmt.Sprintf("/tools/%s/files/folders/%d/download", tool.Get("id").S(), id), name, api.Null, args)
 	if err != nil {
 		return err
 	}
@@ -348,8 +386,9 @@ func folderPlace(tool, folderID api.Value) string {
 }
 
 // saveDownload saves a download into the current directory under name (only its
-// last path segment, whatever the server sent), or to --output. It returns the path.
-func saveDownload(ctx *Ctx, path, name string, args *Args) (string, error) {
+// last path segment, whatever the server sent), or to --output. It returns the
+// path. size is how big the file should be, or null when nothing says.
+func saveDownload(ctx *Ctx, path, name string, size api.Value, args *Args) (string, error) {
 	name = lastSegment(name)
 	if strings.NewReplacer(".", "", "/", "").Replace(name) == "" {
 		name = "download"
@@ -374,7 +413,7 @@ func saveDownload(ctx *Ctx, path, name string, args *Args) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if _, err := server.Download(path, destination); err != nil {
+	if _, err := api.DownloadWhole(server, path, destination, size); err != nil {
 		return "", err
 	}
 	return destination, nil

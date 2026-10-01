@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -213,13 +214,15 @@ func TestJSONKeepsTheServersKeyOrderAndDoesNotEscapeHTML(t *testing.T) {
 	}
 }
 
-// fakeAPI answers GETs from a fixed set of paths, records every other request's
-// body and the paths it sent to or downloaded from, and saves downloads as
-// "data from PATH".
+// fakeAPI answers GETs from a fixed set of paths, records every other request
+// ("DELETE /path"), its body and the paths it sent to or downloaded from, and
+// saves downloads as "data from PATH". A path in errors fails with that error.
 type fakeAPI struct {
 	responses api.Value
 	sent      *[]api.Value
 	paths     []string
+	requests  []string
+	errors    map[string]error
 }
 
 func newFakeAPI(responses string, sent *[]api.Value) *fakeAPI {
@@ -227,12 +230,16 @@ func newFakeAPI(responses string, sent *[]api.Value) *fakeAPI {
 }
 
 func (f *fakeAPI) Request(method api.Method, path string, _ []api.Param, body any) (api.Value, error) {
+	if err := f.errors[path]; err != nil {
+		return api.Null, err
+	}
 	if method == api.Get {
 		return f.responses.Get(path), nil
 	}
 	sent := api.Of(body)
 	*f.sent = append(*f.sent, sent)
 	f.paths = append(f.paths, path)
+	f.requests = append(f.requests, string(method)+" "+path)
 	return api.Object("id", 400, "subject", sent.Get("subject"), "to", []string{"ann@example.com"}, "cc", []string{},
 		"url", "https://dobase.test/tools/8/mails/new?draft_id=400"), nil
 }
@@ -316,4 +323,70 @@ func shellWords(line string) []string {
 		words = append(words, word.String())
 	}
 	return words
+}
+
+func TestTextThatStartsWithADashIsTextNotAnOption(t *testing.T) {
+	var sent []api.Value
+	ctx, _ := newBoardsCtx(&sent)
+
+	texts := []string{"- first point", "-5 degrees", "-x", "--- cut here ---", "-- Sem", "--force didn't help", "-"}
+	ctx.Stdin = strings.NewReader("from stdin")
+	for _, text := range texts {
+		if err := invoke(ctx, "card comment", "13/104", text); err != nil {
+			t.Fatalf("%q: %v", text, err)
+		}
+	}
+	for i, want := range []string{"- first point", "-5 degrees", "-x", "--- cut here ---", "-- Sem", "--force didn&#39;t help", "from stdin"} {
+		if got := sent[i].Get("body").S(); got != "<p>"+want+"</p>" {
+			t.Errorf("%q was sent as %q", texts[i], got)
+		}
+	}
+
+	// A flag's value may start with a dash too, and flags still work around the text
+	if err := invoke(ctx, "card create", "roadmap", "-1 day", "--description", "- one\n- two", "--column=Doing"); err != nil {
+		t.Fatal(err)
+	}
+	if got := sent[len(sent)-1].JSON(); got != `{"card":{"description":"<p>- one<br>- two</p>","title":"-1 day"}}` {
+		t.Errorf("sent %s", got)
+	}
+
+	// What looks like an option the command doesn't have is still a mistake, unless it comes after --
+	for _, option := range []string{"--bogus", "--bogus=1", "--no-verify"} {
+		if err := invoke(ctx, "card comment", "13/104", option); api.KindOf(err) != api.Usage || !strings.HasPrefix(err.Error(), "invalid option: "+option) {
+			t.Errorf("%s: %v", option, err)
+		}
+	}
+	if err := invoke(ctx, "card comment", "13/104", "--", "--html"); err != nil {
+		t.Fatal(err)
+	}
+	if got := sent[len(sent)-1].Get("body").S(); got != "<p>--html</p>" {
+		t.Errorf("after --, --html was sent as %q", got)
+	}
+}
+
+func TestJSONIsOnlyAnOptionBeforeTheDoubleDash(t *testing.T) {
+	for _, c := range []struct {
+		argv []string
+		rest []string
+		json bool
+	}{
+		{[]string{"tool", "list", "--json"}, []string{"tool", "list"}, true},
+		{[]string{"--json", "chat", "post", "team", "--", "hi"}, []string{"chat", "post", "team", "--", "hi"}, true},
+		{[]string{"chat", "post", "team", "--", "--json"}, []string{"chat", "post", "team", "--", "--json"}, false},
+		{[]string{"chat", "post", "--json", "team", "--", "--json", "--"}, []string{"chat", "post", "team", "--", "--json", "--"}, true},
+	} {
+		rest, json := withoutJSON(c.argv)
+		if !slices.Equal(rest, c.rest) || json != c.json {
+			t.Errorf("%v: got %v, %v", c.argv, rest, json)
+		}
+	}
+
+	// Nothing is signed in here, so the command stops before it reaches a server
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("DOBASE_URL", "")
+	t.Setenv("DOBASE_TOKEN", "")
+	status, _, err := run("chat", "post", "team", "--", "--json")
+	if status != 1 || !strings.Contains(err, "Not signed in") {
+		t.Errorf("status %d, err %q", status, err)
+	}
 }

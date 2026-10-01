@@ -5,8 +5,10 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
 
 // fakeSystem records the programs Open starts; handled lists the commands that succeed.
@@ -14,8 +16,8 @@ func fakeSystem(t *testing.T, system string, handled ...string) *[]string {
 	t.Helper()
 	home := t.TempDir()
 	started := &[]string{}
-	oldGoos, oldHome, oldRun, oldOutput := goos, homeDir, run, output
-	t.Cleanup(func() { goos, homeDir, run, output = oldGoos, oldHome, oldRun, oldOutput })
+	oldGoos, oldHome, oldRun, oldStart, oldOutput := goos, homeDir, run, start, output
+	t.Cleanup(func() { goos, homeDir, run, start, output = oldGoos, oldHome, oldRun, oldStart, oldOutput })
 	t.Setenv("DOBASE_APP", "")
 
 	goos = system
@@ -30,6 +32,7 @@ func fakeSystem(t *testing.T, system string, handled ...string) *[]string {
 		return errors.New("exit status 1")
 	}
 	run = func(name string, args ...string) error { return succeeds(name + " " + strings.Join(args, " ")) }
+	start = run
 	output = func(name string, args ...string) (string, error) {
 		if err := succeeds(name + " " + strings.Join(args, " ")); err != nil {
 			return "", err
@@ -138,5 +141,40 @@ func TestOpenFailsWhenNothingOpens(t *testing.T) {
 	fakeSystem(t, "linux")
 	if err := Open("https://dobase.test", "https://example.com"); err == nil || !strings.HasPrefix(err.Error(), "xdg-open: ") {
 		t.Errorf("got %v", err)
+	}
+}
+
+func TestOpenDoesNotWaitForXdgOpen(t *testing.T) {
+	started := fakeSystem(t, "linux", "xdg-open")
+	// xdg-open can stay around as long as the browser it started
+	run = func(name string, args ...string) error {
+		t.Errorf("waited for %s to finish", name)
+		return nil
+	}
+
+	if err := Open("https://dobase.test", "https://example.com/x"); err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"xdg-open https://example.com/x"}; !reflect.DeepEqual(*started, want) {
+		t.Errorf("started %q", *started)
+	}
+}
+
+func TestAStartedProgramIsNotWaitedForButAQuickFailureShows(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("needs sleep and false")
+	}
+	began := time.Now()
+	if err := start("sleep", "5"); err != nil {
+		t.Fatal(err)
+	}
+	if waited := time.Since(began); waited > 3*time.Second {
+		t.Errorf("waited %v for a program that keeps running", waited)
+	}
+	if err := start("false"); err == nil {
+		t.Error("a program that fails right away counted as started")
+	}
+	if err := start("dobase-no-such-program"); err == nil {
+		t.Error("a program that isn't there counted as started")
 	}
 }

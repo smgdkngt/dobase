@@ -220,3 +220,70 @@ func TestAttachmentsAreListedAndSavedUnderTheirOwnNames(t *testing.T) {
 		t.Errorf("out %q", out.String())
 	}
 }
+
+func TestSendingADraftKeepsItsBcc(t *testing.T) {
+	var sent []api.Value
+	var opened []string
+	var out bytes.Buffer
+	ctx := mailCtx(&out, false, newFakeAPI(`{
+		"/tools": [{ "id": 8, "name": "Inbox", "type": "mail" }],
+		"/tools/8/mails/312": { "messages": [
+			{ "id": 312, "draft": true, "to": ["ann@example.com"], "cc": ["bob@example.com"],
+			  "bcc": ["boss@example.com", "audit@example.com"], "subject": "Offer", "body_html": "<p>Yes</p>" }
+		] },
+		"/tools/8/mails/313": { "messages": [
+			{ "id": 313, "draft": true, "to": ["ann@example.com"], "cc": [], "bcc": [], "subject": "Offer", "body_html": "<p>Yes</p>" }
+		] }
+	}`, &sent), &opened)
+
+	for _, draft := range []string{"312", "313"} {
+		if err := invoke(ctx, "mail send", "8", "--draft", draft); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := sent[0].Get("bcc").S(); got != "boss@example.com, audit@example.com" {
+		t.Errorf("bcc %q", got)
+	}
+	if got := sent[0].Get("cc").S(); got != "bob@example.com" {
+		t.Errorf("cc %q", got)
+	}
+	if got := sent[1].Get("bcc").S(); got != "" {
+		t.Errorf("bcc of a draft without one: %q", got)
+	}
+}
+
+func TestADraftIsChangedOnlyWhereFlagsSay(t *testing.T) {
+	var sent []api.Value
+	var opened []string
+	var out bytes.Buffer
+	fake := newFakeAPI(mailWithAttachments, &sent)
+	ctx := mailCtx(&out, false, fake, &opened)
+
+	if err := invoke(ctx, "mail update", "8/312", "--subject", "Plans, again", "--bcc", "boss@example.com", "--cc", "", "--body", "Hi\n\nBye", "--open"); err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"PATCH /tools/8/mails/drafts/312"}; !slices.Equal(fake.requests, want) {
+		t.Errorf("requests %v", fake.requests)
+	}
+	if got := sent[0].JSON(); got != `{"bcc":"boss@example.com","body":"<p>Hi</p><p>Bye</p>","cc":"","subject":"Plans, again"}` {
+		t.Errorf("sent %s", got)
+	}
+	if want := []string{"https://dobase.test/tools/8/mails/new?draft_id=400"}; !slices.Equal(opened, want) {
+		t.Errorf("opened %v", opened)
+	}
+	if want := `Updated draft 8/400 "Plans, again" to ann@example.com. Send it with: dobase mail send 8 --draft 400`; !strings.Contains(out.String(), want) {
+		t.Errorf("out %q", out.String())
+	}
+
+	if err := invoke(ctx, "mail update", "8/312"); api.KindOf(err) != api.Usage || !strings.Contains(err.Error(), "Nothing to update") {
+		t.Errorf("got %v", err)
+	}
+
+	// A new draft can have a Bcc too
+	if err := invoke(ctx, "mail draft", "8", "--to", "ann@example.com", "--bcc", "boss@example.com", "--subject", "Hi", "--body", "Hi"); err != nil {
+		t.Fatal(err)
+	}
+	if got := sent[1].Get("bcc").S(); got != "boss@example.com" {
+		t.Errorf("bcc %q", got)
+	}
+}
