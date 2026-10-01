@@ -33,6 +33,9 @@ module Files
 
     validates :name, presence: true
     validate :file_size_limit, if: -> { file.attached? }
+    # Downloads and share links serve the file under its name, not the one it
+    # was uploaded with, so a rename is held to the blocked types as well
+    validate :name_type_allowed, if: :will_save_change_to_name?
 
     scope :roots, -> { where(folder_id: nil) }
     scope :ordered, -> { order(:position, :name) }
@@ -126,6 +129,15 @@ module Files
     def cache_file_metadata
       self.file_size = file.blob.byte_size
       self.content_type = file.blob.content_type
+    end
+
+    # The same words as for a refused upload, and said once when both the
+    # upload and the name it gets are a program
+    def name_type_allowed
+      return unless (extension = BlockedFileType.blocked_extension(name))
+
+      message = "type .#{extension} is not allowed for security reasons"
+      errors.add(:file, message) unless errors.added?(:file, message)
     end
 
     def file_size_limit
