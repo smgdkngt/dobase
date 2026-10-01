@@ -39,6 +39,20 @@ class ChatTest < ApplicationSystemTestCase
     assert_selector "[data-filesize]", text: "2 KB"
   end
 
+  test "a picked picture shows as a preview before it is sent" do
+    visit tool_chat_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "chat"
+
+    find("[data-chat-target='fileInput']", visible: :all)
+      .attach_file(Rails.root.join("test/fixtures/files/sample.png"), make_visible: true)
+
+    # The preview is a blob: address, which the content security policy has to allow
+    assert_selector("[data-chat-target='filePreview'] img[alt='sample.png']") do |image|
+      image.evaluate_script("this.complete && this.naturalWidth > 0")
+    end
+  end
+
   test "an empty message can't be sent" do
     visit tool_chat_path(@tool)
     wait_for_turbo
