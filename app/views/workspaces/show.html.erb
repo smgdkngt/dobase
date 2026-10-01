@@ -1,4 +1,9 @@
 <% content_for :title, app_name %>
+<%# Not kept by Turbo for the back button: a copy of this page would hold copies of the
+    frames, which load their first page again %>
+<% content_for :head do %>
+  <meta name="turbo-cache-control" content="no-cache">
+<% end %>
 
 <% content_for :keyboard_shortcuts do %>
   <%= render "workspaces/shortcuts" %>

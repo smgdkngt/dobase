@@ -337,6 +337,8 @@ A tool's button in the sidebar, Alt+click on a tool or on a link to one, or Alt+
 - Anything on the workspace page that visits a tool (the command palette, the menu, a notification, the redirect after making a tool) is caught in `turbo:before-visit` and opened as a tile. That is why leaving the workspace is a form without Turbo.
 - Keys (`services/workspace_keys.js`) go with Alt, on a Mac with Control+Option: arrows or HJKL go to a tile, with Shift they move it, 1–9 is a desktop, F the tile alone, plus and minus resize it, W closes, M the menu. They are caught in the capture phase on the workspace page and inside every tile, so they work wherever the keyboard is.
 - State (the trees, focus, each tile's address) is in `localStorage` per person; that this browser works in the workspace is a `workspace` cookie, which sends `/` there.
+- Which tile you are on follows the keyboard, but only while it is really there: a dialog that closes hands focus back to the tile it came from for a moment, so a tile's "focus" message counts when it came from a click or when its frame is still `document.activeElement`.
+- A tile sent away from its tool (a deleted card's link ends at `/`) goes back to its tool once before it is closed; a tile showing the sign-in page reloads the workspace instead of being forgotten. The page has `turbo-cache-control: no-cache`: a snapshot would hold copies of the frames.
 
 ### Component System
 

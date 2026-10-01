@@ -27,6 +27,11 @@ export default class extends Controller {
   static values = { userId: Number, appName: String }
 
   connect() {
+    // Never tiles inside a tile: a frame that ends up on this page (its tool is gone,
+    // and the browser didn't say it was a frame) reports where it is and is dealt with
+    this.framed = window.self !== window.top
+    if (this.framed) return
+
     this.state = this.load()
     this.narrow = window.matchMedia("(max-width: 1023px)")
     this.still = window.matchMedia("(prefers-reduced-motion: reduce)")
@@ -34,6 +39,7 @@ export default class extends Controller {
     // Tiles that are in the page already (the element outlives a morph refresh)
     this.elements = new Map()
     this.tilesTarget.querySelectorAll("[data-tile-id]").forEach((tile) => this.elements.set(tile.dataset.tileId, tile))
+    this.tilesTarget.querySelectorAll("[role='separator']").forEach((handle) => handle.remove())
 
     this.listening = new AbortController()
     this.listen(document, "turbo:before-visit", (event) => this.visiting(event))
@@ -53,6 +59,8 @@ export default class extends Controller {
   }
 
   disconnect() {
+    if (this.framed) return
+
     this.listening.abort()
     this.sizes.disconnect()
   }
@@ -74,6 +82,7 @@ export default class extends Controller {
     if (open) {
       this.goToDesk(this.deskNumberOf(open))
       this.focus(open)
+      this.grabFocus()
       // A page inside the tool (a card from a notification), not just the tool
       if (path !== `/tools/${toolId}` && path !== this.state.tiles[open].url) this.send(open, path)
       return true
@@ -112,12 +121,15 @@ export default class extends Controller {
         desk.alone = false
       }
     }
+    // The keyboard goes on to the next tile, unless it was somewhere else on the page
+    const keyboardWasHere = this.tilesTarget.contains(document.activeElement) || document.activeElement === document.body
+
     delete this.state.tiles[id]
     this.elements.get(id)?.remove()
     this.elements.delete(id)
     this.save()
     this.draw({ glide: true })
-    this.grabFocus()
+    if (keyboardWasHere) this.grabFocus()
   }
 
   send(id, path) {
@@ -349,8 +361,9 @@ export default class extends Controller {
     }))
 
     // What is open as a tile is seen: no dot for it in the menu
-    for (const tile of Object.values(this.state.tiles)) {
-      document.querySelector(`[data-sidebar-tool-link][href="/tools/${toolIdOf(tile.url)}"]`)?.removeAttribute("data-unread")
+    for (const id of this.elements.keys()) {
+      const toolId = toolIdOf(this.state.tiles[id]?.url)
+      document.querySelector(`[data-sidebar-tool-link][href="/tools/${toolId}"]`)?.removeAttribute("data-unread")
     }
 
     const title = this.state.tiles[this.desk.focus]?.title || ""
@@ -579,17 +592,20 @@ export default class extends Controller {
     switch (message.sidePane) {
       case "location": {
         const path = pathOf(message.url)
-        // Sent away from its tool (deleted, or not yours any more): nothing to keep
-        if (!toolIdOf(path)) return this.drop(id)
+        if (!toolIdOf(path)) return this.strayed(id)
 
-        Object.assign(this.state.tiles[id], { url: path, title: titleOf(message.title, this.appNameValue) })
+        Object.assign(this.state.tiles[id], { url: path, title: titleOf(message.title, this.appNameValue), strayed: false })
         this.frameOf(id).title = this.state.tiles[id].title || "Tool"
         this.save()
         this.drawBar()
         break
       }
       case "focus":
-        this.focus(id)
+        // A click in a tile is where you are. The keyboard arriving in one only counts
+        // while it is still there: a dialog that closes hands it back to the tile it
+        // came from for a moment, and that tile says so after the launcher has
+        // already opened another.
+        if (message.pointer || this.frameOf(id) === document.activeElement) this.focus(id)
         break
       case "command":
         this.run(message.command)
@@ -605,9 +621,31 @@ export default class extends Controller {
         this.goToNext()
         break
       case "gone":
-        this.drop(id)
+        this.left(id)
         break
     }
+  }
+
+  // A tile that was sent away from its tool: a page in it that no longer exists (a
+  // card someone deleted) sends you to the start, which is no tool's page. It goes
+  // back to its tool once; a tool that is gone itself sends it away again, and then
+  // there is nothing to keep.
+  strayed(id) {
+    const tile = this.state.tiles[id]
+    if (tile.strayed) return this.drop(id)
+
+    tile.strayed = true
+    this.frameOf(id).src = `/tools/${toolIdOf(tile.url)}`
+  }
+
+  // A tile shows a page that isn't the app's. Signed out (somewhere else, or the
+  // session ended) is the usual reason: then this page goes to sign in, and the tiles
+  // are all still there afterwards. Anything else, and the tile has nothing to show.
+  async left(id) {
+    const here = await fetch(location.href, { headers: { Accept: "text/html" } }).catch(() => null)
+    if (here && new URL(here.url).pathname !== location.pathname) return window.location.reload()
+
+    this.drop(id)
   }
 
   // F6 in a tile: on to the next one
@@ -648,10 +686,11 @@ export default class extends Controller {
         if (toolIdOf(url)) tiles[id] = { url, title: String(tile.title || "") }
       }
       const desks = {}
+      const placedOnce = new Set()
       for (const [ number, desk ] of Object.entries(kept.desks)) {
         if (!/^[1-9]$/.test(number)) continue
 
-        const tree = pruned(desk?.tree, tiles)
+        const tree = pruned(desk?.tree, tiles, placedOnce)
         const held = leaves(tree)
         desks[number] = { tree, focus: held.includes(desk.focus) ? desk.focus : held[0] || null, alone: Boolean(desk.alone) }
       }
@@ -700,13 +739,18 @@ function parentOf(node, id) {
   return parentOf(node.first, id) || parentOf(node.second, id)
 }
 
-// A stored tree with only tiles that still exist; a split that lost a half is the other half
-function pruned(node, tiles) {
+// A stored tree with only tiles that still exist, each of them once; a split that
+// lost a half is the other half
+function pruned(node, tiles, seen) {
   if (!node) return null
-  if (node.tile) return tiles[node.tile] ? { tile: node.tile } : null
+  if (node.tile) {
+    if (!tiles[node.tile] || seen.has(node.tile)) return null
+    seen.add(node.tile)
+    return { tile: node.tile }
+  }
 
-  const first = pruned(node.first, tiles)
-  const second = pruned(node.second, tiles)
+  const first = pruned(node.first, tiles, seen)
+  const second = pruned(node.second, tiles, seen)
   if (!first || !second) return first || second
 
   const ratio = Math.min(0.9, Math.max(0.1, Number(node.ratio) || 0.5))

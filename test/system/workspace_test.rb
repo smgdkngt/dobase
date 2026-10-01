@@ -70,6 +70,52 @@ class WorkspaceTest < ApplicationSystemTestCase
     within_tile(0) { assert_selector "h1", text: @board.name }
   end
 
+  test "a tool launched from inside a tile gets the keyboard, and closing closes that one" do
+    launch @board
+    launch @files
+    within_tile(0) { find("h1").click }
+    assert_focused 0
+
+    # Keys go to wherever the keyboard is, as they do for a person
+    type_keys mac? ? :meta : :control, "k"
+    within "dialog[data-controller~='command-palette'][open]" do
+      input = find("input[data-command-palette-target='input']")
+      input.set(@todos.name)
+      assert_selector ".command-palette-item.selected", text: @todos.name
+      input.send_keys(:enter)
+    end
+    assert_selector ".workspace-tile:not([hidden])", count: 3
+    within_tile(2) { assert_selector "h1", text: @todos.name }
+    assert_focused 2
+
+    type_keys(*(mac? ? %i[control alt] : %i[alt]), "w")
+
+    assert_selector ".workspace-tile:not([hidden])", count: 2
+    within_tile(0) { assert_selector "h1", text: @board.name }
+    within_tile(1) { assert_selector "h1", text: @files.name }
+  end
+
+  test "a tile sent away from a page that is gone goes back to its tool" do
+    launch @board
+
+    within_tile(0) { page.execute_script("Turbo.visit('#{tool_board_card_path(@board, 0)}')") }
+
+    within_tile(0) { assert_selector "h1", text: @board.name }
+    assert_equal 1, tiles.size
+  end
+
+  test "the way out is there in a narrow window too" do
+    launch @board
+    page.driver.browser.manage.window.resize_to(900, 900)
+
+    assert_equal 1, tiles.size
+    find(".mobile-bottom-bar-center").click
+    find(".sidebar-logo-btn", match: :first).click
+    assert_selector "button", text: "Leave the workspace"
+  ensure
+    page.driver.browser.manage.window.resize_to(1400, 1400)
+  end
+
   test "plus and minus give the tile more of the room, or less" do
     launch @board
     launch @files
@@ -197,12 +243,22 @@ class WorkspaceTest < ApplicationSystemTestCase
     within_tile(count) { assert_selector "h1", text: tool.name }
   end
 
+  def mac? = page.evaluate_script("navigator.platform").match?(/Mac|iP/)
+
   # The keys that are the workspace's go with Alt, and on a Mac with Control and Option
   def press(key, shift: false)
-    mac = page.evaluate_script("navigator.platform").match?(/Mac|iP/)
-    held = mac ? %i[control alt] : %i[alt]
+    held = mac? ? %i[control alt] : %i[alt]
     held << :shift if shift
     find("body").send_keys([ *held, key ])
+  end
+
+  # Keys to whatever has the keyboard, without moving it first
+  def type_keys(*held, key)
+    chain = page.driver.browser.action
+    held.each { |modifier| chain.key_down(modifier) }
+    chain.send_keys(key)
+    held.reverse_each { |modifier| chain.key_up(modifier) }
+    chain.perform
   end
 
   # Showing tiles in the order they were opened, with the place they have (where they

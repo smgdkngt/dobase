@@ -200,11 +200,12 @@
         <%= render "shared/icon", name: "folder-plus", size: 16 %>
         <span>New Group</span>
       <% end %>
-      <%# Tiles need a wide window, like the sidebar itself does %>
+      <%# Tiles need a wide window, so that is where the workspace is offered. The way out
+          of it is there at any width: a window can get narrow after you went in. %>
       <% if @workspace %>
         <%# A page load of its own: a visit from this page to a tool would open it as a tile %>
         <%= button_to workspace_path, method: :delete, form: { data: { turbo: false } },
-              class: "dropdown-item flex items-center gap-2 max-lg:hidden" do %>
+              class: "dropdown-item flex items-center gap-2" do %>
           <%= render "shared/icon", name: "panel-left-close", size: 16 %>
           <span>Leave the workspace</span>
         <% end %>

@@ -51,8 +51,13 @@ export function sendFrameTo(frame, path) {
   const page = frame.contentWindow
 
   if (!frameAddress(frame) || !page.Turbo) {
-    // Nothing there to ask: still loading, or a page that isn't the app's (an error page)
-    frame.src = path
+    // Nothing there to ask: still loading, or a page that isn't the app's (an error
+    // page). Replaced where the frame lets us, so the back button gets no step for it.
+    try {
+      page.location.replace(path)
+    } catch {
+      frame.src = path
+    }
     return true
   }
 

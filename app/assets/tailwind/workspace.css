@@ -86,6 +86,13 @@
     @apply opacity-100;
   }
 
+  /* A finger doesn't hover */
+  @media (hover: none) {
+    .workspace-tile-controls {
+      @apply opacity-100;
+    }
+  }
+
   /* The gaps between tiles, to drag */
   .workspace-split {
     @apply absolute z-10 rounded-full transition-colors duration-150;
@@ -133,24 +140,29 @@
   margin-left: 0;
 }
 
-:root[data-workspace] .demo-banner {
-  left: 0;
-}
-
 /* The side pane's button means nothing here: every tool is beside the others */
 :root[data-workspace] [data-side-pane-toggle] {
   display: none;
 }
 
 @media (min-width: 1024px) {
-  /* The sidebar is the menu: off to the left, and in over the tiles when asked */
+  :root[data-workspace] .demo-banner {
+    left: 0;
+  }
+
+  /* The sidebar is the menu: off to the left, and in over the tiles when asked. Out of
+     sight it is out of reach of the Tab key too, once it has slid away. */
   :root[data-workspace] .sidebar {
-    @apply z-50 shadow-xl transition-transform duration-200 ease-out;
+    @apply z-50 shadow-xl;
     transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 200ms var(--ease-out), visibility 0s 200ms;
   }
 
   :root[data-workspace] .sidebar.open {
     transform: none;
+    visibility: visible;
+    transition-delay: 0s;
   }
 
   /* You and your notifications are in the bar at the top, so their menus open from there */

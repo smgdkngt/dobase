@@ -191,7 +191,7 @@ class SidePaneTest < ApplicationSystemTestCase
     assert within_pane { page.evaluate_script("document.hasFocus()") }
 
     within_pane { find("body").send_keys(:f6) }
-    assert_equal "main-content", page.evaluate_script("document.activeElement.id")
+    assert_selector "main#main-content:focus"
   end
 
   test "a pane whose tool is gone closes" do

@@ -13,9 +13,11 @@ export default class extends Controller {
     this._onMessage = (event) => this.heard(event)
     this._onLoad = () => this.report()
     this._onKey = (event) => this.keyed(event)
-    this._onFocus = () => this.say("focus")
+    this._onFocus = (event) => this.say("focus", { pointer: event.type === "pointerdown" })
     window.addEventListener("message", this._onMessage)
+    // The keyboard arrives here by Tab or F6, or with a click
     window.addEventListener("focus", this._onFocus)
+    document.addEventListener("pointerdown", this._onFocus, true)
     // Before the page's own shortcuts get the key
     document.addEventListener("keydown", this._onKey, true)
     // Once the visit is done as well: a page that was redirected to still has the
@@ -27,6 +29,7 @@ export default class extends Controller {
   disconnect() {
     window.removeEventListener("message", this._onMessage)
     window.removeEventListener("focus", this._onFocus)
+    document.removeEventListener("pointerdown", this._onFocus, true)
     document.removeEventListener("turbo:load", this._onLoad)
     document.removeEventListener("keydown", this._onKey, true)
   }
@@ -52,7 +55,8 @@ export default class extends Controller {
     if (event.key === "F6") return this.handOn(event, "leave")
     if (!this.inWorkspace) return
 
-    // The workspace has one launcher, and the keys that move tiles are its own
+    // The workspace has one launcher (with Shift it is this page's own palette, which
+    // knows what the page can do), and the keys that move tiles are its own
     const command = workspaceCommand(event)
     if (command) return this.handOn(event, "command", { command })
     if (isLauncherKey(event)) this.handOn(event, "launcher")

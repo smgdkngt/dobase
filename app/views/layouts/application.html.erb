@@ -79,7 +79,8 @@
         <div id="persistent-room" data-turbo-permanent hidden></div>
         <button data-controller="hotkey" data-hotkey="b" data-action="click->side-pane-page#notifications" hidden>Notifications</button>
       </div>
-      <button data-controller="hotkey" data-hotkey="Mod+k" data-action="click->keyboard-shortcuts#openCommandPalette" hidden>Command palette</button>
+      <%# With Shift too: in the workspace Mod+K is the launcher of the page around the tiles %>
+      <button data-controller="hotkey" data-hotkey="Mod+k,Mod+Shift+K" data-action="click->keyboard-shortcuts#openCommandPalette" hidden>Command palette</button>
       <%= render "shared/command_palette" %>
       <%= render "shared/keyboard_shortcuts_dialog" %>
     <% elsif user_signed_in? %>
