@@ -18,17 +18,26 @@ class SendMailJobTest < ActiveJob::TestCase
 
     assert_equal 3, attempts
     assert_equal [ "recipient@example.com" ], deliveries.sole[:recipients]
-    assert_not Mails::Message.exists?(@draft.id)
+    assert_equal [ "Sent", false, false ], @draft.reload.values_at(:folder, :draft, :sending)
   end
 
-  test "mail stays a draft and the sender hears why when the mail server stays out of reach" do
+  test "mail is in Sent, marked as being sent, while the mail server can't be reached" do
+    states = []
+    with_mail_server(-> { states << @draft.reload.values_at(:folder, :draft, :sending); states.size < 2 }) do
+      perform_enqueued_jobs(only: SendMailJob) { SendMailJob.perform_later(@draft, @sender) }
+    end
+
+    assert_equal [ [ "Sent", false, true ] ] * 2, states
+  end
+
+  test "mail is a draft again and the sender hears why when the mail server stays out of reach" do
     attempts = 0
     with_mail_server(-> { attempts += 1 }) do
       perform_enqueued_jobs(only: SendMailJob) { SendMailJob.perform_later(@draft, @sender) }
     end
 
     assert_equal 5, attempts
-    assert Mails::Message.exists?(@draft.id)
+    assert_equal [ "Drafts", true, false ], @draft.reload.values_at(:folder, :draft, :sending)
     assert_enqueued_with(job: SyncDraftJob, args: [ @draft.id ])
     notification = @sender.notifications.order(:created_at).last
     assert_equal "Couldn't send “Draft email”, it's in your drafts: " \
@@ -45,7 +54,7 @@ class SendMailJobTest < ActiveJob::TestCase
     end
 
     assert_equal 1, attempts
-    assert Mails::Message.exists?(@draft.id)
+    assert_equal [ "Drafts", true, false ], @draft.reload.values_at(:folder, :draft, :sending)
     assert_match "550 No such user", @sender.notifications.order(:created_at).last.message
   end
 

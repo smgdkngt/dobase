@@ -317,8 +317,9 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_equal 77, sent.reload.uid
   end
 
-  test "only sent mail without a UID gets a copy, drafts and trashed mail don't" do
+  test "only sent mail without a UID gets a copy, drafts, trashed mail and mail that is still being sent don't" do
     @account.messages.create!(message_id: "draft-9@local", folder: "Sent", draft: true, from_address: "testuser@example.com", to_addresses: "[]")
+    @account.messages.create!(message_id: "sending-9@example.com", folder: "Sent", sending: true, from_address: "testuser@example.com", to_addresses: "[]")
     @account.messages.create!(message_id: "trashed-9@example.com", folder: "Sent", trashed: true, from_address: "testuser@example.com", to_addresses: "[]")
     server = FakeImapServer.new(folders: [ "INBOX", "Sent" ])
 

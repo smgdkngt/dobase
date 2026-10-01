@@ -144,6 +144,20 @@ module Mails
       [ body_html, Quote.of(self)&.to_html ].compact.join
     end
 
+    # A draft that is sent off: out of Drafts and into Sent from that moment, where its
+    # conversation shows it, under the Message-ID it goes out with. SendMailJob sends it.
+    def start_sending!
+      ImapSyncJob.perform_later(account.id, "delete_draft", uid, "Drafts") if uid
+      # Mail that starts a conversation is its thread
+      self.thread_id = nil if thread_id == message_id
+      update!(draft: false, sending: true, folder: "Sent", uid: nil, message_id: "#{SecureRandom.uuid}@#{account.smtp_host}")
+    end
+
+    # The mail server didn't take it: a draft again, to change or send once more
+    def back_to_drafts!
+      update!(draft: true, sending: false, folder: "Drafts", trashed: false, archived: false)
+    end
+
     def mark_as_read!
       update!(read: true)
       sync_read_flag_to_imap(true)
