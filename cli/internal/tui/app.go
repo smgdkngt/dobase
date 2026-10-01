@@ -42,6 +42,9 @@ type undo struct {
 type background struct {
 	client   api.API
 	inflight *inflight
+	// theme is an answer under way to "which theme is this person in?"
+	theme        chan liveResult
+	themeChecked time.Time
 }
 
 type liveResult struct {
@@ -526,6 +529,7 @@ func (a *App) pollBackground() {
 	if bg == nil {
 		return
 	}
+	a.pollTheme(bg)
 	tool := a.screenTool()
 
 	if bg.inflight != nil {
@@ -555,6 +559,34 @@ func (a *App) pollBackground() {
 		results <- liveResult{value, err}
 	}()
 	bg.inflight = &inflight{results: results, started: time.Now(), tool: tool}
+}
+
+// pollTheme asks which theme the person is in, at the start and every ten seconds
+// after, so the app changes colour along with the web app (and with an Omarchy
+// desktop that Dobase follows).
+func (a *App) pollTheme(bg *background) {
+	if bg.theme != nil {
+		select {
+		case result := <-bg.theme:
+			bg.theme = nil
+			if result.err == nil {
+				wearTheme(result.value)
+			}
+		default:
+		}
+		return
+	}
+	if time.Since(bg.themeChecked) < 10*time.Second {
+		return
+	}
+	bg.themeChecked = time.Now()
+	results := make(chan liveResult, 1)
+	client := bg.client
+	go func() {
+		value, err := client.Request(api.Get, "/appearance", nil, nil)
+		results <- liveResult{value, err}
+	}()
+	bg.theme = results
 }
 
 // -- Drawing --------------------------------------------------------------------

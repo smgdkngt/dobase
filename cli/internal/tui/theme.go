@@ -10,6 +10,8 @@ import (
 	"sync"
 
 	"github.com/gdamore/tcell/v2"
+
+	"github.com/smgdkngt/dobase/cli/internal/api"
 )
 
 var logoLines = [5]string{
@@ -59,39 +61,140 @@ func rgb(r, g, b uint8) tcell.Color {
 	return tcell.PaletteColor(16 + 36*level(r) + 6*level(g) + level(b))
 }
 
-func accent() tcell.Color  { return rgb(59, 130, 246) }
-func muted() tcell.Color   { return rgb(128, 128, 140) }
-func success() tcell.Color { return rgb(34, 197, 94) }
-func warning() tcell.Color { return rgb(245, 158, 11) }
-func danger() tcell.Color  { return rgb(239, 68, 68) }
+type tone = [3]uint8
+
+// palette is the colours the app draws in. They are Dobase's own until the
+// person's theme arrives (wearTheme), and then that theme's: the same palette
+// the web app is in, so on an Omarchy desktop the two match the terminal.
+type palette struct {
+	accent, onAccent, muted, success, warning, danger tone
+	// What the logo's gradient runs between
+	logoFrom, logoTo tone
+	cards            map[string]tone
+}
+
+var ownPalette = palette{
+	accent: tone{59, 130, 246}, onAccent: tone{255, 255, 255}, muted: tone{128, 128, 140},
+	success: tone{34, 197, 94}, warning: tone{245, 158, 11}, danger: tone{239, 68, 68},
+	logoFrom: tone{59, 130, 246}, logoTo: tone{236, 72, 153},
+	cards: map[string]tone{
+		"red": {239, 68, 68}, "orange": {249, 115, 22}, "yellow": {234, 179, 8},
+		"green": {34, 197, 94}, "blue": {59, 130, 246}, "purple": {168, 85, 247},
+	},
+}
+
+// wearing is only touched on the event loop: at the start and when a refresh
+// brings another theme.
+var wearing = ownPalette
+
+// wearTheme takes the colours of what GET /appearance answers. Without a theme,
+// or from a server that doesn't have them yet, the app keeps its own.
+func wearTheme(appearance api.Value) {
+	theme := appearance.Get("colors")
+	read := func(name string, fallback tone) tone {
+		if color, ok := parseHex(theme.Get(name).S()); ok {
+			return color
+		}
+		return fallback
+	}
+	accent, hasAccent := parseHex(theme.Get("accent").S())
+	if !hasAccent {
+		wearing = ownPalette
+		return
+	}
+
+	next := palette{
+		accent:   accent,
+		onAccent: readableOn(accent, read("background", tone{0, 0, 0})),
+		muted:    ownPalette.muted,
+		success:  read("green", ownPalette.success),
+		warning:  read("yellow", ownPalette.warning),
+		danger:   read("red", ownPalette.danger),
+		logoFrom: accent,
+		logoTo:   read("magenta", ownPalette.logoTo),
+		cards: map[string]tone{
+			"red": read("red", ownPalette.cards["red"]), "orange": read("orange", read("yellow", ownPalette.cards["orange"])),
+			"yellow": read("yellow", ownPalette.cards["yellow"]), "green": read("green", ownPalette.cards["green"]),
+			"blue": read("blue", ownPalette.cards["blue"]), "purple": read("magenta", ownPalette.cards["purple"]),
+		},
+	}
+	background, hasBackground := parseHex(theme.Get("background").S())
+	foreground, hasForeground := parseHex(theme.Get("foreground").S())
+	if hasBackground && hasForeground {
+		next.muted = mixTone(foreground, background, 0.45)
+	}
+	wearing = next
+}
+
+func parseHex(text string) (tone, bool) {
+	var color tone
+	if len(text) != 7 || text[0] != '#' {
+		return color, false
+	}
+	if _, err := fmt.Sscanf(text[1:], "%02x%02x%02x", &color[0], &color[1], &color[2]); err != nil {
+		return color, false
+	}
+	return color, true
+}
+
+func mixTone(from, to tone, amount float32) tone {
+	var mixed tone
+	for i := range mixed {
+		mixed[i] = uint8(float32(from[i]) + (float32(to[i])-float32(from[i]))*amount)
+	}
+	return mixed
+}
+
+// luminance is how light a colour looks, 0 to 1 (WCAG).
+func luminance(color tone) float64 {
+	channel := func(value uint8) float64 {
+		v := float64(value) / 255
+		if v <= 0.03928 {
+			return v / 12.92
+		}
+		return math.Pow((v+0.055)/1.055, 2.4)
+	}
+	return 0.2126*channel(color[0]) + 0.7152*channel(color[1]) + 0.0722*channel(color[2])
+}
+
+// readableOn is what to write in on a fill: white, or the theme's dark
+// background when that reads better (a pastel accent).
+func readableOn(fill, dark tone) tone {
+	contrast := func(a, b tone) float64 {
+		lighter, darker := math.Max(luminance(a), luminance(b)), math.Min(luminance(a), luminance(b))
+		return (lighter + 0.05) / (darker + 0.05)
+	}
+	white := tone{255, 255, 255}
+	if contrast(dark, fill) > contrast(white, fill) {
+		return dark
+	}
+	return white
+}
+
+func paint(color tone) tcell.Color { return rgb(color[0], color[1], color[2]) }
+
+func accent() tcell.Color  { return paint(wearing.accent) }
+func muted() tcell.Color   { return paint(wearing.muted) }
+func success() tcell.Color { return paint(wearing.success) }
+func warning() tcell.Color { return paint(wearing.warning) }
+func danger() tcell.Color  { return paint(wearing.danger) }
 
 func dim() Style  { return Style{}.Fg(muted()) }
 func bold() Style { return Style{}.With(Bold) }
 
-// selected is the selected row: white on the accent color, or reversed when
-// there's no color to show it with.
+// selected is the selected row: on the accent color, in whatever reads on it, or
+// reversed when there's no color to show it with.
 func selected() Style {
 	if colorDepth() == depthNone {
 		return Style{}.With(Reversed | Bold)
 	}
-	return Style{}.Bg(accent()).Fg(tcell.ColorWhite).With(Bold)
+	return Style{}.Bg(accent()).Fg(paint(wearing.onAccent)).With(Bold)
 }
 
 // cardColor is a card's color, as the app names them.
 func cardColor(name string) (tcell.Color, bool) {
-	switch name {
-	case "red":
-		return rgb(239, 68, 68), true
-	case "orange":
-		return rgb(249, 115, 22), true
-	case "yellow":
-		return rgb(234, 179, 8), true
-	case "green":
-		return rgb(34, 197, 94), true
-	case "blue":
-		return rgb(59, 130, 246), true
-	case "purple":
-		return rgb(168, 85, 247), true
+	if color, ok := wearing.cards[name]; ok {
+		return paint(color), true
 	}
 	return 0, false
 }
@@ -107,7 +210,8 @@ func personColor(name string) tcell.Color {
 	return rgb(c[0], c[1], c[2])
 }
 
-// logo is the logo in a blue-to-pink gradient that drifts slowly with tick.
+// logo is the logo in a gradient (blue to pink, or the theme's accent to its
+// magenta) that drifts slowly with tick.
 func logo(tick uint64) []Line {
 	width := float32(len([]rune(logoLines[0])))
 	lines := make([]Line, len(logoLines))
@@ -120,8 +224,7 @@ func logo(tick uint64) []Line {
 			if phase >= 0.5 {
 				wave = (1 - phase) * 2
 			}
-			mix := func(from, to float32) uint8 { return uint8(from + (to-from)*wave) }
-			color := rgb(mix(59, 236), mix(130, 72), mix(246, 153))
+			color := paint(mixTone(wearing.logoFrom, wearing.logoTo, wave))
 			spans = append(spans, Styled(string(char), Style{}.Fg(color).With(Bold)))
 		}
 		lines[row] = LineOf(spans...)
