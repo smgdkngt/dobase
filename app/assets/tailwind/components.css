@@ -43,7 +43,7 @@
   }
 
   .icon-btn-accent {
-    @apply bg-accent-solid text-white hover:bg-accent-solid/90 hover:text-white;
+    @apply bg-accent-solid text-text-inverse hover:bg-accent-solid-hover hover:text-text-inverse;
   }
 
   /* Grouped button modifiers - use with icon-btn */
@@ -91,7 +91,7 @@
 
   /* Badge */
   .badge {
-    @apply inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-accent-solid text-white text-xs font-medium;
+    @apply inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-accent-solid text-text-inverse text-xs font-medium;
   }
 
   .badge-sm {
@@ -103,15 +103,15 @@
   }
 
   .badge-success {
-    @apply bg-success text-white;
+    @apply bg-success-light text-success;
   }
 
   .badge-warning {
-    @apply bg-warning text-white;
+    @apply bg-warning-light text-warning;
   }
 
   .badge-error {
-    @apply bg-error-solid text-white;
+    @apply bg-error-solid text-text-inverse;
   }
 
   /* Tabs */
@@ -449,6 +449,11 @@
      Rhino picks light or dark values with light-dark(), so every pair gets
      the same token. Toolbar buttons live in shadow DOM: style them via ::part. */
 
+  /* rhino-editor.css picks the editor's colour scheme from the system; a theme
+     decides it instead. Its stylesheet is unlayered, hence !important. */
+  :root[data-theme-mode="light"] rhino-editor { color-scheme: light !important; }
+  :root[data-theme-mode="dark"] rhino-editor { color-scheme: dark !important; }
+
   rhino-editor {
     --rhino-border-color: transparent;
     --rhino-text-color: var(--color-text-primary);
@@ -779,4 +784,81 @@
 @keyframes empty-state-in {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Theme picker (profile → Appearance) */
+@layer components {
+  .theme-grid {
+    @apply grid gap-3;
+    grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  }
+
+  .theme-option {
+    @apply flex flex-col gap-1 p-1.5 rounded-xl border border-border-light bg-surface text-left cursor-pointer
+           transition-all duration-150 hover:border-border hover:shadow-sm active:scale-[0.98];
+  }
+
+  .theme-option-selected,
+  .theme-option-selected:hover {
+    @apply border-accent ring-2 ring-accent/25;
+  }
+
+  .theme-option:disabled {
+    @apply cursor-default;
+  }
+
+  .theme-option-label {
+    @apply flex items-center justify-between gap-1 px-1 pt-1 text-sm font-medium text-text-primary;
+  }
+
+  .theme-option-hint {
+    @apply px-1 pb-0.5 text-xs text-text-tertiary;
+  }
+
+  /* The picture of a theme: its own colours come in as inline styles */
+  .theme-swatch {
+    @apply flex h-16 rounded-lg border overflow-hidden;
+  }
+
+  .theme-swatch-sidebar {
+    @apply w-1/4 border-r;
+  }
+
+  .theme-swatch-page {
+    @apply flex flex-1 flex-col gap-1.5 p-2;
+  }
+
+  .theme-swatch-line {
+    @apply block h-1 rounded-full;
+  }
+
+  .theme-swatch-button {
+    @apply block mt-auto h-2.5 w-7 rounded-full;
+  }
+
+  /* The app's own look, half light and half dark. These are its light and dark
+     colours side by side, whichever of the two the page is in. */
+  .theme-swatch-system {
+    border-color: #d2d2d7;
+  }
+
+  .theme-swatch-half {
+    @apply flex flex-1 flex-col gap-1.5 p-2;
+  }
+
+  .theme-swatch-half-light {
+    background: #ffffff;
+    .theme-swatch-line { background: #1d1d1f; }
+    .theme-swatch-button { background: #0064d2; }
+  }
+
+  .theme-swatch-half-dark {
+    background: #1c1c1e;
+    .theme-swatch-line { background: #f5f5f7; }
+    .theme-swatch-button { background: #0064d2; }
+  }
+
+  .theme-command {
+    @apply px-1 py-0.5 rounded bg-background-secondary font-mono text-[0.6875rem] text-text-primary;
+  }
 }

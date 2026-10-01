@@ -1,0 +1,45 @@
+<%# Locals: theme (nil is the app's own look), selected, custom (optional: a palette of their own) %>
+<%
+  custom = local_assigns.fetch(:custom, false)
+  label = theme ? theme.label : app_name
+  hint = if custom then "Yours"
+  elsif theme.nil? then "Light or dark, with your system"
+  else theme.mode.capitalize
+  end
+  # A custom palette is already on; choosing it again would need its colours
+  html_options = {
+    type: "submit", name: "theme", value: theme&.name.to_s, disabled: custom || nil,
+    class: [ "theme-option", ("theme-option-selected" if selected) ],
+    aria: { pressed: selected, label: "#{label} theme" }
+  }.compact
+%>
+<%= tag.button(**html_options) do %>
+  <%# A small picture of the app in the theme: sidebar, a heading, a line, a button %>
+  <% if theme %>
+    <% swatch = theme.swatch %>
+    <span class="theme-swatch" style="background: <%= swatch["--color-background"] %>; border-color: <%= swatch["--color-border"] %>" aria-hidden="true">
+      <span class="theme-swatch-sidebar" style="background: <%= swatch["--color-sidebar-bg"] %>; border-color: <%= swatch["--color-border"] %>"></span>
+      <span class="theme-swatch-page">
+        <span class="theme-swatch-line w-3/5" style="background: <%= swatch["--color-text-primary"] %>"></span>
+        <span class="theme-swatch-line w-4/5" style="background: <%= swatch["--color-text-tertiary"] %>"></span>
+        <span class="theme-swatch-button" style="background: <%= swatch["--color-accent-solid"] %>"></span>
+      </span>
+    </span>
+  <% else %>
+    <span class="theme-swatch theme-swatch-system" aria-hidden="true">
+      <span class="theme-swatch-half theme-swatch-half-light">
+        <span class="theme-swatch-line w-4/5"></span>
+        <span class="theme-swatch-button"></span>
+      </span>
+      <span class="theme-swatch-half theme-swatch-half-dark">
+        <span class="theme-swatch-line w-4/5"></span>
+        <span class="theme-swatch-button"></span>
+      </span>
+    </span>
+  <% end %>
+  <span class="theme-option-label">
+    <span class="truncate"><%= label %></span>
+    <% if selected %><%= render "shared/icon", name: "check", size: 14, class: "text-accent shrink-0" %><% end %>
+  </span>
+  <span class="theme-option-hint"><%= hint %></span>
+<% end %>

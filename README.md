@@ -26,6 +26,10 @@ Built with Ruby on Rails 8.1, Hotwire, and Tailwind CSS.
 - **Search everything.** <kbd>Cmd</kbd>+<kbd>K</kbd> jumps to any tool or action and searches cards, todos, documents, files, chat, events and mail at once.
 - **Notifications and @mentions**, live in the app and as an email digest when you're away.
 
+## Themes
+
+Dobase follows your system's light and dark mode, or wears one of 22 themes under **Profile → Appearance**: Tokyo Night, Catppuccin, Gruvbox, Nord, Rosé Pine and the rest of the [Omarchy](https://omarchy.org) set. On an Omarchy desktop, `dobase theme follow` makes Dobase switch along whenever you change the desktop's theme, with your own themes too.
+
 ## API and command line
 
 Everything in your tools is also reachable through a JSON API. Create a

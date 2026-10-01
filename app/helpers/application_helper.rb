@@ -16,6 +16,21 @@ module ApplicationHelper
     request.user_agent.to_s.match?(/iPhone|iPod/) ? "#{content},maximum-scale=1" : content
   end
 
+  # The signed-in person's theme, or nil for the app's own look
+  def current_theme
+    return @current_theme if defined?(@current_theme)
+
+    @current_theme = Current.user&.theme
+  end
+
+  # What <html> wears for it; a theme that changes later goes through services/theme.js
+  def theme_attributes
+    theme = current_theme
+    return { data: { theme_version: "default" } } unless theme
+
+    { style: theme.style, data: { theme: theme.name, theme_mode: theme.mode, theme_version: theme.version } }
+  end
+
   def absolute_url(path)
     return path if path.start_with?("http")
     "#{root_url.chomp('/')}#{path}"

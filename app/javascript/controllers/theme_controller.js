@@ -1,0 +1,18 @@
+import { Controller } from "@hotwired/stimulus"
+import { api } from "services/api"
+import { applyTheme, themeVersion } from "services/theme"
+
+// Keeps <html> in the signed-in person's theme. Turbo swaps <body> and leaves <html>
+// as it is, so a theme picked on the profile page, on another device or by the CLI
+// arrives as a <body> whose version isn't the one <html> wears.
+export default class extends Controller {
+  static values = { version: String }
+
+  async versionValueChanged() {
+    if (!this.versionValue || this.versionValue === themeVersion()) return
+    if (document.documentElement.hasAttribute("data-turbo-preview")) return
+
+    const theme = await api("/appearance")
+    if (theme) applyTheme(theme)
+  }
+}

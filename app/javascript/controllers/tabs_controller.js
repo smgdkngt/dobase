@@ -12,6 +12,15 @@ export default class extends Controller {
     const tabFromUrl = new URL(window.location.href).searchParams.get("tab")
     const defaultTab = tabFromFrame || tabFromUrl || this.defaultValue || this.tabTargets[0]?.dataset.tab
     if (defaultTab) this.show(defaultTab)
+
+    // A morph refresh (a form here redirecting back to this page) puts the server's
+    // HTML back, in which no tab is open yet, without connecting this again
+    this.showAgain = () => { if (this.current) this.show(this.current) }
+    document.addEventListener("turbo:morph", this.showAgain)
+  }
+
+  disconnect() {
+    document.removeEventListener("turbo:morph", this.showAgain)
   }
 
   select(event) {
@@ -20,6 +29,7 @@ export default class extends Controller {
   }
 
   show(tabName) {
+    this.current = tabName
     this.tabTargets.forEach(tab => {
       tab.classList.toggle("active", tab.dataset.tab === tabName)
     })
