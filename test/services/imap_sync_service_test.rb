@@ -634,6 +634,33 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_empty email.attachments
   end
 
+  test "a message with an empty Message-ID is saved under its UID" do
+    imap = FakeImap.new(uids: [ 4, 5, 6 ], messages: [
+      fetch_data(4, mail_with_id("empty-4").to_s, message_id: "<>"), fetch_data(5, mail_with_id("empty-5").to_s, message_id: ""),
+      fetch_data(6, mail_with_id("empty-6").to_s, message_id: " ")
+    ])
+
+    @service.send(:fetch_recent_emails, imap, "INBOX", 50)
+
+    assert_equal [ [ 4, "4@imap.example.com", "empty-4" ], [ 5, "5@imap.example.com", "empty-5" ], [ 6, "6@imap.example.com", "empty-6" ] ],
+      @account.messages.where(folder: "INBOX", uid: [ 4, 5, 6 ]).order(:uid).pluck(:uid, :message_id, :subject)
+  end
+
+  test "a message that can't be saved is reported, and the rest of its folder is synced" do
+    imap = FakeImap.new(uids: [ 4, 5, 6 ], messages: [ 4, 5, 6 ].map { |uid| fetch_data(uid, mail_with_id("m-#{uid}").to_s) })
+    @service.send(:incoming_message).define_singleton_method(:save) do |msg, folder|
+      raise ActiveRecord::RecordInvalid, Mails::Message.new if msg.attr["UID"] == 5
+      super(msg, folder)
+    end
+
+    report = assert_error_reported(ActiveRecord::RecordInvalid) do
+      assert_nothing_raised { @service.send(:fetch_recent_emails, imap, "Projects", 50) }
+    end
+
+    assert_equal [ 4, 6 ], @account.messages.where(folder: "Projects").order(:uid).pluck(:uid)
+    assert_equal({ mail_account_id: @account.id, folder: "Projects", uid: 5 }, report.context.slice(:mail_account_id, :folder, :uid))
+  end
+
   test "a server on a local address isn't contacted" do
     @account.update!(imap_host: "127.0.0.1")
 
@@ -798,11 +825,10 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     @incoming_message ||= Mails::IncomingMessage.new(@account)
   end
 
-  def fetch_data(uid, raw, from_name: "Ann")
-      message_id = Mail.new(raw).message_id
+  def fetch_data(uid, raw, from_name: "Ann", message_id: "<#{Mail.new(raw).message_id}>")
       envelope = Net::IMAP::Envelope.new(
-        nil, "Test", [ Net::IMAP::Address.new(from_name, nil, "ann", "example.com") ], nil, nil,
-        [ Net::IMAP::Address.new(nil, nil, "me", "example.com") ], nil, nil, nil, "<#{message_id}>"
+        nil, Mail.new(raw).subject || "Test", [ Net::IMAP::Address.new(from_name, nil, "ann", "example.com") ], nil, nil,
+        [ Net::IMAP::Address.new(nil, nil, "me", "example.com") ], nil, nil, nil, message_id
       )
       Net::IMAP::FetchData.new(1, { "UID" => uid, "ENVELOPE" => envelope, "FLAGS" => [], "INTERNALDATE" => Time.current, "BODY[]" => raw })
     end

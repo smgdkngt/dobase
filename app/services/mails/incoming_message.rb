@@ -39,7 +39,8 @@ module Mails
       envelope = msg.attr["ENVELOPE"]
       return unless envelope
 
-      message_id = (envelope.message_id || "#{msg.attr['UID']}@#{@account.imap_host}").delete("<>")
+      # A message without a Message-ID, or with an empty one ("<>"), is known by its UID
+      message_id = envelope.message_id.to_s.delete("<>").strip.presence || "#{msg.attr['UID']}@#{@account.imap_host}"
       uid = msg.attr["UID"]
       flags = msg.attr["FLAGS"] || []
 

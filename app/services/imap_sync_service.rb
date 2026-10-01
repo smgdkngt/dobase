@@ -274,8 +274,16 @@ class ImapSyncService
     # BODYSTRUCTUREs with NIL where a string belongs, and net-imap then drops the connection.
     uids.reverse.each_slice(FETCH_SLICE) do |slice|
       messages = imap.uid_fetch(slice, [ "UID", "ENVELOPE", "FLAGS", "INTERNALDATE", "BODY.PEEK[]" ])
-      Array(messages).each { |msg| incoming_message.save(msg, folder_name) }
+      Array(messages).each { |msg| save_message(msg, folder_name) }
     end
+  end
+
+  # A message that can't be saved shouldn't keep the rest of its folder, and after the inbox
+  # the rest of the account, from syncing. It's tried again on the next sync.
+  def save_message(msg, folder_name)
+    incoming_message.save(msg, folder_name)
+  rescue StandardError => error
+    Rails.error.report(error, context: { mail_account_id: @account.id, folder: folder_name, uid: msg.attr["UID"] })
   end
 
   def reconcile_local_messages(folder_name, server_uids)
