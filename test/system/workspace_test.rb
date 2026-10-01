@@ -1,0 +1,186 @@
+# frozen_string_literal: true
+
+require "application_system_test_case"
+
+class WorkspaceTest < ApplicationSystemTestCase
+  setup do
+    @board = tools(:project_board)
+    @files = tools(:my_files)
+    @todos = tools(:my_todos)
+    sign_in_as users(:one)
+    visit workspace_path
+    wait_for_stimulus "workspace"
+  end
+
+  test "tools open as tiles that arrange themselves: side by side, then stacked" do
+    assert_text "Nothing open on this desktop"
+
+    launch @board
+    assert_no_text "Nothing open on this desktop"
+    assert_equal 1, tiles.size
+    within_tile(0) do
+      assert_selector "h1", text: @board.name
+      assert_no_selector ".sidebar"
+    end
+
+    launch @files
+    first, second = tiles
+    assert_in_delta first[:width], second[:width], 2
+    assert_operator first[:left] + first[:width], :<=, second[:left]
+    assert_equal first[:top], second[:top]
+
+    launch @todos
+    _, second, third = tiles
+    assert_equal second[:left], third[:left]
+    assert_operator second[:top] + second[:height], :<=, third[:top]
+    assert_current_path workspace_path
+    within_tile(2) { assert_selector "h1", text: @todos.name }
+  end
+
+  test "a tool that is open already is gone to, not opened twice" do
+    launch @board
+    launch @files
+    assert_focused 1
+
+    launch @board, new_tile: false
+
+    assert_focused 0
+    assert_equal 2, tiles.size
+  end
+
+  test "keys go from tile to tile, set one alone, and close it" do
+    launch @board
+    launch @files
+    assert_focused 1
+
+    press :arrow_left
+    assert_focused 0
+
+    # From inside a tile, where the keyboard usually is
+    within_tile(0) { press :arrow_right }
+    assert_focused 1
+
+    press "f"
+    assert_equal 1, tiles.size
+    press "f"
+    assert_equal 2, tiles.size
+
+    press "w"
+    assert_equal 1, tiles.size
+    within_tile(0) { assert_selector "h1", text: @board.name }
+  end
+
+  test "a tile trades places with the one beside it" do
+    launch @board
+    launch @files
+
+    press :arrow_left, shift: true
+
+    board, files = tiles
+    assert files[:focused]
+    assert_operator files[:left], :<, board[:left]
+    within_tile(1) { assert_selector "h1", text: @files.name }
+  end
+
+  test "another desktop has its own tiles, and the ones left behind stay as they were" do
+    launch @board
+    within_tile(0) { page.execute_script("window.stillHere = true") }
+
+    press "2"
+    assert_text "Nothing open on this desktop"
+    launch @files
+    assert_equal 1, tiles.size
+    within_tile(0) { assert_selector "h1", text: @files.name }
+
+    press "1"
+    assert_equal 1, tiles.size
+    within_tile(0) do
+      assert_selector "h1", text: @board.name
+      assert page.evaluate_script("window.stillHere"), "the tile on the other desktop was loaded again"
+    end
+    assert_selector ".workspace-desk[aria-current='true']", text: "1"
+  end
+
+  test "the tiles are back after a reload" do
+    launch @board
+    launch @files
+
+    visit workspace_path
+    wait_for_stimulus "workspace"
+
+    assert_equal 2, tiles.size
+    within_tile(0) { assert_selector "h1", text: @board.name }
+    within_tile(1) { assert_selector "h1", text: @files.name }
+  end
+
+  test "a tool picked from the menu opens as a tile" do
+    find(".workspace-bar-btn[aria-label='Menu with all your tools']").click
+    find("[data-sidebar-tool-link]", text: @todos.name).click
+
+    within_tile(0) { assert_selector "h1", text: @todos.name }
+    assert_current_path workspace_path
+    assert_no_selector ".sidebar.open"
+  end
+
+  test "leaving the workspace brings the sidebar and one tool back" do
+    launch @board
+    find(".workspace-bar-btn[aria-label='Menu with all your tools']").click
+    find(".sidebar-logo-btn", match: :first).click
+    click_on "Leave the workspace"
+
+    assert_no_selector "[data-controller~='workspace']"
+    assert_selector ".sidebar"
+    assert_selector "main h1"
+  end
+
+  private
+
+  # Through the launcher, as a person would
+  def launch(tool, new_tile: true)
+    count = tiles.size
+    find(".workspace-launcher").click
+    within "dialog[data-controller~='command-palette'][open]" do
+      input = find("input[data-command-palette-target='input']")
+      input.set(tool.name)
+      assert_selector ".command-palette-item.selected", text: tool.name
+      input.send_keys(:enter)
+    end
+    assert_no_selector "dialog[data-controller~='command-palette'][open]"
+    return unless new_tile
+
+    assert_selector ".workspace-tile:not([hidden])", count: count + 1
+    within_tile(count) { assert_selector "h1", text: tool.name }
+  end
+
+  # The keys that are the workspace's go with Alt, and on a Mac with Control and Option
+  def press(key, shift: false)
+    mac = page.evaluate_script("navigator.platform").match?(/Mac|iP/)
+    held = mac ? %i[control alt] : %i[alt]
+    held << :shift if shift
+    find("body").send_keys([ *held, key ])
+  end
+
+  # Showing tiles in the order they were opened, with the place they have (where they
+  # are going, while they still slide there)
+  def tiles
+    page.evaluate_script(<<~JS).map(&:symbolize_keys)
+      Array.from(document.querySelectorAll(".workspace-tile:not([hidden])")).map((tile) => {
+        const [ left, top, width, height ] = [ "left", "top", "width", "height" ].map((side) => parseFloat(tile.style[side]))
+        return { left, top, width, height, focused: tile.hasAttribute("data-focused") }
+      })
+    JS
+  end
+
+  def focused_index = tiles.index { |tile| tile[:focused] }
+
+  # The focus follows a key a moment later (a tile hands the key on first)
+  def assert_focused(index)
+    page.document.synchronize do
+      raise Capybara::ExpectationNotMet, "tile #{focused_index.inspect} has the focus, not #{index}" unless focused_index == index
+    end
+  end
+
+  def within_tile(index, &block)
+    within_frame(all(".workspace-tile:not([hidden]) iframe")[index], &block)
+  end
+end

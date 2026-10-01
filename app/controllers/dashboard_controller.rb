@@ -6,6 +6,10 @@ class DashboardController < ApplicationController
     # ends up here (its tool was deleted, or isn't yours any more) closes itself
     return if side_pane?
 
+    # This browser works in the tiling workspace (it says so in a cookie, like it
+    # keeps the tiles themselves): that is where it comes back to
+    return redirect_to workspace_path if cookies[:workspace] == "on"
+
     # Redirect to last visited tool path if it's a navigational page the user
     # can still reach. Skip download endpoints — a stale one would otherwise
     # bounce the user straight into a file download on every visit.

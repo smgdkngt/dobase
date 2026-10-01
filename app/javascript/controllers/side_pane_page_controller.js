@@ -1,16 +1,23 @@
 import { Controller } from "@hotwired/stimulus"
 import { applyTheme } from "services/theme"
+import { workspaceCommand, isLauncherKey } from "services/workspace_keys"
 
 // On a page that is shown beside another one (side_pane_controller.js is on the
-// page around it). Says where this page is, so it is the one that comes back after
-// a reload, and hands over what only the page around it has: the notifications.
+// page around it), or as a tile in the workspace (workspace_controller.js). Says
+// where this page is, so it is the one that comes back after a reload, and hands
+// over what only the page around it has: the notifications, and in the workspace
+// the launcher and the keys that move tiles.
 export default class extends Controller {
   connect() {
+    this.inWorkspace = window.name === "workspace-tile"
     this._onMessage = (event) => this.heard(event)
     this._onLoad = () => this.report()
     this._onKey = (event) => this.keyed(event)
+    this._onFocus = () => this.say("focus")
     window.addEventListener("message", this._onMessage)
-    document.addEventListener("keydown", this._onKey)
+    window.addEventListener("focus", this._onFocus)
+    // Before the page's own shortcuts get the key
+    document.addEventListener("keydown", this._onKey, true)
     // Once the visit is done as well: a page that was redirected to still has the
     // address that was asked for while it is being drawn
     document.addEventListener("turbo:load", this._onLoad)
@@ -19,8 +26,9 @@ export default class extends Controller {
 
   disconnect() {
     window.removeEventListener("message", this._onMessage)
+    window.removeEventListener("focus", this._onFocus)
     document.removeEventListener("turbo:load", this._onLoad)
-    document.removeEventListener("keydown", this._onKey)
+    document.removeEventListener("keydown", this._onKey, true)
   }
 
   report() {
@@ -41,10 +49,19 @@ export default class extends Controller {
   // F6 goes back to the main tool. Not through the shortcut library: that leaves keys
   // typed in a field alone, and a field is where you usually are.
   keyed(event) {
-    if (event.key !== "F6") return
+    if (event.key === "F6") return this.handOn(event, "leave")
+    if (!this.inWorkspace) return
 
+    // The workspace has one launcher, and the keys that move tiles are its own
+    const command = workspaceCommand(event)
+    if (command) return this.handOn(event, "command", { command })
+    if (isLauncherKey(event)) this.handOn(event, "launcher")
+  }
+
+  handOn(event, what, details) {
     event.preventDefault()
-    this.say("leave")
+    event.stopPropagation()
+    this.say(what, details)
   }
 
   say(what, details = {}) {

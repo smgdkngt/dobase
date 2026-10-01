@@ -200,6 +200,20 @@
         <%= render "shared/icon", name: "folder-plus", size: 16 %>
         <span>New Group</span>
       <% end %>
+      <%# Tiles need a wide window, like the sidebar itself does %>
+      <% if @workspace %>
+        <%# A page load of its own: a visit from this page to a tool would open it as a tile %>
+        <%= button_to workspace_path, method: :delete, form: { data: { turbo: false } },
+              class: "dropdown-item flex items-center gap-2 max-lg:hidden" do %>
+          <%= render "shared/icon", name: "panel-left-close", size: 16 %>
+          <span>Leave the workspace</span>
+        <% end %>
+      <% else %>
+        <%= link_to workspace_path, class: "dropdown-item flex items-center gap-2 max-lg:hidden" do %>
+          <%= render "shared/icon", name: "grid-2x2", size: 16 %>
+          <span>Tiling workspace</span>
+        <% end %>
+      <% end %>
       <div class="dropdown-divider"></div>
       <button type="button" class="dropdown-item flex items-center gap-2"
               data-action="click->sidebar#toggleReorder"

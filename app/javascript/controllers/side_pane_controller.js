@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { pathOf, toolIdOf, toolFrame, frameAddress, sendFrameTo, hasUnfinishedWork, confirmClosing } from "services/tool_frame"
 
 // A second tool beside the one you have open.
 //
@@ -78,7 +79,7 @@ export default class extends Controller {
 
   // The close button, and the sidebar button of the tool that is beside
   async close() {
-    if (this.frameHasUnfinishedWork() && !(await this.confirmed())) return
+    if (this.frame && hasUnfinishedWork(this.frame) && !(await confirmClosing())) return
 
     this.forget()
   }
@@ -146,7 +147,7 @@ export default class extends Controller {
     if (open) {
       this.root.dataset.sidePane = "open"
       this.applyWidth()
-      if (!this.frame) this.slotTarget.append(this.frameFor(this.state.url))
+      if (!this.frame) this.slotTarget.append(toolFrame(this.state.url, "side-pane"))
     } else {
       delete this.root.dataset.sidePane
       this.root.style.removeProperty("--side-pane-width")
@@ -155,26 +156,10 @@ export default class extends Controller {
     this.markSidebar()
   }
 
-  // Sends the page beside somewhere else. False when it wouldn't go: it asked its
-  // person first (an unsent mail does) and they said no. What is beside is only
-  // written down once the page agrees to leave.
+  // Sends the page beside somewhere else. False when it wouldn't go (an unsent mail
+  // asks first). What is beside is only written down once the page agrees to leave.
   goTo(path) {
-    const frame = this.frame
-    const page = frame.contentWindow
-    let leaving = true
-
-    if (this.frameAddress && page.Turbo) {
-      // Turbo in the frame gets there without a blank moment, and without a step for
-      // the back button. It says "turbo:visit" at once when the visit is on.
-      leaving = false
-      const started = () => { leaving = true }
-      page.document.addEventListener("turbo:visit", started, { once: true })
-      page.Turbo.visit(path, { action: "replace" })
-      page.document.removeEventListener("turbo:visit", started)
-    } else {
-      // Nothing there to ask: still loading, or a page that isn't the app's (an error page)
-      frame.replaceWith(this.frameFor(path))
-    }
+    const leaving = sendFrameTo(this.frame, path)
 
     if (leaving) {
       this.state.url = path
@@ -184,47 +169,8 @@ export default class extends Controller {
     return leaving
   }
 
-  frameFor(url) {
-    const frame = document.createElement("iframe")
-    frame.src = url
-    // How the page in it knows it is the one beside (application.js)
-    frame.name = "side-pane"
-    frame.title = "Tool beside"
-    // A call in a room beside asks for these itself
-    frame.allow = "camera; microphone; display-capture; fullscreen; clipboard-write"
-    return frame
-  }
-
-  // Where the page beside is: read from the frame itself, so anything it did to its
-  // address between visits (a card it opened) counts. Nothing while it is still
-  // loading its first page, or shows a page that isn't the app's.
   get frameAddress() {
-    try {
-      const { protocol, pathname, search } = this.frame.contentWindow.location
-      return protocol.startsWith("http") ? pathname + search : null
-    } catch {
-      return null
-    }
-  }
-
-  // An unsent mail, a call: the page beside says so the way it would tell the browser
-  // before its tab is closed. A document being written sends its last words on the same
-  // occasion.
-  frameHasUnfinishedWork() {
-    try {
-      const page = this.frame.contentWindow
-      const leaving = new page.Event("beforeunload", { cancelable: true })
-      page.dispatchEvent(leaving)
-      return leaving.defaultPrevented
-    } catch {
-      return false
-    }
-  }
-
-  // The app's own confirmation dialog (application.js), with its button saying Close
-  confirmed() {
-    const message = "Something beside isn't finished: an unsent message, or a call. Close it anyway?"
-    return Turbo.config.forms.confirm(message, null, { dataset: { turboConfirmButton: "Close" } })
+    return this.frame ? frameAddress(this.frame) : null
   }
 
   // ── What the page beside says (side_pane_page_controller.js) ──
@@ -411,25 +357,6 @@ export default class extends Controller {
     this.state.url = this.frameAddress
     this.save()
   }
-}
-
-// "/tools/12/board?card=3" from an address on this site; nothing from any other.
-// A path can itself start with two slashes ("/.//elsewhere.example"), which a frame
-// would read as another site.
-function pathOf(url) {
-  if (!url) return null
-
-  try {
-    const address = new URL(url, location.origin)
-    const path = address.pathname + address.search + address.hash
-    return address.origin === location.origin && !path.startsWith("//") ? path : null
-  } catch {
-    return null
-  }
-}
-
-function toolIdOf(path) {
-  return path?.match(/^\/tools\/(\d+)/)?.[1] || null
 }
 
 // A link that goes to a page of a tool, rather than into a frame, to a download

@@ -1,0 +1,88 @@
+<% content_for :title, app_name %>
+
+<% content_for :keyboard_shortcuts do %>
+  <div>
+    <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Workspace</h3>
+    <div class="shortcut-list">
+      <%= render "shared/shortcut_row", key: "⌘K", description: "Open a tool as a tile" %>
+      <%= render "shared/shortcut_row", key: "#{workspace_modifier} ← ↑ ↓ →", description: "Go to the tile on that side" %>
+      <%= render "shared/shortcut_row", key: "#{workspace_modifier} Shift ← ↑ ↓ →", description: "Move the tile that way" %>
+      <%= render "shared/shortcut_row", key: "#{workspace_modifier} 1 – 9", description: "Go to a desktop" %>
+      <%= render "shared/shortcut_row", key: "#{workspace_modifier} Shift 1 – 9", description: "Take the tile to a desktop" %>
+      <%= render "shared/shortcut_row", key: "#{workspace_modifier} F", description: "The tile alone, and back" %>
+      <%= render "shared/shortcut_row", key: "#{workspace_modifier} W", description: "Close the tile" %>
+      <%= render "shared/shortcut_row", key: "#{workspace_modifier} M", description: "The menu with all your tools" %>
+    </div>
+  </div>
+<% end %>
+
+<%# Every tool you open here is a tile, and the tiles arrange themselves
+    (workspace_controller.js). A tile is the tool's own page in a frame. %>
+<div class="workspace tool-layout"
+     data-controller="workspace"
+     data-workspace-user-id-value="<%= current_user.id %>"
+     data-workspace-app-name-value="<%= app_name %>">
+  <header class="workspace-bar">
+    <button type="button" class="workspace-bar-btn" title="Menu (<%= workspace_modifier %> M)"
+            aria-label="Menu with all your tools"
+            data-workspace-target="menu"
+            data-action="click->mobile-sidebar#toggle">
+      <%= render "shared/logo", class: "w-5 h-5" %>
+    </button>
+
+    <nav class="workspace-desks" aria-label="Desktops" data-workspace-target="desks"></nav>
+
+    <p class="workspace-bar-title" data-workspace-target="title"></p>
+
+    <button type="button" class="workspace-launcher"
+            data-action="click->keyboard-shortcuts#openCommandPalette">
+      <%= render "shared/icon", name: "search", size: 14 %>
+      <span>Open a tool…</span>
+      <kbd class="shortcut-key">⌘K</kbd>
+    </button>
+
+    <% unread_count = current_user.notifications.unread.count %>
+    <div class="relative flex"
+         data-controller="notifications"
+         data-notifications-user-id-value="<%= current_user.id %>"
+         data-notifications-app-name-value="<%= app_name %>"
+         data-notifications-unread-count-value="<%= unread_count %>"
+         data-notifications-unread-mail-count-value="<%= current_user.unread_mail_count %>">
+      <button type="button" class="workspace-bar-btn relative"
+              aria-label="Notifications"
+              popovertarget="sidebar-notifications"
+              style="anchor-name: --workspace-notifications-btn"
+              data-notifications-target="trigger"
+              data-action="click->notifications#togglePopover">
+        <%= render "shared/icon", name: "bell", size: 16 %>
+        <span class="absolute -top-0.5 -right-0.5 badge badge-sm <%= "hidden" if unread_count.zero? %>"
+              aria-hidden="true"
+              data-notifications-target="badge"><%= unread_count %></span>
+      </button>
+    </div>
+
+    <button type="button" class="workspace-bar-btn"
+            aria-label="Account menu for <%= current_user.name %>"
+            aria-haspopup="menu"
+            popovertarget="sidebar-user-menu"
+            style="anchor-name: --workspace-user-btn">
+      <%= render "shared/avatar", user: current_user, size: :sm %>
+    </button>
+  </header>
+
+  <div class="workspace-tiles" id="workspace-tiles" data-turbo-permanent data-workspace-target="tiles">
+    <div class="workspace-empty" data-workspace-target="empty" hidden>
+      <%= render "components/empty_state", title: "Nothing open on this desktop", icon: "grid-2x2",
+            description: "Press ⌘K and pick a tool. It opens as a tile, next to what is already here." %>
+    </div>
+  </div>
+
+  <template data-workspace-target="tileTemplate">
+    <section class="workspace-tile" aria-label="Tile">
+      <div class="workspace-tile-controls">
+        <%= render "components/icon_button", icon: "x", title: "Close this tile (#{workspace_modifier} W)", size: :sm,
+              data: { action: "click->workspace#closeTile" } %>
+      </div>
+    </section>
+  </template>
+</div>

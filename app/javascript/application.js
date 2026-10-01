@@ -119,13 +119,16 @@ function installSidePane() {
 
 if (window.self === window.top) {
   document.addEventListener("turbo:load", installSidePane)
-} else if (window.name === "side-pane") {
-  // This page is the one beside. The server leaves the sidebar out of it
+} else if (window.name === "side-pane" || window.name === "workspace-tile") {
+  // This page is the one beside another, or a tile in the workspace
+  // (workspace_controller.js). The server leaves the sidebar out of it
   // (ApplicationController#side_pane?): the browser says it is a frame when it loads
   // one, and for every page after that Turbo says so here.
   const root = document.documentElement
   let serverKnows = root.hasAttribute("data-in-side-pane")
   root.setAttribute("data-in-side-pane", "")
+  // Tiles are small and many: everything in them is drawn a size smaller (workspace.css)
+  if (window.name === "workspace-tile") root.setAttribute("data-in-workspace", "")
 
   document.addEventListener("turbo:before-fetch-request", (event) => {
     event.detail.fetchOptions.headers["X-Side-Pane"] = "1"

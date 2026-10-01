@@ -1,0 +1,193 @@
+/* The tiling workspace: workspaces/show, workspace_controller.js */
+
+@layer components {
+  .workspace {
+    @apply flex flex-col h-full bg-background-secondary;
+  }
+
+  /* A slim bar along the top: the menu, the desktops, what you are on, and yourself */
+  .workspace-bar {
+    @apply flex items-center gap-1 px-2 shrink-0 h-9;
+  }
+
+  .workspace-bar-btn {
+    @apply flex items-center justify-center w-7 h-7 rounded-md text-text-secondary
+           hover:bg-background-tertiary hover:text-text-primary transition-colors cursor-pointer;
+  }
+
+  .workspace-bar-btn .avatar {
+    @apply w-5 h-5 text-[0.5625rem];
+  }
+
+  .workspace-desks {
+    @apply flex items-center gap-0.5 ml-1;
+  }
+
+  .workspace-desk {
+    @apply min-w-6 h-6 px-1.5 rounded-md text-xs font-medium tabular-nums text-text-secondary
+           hover:bg-background-tertiary transition-colors cursor-pointer;
+  }
+
+  .workspace-desk[data-empty] {
+    @apply text-text-tertiary;
+  }
+
+  .workspace-desk[aria-current="true"] {
+    @apply bg-accent-solid text-text-inverse;
+  }
+
+  .workspace-bar-title {
+    @apply flex-1 min-w-0 truncate text-center text-xs text-text-tertiary;
+  }
+
+  .workspace-launcher {
+    @apply flex items-center gap-2 h-7 pl-2 pr-1 mr-1 rounded-md text-xs text-text-tertiary
+           bg-surface border border-border-light hover:text-text-primary hover:border-border
+           transition-colors cursor-pointer;
+  }
+
+  /* The room the tiles share. They are placed in it by the controller. */
+  .workspace-tiles {
+    @apply relative flex-1 min-h-0;
+  }
+
+  .workspace-tile {
+    @apply absolute overflow-hidden rounded-lg bg-background border border-border-light;
+    transform-origin: 0 0;
+  }
+
+  .workspace-tile[hidden],
+  .workspace-split[hidden],
+  .workspace-empty[hidden] {
+    @apply hidden;
+  }
+
+  /* The one the keyboard is in, when there is more than one */
+  .workspace-tile[data-focused] {
+    border-color: var(--color-accent);
+  }
+
+  .workspace-tile[data-arriving] {
+    animation: workspace-tile-in 160ms var(--ease-out) both;
+  }
+
+  .workspace-tile > iframe {
+    @apply block w-full h-full border-0;
+  }
+
+  /* Close sits in the corner of the tool's own top bar, which keeps room for it (below) */
+  .workspace-tile-controls {
+    @apply absolute top-0 right-0 z-10 flex items-center pr-1.5 opacity-0 transition-opacity duration-150;
+    height: var(--workspace-topbar-height);
+  }
+
+  .workspace-tile:hover .workspace-tile-controls,
+  .workspace-tile-controls:focus-within {
+    @apply opacity-100;
+  }
+
+  /* The gaps between tiles, to drag */
+  .workspace-split {
+    @apply absolute z-10 rounded-full transition-colors duration-150;
+    touch-action: none;
+  }
+
+  .workspace-split[data-split="row"] {
+    @apply cursor-col-resize;
+  }
+
+  .workspace-split[data-split="column"] {
+    @apply cursor-row-resize;
+  }
+
+  .workspace-split:hover,
+  .workspace-tiles[data-resizing] .workspace-split:active {
+    background: var(--color-accent);
+  }
+
+  /* While dragging, the frames would take the pointer */
+  .workspace-tiles[data-resizing] iframe {
+    @apply pointer-events-none;
+  }
+
+  .workspace-empty {
+    @apply absolute inset-0 flex items-center justify-center;
+  }
+}
+
+@keyframes workspace-tile-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+:root {
+  /* As high as a tool's top bar is inside a tile */
+  --workspace-topbar-height: 40px;
+}
+
+/* ── The page around the tiles: no sidebar until it is asked for ── */
+
+:root[data-workspace] .main-content {
+  margin-left: 0;
+}
+
+:root[data-workspace] .demo-banner {
+  left: 0;
+}
+
+/* The side pane's button means nothing here: every tool is beside the others */
+:root[data-workspace] [data-side-pane-toggle] {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  /* The sidebar is the menu: off to the left, and in over the tiles when asked */
+  :root[data-workspace] .sidebar {
+    @apply z-50 shadow-xl transition-transform duration-200 ease-out;
+    transform: translateX(-100%);
+  }
+
+  :root[data-workspace] .sidebar.open {
+    transform: none;
+  }
+
+  /* You and your notifications are in the bar at the top, so their menus open from there */
+  :root[data-workspace] .sidebar-bottom-bar {
+    display: none;
+  }
+
+  :root[data-workspace] .sidebar-user-popover {
+    position-anchor: --workspace-user-btn;
+    position-area: block-end span-inline-start;
+    margin: 0.25rem 0 0;
+  }
+
+  :root[data-workspace] .sidebar-notifications-popover {
+    position-anchor: --workspace-notifications-btn;
+    position-area: block-end span-inline-start;
+    margin: 0.25rem 0 0;
+  }
+}
+
+/* A narrow window has the bottom bar for all of that, and shows one tile */
+@media (max-width: 1023px) {
+  .workspace-bar {
+    display: none;
+  }
+}
+
+/* ── A page that is a tile: everything a size smaller, there are many of them ── */
+
+/* Type a step down, and the space around it a step further: Tailwind measures every
+   padding, gap and size in --spacing */
+:root[data-in-workspace] {
+  font-size: 14px;
+  --spacing: 0.22rem;
+}
+
+:root[data-in-workspace] :is(.tool-topbar, .mail-topbar) {
+  min-height: var(--workspace-topbar-height);
+  padding-right: 2.5rem;
+}

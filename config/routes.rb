@@ -44,6 +44,9 @@ Rails.application.routes.draw do
   resource :notification_reads, only: :create
   resource :notification_clears, only: :create
 
+  # Every tool you open as a tile, arranged for you (workspace_controller.js)
+  resource :workspace, only: %i[show destroy]
+
   # Sidebar
   resources :sidebar_groups, only: %i[create update destroy] do
     scope module: :sidebar_groups do

@@ -148,7 +148,7 @@ class SidePaneTest < ApplicationSystemTestCase
 
     find("#side-pane button[title='Close the tool beside']").click
     within "dialog#turbo-confirm-dialog[open]" do
-      assert_text "Something beside isn't finished"
+      assert_text "Something there isn't finished"
       assert_selector "button[value='confirm']", text: "Close"
       click_on "Cancel"
     end

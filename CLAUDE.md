@@ -327,6 +327,17 @@ A tool's button in the sidebar, Alt+click on a tool or on a link to one, or Alt+
 - On plain HTTP outside localhost browsers send no `Sec-Fetch-Dest`: the first page in the pane is then drawn whole and asked for again (`application.js`), and that first request counts as the last visited page.
 - The service worker leaves frame navigations alone: fetched from there they lose `Sec-Fetch-Dest`. System tests switch the service worker off, so that path is only seen in a real browser.
 
+### Tiling workspace (opt-in: every tool a tile)
+
+`/workspace` (`WorkspacesController`, `workspace_controller.js`, `workspace.css`) is a second way to work, entered from the logo menu and left from there again: no sidebar, every tool you open is a tile, and the tiles arrange themselves like a tiling window manager. The normal app is untouched by it.
+
+- A tile is a tool's page in a frame, exactly as in the side pane (same `side_pane?` layout, same `side_pane_page_controller.js`; `services/tool_frame.js` holds what both do with a frame). The frame is named `workspace-tile`, which is how the page knows to hand the workspace its keys and to draw itself denser (`<html data-in-workspace>`: a 14px root and a smaller Tailwind `--spacing`).
+- A desktop is a binary tree of splits with tiles as leaves. A new tile halves the one you are on: side by side when it is wide, stacked when it is tall. Tiles are flat children of one element, placed with `left/top/width/height`: **a frame that moves in the DOM reloads**, so nothing ever re-parents. Rearranging animates with a transform (the pages lay out once, not per frame).
+- Nine desktops; tiles on another desktop stay loaded and hidden, and a desktop's frames are only created when you first go there.
+- Anything on the workspace page that visits a tool (the command palette, the menu, a notification, the redirect after making a tool) is caught in `turbo:before-visit` and opened as a tile. That is why leaving the workspace is a form without Turbo.
+- Keys (`services/workspace_keys.js`) go with Alt, on a Mac with Control+Option: arrows or HJKL go to a tile, with Shift they move it, 1–9 is a desktop, F the tile alone, W closes, M the menu. They are caught in the capture phase on the workspace page and inside every tile, so they work wherever the keyboard is.
+- State (the trees, focus, each tile's address) is in `localStorage` per person; that this browser works in the workspace is a `workspace` cookie, which sends `/` there.
+
 ### Component System
 
 **All UI must use components** — no freeform HTML. Components use Rails `tag.*` helpers with hash options for HTML attributes (never manual string interpolation):

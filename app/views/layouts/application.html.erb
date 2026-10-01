@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-turbo-not-loaded <%= tag.attributes(theme_attributes) %><%= " data-in-side-pane" if side_pane? %>>
+<html data-turbo-not-loaded <%= tag.attributes(theme_attributes) %><%= " data-in-side-pane" if side_pane? %><%= " data-workspace" if @workspace %>>
   <head>
     <title><%= content_for(:title) || app_name %></title>
     <meta name="viewport" content="<%= viewport_content %>">
@@ -142,7 +142,8 @@
 
         <div id="persistent-room" data-turbo-permanent hidden></div>
         <%= render "shared/demo_banner" if Demo.enabled? %>
-        <%= render "shared/side_pane" %>
+        <%# The workspace has tiles instead: every tool there is beside the others %>
+        <%= render "shared/side_pane" unless @workspace %>
       </div>
       <button data-controller="hotkey" data-hotkey="Mod+k" data-action="click->keyboard-shortcuts#openCommandPalette" hidden>Command palette</button>
       <%= render "shared/command_palette" %>
