@@ -246,8 +246,7 @@ class IcsParserService
     schedule = IceCube::Schedule.new(start_time)
 
     event.rrule.each do |rrule|
-      rule = parse_rrule_to_ice_cube(rrule, start_time)
-      schedule.add_recurrence_rule(rule) if rule
+      ice_cube_rules(rrule, start_time).each { |rule| schedule.add_recurrence_rule(rule) }
     end
 
     # Add exception dates (EXDATE)
@@ -272,7 +271,63 @@ class IcsParserService
     nil
   end
 
-  def parse_rrule_to_ice_cube(rrule, start_time)
+  # One rule for an RRULE, or several that together fall on the days its BYSETPOS picks
+  def ice_cube_rules(rrule, start_time)
+    positions = Array(extract_rrule_param(rrule, :by_set_position)).map(&:to_i)
+    return [ parse_rrule_to_ice_cube(rrule, start_time) ].compact if positions.empty?
+
+    picks = set_position_days(rrule, positions)
+    unless picks
+      # Repeating on every listed day would fill the calendar with events that aren't there
+      Rails.logger.warn("Can't work out RRULE #{rrule.value_ical}: only its first occurrence is shown")
+      return []
+    end
+    return [ parse_rrule_to_ice_cube(rrule, start_time, on: picks.first) ].compact if picks.one?
+
+    # IceCube counts per rule, so a COUNT becomes the time of the last occurrence of them together
+    rules = picks.filter_map { |pick| parse_rrule_to_ice_cube(rrule, start_time, on: pick, count: false) }
+    if (count = extract_rrule_param(rrule, :count))
+      last = IceCube::Schedule.new(start_time) { |together| rules.each { |rule| together.add_recurrence_rule(rule) } }.first(count.to_i).last&.start_time
+      return [] unless last
+
+      rules.each { |rule| rule.until(last) }
+    end
+    rules
+  end
+
+  # What BYSETPOS picks from the weekdays listed in BYDAY, in a month: the nth of a single weekday
+  # (the second Tuesday), or for several weekdays (the last weekday, the first day of the weekend)
+  # the days of the month the nth of them can be, each with the weekdays it has to be then. The last
+  # weekday is the last day of the month from Monday to Friday, or a Friday one or two days before it.
+  # Nil when IceCube has no way of saying it.
+  def set_position_days(rrule, positions)
+    frequency = extract_rrule_param(rrule, :frequency).to_s.upcase
+    in_a_month = frequency == "MONTHLY" || (frequency == "YEARLY" && extract_rrule_param(rrule, :by_month).present?)
+    listed = Array(extract_rrule_param(rrule, :by_day)).map { |day| day.to_s.upcase }
+    others = %i[by_month_day by_year_day by_week_number].any? { |param| extract_rrule_param(rrule, param).present? }
+    return unless in_a_month && listed.any? && listed.all? { |day| day.match?(/\A[A-Z]{2}\z/) && day_symbol(day) } && !others
+    return if positions.any?(&:zero?)
+
+    days = listed.map { |day| day_symbol(day) }.uniq
+    return [ { day_of_week: { days.first => positions } } ] if days.one?
+    # Every month has four of each weekday in its first and its last 28 days
+    return if positions.any? { |position| position.abs > days.size * 4 }
+
+    wdays = days.map { |day| Date::DAYNAMES.index(day.to_s.capitalize) }
+    picks = Hash.new { |hash, day_of_month| hash[day_of_month] = [] }
+    positions.each do |position|
+      direction = position <=> 0
+      (1..28).to_a.product(wdays).each do |nth, wday|
+        # The listed days from the start (or the end) of the month up to its nth day, when that is a wday
+        listed_so_far = nth.times.count { |back| wdays.include?((wday - back * direction) % 7) }
+        picks[nth * direction] << wday if listed_so_far == position.abs
+      end
+    end
+    picks.map { |day_of_month, on_wdays| { day_of_month: day_of_month, day: on_wdays.uniq } }
+  end
+
+  # on: the days BYSETPOS picked, instead of every day in BYDAY
+  def parse_rrule_to_ice_cube(rrule, start_time, on: nil, count: true)
     # Extract RRULE components
     freq = extract_rrule_param(rrule, :frequency) || extract_rrule_param(rrule, :freq)
     return nil unless freq
@@ -295,7 +350,7 @@ class IcsParserService
     rule = rule.interval(interval.to_i) if interval.to_i > 1
 
     # Count
-    count = extract_rrule_param(rrule, :count)
+    count = extract_rrule_param(rrule, :count) if count
     rule = rule.count(count.to_i) if count
 
     # Until
@@ -307,7 +362,10 @@ class IcsParserService
 
     # By day (BYDAY — handles weekly days and monthly nth-weekday)
     byday = extract_rrule_param(rrule, :by_day) || extract_rrule_param(rrule, :byday)
-    if byday.present?
+    if on
+      rule = rule.day_of_week(on[:day_of_week]) if on[:day_of_week]
+      rule = rule.day_of_month(on[:day_of_month]).day(*on[:day]) if on[:day_of_month]
+    elsif byday.present?
       ordinal_days, plain_days = Array(byday).partition { |d| d.to_s =~ /^-?\d+[A-Z]{2}$/ }
 
       # Ordinal days like "1TH" (1st Thursday) → day_of_week for monthly rules

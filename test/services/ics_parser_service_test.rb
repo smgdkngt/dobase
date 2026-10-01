@@ -363,7 +363,62 @@ class IcsParserServiceTest < ActiveSupport::TestCase
     assert_equal Time.utc(2026, 10, 5, 17), starts_at.call("DTSTART;TZID=Pacific Standard Time:20261005T100000")
   end
 
+  test "BYSETPOS picks one of the listed weekdays instead of repeating on all of them" do
+    # The second Tuesday
+    assert_equal %w[2026-10-13 2026-11-10 2026-12-08 2027-01-12],
+      occurrence_dates("DTSTART;TZID=Europe/Amsterdam:20261013T100000", "RRULE:FREQ=MONTHLY;BYDAY=TU;BYSETPOS=2", 4)
+    # The last Friday, every other month
+    assert_equal %w[2026-10-30 2026-12-25 2027-02-26],
+      occurrence_dates("DTSTART;TZID=Europe/Amsterdam:20261030T100000", "RRULE:FREQ=MONTHLY;INTERVAL=2;BYDAY=FR;BYSETPOS=-1", 3)
+    # The last weekday: a Friday when the month ends in a weekend
+    assert_equal %w[2026-10-30 2026-11-30 2026-12-31 2027-01-29 2027-02-26 2027-03-31],
+      occurrence_dates("DTSTART;TZID=Europe/Amsterdam:20261030T100000", "RRULE:FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1", 6)
+    # The first weekday: a Monday when the month starts in a weekend
+    assert_equal %w[2026-10-01 2026-11-02 2026-12-01 2027-01-01 2027-02-01],
+      occurrence_dates("DTSTART;TZID=America/New_York:20261001T170000", "RRULE:FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=1", 5)
+    # The second day of the weekend
+    assert_equal %w[2026-10-04 2026-11-07 2026-12-06 2027-01-03],
+      occurrence_dates("DTSTART:20261004T100000Z", "RRULE:FREQ=MONTHLY;BYDAY=SA,SU;BYSETPOS=2", 4)
+    # The fourth Thursday of November
+    assert_equal %w[2026-11-26 2027-11-25 2028-11-23],
+      occurrence_dates("DTSTART;TZID=America/New_York:20261126T120000", "RRULE:FREQ=YEARLY;BYDAY=TH;BYMONTH=11;BYSETPOS=4", 3)
+  end
+
+  test "a BYSETPOS series ends after its COUNT or at its UNTIL" do
+    assert_equal %w[2026-10-30 2026-11-30 2026-12-31],
+      occurrence_dates("DTSTART;TZID=Europe/Amsterdam:20261030T100000", "RRULE:FREQ=MONTHLY;COUNT=3;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1", 10)
+    assert_equal %w[2026-10-30 2026-11-30],
+      occurrence_dates("DTSTART;TZID=Europe/Amsterdam:20261030T100000", "RRULE:FREQ=MONTHLY;UNTIL=20261215T000000Z;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1", 10)
+    assert_equal %w[2026-10-13 2026-11-10],
+      occurrence_dates("DTSTART;TZID=Europe/Amsterdam:20261013T100000", "RRULE:FREQ=MONTHLY;COUNT=2;BYDAY=TU;BYSETPOS=2", 10)
+  end
+
+  test "a BYSETPOS rule that can't be worked out shows its first occurrence only" do
+    assert_equal %w[2026-10-05],
+      occurrence_dates("DTSTART;TZID=Europe/Amsterdam:20261005T100000", "RRULE:FREQ=WEEKLY;BYDAY=MO,WE;BYSETPOS=1", 10)
+    assert_equal %w[2026-10-30],
+      occurrence_dates("DTSTART;TZID=Europe/Amsterdam:20261030T100000", "RRULE:FREQ=MONTHLY;BYMONTHDAY=28,29,30,31;BYSETPOS=-1", 10)
+  end
+
   private
+
+  # The first dates of a series, at most as many as asked for
+  def occurrence_dates(dtstart, rrule, limit)
+    result = IcsParserService.new(<<~ICS, time_zone: "Europe/Amsterdam").parse
+      BEGIN:VCALENDAR
+      VERSION:2.0
+      BEGIN:VEVENT
+      UID:series@example.com
+      #{dtstart}
+      #{rrule}
+      SUMMARY:Series
+      END:VEVENT
+      END:VCALENDAR
+    ICS
+
+    assert_equal rrule.delete_prefix("RRULE:"), result[:rrule]
+    IceCube::Schedule.from_yaml(result[:recurrence_schedule]).first(limit).map { |time| time.to_date.iso8601 }
+  end
 
   # What Exchange and Outlook send: a Windows time zone name, with the VTIMEZONE that describes it
   def exchange_ics(*event_lines)
