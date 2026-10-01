@@ -546,6 +546,60 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "sends a repeating event at its local time with its time zone, so it stays there when the clocks change" do
+    event = Time.use_zone("Amsterdam") do
+      calendars_calendars(:personal).events.create!(uid: "weekly@dobase", summary: "Weekly",
+        starts_at: Time.zone.local(2026, 10, 5, 10), ends_at: Time.zone.local(2026, 10, 5, 11),
+        recurrence_frequency: "weekly", recurrence_end_type: "count", recurrence_count: 5)
+    end
+
+    ics = Time.use_zone("UTC") { Caldav::EventIcalendar.new(event.reload).to_ical }
+
+    assert_includes ics, "DTSTART;TZID=Europe/Amsterdam:20261005T100000"
+    assert_includes ics, "DTEND;TZID=Europe/Amsterdam:20261005T110000"
+    # The zone is described for clients that don't know its name
+    timezone = Icalendar::Calendar.parse(ics).sole.timezones.sole
+    assert_equal "Europe/Amsterdam", timezone.tzid.to_s
+    assert_equal [ "+02:00", "+01:00" ], [ DateTime.new(2026, 10, 5, 10), DateTime.new(2026, 10, 26, 10) ].map { |time| timezone.offset_for_local(time).to_s }
+
+    # Read back by someone in another time zone: 10:00 in Amsterdam before and after October 25th
+    read_back = IcsParserService.new(ics, time_zone: "America/New_York").parse
+    assert_equal [ event.starts_at, event.ends_at ], [ read_back[:starts_at], read_back[:ends_at] ]
+    assert_equal [ Time.utc(2026, 10, 5, 8), Time.utc(2026, 10, 12, 8), Time.utc(2026, 10, 19, 8), Time.utc(2026, 10, 26, 9), Time.utc(2026, 11, 2, 9) ],
+      IceCube::Schedule.from_yaml(read_back[:recurrence_schedule]).all_occurrences.map(&:utc)
+  end
+
+  test "a repeating event synced in another time zone is sent back in that zone" do
+    event = synced_standup
+    event.update!(summary: "Daily standup")
+
+    ics = Time.use_zone("America/New_York") { Caldav::EventIcalendar.new(event).to_ical }
+
+    assert_includes ics, "DTSTART;TZID=Europe/Amsterdam:20300107T093000"
+    assert_equal [ "Europe/Amsterdam" ], Icalendar::Calendar.parse(ics).sole.timezones.map { |timezone| timezone.tzid.to_s }
+  end
+
+  test "a repeating event that was synced in UTC stays in UTC" do
+    ics = <<~ICS
+      BEGIN:VCALENDAR
+      VERSION:2.0
+      BEGIN:VEVENT
+      UID:utc-series@example.com
+      DTSTART:20261005T080000Z
+      DTEND:20261005T090000Z
+      RRULE:FREQ=WEEKLY
+      SUMMARY:In UTC
+      END:VEVENT
+      END:VCALENDAR
+    ICS
+    event = calendars_calendars(:personal).events.create!(IcsParserService.new(ics, time_zone: "Amsterdam").parse.except(:method).merge(is_recurring: true))
+
+    sent = Caldav::EventIcalendar.new(event).to_ical
+
+    assert_includes sent, "DTSTART:20261005T080000Z"
+    assert_no_match(/VTIMEZONE/, sent)
+  end
+
   test "builds valid icalendar for all-day event" do
     event = calendars_events(:all_day_event)
 

@@ -1,10 +1,12 @@
 # frozen_string_literal: true
 
 require "icalendar"
+require "icalendar/tzinfo"
 
 module Caldav
   # The iCalendar object for one event, as CalDAV servers store it: no METHOD (RFC 4791),
-  # times in UTC, and the exceptions of a synced series kept as they were.
+  # times in UTC, a series in the time zone it repeats in, and the exceptions of a synced
+  # series kept as they were.
   class EventIcalendar
     def initialize(event)
       @event = event
@@ -29,6 +31,11 @@ module Caldav
       if event.all_day?
         vevent.dtstart = Icalendar::Values::Date.new(event.first_day)
         vevent.dtend = Icalendar::Values::Date.new(event.last_day + 1)
+      elsif (zone = series_zone(event))
+        # A series in UTC would move an hour for everyone when the clocks change
+        vevent.dtstart = local_value(event.starts_at, zone)
+        vevent.dtend = local_value(event.ends_at, zone)
+        cal.add_timezone(zone.tzinfo.ical_timezone(event.starts_at))
       else
         vevent.dtstart = utc_value(event.starts_at)
         vevent.dtend = utc_value(event.ends_at)
@@ -61,6 +68,23 @@ module Caldav
       Icalendar::Values::DateTime.new(time.utc, "tzid" => "UTC")
     end
 
+    def local_value(time, zone)
+      Icalendar::Values::DateTime.new(time.in_time_zone(zone), "tzid" => zone.tzinfo.name)
+    end
+
+    # The time zone a series repeats in: the one its schedule was made in, which is the zone it was
+    # synced with or the zone of whoever made it here. Nil for a single event and for a series in UTC.
+    def series_zone(event)
+      return unless event.is_recurring? && event.rrule.present?
+
+      start = IceCube::Schedule.from_yaml(event.recurrence_schedule).start_time if event.recurrence_schedule.present?
+      zone = start.respond_to?(:time_zone) ? start.time_zone : ActiveSupport::TimeZone[event.calendar.account.tool.owner.timezone.to_s]
+      zone unless zone.nil? || zone.tzinfo.name.in?(%w[UTC Etc/UTC])
+    rescue StandardError => e
+      Rails.logger.warn("Couldn't read the time zone of event #{event.uid}: #{e.message}")
+      nil
+    end
+
     def keep_exceptions(cal, vevent, event)
       original = Icalendar::Calendar.parse(event.raw_icalendar.to_s).first
       return unless original
@@ -72,7 +96,8 @@ module Caldav
       vevent.exdate = series.exdate
       vevent.rdate = series.rdate
       same_event.select(&:recurrence_id).each { |occurrence| cal.add_event(occurrence) }
-      original.timezones.each { |timezone| cal.add_timezone(timezone) }
+      described = cal.timezones.map { |timezone| timezone.tzid.to_s }
+      original.timezones.each { |timezone| cal.add_timezone(timezone) unless timezone.tzid.to_s.in?(described) }
     rescue Icalendar::Parser::ParseError, ArgumentError => e
       Rails.logger.warn("Couldn't keep the exceptions of event #{event.uid}: #{e.message}")
     end
