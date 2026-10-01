@@ -162,4 +162,59 @@ class RoomsTest < ApplicationSystemTestCase
     JS
     assert beside, "the cameras sit beside the shared screen, not under it"
   end
+
+  # After a deploy, Turbo reloads the page on the next click. In a call that
+  # stopped at "Leave site?" on every click, so you couldn't get to another tool.
+  test "in a call, going to another tool after a deploy keeps the call and gets there" do
+    visit tool_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "room"
+
+    # No video server here: leave the page the way joining a call does
+    page.execute_script(<<~JS)
+      const element = document.querySelector("[data-controller~='room']")
+      const room = window.Stimulus.getControllerForElementAndIdentifier(element, "room")
+      element._liveKitRoom = { state: "connected", localParticipant: { trackPublications: new Map() }, disconnect: async () => {} }
+      room._guardAgainstUnload()
+      room._keepCallThroughDeploys?.()
+      const container = document.getElementById("persistent-room")
+      container.hidden = false
+      container.appendChild(element)
+    JS
+    deploy
+    page.execute_script("window.sameDocument = true")
+
+    todos = tools(:my_todos)
+    click_sidebar_tool todos
+
+    assert_selector ".sidebar-tool-item[data-tool-id='#{todos.id}'][class~='sidebar-item-active']"
+    assert_current_path tool_todo_path(todos)
+    assert evaluate_script("window.sameDocument === true"), "the page wasn't reloaded"
+    assert_selector "#persistent-room [data-controller~='room']", visible: :all
+
+    # Once the call ends, the next visit reloads for the new scripts
+    page.execute_script(<<~JS)
+      window.Stimulus.getControllerForElementAndIdentifier(document.querySelector("[data-controller~='room']"), "room").leave()
+    JS
+    assert_no_selector "#persistent-room [data-controller~='room']", visible: :all
+    click_sidebar_tool tools(:project_board)
+
+    assert_current_path tool_board_path(tools(:project_board))
+    assert_not evaluate_script("window.sameDocument === true"), "the page was reloaded"
+  end
+
+  private
+
+  # What a deploy looks like to a page opened before it: the server now sends
+  # another stylesheet than the one the page has
+  def deploy
+    page.execute_script(<<~JS)
+      const link = document.querySelector("link[data-turbo-track='reload'][href*='tailwind']")
+      link.setAttribute("href", link.getAttribute("href") + "?before-the-deploy")
+    JS
+  end
+
+  def click_sidebar_tool(tool)
+    find(".sidebar-tool-item[data-tool-id='#{tool.id}'] a").click
+  end
 end
