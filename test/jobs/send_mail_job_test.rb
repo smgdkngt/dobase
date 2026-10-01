@@ -58,6 +58,27 @@ class SendMailJobTest < ActiveJob::TestCase
     assert_match "550 No such user", @sender.notifications.order(:created_at).last.message
   end
 
+  test "mail that can't be put together is a draft again, the sender hears why, and the error is reported" do
+    original = mails_messages(:inbox_read)
+    original.update!(body_html: %(<p>Lunch?</p><img src="cid:logo@example.com">))
+    logo = original.attachments.create!(filename: "logo.png", content_type: "image/png", file_size: 3, content_id: "logo@example.com")
+    logo.file.attach(io: StringIO.new("PNG"), filename: "logo.png", content_type: "image/png")
+    logo.file.blob.service.delete(logo.file.blob.key)
+    @draft.update!(quoted_message: original, in_reply_to: original.message_id)
+    smtp = SmtpTestHelper::FakeSmtp.new
+
+    report = assert_error_reported(ActiveStorage::FileNotFoundError) do
+      with_smtp(smtp) { perform_enqueued_jobs(only: SendMailJob) { SendMailJob.perform_later(@draft, @sender) } }
+    end
+
+    assert_empty smtp.deliveries
+    assert_equal [ "Drafts", true, false ], @draft.reload.values_at(:folder, :draft, :sending)
+    assert_equal({ mail_account_id: @draft.mail_account_id, mail_message_id: @draft.id }, report.context.slice(:mail_account_id, :mail_message_id))
+    assert_enqueued_with(job: SyncDraftJob, args: [ @draft.id ])
+    assert_equal "Couldn't send “Draft email”, it's in your drafts: Something went wrong before it reached the mail server",
+      @sender.notifications.order(:created_at).last.message
+  end
+
   private
 
   # A mail server whose name can't be looked up while unreachable returns true
