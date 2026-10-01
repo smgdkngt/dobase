@@ -34,6 +34,18 @@ document.addEventListener("turbo:before-morph-element", (event) => {
   }
 })
 
+// A key typed in a field inside a shadow root (the editor's link box) reaches the document
+// with the editor as its target, so the shortcut handlers there don't see a field and "c",
+// "/" or "?" fire while typing an address. Such keys stop before the document; the field
+// and the editor around it have had them by then. Combinations with Cmd/Ctrl pass.
+document.documentElement.addEventListener("keydown", (event) => {
+  if (event.metaKey || event.ctrlKey) return
+
+  const origin = event.composedPath()[0]
+  if (origin === event.target || !(origin instanceof HTMLElement)) return
+  if (origin.matches("input, textarea, select") || origin.isContentEditable) event.stopPropagation()
+})
+
 // Links with data-turbo-method are submitted through a form Turbo generates, which
 // copies data-turbo-confirm but not data-turbo-confirm-button. Remember the link that
 // was clicked, so its button label can be used when that form asks for confirmation.
