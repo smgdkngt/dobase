@@ -17,6 +17,7 @@ class SidePaneTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "html[data-in-side-pane]", count: 0
+    assert_select "meta[name='view-transition']"
     assert_select "aside.sidebar"
     assert_select "template#side-pane-template"
     assert_select "button[data-side-pane-toggle][data-tool-id='#{@tool.id}'][data-url='#{tool_path(@tool)}']"
@@ -36,6 +37,8 @@ class SidePaneTest < ActionDispatch::IntegrationTest
     assert_select "[data-controller~='notifications']", count: 0
     # It keeps its own command palette and shortcuts
     assert_select "dialog[data-controller~='command-palette']"
+    # And goes from page to page without the cross-fade Turbo would wait for
+    assert_select "meta[name='view-transition']", count: 0
   end
 
   test "the app can be framed by itself and by nobody else" do

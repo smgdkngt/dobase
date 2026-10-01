@@ -456,6 +456,8 @@ export default class extends Controller {
 
   // On this page; a page inside a tile hands the same keys on (heard, below)
   keyed(event) {
+    if (event.key === "Escape" && this.menuOpen) return this.closeMenu()
+
     const command = workspaceCommand(event)
     if (!command) return
 
@@ -479,8 +481,7 @@ export default class extends Controller {
         this.toggleAlone()
         break
       case "menu":
-        window.focus()
-        this.menuTarget.click()
+        this.toggleMenu()
         break
       case "launcher":
         this.launch()
@@ -521,9 +522,30 @@ export default class extends Controller {
     this.drawBar()
   }
 
+  // The sidebar is the menu here: in over the tiles, with the keyboard on its first
+  // tool, and out again with the keyboard back in the tile
+  get menu() {
+    return document.querySelector("[data-mobile-sidebar-target='sidebar']")
+  }
+
+  get menuOpen() {
+    return this.menu?.classList.contains("open")
+  }
+
+  toggleMenu() {
+    if (this.menuOpen) return this.closeMenu()
+
+    window.focus()
+    this.menuTarget.click()
+    this.menu?.querySelector("[data-sidebar-tool-link]")?.focus()
+  }
+
   closeMenu() {
+    if (!this.menuOpen) return
+
     const around = this.element.closest("[data-controller~='mobile-sidebar']")
     this.application.getControllerForElementAndIdentifier(around, "mobile-sidebar")?.close()
+    this.grabFocus()
   }
 
   // ── What the pages in the tiles say (side_pane_page_controller.js) ──
