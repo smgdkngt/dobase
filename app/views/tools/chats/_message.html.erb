@@ -31,7 +31,7 @@
      data-message-content="<%= truncate(message.body.to_plain_text, length: 100) %>">
 
   <!-- Avatar column -->
-  <div class="flex-shrink-0 w-9 sm:w-11">
+  <div class="chat-message-avatar flex-shrink-0 w-9 sm:w-11">
     <% unless is_continuation %>
       <%= render "shared/avatar", user: message.user, agent: message.agent?, size: :md, class: "sm:hidden" %><%= render "shared/avatar", user: message.user, agent: message.agent?, size: :xl, class: "hidden sm:inline-flex" %>
     <% else %>

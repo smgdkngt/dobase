@@ -4,7 +4,7 @@
   is_completed = item.completed?
   has_description = item.description.present?
 %>
-<div class="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-background-tertiary/50 transition-colors group <%= 'todo-item-completed' if is_completed %>"
+<div class="todo-item flex items-center gap-3 px-2 py-2 rounded-md hover:bg-background-tertiary/50 transition-colors group <%= 'todo-item-completed' if is_completed %>"
      id="todo-item-<%= item.id %>"
      data-sort-id="<%= item.id %>"
      data-item-id="<%= item.id %>"
