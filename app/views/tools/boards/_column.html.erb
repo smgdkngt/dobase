@@ -6,6 +6,13 @@
   archived_cards = cards.select(&:archived?)
   active_count = active_cards.size
   archived_count = archived_cards.size
+  # Deleting the column deletes every card in it: the archived ones, and the
+  # ones a filter is hiding, as well as the ones on screen
+  delete_confirmation = if cards.any?
+    "Delete this column and its #{pluralize(cards.size, "card")}#{" (#{archived_count} archived)" if archived_count > 0}?"
+  else
+    "Delete this column?"
+  end
 %>
 <div class="board-column flex flex-col bg-background-secondary rounded-lg max-h-full <%= 'collapsed' if collapsed_column_ids.include?(column.id) %>"
      id="board-column-<%= column.id %>"
@@ -43,9 +50,7 @@
             variant: :danger,
             href: tool_board_column_path(tool, column),
             method: :delete,
-            turbo_confirm: active_count > 0 ?
-              "Delete this column and its #{active_count} card#{'s' unless active_count == 1}?" :
-              "Delete this column?",
+            turbo_confirm: delete_confirmation,
             data: { turbo_confirm_button: "Delete" } %>
       <% else %>
         <button type="button"

@@ -37,6 +37,32 @@ module Tools
       assert_includes response.body, "reorder-mode"
     end
 
+    test "deleting a column asks about every card that goes with it" do
+      cards(:second_task).update!(archived_at: Time.current)
+
+      get tool_board_path(@tool, reorder: 1)
+
+      assert_select "#board-column-#{columns(:todo).id} [data-turbo-confirm=?]", "Delete this column and its 2 cards (1 archived)?"
+      assert_select "#board-column-#{columns(:done).id} [data-turbo-confirm=?]", "Delete this column and its 1 card?"
+    end
+
+    test "deleting a column counts the cards a filter hides too" do
+      cards(:first_task).update!(assigned_user: users(:one))
+
+      get tool_board_path(@tool, reorder: 1, assignee: "me")
+
+      assert_select "#board-column-#{columns(:todo).id} [data-turbo-confirm=?]", "Delete this column and its 2 cards?"
+      assert_select "#board-column-#{columns(:done).id} [data-turbo-confirm=?]", "Delete this column and its 1 card?"
+    end
+
+    test "deleting an empty column just asks" do
+      column = @tool.board.columns.create!(name: "Later", position: 9)
+
+      get tool_board_path(@tool, reorder: 1)
+
+      assert_select "#board-column-#{column.id} [data-turbo-confirm=?]", "Delete this column?"
+    end
+
     test "requires authentication" do
       sign_out
 
