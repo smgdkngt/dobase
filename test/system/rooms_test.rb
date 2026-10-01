@@ -47,6 +47,111 @@ class RoomsTest < ApplicationSystemTestCase
     assert_selector "[data-room-target='preJoinError'] button", text: "Try again"
   end
 
+  test "a camera that answers after the reader left the room is switched off again" do
+    visit tool_files_path(tools(:my_files))
+    wait_for_turbo
+    # A camera that answers when the test says so
+    page.execute_script(<<~JS)
+      const canvas = document.createElement("canvas")
+      canvas.getContext("2d")
+      window.__camera = canvas.captureStream()
+      navigator.mediaDevices.getUserMedia = () => new Promise(resolve => { window.__answer = () => resolve(window.__camera) })
+    JS
+
+    find(".sidebar a", text: @tool.name).click
+    wait_for_stimulus "room"
+    find(".sidebar a", text: "My Files").click
+    assert_selector "h1", text: "My Files"
+    assert_no_selector "[data-controller~='room']"
+
+    page.execute_script("window.__answer()")
+    page.document.synchronize do
+      stopped = evaluate_script("window.__camera.getTracks().every(track => track.readyState === 'ended')")
+      raise Capybara::ExpectationNotMet, "the camera is still on" unless stopped
+    end
+  end
+
+  test "a call that drops leaves nothing behind that later looks like a call" do
+    visit tool_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "room"
+    assert_selector "[data-room-target='preJoinError']", text: /camera|microphone/i, wait: 5
+    start_call_without_a_server
+
+    assert_selector "[data-room-mode-value='full'] [data-room-target='inCall']"
+    assert_selector ".sidebar [data-tool-id='#{@tool.id}'][data-in-call]"
+
+    page.execute_script("window.__dropCall()")
+
+    # A fresh pre-join page, told why
+    assert_text "You were disconnected from the call"
+    assert_selector "[data-room-target='preJoin']"
+    assert_no_selector "[data-room-mode-value='full']"
+    assert_no_selector "[data-in-call]"
+    assert_equal [ "DELETE", "remaining=1" ], evaluate_script("window.__activityPings.at(-1)")
+
+    find(".sidebar a", text: "My Files").click
+    assert_selector "h1", text: "My Files"
+    assert_no_selector "#persistent-room [data-controller~='room']", visible: :all
+    assert_no_selector "[data-in-call]"
+  end
+
+  test "a call that drops while in the small window takes the window away" do
+    visit tool_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "room"
+    assert_selector "[data-room-target='preJoinError']", text: /camera|microphone/i, wait: 5
+    start_call_without_a_server
+
+    find(".sidebar a", text: "My Files").click
+    assert_selector "h1", text: "My Files"
+    assert_selector "[data-room-mode-value='pip']"
+
+    page.execute_script("window.__dropCall()")
+
+    assert_text "You were disconnected from the call"
+    assert_no_selector "[data-room-mode-value]", visible: :all
+    assert_no_selector "[data-in-call]"
+    assert_selector "h1", text: "My Files"
+  end
+
+  test "the small call window is dragged by its bar, and stops following when the touch is cancelled" do
+    visit tool_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "room"
+    assert_selector "[data-room-target='preJoinError']", text: /camera|microphone/i, wait: 5
+    start_call_without_a_server
+    find(".sidebar a", text: "My Files").click
+    assert_selector "h1", text: "My Files"
+    assert_selector "[data-room-mode-value='pip']"
+
+    bar = "[data-room-mode-value='pip'] .tool-topbar"
+    assert_equal "none", evaluate_script("getComputedStyle(document.querySelector(#{bar.to_json})).touchAction")
+
+    drag = <<~JS
+      (() => {
+        const bar = document.querySelector(#{bar.to_json})
+        const corner = () => { const box = bar.getBoundingClientRect(); return [Math.round(box.left), Math.round(box.top)] }
+        const point = (type, target, x, y) => target.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerType: "touch" }))
+        const [left, top] = corner()
+
+        point("pointerdown", bar, left + 10, top + 5)
+        point("pointermove", document, left - 190, top - 95)
+        const dragged = corner()
+        point(arguments[0], document, left - 190, top - 95)
+        point("pointermove", document, left - 400, top - 300)
+
+        return [[left - 200, top - 100], dragged, corner()]
+      })()
+    JS
+
+    %w[pointerup pointercancel].each do |ending|
+      expected, dragged, afterwards = page.evaluate_script(drag.sub("arguments[0]", ending.to_json))
+      assert_equal expected, dragged, "the window follows the finger on its bar"
+      assert_equal dragged, afterwards, "the window kept following after #{ending}"
+    end
+  end
+
   test "shows a clear error when LiveKit isn't configured" do
     visit tool_path(@tool)
     wait_for_turbo
@@ -210,5 +315,52 @@ class RoomsTest < ApplicationSystemTestCase
       })()
     JS
     assert beside, "the cameras sit beside the shared screen, not under it"
+  end
+
+  private
+
+  # No video server here: puts the page in a call the way a finished join does, with a room
+  # that only knows how to drop. One other person is in it.
+  def start_call_without_a_server
+    page.evaluate_async_script(<<~JS)
+      const done = arguments[0]
+      import("livekit-client").then(({ RoomEvent, Track }) => {
+        const element = document.querySelector("[data-controller~='room']")
+        const controller = window.Stimulus.getControllerForElementAndIdentifier(element, "room")
+        const handlers = {}
+        const room = {
+          state: "connected",
+          remoteParticipants: new Map([["anna", { identity: "anna", name: "Anna", trackPublications: new Map() }]]),
+          localParticipant: { identity: "me", trackPublications: new Map() },
+          on(event, handler) { handlers[event] = handler; return this },
+          disconnect: async () => {}
+        }
+
+        window.__activityPings = []
+        const original = window.fetch
+        window.fetch = (url, options = {}) => {
+          if (String(url).includes("/activity")) window.__activityPings.push([options.method, String(url).split("?")[1] || ""])
+          return original(url, options)
+        }
+        window.__dropCall = () => {
+          room.state = "disconnected"
+          room.remoteParticipants.clear()
+          handlers[RoomEvent.Disconnected]()
+        }
+
+        controller._stopPreview()
+        controller.room = room
+        controller.LiveKitTrack = Track
+        controller._bindRoomEvents(RoomEvent)
+        element._liveKitRoom = room
+        element._liveKitTrack = Track
+        controller._pingActivity(true)
+        controller._guardAgainstUnload()
+        const container = document.getElementById("persistent-room")
+        container.hidden = false
+        container.appendChild(element)
+        done()
+      })
+    JS
   end
 end

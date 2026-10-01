@@ -107,13 +107,18 @@ export default class extends Controller {
 
   // ── Cross-container Tool Move ──
 
+  // The sortable saves the new order once this is done: a tool has to be in its new group
+  // before it can be given a place there, or it ends up last
   handleToolMove(event) {
-    const { itemId, fromId, toId } = event.detail
+    event.detail.waitUntil(this._moveTool(event.detail))
+  }
+
+  async _moveTool({ itemId, fromId, toId }) {
     if (fromId && fromId !== "ungrouped") {
-      apiDelete(`/sidebar_groups/${fromId}/memberships/${itemId}`)
+      await apiDelete(`/sidebar_groups/${fromId}/memberships/${itemId}`)
     }
     if (toId && toId !== "ungrouped") {
-      apiPost(`/sidebar_groups/${toId}/memberships`, { tool_id: itemId })
+      await apiPost(`/sidebar_groups/${toId}/memberships`, { tool_id: itemId })
     }
   }
 }

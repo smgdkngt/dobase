@@ -5,11 +5,27 @@ export default class extends Controller {
   static values = { open: Boolean }
 
   connect() {
+    this._afterMorph = this._afterMorph.bind(this)
+    this.element.addEventListener("turbo:morph-element", this._afterMorph)
     this.render()
+  }
+
+  disconnect() {
+    this.element.removeEventListener("turbo:morph-element", this._afterMorph)
   }
 
   toggle() {
     this.openValue = !this.openValue
+    this._chosen = this.openValue
+    this.render()
+  }
+
+  // A morph refresh puts back what the server rendered without connecting again, so
+  // what the reader opened or closed themselves is applied once more
+  _afterMorph(event) {
+    if (event.target !== this.element) return
+
+    if (this._chosen !== undefined) this.openValue = this._chosen
     this.render()
   }
 

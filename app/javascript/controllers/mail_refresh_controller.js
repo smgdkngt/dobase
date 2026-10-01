@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { pageInUse } from "services/page_in_use"
 
 const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content
 
@@ -41,8 +42,15 @@ export default class extends Controller {
     }
   }
 
+  // The refresh morphs the page back to what the server renders: it closes dialogs and
+  // menus, unticks the bulk checkboxes and empties a field that is being typed in. So it
+  // waits for a later turn while one of those is going on.
+  get busy() {
+    return pageInUse() || Boolean(this.element.querySelector("[data-mail-bulk-target='checkbox']:checked"))
+  }
+
   async sync() {
-    if (this.syncing || !this.urlValue) return
+    if (this.syncing || !this.urlValue || this.busy) return
     this.syncing = true
     if (this.hasIndicatorTarget) this.indicatorTarget.classList.remove("hidden")
 

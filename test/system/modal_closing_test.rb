@@ -26,6 +26,39 @@ class ModalClosingTest < ApplicationSystemTestCase
     assert_selector "#profile-modal", text: "Copy your new token now"
   end
 
+  test "a new token is copied on a site without a clipboard to write to, as over plain HTTP" do
+    visit tools_path
+    wait_for_turbo
+    find("button.sidebar-user-btn").click
+    within("#sidebar-user-menu") { click_on "Profile" }
+    assert_selector "#profile-modal[open]", wait: 5
+    within("#profile-modal") do
+      click_on "API"
+      find("input[name='name']").set("CLI")
+      click_on "Create token"
+    end
+    assert_selector "#profile-modal", text: "Copy your new token now"
+    wait_for_stimulus "clipboard"
+
+    # Browsers only offer navigator.clipboard on HTTPS and localhost
+    page.execute_script(<<~JS)
+      Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true })
+      document.addEventListener("copy", () => {
+        const field = document.activeElement
+        window.__copied = field.value.substring(field.selectionStart, field.selectionEnd)
+      })
+    JS
+
+    within("#profile-modal [data-controller='clipboard']", text: "Copy your new token now") do
+      token = find("input[aria-label='New access token']").value
+      click_on "Copy"
+
+      assert_button "Copied!"
+      assert_equal token, evaluate_script("window.__copied")
+      assert_button "Copy", exact: true
+    end
+  end
+
   test "inviting a collaborator keeps the edit-tool modal open" do
     tool = tools(:my_files)
     visit tool_files_path(tool)

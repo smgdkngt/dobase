@@ -62,6 +62,30 @@ class FilesGalleryTest < ApplicationSystemTestCase
     assert_text "1 / 2"
   end
 
+  test "a picture uploaded while the page is open shows in the large view" do
+    upload("one.png")
+
+    visit tool_files_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "gallery"
+    wait_for_stimulus "file-upload"
+
+    # Uploading refreshes the page without connecting the gallery again
+    find("[data-file-upload-target='input']", visible: :all)
+      .attach_file(Rails.root.join("test/fixtures/files/sample.png"), make_visible: true)
+    assert_selector "button[aria-label='View sample.png']", visible: :all
+    wait_for_turbo
+
+    find("button[aria-label='View sample.png']", visible: :all).execute_script("this.click()")
+
+    within("[data-gallery-target='overlay']") do
+      assert_text "sample.png"
+      assert_text "2 / 2"
+      assert_selector "img[alt='sample.png']"
+      assert_selector "button[title='Previous']"
+    end
+  end
+
   test "a folder with only one picture has no slideshow or step controls" do
     upload("only.png")
 

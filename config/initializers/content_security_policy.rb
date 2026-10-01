@@ -8,7 +8,8 @@ Rails.application.configure do
   config.content_security_policy do |policy|
     policy.default_src :self
     policy.font_src    :self, :data
-    policy.img_src     :self, :data, :https
+    # blob: for the preview of a picture picked in the chat, before it is sent
+    policy.img_src     :self, :data, :https, :blob
     policy.object_src  :none
     policy.script_src  :self
     policy.worker_src  :self, :blob

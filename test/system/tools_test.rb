@@ -41,6 +41,34 @@ class ToolsTest < ApplicationSystemTestCase
     assert Tool.exists?(@tool.id)
   end
 
+  test "a tool dropped at the top of a sidebar group stays there, however slowly the move is saved" do
+    group = users(:one).sidebar_groups.create!(name: "Work", position: 0)
+    group.memberships.create!(tool: tools(:my_files), position: 0)
+    visit tool_board_path(tools(:project_board))
+    wait_for_turbo
+    wait_for_stimulus "sidebar"
+    wait_for_stimulus "sortable", "[data-sidebar-target='groupContent']"
+
+    # What a drop of My Mail above My Files does, with the request that moves it held up
+    page.execute_script(<<~JS, tools(:my_mail).id, group.id)
+      const original = window.fetch
+      window.fetch = (url, options = {}) => {
+        const held = String(url).includes("/memberships") ? 500 : 0
+        return new Promise(resolve => setTimeout(resolve, held)).then(() => original(url, options))
+      }
+
+      const from = document.querySelector("[data-controller~='sortable'][data-group-id='ungrouped']")
+      const to = document.querySelector(`[data-sidebar-target='groupContent'][data-group-id='${arguments[1]}']`)
+      const item = from.querySelector(`[data-sort-id='${arguments[0]}']`)
+      to.prepend(item)
+      window.Stimulus.getControllerForElementAndIdentifier(to, "sortable").onEnd({ from, to, item })
+    JS
+
+    assert_db_change(-> { group.memberships.reload.size == 2 })
+    sleep 0.5
+    assert_equal [ tools(:my_mail), tools(:my_files) ], group.memberships.reload.map(&:tool)
+  end
+
   private
 
   def open_tool_settings

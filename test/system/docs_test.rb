@@ -22,6 +22,29 @@ class DocsTest < ApplicationSystemTestCase
     assert_eventually { @document.reload.content.to_plain_text.include?("Written at the last second") }
   end
 
+  test "typing an address in the editor's link box doesn't set off shortcuts" do
+    visit edit_tool_docs_document_path(@tool, @document)
+    wait_for_turbo
+    wait_for_stimulus "document-editor"
+    wait_for_stimulus "hotkey", "[data-hotkey='b']"
+    wait_for_stimulus "keyboard-shortcuts"
+
+    toolbar = find("rhino-editor").shadow_root
+    toolbar.find("[part~='toolbar__button--link']", match: :first).click
+    address = toolbar.find("input[part~='link-dialog__input']")
+    # b opens the notifications and ? the list of shortcuts, outside a field
+    address.send_keys("b?")
+
+    assert_equal "b?", address.value
+    assert_no_selector "dialog[open]"
+    assert_no_selector "#sidebar-notifications:popover-open"
+
+    # Cmd/Ctrl+K still opens the command palette from there
+    mod = evaluate_script("navigator.platform").match?(/Mac|iP/) ? :meta : :control
+    address.send_keys([ mod, "k" ])
+    assert_selector "dialog[data-controller='command-palette'][open]"
+  end
+
   test "the editor shows its own placeholder" do
     visit edit_tool_docs_document_path(@tool, docs_documents(:empty_document))
     wait_for_turbo

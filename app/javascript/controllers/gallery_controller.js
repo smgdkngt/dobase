@@ -15,22 +15,10 @@ export default class extends Controller {
 
   connect() {
     this.currentIndex = 0
-    this.images = this.hasImagesTarget
-      ? Array.from(this.imagesTarget.querySelectorAll("span")).map(el => ({
-          url: el.dataset.url,
-          name: el.dataset.name,
-          download: el.dataset.download
-        }))
-      : []
-
     this.slideshowTimer = null
     this.touchStartX = null
     this.handleKeydown = this.handleKeydown.bind(this)
-
-    const hasMultiple = this.images.length > 1
-    if (this.hasPrevButtonTarget) this.prevButtonTarget.hidden = !hasMultiple
-    if (this.hasNextButtonTarget) this.nextButtonTarget.hidden = !hasMultiple
-    if (this.hasSlideshowButtonTarget) this.slideshowButtonTarget.hidden = !hasMultiple
+    this._readImages()
   }
 
   disconnect() {
@@ -40,6 +28,9 @@ export default class extends Controller {
 
   open(event) {
     event.preventDefault()
+    // Read again on every opening: an upload, rename, move or delete morphs the page,
+    // which changes the list and each picture's index without connecting again
+    this._readImages()
     const index = parseInt(event.currentTarget.dataset.index, 10)
     this.currentIndex = Number.isNaN(index) ? 0 : index
     this._render()
@@ -111,6 +102,21 @@ export default class extends Controller {
   }
 
   // Private
+
+  _readImages() {
+    this.images = this.hasImagesTarget
+      ? Array.from(this.imagesTarget.querySelectorAll("span")).map(el => ({
+          url: el.dataset.url,
+          name: el.dataset.name,
+          download: el.dataset.download
+        }))
+      : []
+
+    const hasMultiple = this.images.length > 1
+    if (this.hasPrevButtonTarget) this.prevButtonTarget.hidden = !hasMultiple
+    if (this.hasNextButtonTarget) this.nextButtonTarget.hidden = !hasMultiple
+    if (this.hasSlideshowButtonTarget) this.slideshowButtonTarget.hidden = !hasMultiple
+  }
 
   _render() {
     const image = this.images[this.currentIndex]

@@ -18,7 +18,10 @@ module Tools
 
       respond_to do |format|
         format.html { load_week }
-        format.turbo_stream { load_week }
+        # A form on the calendar page comes back here after its redirect and gets a stream
+        # that refreshes the page where it is. A redirect that names a week wants that week
+        # shown, so it gets the page itself, which Turbo visits.
+        format.turbo_stream { load_week } unless params[:week_start].present?
         format.json { load_date_range }
       end
     end

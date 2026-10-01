@@ -255,6 +255,31 @@ class FilesTest < ApplicationSystemTestCase
     assert_no_selector "#{item_selector(readme)}.ring-accent"
   end
 
+  test "the same file can be uploaded twice in a row" do
+    # With a picture there already, the toolbar looks the same after the upload and the
+    # refresh keeps its elements
+    @tool.file_items.create!(name: "one.png", file: {
+      io: File.open(Rails.root.join("test/fixtures/files/sample.png")), filename: "one.png", content_type: "image/png"
+    })
+    visit tool_files_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "file-upload"
+    picture = Rails.root.join("test/fixtures/files/sample.png")
+
+    find("[data-file-upload-target='input']", visible: :all).attach_file(picture, make_visible: true)
+    assert_db_change(-> { @tool.file_items.where(name: "sample.png").count == 1 })
+    assert_selector "[aria-label='View sample.png']", visible: :all, count: 1
+    wait_for_turbo
+    # A browser only says a file was picked when the input changes, and the refresh after
+    # an upload keeps the input. (Selenium reports a change either way.)
+    assert_equal 0, evaluate_script("document.querySelector(\"[data-file-upload-target='input']\").files.length"),
+      "the input still holds the uploaded file, so picking it again would do nothing"
+
+    find("[data-file-upload-target='input']", visible: :all).attach_file(picture, make_visible: true)
+    assert_db_change(-> { @tool.file_items.where(name: "sample.png").count == 2 })
+    assert_selector "[aria-label='View sample.png']", visible: :all, count: 2
+  end
+
   test "dragging a folder into its own subfolder says why it can't go there" do
     documents = file_folders(:documents)
     subfolder = file_folders(:nested_folder)

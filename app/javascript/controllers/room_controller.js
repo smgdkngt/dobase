@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { showFlash } from "services/flash"
 
 export default class extends Controller {
   static targets = [
@@ -82,6 +83,7 @@ export default class extends Controller {
   disconnect() {
     this._tileObserver?.disconnect()
     this._tileObserver = null
+    this._stopDrag()
     if (this._isDuplicate) return
     if (this.element._liveKitRoom) return // Being moved, skip cleanup
 
@@ -199,10 +201,6 @@ export default class extends Controller {
     const wasOnRoomPage = window.location.pathname === this.toolPathValue
 
     this._pingActivity(false)
-    if (this._boundPageHide) {
-      window.removeEventListener("pagehide", this._boundPageHide)
-      this._boundPageHide = null
-    }
 
     // Stop all local media tracks (camera/mic/screen share) explicitly
     if (this.room) {
@@ -213,6 +211,18 @@ export default class extends Controller {
       await this.room.disconnect()
     }
     this.room = null
+
+    this._endCall(wasOnRoomPage)
+  }
+
+  // Takes the call off the page, whether it was left or it dropped: nothing may stay
+  // behind that makes the next visit (connect() runs again on every one) take this
+  // element for a call that is still going.
+  _endCall(wasOnRoomPage) {
+    if (this._boundPageHide) {
+      window.removeEventListener("pagehide", this._boundPageHide)
+      this._boundPageHide = null
+    }
 
     window.removeEventListener("beforeunload", this.element._guardUnload)
     delete this.element._guardUnload
@@ -236,6 +246,23 @@ export default class extends Controller {
     // On room page: reload for fresh pre-join view
     if (wasOnRoomPage) {
       Turbo.visit(this.toolPathValue, { action: "replace" })
+    }
+  }
+
+  // The connection gave out during a call. The room is gone, so the call ends here as it
+  // does for someone who leaves, and they are told why.
+  _callDropped(remaining) {
+    const wasOnRoomPage = window.location.pathname === this.toolPathValue
+    const message = "You were disconnected from the call. Check your connection and join again."
+
+    this._pingActivity(false, remaining)
+    this._endCall(wasOnRoomPage)
+
+    if (wasOnRoomPage) {
+      // The fresh pre-join page brings its own place for the message
+      document.addEventListener("turbo:load", () => showFlash(message), { once: true })
+    } else {
+      showFlash(message)
     }
   }
 
@@ -305,6 +332,7 @@ export default class extends Controller {
   startDrag(event) {
     if (this.modeValue !== "pip") return
     event.preventDefault()
+    this._stopDrag()
 
     const rect = this.element.getBoundingClientRect()
     this._dragOffsetX = event.clientX - rect.left
@@ -318,12 +346,22 @@ export default class extends Controller {
       this.element.style.right = "auto"
       this.element.style.bottom = "auto"
     }
-    this._onPointerUp = () => {
-      document.removeEventListener("pointermove", this._onPointerMove)
-      document.removeEventListener("pointerup", this._onPointerUp)
-    }
+    this._onPointerUp = () => this._stopDrag()
     document.addEventListener("pointermove", this._onPointerMove)
     document.addEventListener("pointerup", this._onPointerUp)
+    document.addEventListener("pointercancel", this._onPointerUp)
+  }
+
+  // A touch the browser takes over ends with pointercancel instead of pointerup. Unheard,
+  // the window kept following every pointer that moved afterwards.
+  _stopDrag() {
+    if (!this._onPointerMove) return
+
+    document.removeEventListener("pointermove", this._onPointerMove)
+    document.removeEventListener("pointerup", this._onPointerUp)
+    document.removeEventListener("pointercancel", this._onPointerUp)
+    this._onPointerMove = null
+    this._onPointerUp = null
   }
 
   async changePreviewCamera() {
@@ -506,13 +544,13 @@ export default class extends Controller {
     if (this.hasPreJoinErrorTarget) this.preJoinErrorTarget.classList.add("hidden")
   }
 
-  _pingActivity(active) {
+  _pingActivity(active, remaining = this._remainingParticipantCount()) {
     if (!this.activityUrlValue) return
     // A leave ping carries how many participants are still in the call, so the
     // sidebar dot only clears for everyone once the last one has left.
     const url = active
       ? this.activityUrlValue
-      : `${this.activityUrlValue}?remaining=${this._remainingParticipantCount()}`
+      : `${this.activityUrlValue}?remaining=${remaining}`
     fetch(url, {
       method: active ? "POST" : "DELETE",
       keepalive: true,
@@ -576,7 +614,16 @@ export default class extends Controller {
 
   async _requestDeviceAccess() {
     try {
-      this.previewStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+      // The browser can take a while to answer (a permission prompt, a slow camera). By
+      // then the reader may have left the page or joined the call, and nothing would
+      // ever stop this stream: the camera light stayed on.
+      this._stopPreview()
+      if (!this.element.isConnected || this.room) {
+        stream.getTracks().forEach(track => track.stop())
+        return
+      }
+      this.previewStream = stream
       if (this.hasPreviewVideoTarget) {
         this.previewVideoTarget.srcObject = this.previewStream
       }
@@ -703,18 +750,27 @@ export default class extends Controller {
       .on(RoomEvent.Reconnecting, () => this._showReconnecting())
       .on(RoomEvent.Reconnected, () => this._hideReconnecting())
       .on(RoomEvent.Disconnected, () => {
+        const dropped = !this._leavingIntentionally
+        // The room has let go of everyone by now; their tiles still say who was there
+        const others = this.videoGridTarget.querySelectorAll("[data-participant-id]").length
+        this._leavingIntentionally = false
+
         this.room = null
         this._resetSpotlight()
         this._hideReconnecting()
         this.videoGridTarget.innerHTML = ""
         this._clearLocalVideo()
         this.updateParticipantCount()
-        if (!this._leavingIntentionally) {
+        if (!dropped) return
+
+        if (this.element._liveKitRoom) {
+          this._callDropped(others)
+        } else {
+          // Dropped while still joining: back to the pre-join page it never left
           this._showPreJoin()
           this._requestDeviceAccess()
           this._showJoinError("You were disconnected from the call. Check your connection and try again.", () => this.join())
         }
-        this._leavingIntentionally = false
       })
   }
 

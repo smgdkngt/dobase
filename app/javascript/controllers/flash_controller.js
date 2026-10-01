@@ -4,7 +4,8 @@ export default class extends Controller {
   static targets = ["message"]
   static values = {
     autoDismiss: { type: Boolean, default: true },
-    dismissAfter: { type: Number, default: 5000 }
+    dismissAfter: { type: Number, default: 5000 },
+    toast: { type: Boolean, default: false }
   }
 
   connect() {
@@ -28,7 +29,9 @@ export default class extends Controller {
     message.classList.add("flash-dismiss")
     setTimeout(() => {
       message.remove()
-      if (this.messageTargets.length === 0) this.element.remove()
+      // An empty inline holder would leave its margin behind. The toast holder stays:
+      // messages made on the page later are put in it.
+      if (this.messageTargets.length === 0 && !this.toastValue) this.element.remove()
     }, 200)
   }
 }

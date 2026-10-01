@@ -163,7 +163,7 @@
   <!-- Time grid, opened at the hour before now, or at the start of a working day -->
   <div class="week-body" data-scroll-hour="<%= days.include?(today) ? [Time.current.hour - 1, 0].max : 8 %>">
     <!-- Time labels column -->
-    <div class="time-labels">
+    <div class="time-labels" data-calendar-target="hours">
       <% hours.each do |hour| %>
         <div class="time-label">
           <span class="text-xs text-text-tertiary"><%= format_hour(hour) %></span>
@@ -178,8 +178,8 @@
           is_today = day == today
           day_events = timed_by_day[day] || []
         %>
-        <div class="week-column <%= 'today' if is_today %>"
-             data-date="<%= day.iso8601 %>">
+        <%= tag.div class: [ "week-column", { today: is_today } ],
+              data: { date: day.iso8601, calendar_target: ("today" if is_today) } do %>
 
           <!-- Hour slots -->
           <% hours.each do |hour| %>
@@ -210,7 +210,7 @@
               <div class="h-0.5 bg-error"></div>
             </div>
           <% end %>
-        </div>
+        <% end %>
       <% end %>
     </div>
   </div>

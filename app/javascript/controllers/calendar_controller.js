@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["grid", "eventModal", "eventDetailDialog", "newEventDialog", "newEventModal", "weekInput", "startTimeInput", "endTimeInput"]
+  static targets = ["grid", "hours", "today", "eventModal", "eventDetailDialog", "newEventDialog", "newEventModal", "weekInput", "startTimeInput", "endTimeInput"]
   static values = {
     toolId: Number,
     weekStart: String
@@ -28,26 +28,36 @@ export default class extends Controller {
   saveScrollPosition() {
     if (this.hasGridTarget) {
       sessionStorage.setItem("calendar-scroll-top", this.gridTarget.scrollTop.toString())
-      sessionStorage.setItem("calendar-scroll-left", this.gridTarget.scrollLeft.toString())
     }
   }
 
   restoreScrollPosition() {
     const top = sessionStorage.getItem("calendar-scroll-top")
-    const left = sessionStorage.getItem("calendar-scroll-left")
 
     if (top && this.hasGridTarget) {
       sessionStorage.removeItem("calendar-scroll-top")
-      sessionStorage.removeItem("calendar-scroll-left")
 
       requestAnimationFrame(() => {
         this.gridTarget.scrollTop = parseInt(top, 10)
-        if (left) this.gridTarget.scrollLeft = parseInt(left, 10)
       })
     } else {
       // No saved position - scroll to current time
       this.scrollToCurrentTime()
     }
+    this.scrollToToday()
+  }
+
+  // On a narrow screen the week is wider than the grid and opened on Monday, with today
+  // somewhere off to the right. This week opens with today's column first, right after
+  // the hours; another week has no today and starts at its Monday. Where all seven days
+  // fit there is nothing to scroll.
+  scrollToToday() {
+    if (!this.hasGridTarget || !this.hasTodayTarget || !this.hasHoursTarget) return
+
+    requestAnimationFrame(() => {
+      const afterHours = this.gridTarget.getBoundingClientRect().left + this.hoursTarget.offsetWidth
+      this.gridTarget.scrollLeft += this.todayTarget.getBoundingClientRect().left - afterHours
+    })
   }
 
   // Opens the week at the hour the grid asks for (the one before now, in the
@@ -169,27 +179,22 @@ export default class extends Controller {
     this.navigateToWeek(monday)
   }
 
+  // A date input, not a week input: Safari and Firefox have no week picker
   openWeekPicker() {
-    if (this.hasWeekInputTarget) {
+    if (!this.hasWeekInputTarget) return
+
+    try {
       this.weekInputTarget.showPicker()
+    } catch {
+      this.weekInputTarget.focus()
+      this.weekInputTarget.click()
     }
   }
 
   jumpToWeek(event) {
-    const weekValue = event.target.value // Format: "2024-W07"
-    if (!weekValue) return
+    if (!event.target.value) return
 
-    const [year, week] = weekValue.split("-W")
-    const date = this.getDateOfISOWeek(parseInt(week), parseInt(year))
-    this.navigateToWeek(date)
-  }
-
-  getDateOfISOWeek(week, year) {
-    const jan4 = new Date(year, 0, 4)
-    const dayOfWeek = jan4.getDay() || 7
-    const monday = new Date(jan4)
-    monday.setDate(jan4.getDate() - dayOfWeek + 1 + (week - 1) * 7)
-    return monday
+    this.navigateToWeek(this.getMonday(this.parseDate(event.target.value)))
   }
 
   previousWeek() {
@@ -210,9 +215,11 @@ export default class extends Controller {
     return new Date(year, month - 1, day)
   }
 
+  // A Turbo visit, not a page load: loading the page anew would end a call that is
+  // going on in the corner (the browser asks "Leave site?" first)
   navigateToWeek(date) {
     const weekStart = this.formatDate(date)
-    window.location.href = `/tools/${this.toolIdValue}/calendar?week_start=${weekStart}`
+    Turbo.visit(`/tools/${this.toolIdValue}/calendar?week_start=${weekStart}`)
   }
 
   getMonday(date) {

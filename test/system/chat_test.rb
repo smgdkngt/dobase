@@ -39,6 +39,41 @@ class ChatTest < ApplicationSystemTestCase
     assert_selector "[data-filesize]", text: "2 KB"
   end
 
+  test "a picked picture shows as a preview before it is sent" do
+    visit tool_chat_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "chat"
+
+    find("[data-chat-target='fileInput']", visible: :all)
+      .attach_file(Rails.root.join("test/fixtures/files/sample.png"), make_visible: true)
+
+    # The preview is a blob: address, which the content security policy has to allow
+    assert_selector("[data-chat-target='filePreview'] img[alt='sample.png']") do |image|
+      image.evaluate_script("this.complete && this.naturalWidth > 0")
+    end
+  end
+
+  test "Enter pressed twice on a slow connection sends the message once" do
+    visit tool_chat_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "chat"
+    wait_for_stimulus "rich-text-input"
+
+    editable = find("form rhino-editor .ProseMirror")
+    editable.click
+    editable.send_keys("Are you there?")
+    page.driver.browser.network_conditions = { offline: false, latency: 700, throughput: 1_000_000 }
+    editable.send_keys(:enter)
+    editable.send_keys(:enter)
+
+    assert_selector "#chat_messages", text: "Are you there?"
+    wait_for_turbo
+    sleep 1
+    assert_equal 1, @tool.chat.messages.count
+  ensure
+    page.driver.browser.delete_network_conditions
+  end
+
   test "an empty message can't be sent" do
     visit tool_chat_path(@tool)
     wait_for_turbo
@@ -154,6 +189,45 @@ class ChatTest < ApplicationSystemTestCase
       "expected the older messages to go in above the reader, not to drop them at the top of the chat"
   end
 
+  test "what arrives leaves a reader who scrolled up where they are, and their own message brings them back" do
+    colleague = users(:two)
+    @tool.collaborators.create!(user: colleague, role: "collaborator")
+    messages = 30.times.map do |index|
+      @tool.chat.messages.create!(user: colleague, body: "<p>Message #{index}</p><p>with</p><p>more lines</p>")
+    end
+
+    visit tool_chat_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "chat"
+    assert_text "Message 29"
+    assert_operator chat_scroll_top, :>, 200, "the chat should be long enough to scroll"
+
+    # At the newest message, the reader follows what arrives
+    @tool.chat.messages.create!(user: colleague, body: "<p>Lunch?</p>")
+    assert_text "Lunch?"
+    assert_at_newest_message
+
+    scroll_chat_to 100
+    messages.last.reactions.create!(user: colleague, emoji: "🎉")
+    assert_selector ".chat-reaction", text: "🎉"
+    messages.last.update!(body: "<p>Rewritten</p>")
+    assert_text "Rewritten"
+    messages.first.destroy!
+    assert_no_text "Message 0"
+    ChatChannel.typing(@tool.chat, colleague)
+    assert_text "#{colleague.name} is typing..."
+    @tool.chat.messages.create!(user: colleague, body: "<p>Pizza</p>")
+    assert_text "Pizza"
+    # Scrolling to the newest message happened a moment after each of those
+    sleep 0.3
+    assert_operator chat_distance_from_newest, :>, 200, "the reader was taken to the newest message"
+
+    fill_in_editor "Fine by me"
+    click_send
+    assert_text "Fine by me"
+    assert_at_newest_message
+  end
+
   test "an author rewrites their own message from the page, and it says it was edited" do
     @tool.chat.messages.create!(user: @user, body: "<p>Tpyo</p>")
 
@@ -193,6 +267,29 @@ class ChatTest < ApplicationSystemTestCase
   end
 
   private
+
+  def chat_scroll_top
+    evaluate_script("document.querySelector(\"[data-chat-target='messages']\").scrollTop")
+  end
+
+  def chat_distance_from_newest
+    evaluate_script(<<~JS)
+      (() => {
+        const list = document.querySelector("[data-chat-target='messages']")
+        return list.scrollHeight - list.scrollTop - list.clientHeight
+      })()
+    JS
+  end
+
+  def assert_at_newest_message
+    page.document.synchronize do
+      raise Capybara::ExpectationNotMet, "the chat isn't at its newest message" unless chat_distance_from_newest < 5
+    end
+  end
+
+  def scroll_chat_to(top)
+    execute_script("document.querySelector(\"[data-chat-target='messages']\").scrollTop = #{top}")
+  end
 
   # Submits a genuinely blank body straight to the server (bypassing the
   # client-side isEmpty guard, which is exercised separately by "an empty

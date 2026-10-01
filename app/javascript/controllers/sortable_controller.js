@@ -50,12 +50,22 @@ export default class extends Controller {
     if (this.hasGroupValue) opts.group = this.groupValue
     if (this.hasHandleValue) {
       opts.handle = this.handleValue
+    } else {
+      // The whole item is the handle, so on a touch screen a drag would start under every
+      // finger that lands on one, and a swipe would move a card instead of scrolling the
+      // page. A finger has to rest on the item first; a mouse drags right away.
+      opts.delay = 200
+      opts.delayOnTouchOnly = true
+      opts.touchStartThreshold = 5
+      // With pointer events, Sortable misses the end of a swipe the browser took over for
+      // scrolling (pointercancel) and ignores the next touch; touch events end properly.
+      opts.supportPointer = false
     }
 
     this.sortable = new Sortable(this.element, opts)
   }
 
-  onEnd(evt) {
+  async onEnd(evt) {
     // Defer resetting dragInProgress until after MutationObserver callbacks
     // have been processed. SortableJS DOM cleanup (ghost removal, class changes)
     // triggers Stimulus disconnect/connect via MutationObserver. If we reset
@@ -64,13 +74,19 @@ export default class extends Controller {
     requestAnimationFrame(() => { dragInProgress = false })
 
     if (evt.from !== evt.to) {
+      // Whoever hears the move may have to tell the server first (the sidebar moves the
+      // tool to its new group). The order is only saved once that is done: saved earlier,
+      // it would not include an item the server doesn't know to be there yet.
+      const pending = []
       this.dispatch("move", {
         detail: {
           itemId: evt.item.dataset.sortId,
           fromId: evt.from.dataset.groupId,
-          toId: evt.to.dataset.groupId
+          toId: evt.to.dataset.groupId,
+          waitUntil: (promise) => pending.push(promise)
         }
       })
+      await Promise.all(pending)
     }
 
     // Save the order of the target container
