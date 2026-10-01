@@ -219,6 +219,21 @@ class MailsTest < ApplicationSystemTestCase
     assert_equal [ "ann@example.com" ], @tool.mail_account.messages.drafts.find_by!(subject: "Plans").to_addresses_list
   end
 
+  test "coming back to a message being written shows each recipient once" do
+    visit new_tool_mail_path(@tool, to: "friend@example.com, ann@example.com")
+    wait_for_stimulus "email-autocomplete"
+    wait_for_turbo
+    assert_selector "[data-email-autocomplete-target='tags'] > span", count: 2
+
+    click_on "Project Board"
+    assert_current_path tool_board_path(tools(:project_board)), wait: 10
+    page.go_back
+
+    assert_selector "[data-email-autocomplete-target='tags'] > span", text: "friend@example.com"
+    assert_selector "[data-email-autocomplete-target='tags'] > span", count: 2
+    assert_equal "friend@example.com, ann@example.com", find("input[name='to']", visible: :hidden).value
+  end
+
   test "a reply sent off shows in its conversation as being sent, until it has gone out" do
     original = mails_messages(:inbox_read)
     visit new_tool_mail_path(@tool, reply_to: original.id, folder: "inbox")

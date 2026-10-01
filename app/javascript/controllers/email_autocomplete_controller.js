@@ -10,6 +10,9 @@ export default class extends Controller {
     this._addresses = []
     this._selectedIndex = -1
 
+    // A page that comes back from Turbo's cache (the Back button) still has the tags it was left with
+    this.tagsTarget.replaceChildren()
+
     // Parse any pre-filled addresses
     const initial = this.hiddenTarget.value
     if (initial) {
