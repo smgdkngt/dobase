@@ -68,8 +68,14 @@ func danger() tcell.Color  { return rgb(239, 68, 68) }
 func dim() Style  { return Style{}.Fg(muted()) }
 func bold() Style { return Style{}.With(Bold) }
 
-// selected is the selected row: reversed, so it shows even without color.
-func selected() Style { return Style{}.Bg(accent()).Fg(tcell.ColorWhite).With(Bold) }
+// selected is the selected row: white on the accent color, or reversed when
+// there's no color to show it with.
+func selected() Style {
+	if colorDepth() == depthNone {
+		return Style{}.With(Reversed | Bold)
+	}
+	return Style{}.Bg(accent()).Fg(tcell.ColorWhite).With(Bold)
+}
 
 // cardColor is a card's color, as the app names them.
 func cardColor(name string) (tcell.Color, bool) {
