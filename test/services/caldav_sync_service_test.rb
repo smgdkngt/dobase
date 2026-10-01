@@ -324,12 +324,14 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     calendar = calendars_calendars(:personal)
     calendar.update!(sync_token: nil, ctag: nil)
 
-    # Create an event that exists locally but not on server
+    # An event the server had, and no longer lists
     orphan = calendar.events.create!(
       uid: "orphan-event",
       summary: "Orphan",
       starts_at: 1.hour.from_now,
-      ends_at: 2.hours.from_now
+      ends_at: 2.hours.from_now,
+      etag: "etag-orphan",
+      remote_href: "#{calendar.remote_url}orphan-event.ics"
     )
 
     stub_request(:report, calendar.remote_url)
@@ -346,10 +348,27 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     assert calendar.events.exists?(uid: "server-event")
   end
 
+  test "full_sync keeps events that never reached the server" do
+    calendar = calendars_calendars(:personal)
+    calendar.update!(sync_token: nil, ctag: nil)
+    calendar.events.destroy_all
+    # Made here while the server was listing its events, or refused by it when it was pushed
+    unsent = calendar.events.create!(uid: "unsent@dobase", summary: "Not on the server yet", starts_at: 1.hour.from_now, ends_at: 2.hours.from_now)
+
+    stub_request(:report, calendar.remote_url).to_return(status: 207, body: calendar_query_response([ { uid: "server-event", summary: "Server Event" } ]))
+    stub_request(:propfind, calendar.remote_url).to_return(status: 207, body: sync_token_response)
+
+    @service.sync_calendar(calendar)
+
+    assert_equal [ "server-event", "unsent@dobase" ], calendar.events.order(:uid).pluck(:uid)
+    assert_nil unsent.reload.remote_href
+  end
+
   test "an untitled or invalid event doesn't hold up the sync" do
     personal = calendars_calendars(:personal)
     work = calendars_calendars(:work)
     [ personal, work ].each { |calendar| calendar.update!(sync_token: nil, ctag: nil) }
+    personal.events.destroy_all
 
     stub_request(:report, personal.remote_url).to_return(status: 207, body: calendar_query_response([
       { uid: "untitled", ics: <<~ICS },

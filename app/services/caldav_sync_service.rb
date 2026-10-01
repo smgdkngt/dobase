@@ -416,6 +416,11 @@ class CaldavSyncService
   end
 
   def full_sync(calendar)
+    # Only an event the server had before it was asked can have been deleted there. One that never
+    # reached it (refused when it was pushed, or made while this sync runs) isn't in its answer either.
+    events = calendar.events
+    known_to_server = events.where.not(remote_href: [ nil, "" ]).or(events.where.not(etag: [ nil, "" ])).pluck(:id, :uid)
+
     response = report(calendar.remote_url, Caldav::Xml.calendar_query)
 
     if response.status == 404
@@ -429,18 +434,14 @@ class CaldavSyncService
     doc = Caldav::Xml.parse(response.body)
     events_data = parse_calendar_data_response(doc)
 
-    # Mark all existing events for potential deletion
-    existing_uids = calendar.events.pluck(:uid)
-    synced_uids = []
-
-    events_data.each do |event_data|
+    synced_uids = events_data.map do |event_data|
       save_event(calendar, event_data)
-      synced_uids << event_data[:uid]
+      event_data[:uid]
     end
 
     # Remove events that no longer exist on server
-    removed_uids = existing_uids - synced_uids
-    calendar.events.where(uid: removed_uids).destroy_all if removed_uids.any?
+    removed_ids = known_to_server.reject { |_id, uid| synced_uids.include?(uid) }.map(&:first)
+    calendar.events.where(id: removed_ids).destroy_all if removed_ids.any?
 
     # Update sync token
     update_calendar_sync_token(calendar)
