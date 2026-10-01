@@ -4,7 +4,6 @@ module Tools
   module Mails
     class BulkActionsController < ApplicationController
       include ToolScoped
-      include FolderValidation
       include NextMailNavigation
 
       # Each selected message can queue an IMAP job. Select-all in the mail list only covers the current page.
@@ -32,8 +31,10 @@ module Tools
           count = @mail_account.restore(conversations_of(messages, "trash").to_a).size
           "#{count} email(s) restored."
         when "archive"
-          messages = conversations_of(messages, folder).where(archived: false)
           archive_folder = @mail_account.archive_folder.presence
+          messages = conversations_of(messages, folder).where(archived: false)
+          # Mail in the server's archive folder is archived already
+          messages = messages.where(folder: nil).or(messages.where.not(folder: archive_folder)) if archive_folder
           messages.where.not(uid: nil).find_each do |message|
             if archive_folder
               ImapSyncJob.perform_later(@mail_account.id, "move_to_folder", message.uid, message.folder || "INBOX", archive_folder)
@@ -52,11 +53,11 @@ module Tools
           count = messages.update_all(read: read)
           "#{count} email(s) marked as #{read ? "read" : "unread"}."
         when "move_to_folder"
-          target_folder = params[:target_folder].to_s.strip
-          if valid_folder_name?(target_folder)
+          target_folder = @mail_account.folder_to_move_to(params[:target_folder])
+          if target_folder
             messages = conversations_of(messages, folder)
             moved = messages.to_a.each { |message| message.move_to_folder!(target_folder) }
-            "#{moved.size} email(s) moved to #{target_folder}."
+            "#{moved.size} email(s) moved to #{helpers.mail_folder_name(target_folder)}."
           else
             "Invalid folder name."
           end

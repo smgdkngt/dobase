@@ -432,12 +432,76 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_equal "héllo", incoming_message.send(:safe_utf8, "héllo")
   end
 
-  test "safe_utf8 replaces invalid bytes with the replacement character" do
+  test "safe_utf8 replaces invalid bytes with the replacement character, and keeps the letters around them" do
     invalid = (+"héllo").force_encoding("ASCII-8BIT") + "\xC3".b
     result = incoming_message.send(:safe_utf8, invalid)
 
     assert_equal Encoding::UTF_8, result.encoding
-    assert_includes result, "�"
+    assert_equal "héllo�", result
+    assert_equal "héllo�", incoming_message.send(:safe_utf8, "héllo\xC3")
+  end
+
+  # net-imap hands a message over as bytes; its Content-Type says which letters they are
+
+  test "a mail of one part keeps its letters, however it was encoded for the way" do
+    bodies = { "8bit" => "Eén café kost €5", "quoted-printable" => [ "Eén café kost €5" ].pack("M"), "base64" => [ "Eén café kost €5" ].pack("m") }
+
+    bodies.each do |transfer_encoding, body|
+      incoming_message.send(:save_email, fetch_data(11, one_part_mail("text/plain; charset=UTF-8", body, transfer_encoding: transfer_encoding, id: transfer_encoding)), "INBOX")
+
+      assert_equal "Eén café kost €5", @account.messages.find_by!(message_id: "#{transfer_encoding}@example.com").body_plain.strip, transfer_encoding
+    end
+  end
+
+  test "a mail of only HTML keeps its letters, in the HTML and in its text" do
+    incoming_message.send(:save_email, fetch_data(11, one_part_mail("text/html; charset=UTF-8", "<p>Eén café kost €5</p>")), "INBOX")
+
+    email = @account.messages.find_by!(message_id: "one-part@example.com")
+    assert_equal "<p>Eén café kost €5</p>", email.body_html
+    assert_equal "Eén café kost €5", email.body_plain
+  end
+
+  test "a mail in another charset is read in that charset" do
+    { "ISO-8859-1" => "Eén café", "windows-1252" => "Eén café kost €5", '"Windows-1252"' => "“Eén café”" }.each_with_index do |(charset, text), index|
+      raw = one_part_mail("text/plain; charset=#{charset}", text.encode(charset.delete('"')), id: "charset-#{index}")
+      incoming_message.send(:save_email, fetch_data(11, raw), "INBOX")
+
+      assert_equal text, @account.messages.find_by!(message_id: "charset-#{index}@example.com").body_plain, charset
+    end
+  end
+
+  test "a mail without a Content-Type is plain text" do
+    incoming_message.send(:save_email, fetch_data(11, one_part_mail(nil, "Eén café kost €5")), "INBOX")
+
+    email = @account.messages.find_by!(message_id: "one-part@example.com")
+    assert_equal "Eén café kost €5", email.body_plain
+    assert_nil email.body_html
+  end
+
+  test "text that doesn't name its charset is read as UTF-8 when it is that, and as Windows-1252 otherwise" do
+    incoming_message.send(:save_email, fetch_data(11, one_part_mail("text/plain", "Eén café kost €5", id: "unnamed-utf8")), "INBOX")
+    incoming_message.send(:save_email, fetch_data(12, one_part_mail("text/plain", "Eén café kost €5".encode("Windows-1252"), id: "unnamed-1252")), "INBOX")
+    incoming_message.send(:save_email, fetch_data(13, one_part_mail("text/plain; charset=us-ascii", "Eén café kost €5", id: "wrongly-named")), "INBOX")
+    incoming_message.send(:save_email, fetch_data(14, one_part_mail(nil, "Eén café".encode("ISO-8859-1"), id: "no-type-latin")), "INBOX")
+    incoming_message.send(:save_email, fetch_data(15, one_part_mail("text/plain; charset=utf-7", "Eén café kost €5", id: "unreadable-charset")), "INBOX")
+
+    assert_equal [ "Eén café kost €5" ] * 3 + [ "Eén café", "Eén café kost €5" ],
+      %w[unnamed-utf8 unnamed-1252 wrongly-named no-type-latin unreadable-charset].map { |id| @account.messages.find_by!(message_id: "#{id}@example.com").body_plain }
+  end
+
+  test "the parts of a mail that don't name their charset keep their letters too" do
+    raw = one_part_mail("multipart/alternative; boundary=b", "--b\r\nContent-Type: text/plain\r\nContent-Transfer-Encoding: 8bit\r\n\r\nEén café kost €5\r\n" \
+      "--b\r\nContent-Type: text/html\r\nContent-Transfer-Encoding: 8bit\r\n\r\n<p>Eén café kost €5</p>\r\n--b--\r\n")
+    incoming_message.send(:save_email, fetch_data(11, raw), "INBOX")
+
+    email = @account.messages.find_by!(message_id: "one-part@example.com")
+    assert_equal [ "Eén café kost €5", "<p>Eén café kost €5</p>" ], [ email.body_plain.strip, email.body_html.strip ]
+  end
+
+  test "a byte that is no letter in the mail's charset is replaced, the rest is kept" do
+    incoming_message.send(:save_email, fetch_data(11, one_part_mail("text/plain; charset=UTF-8", "caf\xC3\xA9 \x81 thee".b)), "INBOX")
+
+    assert_equal "café � thee", @account.messages.find_by!(message_id: "one-part@example.com").body_plain
   end
 
   # --- Fetching and attachments -------------------------------------------------
@@ -486,6 +550,19 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
 
     email = @account.messages.find_by!(message_id: "pictures-3@example.com")
     assert_equal [ "photo.png" ], email.attachments.map(&:filename)
+  end
+
+  # A group ("undisclosed-recipients:;", "team: ann@example.com, bob@example.com;") is listed
+  # in the envelope as a start and an end without a host, around its members
+
+  test "the names of groups among the recipients aren't addresses" do
+    incoming_message.send(:save_email, fetch_data(8, mail_with_id("groups-8").to_s,
+      to: [ [ "undisclosed-recipients", nil ], [ nil, nil ] ],
+      cc: [ [ "team", nil ], %w[ann example.com], %w[bob example.com], [ nil, nil ], %w[cc example.com] ]), "INBOX")
+
+    email = @account.messages.find_by!(message_id: "groups-8@example.com")
+    assert_equal [], email.to_addresses_list
+    assert_equal %w[ann@example.com bob@example.com cc@example.com], email.cc_addresses_list
   end
 
   test "a mail with only HTML gets the HTML's text as its text" do
@@ -570,6 +647,33 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_empty email.attachments
   end
 
+  test "a message with an empty Message-ID is saved under its UID" do
+    imap = FakeImap.new(uids: [ 4, 5, 6 ], messages: [
+      fetch_data(4, mail_with_id("empty-4").to_s, message_id: "<>"), fetch_data(5, mail_with_id("empty-5").to_s, message_id: ""),
+      fetch_data(6, mail_with_id("empty-6").to_s, message_id: " ")
+    ])
+
+    @service.send(:fetch_recent_emails, imap, "INBOX", 50)
+
+    assert_equal [ [ 4, "4@imap.example.com", "empty-4" ], [ 5, "5@imap.example.com", "empty-5" ], [ 6, "6@imap.example.com", "empty-6" ] ],
+      @account.messages.where(folder: "INBOX", uid: [ 4, 5, 6 ]).order(:uid).pluck(:uid, :message_id, :subject)
+  end
+
+  test "a message that can't be saved is reported, and the rest of its folder is synced" do
+    imap = FakeImap.new(uids: [ 4, 5, 6 ], messages: [ 4, 5, 6 ].map { |uid| fetch_data(uid, mail_with_id("m-#{uid}").to_s) })
+    @service.send(:incoming_message).define_singleton_method(:save) do |msg, folder|
+      raise ActiveRecord::RecordInvalid, Mails::Message.new if msg.attr["UID"] == 5
+      super(msg, folder)
+    end
+
+    report = assert_error_reported(ActiveRecord::RecordInvalid) do
+      assert_nothing_raised { @service.send(:fetch_recent_emails, imap, "Projects", 50) }
+    end
+
+    assert_equal [ 4, 6 ], @account.messages.where(folder: "Projects").order(:uid).pluck(:uid)
+    assert_equal({ mail_account_id: @account.id, folder: "Projects", uid: 5 }, report.context.slice(:mail_account_id, :folder, :uid))
+  end
+
   test "a server on a local address isn't contacted" do
     @account.update!(imap_host: "127.0.0.1")
 
@@ -643,6 +747,79 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_equal [ "Projects", 4 ], [ moved.reload.folder, moved.uid ]
   end
 
+  # --- Archived mail ------------------------------------------------------------
+  # Mail archived here keeps its place in the folder it was archived from, flagged
+  # archived, while the server moves it to the archive folder.
+
+  test "archived mail that another mail program moved back to its folder is there again" do
+    @account.update!(archive_folder: "Archive", synced_folders: %w[INBOX Sent Archive].to_json)
+    incoming_message.send(:save_email, fetch_data(7, mail_with_id("back-7").to_s), "INBOX")
+    archived = @account.messages.find_by!(message_id: "back-7@example.com")
+    archived.update!(archived: true)
+
+    # The server hasn't moved it yet: it's in the inbox under the UID it had
+    @service.send(:fetch_recent_emails, FakeImap.new(uids: [ 7 ], messages: [ fetch_data(7, mail_with_id("back-7").to_s) ]), "INBOX", 50)
+    assert archived.reload.archived?
+
+    # Moved to the archive, and by another mail program back to the inbox, where it got a new UID
+    @service.send(:fetch_recent_emails, FakeImap.new(uids: [], messages: []), "INBOX", 50)
+    assert archived.reload.archived?
+    @service.send(:fetch_recent_emails, FakeImap.new(uids: [ 9 ], messages: [ fetch_data(9, mail_with_id("back-7").to_s) ]), "INBOX", 50)
+
+    assert_equal [ false, 9, "INBOX" ], archived.reload.values_at(:archived, :uid, :folder)
+    assert_includes @account.messages.inbox.not_archived, archived
+    assert_equal 1, @account.messages.where(message_id: "back-7@example.com").count
+  end
+
+  test "mail archived on an account without an archive folder stays archived, whatever the server says" do
+    incoming_message.send(:save_email, fetch_data(7, mail_with_id("flagged-7").to_s), "INBOX")
+    archived = @account.messages.find_by!(message_id: "flagged-7@example.com")
+    archived.update!(archived: true)
+
+    @service.send(:fetch_recent_emails, FakeImap.new(uids: [ 9 ], messages: [ fetch_data(9, mail_with_id("flagged-7").to_s) ]), "INBOX", 50)
+
+    assert_equal [ true, 9 ], archived.reload.values_at(:archived, :uid)
+  end
+
+  test "archived mail that had no UID yet stays archived when the sync gives it one" do
+    @account.update!(archive_folder: "Archive")
+    archived = @account.messages.create!(message_id: "pending-7@example.com", folder: "INBOX", archived: true, from_address: "ann@example.com", to_addresses: "[]", sent_at: Time.current)
+
+    @service.send(:fetch_recent_emails, FakeImap.new(uids: [ 9 ], messages: [ fetch_data(9, mail_with_id("pending-7").to_s) ]), "INBOX", 50)
+
+    assert_equal [ true, 9 ], archived.reload.values_at(:archived, :uid)
+  end
+
+  # A server without a trash deletes trashed mail, and it's kept here for 30 days
+
+  test "mail restored after the server deleted it stays, in the inbox and through the next sync" do
+    incoming_message.send(:save_email, fetch_data(7, mail_with_id("restored-7").to_s), "INBOX")
+    restored = @account.messages.find_by!(message_id: "restored-7@example.com")
+    server = FakeImapServer.new
+
+    connect_to_imap(server) { perform_enqueued_jobs(only: ImapSyncJob) { @account.trash([ restored ]) } }
+    assert_equal [ [ 7 ] ], server.expunged
+    @account.restore([ restored.reload ])
+
+    @service.send(:fetch_recent_emails, FakeImap.new(uids: [ 3 ], messages: [ fetch_data(3, mail_with_id("other-3").to_s) ]), "INBOX", 50)
+
+    assert Mails::Message.exists?(restored.id), "the restored mail is gone"
+    assert_includes @account.messages.inbox, restored
+    assert_nil restored.reload.uid
+  end
+
+  test "mail restored before the server deleted it gets its UID again from the next sync" do
+    incoming_message.send(:save_email, fetch_data(7, mail_with_id("restored-7").to_s), "INBOX")
+    restored = @account.messages.find_by!(message_id: "restored-7@example.com")
+
+    @account.trash([ restored ])
+    @account.restore([ restored.reload ])
+    @service.send(:fetch_recent_emails, FakeImap.new(uids: [ 7 ], messages: [ fetch_data(7, mail_with_id("restored-7").to_s) ]), "INBOX", 50)
+
+    assert_equal [ "INBOX", 7, false ], restored.reload.values_at(:folder, :uid, :trashed)
+    assert_equal 1, @account.messages.where(message_id: "restored-7@example.com").count
+  end
+
   test "mail that left another folder on the server is removed there" do
     incoming_message.send(:save_email, fetch_data(1, mail_with_id("gone-1").to_s), "Projects")
     incoming_message.send(:save_email, fetch_data(2, mail_with_id("kept-2").to_s), "Projects")
@@ -681,6 +858,14 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
       Mail.new(from: "ann@example.com", to: "me@example.com", subject: id, message_id: "<#{id}@example.com>", body: "Hello")
     end
 
+    # A message as net-imap hands it over: bytes, without an encoding. Without a content type
+    # it has no Content-Type header at all.
+    def one_part_mail(content_type, body, transfer_encoding: "8bit", id: "one-part")
+      headers = [ "From: Ann <ann@example.com>", "To: me@example.com", "Subject: Koffie", "Message-ID: <#{id}@example.com>", "MIME-Version: 1.0" ]
+      headers += [ "Content-Type: #{content_type}", "Content-Transfer-Encoding: #{transfer_encoding}" ] if content_type
+      "#{headers.join("\r\n")}\r\n\r\n".b + body.b
+    end
+
     def report_mail
       Mail.new do
         from "Ann <ann@example.com>"
@@ -696,11 +881,12 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     @incoming_message ||= Mails::IncomingMessage.new(@account)
   end
 
-  def fetch_data(uid, raw, from_name: "Ann")
-      message_id = Mail.new(raw).message_id
+  # to and cc: [mailbox, host] pairs, as the server lists them in the envelope
+  def fetch_data(uid, raw, from_name: "Ann", message_id: "<#{Mail.new(raw).message_id}>", to: [ %w[me example.com] ], cc: nil)
+      to, cc = [ to, cc ].map { |addresses| addresses&.map { |mailbox, host| Net::IMAP::Address.new(nil, nil, mailbox, host) } }
       envelope = Net::IMAP::Envelope.new(
-        nil, "Test", [ Net::IMAP::Address.new(from_name, nil, "ann", "example.com") ], nil, nil,
-        [ Net::IMAP::Address.new(nil, nil, "me", "example.com") ], nil, nil, nil, "<#{message_id}>"
+        nil, Mail.new(raw).subject || "Test", [ Net::IMAP::Address.new(from_name, nil, "ann", "example.com") ], nil, nil,
+        to, cc, nil, nil, message_id
       )
       Net::IMAP::FetchData.new(1, { "UID" => uid, "ENVELOPE" => envelope, "FLAGS" => [], "INTERNALDATE" => Time.current, "BODY[]" => raw })
     end

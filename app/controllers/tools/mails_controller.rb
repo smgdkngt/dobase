@@ -29,7 +29,10 @@ module Tools
             @selected_message = @message
             @current_folder = params[:folder] || "inbox"
             @conversation_messages = @message.conversation_without_copies
-            @message.conversation.unread.find_each(&:mark_as_read!)
+            unread = @message.conversation.unread.to_a
+            unread.each(&:mark_as_read!)
+            # Read by now, which is what its "Mark unread" button goes by
+            @message.reload if unread.any?
 
             unless turbo_frame_request?
               load_index_data
@@ -187,13 +190,7 @@ module Tools
       when "starred" then @mail_account.messages.starred
       when "trash"   then @mail_account.messages.trashed
       when "drafts"  then @mail_account.messages.drafts
-      when "archive"
-        archive_folder = @mail_account.archive_folder.presence
-        if archive_folder
-          @mail_account.messages.not_trashed.not_draft.where(archived: true).or(@mail_account.messages.not_trashed.not_draft.where(folder: archive_folder))
-        else
-          @mail_account.messages.archived.not_trashed.not_draft
-        end
+      when "archive" then @mail_account.archived_messages
       when "inbox"   then @mail_account.messages.inbox.not_archived
       else                @mail_account.messages.where(folder: @current_folder).not_archived.not_trashed.not_draft
       end
@@ -283,6 +280,8 @@ module Tools
             @to = original.from_address
             others = original.to_addresses_list + original.cc_addresses_list - [ @to ]
           end
+          # Mail synced before group names were left out ("undisclosed-recipients:;") has them as addresses without a host
+          others = others.reject { |address| address.end_with?("@") }
           @cc = (others - [ @tool.mail_account.email_address ]).join(", ") if params[:reply_all]
         end
       elsif params[:forward].present?

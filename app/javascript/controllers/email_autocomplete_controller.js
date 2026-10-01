@@ -10,6 +10,9 @@ export default class extends Controller {
     this._addresses = []
     this._selectedIndex = -1
 
+    // A page that comes back from Turbo's cache (the Back button) still has the tags it was left with
+    this.tagsTarget.replaceChildren()
+
     // Parse any pre-filled addresses
     const initial = this.hiddenTarget.value
     if (initial) {
@@ -20,6 +23,9 @@ export default class extends Controller {
     this.inputTarget.addEventListener("keydown", this._onKeydown)
     this.inputTarget.addEventListener("blur", this._onBlur)
     document.addEventListener("click", this._onClickOutside)
+    // An address typed just before Send or Save Draft goes along with the form
+    this._form = this.element.closest("form")
+    this._form?.addEventListener("submit", this._onSubmit)
   }
 
   disconnect() {
@@ -27,6 +33,7 @@ export default class extends Controller {
     this.inputTarget.removeEventListener("keydown", this._onKeydown)
     this.inputTarget.removeEventListener("blur", this._onBlur)
     document.removeEventListener("click", this._onClickOutside)
+    this._form?.removeEventListener("submit", this._onSubmit)
   }
 
   // --- Events ---
@@ -87,6 +94,12 @@ export default class extends Controller {
       if (this.inputTarget.value.trim()) this._commitInput()
       this._hideResults()
     }, 200)
+  }
+
+  // Leaving the field commits what was typed a moment later (_onBlur), which is after a
+  // click on Send has submitted the form
+  _onSubmit = () => {
+    this._commitInput()
   }
 
   _onClickOutside = (event) => {

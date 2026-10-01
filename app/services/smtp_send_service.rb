@@ -138,7 +138,8 @@ class SmtpSendService
   def build_mail(to:, subject:, body:, body_html:, cc:, bcc:, attachments:, inline_images:, in_reply_to:, references:, message_id:)
     mail = Mail.new
 
-    mail.from = @account.display_name.present? ? "#{@account.display_name} <#{@account.email_address}>" : @account.email_address
+    # The name is quoted where it has to be: "Acme, Inc." is one sender, not two
+    mail.from = @account.display_name.present? ? Mail::Address.new(@account.email_address).tap { |address| address.display_name = @account.display_name }.to_s : @account.email_address
     mail.to = Array(to).join(", ")
     mail.cc = Array(cc).join(", ") if cc.present?
     mail.bcc = Array(bcc).join(", ") if bcc.present?

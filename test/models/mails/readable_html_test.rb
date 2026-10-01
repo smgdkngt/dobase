@@ -25,6 +25,32 @@ module Mails
       assert_equal "<p>Hi</p><a>Go</a>", html.strip
     end
 
+    test "event handlers go, however they're written" do
+      html = readable(<<~HTML)
+        <body onload="alert(1)">
+        <p onclick="alert(1)">double</p><p onclick='alert(1)'>single</p><p onclick=alert(1)>bare</p>
+        <p ONMOUSEOVER = "alert(1)">spaced</p><p
+        onfocus="alert(1)" tabindex=0>on a new line</p>
+        <img/onerror=alert(1)/src="cid:x"><img src="cid:x" onerror="alert(1)" onload=alert(1)>
+        <p title=">" onclick="alert(1)">after a bracket</p><p title="x"onclick="alert(1)">glued</p>
+        <a href="https://example.com" onclick="alert(1)" onauxclick="alert(1)">link</a>
+        <svg onload="alert(1)"><animate onbegin="alert(1)" /></svg><details ontoggle="alert(1)" open>open</details>
+        </body>
+      HTML
+
+      attributes = Nokogiri::HTML5.fragment(html).css("*").flat_map { |element| element.attribute_nodes.map(&:name) }
+      assert_empty attributes.grep(/\Aon/i)
+      assert_not_includes html, "alert"
+      assert_includes html, %(<a href="https://example.com">link</a>)
+    end
+
+    test "text that reads like an event handler stays" do
+      html = readable("<p>Totaal onkosten = 45,00 euro</p><p>Write &lt;p onclick=\"go()\"&gt; for that</p>")
+
+      assert_includes html, "<p>Totaal onkosten = 45,00 euro</p>"
+      assert_equal [ "Totaal onkosten = 45,00 euro", %(Write <p onclick="go()"> for that) ], Nokogiri::HTML5.fragment(html).css("p").map(&:text)
+    end
+
     test "old table attributes stay" do
       html = readable(%(<table><tr><td background="https://example.com/bg.png" nowrap><font face="Arial" size="2">Hi</font></td></tr></table>))
 

@@ -16,4 +16,25 @@ class MailsHelperTest < ActionView::TestCase
       [ "sem archive/Invoices", "Invoices", 1 ]
     ], mail_folder_tree(folders).map { |folder| folder.values_at(:key, :label, :depth) }
   end
+
+  # Servers name folders in modified UTF-7 (RFC 3501, 5.1.3): "&" is "&-", other letters are encoded
+
+  test "a folder shows by the name it was given, and keeps the server's name as its key" do
+    folders = [ "B&APw-ro", "Facturen &- bonnen", "Klanten", "Klanten/Caf&AOk-", "&AMk-cole" ]
+
+    assert_equal [
+      [ "B&APw-ro", "Büro", "Büro", 0 ],
+      [ "&AMk-cole", "École", "École", 0 ],
+      [ "Facturen &- bonnen", "Facturen & bonnen", "Facturen & bonnen", 0 ],
+      [ "Klanten", "Klanten", "Klanten", 0 ],
+      [ "Klanten/Caf&AOk-", "Café", "Klanten/Café", 1 ]
+    ], mail_folder_tree(folders).map { |folder| folder.values_at(:key, :label, :name, :depth) }
+  end
+
+  test "a folder name that isn't modified UTF-7 shows as it is" do
+    names = [ "Work (old)", "R&D", "Caf&AOk", "Büro", "Bad &AOk!-", "" ]
+
+    assert_equal names, names.map { |name| mail_folder_name(name) }
+    assert_equal "", mail_folder_name(nil)
+  end
 end

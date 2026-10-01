@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# A new folder gets a plain name. (Mail moves to any folder the server has:
+# Mails::Account#folder_to_move_to.)
 module FolderValidation
   extend ActiveSupport::Concern
 

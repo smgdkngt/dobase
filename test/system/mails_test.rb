@@ -103,6 +103,17 @@ class MailsTest < ApplicationSystemTestCase
     click_with_retry("[title='Archive (e)']") { message.reload.archived? }
   end
 
+  test "unarchiving a message from the archive" do
+    message = mails_messages(:archived_message)
+    visit tool_mail_path(@tool, message, folder: "archive")
+    assert_text "This has been archived.", wait: 5
+
+    click_with_retry("[title='Unarchive (e)']") { !message.reload.archived? }
+
+    assert_selector ".flash-toast .flash", text: "Email unarchived."
+    assert_no_selector ".mail-list-item", text: "Archived conversation"
+  end
+
   test "trashing a message" do
     message = mails_messages(:inbox_unread)
     visit tool_mail_path(@tool, message)
@@ -121,6 +132,18 @@ class MailsTest < ApplicationSystemTestCase
       find("body").send_keys("#")
       assert_db_change(-> { message.reload.trashed? })
     end
+  end
+
+  test "the u shortcut marks the open message unread and closes it" do
+    message = mails_messages(:inbox_unread)
+    open_message(message, folder: "inbox")
+    wait_for_stimulus "hotkey", "[data-controller~='hotkey'][title^='Mark unread']"
+
+    find("body").send_keys("u")
+
+    assert_no_selector ".mail-detail-header"
+    assert_selector ".mail-list-item span.font-semibold", text: "Friendly Sender"
+    assert_not message.reload.read?
   end
 
   test "the # shortcut in the trash deletes the message for good, after asking" do
@@ -188,6 +211,50 @@ class MailsTest < ApplicationSystemTestCase
     end
 
     assert_equal [ "sender@example.com" ], deliveries.sole[:recipients]
+  end
+
+  test "an address typed and sent at once goes out with the mail" do
+    visit new_tool_mail_path(@tool)
+    wait_for_stimulus "email-autocomplete"
+
+    deliveries = capture_smtp_deliveries do
+      add_recipient "friend@example.com"
+      find("input[name='subject']").set("Hello")
+      find("input[data-compose-target='to']").set("ann@example.com")
+      perform_enqueued_jobs(only: SendMailJob) do
+        click_on "Send"
+        assert_selector ".mail-detail-header"
+      end
+    end
+
+    assert_equal [ "friend@example.com", "ann@example.com" ], deliveries.sole[:recipients]
+  end
+
+  test "an address typed and saved at once is in the draft" do
+    visit new_tool_mail_path(@tool)
+    wait_for_stimulus "email-autocomplete"
+
+    find("input[name='subject']").set("Plans")
+    find("input[data-compose-target='to']").set("ann@example.com")
+    click_on "Save Draft"
+
+    assert_text "Draft saved."
+    assert_equal [ "ann@example.com" ], @tool.mail_account.messages.drafts.find_by!(subject: "Plans").to_addresses_list
+  end
+
+  test "coming back to a message being written shows each recipient once" do
+    visit new_tool_mail_path(@tool, to: "friend@example.com, ann@example.com")
+    wait_for_stimulus "email-autocomplete"
+    wait_for_turbo
+    assert_selector "[data-email-autocomplete-target='tags'] > span", count: 2
+
+    click_on "Project Board"
+    assert_current_path tool_board_path(tools(:project_board)), wait: 10
+    page.go_back
+
+    assert_selector "[data-email-autocomplete-target='tags'] > span", text: "friend@example.com"
+    assert_selector "[data-email-autocomplete-target='tags'] > span", count: 2
+    assert_equal "friend@example.com, ann@example.com", find("input[name='to']", visible: :hidden).value
   end
 
   test "a reply sent off shows in its conversation as being sent, until it has gone out" do

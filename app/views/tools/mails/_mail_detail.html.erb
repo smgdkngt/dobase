@@ -29,6 +29,10 @@
       <%= render "components/icon_button", icon: "rotate-ccw", title: "Restore",
           href: tool_mail_trash_path(@tool, @selected_message), method: :delete,
           data: { turbo_frame: "_top" } %>
+    <% elsif @current_folder == "archive" %>
+      <%= render "components/icon_button", icon: "archive-restore", title: "Unarchive (e)",
+          href: tool_mail_archive_path(@tool, @selected_message), method: :delete,
+          data: { controller: "hotkey", hotkey: "e", turbo_frame: "_top" } %>
     <% else %>
       <%= render "components/icon_button", icon: "archive", title: "Archive (e)",
           href: tool_mail_archive_path(@tool, @selected_message, folder: @current_folder), method: :post,
@@ -46,7 +50,7 @@
            style="position-anchor: --move-to-btn; position-area: block-end span-inline-start">
         <%
           move_folders = [["INBOX", "inbox", "Inbox"], ["Sent", "send", "Sent"]]
-          (@custom_folders || []).each { |f| move_folders << [f, "folder", f] }
+          (@custom_folders || []).each { |f| move_folders << [f, "folder", mail_folder_name(f)] }
         %>
         <% move_folders.each do |folder_name, icon, label| %>
           <%= button_to tool_mail_move_path(@tool, @selected_message),
@@ -69,7 +73,7 @@
     <%= render "components/icon_button",
         icon: @selected_message.read? ? "mail" : "mail-open",
         title: @selected_message.read? ? "Mark unread (u)" : "Mark read",
-        href: tool_mail_read_path(@tool, @selected_message),
+        href: tool_mail_read_path(@tool, @selected_message, folder: @current_folder),
         method: @selected_message.read? ? :delete : :post,
         data: { controller: "hotkey", hotkey: "u" } %>
     <%# Where # takes Shift, as on US keyboards, the browser reports Shift+# %>

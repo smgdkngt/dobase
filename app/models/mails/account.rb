@@ -44,6 +44,13 @@ module Mails
       []
     end
 
+    # The folder to move mail to, by the name the server has for it: the inbox, sent mail or
+    # one of the account's own folders. Nil for a folder the server doesn't have.
+    def folder_to_move_to(name)
+      folders = [ "INBOX", "Sent", *custom_folders ]
+      folders.find { |folder| folder == name.to_s } || folders.find { |folder| folder == name.to_s.strip }
+    end
+
     # The folders synced besides the inbox and sent mail: the account's own, and the archive
     # and trash, where other mail programs archive and delete to as well
     def other_folders_to_sync
@@ -60,18 +67,39 @@ module Mails
       TRASH.in?(server_folders)
     end
 
+    # Archived mail as the Archive lists it: mail archived here, and the mail in the server's
+    # archive folder, where other mail programs archive to (and where the sync finds the mail
+    # archived here once the server has moved it)
+    def archived_messages
+      archived = messages.not_trashed.not_draft.where(archived: true)
+      archive_folder.present? ? archived.or(messages.not_trashed.not_draft.where(folder: archive_folder)) : archived
+    end
+
+    def in_archive_folder?(message)
+      archive_folder.present? && message.folder == archive_folder
+    end
+
+    # Mail archived here keeps the folder it was archived from and the UID it had there, while
+    # the server has it in the archive folder under another UID. There it's found by its Message-ID.
+    def archived_on_server?(message)
+      archive_folder.present? && message.archived? && message.folder != archive_folder
+    end
+
     # Trashed mail goes to the server's trash, as in other mail programs, so it can be restored
     # there too. A server without a trash deletes it, and it's only kept here for 30 days.
     def trash(messages)
       messages = messages.reject(&:trashed?)
       on_server = uids_by_folder(messages)
+      archived = messages.select { |message| archived_on_server?(message) }
 
       if server_trash?
         messages.each(&:move_to_trash!)
         on_server.each { |folder, uids| ImapSyncJob.perform_later(id, "move_to_folder", uids, folder, TRASH) }
+        archived.each { |message| ImapSyncJob.perform_later(id, "move_to_folder_by_message_id", nil, archive_folder, TRASH, message.message_id) }
       else
         messages.each { |message| message.update!(trashed: true, archived: false) }
         on_server.each { |folder, uids| ImapSyncJob.perform_later(id, "delete_message", uids, folder) }
+        archived.each { |message| ImapSyncJob.perform_later(id, "delete_message_by_message_id", nil, archive_folder, message.message_id) }
       end
       messages
     end
@@ -85,7 +113,9 @@ module Mails
           ImapSyncJob.perform_later(id, "move_to_folder_by_message_id", nil, TRASH, "INBOX", message.message_id)
           message.move_to_folder!("INBOX", on_server: false)
         else
-          message.update!(trashed: false)
+          # Its UID went with it on the server: with that UID the folder's next sync would take
+          # it for mail gone from the folder, and remove it. A server that still has it gives it its UID again.
+          message.update!(trashed: false, uid: nil)
         end
       end
     end

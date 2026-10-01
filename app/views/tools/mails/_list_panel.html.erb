@@ -28,7 +28,9 @@
               <%= render "components/icon_button", icon: "trash-2", title: "Delete forever", type: :submit, name: "action_type", value: "delete", size: :sm %>
               <%= render "components/icon_button", icon: "rotate-ccw", title: "Restore", type: :submit, name: "action_type", value: "restore", size: :sm %>
             <% else %>
-              <%= render "components/icon_button", icon: "archive", title: "Archive (e)", type: :submit, name: "action_type", value: "archive", size: :sm %>
+              <% unless @current_folder == "archive" %>
+                <%= render "components/icon_button", icon: "archive", title: "Archive (e)", type: :submit, name: "action_type", value: "archive", size: :sm %>
+              <% end %>
               <%= render "components/icon_button", icon: "trash-2", title: "Delete (#)", type: :submit, name: "action_type", value: "trash", size: :sm %>
               <div class="relative">
                 <button type="button"
@@ -42,7 +44,7 @@
                      style="position-anchor: --bulk-move-btn; position-area: block-end span-inline-start">
                   <%
                     bulk_move_folders = [["INBOX", "inbox", "Inbox"], ["Sent", "send", "Sent"]]
-                    @custom_folders.each { |f| bulk_move_folders << [f, "folder", f] }
+                    @custom_folders.each { |f| bulk_move_folders << [f, "folder", mail_folder_name(f)] }
                   %>
                   <% bulk_move_folders.each do |folder_name, icon, label| %>
                     <button type="button" class="dropdown-item flex items-center gap-2"
@@ -90,7 +92,7 @@
             folder_descriptions = { "inbox" => "Your inbox is empty", "drafts" => "No drafts", "starred" => "No starred messages", "sent" => "No sent messages", "archive" => "No archived messages", "trash" => "Trash is empty" }
             empty_icon = folder_icons[@current_folder] || "folder"
             empty_title = params[:q].present? ? "No results found" : "No messages"
-            empty_description = params[:q].present? ? "Try a different search term" : (folder_descriptions[@current_folder] || "No messages in #{@current_folder}")
+            empty_description = params[:q].present? ? "Try a different search term" : (folder_descriptions[@current_folder] || "No messages in #{mail_folder_name(@current_folder)}")
           %>
           <%= render "components/empty_state",
               icon: empty_icon,

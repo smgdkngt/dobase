@@ -45,6 +45,36 @@ module Tools
       assert_includes response.body, "Archived conversation"
     end
 
+    test "folders show by the names they were given, and are opened and moved to by the server's names" do
+      @account.update!(synced_folders: [ "INBOX", "Sent", "B&APw-ro", "Facturen &- bonnen" ].to_json)
+
+      get tool_mail_path(@tool, mails_messages(:inbox_read))
+
+      assert_select "nav.mail-folder-rail a[href=?]", tool_mails_path(@tool, folder: "B&APw-ro"), text: "Büro"
+      assert_select "nav.mail-folder-rail a[href=?]", tool_mails_path(@tool, folder: "Facturen &- bonnen"), text: "Facturen & bonnen"
+      assert_select "#move-to-menu form" do
+        assert_select "input[name=folder][value=?]", "B&APw-ro"
+        assert_select "button", text: "Büro"
+        assert_select "button", text: "Facturen & bonnen"
+      end
+      assert_select "#bulk-move-menu button[data-folder=?]", "B&APw-ro", text: "Büro"
+      assert_not_includes response.body, ">B&amp;APw-ro<"
+
+      get tool_mails_path(@tool, folder: "B&APw-ro")
+
+      assert_select ".mail-folder-picker button span", text: "Büro"
+      assert_includes response.body, "No messages in Büro"
+    end
+
+    test "a new folder gets a plain name" do
+      [ "Work (old)", "Receipts*", "Büro", "a" * 101, "" ].each do |name|
+        post tool_folder_path(@tool), params: { folder_name: name }
+
+        assert_redirected_to tool_mails_path(@tool)
+        assert_equal "Invalid folder name.", flash[:alert], name
+      end
+    end
+
     test "index takes the same number of queries however many conversations there are" do
       account = @tool.mail_account
       add_threads = ->(count, offset) do
@@ -99,6 +129,21 @@ module Tools
       assert_includes shown, "<p>Hi</p>"
       assert_not_includes shown, "schema.org"
       assert_not_includes shown, "Notification"
+    end
+
+    test "show keeps text that reads like an event handler, and no event handlers" do
+      msg = mails_messages(:inbox_unread)
+      msg.update!(body_html: %(<p>Totaal onkosten = 45,00 euro</p><p>De <b>online = "ja"</b> optie</p><p onclick="alert(1)">Hi</p><img src="https://example.com/a.png" onerror=alert(2) onload='alert(3)'>))
+
+      get tool_mail_path(@tool, msg)
+
+      frame = css_select("iframe[data-email-frame-target='frame']").first
+      [ frame["srcdoc"], frame.parent.parent["data-email-frame-full-srcdoc-value"] ].each do |shown|
+        assert_includes shown, "<p>Totaal onkosten = 45,00 euro</p>"
+        assert_includes shown, %(<b>online = "ja"</b>)
+        assert_not_includes shown, "alert"
+        assert_empty Nokogiri::HTML5(shown).css("*").flat_map { |element| element.attribute_nodes.map(&:name) }.grep(/\Aon/i)
+      end
     end
 
     test "show puts the pictures a message carries in its text, and lists only the other attachments" do
@@ -454,6 +499,63 @@ module Tools
       assert_equal [ "quote-#{logo.id}@dobase" ], copy.attachments.map(&:content_id)
     end
 
+    # A job runs in the time zone it was queued in (ActiveJob), which is the sender's
+
+    test "a reply says when the mail it answers was sent in the sender's time zone, as the compose page did" do
+      users(:one).update!(timezone: "Amsterdam")
+      original = mails_messages(:inbox_read)
+      original.update!(sent_at: Time.utc(2026, 9, 29, 8, 23))
+
+      get new_tool_mail_path(@tool, reply_to: original.id)
+      assert_select ".compose-quote", text: /On Tue, Sep 29, 2026 at 10:23 AM, Reports Bot/
+
+      deliveries = capture_smtp_deliveries_in_the_background do
+        post tool_mails_path(@tool), params: {
+          to: "reports@example.com", subject: "Re: Lunch", body: "<p>Sure</p>", in_reply_to: original.message_id, quoted_message_id: original.id
+        }
+      end
+
+      sent = Mail.new(deliveries.sole[:message])
+      assert_includes sent.html_part.decoded, "On Tue, Sep 29, 2026 at 10:23 AM, Reports Bot"
+      assert_includes sent.text_part.decoded, "On Tue, Sep 29, 2026 at 10:23 AM, Reports Bot"
+      assert_includes @account.messages.sent.find_by!(subject: "Re: Lunch").body_html, "On Tue, Sep 29, 2026 at 10:23 AM, Reports Bot"
+    end
+
+    test "a draft on the server says when the mail it answers was sent in the time zone of whoever saved it" do
+      users(:one).update!(timezone: "Amsterdam")
+      original = mails_messages(:inbox_read)
+      original.update!(sent_at: Time.utc(2026, 9, 29, 8, 23))
+      server = FakeImapServer.new(folders: [ "INBOX", "Drafts" ])
+
+      connect_to_imap(server) do
+        perform_enqueued_jobs(only: SyncDraftJob) do
+          post tool_mail_drafts_path(@tool), params: { to: "reports@example.com", subject: "Re: Lunch", body: "<p>Sure</p>", in_reply_to: original.message_id, quoted_message_id: original.id }
+        end
+      end
+
+      assert_includes Mail.new(server.appended_messages.sole[:message]).html_part.decoded, "On Tue, Sep 29, 2026 at 10:23 AM, Reports Bot"
+    end
+
+    test "mail that couldn't be sent is a draft on the server with its quote in the sender's time zone" do
+      users(:one).update!(timezone: "Amsterdam")
+      original = mails_messages(:inbox_read)
+      original.update!(sent_at: Time.utc(2026, 9, 29, 8, 23))
+      server = FakeImapServer.new(folders: [ "INBOX", "Drafts" ])
+      smtp = SmtpTestHelper::FakeSmtp.new
+      smtp.define_singleton_method(:start) { |*| raise SocketError, "getaddrinfo: Temporary failure in name resolution" }
+      SmtpSendService.singleton_class.define_method(:new) { |*args| super(*args).tap { |service| service.define_singleton_method(:build_smtp) { smtp } } }
+
+      connect_to_imap(server) do
+        perform_enqueued_jobs(only: [ SendMailJob, SyncDraftJob ]) do
+          post tool_mails_path(@tool), params: { to: "reports@example.com", subject: "Re: Lunch", body: "<p>Sure</p>", in_reply_to: original.message_id, quoted_message_id: original.id }
+        end
+      end
+
+      assert_includes Mail.new(server.appended_messages.sole[:message]).html_part.decoded, "On Tue, Sep 29, 2026 at 10:23 AM, Reports Bot"
+    ensure
+      SmtpSendService.singleton_class.remove_method(:new)
+    end
+
     test "a draft keeps the mail it quotes, and without it goes out without a quote" do
       original = mails_messages(:inbox_read)
 
@@ -528,6 +630,16 @@ module Tools
 
       get new_tool_mail_path(@tool, reply_to: sent.id, reply_all: true)
       assert_select "input[name=to][value=?]", "ann@example.com"
+      assert_select "input[name=cc][value=?]", "bob@example.com"
+    end
+
+    test "a reply to all leaves out what was saved as an address of a group's name" do
+      original = mails_messages(:inbox_read)
+      original.update!(to_addresses: [ "undisclosed-recipients@", "@" ].to_json, cc_addresses: [ "bob@example.com" ].to_json)
+
+      get new_tool_mail_path(@tool, reply_to: original.id, reply_all: true)
+
+      assert_select "input[name=to][value=?]", "reports@example.com"
       assert_select "input[name=cc][value=?]", "bob@example.com"
     end
 

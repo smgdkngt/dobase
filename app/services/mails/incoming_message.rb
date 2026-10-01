@@ -5,6 +5,10 @@ module Mails
   # Dobase stores for it.
   class IncomingMessage
     MAX_ATTACHMENT_SIZE = 25.megabytes
+    # Shown where a byte is no letter in the mail's charset
+    REPLACEMENT = "\uFFFD"
+    # Charsets that mail with other letters in it names anyway
+    UNSPECIFIC_CHARSET = /\A(us-ascii|utf-?8)\z/i
 
     def initialize(account)
       @account = account
@@ -35,7 +39,8 @@ module Mails
       envelope = msg.attr["ENVELOPE"]
       return unless envelope
 
-      message_id = (envelope.message_id || "#{msg.attr['UID']}@#{@account.imap_host}").delete("<>")
+      # A message without a Message-ID, or with an empty one ("<>"), is known by its UID
+      message_id = envelope.message_id.to_s.delete("<>").strip.presence || "#{msg.attr['UID']}@#{@account.imap_host}"
       uid = msg.attr["UID"]
       flags = msg.attr["FLAGS"] || []
 
@@ -43,8 +48,8 @@ module Mails
       from_address = from ? "#{from.mailbox}@#{from.host}" : nil
       from_name = unquote(decode_rfc2047(from&.name))
 
-      to_list = (envelope.to || []).map { |addr| "#{addr.mailbox}@#{addr.host}" }
-      cc_list = (envelope.cc || []).map { |addr| "#{addr.mailbox}@#{addr.host}" }
+      to_list = addresses_of(envelope.to)
+      cc_list = addresses_of(envelope.cc)
 
       sent_at = begin
         Time.parse(envelope.date.to_s)
@@ -69,6 +74,9 @@ module Mails
       # A message in several folders on the server has a copy here for each of them
       email = @account.messages.find_or_initialize_by(message_id: message_id, folder: folder_name)
       is_new_email = email.new_record?
+      # Mail archived here keeps its place in its folder, flagged archived, while the server has
+      # it in the archive folder. In its folder again under a new UID, another mail program moved it back.
+      email.archived = false if email.archived? && @account.archive_folder.present? && email.uid.present? && email.uid != uid
 
       email.assign_attributes(
         folder: folder_name,
@@ -101,6 +109,12 @@ module Mails
       detect_calendar_invite(email, calendar_data_of(parsed_mail)) if is_new_email
     end
 
+    # A group among the recipients ("undisclosed-recipients:;") is listed as a start and an
+    # end without a host, around its members: those two aren't addresses
+    def addresses_of(list)
+      (list || []).select { |addr| addr.mailbox.present? && addr.host.present? }.map { |addr| "#{addr.mailbox}@#{addr.host}" }
+    end
+
     def detect_calendar_invite(email, calendar_data = nil)
       MailInviteDetectorService.new(email, calendar_data: calendar_data).detect_and_create_invite
     rescue StandardError => e
@@ -120,16 +134,19 @@ module Mails
 
       mail = Mail.read_from_string(raw_message)
 
+      # A mail without a Content-Type is plain text (RFC 2045, 5.2)
+      mime_type = mail.mime_type || "text/plain"
+
       plain = if mail.multipart?
-                mail.text_part&.decoded
+                text_of(mail.text_part)
       else
-                mail.mime_type.to_s.start_with?("text/") && mail.mime_type != "text/html" ? mail.body.decoded : nil
+                mime_type.start_with?("text/") && mime_type != "text/html" ? text_of(mail) : nil
       end
 
       html = if mail.multipart?
-               mail.html_part&.decoded
+               text_of(mail.html_part)
       else
-               mail.mime_type == "text/html" ? mail.body.decoded : nil
+               mime_type == "text/html" ? text_of(mail) : nil
       end
 
       # A mail with only HTML gets its text for the list's preview and for search
@@ -140,6 +157,29 @@ module Mails
       Rails.logger.warn("Failed to parse email body: #{e.message}")
       # Fall back to raw body
       { plain: raw_message, html: nil, mail: nil }
+    end
+
+    # The text of a part, in the charset its Content-Type names. Text that names none, or one
+    # its bytes don't fit ("us-ascii" above text with accents), is UTF-8 when it reads as
+    # that. Text without a single UTF-8 letter in it is Windows-1252, which is what mail
+    # programs that don't say send. Bytes that are no letter either way are replaced.
+    def text_of(part)
+      return unless part
+
+      bytes = part.body.decoded
+      charset = part.charset.presence if part.has_content_type?
+      # A charset Ruby can't read these bytes in counts as none
+      named = (Mail::Encodings.transcode_charset(bytes, charset) rescue nil) if charset
+      return named if named && named.exclude?(REPLACEMENT)
+
+      utf8 = bytes.dup.force_encoding(Encoding::UTF_8)
+      if utf8.valid_encoding?
+        utf8
+      elsif (charset.nil? || charset.match?(UNSPECIFIC_CHARSET)) && utf8.scrub("").ascii_only?
+        bytes.dup.force_encoding(Encoding::WINDOWS_1252).encode(Encoding::UTF_8, invalid: :replace, undef: :replace, replace: REPLACEMENT)
+      else
+        named || utf8.scrub(REPLACEMENT)
+      end
     end
 
     def attachment_parts_of(mail)
@@ -186,9 +226,13 @@ module Mails
       name.strip[1..-2].gsub(/\\+(.)/m, '\1').strip
     end
 
+    # Bytes without an encoding (net-imap hands some strings over that way) are read as UTF-8
     def safe_utf8(str)
       return nil if str.nil?
-      str.encode("UTF-8", invalid: :replace, undef: :replace, replace: "\uFFFD")
+      str = str.dup.force_encoding(Encoding::UTF_8) if str.encoding == Encoding::BINARY
+      return str.scrub(REPLACEMENT) if str.encoding == Encoding::UTF_8
+
+      str.encode("UTF-8", invalid: :replace, undef: :replace, replace: REPLACEMENT)
     end
   end
 end
