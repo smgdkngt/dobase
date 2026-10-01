@@ -596,6 +596,7 @@ func sendMail(ctx *Ctx, args *Args) error {
 		request = api.Object(
 			"to", mailList(saved.Get("to")),
 			"cc", mailList(saved.Get("cc")),
+			"bcc", mailList(saved.Get("bcc")),
 			"subject", saved.Get("subject"),
 			"body", body,
 			"in_reply_to", saved.Get("in_reply_to"),

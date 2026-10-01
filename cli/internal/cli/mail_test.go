@@ -220,3 +220,34 @@ func TestAttachmentsAreListedAndSavedUnderTheirOwnNames(t *testing.T) {
 		t.Errorf("out %q", out.String())
 	}
 }
+
+func TestSendingADraftKeepsItsBcc(t *testing.T) {
+	var sent []api.Value
+	var opened []string
+	var out bytes.Buffer
+	ctx := mailCtx(&out, false, newFakeAPI(`{
+		"/tools": [{ "id": 8, "name": "Inbox", "type": "mail" }],
+		"/tools/8/mails/312": { "messages": [
+			{ "id": 312, "draft": true, "to": ["ann@example.com"], "cc": ["bob@example.com"],
+			  "bcc": ["boss@example.com", "audit@example.com"], "subject": "Offer", "body_html": "<p>Yes</p>" }
+		] },
+		"/tools/8/mails/313": { "messages": [
+			{ "id": 313, "draft": true, "to": ["ann@example.com"], "cc": [], "bcc": [], "subject": "Offer", "body_html": "<p>Yes</p>" }
+		] }
+	}`, &sent), &opened)
+
+	for _, draft := range []string{"312", "313"} {
+		if err := invoke(ctx, "mail send", "8", "--draft", draft); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := sent[0].Get("bcc").S(); got != "boss@example.com, audit@example.com" {
+		t.Errorf("bcc %q", got)
+	}
+	if got := sent[0].Get("cc").S(); got != "bob@example.com" {
+		t.Errorf("cc %q", got)
+	}
+	if got := sent[1].Get("bcc").S(); got != "" {
+		t.Errorf("bcc of a draft without one: %q", got)
+	}
+}
