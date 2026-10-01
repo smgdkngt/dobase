@@ -88,8 +88,9 @@ Only `title` is required. The card goes to the bottom of the column. Returns
 
 `PATCH /tools/:tool_id/board/cards/:card_id/position` with
 `{"column_id": 8, "position": 0}`. Both are optional: `column_id` defaults to
-the card's own column and `position` (0 is the top) to the bottom. Returns the
-card. Moving to another column notifies the assignee.
+the card's own column and `position` (0 is the top) to the bottom. `position`
+counts the column the way the board shows it: its open cards, not the archived
+ones. Returns the card. Moving to another column notifies the assignee.
 
 ### Archive
 
