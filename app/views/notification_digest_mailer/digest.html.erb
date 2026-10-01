@@ -28,8 +28,8 @@
             preview = nil
             if params[:comment].respond_to?(:body)
               preview = ActionController::Base.helpers.strip_tags(params[:comment].body.to_s).squish.truncate(100)
-            elsif params[:chat_message].respond_to?(:body)
-              preview = ActionController::Base.helpers.strip_tags(params[:chat_message].body.to_s).squish.truncate(100)
+            elsif params[:message].respond_to?(:body)
+              preview = ActionController::Base.helpers.strip_tags(params[:message].body.to_s).squish.truncate(100)
             end
           %>
           <% if preview.present? %>
