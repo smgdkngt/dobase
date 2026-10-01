@@ -12,7 +12,7 @@
             <div class="tool-type-card flex items-center gap-3 p-3 rounded-xl border-2 border-border-light hover:border-border transition-all peer-checked:border-accent peer-checked:ring-2 peer-checked:ring-accent/20 peer-checked:bg-accent/5 peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2"
                  data-tool-type-select-target="card">
               <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-                   style="background: <%= tool_type_color(tool_type) %>20;">
+                   style="background: color-mix(in srgb, <%= tool_type_color(tool_type) %> 14%, transparent);">
                 <%= render "shared/icon", name: tool_type.icon, size: 20, style: "color: #{tool_type_color(tool_type)};" %>
               </div>
               <div class="min-w-0">

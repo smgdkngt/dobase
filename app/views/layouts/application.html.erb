@@ -23,7 +23,8 @@
 
     <%= yield :head %>
 
-    <%= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+    <%# With credentials, so the manifest can carry the colours of this browser's theme %>
+    <%= tag.link rel: "manifest", href: pwa_manifest_path(format: :json), crossorigin: "use-credentials" %>
     <link rel="icon" href="/favicon.ico" sizes="32x32">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -92,7 +93,7 @@
           <button type="button"
                   class="mobile-bottom-bar-center"
                   data-action="click->mobile-sidebar#toggle">
-            <img src="<%= app_logo_path %>" alt="<%= app_name %>" class="w-6 h-6">
+            <%= render "shared/logo", class: "w-6 h-6" %>
             <span><%= app_name %></span>
           </button>
 

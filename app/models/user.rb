@@ -27,12 +27,7 @@ class User < ApplicationRecord
 
   # The colours this person sees the app in: a palette of their own, a built-in
   # theme, or nil for the app's own look.
-  def theme
-    return if theme_name.blank?
-
-    palette = Theme.clean_palette(theme_colors)
-    palette ? Theme.new(name: theme_name, palette: palette, mode: theme_colors["mode"]) : Theme.find(theme_name)
-  end
+  def theme = Theme.for(theme_name, theme_colors)
 
   # Takes a built-in theme's name, or a name with a palette. Anything else (nil, an
   # unknown name, a palette that isn't one) goes back to the app's own look.

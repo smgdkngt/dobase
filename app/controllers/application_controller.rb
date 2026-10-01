@@ -11,12 +11,28 @@ class ApplicationController < ActionController::Base
 
   around_action :set_time_zone
   after_action :track_last_visited_path
+  after_action :remember_theme
 
   private
 
   def set_time_zone(&block)
     timezone = current_user&.timezone.presence || "UTC"
     Time.use_zone(timezone, &block)
+  end
+
+  # The sign-in page and shared links have nobody to ask for a theme, so the
+  # browser keeps the one its person has (ApplicationHelper#remembered_theme).
+  def remember_theme
+    return unless current_user && Current.session && request.format.html?
+
+    theme = { name: current_user.theme_name, colors: current_user.theme_colors }.to_json if current_user.theme_name.present?
+    return if cookies.signed[:theme] == theme
+
+    if theme
+      cookies.signed.permanent[:theme] = { value: theme, httponly: true, same_site: :lax }
+    else
+      cookies.delete(:theme)
+    end
   end
 
   def record_not_found

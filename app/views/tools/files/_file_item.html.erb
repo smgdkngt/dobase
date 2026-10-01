@@ -25,7 +25,7 @@
       <%= image_tag url_for(file.thumbnail), class: "w-full h-full object-cover", loading: "lazy", decoding: "async", alt: file.name %>
     </div>
   <% else %>
-    <div class="<%= icon_base %> <%= icon_size %> bg-gradient-to-br from-zinc-400 to-zinc-500 text-white">
+    <div class="<%= icon_base %> <%= icon_size %> file-icon">
       <%= render "shared/icon", name: file.icon_name, size: view_mode == "grid" ? 32 : 16 %>
     </div>
   <% end %>

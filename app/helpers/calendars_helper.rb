@@ -73,16 +73,16 @@ module CalendarsHelper
       .includes(account: :tool).order(:calendar_account_id, :position).to_a
   end
 
-  def event_color_classes(event)
-    color = event.calendar.color_hex
-    # Return inline style for custom colors
-    { style: "background-color: #{color}; border-left-color: #{color};" }
+  # An event block's colours: its calendar's colour with whichever of white and
+  # near-black reads on it, or the accent when the calendar has none.
+  def event_color_style(calendar)
+    color = calendar&.color.to_s[0, 7]
+    return "background-color: var(--color-accent-solid); color: var(--color-text-inverse);" unless Theme::Color.hex?(color)
+
+    fill = Theme::Color.new(color)
+    ink = [ Theme::Color::WHITE, EVENT_INK ].max_by { |candidate| candidate.contrast(fill) }
+    "background-color: #{fill}; color: #{ink};"
   end
 
-  def day_header_classes(date)
-    classes = []
-    classes << "text-blue-600" if date == Date.current
-    classes << "text-gray-400" if date < Date.current
-    classes.join(" ")
-  end
+  EVENT_INK = Theme::Color.new("#1d1d1f")
 end

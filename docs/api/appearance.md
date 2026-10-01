@@ -14,6 +14,7 @@ light or dark with the system. The built-in themes are the ones
   "label": "Tokyo Night",
   "mode": "dark",
   "custom": false,
+  "colors": { "background": "#1a1b26", "foreground": "#a9b1d6", "accent": "#7aa2f7", "red": "#f7768e" },
   "version": "tokyo-night-5b0c2a91",
   "style": "color-scheme: dark; --color-background: #1a1b26; …",
   "chrome_color": "#13141c",
@@ -26,6 +27,8 @@ light or dark with the system. The built-in themes are the ones
 
 - `name`, `label` and `mode` are `null` on the app's own look.
 - `custom` says the colours are your own rather than a built-in theme's.
+- `colors` is the palette the theme is made from (`null` on the app's own
+  look), for a client that draws itself.
 - `themes` lists the built-in themes.
 - `version`, `style` and `chrome_color` are what the web app puts on the page:
   the design tokens worked out from the palette, and the colour for the

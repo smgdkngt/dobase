@@ -29,6 +29,7 @@ class AppearancesApiTest < ActionDispatch::IntegrationTest
     assert_equal "dark", body["mode"]
     assert_equal false, body["custom"]
     assert_match(/--color-background: #282828/, body["style"])
+    assert_equal "#7daea3", body["colors"]["accent"]
     assert_equal "gruvbox", @user.reload.theme_name
   end
 

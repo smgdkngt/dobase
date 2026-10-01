@@ -77,12 +77,60 @@ class AppearancesControllerTest < ActionDispatch::IntegrationTest
     assert_select "button.theme-option-selected", 1
   end
 
-  test "signed out, a page has no theme" do
+  test "signed out, the sign-in page keeps the theme this browser last had" do
     @user.choose_theme("nord")
+    get edit_profile_path
     delete session_path
 
     get new_session_path
 
+    assert_select "html[data-theme=nord][style*='--color-background: #2e3440']"
+    assert_select "svg[aria-label=Dobase] rect[style='fill: var(--color-logo)']"
+  end
+
+  test "a palette of their own is kept for the sign-in page too" do
+    @user.choose_theme("my-desktop", { "background" => "#101010", "foreground" => "#eeeeee", "accent" => "#ff8800" })
+    get edit_profile_path
+    delete session_path
+
+    get new_session_path
+
+    assert_select "html[data-theme=my-desktop][style*='--color-background: #101010']"
+  end
+
+  test "a browser nobody themed, or whose person went back to the app's own look, has none" do
+    get edit_profile_path
+    delete session_path
+    get new_session_path
     assert_select "html[data-theme-version=default]:not([style])"
+
+    sign_in_as @user
+    @user.choose_theme("nord")
+    get edit_profile_path
+    @user.choose_theme(nil)
+    get edit_profile_path
+    delete session_path
+
+    get new_session_path
+    assert_select "html[data-theme-version=default]:not([style])"
+  end
+
+  test "the web app manifest takes the theme's colours" do
+    get pwa_manifest_path(format: :json)
+    assert_equal "#f5f5f7", response.parsed_body["theme_color"]
+
+    @user.choose_theme("nord")
+    get edit_profile_path
+    get pwa_manifest_path(format: :json)
+
+    assert_equal Theme.find("nord").chrome_color, response.parsed_body["theme_color"]
+    assert_equal Theme.find("nord").chrome_color, response.parsed_body["background_color"]
+  end
+
+  test "the command palette offers every theme" do
+    get edit_profile_path
+
+    assert_select "dialog[data-controller=command-palette] button[data-type=theme]", Theme.all.size + 1
+    assert_select "button[data-type=theme][data-theme=tokyo-night][data-when-typed].hidden", text: /Tokyo Night/
   end
 end

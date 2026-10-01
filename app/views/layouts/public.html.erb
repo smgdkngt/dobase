@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html <%= tag.attributes(theme_attributes) %>>
   <head>
     <title><%= content_for(:title) || "Shared File - #{app_name}" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
+    <% if current_theme %><meta name="theme-color" content="<%= current_theme.chrome_color %>"><% end %>
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
     <%# Share downloads are counted: no prefetch on hover %>
@@ -20,7 +21,7 @@
     <div class="min-h-screen flex flex-col">
       <header class="px-8 py-4 border-b border-border-light">
         <div class="flex items-center gap-3">
-          <img src="<%= app_logo_path %>" alt="<%= app_name %>" class="w-8 h-8">
+          <%= render "shared/logo", class: "w-8 h-8" %>
           <span class="font-semibold"><%= app_name %></span>
         </div>
       </header>

@@ -7,9 +7,39 @@ export function themeVersion() {
   return root.dataset.themeVersion || "default"
 }
 
+// The offline page (public/offline.html) can't ask the server what the theme is, so
+// the browser keeps the few colours it needs.
+export function rememberTheme() {
+  try {
+    if (!root.dataset.theme) return localStorage.removeItem("dobase:theme")
+
+    const style = getComputedStyle(root)
+    localStorage.setItem("dobase:theme", JSON.stringify({
+      background: style.getPropertyValue("--color-background").trim(),
+      text: style.getPropertyValue("--color-text-primary").trim(),
+      muted: style.getPropertyValue("--color-text-tertiary").trim()
+    }))
+  } catch {
+    // No storage (private browsing, a full disk): the offline page keeps its own colours
+  }
+}
+
 export function applyTheme(theme) {
   if (!theme?.version || theme.version === themeVersion()) return
+  // Set at once: the same theme arrives more than once (each notification
+  // subscription hears of it), and only the first should do anything
+  root.dataset.themeVersion = theme.version
 
+  // The old colours fade into the new ones where the browser can do that
+  const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  if (document.startViewTransition && !still && !document.hidden) {
+    document.startViewTransition(() => wear(theme))
+  } else {
+    wear(theme)
+  }
+}
+
+function wear(theme) {
   for (const property of [...root.style]) {
     if (property.startsWith("--") || property === "color-scheme") root.style.removeProperty(property)
   }
@@ -20,8 +50,8 @@ export function applyTheme(theme) {
 
   setData("theme", theme.name)
   setData("themeMode", theme.mode)
-  root.dataset.themeVersion = theme.version
   setChromeColor(theme.chrome_color)
+  rememberTheme()
 }
 
 function setData(name, value) {

@@ -34,6 +34,21 @@
   --color-error-solid: #d70015;
   --color-error-light: #ffebea;
 
+  /* Hues for what is told apart by colour: card labels, the tool types. A theme
+     brings its own. */
+  --color-label-red: #ef4444;
+  --color-label-orange: #f97316;
+  --color-label-yellow: #eab308;
+  --color-label-green: #22c55e;
+  --color-label-cyan: #06b6d4;
+  --color-label-blue: #3b82f6;
+  --color-label-purple: #a855f7;
+  --color-label-pink: #ec4899;
+
+  /* The logo's square and its letter; a theme draws it in its accent */
+  --color-logo: #0071e3;
+  --color-logo-ink: #ffffff;
+
   /* Code, as a file preview highlights it */
   --color-code-comment: #6e7781;
   --color-code-keyword: #ad3da4;
@@ -115,6 +130,8 @@
   html {
     /* Native controls (checkboxes, date pickers, scrollbars) follow the theme */
     color-scheme: light dark;
+    /* Native checkboxes, radios and range sliders */
+    accent-color: var(--color-accent-solid);
     font-family: var(--font-family-sans);
     font-size: 16px;
     line-height: var(--line-height-normal);
@@ -139,6 +156,16 @@
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
     border-radius: var(--radius-sm);
+  }
+
+  /* A theme also colours what the browser draws itself: selected text and scrollbars */
+  :root[data-theme] {
+    scrollbar-color: var(--color-border) transparent;
+  }
+
+  :root[data-theme] ::selection {
+    background: color-mix(in srgb, var(--color-accent) 32%, transparent);
+    color: var(--color-text-primary);
   }
 
   /* Dark Mode Overrides */

@@ -37,6 +37,6 @@
   },
   "scope": "/",
   "description": "<%= app_name %>.",
-  "theme_color": "#f5f5f7",
-  "background_color": "#f5f5f7"
+  "theme_color": "<%= current_theme&.chrome_color || "#f5f5f7" %>",
+  "background_color": "<%= current_theme&.chrome_color || "#f5f5f7" %>"
 }

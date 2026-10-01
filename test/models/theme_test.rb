@@ -38,6 +38,15 @@ class ThemeTest < ActiveSupport::TestCase
     assert_equal night["--color-background-secondary"], night["--color-surface"]
   end
 
+  test "labels and the logo come from the palette" do
+    tokens = Theme.find("gruvbox").tokens
+
+    assert_equal "#ea6962", tokens["--color-label-red"]
+    assert_equal "#d3869b", tokens["--color-label-purple"]
+    assert_equal tokens["--color-accent-solid"], tokens["--color-logo"]
+    assert_equal tokens["--color-text-inverse"], tokens["--color-logo-ink"]
+  end
+
   test "the version follows the colours" do
     palette = { "background" => "#101010", "foreground" => "#eeeeee", "accent" => "#ff8800" }
     one = Theme.new(name: "mine", palette: palette)
@@ -65,7 +74,7 @@ class ThemeTest < ActiveSupport::TestCase
   test "a sparse palette still gets status and code colours" do
     theme = Theme.new(name: "bare", palette: { "background" => "#fafafa", "foreground" => "#111111", "accent" => "#3264eb" })
 
-    assert_equal 39, theme.tokens.size
+    assert_equal 49, theme.tokens.size
     assert theme.tokens.values.all?(&:present?)
   end
 

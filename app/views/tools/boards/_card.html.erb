@@ -10,18 +10,8 @@
      role="button"
      tabindex="0"
      data-action="click->board#openCard keydown->board#openCardKey">
-  <% if card.color.present? %>
-    <%
-      color_class = case card.color
-      when "red" then "bg-error"
-      when "orange" then "bg-warning"
-      when "yellow" then "bg-[#f5c542]"
-      when "green" then "bg-success"
-      when "blue" then "bg-accent"
-      when "purple" then "bg-[#af52de]"
-      end
-    %>
-    <div class="h-[3px] rounded-sm mb-2 <%= color_class %>"></div>
+  <% if card_color(card) %>
+    <div class="h-[3px] rounded-sm mb-2" style="background-color: <%= card_color(card)[:fill] %>;"></div>
   <% end %>
   <div class="text-sm font-medium text-text-primary leading-normal"><%= card.title %></div>
   <% if card.description.present? %>

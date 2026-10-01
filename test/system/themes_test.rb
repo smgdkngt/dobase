@@ -54,6 +54,22 @@ class ThemesTest < ApplicationSystemTestCase
     assert_selector "html[data-theme-version='default']:not([data-theme])"
   end
 
+  test "the command palette puts a theme on, right where you are" do
+    visit tool_board_path(tools(:shared_board))
+    wait_for_stimulus "command-palette", "dialog[data-controller~='command-palette']"
+
+    find("button", text: "Jump to").click
+    assert_no_selector "button[data-type='theme']", visible: true
+    find("dialog[open] input").send_keys("rosé")
+    assert_selector "button[data-type='theme']", text: "Rosé Pine", count: 1
+    find("dialog[open] input").send_keys(:enter)
+
+    assert_selector "html[data-theme='rose-pine'][data-theme-mode='light']"
+    assert_equal "rose-pine", @user.reload.theme_name
+    assert_current_path tool_board_path(tools(:shared_board))
+    assert_equal "#faf4ed", page.evaluate_script("JSON.parse(localStorage.getItem('dobase:theme')).background")
+  end
+
   private
 
   def css_variable(name)

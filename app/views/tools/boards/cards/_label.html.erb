@@ -9,7 +9,7 @@
                     style="anchor-name: --card-color">
               <span class="w-4 h-4 rounded-sm flex-shrink-0"
                     data-board-card-target="colorDot"
-                    style="<%= card_color(card) ? "background-color: #{card_color(card)[:hex]};" : "background-color: transparent; border: 1px dashed var(--color-border);" %>"></span>
+                    style="<%= card_color(card) ? "background-color: #{card_color(card)[:fill]};" : "background-color: transparent; border: 1px dashed var(--color-border);" %>"></span>
               <span class="text-sm flex-1 text-left <%= card_color(card) ? "font-medium text-text-primary" : "text-text-tertiary" %>"
                     data-board-card-target="colorLabel"><%= card_color(card) ? card.color.capitalize : "No label" %></span>
               <%= render "shared/icon", name: "chevron-down", size: 12, class: "text-text-tertiary flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" %>
@@ -30,9 +30,9 @@
                         class="flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-left hover:bg-background-tertiary transition-colors"
                         data-action="click->board-card#setColor"
                         data-color="<%= color %>"
-                        data-color-hex="<%= styles[:hex] %>"
+                        data-color-hex="<%= styles[:fill] %>"
                         commandfor="card-color-menu" command="hide-popover">
-                  <span class="w-4 h-4 rounded-sm flex-shrink-0" style="background-color: <%= styles[:hex] %>;"></span>
+                  <span class="w-4 h-4 rounded-sm flex-shrink-0" style="background-color: <%= styles[:fill] %>;"></span>
                   <span class="text-text-primary"><%= color.capitalize %></span>
                   <% if card.color == color %>
                     <%= render "shared/icon", name: "check", size: 13, class: "text-accent ml-auto flex-shrink-0" %>

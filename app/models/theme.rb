@@ -37,6 +37,15 @@ class Theme
       all.find { |theme| theme.name == name.to_s }
     end
 
+    # The theme a name and maybe a palette stand for: the palette's when it makes
+    # one, else the built-in theme of that name, else none.
+    def for(name, colors = nil)
+      return if name.blank?
+
+      palette = clean_palette(colors)
+      palette ? new(name: name, palette: palette, mode: colors.to_h.transform_keys(&:to_s)["mode"]) : find(name)
+    end
+
     # The colours of a palette someone sent, or nil when it can't make a theme
     def clean_palette(colors)
       return unless colors.respond_to?(:to_h)
@@ -154,7 +163,19 @@ class Theme
       "--color-sidebar-hover" => sidebar_hover,
       "--color-sidebar-active" => sidebar.mix(text, 0.15),
       "--color-sidebar-text" => text,
-      "--color-sidebar-text-muted" => text.mix(sidebar, 0.22).readable_on(sidebar_hover, READABLE, dark: dark?)
+      "--color-sidebar-text-muted" => text.mix(sidebar, 0.22).readable_on(sidebar_hover, READABLE, dark: dark?),
+
+      "--color-label-red" => red,
+      "--color-label-orange" => palette["orange"] || yellow.mix(red, 0.5),
+      "--color-label-yellow" => yellow,
+      "--color-label-green" => green,
+      "--color-label-cyan" => color("cyan"),
+      "--color-label-blue" => color("blue"),
+      "--color-label-purple" => color("magenta"),
+      "--color-label-pink" => color("magenta").mix(red, 0.5),
+
+      "--color-logo" => solid.(accent),
+      "--color-logo-ink" => on_accent
     }.merge(shadows)
   end
 

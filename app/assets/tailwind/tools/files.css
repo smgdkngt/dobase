@@ -1,6 +1,18 @@
 /* Files tool + public share pages: the large-view / slideshow gallery
    (gallery_controller.js) that both share. */
 @layer components {
+  /* The tiles of the files grid: a folder in the accent, a file in a quiet grey,
+     both from the theme */
+  .folder-icon {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--color-accent-solid) 82%, white), var(--color-accent-solid));
+    color: var(--color-text-inverse);
+  }
+
+  .file-icon {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--color-text-tertiary) 80%, var(--color-background)), var(--color-text-tertiary));
+    color: var(--color-background);
+  }
+
   .gallery-overlay {
     @apply fixed inset-0 z-[100] flex flex-col items-center justify-center gap-6 bg-black/95 p-4;
   }
