@@ -1,7 +1,11 @@
 @layer components {
-  /* Sized by the room controller to fill the grid without cropping */
+  /* Sized by the room controller to fill the grid without cropping. The height
+     is spelled out as well: Safari keeps a tile's old height when aspect-ratio
+     is all that ties it to a width that changed, which left a wide, flat strip
+     after coming back from the small window or resizing. */
   [data-participant-id] {
     width: var(--room-tile-width, 100%);
+    height: calc(var(--room-tile-width) * 9 / 16);
     aspect-ratio: 16 / 9;
     animation: empty-state-in 240ms var(--ease-out) both;
   }
@@ -122,7 +126,7 @@
   }
 
   [data-room-mode-value="full"] .room-content-area[data-has-spotlight] [data-participant-id] {
-    @apply w-full;
+    @apply w-full h-auto;
   }
 
   /* Your own camera stays in the corner of the screen being shared, clear of the strip */
@@ -187,7 +191,7 @@
   }
 
   [data-room-mode-value="pip"] [data-participant-id] {
-    @apply min-h-0 rounded-none border-none w-full!;
+    @apply min-h-0 rounded-none border-none w-full! h-full!;
     aspect-ratio: auto;
   }
 
