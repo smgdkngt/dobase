@@ -57,7 +57,9 @@ six days after `start_date`. The range can be 92 days at most. A longer range, a
 - `local` is true when the events live only in Dobase. `sync.status` is
   `pending`, `syncing`, `synced` or `error`.
 - `writable` calendars take new events: they are `enabled` and not `read_only`.
-  Dobase marks a calendar read-only when its server refuses a change.
+  A calendar is read-only when its server says you can't change it, which every
+  sync checks. For a server that doesn't say, Dobase marks the calendar when a
+  change to an event of your own is refused, until the next sync you ask for.
 - Events are listed in start order, all-day events first on their day, from
   enabled calendars only. An event that began before `start_date` and is still
   going is included.
@@ -194,3 +196,9 @@ Dobase syncs every CalDAV account every 15 minutes.
 `GET /tools/:tool_id/calendar/sync` returns the same until `status` is `synced`
 or `error`. A local account has nothing to fetch, so it is `synced` again as soon
 as the background job has run.
+
+The status is `error` when the server could not be reached or refused every
+calendar, and `last_synced_at` stays at the last sync that worked. When the
+server turns down the username or password, the scheduled sync stops trying. It
+starts again when the account's connection settings change, or after a
+`POST /tools/:tool_id/calendar/sync`.

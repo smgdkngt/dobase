@@ -58,6 +58,20 @@ module Tools
         assert_equal "https://caldav.icloud.com/", account.reload.caldav_url
       end
 
+      test "a new password syncs the account again, other changes don't" do
+        account = calendars_accounts(:icloud_account)
+        account.mark_sync_error!(::Calendars::Account::AUTHENTICATION_FAILED)
+
+        assert_enqueued_with job: SyncCalendarsJob, args: [ account.id, { discover: true } ] do
+          patch tool_calendar_account_path(account.tool), params: { calendars_account: { password: "app-specific-password" } }
+        end
+        assert_equal [ "syncing", nil ], [ account.reload.sync_status, account.sync_error ]
+
+        assert_no_enqueued_jobs only: SyncCalendarsJob do
+          patch tool_calendar_account_path(account.tool), params: { calendars_account: { calendars_attributes: [ { id: calendars_calendars(:work).id, enabled: "0" } ] } }
+        end
+      end
+
       test "creating a local account adds a default calendar named after the tool" do
         post tool_calendar_account_path(@tool), params: { calendars_account: { provider: "local" } }
 

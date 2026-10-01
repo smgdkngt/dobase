@@ -131,6 +131,63 @@ class MailInviteDetectorServiceTest < ActiveSupport::TestCase
     assert_equal [ "inline-1@example.com", "Budget review", "pending" ], [ invite.uid, invite.summary, invite.status ]
   end
 
+  test "a time without a time zone is on the clock of the mailbox's owner" do
+    @message.account.tool.owner.update!(timezone: "Amsterdam")
+    ics = <<~ICS
+      BEGIN:VCALENDAR
+      VERSION:2.0
+      PRODID:-//Test//Test//EN
+      METHOD:REQUEST
+      BEGIN:VEVENT
+      UID:floating-1@example.com
+      DTSTART:20261005T100000
+      DTEND:20261005T110000
+      SUMMARY:Lunch
+      END:VEVENT
+      END:VCALENDAR
+    ICS
+
+    invite = MailInviteDetectorService.new(@message, calendar_data: ics).detect_and_create_invite
+
+    assert_equal [ Time.utc(2026, 10, 5, 8), Time.utc(2026, 10, 5, 9) ], [ invite.starts_at, invite.ends_at ]
+  end
+
+  test "an invitation from Exchange is at the time its Windows time zone says, wherever the owner is" do
+    @message.account.tool.owner.update!(timezone: "Eastern Time (US & Canada)")
+    ics = <<~ICS
+      BEGIN:VCALENDAR
+      METHOD:REQUEST
+      PRODID:Microsoft Exchange Server 2010
+      VERSION:2.0
+      BEGIN:VTIMEZONE
+      TZID:W. Europe Standard Time
+      BEGIN:STANDARD
+      DTSTART:16010101T030000
+      TZOFFSETFROM:+0200
+      TZOFFSETTO:+0100
+      RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=-1SU;BYMONTH=10
+      END:STANDARD
+      BEGIN:DAYLIGHT
+      DTSTART:16010101T020000
+      TZOFFSETFROM:+0100
+      TZOFFSETTO:+0200
+      RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=-1SU;BYMONTH=3
+      END:DAYLIGHT
+      END:VTIMEZONE
+      BEGIN:VEVENT
+      UID:040000008200E00074C5B7101A82E008
+      DTSTART;TZID=W. Europe Standard Time:20261005T100000
+      DTEND;TZID=W. Europe Standard Time:20261005T110000
+      SUMMARY:Kwartaaloverleg
+      END:VEVENT
+      END:VCALENDAR
+    ICS
+
+    invite = MailInviteDetectorService.new(@message, calendar_data: ics).detect_and_create_invite
+
+    assert_equal [ Time.utc(2026, 10, 5, 8), Time.utc(2026, 10, 5, 9) ], [ invite.starts_at, invite.ends_at ]
+  end
+
   private
     def attach_ics(ics)
       attachment = @message.attachments.create!(filename: "invite.ics", content_type: "text/calendar", file_size: ics.bytesize)

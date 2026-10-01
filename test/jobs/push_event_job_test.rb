@@ -34,12 +34,67 @@ class PushEventJobTest < ActiveJob::TestCase
     assert_requested deleted
   end
 
-  test "marks the calendar read-only when the server refuses changes" do
+  test "a change the server turns down for the password shows on the account" do
+    stub_request(:put, @event.remote_href).to_return(status: 401)
+
+    assert_nothing_raised { PushEventJob.perform_now(@event.id, :update) }
+
+    assert @event.calendar.account.reload.authentication_failed?
+    assert_not @event.calendar.reload.read_only?
+    assert_no_enqueued_jobs
+  end
+
+  test "marks the calendar read-only when the server refuses a change and says the user can't make any" do
     stub_request(:put, @event.remote_href).to_return(status: 403)
+    stub_request(:propfind, @event.calendar.remote_url).to_return(status: 207, body: privileges_response(%w[read]))
 
     PushEventJob.perform_now(@event.id, :update)
 
     assert @event.calendar.reload.read_only?
     assert_no_enqueued_jobs
+  end
+
+  test "one refused event doesn't make a calendar read-only that the server says the user can change" do
+    stub_request(:put, @event.remote_href).to_return(status: 403)
+    stub_request(:propfind, @event.calendar.remote_url).to_return(status: 207, body: privileges_response(%w[read write write-content bind]))
+
+    PushEventJob.perform_now(@event.id, :update)
+
+    assert_not @event.calendar.reload.read_only?
+  end
+
+  test "when the server doesn't say, a refused event of the user's own makes the calendar read-only, one they only attend doesn't" do
+    stub_request(:put, @event.remote_href).to_return(status: 403)
+    stub_request(:propfind, @event.calendar.remote_url).to_return(status: 207, body: privileges_response(nil))
+
+    @event.update!(organizer_email: "rachel@example.com", organizer_name: "Rachel Kim")
+    PushEventJob.perform_now(@event.id, :update)
+    assert_not @event.calendar.reload.read_only?
+
+    @event.update!(organizer_email: @event.calendar.account.username.upcase)
+    PushEventJob.perform_now(@event.id, :update)
+    assert @event.calendar.reload.read_only?
+  end
+
+  private
+
+  def privileges_response(privileges)
+    privilege_set = privileges&.map { |privilege| "<d:privilege><d:#{privilege}/></d:privilege>" }&.join
+    <<~XML
+      <?xml version="1.0" encoding="UTF-8"?>
+      <d:multistatus xmlns:d="DAV:" xmlns:cs="http://calendarserver.org/ns/">
+        <d:response>
+          <d:href>/123456789/calendars/personal/</d:href>
+          <d:propstat>
+            <d:prop>
+              <cs:getctag>abc123</cs:getctag>
+              #{"<d:current-user-privilege-set>#{privilege_set}</d:current-user-privilege-set>" if privileges}
+            </d:prop>
+            <d:status>HTTP/1.1 200 OK</d:status>
+          </d:propstat>
+          #{'<d:propstat><d:prop><d:current-user-privilege-set/></d:prop><d:status>HTTP/1.1 404 Not Found</d:status></d:propstat>' unless privileges}
+        </d:response>
+      </d:multistatus>
+    XML
   end
 end

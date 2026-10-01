@@ -20,7 +20,7 @@ class SyncCalendarsJob < ApplicationJob
     account.mark_synced!
   rescue CaldavSyncService::AuthenticationError => e
     Rails.logger.error("Calendar sync authentication failed for account #{calendar_account_id}: #{e.message}")
-    account.mark_sync_error!("Authentication failed: #{e.message}")
+    account.mark_sync_error!(e.message)
   rescue CaldavSyncService::ConnectionError => e
     Rails.logger.error("Calendar sync connection failed for account #{calendar_account_id}: #{e.message}")
     account.mark_sync_error!("Connection failed: #{e.message}")

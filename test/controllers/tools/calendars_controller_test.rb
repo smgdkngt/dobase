@@ -158,6 +158,14 @@ module Tools
       assert_enqueued_jobs 1, only: DeleteCalendarEventJob
     end
 
+    test "the calendar says so when the server turned the login down" do
+      calendars_accounts(:icloud_account).mark_sync_error!(::Calendars::Account::AUTHENTICATION_FAILED)
+
+      get tool_calendar_path(@tool)
+
+      assert_select "[role=status][title=?]", "The calendar server didn't accept the username or password", text: "Login failed"
+    end
+
     test "syncing redirects to the calendar, or answers turbo streams with ok" do
       post tool_calendar_sync_path(@tool)
       assert_redirected_to tool_calendar_path(@tool)

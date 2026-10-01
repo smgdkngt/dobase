@@ -12,7 +12,8 @@ class MailInviteDetectorService
     ics_data = find_calendar_data
     return nil unless ics_data.present?
 
-    parsed = IcsParserService.new(ics_data).parse
+    # Times without a time zone are the mailbox owner's local time, like those of synced events
+    parsed = IcsParserService.new(ics_data, time_zone: @message.account.tool.owner.timezone).parse
     return nil unless parsed[:uid].present?
 
     create_or_update_invite(parsed)
