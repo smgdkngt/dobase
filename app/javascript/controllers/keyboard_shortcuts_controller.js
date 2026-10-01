@@ -3,27 +3,37 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = ["dialog", "commandPalette"]
 
+  // On the root element, not the document: a key gets here after everything in the page
+  // has had it, and before the shortcut library, which listens on the document. Which of
+  // the two started listening first no longer matters.
   connect() {
     this.boundHandleKey = this.handleKey.bind(this)
-    document.addEventListener("keydown", this.boundHandleKey)
+    document.documentElement.addEventListener("keydown", this.boundHandleKey)
   }
 
   disconnect() {
-    document.removeEventListener("keydown", this.boundHandleKey)
+    document.documentElement.removeEventListener("keydown", this.boundHandleKey)
   }
 
   handleKey(event) {
-    // Escape closes the topmost open dialog — prevent hotkey handlers from stealing it
     if (event.key === "Escape") {
-      const openDialog = document.querySelector("dialog[open]")
-      if (openDialog) {
-        event.stopImmediatePropagation()
-        openDialog.close()
+      // Something nearer the key took it already: the list of people to mention closes on
+      // Escape, and the card around it stays open
+      if (event.defaultPrevented) return
+
+      // The browser closes the dialog on top by itself, and only that one. Closing one
+      // here as well closed a second: the card under the command palette. Escape just
+      // stops here, so the page's own Escape shortcuts don't fire behind a dialog (and
+      // don't cancel the key, which would keep the browser from closing it).
+      if (document.querySelector("dialog[open]")) {
+        event.stopPropagation()
         return
       }
     }
 
-    if (this.isTyping(event.target)) return
+    // Where the key was really typed: a field inside a shadow root (the editor's link
+    // box) shows up here as the editor around it
+    if (this.isTyping(event.composedPath()[0] || event.target)) return
     if (event.key === "?" || (event.key === "/" && event.shiftKey)) {
       event.preventDefault()
       this.toggleDialog()
