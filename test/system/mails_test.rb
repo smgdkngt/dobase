@@ -393,6 +393,8 @@ class MailsTest < ApplicationSystemTestCase
       assert_selector "h1", text: "Edit Draft"
     end
 
+    # The job says why a moment after it puts the draft back, which is what the page shows
+    assert_db_change -> { users(:one).notifications.exists? }
     assert_match "Error: certificate verify failed", users(:one).notifications.order(:created_at).last.message
     visit new_tool_mail_path(@tool, draft_id: draft.id)
     wait_for_compose_editor
