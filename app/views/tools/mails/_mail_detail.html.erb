@@ -69,7 +69,7 @@
     <%= render "components/icon_button",
         icon: @selected_message.read? ? "mail" : "mail-open",
         title: @selected_message.read? ? "Mark unread (u)" : "Mark read",
-        href: tool_mail_read_path(@tool, @selected_message),
+        href: tool_mail_read_path(@tool, @selected_message, folder: @current_folder),
         method: @selected_message.read? ? :delete : :post,
         data: { controller: "hotkey", hotkey: "u" } %>
     <%# Where # takes Shift, as on US keyboards, the browser reports Shift+# %>

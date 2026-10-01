@@ -29,7 +29,10 @@ module Tools
             @selected_message = @message
             @current_folder = params[:folder] || "inbox"
             @conversation_messages = @message.conversation_without_copies
-            @message.conversation.unread.find_each(&:mark_as_read!)
+            unread = @message.conversation.unread.to_a
+            unread.each(&:mark_as_read!)
+            # Read by now, which is what its "Mark unread" button goes by
+            @message.reload if unread.any?
 
             unless turbo_frame_request?
               load_index_data

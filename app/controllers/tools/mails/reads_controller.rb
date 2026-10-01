@@ -16,9 +16,14 @@ module Tools
       end
 
       # DELETE /tools/:tool_id/mails/:mail_id/read
+      # The page goes back to the folder: the open message would be marked read again by showing it
       def destroy
         @message.mark_as_unread!
-        respond_with_message
+
+        respond_to do |format|
+          format.html { redirect_to tool_mails_path(@tool, folder: params[:folder].presence) }
+          format.json { render "tools/mails/message" }
+        end
       end
 
       private

@@ -123,6 +123,18 @@ class MailsTest < ApplicationSystemTestCase
     end
   end
 
+  test "the u shortcut marks the open message unread and closes it" do
+    message = mails_messages(:inbox_unread)
+    open_message(message, folder: "inbox")
+    wait_for_stimulus "hotkey", "[data-controller~='hotkey'][title^='Mark unread']"
+
+    find("body").send_keys("u")
+
+    assert_no_selector ".mail-detail-header"
+    assert_selector ".mail-list-item span.font-semibold", text: "Friendly Sender"
+    assert_not message.reload.read?
+  end
+
   test "the # shortcut in the trash deletes the message for good, after asking" do
     message = mails_messages(:trashed_message)
     open_message(message, folder: "trash")
