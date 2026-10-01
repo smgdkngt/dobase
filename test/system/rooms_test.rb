@@ -115,6 +115,43 @@ class RoomsTest < ApplicationSystemTestCase
     assert_selector "h1", text: "My Files"
   end
 
+  test "the small call window is dragged by its bar, and stops following when the touch is cancelled" do
+    visit tool_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "room"
+    assert_selector "[data-room-target='preJoinError']", text: /camera|microphone/i, wait: 5
+    start_call_without_a_server
+    find(".sidebar a", text: "My Files").click
+    assert_selector "h1", text: "My Files"
+    assert_selector "[data-room-mode-value='pip']"
+
+    bar = "[data-room-mode-value='pip'] .tool-topbar"
+    assert_equal "none", evaluate_script("getComputedStyle(document.querySelector(#{bar.to_json})).touchAction")
+
+    drag = <<~JS
+      (() => {
+        const bar = document.querySelector(#{bar.to_json})
+        const corner = () => { const box = bar.getBoundingClientRect(); return [Math.round(box.left), Math.round(box.top)] }
+        const point = (type, target, x, y) => target.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerType: "touch" }))
+        const [left, top] = corner()
+
+        point("pointerdown", bar, left + 10, top + 5)
+        point("pointermove", document, left - 190, top - 95)
+        const dragged = corner()
+        point(arguments[0], document, left - 190, top - 95)
+        point("pointermove", document, left - 400, top - 300)
+
+        return [[left - 200, top - 100], dragged, corner()]
+      })()
+    JS
+
+    %w[pointerup pointercancel].each do |ending|
+      expected, dragged, afterwards = page.evaluate_script(drag.sub("arguments[0]", ending.to_json))
+      assert_equal expected, dragged, "the window follows the finger on its bar"
+      assert_equal dragged, afterwards, "the window kept following after #{ending}"
+    end
+  end
+
   test "shows a clear error when LiveKit isn't configured" do
     visit tool_path(@tool)
     wait_for_turbo

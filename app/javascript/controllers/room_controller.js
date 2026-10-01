@@ -83,6 +83,7 @@ export default class extends Controller {
   disconnect() {
     this._tileObserver?.disconnect()
     this._tileObserver = null
+    this._stopDrag()
     if (this._isDuplicate) return
     if (this.element._liveKitRoom) return // Being moved, skip cleanup
 
@@ -331,6 +332,7 @@ export default class extends Controller {
   startDrag(event) {
     if (this.modeValue !== "pip") return
     event.preventDefault()
+    this._stopDrag()
 
     const rect = this.element.getBoundingClientRect()
     this._dragOffsetX = event.clientX - rect.left
@@ -344,12 +346,22 @@ export default class extends Controller {
       this.element.style.right = "auto"
       this.element.style.bottom = "auto"
     }
-    this._onPointerUp = () => {
-      document.removeEventListener("pointermove", this._onPointerMove)
-      document.removeEventListener("pointerup", this._onPointerUp)
-    }
+    this._onPointerUp = () => this._stopDrag()
     document.addEventListener("pointermove", this._onPointerMove)
     document.addEventListener("pointerup", this._onPointerUp)
+    document.addEventListener("pointercancel", this._onPointerUp)
+  }
+
+  // A touch the browser takes over ends with pointercancel instead of pointerup. Unheard,
+  // the window kept following every pointer that moved afterwards.
+  _stopDrag() {
+    if (!this._onPointerMove) return
+
+    document.removeEventListener("pointermove", this._onPointerMove)
+    document.removeEventListener("pointerup", this._onPointerUp)
+    document.removeEventListener("pointercancel", this._onPointerUp)
+    this._onPointerMove = null
+    this._onPointerUp = null
   }
 
   async changePreviewCamera() {

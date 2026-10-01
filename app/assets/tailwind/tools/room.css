@@ -203,9 +203,10 @@
     @apply hidden!;
   }
 
-  /* Compact topbar in PiP — acts as drag handle */
+  /* Compact topbar in PiP — acts as drag handle. A finger on it drags the window
+     instead of scrolling the page. */
   [data-room-mode-value="pip"] .tool-topbar {
-    @apply px-2 py-1 min-h-0 gap-1 cursor-grab select-none;
+    @apply px-2 py-1 min-h-0 gap-1 cursor-grab select-none touch-none;
   }
 
   [data-room-mode-value="pip"] .tool-topbar:active {
