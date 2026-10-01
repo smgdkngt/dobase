@@ -24,6 +24,7 @@ Built with Ruby on Rails 8.1, Hotwire, and Tailwind CSS.
 - **Write in the same document.** Everyone types at once and the text merges as you go (Yjs, carried over Action Cable — no extra service). Each person's cursor shows in their own colour, with their name.
 - **See who's where.** Faces in the sidebar and topbar show who's in each tool; the card, todo or file someone has open is ringed, and inside it you see them writing a comment.
 - **Search everything.** <kbd>Cmd</kbd>+<kbd>K</kbd> jumps to any tool or action and searches cards, todos, documents, files, chat, events and mail at once.
+- **Two tools side by side.** Open a second tool beside the one you're in, from the sidebar or with <kbd>Alt</kbd>+click: the chat next to the board, the calendar next to the mail you're writing. It stays as it is while you move around in the other.
 - **Notifications and @mentions**, live in the app and as an email digest when you're away.
 
 ## Themes
