@@ -19,7 +19,9 @@
     <%# A page whose widgets can't be morphed (the compose form) asks for "replace" %>
     <meta name="turbo-refresh-method" content="<%= content_for(:turbo_refresh_method).presence || "morph" %>">
     <meta name="turbo-refresh-scroll" content="preserve">
-    <meta name="view-transition" content="same-origin">
+    <%# A page in a frame (beside another tool, a tile) goes without the cross-fade:
+        Turbo waits for it, three times as long as the page itself takes %>
+    <% unless side_pane? %><meta name="view-transition" content="same-origin"><% end %>
 
     <%= yield :head %>
 
