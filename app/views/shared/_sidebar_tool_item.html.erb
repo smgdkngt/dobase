@@ -18,7 +18,7 @@
      <%= 'aria-current="page"'.html_safe if is_active %>
      data-action="click->mobile-sidebar#navigate">
     <% if emoji %>
-      <span class="shrink-0 text-base leading-none" aria-hidden="true"><%= emoji %></span>
+      <span class="tool-emoji" aria-hidden="true"><%= emoji %></span>
     <% else %>
       <%= render "shared/icon", name: instance.display_icon, size: 18 %>
     <% end %>

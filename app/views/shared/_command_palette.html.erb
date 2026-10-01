@@ -35,7 +35,7 @@
          data-name="<%= tool.name.downcase %>"
          data-type="<%= [tool.tool_type.name, group_name].compact.join(" ").downcase %>">
         <% if tool.emoji_icon %>
-          <span class="shrink-0 text-base leading-none" aria-hidden="true"><%= tool.emoji_icon %></span>
+          <span class="tool-emoji" aria-hidden="true"><%= tool.emoji_icon %></span>
         <% else %>
           <%= render "shared/icon", name: tool.display_icon, size: 18, class: "text-text-secondary" %>
         <% end %>
