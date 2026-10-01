@@ -29,8 +29,9 @@
     @apply flex flex-col items-center justify-center p-3 border-r border-border-light;
   }
 
+  /* Stays put beside the hours below it when the week scrolls sideways */
   .week-header-cell.time-label-cell {
-    @apply bg-surface;
+    @apply bg-surface sticky left-0 z-10;
   }
 
   .week-header-cell.today {
@@ -45,7 +46,7 @@
   }
 
   .all-day-label {
-    @apply flex items-start justify-end pr-2 pt-1.5 bg-surface border-r border-border-light;
+    @apply flex items-start justify-end pr-2 pt-1.5 bg-surface border-r border-border-light sticky left-0 z-20;
   }
 
   .all-day-events-grid {

@@ -67,6 +67,33 @@ class CalendarsTest < ApplicationSystemTestCase
     assert_selector "[data-event-id]", text: "Dentist"
   end
 
+  test "on a phone this week opens on today, and another week on its Monday" do
+    page.driver.browser.manage.window.resize_to(390, 844)
+    visit tool_calendar_path(@tool)
+    wait_for_stimulus "calendar"
+
+    # Two days fit beside the hours; today is one of them, wherever in the week it is
+    assert_eventually_true("today's column is in view, beside the hours") do
+      evaluate_script(<<~JS)
+        (() => {
+          const today = document.querySelector(".week-header-cell.today").getBoundingClientRect()
+          const column = document.querySelector(".week-column.today").getBoundingClientRect()
+          const hours = document.querySelector(".time-labels").getBoundingClientRect()
+          const beside = box => box.left >= hours.right - 1 && box.right <= window.innerWidth + 1
+          return beside(today) && beside(column)
+        })()
+      JS
+    end
+
+    find("button[title^='Next week']").click
+    assert_no_selector ".week-header-cell.today"
+    wait_for_stimulus "calendar"
+    sleep 0.3
+    assert_equal 0, evaluate_script("document.querySelector(\"[data-calendar-target='grid']\").scrollLeft")
+  ensure
+    page.driver.browser.manage.window.resize_to(1400, 1400)
+  end
+
   test "a week opens at the start of the day, just under the day names" do
     visit tool_calendar_path(@tool, week_start: "2030-01-07")
     wait_for_stimulus "calendar"
@@ -152,6 +179,10 @@ class CalendarsTest < ApplicationSystemTestCase
     return if has_selector?("dialog#new-event-modal[open]", wait: 3)
 
     find(selector).click
+  end
+
+  def assert_eventually_true(message)
+    page.document.synchronize { yield || raise(Capybara::ExpectationNotMet, message) }
   end
 
   def in_browser_time_zone(zone)
