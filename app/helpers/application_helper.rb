@@ -22,22 +22,33 @@ module ApplicationHelper
   def current_theme
     return @current_theme if defined?(@current_theme)
 
-    @current_theme = Current.user ? Current.user.theme : remembered_theme
+    @current_theme = Current.user ? Current.user.theme : Theme.for(remembered_appearance["name"], remembered_appearance["colors"])
   end
 
-  def remembered_theme
-    remembered = JSON.parse(cookies.signed[:theme].to_s)
-    Theme.for(remembered["name"], remembered["colors"]) if remembered.is_a?(Hash)
-  rescue JSON::ParserError
-    nil
+  # "mono" when the interface is set in the monospace font, by the same rule
+  def current_typeface
+    (Current.user ? Current.user.typeface : remembered_appearance["typeface"]).presence_in(Theme::TYPEFACES)
   end
 
-  # What <html> wears for it; a theme that changes later goes through services/theme.js
+  def remembered_appearance
+    @remembered_appearance ||= begin
+      remembered = JSON.parse(cookies.signed[:theme].to_s)
+      remembered.is_a?(Hash) ? remembered : {}
+    rescue JSON::ParserError
+      {}
+    end
+  end
+
+  # Says which theme and typeface a page is in; services/theme.js compares it
+  def theme_version = Theme.payload(current_theme, current_typeface)[:version]
+
+  # What <html> wears for them; a change later on goes through services/theme.js
   def theme_attributes
     theme = current_theme
-    return { data: { theme_version: "default" } } unless theme
+    data = { theme_version: theme_version, typeface: current_typeface }.compact
+    return { data: data } unless theme
 
-    { style: theme.style, data: { theme: theme.name, theme_mode: theme.mode, theme_version: theme.version } }
+    { style: theme.style, data: data.merge(theme: theme.name, theme_mode: theme.mode) }
   end
 
   def absolute_url(path)

@@ -104,6 +104,7 @@ dobase help                                   # everything; `dobase help card` f
 ```bash
 dobase theme list                             # the built-in themes, * is yours
 dobase theme set tokyo-night                  # `default` goes back to Dobase's own look
+dobase theme font mono                        # everything in your monospace font; `default` undoes it
 dobase theme sync                             # wear the theme your Omarchy desktop is on
 dobase theme follow                           # ...and keep following it
 ```

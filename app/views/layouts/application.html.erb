@@ -60,7 +60,7 @@
   </head>
 
   <body class="bg-background-secondary text-text-primary" data-controller="keyboard-shortcuts theme"
-        data-theme-version-value="<%= current_theme&.version || "default" %>">
+        data-theme-version-value="<%= theme_version %>">
     <%# data-turbo="false" so the browser handles the fragment itself and moves
         focus into <main>; a Turbo anchor visit only scrolls. %>
     <a href="#main-content" class="skip-link" data-turbo="false">Skip to main content</a>

@@ -22,7 +22,7 @@ class AppearancesControllerTest < ActionDispatch::IntegrationTest
     get edit_profile_path(tab: "appearance")
 
     assert_select "button.theme-option[name=theme]", Theme.all.size + 1
-    assert_select "button.theme-option-selected[value='']"
+    assert_select "button.theme-option-selected[name=theme][value='']"
     assert_select "button.theme-option[value=tokyo-night]", text: /Tokyo Night/
   end
 
@@ -74,7 +74,7 @@ class AppearancesControllerTest < ActionDispatch::IntegrationTest
 
     assert_select "html[data-theme=my-desktop][style*='--color-background: #101010']"
     assert_select "button.theme-option-selected[disabled]", text: /My Desktop\s+Yours/
-    assert_select "button.theme-option-selected", 1
+    assert_select "button.theme-option-selected[name=theme]", 1
   end
 
   test "signed out, the sign-in page keeps the theme this browser last had" do
@@ -125,6 +125,50 @@ class AppearancesControllerTest < ActionDispatch::IntegrationTest
 
     assert_equal Theme.find("nord").chrome_color, response.parsed_body["theme_color"]
     assert_equal Theme.find("nord").chrome_color, response.parsed_body["background_color"]
+  end
+
+  test "the typeface is the app's own, or the monospace font" do
+    get edit_profile_path(tab: "appearance")
+    assert_select "html:not([data-typeface])"
+    assert_select "button.theme-option-selected[name=typeface][value='']"
+
+    assert_broadcast_on("notifications:#{@user.id}", type: "theme", theme: { version: "default+mono", typeface: "mono" }) do
+      patch appearance_path, params: { typeface: "mono" }
+    end
+    follow_redirect!
+
+    assert_select "html[data-typeface=mono][data-theme-version='default+mono']:not([style])"
+    assert_select "body[data-theme-version-value='default+mono']"
+    assert_select "button.theme-option-selected[name=typeface][value=mono]"
+
+    patch appearance_path, params: { typeface: "" }
+    follow_redirect!
+    assert_select "html:not([data-typeface])"
+  end
+
+  test "the typeface and the theme change apart" do
+    @user.choose_theme("nord")
+
+    patch appearance_path, params: { typeface: "mono" }
+    assert_equal "nord", @user.reload.theme_name
+
+    patch appearance_path, params: { theme: "gruvbox" }
+    assert_equal "mono", @user.reload.typeface
+    follow_redirect!
+    assert_select "html[data-theme=gruvbox][data-typeface=mono][data-theme-version='#{Theme.find("gruvbox").version}+mono']"
+
+    patch appearance_path, params: { typeface: "comic-sans" }
+    assert_nil @user.reload.typeface
+  end
+
+  test "the sign-in page keeps the typeface too" do
+    @user.choose_typeface("mono")
+    get edit_profile_path
+    delete session_path
+
+    get new_session_path
+
+    assert_select "html[data-typeface=mono]:not([style])"
   end
 
   test "the command palette offers every theme" do

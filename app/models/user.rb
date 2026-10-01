@@ -78,9 +78,15 @@ class User < ApplicationRecord
     ActionCable.server.broadcast("notifications:#{id}", { type: "unread_count", count: notifications.unread.count })
   end
 
-  # Every page this person has open takes the new colours at once
+  # "mono" sets the whole interface in the monospace font; anything else is the app's own
+  def choose_typeface(name)
+    update!(typeface: name.to_s.presence_in(Theme::TYPEFACES))
+    broadcast_theme
+  end
+
+  # Every page this person has open takes the new colours and typeface at once
   def broadcast_theme
-    ActionCable.server.broadcast("notifications:#{id}", { type: "theme", theme: Theme.payload(theme) })
+    ActionCable.server.broadcast("notifications:#{id}", { type: "theme", theme: Theme.payload(theme, typeface) })
   end
 
   # Unread mail in the inboxes of the user's mail tools, counted like the sidebar counts it

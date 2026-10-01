@@ -33,7 +33,10 @@ export function applyTheme(theme) {
   // The old colours fade into the new ones where the browser can do that
   const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches
   if (document.startViewTransition && !still && !document.hidden) {
-    document.startViewTransition(() => wear(theme))
+    // A transition that is skipped (another one started, the tab went away) rejects
+    // its promises; the colours are on either way
+    const transition = document.startViewTransition(() => wear(theme))
+    for (const settled of [ transition.ready, transition.finished, transition.updateCallbackDone ]) settled?.catch(() => {})
   } else {
     wear(theme)
   }
@@ -50,6 +53,7 @@ function wear(theme) {
 
   setData("theme", theme.name)
   setData("themeMode", theme.mode)
+  setData("typeface", theme.typeface)
   setChromeColor(theme.chrome_color)
   rememberTheme()
 }

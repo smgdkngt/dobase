@@ -21,6 +21,10 @@ class Theme
     "light" => { "red" => "#d70015", "yellow" => "#a35a00", "green" => "#1e7a34", "cyan" => "#0b6a78", "blue" => "#0064d2", "magenta" => "#ad3da4" }
   }.freeze
 
+  # Besides the app's own typeface: the whole interface in the monospace font, which
+  # on an Omarchy desktop is the font the desktop is set in (fontconfig's "monospace")
+  TYPEFACES = %w[mono].freeze
+
   # Text has to carry WCAG AA against whatever it sits on
   READABLE = 4.5
 
@@ -56,11 +60,14 @@ class Theme
       palette if REQUIRED.all? { |key| palette.key?(key) }
     end
 
-    # What a page needs to put a theme on, or to take one off (nil)
-    def payload(theme)
-      return { version: "default" } unless theme
+    # What a page needs to put a theme and a typeface on, or to take them off (nil)
+    def payload(theme, typeface = nil)
+      typeface = nil unless typeface.in?(TYPEFACES)
 
-      { version: theme.version, name: theme.name, mode: theme.mode, style: theme.style, chrome_color: theme.chrome_color }
+      {
+        version: [ theme&.version || "default", typeface ].compact.join("+"), typeface: typeface,
+        name: theme&.name, mode: theme&.mode, style: theme&.style, chrome_color: theme&.chrome_color
+      }.compact
     end
   end
 
