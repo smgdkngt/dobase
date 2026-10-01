@@ -50,6 +50,16 @@ export default class extends Controller {
     if (this.hasGroupValue) opts.group = this.groupValue
     if (this.hasHandleValue) {
       opts.handle = this.handleValue
+    } else {
+      // The whole item is the handle, so on a touch screen a drag would start under every
+      // finger that lands on one, and a swipe would move a card instead of scrolling the
+      // page. A finger has to rest on the item first; a mouse drags right away.
+      opts.delay = 200
+      opts.delayOnTouchOnly = true
+      opts.touchStartThreshold = 5
+      // With pointer events, Sortable misses the end of a swipe the browser took over for
+      // scrolling (pointercancel) and ignores the next touch; touch events end properly.
+      opts.supportPointer = false
     }
 
     this.sortable = new Sortable(this.element, opts)

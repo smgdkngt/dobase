@@ -151,7 +151,78 @@ class BoardsTest < ApplicationSystemTestCase
     within("#board-column-#{columns(:done).id}") { assert_text "First task" }
   end
 
+  test "a card is dragged to a new place with the mouse, right away" do
+    first, second = cards(:first_task), cards(:second_task)
+    visit tool_board_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "sortable", "#column-#{columns(:todo).id}-cards"
+
+    dragged = find("[data-card-id='#{first.id}']").native
+    onto = find("[data-card-id='#{second.id}']").native
+    page.driver.browser.action.click_and_hold(dragged).move_by(0, 10).move_by(0, 20).move_to(onto, 0, 10).move_by(0, 5).release.perform
+
+    assert_db_change(-> { first.reload.position == 1 && second.reload.position == 0 })
+    assert_equal [ second.id, first.id ], card_ids_in(columns(:todo))
+    assert_no_selector "dialog[open]"
+  end
+
+  test "on a touch screen a swipe over a card leaves it where it is, and a held card can be dragged" do
+    first, second = cards(:first_task), cards(:second_task)
+    page.driver.browser.execute_cdp("Emulation.setTouchEmulationEnabled", enabled: true, maxTouchPoints: 1)
+    visit tool_board_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "sortable", "#column-#{columns(:todo).id}-cards"
+
+    from = centre_of("[data-card-id='#{first.id}']")
+    to = centre_of("[data-card-id='#{second.id}']")
+    to[:y] += 12
+
+    # A swipe: the finger moves as soon as it is down. One command, so that a busy
+    # machine can't turn it into a finger that rests first.
+    page.driver.browser.execute_cdp("Input.synthesizeScrollGesture", x: from[:x], y: from[:y],
+      yDistance: to[:y] - from[:y], speed: 400, gestureSourceType: "touch", preventFling: true)
+    sleep 0.5
+    assert_equal [ first.id, second.id ], card_ids_in(columns(:todo))
+    assert_equal [ 0, 1 ], [ first.reload.position, second.reload.position ]
+
+    # Holding the card first picks it up
+    touch_drag(from, to, hold: 0.4)
+    assert_db_change(-> { first.reload.position == 1 && second.reload.position == 0 })
+    assert_equal [ second.id, first.id ], card_ids_in(columns(:todo))
+  ensure
+    page.driver.browser.execute_cdp("Emulation.setTouchEmulationEnabled", enabled: false)
+  end
+
   private
+
+  def centre_of(selector)
+    evaluate_script(<<~JS).symbolize_keys
+      (() => {
+        const box = document.querySelector(#{selector.to_json}).getBoundingClientRect()
+        return { x: Math.round(box.left + box.width / 2), y: Math.round(box.top + box.height / 2) }
+      })()
+    JS
+  end
+
+  def card_ids_in(column)
+    evaluate_script("[...document.querySelectorAll('#column-#{column.id}-cards > [data-sort-id]')].map(card => Number(card.dataset.sortId))")
+  end
+
+  # A finger put down, moved in steps and lifted, the way a phone reports it
+  def touch_drag(from, to, hold:)
+    touch = ->(type, point = nil) do
+      page.driver.browser.execute_cdp("Input.dispatchTouchEvent", type: type, touchPoints: point ? [ point ] : [])
+    end
+    steps = 8
+
+    touch.call("touchStart", from)
+    sleep hold
+    (1..steps).each do |step|
+      touch.call("touchMove", x: from[:x] + (to[:x] - from[:x]) * step / steps, y: from[:y] + (to[:y] - from[:y]) * step / steps)
+      sleep 0.06
+    end
+    touch.call("touchEnd")
+  end
 
   def open_card(card)
     wait_for_turbo
