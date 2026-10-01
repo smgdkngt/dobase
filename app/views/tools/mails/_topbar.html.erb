@@ -12,7 +12,7 @@
 
     <%
       folders = mail_folders(inbox_unread: @inbox_unread, drafts_count: @drafts_count, trash_count: @trash_count)
-      current_meta = folders.find { |folder| folder[:key] == @current_folder } || { label: @current_folder, icon: "folder" }
+      current_meta = folders.find { |folder| folder[:key] == @current_folder } || { label: mail_folder_name(@current_folder), icon: "folder" }
     %>
     <div class="relative mail-folder-picker">
       <button type="button"

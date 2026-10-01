@@ -45,6 +45,36 @@ module Tools
       assert_includes response.body, "Archived conversation"
     end
 
+    test "folders show by the names they were given, and are opened and moved to by the server's names" do
+      @account.update!(synced_folders: [ "INBOX", "Sent", "B&APw-ro", "Facturen &- bonnen" ].to_json)
+
+      get tool_mail_path(@tool, mails_messages(:inbox_read))
+
+      assert_select "nav.mail-folder-rail a[href=?]", tool_mails_path(@tool, folder: "B&APw-ro"), text: "Büro"
+      assert_select "nav.mail-folder-rail a[href=?]", tool_mails_path(@tool, folder: "Facturen &- bonnen"), text: "Facturen & bonnen"
+      assert_select "#move-to-menu form" do
+        assert_select "input[name=folder][value=?]", "B&APw-ro"
+        assert_select "button", text: "Büro"
+        assert_select "button", text: "Facturen & bonnen"
+      end
+      assert_select "#bulk-move-menu button[data-folder=?]", "B&APw-ro", text: "Büro"
+      assert_not_includes response.body, ">B&amp;APw-ro<"
+
+      get tool_mails_path(@tool, folder: "B&APw-ro")
+
+      assert_select ".mail-folder-picker button span", text: "Büro"
+      assert_includes response.body, "No messages in Büro"
+    end
+
+    test "a new folder gets a plain name" do
+      [ "Work (old)", "Receipts*", "Büro", "a" * 101, "" ].each do |name|
+        post tool_folder_path(@tool), params: { folder_name: name }
+
+        assert_redirected_to tool_mails_path(@tool)
+        assert_equal "Invalid folder name.", flash[:alert], name
+      end
+    end
+
     test "index takes the same number of queries however many conversations there are" do
       account = @tool.mail_account
       add_threads = ->(count, offset) do

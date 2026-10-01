@@ -44,6 +44,13 @@ module Mails
       []
     end
 
+    # The folder to move mail to, by the name the server has for it: the inbox, sent mail or
+    # one of the account's own folders. Nil for a folder the server doesn't have.
+    def folder_to_move_to(name)
+      folders = [ "INBOX", "Sent", *custom_folders ]
+      folders.find { |folder| folder == name.to_s } || folders.find { |folder| folder == name.to_s.strip }
+    end
+
     # The folders synced besides the inbox and sent mail: the account's own, and the archive
     # and trash, where other mail programs archive and delete to as well
     def other_folders_to_sync

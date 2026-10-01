@@ -163,8 +163,11 @@ as `current_folder` when moving (both default to `inbox`). Read and star only
 change the message itself.
 
 The `folder` to move to is `INBOX`, `Sent` (the server's sent folder, whatever
-the server calls it) or one of the `custom_folders`. An invalid name returns
-`422` with `{"errors": ["Invalid folder name"]}`.
+the server calls it) or one of the `custom_folders`, by the name the list gives
+it. That is the name the mail server has for the folder, which for names with
+`&` or letters outside ASCII is modified UTF-7: "Büro" is `B&APw-ro`, "R & D"
+is `R &- D`. A folder the account doesn't have returns `422` with
+`{"errors": ["Invalid folder name"]}`.
 
 ## Drafts
 

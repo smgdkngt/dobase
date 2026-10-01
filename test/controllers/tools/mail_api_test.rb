@@ -309,12 +309,23 @@ module Tools
       assert_equal [ message.id ], @account.messages.where(message_id: message.message_id, folder: "Receipts").pluck(:id)
     end
 
-    test "move refuses invalid folder names" do
-      post tool_mail_move_path(@tool, mails_messages(:inbox_read)), params: { folder: "Receipts; DROP" }, headers: @headers, as: :json
+    test "move refuses a folder the account doesn't have" do
+      [ "Receipts; DROP", "Projects" ].each do |folder|
+        post tool_mail_move_path(@tool, mails_messages(:inbox_read)), params: { folder: folder }, headers: @headers, as: :json
 
-      assert_response :unprocessable_entity
-      assert_equal [ "Invalid folder name" ], response.parsed_body["errors"]
-      assert_equal "INBOX", mails_messages(:inbox_read).reload.folder
+        assert_response :unprocessable_entity
+        assert_equal [ "Invalid folder name" ], response.parsed_body["errors"]
+        assert_equal "INBOX", mails_messages(:inbox_read).reload.folder
+      end
+    end
+
+    test "move takes a folder by the name the server has for it" do
+      @account.update!(synced_folders: [ "INBOX", "Sent", "B&APw-ro" ].to_json)
+
+      post tool_mail_move_path(@tool, mails_messages(:inbox_read)), params: { folder: "B&APw-ro" }, headers: @headers, as: :json
+
+      assert_response :success
+      assert_equal "B&APw-ro", response.parsed_body["folder"]
     end
 
     test "drafts can be created and partially updated" do

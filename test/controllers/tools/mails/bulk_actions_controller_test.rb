@@ -75,12 +75,22 @@ module Tools
         assert_not older.reload.read?
         assert_equal "2 email(s) marked as unread.", flash[:notice]
 
+        mails_accounts(:primary).update!(synced_folders: [ "INBOX", "Sent", "Receipts", "Projecten &- co" ].to_json)
         assert_enqueued_jobs 2, only: ImapSyncJob do
-          post tool_bulk_path(@tool), params: { message_ids: [ newer.id ], action_type: "move_to_folder", target_folder: "Projects", folder: "inbox" }
+          post tool_bulk_path(@tool), params: { message_ids: [ newer.id ], action_type: "move_to_folder", target_folder: "Projecten &- co", folder: "inbox" }
         end
-        assert_equal "Projects", older.reload.folder
+        assert_equal "Projecten &- co", older.reload.folder
         assert_equal "Receipts", elsewhere.reload.folder
-        assert_equal "2 email(s) moved to Projects.", flash[:notice]
+        assert_equal "2 email(s) moved to Projecten & co.", flash[:notice]
+      end
+
+      test "bulk move_to_folder leaves mail where it is when the server doesn't have the folder" do
+        assert_no_enqueued_jobs only: ImapSyncJob do
+          post tool_bulk_path(@tool), params: { message_ids: [ @msg1.id ], action_type: "move_to_folder", target_folder: "Projects" }
+        end
+
+        assert_equal "INBOX", @msg1.reload.folder
+        assert_equal "Invalid folder name.", flash[:notice]
       end
 
       test "bulk mark_read" do
