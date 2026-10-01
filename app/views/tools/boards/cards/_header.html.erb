@@ -7,7 +7,7 @@
         <% if card_color(card) %>
           <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset"
                 style="background-color: <%= card_color(card)[:bg_light] %>; color: <%= card_color(card)[:text] %>; --tw-ring-color: <%= card_color(card)[:ring] %>;">
-            <span class="w-1.5 h-1.5 rounded-full" style="background-color: <%= card_color(card)[:hex] %>;"></span>
+            <span class="w-1.5 h-1.5 rounded-full" style="background-color: <%= card_color(card)[:fill] %>;"></span>
             <%= card.color.capitalize %>
           </span>
         <% end %>

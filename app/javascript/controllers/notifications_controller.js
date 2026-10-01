@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import consumer from "channels/consumer"
+import { applyTheme } from "services/theme"
 
 export default class extends Controller {
   static targets = ["badge", "badgeStatus", "trigger", "popover", "list", "markAllRead", "desktopOffer"]
@@ -29,6 +30,12 @@ export default class extends Controller {
     // toggles the same in-call indicator the room controller uses for itself.
     if (data.type === "room_activity") {
       this.updateInCallIndicator(data.tool_id, data.active)
+      return
+    }
+
+    // A theme was picked: on the profile page, on another device, by the CLI
+    if (data.type === "theme") {
+      applyTheme(data.theme)
       return
     }
 

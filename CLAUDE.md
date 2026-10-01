@@ -220,6 +220,15 @@ Collaborators are always added via invitation (never direct-add). Flow:
 
 `Invitation` model: auto-generates token, 7-day expiry, statuses: `pending`/`accepted`/`declined`. Declined invitations show in collaborators panel with a "Reinvite" option.
 
+### Themes
+
+`Theme` (`app/models/theme.rb`) turns a palette in Omarchy's `colors.toml` names into the `--color-*` tokens of `tokens.css`, nudging text, the accent and button fills until they carry WCAG AA. The built-in themes are Omarchy's (`config/themes.yml`); a user has `theme_name` and, for a palette of their own, `theme_colors` (`User#theme`, `User#choose_theme`). No theme means the app's own look, light or dark by `prefers-color-scheme`.
+
+- The layout puts a theme on `<html>` as an inline `style` plus `data-theme`, `data-theme-mode` and `data-theme-version` (`theme_attributes`). Turbo never touches `<html>`, so a change goes through `services/theme.js`: pushed as `type: "theme"` on the notification stream, and `theme_controller` on `<body>` fetches `/appearance` when the body's version isn't the one `<html>` wears.
+- `AppearancesController` (`resource :appearance`, HTML and JSON, tokens allowed: it is cosmetic) is what the profile's Appearance tab and `dobase theme set|sync|follow` talk to. `dobase theme follow` installs an Omarchy `theme-set` hook.
+- A theme reaches everything: the label hues (`--color-label-*`: card labels, tool type icons), the logo (`shared/logo`, drawn inline in `--color-logo`), native controls (`accent-color`), selection and scrollbars. Pages with nobody signed in (sign-in, shared links, the manifest) use the theme the browser last had, kept in a signed `theme` cookie (`remember_theme`, `remembered_theme`); the offline page reads a few colours from `localStorage`. Cmd+K offers every theme once you type towards one.
+- Styling for a theme must come from tokens. What sits on an accent or danger fill is `text-text-inverse` (white or the theme's darkest colour), never `text-white`. Dark-only rules can't use `prefers-color-scheme` alone: add `:root[data-theme-mode="dark"]` (see `.email-frame`, `rhino-editor`).
+
 ### Avatars (Active Storage)
 
 `User` model: `has_one_attached :avatar` with content type (PNG/JPEG/GIF/WebP) and size (5MB) validation. Displayed via `shared/avatar` partial with `variant(resize_to_fill: [200, 200])`. Requires `libvips` system library.

@@ -34,6 +34,7 @@ Rails.application.routes.draw do
       resources :access_tokens, only: %i[create update destroy]
     end
   end
+  resource :appearance, only: %i[show update]
   resource :two_factor_setup, only: %i[new create destroy]
 
   # Notifications

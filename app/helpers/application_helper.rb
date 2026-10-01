@@ -16,24 +16,44 @@ module ApplicationHelper
     request.user_agent.to_s.match?(/iPhone|iPod/) ? "#{content},maximum-scale=1" : content
   end
 
+  # The theme a page is drawn in, or nil for the app's own look: the signed-in
+  # person's, or on a page nobody is signed in on (signing in, a shared link) the
+  # one this browser last had.
+  def current_theme
+    return @current_theme if defined?(@current_theme)
+
+    @current_theme = Current.user ? Current.user.theme : remembered_theme
+  end
+
+  def remembered_theme
+    remembered = JSON.parse(cookies.signed[:theme].to_s)
+    Theme.for(remembered["name"], remembered["colors"]) if remembered.is_a?(Hash)
+  rescue JSON::ParserError
+    nil
+  end
+
+  # What <html> wears for it; a theme that changes later goes through services/theme.js
+  def theme_attributes
+    theme = current_theme
+    return { data: { theme_version: "default" } } unless theme
+
+    { style: theme.style, data: { theme: theme.name, theme_mode: theme.mode, theme_version: theme.version } }
+  end
+
   def absolute_url(path)
     return path if path.start_with?("http")
     "#{root_url.chomp('/')}#{path}"
   end
 
-  TOOL_TYPE_COLORS = {
-    "mail" => "#ef4444",     # red
-    "calendar" => "#f97316", # orange
-    "boards" => "#eab308",   # yellow
-    "files" => "#22c55e",    # green
-    "docs" => "#3b82f6",     # blue
-    "chat" => "#8b5cf6",     # violet
-    "todos" => "#ec4899",    # pink
-    "room" => "#06b6d4"      # cyan
+  # The label hue (tokens.css) each tool type is drawn in
+  TOOL_TYPE_HUES = {
+    "mail" => "red", "calendar" => "orange", "boards" => "yellow", "files" => "green",
+    "docs" => "blue", "chat" => "purple", "todos" => "pink", "room" => "cyan"
   }.freeze
 
   def tool_type_color(tool_type)
-    TOOL_TYPE_COLORS[tool_type.slug] || "#6b7280"
+    hue = TOOL_TYPE_HUES[tool_type.slug]
+    hue ? "var(--color-label-#{hue})" : "var(--color-text-tertiary)"
   end
 
   def tool_type_description(tool_type)

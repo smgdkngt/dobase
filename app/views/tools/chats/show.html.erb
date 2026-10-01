@@ -35,7 +35,7 @@
           <div class="relative ring-2 ring-surface rounded-full <%= z_classes[i] %>">
             <%= render "shared/avatar", user: participant, size: :sm %>
             <% unless participant.id == current_user.id %>
-              <span class="hidden absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-surface rounded-full"
+              <span class="hidden absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-success border-2 border-surface rounded-full"
                     data-chat-target="onlineIndicator"
                     data-user-id="<%= participant.id %>"></span>
             <% end %>
@@ -62,7 +62,7 @@
               <div class="relative">
                 <%= render "shared/avatar", user: participant, size: :sm %>
                 <% unless participant.id == current_user.id %>
-                  <span class="hidden absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-surface rounded-full"
+                  <span class="hidden absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-success border-2 border-surface rounded-full"
                         data-chat-target="onlineIndicator"
                         data-user-id="<%= participant.id %>"></span>
                 <% end %>
@@ -198,7 +198,7 @@
     <div class="relative group/file">
       <img src="" alt="" class="w-16 h-16 object-cover rounded-lg border border-border-light">
       <button type="button"
-              class="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center bg-red-500 text-white rounded-full text-xs opacity-0 group-hover/file:opacity-100 focus-visible:opacity-100 transition-opacity"
+              class="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center bg-error-solid text-text-inverse rounded-full text-xs opacity-0 group-hover/file:opacity-100 focus-visible:opacity-100 transition-opacity"
               data-action="click->chat#removeFile">&times;</button>
     </div>
   </template>
@@ -213,7 +213,7 @@
         </div>
       </div>
       <button type="button"
-              class="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center bg-red-500 text-white rounded-full text-xs opacity-0 group-hover/file:opacity-100 focus-visible:opacity-100 transition-opacity"
+              class="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center bg-error-solid text-text-inverse rounded-full text-xs opacity-0 group-hover/file:opacity-100 focus-visible:opacity-100 transition-opacity"
               data-action="click->chat#removeFile">&times;</button>
     </div>
   </template>

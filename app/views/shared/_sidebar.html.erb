@@ -9,7 +9,7 @@
             aria-haspopup="menu"
             popovertarget="sidebar-add-menu"
             style="anchor-name: --sidebar-add-btn">
-      <img src="<%= app_logo_path %>" alt="<%= app_name %>" class="w-7 h-7 flex-shrink-0">
+      <%= render "shared/logo", class: "w-7 h-7 flex-shrink-0" %>
       <span class="font-semibold text-base text-text-primary truncate"><%= app_name %></span>
       <%= render "shared/icon", name: "settings", size: 14, class: "text-text-tertiary flex-shrink-0 ml-auto" %>
     </button>
@@ -18,7 +18,7 @@
             class="sidebar-logo-btn sidebar-reorder-show"
             data-action="click->sidebar#toggleReorder"
             title="Done reordering">
-      <img src="<%= app_logo_path %>" alt="<%= app_name %>" class="w-7 h-7 flex-shrink-0">
+      <%= render "shared/logo", class: "w-7 h-7 flex-shrink-0" %>
       <span class="font-semibold text-base text-text-primary truncate"><%= app_name %></span>
       <%= render "shared/icon", name: "check", size: 14, class: "text-accent flex-shrink-0 ml-auto" %>
     </button>

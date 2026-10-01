@@ -10,6 +10,10 @@
         <%= render "shared/icon", name: "user", size: 16 %>
         <span>Profile</span>
       </button>
+      <button type="button" class="tab w-full justify-start" data-tabs-target="tab" data-tab="appearance" data-action="click->tabs#select">
+        <%= render "shared/icon", name: "palette", size: 16 %>
+        <span>Appearance</span>
+      </button>
       <button type="button" class="tab w-full justify-start" data-tabs-target="tab" data-tab="notifications" data-action="click->tabs#select">
         <%= render "shared/icon", name: "bell", size: 16 %>
         <span>Notifications</span>
@@ -111,6 +115,11 @@
           </div>
         <% end %>
 
+      </div>
+
+      <%# Appearance panel %>
+      <div data-tabs-target="panel" data-tab="appearance" class="hidden">
+        <%= render "profiles/appearance", user: @user %>
       </div>
 
       <%# Notifications panel %>

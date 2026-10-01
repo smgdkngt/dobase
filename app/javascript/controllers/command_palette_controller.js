@@ -1,4 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
+import { apiPatch } from "services/api"
+import { applyTheme } from "services/theme"
 
 // Past this many characters the palette also searches every tool you share
 const SEARCH_FROM_LENGTH = 2
@@ -23,7 +25,8 @@ export default class extends Controller {
       if (item.dataset.searchResult) return
 
       if (!query) {
-        item.classList.remove("hidden")
+        // Themes only show once you type towards them: "theme", "nord"
+        item.classList.toggle("hidden", "whenTyped" in item.dataset)
       } else {
         const name = item.dataset.name
         const type = item.dataset.type
@@ -63,13 +66,11 @@ export default class extends Controller {
   // matches tools leaves a dangling "ACTIONS" label with nothing below it.
   _toggleEmptySections() {
     const visible = (item) => !item.classList.contains("hidden")
-    const hasVisibleAction = this.itemTargets.some(item => item.dataset.type === "action" && visible(item))
-    const hasVisibleTool = this.itemTargets.some(item => item.dataset.type !== "action" && !item.dataset.searchResult && visible(item))
+    const sectionOf = (item) => [ "action", "theme" ].includes(item.dataset.type) ? item.dataset.type : "tool"
+    const shown = new Set(this.itemTargets.filter(item => !item.dataset.searchResult && visible(item)).map(sectionOf))
 
-    this.sectionHeaderTargets.forEach(header => {
-      header.classList.toggle("hidden", !(header.dataset.section === "action" ? hasVisibleAction : hasVisibleTool))
-    })
-    this.sectionDividerTargets.forEach(divider => divider.classList.toggle("hidden", !hasVisibleAction))
+    this.sectionHeaderTargets.forEach(header => header.classList.toggle("hidden", !shown.has(header.dataset.section)))
+    this.sectionDividerTargets.forEach(divider => divider.classList.toggle("hidden", !shown.has("action")))
   }
 
   navigate(event) {
@@ -104,6 +105,13 @@ export default class extends Controller {
     } else {
       target.click()
     }
+  }
+
+  // Puts a theme on, here and on every other page this person has open
+  async pickTheme(event) {
+    this.element.close()
+    const theme = await apiPatch("/appearance", { theme: event.currentTarget.dataset.theme || null })
+    if (theme) applyTheme(theme)
   }
 
   // data-hotkey can list several hotkeys, separated by commas: "#,Shift+#".
@@ -148,8 +156,8 @@ export default class extends Controller {
     const selected = this.#selectedItem || this.#visibleItems[0]
     if (!selected) return
 
-    // Action items have a hotkey trigger — click the hotkey element
-    if (selected.dataset.hotkeyTrigger) {
+    // Actions click the element their hotkey is on; a theme puts itself on
+    if (selected.dataset.hotkeyTrigger || selected.dataset.type === "theme") {
       selected.click()
       return
     }

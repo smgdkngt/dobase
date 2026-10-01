@@ -99,6 +99,23 @@ dobase help                                   # everything; `dobase help card` f
 - `--html` sends formatted text as HTML.
 - `--json` prints the raw API response.
 
+## Themes
+
+```bash
+dobase theme list                             # the built-in themes, * is yours
+dobase theme set tokyo-night                  # `default` goes back to Dobase's own look
+dobase theme sync                             # wear the theme your Omarchy desktop is on
+dobase theme follow                           # ...and keep following it
+```
+
+On [Omarchy](https://omarchy.org), `dobase theme sync` reads the current theme's
+`colors.toml` and sends its colours, so themes you installed or made yourself
+come along too. `dobase theme follow` writes
+`~/.config/omarchy/hooks/theme-set.d/dobase`, which Omarchy runs on every theme
+switch; open Dobase pages change colour on the spot. `dobase theme follow --stop`
+removes the hook. Anything else that has a `colors.toml` in that format works
+with `dobase theme sync --file PATH --name NAME`.
+
 ## With Claude Code
 
 This directory is also a Claude Code skill. `SKILL.md` tells Claude when and

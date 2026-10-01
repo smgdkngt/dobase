@@ -1,0 +1,25 @@
+<%# Locals: user %>
+<%
+  current = user.theme
+  # A palette of their own (sent by `dobase theme sync`) is shown next to the built-in ones
+  custom = current if user.theme_colors.present?
+%>
+<h3 class="text-sm font-semibold text-text-primary mb-1">Theme</h3>
+<p class="text-xs text-text-tertiary mb-4">The colours you see <%= app_name %> in, on every device you're signed in on.</p>
+
+<%= render "shared/flash", position: :inline %>
+
+<%= form_with url: appearance_path, method: :patch, data: { turbo_frame: "_top" } do %>
+  <div class="theme-grid">
+    <%= render "profiles/theme_option", theme: nil, selected: current.nil? %>
+    <%= render "profiles/theme_option", theme: custom, selected: true, custom: true if custom %>
+    <% Theme.all.each do |theme| %>
+      <%= render "profiles/theme_option", theme: theme, selected: custom.nil? && current&.name == theme.name %>
+    <% end %>
+  </div>
+<% end %>
+
+<p class="help-text mt-4">
+  The themes are <a href="https://omarchy.org" class="text-accent hover:underline" target="_blank" rel="noopener">Omarchy</a>'s.
+  On an Omarchy desktop, <code class="theme-command">dobase theme follow</code> keeps <%= app_name %> on whatever theme the desktop is on.
+</p>

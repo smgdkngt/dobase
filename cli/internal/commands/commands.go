@@ -17,6 +17,7 @@ func Definitions() []*command.Definition {
 		mail(),
 		notifications(),
 		search(),
+		theme(),
 		todos(),
 		tools(),
 	} {
@@ -41,6 +42,7 @@ func Nouns() []Noun {
 		{"mail", "Email in mail tools: conversations, flags, drafts and sending"},
 		{"notification", "Your notifications"},
 		{"search", "Search every tool you share"},
+		{"theme", "The colours you see Dobase in, and following an Omarchy desktop"},
 		{"todo", "Todos on lists (todos tools)"},
 		{"todolist", "Lists in a todos tool"},
 		{"tool", "The tools you have access to"},
