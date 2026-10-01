@@ -190,6 +190,35 @@ class MailsTest < ApplicationSystemTestCase
     assert_equal [ "sender@example.com" ], deliveries.sole[:recipients]
   end
 
+  test "an address typed and sent at once goes out with the mail" do
+    visit new_tool_mail_path(@tool)
+    wait_for_stimulus "email-autocomplete"
+
+    deliveries = capture_smtp_deliveries do
+      add_recipient "friend@example.com"
+      find("input[name='subject']").set("Hello")
+      find("input[data-compose-target='to']").set("ann@example.com")
+      perform_enqueued_jobs(only: SendMailJob) do
+        click_on "Send"
+        assert_selector ".mail-detail-header"
+      end
+    end
+
+    assert_equal [ "friend@example.com", "ann@example.com" ], deliveries.sole[:recipients]
+  end
+
+  test "an address typed and saved at once is in the draft" do
+    visit new_tool_mail_path(@tool)
+    wait_for_stimulus "email-autocomplete"
+
+    find("input[name='subject']").set("Plans")
+    find("input[data-compose-target='to']").set("ann@example.com")
+    click_on "Save Draft"
+
+    assert_text "Draft saved."
+    assert_equal [ "ann@example.com" ], @tool.mail_account.messages.drafts.find_by!(subject: "Plans").to_addresses_list
+  end
+
   test "a reply sent off shows in its conversation as being sent, until it has gone out" do
     original = mails_messages(:inbox_read)
     visit new_tool_mail_path(@tool, reply_to: original.id, folder: "inbox")
