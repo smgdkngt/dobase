@@ -195,8 +195,8 @@ img, svg {
   align-items: center;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #fff;
-  background: var(--accent);
+  color: var(--on-accent, #fff);
+  background: var(--accent-solid, var(--accent));
   padding: 0.35rem 0.9rem;
   border-radius: var(--radius-sm);
   transition: background 150ms ease, box-shadow 150ms ease;
@@ -209,7 +209,7 @@ img, svg {
 
 @media (prefers-color-scheme: light) {
   .nav-try {
-    color: #fff;
+    color: var(--on-accent, #fff);
   }
 }
 
@@ -305,9 +305,11 @@ img, svg {
   height: 16px;
 }
 
+/* --accent-solid and --on-accent come with a theme (theme.js): a pastel accent is
+   written on in the theme's dark colour, not in white */
 .btn-primary {
-  background: var(--accent);
-  color: #fff;
+  background: var(--accent-solid, var(--accent));
+  color: var(--on-accent, #fff);
 }
 
 .btn-primary:hover {
@@ -350,6 +352,28 @@ img, svg {
 .hero-screenshot.active {
   opacity: 1;
   transform: scale(1.0);
+}
+
+
+/* The app in the theme picked further down, in place of the tour */
+.hero-theme-shot {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top left;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--screenshot-shadow);
+}
+
+:root[data-theme] .hero-screenshot {
+  display: none;
+}
+
+/* The themed picture is the app's window itself, a little wider than the tour's */
+:root[data-theme] .hero-screenshots {
+  aspect-ratio: 1920 / 1200;
 }
 
 
@@ -746,6 +770,273 @@ img, svg {
 
 .code-body .cmd {
   color: var(--text);
+}
+
+
+/* --- Themes Section --- */
+.themes-section {
+  padding-block: clamp(4rem, 8vh, 6rem);
+  border-top: 1px solid var(--border-light);
+}
+
+.themes-intro {
+  margin-bottom: clamp(1.5rem, 4vh, 2.5rem);
+}
+
+.themes-intro h2 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.themes-intro p {
+  margin-top: 0.5rem;
+  font-size: 1rem;
+  color: var(--text-secondary);
+  max-width: 600px;
+}
+
+.themes-intro a,
+.themes-point a {
+  color: var(--accent);
+}
+
+.theme-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.theme-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.75rem 0.3rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.theme-chip:hover {
+  background: var(--bg-card-hover);
+  color: var(--text);
+}
+
+.theme-chip[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+  color: var(--text);
+}
+
+.theme-chip:focus-visible,
+.typeface-toggle button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* A theme in one dot: its page colour around its accent. The app's own look is
+   half light, half dark. */
+.theme-chip-swatch {
+  display: grid;
+  place-items: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  border: 1px solid #d2d2d7;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #ffffff 50%, #1c1c1e 50%);
+}
+
+.theme-chip-swatch::after {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--dot, #0064d2);
+}
+
+.theme-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.typeface-toggle {
+  display: inline-flex;
+  padding: 0.2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+}
+
+.typeface-toggle button {
+  padding: 0.3rem 0.8rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.typeface-toggle button[data-typeface="mono"] {
+  font-family: var(--font-mono);
+}
+
+.typeface-toggle button[aria-pressed="true"] {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+.theme-hint {
+  font-size: 0.8125rem;
+  color: var(--text-tertiary);
+}
+
+.theme-hint kbd,
+.themes-point kbd {
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-card);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.theme-figure {
+  margin-top: clamp(1.5rem, 4vh, 2.5rem);
+}
+
+.theme-figure img {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--screenshot-shadow);
+}
+
+.theme-figure figcaption {
+  margin-top: 0.9rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--text-tertiary);
+}
+
+.themes-points {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(1.5rem, 4vw, 3rem);
+  margin-top: clamp(2.5rem, 6vh, 4rem);
+}
+
+.themes-point h3 {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.themes-point p {
+  margin-top: 0.5rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.themes-code {
+  margin-top: 0.9rem;
+}
+
+@media (max-width: 900px) {
+  .themes-points {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  /* One row to swipe through instead of ten to scroll past */
+  .theme-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-inline: calc(-1 * var(--page-padding));
+    padding: 2px var(--page-padding) 0.5rem;
+    scrollbar-width: none;
+  }
+
+  .theme-chip {
+    flex-shrink: 0;
+  }
+
+  /* No keyboard to press T on */
+  .theme-hint {
+    display: none;
+  }
+
+  /* The left of the window, large enough to read, rather than all of it too small */
+  .theme-figure img {
+    aspect-ratio: 5 / 4;
+    object-fit: cover;
+    object-position: top left;
+  }
+}
+
+/* A theme decides light or dark, whatever the system says */
+:root[data-theme-mode="dark"] {
+  --screenshot-shadow:
+    0 0 0 1px rgba(255,255,255,0.04),
+    0 25px 80px rgba(0,0,0,0.5),
+    0 8px 24px rgba(0,0,0,0.3);
+}
+
+:root[data-theme-mode="light"] {
+  --screenshot-shadow:
+    0 0 0 1px rgba(0,0,0,0.06),
+    0 25px 80px rgba(0,0,0,0.12),
+    0 8px 24px rgba(0,0,0,0.08);
+}
+
+/* The typeface of the app's Monospace setting: everything in the monospace font,
+   a notch smaller since it runs wider */
+:root[data-typeface="mono"] {
+  --font-sans: var(--font-mono);
+  font-size: 15px;
+  font-variant-ligatures: none;
+}
+
+/* The terminal app wears the theme as well; its capture has its colours inline */
+:root[data-theme] .terminal-window {
+  background: var(--bg-subtle);
+  border-color: var(--border);
+}
+
+:root[data-theme] .terminal-window .code-dots span {
+  background: var(--border);
+}
+
+:root[data-theme] .terminal-screen {
+  color: var(--text);
+}
+
+:root[data-theme] .terminal-screen [style*="color:#3b82f6"] {
+  color: var(--accent) !important;
+}
+
+:root[data-theme] .terminal-screen [style*="background:#3b82f6"] {
+  background: var(--accent-solid) !important;
+  color: var(--on-accent) !important;
+}
+
+:root[data-theme] .terminal-screen [style*="color:#80808c"] {
+  color: var(--text-tertiary) !important;
 }
 
 

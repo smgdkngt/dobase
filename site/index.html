@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dobase &mdash; Your workspace, your server</title>
-  <meta name="description" content="An open-source, self-hosted workspace with installable tools. Mail, boards, docs, chat, todos, files, calendar, and video rooms — built for working together, live, in one deploy.">
+  <meta name="description" content="An open-source, self-hosted workspace with installable tools. Mail, boards, docs, chat, todos, files, calendar, and video rooms — built for working together, live, in one deploy, in 22 themes.">
 
   <!-- Open Graph -->
   <meta property="og:title" content="Dobase — Your workspace, your server">
@@ -21,6 +21,9 @@
 
   <link rel="canonical" href="https://dobase.co/">
   <link rel="stylesheet" href="style.css">
+  <!-- The app's themes, and the switcher that puts one on this page before it is drawn -->
+  <script src="themes.js"></script>
+  <script src="theme.js"></script>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -101,6 +104,8 @@
         <img src="screenshots/file-code.png" alt="A code file with syntax highlighting in Files" class="hero-screenshot" loading="lazy">
         <img src="screenshots/add-tool.png" alt="Add any tool to your workspace" class="hero-screenshot" loading="lazy">
         <img src="screenshots/collaborators-4.png" alt="Invite collaborators to share tools" class="hero-screenshot" loading="lazy">
+        <!-- With a theme picked below, the app in that theme takes the place of the tour -->
+        <img data-theme-hero class="hero-theme-shot" alt="" hidden>
       </div>
     </div>
   </section>
@@ -226,8 +231,8 @@
           <div class="feature-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
             <div>
-              <h4>Light and dark</h4>
-              <p>Follows your system's appearance, everywhere, including the emails it sends.</p>
+              <h4>Themes</h4>
+              <p>Light and dark with your system, or one of <a href="#themes">22 themes</a>, down to the sign-in page. Set it all in monospace if you like.</p>
             </div>
           </div>
 
@@ -277,6 +282,53 @@
     </div>
   </section>
 
+  <!-- Themes -->
+  <section id="themes" class="themes-section">
+    <div class="page-width">
+      <div class="themes-intro">
+        <h2>Wear your colours.</h2>
+        <p>Twenty-two themes, the ones <a href="https://omarchy.org">Omarchy</a> ships: Tokyo Night, Catppuccin, Gruvbox, Nord, Ros&eacute; Pine and the rest. Pick one and this page wears it too.</p>
+      </div>
+
+      <div class="theme-picker" data-theme-picker hidden>
+        <div class="theme-chips" data-theme-chips role="group" aria-label="Theme"></div>
+        <div class="theme-options">
+          <div class="typeface-toggle" role="group" aria-label="Typeface">
+            <button type="button" data-typeface="" aria-pressed="true">Dobase</button>
+            <button type="button" data-typeface="mono" aria-pressed="false">Monospace</button>
+          </div>
+          <span class="theme-hint">Press <kbd>T</kbd> for the next theme</span>
+        </div>
+      </div>
+
+      <figure class="theme-figure">
+        <picture>
+          <source data-theme-shot-dark srcset="screenshots/themes/dobase-dark.webp" media="(prefers-color-scheme: dark)">
+          <img data-theme-shot src="screenshots/themes/dobase-light.webp" width="1920" height="1200" alt="A board in Dobase, in its own look" loading="lazy">
+        </picture>
+        <figcaption>A board in <span data-theme-name>Dobase</span></figcaption>
+      </figure>
+
+      <div class="themes-points">
+        <div class="themes-point">
+          <h3>All the way</h3>
+          <p>Not just a background: card labels, tool icons, the logo, checkboxes, the sign-in page, shared links and the installed app's title bar take the theme. Text stays readable in every one of them, checked against WCAG AA.</p>
+        </div>
+        <div class="themes-point">
+          <h3>Follows your desktop</h3>
+          <p>On <a href="https://omarchy.org">Omarchy</a>, Dobase switches along when you change the desktop's theme, themes you made yourself included. Pages you have open change colour on the spot.</p>
+          <div class="code-window themes-code">
+            <div class="code-body"><span class="prompt">$</span> <span class="cmd">dobase theme follow</span></div>
+          </div>
+        </div>
+        <div class="themes-point">
+          <h3>Your font, too</h3>
+          <p>Set the whole workspace in monospace, and on Omarchy that is the font your desktop is in. Or press <kbd>Cmd+K</kbd> in the app and type a theme's name to try another.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Terminal -->
   <section id="terminal" class="terminal-section">
     <div class="page-width">
@@ -284,7 +336,7 @@
         <div class="terminal-text">
           <h2>In your terminal, too.</h2>
           <p>Type <code>dobase</code> and your workspace opens right there. Move cards across a board, tick off todos, keep up with the chat and search everything, without leaving the keyboard. Made a mistake? <kbd>u</kbd> takes it back.</p>
-          <p>The same tool gives scripts and AI agents a command for everything, so Claude can read your board or draft a reply.</p>
+          <p>The same tool gives scripts and AI agents a command for everything, so Claude can read your board or draft a reply. And it wears your theme, like the one you picked above.</p>
           <div class="code-window terminal-install">
             <div class="code-body"><span class="prompt">$</span> <span class="cmd">curl -fsSL https://raw.githubusercontent.com/smgdkngt/dobase/main/cli/install.sh | sh</span></div>
           </div>
