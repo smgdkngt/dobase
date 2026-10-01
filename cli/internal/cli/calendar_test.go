@@ -181,3 +181,21 @@ func TestFileDownloadsKeepOnlyTheLastPartOfTheName(t *testing.T) {
 		t.Errorf("got %v", err)
 	}
 }
+
+func TestAFailedCalendarSyncFailsWithJSONToo(t *testing.T) {
+	for _, json := range []bool{false, true} {
+		var sent []api.Value
+		var out bytes.Buffer
+		ctx := command.NewCtx(&config.Config{}, &out, json, "test")
+		// The fake answers the sync with something that isn't "synced" or "syncing"
+		ctx.SetAPI(newFakeAPI(calendarResponses, &sent))
+
+		err := invoke(ctx, "calendar sync", "family")
+		if err == nil || api.KindOf(err) != api.Failed || !strings.Contains(err.Error(), "Syncing Family (calendar 22) failed") {
+			t.Errorf("json %v: %v", json, err)
+		}
+		if json && !strings.Contains(out.String(), `"id": 400`) {
+			t.Errorf("the status wasn't printed: %q", out.String())
+		}
+	}
+}

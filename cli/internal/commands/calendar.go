@@ -329,18 +329,22 @@ func syncCalendar(ctx *Ctx, args *Args) error {
 		}
 	}
 
-	return ctx.Output(status, func() error {
-		name := fmt.Sprintf("%s (calendar %s)", tool.Get("name").S(), tool.Get("id").S())
-		switch status.Get("status").S() {
+	name := fmt.Sprintf("%s (calendar %s)", tool.Get("name").S(), tool.Get("id").S())
+	state := status.Get("status").S()
+	err = ctx.Output(status, func() error {
+		switch state {
 		case "synced":
 			ctx.Sayf("Synced %s at %s.", name, Moment(status.Get("last_synced_at")))
 		case "syncing":
 			ctx.Sayf("%s is still syncing. Check later with `dobase calendar list %s`.", name, tool.Get("id").S())
-		default:
-			return api.Failf("Syncing %s failed. Check its calendar account in the browser.", name)
 		}
 		return nil
 	})
+	// A failed sync fails the command, with --json too.
+	if err == nil && state != "synced" && state != "syncing" {
+		return api.Failf("Syncing %s failed. Check its calendar account in the browser.", name)
+	}
+	return err
 }
 
 // calendarOverview is the calendar for a single day: enough for its calendars and sync status.
