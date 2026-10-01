@@ -53,6 +53,27 @@ class ChatTest < ApplicationSystemTestCase
     end
   end
 
+  test "Enter pressed twice on a slow connection sends the message once" do
+    visit tool_chat_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "chat"
+    wait_for_stimulus "rich-text-input"
+
+    editable = find("form rhino-editor .ProseMirror")
+    editable.click
+    editable.send_keys("Are you there?")
+    page.driver.browser.network_conditions = { offline: false, latency: 700, throughput: 1_000_000 }
+    editable.send_keys(:enter)
+    editable.send_keys(:enter)
+
+    assert_selector "#chat_messages", text: "Are you there?"
+    wait_for_turbo
+    sleep 1
+    assert_equal 1, @tool.chat.messages.count
+  ensure
+    page.driver.browser.delete_network_conditions
+  end
+
   test "an empty message can't be sent" do
     visit tool_chat_path(@tool)
     wait_for_turbo

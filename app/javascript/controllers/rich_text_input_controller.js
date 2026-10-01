@@ -61,8 +61,13 @@ export default class extends Controller {
 
       event.preventDefault()
       const editor = this.editorTarget.editor
+      const form = this.editorTarget.closest("form")
+      // Turbo marks a form busy while it is being sent. The text stays in the editor until
+      // the answer is in, so on a slow connection a second Enter sent it a second time.
+      if (form?.getAttribute("aria-busy") === "true") return
+
       if (editor && !editor.isEmpty) {
-        this.editorTarget.closest("form")?.requestSubmit()
+        form?.requestSubmit()
       }
     }
   }
