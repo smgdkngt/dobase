@@ -141,6 +141,19 @@ class Tools::Chats::MessagesControllerTest < ActionDispatch::IntegrationTest
     assert_predicate message.reload.edited_at, :present?
   end
 
+  test "an edit in the middle of a run comes back without the author's name again" do
+    add_messages(1)
+    message = add_messages(1).first
+
+    patch tool_chat_message_path(@tool, message), params: { message: { body: "<p>Fixed</p>" } }
+
+    assert_response :success
+    replaced = Nokogiri::HTML5.fragment(css_select("turbo-stream[action=replace] template").first.inner_html)
+    # A continuation has no header; it shows its time, without AM or PM, on hover instead
+    assert replaced.at_css("time[data-local-time-period-value='false']")
+    assert_equal 1, replaced.css("time").size
+  end
+
   test "an edited message says so" do
     @chat.messages.create!(user: @user, body: "<p>Rewritten</p>", edited_at: Time.current)
 

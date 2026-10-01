@@ -122,6 +122,105 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     assert_not_requested elsewhere
   end
 
+  test "a server on a port of its own is found, and its calendars and events are at that port" do
+    @account.update!(caldav_url: "https://dav.example.com:5232/")
+    stub_request(:propfind, "https://dav.example.com:5232/").to_return(status: 207, body: principal_response)
+    stub_request(:propfind, "https://dav.example.com:5232/123456789/principal/").to_return(status: 207, body: calendar_home_response)
+    stub_request(:propfind, "https://dav.example.com:5232/123456789/calendars/").to_return(status: 207, body: calendars_list_response)
+    service = CaldavSyncService.new(@account)
+
+    service.discover_calendars
+
+    calendar = @account.calendars.find_by!(remote_id: "/123456789/calendars/new-personal/")
+    assert_equal "https://dav.example.com:5232/123456789/calendars/new-personal/", calendar.remote_url
+
+    calendar.update!(sync_token: nil, ctag: nil)
+    stub_request(:report, calendar.remote_url).to_return(status: 207, body: calendar_query_response([ { uid: "lunch", summary: "Lunch" } ]))
+    stub_request(:propfind, calendar.remote_url).to_return(status: 207, body: sync_token_response)
+    service.sync_calendar(calendar)
+
+    assert_equal "https://dav.example.com:5232/calendars/lunch.ics", calendar.events.find_by!(uid: "lunch").remote_href
+  end
+
+  test "a path the server left a space in still makes an address" do
+    assert_equal "https://caldav.icloud.com/calendars/Team%20events/lunch%40example.com.ics",
+      @service.send(:resolve_url, "/calendars/Team events/lunch%40example.com.ics")
+  end
+
+  test "an address the server gives in full is used as it is, as iCloud does for its calendars" do
+    stub_request(:propfind, @account.caldav_url).to_return(status: 207, body: principal_response)
+    stub_request(:propfind, "https://caldav.icloud.com/123456789/principal/")
+      .to_return(status: 207, body: calendar_home_response.sub("/123456789/calendars/", "https://p42-caldav.icloud.com:443/123456789/calendars/"))
+    listed = stub_request(:propfind, "https://p42-caldav.icloud.com/123456789/calendars/").to_return(status: 207, body: calendars_list_response)
+
+    @service.discover_calendars
+
+    assert_requested listed
+  end
+
+  test "an address the server gives in full isn't followed to a local address, nor one that isn't a web address" do
+    stub_request(:propfind, @account.caldav_url).to_return(status: 207, body: principal_response)
+    home = stub_request(:propfind, "https://caldav.icloud.com/123456789/principal/")
+
+    home.to_return(status: 207, body: calendar_home_response.sub("/123456789/calendars/", "http://127.0.0.1:5232/calendars/"))
+    error = assert_raises(CaldavSyncService::ConnectionError) { @service.discover_calendars }
+    assert_match "local address", error.message
+
+    home.to_return(status: 207, body: calendar_home_response.sub("/123456789/calendars/", "//localhost:5232/calendars/"))
+    assert_raises(CaldavSyncService::ConnectionError) { @service.discover_calendars }
+
+    home.to_return(status: 207, body: calendar_home_response.sub("/123456789/calendars/", "file:///etc/passwd"))
+    assert_raises(CaldavSyncService::SyncError) { @service.discover_calendars }
+  end
+
+  test "discover_calendars learns from the server which calendars the user can't change" do
+    writable = calendars_calendars(:personal)
+    writable.update!(read_only: true)
+    stub_request(:propfind, @account.caldav_url).to_return(status: 207, body: principal_response)
+    stub_request(:propfind, "https://caldav.icloud.com/123456789/principal/").to_return(status: 207, body: calendar_home_response)
+    listing = stub_request(:propfind, "https://caldav.icloud.com/123456789/calendars/").with(body: /current-user-privilege-set/)
+
+    listing.to_return(status: 207, body: calendars_list_response(remote_id: "/123456789/calendars/holidays/", privileges: %w[read read-current-user-privilege-set]))
+    @service.discover_calendars
+    listing.to_return(status: 207, body: calendars_list_response(remote_id: writable.remote_id, privileges: %w[read write write-content bind unbind]))
+    @service.discover_calendars
+
+    assert @account.calendars.find_by!(remote_id: "/123456789/calendars/holidays/").read_only?
+    assert_not writable.reload.read_only?
+  end
+
+  test "a sync someone asked for gives a read-only calendar another try when the server doesn't say what the user may do" do
+    calendar = calendars_calendars(:personal)
+    calendar.update!(read_only: true)
+    stub_request(:propfind, @account.caldav_url).to_return(status: 207, body: principal_response)
+    stub_request(:propfind, "https://caldav.icloud.com/123456789/principal/").to_return(status: 207, body: calendar_home_response)
+    stub_request(:propfind, "https://caldav.icloud.com/123456789/calendars/").to_return(status: 207, body: calendars_list_response(remote_id: calendar.remote_id))
+
+    @service.discover_calendars
+
+    assert_not calendar.reload.read_only?
+  end
+
+  test "every sync checks whether the user can change the calendar" do
+    calendar = calendars_calendars(:personal)
+    calendar.update!(read_only: true)
+    checked = stub_request(:propfind, calendar.remote_url).with(body: /current-user-privilege-set/)
+    stub_request(:report, calendar.remote_url).to_return(status: 207, body: delta_sync_response(calendar.sync_token, [], []))
+
+    # A server that doesn't say leaves the calendar as it was
+    checked.to_return(status: 207, body: ctag_response(calendar.ctag))
+    @service.sync_calendar(calendar)
+    assert calendar.reload.read_only?
+
+    checked.to_return(status: 207, body: ctag_response(calendar.ctag, privileges: %w[read write]))
+    @service.sync_calendar(calendar)
+    assert_not calendar.reload.read_only?
+
+    checked.to_return(status: 207, body: ctag_response(calendar.ctag, privileges: %w[read]))
+    @service.sync_calendar(calendar)
+    assert calendar.reload.read_only?
+  end
+
   # Sync tests
 
   test "sync_calendar performs full sync when no sync_token" do
@@ -225,12 +324,14 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     calendar = calendars_calendars(:personal)
     calendar.update!(sync_token: nil, ctag: nil)
 
-    # Create an event that exists locally but not on server
+    # An event the server had, and no longer lists
     orphan = calendar.events.create!(
       uid: "orphan-event",
       summary: "Orphan",
       starts_at: 1.hour.from_now,
-      ends_at: 2.hours.from_now
+      ends_at: 2.hours.from_now,
+      etag: "etag-orphan",
+      remote_href: "#{calendar.remote_url}orphan-event.ics"
     )
 
     stub_request(:report, calendar.remote_url)
@@ -247,10 +348,27 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     assert calendar.events.exists?(uid: "server-event")
   end
 
+  test "full_sync keeps events that never reached the server" do
+    calendar = calendars_calendars(:personal)
+    calendar.update!(sync_token: nil, ctag: nil)
+    calendar.events.destroy_all
+    # Made here while the server was listing its events, or refused by it when it was pushed
+    unsent = calendar.events.create!(uid: "unsent@dobase", summary: "Not on the server yet", starts_at: 1.hour.from_now, ends_at: 2.hours.from_now)
+
+    stub_request(:report, calendar.remote_url).to_return(status: 207, body: calendar_query_response([ { uid: "server-event", summary: "Server Event" } ]))
+    stub_request(:propfind, calendar.remote_url).to_return(status: 207, body: sync_token_response)
+
+    @service.sync_calendar(calendar)
+
+    assert_equal [ "server-event", "unsent@dobase" ], calendar.events.order(:uid).pluck(:uid)
+    assert_nil unsent.reload.remote_href
+  end
+
   test "an untitled or invalid event doesn't hold up the sync" do
     personal = calendars_calendars(:personal)
     work = calendars_calendars(:work)
     [ personal, work ].each { |calendar| calendar.update!(sync_token: nil, ctag: nil) }
+    personal.events.destroy_all
 
     stub_request(:report, personal.remote_url).to_return(status: 207, body: calendar_query_response([
       { uid: "untitled", ics: <<~ICS },
@@ -321,6 +439,16 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     calendar.reload
     # After fallback to full sync, token should be updated (not the old one)
     assert_not_equal old_token, calendar.sync_token
+  end
+
+  test "a request the server answers with 401 is an authentication error" do
+    calendar = calendars_calendars(:personal)
+    stub_request(:any, /caldav\.icloud\.com/).to_return(status: 401)
+
+    assert_raises(CaldavSyncService::AuthenticationError) { @service.sync_all_calendars }
+    assert_raises(CaldavSyncService::AuthenticationError) { @service.discover_calendars }
+    assert_raises(CaldavSyncService::AuthenticationError) { @service.update_event(calendars_events(:meeting)) }
+    assert_equal "abc123", calendar.reload.ctag
   end
 
   # Event push tests
@@ -402,6 +530,50 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     @service.update_event(event)
 
     assert_requested stub
+  end
+
+  test "update_event sends its change again when the event changed on the server since the last sync" do
+    event = calendars_events(:meeting)
+    event.update!(summary: "Team Meeting, moved to room B")
+    stale = stub_request(:put, event.remote_href).with(headers: { "If-Match" => '"etag-meeting-123"' }).to_return(status: 412)
+    stub_request(:head, event.remote_href).to_return(status: 200, headers: { "ETag" => 'W/"changed-on-server"' })
+    current = stub_request(:put, event.remote_href)
+      .with(headers: { "If-Match" => 'W/"changed-on-server"' }, body: /moved to room B/)
+      .to_return(status: 204, headers: { "ETag" => '"after-update"' })
+
+    @service.update_event(event)
+
+    assert_requested stale
+    assert_requested current
+    assert_equal "after-update", event.reload.etag
+  end
+
+  test "update_event doesn't bring back an event that was deleted on the server" do
+    event = calendars_events(:meeting)
+    put = stub_request(:put, event.remote_href).to_return(status: 412)
+    stub_request(:head, event.remote_href).to_return(status: 404)
+
+    error = assert_raises(CaldavSyncService::SyncError) { @service.update_event(event) }
+    assert_match "404", error.message
+    assert_requested put, times: 1
+  end
+
+  test "delete_event is done when the event turns out to be gone from the server" do
+    event = calendars_events(:meeting)
+    stub_request(:delete, event.remote_href).to_return(status: 412)
+    stub_request(:head, event.remote_href).to_return(status: 404)
+
+    assert_nothing_raised { @service.delete_event(event) }
+  end
+
+  test "delete_event gives up when the server turns the second try down too" do
+    event = calendars_events(:meeting)
+    deletion = stub_request(:delete, event.remote_href).to_return(status: 412)
+    stub_request(:head, event.remote_href).to_return(status: 200, headers: { "ETag" => '"changed-again"' })
+
+    error = assert_raises(CaldavSyncService::SyncError) { @service.delete_event(event) }
+    assert_match "412", error.message
+    assert_requested deletion, times: 2
   end
 
   test "update_event sends the organizer and attendees" do
@@ -546,6 +718,60 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "sends a repeating event at its local time with its time zone, so it stays there when the clocks change" do
+    event = Time.use_zone("Amsterdam") do
+      calendars_calendars(:personal).events.create!(uid: "weekly@dobase", summary: "Weekly",
+        starts_at: Time.zone.local(2026, 10, 5, 10), ends_at: Time.zone.local(2026, 10, 5, 11),
+        recurrence_frequency: "weekly", recurrence_end_type: "count", recurrence_count: 5)
+    end
+
+    ics = Time.use_zone("UTC") { Caldav::EventIcalendar.new(event.reload).to_ical }
+
+    assert_includes ics, "DTSTART;TZID=Europe/Amsterdam:20261005T100000"
+    assert_includes ics, "DTEND;TZID=Europe/Amsterdam:20261005T110000"
+    # The zone is described for clients that don't know its name
+    timezone = Icalendar::Calendar.parse(ics).sole.timezones.sole
+    assert_equal "Europe/Amsterdam", timezone.tzid.to_s
+    assert_equal [ "+02:00", "+01:00" ], [ DateTime.new(2026, 10, 5, 10), DateTime.new(2026, 10, 26, 10) ].map { |time| timezone.offset_for_local(time).to_s }
+
+    # Read back by someone in another time zone: 10:00 in Amsterdam before and after October 25th
+    read_back = IcsParserService.new(ics, time_zone: "America/New_York").parse
+    assert_equal [ event.starts_at, event.ends_at ], [ read_back[:starts_at], read_back[:ends_at] ]
+    assert_equal [ Time.utc(2026, 10, 5, 8), Time.utc(2026, 10, 12, 8), Time.utc(2026, 10, 19, 8), Time.utc(2026, 10, 26, 9), Time.utc(2026, 11, 2, 9) ],
+      IceCube::Schedule.from_yaml(read_back[:recurrence_schedule]).all_occurrences.map(&:utc)
+  end
+
+  test "a repeating event synced in another time zone is sent back in that zone" do
+    event = synced_standup
+    event.update!(summary: "Daily standup")
+
+    ics = Time.use_zone("America/New_York") { Caldav::EventIcalendar.new(event).to_ical }
+
+    assert_includes ics, "DTSTART;TZID=Europe/Amsterdam:20300107T093000"
+    assert_equal [ "Europe/Amsterdam" ], Icalendar::Calendar.parse(ics).sole.timezones.map { |timezone| timezone.tzid.to_s }
+  end
+
+  test "a repeating event that was synced in UTC stays in UTC" do
+    ics = <<~ICS
+      BEGIN:VCALENDAR
+      VERSION:2.0
+      BEGIN:VEVENT
+      UID:utc-series@example.com
+      DTSTART:20261005T080000Z
+      DTEND:20261005T090000Z
+      RRULE:FREQ=WEEKLY
+      SUMMARY:In UTC
+      END:VEVENT
+      END:VCALENDAR
+    ICS
+    event = calendars_calendars(:personal).events.create!(IcsParserService.new(ics, time_zone: "Amsterdam").parse.except(:method).merge(is_recurring: true))
+
+    sent = Caldav::EventIcalendar.new(event).to_ical
+
+    assert_includes sent, "DTSTART:20261005T080000Z"
+    assert_no_match(/VTIMEZONE/, sent)
+  end
+
   test "builds valid icalendar for all-day event" do
     event = calendars_events(:all_day_event)
 
@@ -663,7 +889,14 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     XML
   end
 
-  def calendars_list_response(remote_id: nil)
+  # privileges: what the server lets this user do with the calendar, or nil for a server that doesn't say
+  def privileges_xml(privileges)
+    return "" unless privileges
+
+    "<d:current-user-privilege-set>#{privileges.map { |privilege| "<d:privilege><d:#{privilege}/></d:privilege>" }.join}</d:current-user-privilege-set>"
+  end
+
+  def calendars_list_response(remote_id: nil, privileges: nil)
     remote_id ||= "/123456789/calendars/new-personal/"
 
     <<~XML
@@ -692,6 +925,7 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
               <x:calendar-color>#3b82f6FF</x:calendar-color>
               <cs:getctag>ctag-personal-123</cs:getctag>
               <d:sync-token>https://caldav.icloud.com/sync/token-new</d:sync-token>
+              #{privileges_xml(privileges)}
             </d:prop>
             <d:status>HTTP/1.1 200 OK</d:status>
           </d:propstat>
@@ -760,7 +994,7 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     XML
   end
 
-  def ctag_response(ctag)
+  def ctag_response(ctag, privileges: nil)
     <<~XML
       <?xml version="1.0" encoding="UTF-8"?>
       <d:multistatus xmlns:d="DAV:" xmlns:cs="http://calendarserver.org/ns/">
@@ -769,9 +1003,11 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
           <d:propstat>
             <d:prop>
               <cs:getctag>#{ctag}</cs:getctag>
+              #{privileges_xml(privileges)}
             </d:prop>
             <d:status>HTTP/1.1 200 OK</d:status>
           </d:propstat>
+          #{'<d:propstat><d:prop><d:current-user-privilege-set/></d:prop><d:status>HTTP/1.1 404 Not Found</d:status></d:propstat>' unless privileges}
         </d:response>
       </d:multistatus>
     XML

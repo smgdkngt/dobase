@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-turbo-not-loaded>
+<html data-turbo-not-loaded <%= tag.attributes(theme_attributes) %>>
   <head>
     <title><%= content_for(:title) || app_name %></title>
     <meta name="viewport" content="<%= viewport_content %>">
@@ -7,6 +7,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="application-name" content="<%= app_name %>">
     <meta name="mobile-web-app-capable" content="yes">
+    <%# A theme's own chrome colour goes first, so it wins over the two below %>
+    <% if current_theme %><meta name="theme-color" content="<%= current_theme.chrome_color %>" data-theme-chrome><% end %>
     <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#2c2c2e" media="(prefers-color-scheme: dark)">
     <%= csrf_meta_tags %>
@@ -21,7 +23,8 @@
 
     <%= yield :head %>
 
-    <%= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+    <%# With credentials, so the manifest can carry the colours of this browser's theme %>
+    <%= tag.link rel: "manifest", href: pwa_manifest_path(format: :json), crossorigin: "use-credentials" %>
     <link rel="icon" href="/favicon.ico" sizes="32x32">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -48,13 +51,16 @@
     <link rel="apple-touch-startup-image" href="/apple-splash-750-1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
     <link rel="apple-touch-startup-image" href="/apple-splash-640-1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
 
-    <script async defer src="/altcha.min.js" type="module"></script>
     <%= stylesheet_link_tag "rhino-editor", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
+    <%# After the import map: Firefox ignores an import map that comes after a module
+        script has started loading, and then none of the app's JavaScript runs. %>
+    <script async defer src="/altcha.min.js" type="module"></script>
   </head>
 
-  <body class="bg-background-secondary text-text-primary" data-controller="keyboard-shortcuts">
+  <body class="bg-background-secondary text-text-primary" data-controller="keyboard-shortcuts theme"
+        data-theme-version-value="<%= current_theme&.version || "default" %>">
     <%# data-turbo="false" so the browser handles the fragment itself and moves
         focus into <main>; a Turbo anchor visit only scrolls. %>
     <a href="#main-content" class="skip-link" data-turbo="false">Skip to main content</a>
@@ -87,7 +93,7 @@
           <button type="button"
                   class="mobile-bottom-bar-center"
                   data-action="click->mobile-sidebar#toggle">
-            <img src="<%= app_logo_path %>" alt="<%= app_name %>" class="w-6 h-6">
+            <%= render "shared/logo", class: "w-6 h-6" %>
             <span><%= app_name %></span>
           </button>
 

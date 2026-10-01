@@ -141,6 +141,18 @@ module Tools
       assert_equal [ "Second task", "First task" ], columns(:todo).cards.reload.map(&:title)
     end
 
+    # The board lists a column's open cards, so that is what a position counts
+    test "position counts the cards the board shows, not the archived ones" do
+      cards(:first_task).update!(archived_at: Time.current)
+      columns(:todo).cards.create!(title: "Fourth task", position: 2)
+
+      patch tool_board_card_position_path(@tool, cards(:third_task)), params: { column_id: columns(:todo).id, position: 1 }, headers: @headers, as: :json
+
+      assert_response :success
+      assert_equal [ "Second task", "Third task", "Fourth task" ], columns(:todo).cards.active.reload.map(&:title)
+      assert_equal 1, response.parsed_body["position"]
+    end
+
     test "position refuses a column from another board" do
       other_column = boards(:shared).columns.create!(name: "Elsewhere")
 

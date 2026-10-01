@@ -40,8 +40,20 @@ class DeleteCalendarEventJobTest < ActiveJob::TestCase
     end
   end
 
+  test "an event that changed on the server since the last sync is still deleted there" do
+    stale = stub_request(:delete, @event.remote_href).with(headers: { "If-Match" => %("#{@event.etag}") }).to_return(status: 412)
+    stub_request(:head, @event.remote_href).to_return(status: 200, headers: { "ETag" => '"changed-on-server"' })
+    deletion = stub_request(:delete, @event.remote_href).with(headers: { "If-Match" => '"changed-on-server"' }).to_return(status: 204)
+
+    DeleteCalendarEventJob.perform_now(@event_data)
+
+    assert_requested stale
+    assert_requested deletion
+    assert_no_enqueued_jobs
+  end
+
   test "doesn't try again when the server refuses" do
-    stub_request(:delete, @event.remote_href).to_return(status: 412)
+    stub_request(:delete, @event.remote_href).to_return(status: 403)
 
     DeleteCalendarEventJob.perform_now(@event_data)
 

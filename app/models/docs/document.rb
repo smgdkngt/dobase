@@ -46,14 +46,20 @@ module Docs
       content.to_plain_text.squish.truncate(length)
     end
 
-    # HTML preview for grid cards — truncates to a safe length and replaces
-    # <a> tags with <span> to avoid invalid nested links inside link_to blocks.
-    # Loofah (Rails dependency) closes any tags broken by the truncation.
+    # HTML preview for grid cards — truncates to a safe length and turns <a>
+    # into <span> to avoid invalid nested links inside link_to blocks. The links
+    # are found by parsing, never by searching the string: an attribute may hold
+    # text that looks like a tag. Parsing the cut-off text again closes any tags
+    # broken by the truncation, and drops one cut off halfway.
     def preview_html
       return "" if content.body.blank?
 
-      html = content.body.to_s.gsub(%r{<a\b[^>]*>}i, "<span>").gsub(%r{</a>}i, "</span>")
-      Loofah.fragment(html[0, 1500]).to_s.html_safe
+      fragment = Nokogiri::HTML5.fragment(content.body.to_s)
+      fragment.css("a").each do |link|
+        link.name = "span"
+        link.attribute_nodes.each(&:remove)
+      end
+      Nokogiri::HTML5.fragment(fragment.to_html[0, 1500]).to_html.html_safe
     end
 
     def broadcast_content_update

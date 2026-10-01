@@ -11,6 +11,9 @@ class SyncCalendarPropertiesJob < ApplicationJob
 
     service = CaldavSyncService.new(calendar.account)
     service.update_calendar(calendar)
+  rescue CaldavSyncService::AuthenticationError => e
+    Rails.logger.error("Failed to sync calendar properties: #{e.message}")
+    calendar.account.mark_sync_error!(e.message)
   rescue CaldavSyncService::SyncError => e
     Rails.logger.error("Failed to sync calendar properties: #{e.message}")
   end

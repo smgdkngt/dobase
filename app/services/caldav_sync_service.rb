@@ -13,6 +13,8 @@ class CaldavSyncService
   class ConnectionError < StandardError; end
   class AuthenticationError < StandardError; end
   class SyncError < StandardError; end
+  # The server refused a change (403)
+  class ForbiddenError < SyncError; end
 
   # Custom HTTP request classes for WebDAV methods
   class Propfind < Net::HTTPRequest
@@ -52,6 +54,9 @@ class CaldavSyncService
     }
   }.freeze
 
+  # The WebDAV privileges (RFC 3744) that let a user add or change events in a calendar
+  WRITE_PRIVILEGES = %w[all write write-content bind].freeze
+
   DAV_NAMESPACE = { "d" => "DAV:", "c" => "urn:ietf:params:xml:ns:caldav", "cs" => "http://calendarserver.org/ns/" }.freeze
 
   def initialize(calendar_account)
@@ -70,14 +75,21 @@ class CaldavSyncService
     save_discovered_calendars(calendars)
   end
 
+  # A calendar the server refuses doesn't hold up the others. When it refused them all nothing was
+  # synced, and the sync fails with what the server said about the first.
   def sync_all_calendars
     return if @account.local?
 
-    @account.calendars.enabled.find_each do |calendar|
+    calendars = @account.calendars.enabled.to_a
+    failures = calendars.filter_map do |calendar|
       sync_calendar(calendar)
+      nil
     rescue SyncError => e
       Rails.logger.warn("Skipping calendar #{calendar.name} (#{calendar.id}): #{e.message}")
+      e.message
     end
+
+    raise SyncError, failures.first if calendars.any? && failures.size == calendars.size
   end
 
   def sync_calendar(calendar)
@@ -97,8 +109,19 @@ class CaldavSyncService
 
     doc = Caldav::Xml.parse(response.body)
     server_ctag = doc.at_xpath("//*[local-name()='getctag']")&.text
+    # The one request every sync makes, so a calendar doesn't stay read-only after the server opened it up
+    note_write_access(calendar, doc)
 
     calendar.ctag != server_ctag
+  end
+
+  # Asks the server whether the user can change a calendar and remembers the answer:
+  # true when it's read-only, false when it isn't, nil when the server doesn't say
+  def refresh_write_access(calendar)
+    return if calendar.local?
+
+    response = propfind(calendar.remote_url, depth: 0, body: Caldav::Xml.ctag)
+    note_write_access(calendar, Caldav::Xml.parse(response.body)) if response.success?
   end
 
   def create_event(event)
@@ -127,10 +150,12 @@ class CaldavSyncService
     url = event.remote_href.presence || "#{event.calendar.remote_url}#{event.uid}.ics"
     ics_data = Caldav::EventIcalendar.new(event).to_ical
 
-    response = http_client.put(url) do |req|
-      req.headers["Content-Type"] = "text/calendar; charset=utf-8"
-      req.headers["If-Match"] = %("#{event.etag}") if event.etag.present?
-      req.body = ics_data
+    response = with_current_etag(url, event.etag) do |if_match|
+      http_client.put(url) do |req|
+        req.headers["Content-Type"] = "text/calendar; charset=utf-8"
+        req.headers["If-Match"] = if_match if if_match
+        req.body = ics_data
+      end
     end
 
     check_change!(response, "Failed to update event")
@@ -205,19 +230,36 @@ class CaldavSyncService
   end
 
   def delete_resource(href, etag)
-    response = http_client.delete(href) do |req|
-      req.headers["If-Match"] = %("#{etag}") if etag.present?
+    response = with_current_etag(href, etag) do |if_match|
+      http_client.delete(href) { |req| req.headers["If-Match"] = if_match if if_match }
     end
 
     # 404: the event is gone already
     check_change!(response, "Failed to delete event") unless response.status == 404
   end
 
+  # Sends a change for the version of an event that was synced last. A 412 means the event changed
+  # on the server since. What someone just did here is the newer of the two, and dropping it would
+  # undo it at the next sync (a deleted event comes back), so it's sent once more for the version
+  # the server has now. An event that is gone from the server isn't brought back: the answer is then
+  # what the server said when asked for its version.
+  def with_current_etag(url, etag)
+    response = yield(etag.present? ? %("#{etag}") : nil)
+    return response unless response.status == 412
+
+    current = http_client.head(url)
+    current.success? ? yield(current.headers["etag"].presence) : current
+  end
+
   # A server error may pass, so it counts as a connection error and the change is sent again later
   def check_change!(response, failure)
     return if response.success?
+    raise AuthenticationError, Calendars::Account::AUTHENTICATION_FAILED if response.status == 401
 
-    error = response.status >= 500 ? ConnectionError : SyncError
+    error = if response.status >= 500 then ConnectionError
+    elsif response.status == 403 then ForbiddenError
+    else SyncError
+    end
     raise error, "#{failure}: #{response.status}"
   end
 
@@ -272,6 +314,9 @@ class CaldavSyncService
     if response.is_a?(Net::HTTPRedirection) && redirects.positive? && (location = same_host_location(uri, response["location"]))
       return make_webdav_request(method, location, body, extra_headers, redirects: redirects - 1)
     end
+
+    # The same username and password get the same answer for every calendar
+    raise AuthenticationError, Calendars::Account::AUTHENTICATION_FAILED if response.is_a?(Net::HTTPUnauthorized)
 
     # Wrap in a simple struct to match interface
     OpenStruct.new(
@@ -355,7 +400,8 @@ class CaldavSyncService
         name: displayname || File.basename(href),
         color: normalize_color(color),
         ctag: ctag,
-        sync_token: sync_token
+        sync_token: sync_token,
+        read_only: read_only_in(resp)
       }
     end
 
@@ -376,13 +422,20 @@ class CaldavSyncService
         sync_token: is_new ? cal_data[:sync_token] : calendar.sync_token,
         position: is_new ? index : calendar.position,
         enabled: is_new ? true : calendar.enabled,
-        is_default: is_new && index == 0
+        is_default: is_new && index == 0,
+        # A server that doesn't say what the user may do gets another try: a refused change marks it again
+        read_only: cal_data[:read_only] || false
       )
       calendar.save!
     end
   end
 
   def full_sync(calendar)
+    # Only an event the server had before it was asked can have been deleted there. One that never
+    # reached it (refused when it was pushed, or made while this sync runs) isn't in its answer either.
+    events = calendar.events
+    known_to_server = events.where.not(remote_href: [ nil, "" ]).or(events.where.not(etag: [ nil, "" ])).pluck(:id, :uid)
+
     response = report(calendar.remote_url, Caldav::Xml.calendar_query)
 
     if response.status == 404
@@ -391,23 +444,19 @@ class CaldavSyncService
       return
     end
 
-    raise SyncError, "Full sync failed: #{response.status}" unless response.success?
+    raise SyncError, "The calendar server answered #{response.status} for #{calendar.name}" unless response.success?
 
     doc = Caldav::Xml.parse(response.body)
     events_data = parse_calendar_data_response(doc)
 
-    # Mark all existing events for potential deletion
-    existing_uids = calendar.events.pluck(:uid)
-    synced_uids = []
-
-    events_data.each do |event_data|
+    synced_uids = events_data.map do |event_data|
       save_event(calendar, event_data)
-      synced_uids << event_data[:uid]
+      event_data[:uid]
     end
 
     # Remove events that no longer exist on server
-    removed_uids = existing_uids - synced_uids
-    calendar.events.where(uid: removed_uids).destroy_all if removed_uids.any?
+    removed_ids = known_to_server.reject { |_id, uid| synced_uids.include?(uid) }.map(&:first)
+    calendar.events.where(id: removed_ids).destroy_all if removed_ids.any?
 
     # Update sync token
     update_calendar_sync_token(calendar)
@@ -422,7 +471,7 @@ class CaldavSyncService
       return full_sync(calendar)
     end
 
-    raise SyncError, "Delta sync failed: #{response.status}" unless response.success?
+    raise SyncError, "The calendar server answered #{response.status} for #{calendar.name}" unless response.success?
 
     doc = Caldav::Xml.parse(response.body)
 
@@ -543,6 +592,23 @@ class CaldavSyncService
     ctag = doc.at_xpath("//*[local-name()='getctag']")&.text
 
     calendar.update!(sync_token: sync_token, ctag: ctag)
+    note_write_access(calendar, doc)
+  end
+
+  def note_write_access(calendar, doc)
+    read_only = read_only_in(doc)
+    calendar.update!(read_only: read_only) unless read_only.nil? || read_only == calendar.read_only
+    read_only
+  end
+
+  # Whether the privileges the server lists for the user (current-user-privilege-set, where the
+  # server found that property) leave out changing the calendar. Nil when it lists none.
+  def read_only_in(node)
+    found = "*[local-name()='propstat'][*[local-name()='status'][contains(text(), ' 200')]]"
+    privileges = node.xpath(".//#{found}//*[local-name()='current-user-privilege-set']/*[local-name()='privilege']/*").map(&:name)
+    return if privileges.empty?
+
+    !privileges.intersect?(WRITE_PRIVILEGES)
   end
 
   # A stored calendar object: no METHOD, which RFC 4791 (4.1) doesn't allow there
@@ -554,10 +620,26 @@ class CaldavSyncService
   # ones changed on their own (a VEVENT with a RECURRENCE-ID), so they're sent back as they came,
   # with the time zones they use. Once the series starts at another time they no longer fit.
 
+  UNESCAPED_IN_HREF = /[^-_.!~*'()a-zA-Z\d;\/?:@&=+$,\[\]%]/
+
+  # The address a server names in a response, which is usually only a path: taken from the account's
+  # address, so with its port (Radicale's 5232, a Nextcloud on 8443). Another host, as iCloud names for
+  # its calendars, is checked like every host when it's contacted.
   def resolve_url(href)
-    return href if href.start_with?("http")
-    uri = URI.parse(@account.caldav_url)
-    "#{uri.scheme}://#{uri.host}#{href}"
+    return if href.blank?
+
+    base = URI.parse(@account.caldav_url)
+    target = begin
+      base.merge(href.strip)
+    rescue URI::InvalidURIError
+      # Some servers leave spaces and the like in their paths as they are. What is escaped already stays.
+      base.merge(URI::RFC2396_PARSER.escape(href.strip, UNESCAPED_IN_HREF))
+    end
+    raise SyncError, "The CalDAV server pointed at an address that isn't a web address: #{href}" unless target.is_a?(URI::HTTP)
+
+    target.to_s
+  rescue URI::Error
+    raise SyncError, "The CalDAV server pointed at an address that can't be read: #{href}"
   end
 
   def normalize_color(color)

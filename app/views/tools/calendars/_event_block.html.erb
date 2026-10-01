@@ -36,34 +36,29 @@
   # Too short for the time and the title on lines of their own
   compact = duration_minutes < 45
 
-  # Background color from calendar
-  bg_color = calendar&.color || "#3b82f6"
-
-  # Determine text color based on background brightness
-  text_color = "text-white"
 %>
 
 <div class="event-block-in absolute rounded-md shadow-sm cursor-pointer overflow-hidden border border-white/20 transition-all duration-150 hover:shadow-md hover:brightness-105 hover:z-10 min-h-5"
-     style="top: <%= top_position %>%; height: <%= height %>%; left: calc(<%= left %>% + 2px); width: calc(<%= width %>% - 4px); background-color: <%= bg_color %>;"
+     style="top: <%= top_position %>%; height: <%= height %>%; left: calc(<%= left %>% + 2px); width: calc(<%= width %>% - 4px); <%= event_color_style(calendar) %>"
      data-event-id="<%= event.id %>"
      data-action="click->calendar#showEvent">
   <div class="<%= compact ? 'px-1.5 py-0.5' : 'p-1.5' %> h-full overflow-hidden">
     <% if compact %>
-      <div class="text-xs truncate <%= text_color %>">
+      <div class="text-xs truncate">
         <% if show_time %><span class="text-[0.6875rem] font-medium"><%= format_time(event.start_time) %></span><% end %>
         <span class="font-semibold"><%= event.summary %></span>
       </div>
     <% else %>
       <% if show_time %>
-        <div class="text-[0.6875rem] font-medium mb-0.5 truncate <%= text_color %>">
+        <div class="text-[0.6875rem] font-medium mb-0.5 truncate">
           <%= format_time(event.start_time) %>
         </div>
       <% end %>
-      <div class="text-xs font-semibold truncate <%= text_color %>">
+      <div class="text-xs font-semibold truncate">
         <% if event.is_recurring? %><%= render "shared/icon", name: "repeat", size: 10, class: "inline-block mr-0.5 opacity-75" %><% end %><%= event.summary %>
       </div>
       <% if event.location.present? && is_start_day %>
-        <div class="text-[0.625rem] mt-0.5 truncate opacity-90 <%= text_color %>">
+        <div class="text-[0.625rem] mt-0.5 truncate opacity-90">
           <%= render "shared/icon", name: "map-pin", size: 10, class: "inline" %>
           <%= event.location %>
         </div>

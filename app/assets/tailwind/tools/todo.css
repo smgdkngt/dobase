@@ -23,10 +23,12 @@
   }
   .todo-checkbox:checked {
     @apply bg-accent-solid border-accent-solid;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2.5-2.5a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E");
-    background-size: 100% 100%;
-    background-position: center;
-    background-repeat: no-repeat;
+  }
+  /* The tick is a mask, so it takes the colour that reads on the accent in any theme */
+  .todo-checkbox:checked::before {
+    content: "";
+    @apply block w-full h-full bg-text-inverse;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2.5-2.5a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
   }
   .todo-checkbox:focus-visible {
     @apply outline-none ring-2 ring-accent/30;

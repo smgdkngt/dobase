@@ -15,6 +15,7 @@ built on it.
 - [Mail](mail.md): conversations, flags, drafts and sending
 - [Calendar](calendar.md): events
 - [Files](files.md): folders, files, uploads and downloads
+- [Appearance](appearance.md): the theme you see the app in
 
 ## Authentication
 

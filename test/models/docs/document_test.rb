@@ -45,6 +45,67 @@ module Docs
       assert_equal "", document.preview_text
     end
 
+    test "preview_html turns links into spans" do
+      document = docs_documents(:empty_document)
+      document.content = %(<p>See <a href="https://example.com">this page</a> for more.</p>)
+
+      preview = Nokogiri::HTML5.fragment(document.preview_html)
+
+      assert_empty preview.css("a")
+      assert_equal "this page", preview.at_css("span").text
+      assert_empty preview.at_css("span").attribute_nodes
+      assert_predicate document.preview_html, :html_safe?
+    end
+
+    test "preview_html closes what the cut-off left open" do
+      document = docs_documents(:empty_document)
+      document.content = "<ul>#{"<li><strong>A point worth making</strong></li>" * 100}</ul>"
+
+      preview = document.preview_html
+
+      assert_operator preview.length, :<, 1600
+      assert_equal preview, Nokogiri::HTML5.fragment(preview).to_html
+      assert preview.end_with?("</div>")
+    end
+
+    # The sanitizer leaves < and > as they are inside an attribute, so a title
+    # or an alt can hold text that looks like a tag.
+    test "preview_html makes no element or attribute out of text inside an attribute" do
+      [
+        %q(<a href="https://example.com" title="><img src=x onerror=alert(1)>">link</a>),
+        %q(<a href="https://example.com" title="<a onmouseover=alert(1) ">link</a>),
+        %q(<img src="https://example.com/a.png" alt="<a onmouseover=alert(1) x=">),
+        %q(<img alt="<a href='x'><script>alert(1)</script>" src="https://example.com/a.png">),
+        %q(<p title="</a><img src=x onerror=alert(1)>">text</p>),
+        %q(<p title='" onmouseover="alert(1)'>text</p>)
+      ].each do |hostile|
+        document = docs_documents(:empty_document)
+        document.content = hostile
+
+        preview = Nokogiri::HTML5.fragment(document.preview_html)
+
+        assert_empty preview.css("script, a"), "for #{hostile}"
+        assert_equal 1, preview.css("span, img, p").size, "for #{hostile}"
+        preview.css("*").each do |node|
+          assert_empty node.attribute_nodes.map(&:name) - %w[class src alt title], "for #{hostile}"
+        end
+      end
+    end
+
+    test "preview_html stays safe wherever the cut-off lands" do
+      hostile = %q(<p title="><img src=x onerror=alert(1)>">text</p>)
+      document = docs_documents(:empty_document)
+
+      (0..hostile.length).each do |padding|
+        document.content = "<p>#{"a" * (1500 - 60 - padding)}</p>#{hostile}"
+
+        preview = Nokogiri::HTML5.fragment(document.preview_html)
+
+        assert_empty preview.css("img"), "with #{padding} characters less"
+        assert_empty preview.css("[onerror]"), "with #{padding} characters less"
+      end
+    end
+
     test "locked? returns false when not locked" do
       document = docs_documents(:meeting_notes)
       document.locked_by_id = nil

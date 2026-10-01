@@ -39,16 +39,23 @@ class WorkspaceSearch
     "%#{ActiveRecord::Base.sanitize_sql_like(query)}%"
   end
 
+  # The condition for the pattern in any of these columns. sanitize_sql_like
+  # puts a backslash before a % or _ in the query, and SQLite only reads that
+  # as an escape when the LIKE says so: without it "IMG_1234" found nothing.
+  def matching(*columns)
+    [ columns.map { |column| "#{column} LIKE :q ESCAPE '\\'" }.join(" OR "), { q: pattern } ]
+  end
+
   def cards
     Boards::Card.active.joins(column: :board)
-      .where(boards: { tool_id: tools.keys }).where("cards.title LIKE ?", pattern)
+      .where(boards: { tool_id: tools.keys }).where(*matching("cards.title"))
       .select("cards.*, boards.tool_id AS found_in").order(updated_at: :desc).limit(PER_KIND)
       .map { |card| hit(:card, card.title, card, routes.tool_board_path(card.found_in, card: card.id)) }
   end
 
   def todos
     Todos::Item.joins(:list)
-      .where(todo_lists: { tool_id: tools.keys }).where("todo_items.title LIKE ?", pattern)
+      .where(todo_lists: { tool_id: tools.keys }).where(*matching("todo_items.title"))
       .select("todo_items.*, todo_lists.tool_id AS found_in")
       .order(Arel.sql("todo_items.completed_at IS NOT NULL"), updated_at: :desc).limit(PER_KIND)
       .map { |item| hit(:todo, item.title, item, routes.tool_todo_path(item.found_in, item: item.id)) }
@@ -57,25 +64,25 @@ class WorkspaceSearch
   def documents
     Docs::Document.where(tool_id: tools.keys)
       .left_joins(:rich_text_content)
-      .where("documents.title LIKE :q OR action_text_rich_texts.body LIKE :q", q: pattern)
+      .where(*matching("documents.title", "action_text_rich_texts.body"))
       .includes(:rich_text_content).ordered.limit(PER_KIND)
       .select { |document| mentions?(document.title) || mentions?(document.content&.to_plain_text) }
       .map { |document| hit(:document, document.title, document, routes.tool_docs_document_path(document.tool_id, document), excerpt_of(document.content&.to_plain_text)) }
   end
 
   def folders
-    Files::Folder.where(tool_id: tools.keys).where("file_folders.name LIKE ?", pattern).limit(PER_KIND)
+    Files::Folder.where(tool_id: tools.keys).where(*matching("file_folders.name")).limit(PER_KIND)
       .map { |folder| hit(:folder, folder.name, folder, routes.tool_files_path(folder.tool_id, folder_id: folder.id)) }
   end
 
   def files
-    Files::Item.where(tool_id: tools.keys).where("file_items.name LIKE ?", pattern).order(updated_at: :desc).limit(PER_KIND)
+    Files::Item.where(tool_id: tools.keys).where(*matching("file_items.name")).order(updated_at: :desc).limit(PER_KIND)
       .map { |file| hit(:file, file.name, file, routes.tool_files_item_path(file.tool_id, file)) }
   end
 
   def messages
     Chats::Message.joins(:chat, :rich_text_body)
-      .where(chats: { tool_id: tools.keys }).where("action_text_rich_texts.body LIKE ?", pattern)
+      .where(chats: { tool_id: tools.keys }).where(*matching("action_text_rich_texts.body"))
       .select("chat_messages.*, chats.tool_id AS found_in")
       .includes(:user, :rich_text_body).order(created_at: :desc).limit(PER_KIND)
       .select { |message| mentions?(message.body&.to_plain_text) }
@@ -88,7 +95,7 @@ class WorkspaceSearch
 
   def events
     Calendars::Event.joins(calendar: :account)
-      .where(calendar_accounts: { tool_id: tools.keys }).where("calendar_events.summary LIKE ?", pattern)
+      .where(calendar_accounts: { tool_id: tools.keys }).where(*matching("calendar_events.summary"))
       .select("calendar_events.*, calendar_accounts.tool_id AS found_in")
       .order(starts_at: :desc).limit(PER_KIND)
       .map { |event| hit(:event, event.summary, event, routes.tool_calendar_path(event.found_in, week_start: event.starts_at.to_date.beginning_of_week.iso8601)) }
@@ -97,7 +104,7 @@ class WorkspaceSearch
   def mails
     Mails::Message.joins(:account)
       .where(mail_accounts: { tool_id: tools.keys }).not_trashed.not_draft
-      .where("mail_messages.subject LIKE :q OR mail_messages.from_address LIKE :q", q: pattern)
+      .where(*matching("mail_messages.subject", "mail_messages.from_address"))
       .select("mail_messages.*, mail_accounts.tool_id AS found_in")
       .order(sent_at: :desc).limit(PER_KIND)
       .map { |mail| hit(:mail, mail.subject.presence || "(no subject)", mail, routes.tool_mail_path(mail.found_in, mail), mail.from_address) }

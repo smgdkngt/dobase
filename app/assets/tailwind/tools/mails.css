@@ -153,7 +153,8 @@
     @apply font-medium text-accent hover:underline bg-transparent border-none cursor-pointer p-0 text-xs;
   }
 
-  /* HTML email: always on a light page, framed as a light card in dark mode */
+  /* HTML email: always on a light page, framed as a light card in dark mode, and in
+     a theme, whose page is rarely plain white */
   .email-frame {
     @apply rounded-lg;
   }
@@ -162,6 +163,10 @@
     .email-frame {
       @apply bg-white p-4 overflow-hidden;
     }
+  }
+
+  :root[data-theme] .email-frame {
+    @apply bg-white p-4 overflow-hidden;
   }
 
   /* Selected state with color-mix - no Tailwind equivalent */

@@ -1,15 +1,16 @@
 <%
   tool = message.chat.tool
 
-  # Timestamp formatting
+  # Timestamp formatting. A new or edited message is broadcast from one
+  # person's request to everyone, so the browser puts the time in the viewer's zone
   time_ago = Time.current - message.created_at
+  time = local_time_tag(message.created_at)
   if time_ago < 24.hours
-    # Broadcast from the sender's request, so the browser puts it in the viewer's zone
-    timestamp = local_time_tag(message.created_at)
+    timestamp = time
   elsif time_ago < 48.hours
-    timestamp = "Yesterday, #{format_time(message.created_at)}"
+    timestamp = safe_join([ "Yesterday, ", time ])
   else
-    timestamp = format_datetime(message.created_at)
+    timestamp = safe_join([ format_date(message.created_at), ", ", time ])
   end
 
   has_files = message.has_files?

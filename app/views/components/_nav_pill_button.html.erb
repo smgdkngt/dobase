@@ -23,9 +23,9 @@
 %>
 
 <% if local_assigns[:icon] %>
-  <% html_options[:class] = "p-1.5 rounded-full hover:bg-white/20 transition-colors" %>
+  <% html_options[:class] = "p-1.5 rounded-full hover:bg-text-inverse/20 transition-colors" %>
   <%= tag.button(**html_options) { render "shared/icon", name: icon, size: 18 } %>
 <% elsif local_assigns[:text] %>
-  <% html_options[:class] = "px-2 py-0.5 text-xs font-medium rounded-full hover:bg-white/20 transition-colors" %>
+  <% html_options[:class] = "px-2 py-0.5 text-xs font-medium rounded-full hover:bg-text-inverse/20 transition-colors" %>
   <%= tag.button(**html_options) { text } %>
 <% end %>

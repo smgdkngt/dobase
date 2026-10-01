@@ -25,6 +25,29 @@ class User < ApplicationRecord
 
   def name = "#{first_name} #{last_name}".strip
 
+  # The colours this person sees the app in: a palette of their own, a built-in
+  # theme, or nil for the app's own look.
+  def theme = Theme.for(theme_name, theme_colors)
+
+  # Takes a built-in theme's name, or a name with a palette. Anything else (nil, an
+  # unknown name, a palette that isn't one) goes back to the app's own look.
+  def choose_theme(name, colors = nil)
+    palette = Theme.clean_palette(colors)
+    mode = colors.to_h.transform_keys(&:to_s)["mode"] if palette
+    name = name.to_s.strip.first(60)
+    # A desktop on a stock theme sends the colours the built-in one already has
+    palette = nil if palette && Theme.find(name)&.style == Theme.new(name: name, palette: palette, mode: mode).style
+
+    if name.present? && palette
+      update!(theme_name: name, theme_colors: palette.merge("mode" => mode).compact)
+    elsif Theme.find(name)
+      update!(theme_name: name, theme_colors: nil)
+    else
+      update!(theme_name: nil, theme_colors: nil)
+    end
+    broadcast_theme
+  end
+
   # What an avatar falls back to, the same two letters the avatar partial draws
   def initials = "#{first_name.to_s.first}#{last_name.to_s.first}".upcase
 
@@ -43,7 +66,8 @@ class User < ApplicationRecord
       Array(urls).map { |url| %("url":"#{url}") }
     return if patterns.empty?
 
-    matches = patterns.map { "noticed_events.params LIKE ?" }.join(" OR ")
+    # SQLite only reads sanitize_sql_like's backslashes as escapes when told to
+    matches = patterns.map { "noticed_events.params LIKE ? ESCAPE '\\'" }.join(" OR ")
     values = patterns.map { |pattern| "%#{self.class.sanitize_sql_like(pattern)}%" }
     scope = notifications.unread.joins(:event).where(matches, *values)
     scope = scope.where(noticed_events: { type: types }) if types.any?
@@ -52,6 +76,11 @@ class User < ApplicationRecord
 
     # The bell counts what's left, on every page this person has open
     ActionCable.server.broadcast("notifications:#{id}", { type: "unread_count", count: notifications.unread.count })
+  end
+
+  # Every page this person has open takes the new colours at once
+  def broadcast_theme
+    ActionCable.server.broadcast("notifications:#{id}", { type: "theme", theme: Theme.payload(theme) })
   end
 
   # Unread mail in the inboxes of the user's mail tools, counted like the sidebar counts it

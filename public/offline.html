@@ -10,6 +10,18 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <meta name="robots" content="noindex, nofollow">
 
+    <script>
+      // Take the colours of the theme the app was last in; services/theme.js keeps them
+      try {
+        var theme = JSON.parse(localStorage.getItem("dobase:theme") || "null")
+        if (theme) {
+          for (var name in theme) {
+            if (/^#[0-9a-f]{6}$/i.test(theme[name])) document.documentElement.style.setProperty("--theme-" + name, theme[name])
+          }
+        }
+      } catch (e) {}
+    </script>
+
     <style>
 
       *, *::before, *::after {
@@ -25,8 +37,8 @@
       }
 
       body {
-        background: #ffffff;
-        color: #1d1d1f;
+        background: var(--theme-background, #ffffff);
+        color: var(--theme-text, #1d1d1f);
         display: grid;
         font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Aptos, Roboto, "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
         font-size: clamp(1rem, 2.5vw, 2rem);
@@ -42,17 +54,17 @@
       }
 
       .offline-icon {
-        color: #6e6e73;
+        color: var(--theme-muted, #6e6e73);
       }
 
       @media (prefers-color-scheme: dark) {
         body {
-          background: #1c1c1e;
-          color: #f5f5f7;
+          background: var(--theme-background, #1c1c1e);
+          color: var(--theme-text, #f5f5f7);
         }
 
         .offline-icon {
-          color: #a1a1a6;
+          color: var(--theme-muted, #a1a1a6);
         }
       }
 

@@ -13,6 +13,7 @@ module Caldav
       <d:propfind xmlns:d="DAV:" xmlns:cs="http://calendarserver.org/ns/">
         <d:prop>
           <cs:getctag/>
+          <d:current-user-privilege-set/>
         </d:prop>
       </d:propfind>
     XML
@@ -50,6 +51,7 @@ module Caldav
           <x:calendar-color/>
           <cs:getctag/>
           <d:sync-token/>
+          <d:current-user-privilege-set/>
         </d:prop>
       </d:propfind>
     XML
@@ -76,6 +78,7 @@ module Caldav
         <d:prop>
           <d:sync-token/>
           <cs:getctag/>
+          <d:current-user-privilege-set/>
         </d:prop>
       </d:propfind>
     XML

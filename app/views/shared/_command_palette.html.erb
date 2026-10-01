@@ -44,6 +44,25 @@
       </a>
     <% end %>
 
+    <%# The themes, once you type towards one %>
+    <div class="px-4 py-1.5 hidden" data-command-palette-target="sectionHeader" data-section="theme">
+      <span class="text-xs font-semibold text-text-tertiary uppercase tracking-wider">Themes</span>
+    </div>
+    <% [ nil, *Theme.all ].each do |theme| %>
+      <button type="button"
+              class="command-palette-item w-full text-left hidden"
+              data-command-palette-target="item"
+              data-action="click->command-palette#pickTheme"
+              data-when-typed
+              data-name="<%= (theme&.label || app_name).downcase %>"
+              data-type="theme"
+              data-theme="<%= theme&.name %>">
+        <%= render "shared/icon", name: "palette", size: 18, class: "text-text-secondary" %>
+        <span class="flex-1 truncate"><%= theme&.label || "#{app_name}'s own look" %></span>
+        <span class="text-xs text-text-tertiary"><%= theme ? "#{theme.mode.capitalize} theme" : "Theme" %></span>
+      </button>
+    <% end %>
+
     <%# Cards, todos, documents, files, messages, events and mail that match,
         loaded from SearchesController as you type %>
     <%= turbo_frame_tag "command_palette_search",

@@ -28,6 +28,21 @@ module Tools
       assert_response :success
     end
 
+    test "deleting a list asks about every item that goes with it" do
+      get tool_todo_path(@tool, reorder: 1)
+
+      assert_select "#todo-list-#{todo_lists(:main).id} [data-turbo-confirm=?]", "Delete this list and its 4 items (2 completed)?"
+      assert_select "#todo-list-#{todo_lists(:backlog).id} [data-turbo-confirm=?]", "Delete this list?"
+    end
+
+    test "deleting a list counts the items a filter hides too" do
+      todo_items(:pending_one).update!(assigned_user: users(:one))
+
+      get tool_todo_path(@tool, reorder: 1, assignee: "me")
+
+      assert_select "#todo-list-#{todo_lists(:main).id} [data-turbo-confirm=?]", "Delete this list and its 4 items (2 completed)?"
+    end
+
     test "requires authentication" do
       sign_out
 

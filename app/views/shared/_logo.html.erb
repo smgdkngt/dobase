@@ -1,0 +1,14 @@
+<%# The app's logo; `class` sizes it. The default logo is drawn here rather than %>
+<%# loaded, so a theme can colour it: its square takes --color-logo and its letter %>
+<%# --color-logo-ink. A logo of your own (APP_LOGO_PATH) is shown as it is. %>
+<% css_class = local_assigns[:class] %>
+<% if app_logo_path == "/icon.svg" %>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="<%= app_name %>" class="<%= css_class %>">
+    <rect width="512" height="512" rx="112" style="fill: var(--color-logo)"/>
+    <g transform="translate(50 56) scale(12.5)">
+      <path fill-rule="evenodd" style="fill: var(--color-logo-ink)" d="M6 2H11A18 14 0 0 1 13 30A2 2 0 0 1 11 28V24H6A2 2 0 0 1 4 22V4A2 2 0 0 1 6 2ZM11 8A12 8 0 0 1 11 24Z"/>
+    </g>
+  </svg>
+<% else %>
+  <img src="<%= app_logo_path %>" alt="<%= app_name %>" class="<%= css_class %>">
+<% end %>

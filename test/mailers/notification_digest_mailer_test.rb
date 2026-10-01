@@ -65,6 +65,17 @@ class NotificationDigestMailerTest < ActionMailer::TestCase
     assert_includes mail.text_part.body.to_s, "Looks great, ship it."
   end
 
+  test "digest quotes the chat message a notification is about" do
+    chat = Chats::Chat.create!(tool: @tool)
+    Chats::Message.create!(chat: chat, user: @actor, body: "<p>Lunch at <strong>noon</strong>?</p>")
+    notifications = @user.notifications.reload.last(1)
+
+    mail = NotificationDigestMailer.digest(@user, notifications)
+
+    assert_includes mail.text_part.body.to_s, %("Lunch at noon?")
+    assert_includes mail.html_part.body.to_s, "Lunch at noon?"
+  end
+
   test "digest includes a link to change digest frequency" do
     mail = NotificationDigestMailer.digest(@user, deliver_notifications(1))
 

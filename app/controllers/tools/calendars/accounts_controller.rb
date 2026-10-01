@@ -30,6 +30,11 @@ module Tools
 
       def update
         if @calendar_account.update(calendar_account_params)
+          # New connection settings may be what a failed sync was waiting for
+          if !@calendar_account.local? && @calendar_account.saved_changes.keys.intersect?(::Calendars::Account::CONNECTION_SETTINGS)
+            @calendar_account.mark_syncing!
+            SyncCalendarsJob.perform_later(@calendar_account.id, discover: true)
+          end
           redirect_to tool_calendar_path(@tool), notice: "Calendar account updated successfully."
         else
           render :edit, status: :unprocessable_entity

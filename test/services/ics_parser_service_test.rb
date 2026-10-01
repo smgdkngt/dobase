@@ -122,27 +122,25 @@ class IcsParserServiceTest < ActiveSupport::TestCase
     assert_not_nil result[:rrule]
   end
 
-  test "parses event with duration instead of end time" do
-    # Note: Duration parsing may vary by icalendar gem version
-    ics = <<~ICS
+  test "an event with a DURATION ends that long after it starts" do
+    ics = ->(*lines) { <<~ICS }
       BEGIN:VCALENDAR
       VERSION:2.0
       PRODID:-//Test//Test//EN
       BEGIN:VEVENT
       UID:duration-event@example.com
-      DTSTART:20250215T100000Z
-      DURATION:PT1H30M
+      #{lines.join("\n")}
       SUMMARY:Meeting with Duration
       END:VEVENT
       END:VCALENDAR
     ICS
+    times = ->(*lines) { IcsParserService.new(ics.call(*lines), time_zone: "Europe/Amsterdam").parse.values_at(:starts_at, :ends_at) }
 
-    result = IcsParserService.new(ics).parse
-
-    assert_equal "duration-event@example.com", result[:uid]
-    assert_not_nil result[:starts_at]
-    # ends_at should be calculated from duration if supported
-    assert_not_nil result[:ends_at]
+    assert_equal [ Time.utc(2025, 2, 15, 10), Time.utc(2025, 2, 15, 11, 30) ], times.call("DTSTART:20250215T100000Z", "DURATION:PT1H30M")
+    assert_equal [ Time.utc(2025, 2, 15, 10), Time.utc(2025, 2, 15, 10, 0, 45) ], times.call("DTSTART:20250215T100000Z", "DURATION:PT45S")
+    assert_equal [ Time.utc(2025, 2, 15, 9), Time.utc(2025, 2, 16, 11, 15) ], times.call("DTSTART;TZID=Europe/Amsterdam:20250215T100000", "DURATION:P1DT2H15M")
+    assert_equal [ Time.utc(2025, 3, 1), Time.utc(2025, 3, 3) ], times.call("DTSTART;VALUE=DATE:20250301", "DURATION:P2D")
+    assert_equal [ Time.utc(2025, 3, 1), Time.utc(2025, 3, 8) ], times.call("DTSTART;VALUE=DATE:20250301", "DURATION:P1W")
   end
 
   test "returns empty result for blank input" do
@@ -277,5 +275,180 @@ class IcsParserServiceTest < ActiveSupport::TestCase
 
     assert_equal Time.utc(2026, 9, 5, 6), result[:starts_at]
     assert_equal Time.utc(2026, 9, 5, 8), result[:ends_at]
+  end
+
+  test "a time in a Windows time zone that Exchange describes keeps its own offset, in summer and winter" do
+    summer = IcsParserService.new(exchange_ics("DTSTART;TZID=W. Europe Standard Time:20261005T100000", "DTEND;TZID=W. Europe Standard Time:20261005T110000"), time_zone: "America/New_York").parse
+    winter = IcsParserService.new(exchange_ics("DTSTART;TZID=W. Europe Standard Time:20261207T100000", "DTEND;TZID=W. Europe Standard Time:20261207T110000"), time_zone: "America/New_York").parse
+
+    assert_equal [ Time.utc(2026, 10, 5, 8), Time.utc(2026, 10, 5, 9) ], [ summer[:starts_at], summer[:ends_at] ]
+    assert_equal [ Time.utc(2026, 12, 7, 9), Time.utc(2026, 12, 7, 10) ], [ winter[:starts_at], winter[:ends_at] ]
+    # Without a zone to fall back on, too
+    assert_equal Time.utc(2026, 10, 5, 8), IcsParserService.new(exchange_ics("DTSTART;TZID=W. Europe Standard Time:20261005T100000")).parse[:starts_at]
+  end
+
+  test "a series from Exchange stays at its local time after the clocks change and skips its EXDATE" do
+    ics = exchange_ics(
+      "DTSTART;TZID=W. Europe Standard Time:20261005T100000",
+      "DTEND;TZID=W. Europe Standard Time:20261005T110000",
+      "RRULE:FREQ=WEEKLY;COUNT=6",
+      "EXDATE;TZID=W. Europe Standard Time:20261012T100000"
+    )
+
+    result = IcsParserService.new(ics, time_zone: "America/New_York").parse
+
+    # The clocks go back on October 25th in Europe, a week before they do in New York
+    assert_equal [ Time.utc(2026, 10, 5, 8), Time.utc(2026, 10, 19, 8), Time.utc(2026, 10, 26, 9), Time.utc(2026, 11, 2, 9), Time.utc(2026, 11, 9, 9) ],
+      IceCube::Schedule.from_yaml(result[:recurrence_schedule]).all_occurrences.map(&:utc)
+  end
+
+  test "a described time zone with a name of its own is followed too" do
+    ics = <<~ICS
+      BEGIN:VCALENDAR
+      VERSION:2.0
+      PRODID:-//Microsoft Corporation//Outlook 16.0 MIMEDIR//EN
+      BEGIN:VTIMEZONE
+      TZID:Customized Time Zone
+      BEGIN:STANDARD
+      DTSTART:16011104T020000
+      RRULE:FREQ=YEARLY;BYDAY=1SU;BYMONTH=11
+      TZOFFSETFROM:-0400
+      TZOFFSETTO:-0500
+      END:STANDARD
+      BEGIN:DAYLIGHT
+      DTSTART:16010311T020000
+      RRULE:FREQ=YEARLY;BYDAY=2SU;BYMONTH=3
+      TZOFFSETFROM:-0500
+      TZOFFSETTO:-0400
+      END:DAYLIGHT
+      END:VTIMEZONE
+      BEGIN:VEVENT
+      UID:custom-zone@example.com
+      DTSTART;TZID=Customized Time Zone:20261019T100000
+      DTEND;TZID=Customized Time Zone:20261019T103000
+      RRULE:FREQ=WEEKLY;COUNT=4
+      SUMMARY:Call with New York
+      END:VEVENT
+      END:VCALENDAR
+    ICS
+
+    result = IcsParserService.new(ics, time_zone: "Europe/Amsterdam").parse
+
+    assert_equal Time.utc(2026, 10, 19, 14), result[:starts_at]
+    # New York's clocks go back on November 1st
+    assert_equal [ Time.utc(2026, 10, 19, 14), Time.utc(2026, 10, 26, 14), Time.utc(2026, 11, 2, 15), Time.utc(2026, 11, 9, 15) ],
+      IceCube::Schedule.from_yaml(result[:recurrence_schedule]).all_occurrences.map(&:utc)
+  end
+
+  test "a time with an IANA time zone, a UTC time and a floating time" do
+    ics = ->(dtstart) { <<~ICS }
+      BEGIN:VCALENDAR
+      VERSION:2.0
+      BEGIN:VEVENT
+      UID:zones@example.com
+      #{dtstart}
+      SUMMARY:Zones
+      END:VEVENT
+      END:VCALENDAR
+    ICS
+
+    starts_at = ->(dtstart) { IcsParserService.new(ics.call(dtstart), time_zone: "Europe/Amsterdam").parse[:starts_at] }
+
+    assert_equal Time.utc(2026, 10, 5, 14), starts_at.call("DTSTART;TZID=America/New_York:20261005T100000")
+    assert_equal Time.utc(2026, 12, 7, 15), starts_at.call("DTSTART;TZID=America/New_York:20261207T100000")
+    assert_equal Time.utc(2026, 10, 5, 10), starts_at.call("DTSTART:20261005T100000Z")
+    assert_equal Time.utc(2026, 10, 5, 8), starts_at.call("DTSTART:20261005T100000")
+    assert_equal Time.utc(2026, 12, 7, 9), starts_at.call("DTSTART:20261207T100000")
+    # A Windows name without its description is looked up by icalendar
+    assert_equal Time.utc(2026, 10, 5, 17), starts_at.call("DTSTART;TZID=Pacific Standard Time:20261005T100000")
+  end
+
+  test "BYSETPOS picks one of the listed weekdays instead of repeating on all of them" do
+    # The second Tuesday
+    assert_equal %w[2026-10-13 2026-11-10 2026-12-08 2027-01-12],
+      occurrence_dates("DTSTART;TZID=Europe/Amsterdam:20261013T100000", "RRULE:FREQ=MONTHLY;BYDAY=TU;BYSETPOS=2", 4)
+    # The last Friday, every other month
+    assert_equal %w[2026-10-30 2026-12-25 2027-02-26],
+      occurrence_dates("DTSTART;TZID=Europe/Amsterdam:20261030T100000", "RRULE:FREQ=MONTHLY;INTERVAL=2;BYDAY=FR;BYSETPOS=-1", 3)
+    # The last weekday: a Friday when the month ends in a weekend
+    assert_equal %w[2026-10-30 2026-11-30 2026-12-31 2027-01-29 2027-02-26 2027-03-31],
+      occurrence_dates("DTSTART;TZID=Europe/Amsterdam:20261030T100000", "RRULE:FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1", 6)
+    # The first weekday: a Monday when the month starts in a weekend
+    assert_equal %w[2026-10-01 2026-11-02 2026-12-01 2027-01-01 2027-02-01],
+      occurrence_dates("DTSTART;TZID=America/New_York:20261001T170000", "RRULE:FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=1", 5)
+    # The second day of the weekend
+    assert_equal %w[2026-10-04 2026-11-07 2026-12-06 2027-01-03],
+      occurrence_dates("DTSTART:20261004T100000Z", "RRULE:FREQ=MONTHLY;BYDAY=SA,SU;BYSETPOS=2", 4)
+    # The fourth Thursday of November
+    assert_equal %w[2026-11-26 2027-11-25 2028-11-23],
+      occurrence_dates("DTSTART;TZID=America/New_York:20261126T120000", "RRULE:FREQ=YEARLY;BYDAY=TH;BYMONTH=11;BYSETPOS=4", 3)
+  end
+
+  test "a BYSETPOS series ends after its COUNT or at its UNTIL" do
+    assert_equal %w[2026-10-30 2026-11-30 2026-12-31],
+      occurrence_dates("DTSTART;TZID=Europe/Amsterdam:20261030T100000", "RRULE:FREQ=MONTHLY;COUNT=3;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1", 10)
+    assert_equal %w[2026-10-30 2026-11-30],
+      occurrence_dates("DTSTART;TZID=Europe/Amsterdam:20261030T100000", "RRULE:FREQ=MONTHLY;UNTIL=20261215T000000Z;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1", 10)
+    assert_equal %w[2026-10-13 2026-11-10],
+      occurrence_dates("DTSTART;TZID=Europe/Amsterdam:20261013T100000", "RRULE:FREQ=MONTHLY;COUNT=2;BYDAY=TU;BYSETPOS=2", 10)
+  end
+
+  test "a BYSETPOS rule that can't be worked out shows its first occurrence only" do
+    assert_equal %w[2026-10-05],
+      occurrence_dates("DTSTART;TZID=Europe/Amsterdam:20261005T100000", "RRULE:FREQ=WEEKLY;BYDAY=MO,WE;BYSETPOS=1", 10)
+    assert_equal %w[2026-10-30],
+      occurrence_dates("DTSTART;TZID=Europe/Amsterdam:20261030T100000", "RRULE:FREQ=MONTHLY;BYMONTHDAY=28,29,30,31;BYSETPOS=-1", 10)
+  end
+
+  private
+
+  # The first dates of a series, at most as many as asked for
+  def occurrence_dates(dtstart, rrule, limit)
+    result = IcsParserService.new(<<~ICS, time_zone: "Europe/Amsterdam").parse
+      BEGIN:VCALENDAR
+      VERSION:2.0
+      BEGIN:VEVENT
+      UID:series@example.com
+      #{dtstart}
+      #{rrule}
+      SUMMARY:Series
+      END:VEVENT
+      END:VCALENDAR
+    ICS
+
+    assert_equal rrule.delete_prefix("RRULE:"), result[:rrule]
+    IceCube::Schedule.from_yaml(result[:recurrence_schedule]).first(limit).map { |time| time.to_date.iso8601 }
+  end
+
+  # What Exchange and Outlook send: a Windows time zone name, with the VTIMEZONE that describes it
+  def exchange_ics(*event_lines)
+    <<~ICS
+      BEGIN:VCALENDAR
+      METHOD:REQUEST
+      PRODID:Microsoft Exchange Server 2010
+      VERSION:2.0
+      BEGIN:VTIMEZONE
+      TZID:W. Europe Standard Time
+      BEGIN:STANDARD
+      DTSTART:16010101T030000
+      TZOFFSETFROM:+0200
+      TZOFFSETTO:+0100
+      RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=-1SU;BYMONTH=10
+      END:STANDARD
+      BEGIN:DAYLIGHT
+      DTSTART:16010101T020000
+      TZOFFSETFROM:+0100
+      TZOFFSETTO:+0200
+      RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=-1SU;BYMONTH=3
+      END:DAYLIGHT
+      END:VTIMEZONE
+      BEGIN:VEVENT
+      UID:040000008200E00074C5B7101A82E008
+      #{event_lines.join("\n")}
+      SUMMARY:Kwartaaloverleg
+      ORGANIZER;CN=Rachel Kim:mailto:rachel@example.com
+      END:VEVENT
+      END:VCALENDAR
+    ICS
   end
 end
