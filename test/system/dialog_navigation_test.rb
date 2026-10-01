@@ -51,7 +51,9 @@ class DialogNavigationTest < ApplicationSystemTestCase
       # Well past the refresh that closing the first card asked for
       sleep 2
       assert_selector "dialog[open] h2", text: "Second task"
-      assert_current_path tool_board_path(tools(:project_board))
+      # With or without the open card in the address: that depends on whether the
+      # refresh had set off before the card was opened
+      assert_current_path tool_board_path(tools(:project_board)), ignore_query: true
     end
 
     # The refresh that was let go comes with the next close
@@ -73,7 +75,7 @@ class DialogNavigationTest < ApplicationSystemTestCase
 
       sleep 2
       assert_selector "dialog[open] h2", text: todo_items(:pending_two).title
-      assert_current_path tool_todo_path(tools(:my_todos))
+      assert_current_path tool_todo_path(tools(:my_todos)), ignore_query: true
     end
   end
 

@@ -78,6 +78,19 @@ class ThemeTest < ActiveSupport::TestCase
     assert theme.tokens.values.all?(&:present?)
   end
 
+  test "the landing page's theme switcher has the app's themes" do
+    script = Rails.root.join("site/themes.js").read
+    on_site = JSON.parse(script[/window\.DOBASE_THEMES = (\[.*\]);/m, 1])
+
+    assert_equal Theme.all.map(&:name), on_site.map { |theme| theme["name"] },
+      "site/themes.js is out of date: run bin/rails runner script/site_themes.rb"
+    Theme.all.zip(on_site).each do |theme, shown|
+      assert_equal theme.tokens["--color-accent-solid"], shown["vars"]["--accent-solid"], theme.name
+      assert Rails.root.join("site/screenshots/themes/#{theme.name}.webp").exist?, "no screenshot of #{theme.name}"
+      assert Rails.root.join("site/screenshots/themes/#{theme.name}-mono.webp").exist?, "no monospace screenshot of #{theme.name}"
+    end
+  end
+
   private
 
   def color(value)
