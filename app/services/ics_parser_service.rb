@@ -146,25 +146,12 @@ class IcsParserService
     end
   end
 
+  # icalendar hands a DURATION over in parts (PT1H30M, P2D, P1W)
   def parse_duration(duration)
-    return 0 unless duration
+    return 0.seconds unless duration.respond_to?(:weeks)
 
-    # ISO 8601 duration (e.g., PT1H30M, P1D)
-    if duration.respond_to?(:to_s)
-      duration_str = duration.to_s
-      seconds = 0
-
-      if match = duration_str.match(/P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
-        seconds += (match[1].to_i * 86400) # days
-        seconds += (match[2].to_i * 3600)  # hours
-        seconds += (match[3].to_i * 60)    # minutes
-        seconds += match[4].to_i           # seconds
-      end
-
-      seconds.seconds
-    else
-      0
-    end
+    length = duration.weeks.weeks + duration.days.days + duration.hours.hours + duration.minutes.minutes + duration.seconds.seconds
+    duration.past? ? -length : length
   end
 
   def all_day?(event)

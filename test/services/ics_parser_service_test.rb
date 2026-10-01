@@ -122,27 +122,25 @@ class IcsParserServiceTest < ActiveSupport::TestCase
     assert_not_nil result[:rrule]
   end
 
-  test "parses event with duration instead of end time" do
-    # Note: Duration parsing may vary by icalendar gem version
-    ics = <<~ICS
+  test "an event with a DURATION ends that long after it starts" do
+    ics = ->(*lines) { <<~ICS }
       BEGIN:VCALENDAR
       VERSION:2.0
       PRODID:-//Test//Test//EN
       BEGIN:VEVENT
       UID:duration-event@example.com
-      DTSTART:20250215T100000Z
-      DURATION:PT1H30M
+      #{lines.join("\n")}
       SUMMARY:Meeting with Duration
       END:VEVENT
       END:VCALENDAR
     ICS
+    times = ->(*lines) { IcsParserService.new(ics.call(*lines), time_zone: "Europe/Amsterdam").parse.values_at(:starts_at, :ends_at) }
 
-    result = IcsParserService.new(ics).parse
-
-    assert_equal "duration-event@example.com", result[:uid]
-    assert_not_nil result[:starts_at]
-    # ends_at should be calculated from duration if supported
-    assert_not_nil result[:ends_at]
+    assert_equal [ Time.utc(2025, 2, 15, 10), Time.utc(2025, 2, 15, 11, 30) ], times.call("DTSTART:20250215T100000Z", "DURATION:PT1H30M")
+    assert_equal [ Time.utc(2025, 2, 15, 10), Time.utc(2025, 2, 15, 10, 0, 45) ], times.call("DTSTART:20250215T100000Z", "DURATION:PT45S")
+    assert_equal [ Time.utc(2025, 2, 15, 9), Time.utc(2025, 2, 16, 11, 15) ], times.call("DTSTART;TZID=Europe/Amsterdam:20250215T100000", "DURATION:P1DT2H15M")
+    assert_equal [ Time.utc(2025, 3, 1), Time.utc(2025, 3, 3) ], times.call("DTSTART;VALUE=DATE:20250301", "DURATION:P2D")
+    assert_equal [ Time.utc(2025, 3, 1), Time.utc(2025, 3, 8) ], times.call("DTSTART;VALUE=DATE:20250301", "DURATION:P1W")
   end
 
   test "returns empty result for blank input" do
