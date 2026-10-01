@@ -71,6 +71,50 @@ class RoomsTest < ApplicationSystemTestCase
     end
   end
 
+  test "a call that drops leaves nothing behind that later looks like a call" do
+    visit tool_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "room"
+    assert_selector "[data-room-target='preJoinError']", text: /camera|microphone/i, wait: 5
+    start_call_without_a_server
+
+    assert_selector "[data-room-mode-value='full'] [data-room-target='inCall']"
+    assert_selector ".sidebar [data-tool-id='#{@tool.id}'][data-in-call]"
+
+    page.execute_script("window.__dropCall()")
+
+    # A fresh pre-join page, told why
+    assert_text "You were disconnected from the call"
+    assert_selector "[data-room-target='preJoin']"
+    assert_no_selector "[data-room-mode-value='full']"
+    assert_no_selector "[data-in-call]"
+    assert_equal [ "DELETE", "remaining=1" ], evaluate_script("window.__activityPings.at(-1)")
+
+    find(".sidebar a", text: "My Files").click
+    assert_selector "h1", text: "My Files"
+    assert_no_selector "#persistent-room [data-controller~='room']", visible: :all
+    assert_no_selector "[data-in-call]"
+  end
+
+  test "a call that drops while in the small window takes the window away" do
+    visit tool_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "room"
+    assert_selector "[data-room-target='preJoinError']", text: /camera|microphone/i, wait: 5
+    start_call_without_a_server
+
+    find(".sidebar a", text: "My Files").click
+    assert_selector "h1", text: "My Files"
+    assert_selector "[data-room-mode-value='pip']"
+
+    page.execute_script("window.__dropCall()")
+
+    assert_text "You were disconnected from the call"
+    assert_no_selector "[data-room-mode-value]", visible: :all
+    assert_no_selector "[data-in-call]"
+    assert_selector "h1", text: "My Files"
+  end
+
   test "shows a clear error when LiveKit isn't configured" do
     visit tool_path(@tool)
     wait_for_turbo
@@ -234,5 +278,52 @@ class RoomsTest < ApplicationSystemTestCase
       })()
     JS
     assert beside, "the cameras sit beside the shared screen, not under it"
+  end
+
+  private
+
+  # No video server here: puts the page in a call the way a finished join does, with a room
+  # that only knows how to drop. One other person is in it.
+  def start_call_without_a_server
+    page.evaluate_async_script(<<~JS)
+      const done = arguments[0]
+      import("livekit-client").then(({ RoomEvent, Track }) => {
+        const element = document.querySelector("[data-controller~='room']")
+        const controller = window.Stimulus.getControllerForElementAndIdentifier(element, "room")
+        const handlers = {}
+        const room = {
+          state: "connected",
+          remoteParticipants: new Map([["anna", { identity: "anna", name: "Anna", trackPublications: new Map() }]]),
+          localParticipant: { identity: "me", trackPublications: new Map() },
+          on(event, handler) { handlers[event] = handler; return this },
+          disconnect: async () => {}
+        }
+
+        window.__activityPings = []
+        const original = window.fetch
+        window.fetch = (url, options = {}) => {
+          if (String(url).includes("/activity")) window.__activityPings.push([options.method, String(url).split("?")[1] || ""])
+          return original(url, options)
+        }
+        window.__dropCall = () => {
+          room.state = "disconnected"
+          room.remoteParticipants.clear()
+          handlers[RoomEvent.Disconnected]()
+        }
+
+        controller._stopPreview()
+        controller.room = room
+        controller.LiveKitTrack = Track
+        controller._bindRoomEvents(RoomEvent)
+        element._liveKitRoom = room
+        element._liveKitTrack = Track
+        controller._pingActivity(true)
+        controller._guardAgainstUnload()
+        const container = document.getElementById("persistent-room")
+        container.hidden = false
+        container.appendChild(element)
+        done()
+      })
+    JS
   end
 end
