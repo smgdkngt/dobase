@@ -130,6 +130,55 @@ class RoomsTest < ApplicationSystemTestCase
     assert layout["inside"], "every tile fits inside the call"
   end
 
+  # Safari kept a tile's old height when only its width changed (Chrome never did), leaving a
+  # wide, flat strip. The height no longer hangs on aspect-ratio; this checks every way a tile is sized.
+  test "a tile keeps its shape through the small window and a shared screen" do
+    visit tool_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "room"
+
+    page.execute_script(<<~JS)
+      const room = window.Stimulus.getControllerForElementAndIdentifier(document.querySelector("[data-controller~='room']"), "room")
+      room.preJoinTarget.classList.add("hidden")
+      room.inCallTarget.classList.remove("hidden")
+      room.modeValue = "pip"
+      room.renderParticipant({ identity: "anna", name: "Anna" })
+    JS
+
+    # After the resize observer has had its turn
+    tile = <<~JS
+      const done = arguments[0]
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const box = document.querySelector("[data-participant-id]").getBoundingClientRect()
+        const area = document.querySelector("[data-room-target='contentArea']").getBoundingClientRect()
+        done({ ratio: Math.round(box.width / box.height * 100), width: Math.round(box.width), fills: box.height >= area.height - 1 })
+      }))
+    JS
+    mode = ->(value) { page.execute_script("document.querySelector(\"[data-controller~='room']\").dataset.roomModeValue = arguments[0]", value) }
+    share = ->(on) do
+      page.execute_script(<<~JS, on)
+        const room = window.Stimulus.getControllerForElementAndIdentifier(document.querySelector("[data-controller~='room']"), "room")
+        room.spotlightTarget.classList.toggle("hidden", !arguments[0])
+        room.contentAreaTarget.toggleAttribute("data-has-spotlight", arguments[0])
+      JS
+    end
+
+    assert page.evaluate_async_script(tile)["fills"], "the small window is all camera"
+
+    mode.call("full")
+    full = page.evaluate_async_script(tile)
+    assert_equal 178, full["ratio"]
+    assert_operator full["width"], :>, 600
+
+    share.call(true)
+    strip = page.evaluate_async_script(tile)
+    assert_equal 178, strip["ratio"]
+    assert_equal 224, strip["width"]
+
+    share.call(false)
+    assert_equal full, page.evaluate_async_script(tile)
+  end
+
   test "while someone shares their screen, everyone's camera stays in view beside it" do
     visit tool_path(@tool)
     wait_for_turbo
