@@ -8,6 +8,14 @@
   completed_hidden_items = filter_by_assignee(items.select { |item| item.completed? && !item.recently_completed? }, assignee_filter)
   completed_hidden_count = completed_hidden_items.size
   pending_count = pending_items.size
+  # Deleting the list deletes every item in it: the completed ones, and the
+  # ones a filter is hiding, as well as the ones on screen
+  completed_count = items.count(&:completed?)
+  delete_confirmation = if items.any?
+    "Delete this list and its #{pluralize(items.size, "item")}#{" (#{completed_count} completed)" if completed_count > 0}?"
+  else
+    "Delete this list?"
+  end
 %>
 <div class="border border-border rounded-lg"
      id="todo-list-<%= list.id %>"
@@ -29,9 +37,7 @@
           variant: :danger,
           href: tool_todo_list_path(tool, list),
           method: :delete,
-          turbo_confirm: pending_count > 0 ?
-            "Delete this list and its #{pending_count} item#{'s' unless pending_count == 1}?" :
-            "Delete this list?",
+          turbo_confirm: delete_confirmation,
           data: { turbo_confirm_button: "Delete" } %>
     <% end %>
   </div>

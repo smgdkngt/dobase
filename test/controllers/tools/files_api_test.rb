@@ -93,6 +93,27 @@ module Tools
       assert_equal @user, @readme.updated_by
     end
 
+    # Downloads and share links serve a file under its name, so a rename is
+    # held to the same list as an upload.
+    test "update refuses to rename a file to a program" do
+      [ "setup.exe", "Setup.EXE", "install.sh", "setup.exe.", "setup.exe " ].each do |name|
+        patch tool_files_item_path(@tool, @readme), params: { name: name }, headers: @headers, as: :json
+
+        assert_response :unprocessable_entity, "for #{name.inspect}"
+        assert_equal [ "File type .#{name[/exe|sh/i].downcase} is not allowed for security reasons" ], response.parsed_body["errors"]
+        assert_equal "readme.txt", @readme.reload.name
+      end
+    end
+
+    test "a file that already has a blocked name can still be moved" do
+      @readme.update_column(:name, "legacy.exe")
+
+      patch tool_files_item_path(@tool, @readme), params: { folder_id: @documents.id }, headers: @headers, as: :json
+
+      assert_response :success
+      assert_equal @documents, @readme.reload.folder
+    end
+
     test "update accepts attributes nested under file, as the web sends them" do
       patch tool_files_item_path(@tool, @readme), params: { file: { name: "notes.txt" } }, headers: @headers, as: :json
 

@@ -63,6 +63,25 @@ module Chats
       reactions.sort_by(&:created_at).group_by(&:emoji).transform_values { |group| group.map(&:user) }
     end
 
+    # Whether this message belongs to the group `previous` is in: the same
+    # person, the same day, shortly after.
+    def continues?(previous)
+      return false if previous.nil?
+
+      # The header names who posted it and how, so a change in either starts a new group
+      previous.user_id == user_id &&
+        previous.agent? == agent? &&
+        previous.via == via &&
+        previous.created_at.to_date == created_at.to_date &&
+        (created_at - previous.created_at) < 5.minutes
+    end
+
+    # The same, against the message before this one in the chat. A page of
+    # messages has that one at hand; a broadcast of one message looks it up.
+    def continuation?
+      continues?(chat.messages.before(self).recent.first)
+    end
+
     def image_files
       files.select { |f| f.content_type.start_with?("image/") && !f.content_type.include?("svg") }
     end
@@ -141,16 +160,18 @@ module Chats
     end
 
     after_create_commit :notify_collaborators
+    # Everyone in the chat gets the message as the page would have drawn it:
+    # without its author's name again when it continues the one above.
     after_create_commit -> {
       broadcast_append_to chat,
         target: "chat_messages",
         partial: "tools/chats/message",
-        locals: { message: self }
+        locals: { message: self, is_continuation: continuation? }
     }
     after_update_commit -> {
       broadcast_replace_to chat,
         partial: "tools/chats/message",
-        locals: { message: self }
+        locals: { message: self, is_continuation: continuation? }
     }
     after_destroy_commit -> { broadcast_remove_to chat }
   end

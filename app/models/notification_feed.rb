@@ -24,12 +24,12 @@ class NotificationFeed
   end
 
   def entries
-    grouped = @notifications.select { |n| chat_message?(n) && n.unread? }.group_by { |n| params(n)[:tool]&.id }
+    grouped = @notifications.select { |n| foldable?(n) }.group_by { |n| params(n)[:tool].id }
     seen_groups = Set.new
 
     @notifications.filter_map do |notification|
-      if chat_message?(notification) && notification.unread?
-        tool_id = params(notification)[:tool]&.id
+      if foldable?(notification)
+        tool_id = params(notification)[:tool].id
         next if seen_groups.include?(tool_id)
 
         seen_groups << tool_id
@@ -76,6 +76,12 @@ class NotificationFeed
 
   def chat_message?(notification)
     notification.event&.type == "ChatMessageNotifier"
+  end
+
+  # An unread message in a chat that's still there. Without the chat there is
+  # nothing to say they have in common, so those stay a line each.
+  def foldable?(notification)
+    chat_message?(notification) && notification.unread? && params(notification)[:tool].present?
   end
 
   def params(notification)

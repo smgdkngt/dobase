@@ -63,10 +63,19 @@ module ApplicationHelper
     end
   end
 
-  # Adds target="_blank" and rel="noopener" to all links in HTML content.
-  def externalize_links(html)
+  # Makes every link in sanitized HTML open in a new tab. The links are found by
+  # parsing it: the sanitizer leaves < and > alone inside an attribute, so a
+  # title can hold text that looks like a tag, and a search through the string
+  # would write into it and break out of its quotes.
+  def externalize_links(html, rel: "noopener")
     return html if html.blank?
-    html.to_s.gsub(/<a\s/, '<a target="_blank" rel="noopener" ').html_safe
+
+    fragment = Nokogiri::HTML5.fragment(html.to_s)
+    fragment.css("a").each do |link|
+      link["target"] = "_blank"
+      link["rel"] = rel
+    end
+    fragment.to_html.html_safe
   end
 
   # Returns attribution text like "Created by Alice · Edited by Bob"

@@ -17,7 +17,7 @@ module FilesHelper
     })
 
     safe = sanitize(html, tags: MARKDOWN_TAGS, attributes: MARKDOWN_ATTRIBUTES)
-    safe.gsub("<a ", '<a target="_blank" rel="noopener noreferrer" ').html_safe
+    externalize_links(safe, rel: "noopener noreferrer")
   end
 
   # The lexer for a file's name, or nil when Rouge doesn't know the language —

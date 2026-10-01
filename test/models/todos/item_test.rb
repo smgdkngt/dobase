@@ -185,6 +185,63 @@ module Todos
       end
     end
 
+    test "reopening takes back a copy nobody has touched, description and all" do
+      item = todo_items(:pending_one)
+      item.update!(recurrence_rule: "weekly", due_date: Date.current, assigned_user: users(:one), description: "<p>Take out the trash</p>")
+      item.complete!(by: users(:one))
+      copy = item.spawned_copy
+
+      item.discard_untouched_copy!
+
+      assert_not Todos::Item.exists?(copy.id)
+    end
+
+    test "reopening leaves a copy that someone has changed" do
+      {
+        "renamed" => ->(copy) { copy.update!(title: "Buy groceries for the party") },
+        "rewritten" => ->(copy) { copy.update!(description: "<p>Oat milk this time</p>") },
+        "rescheduled" => ->(copy) { copy.update!(due_date: Date.current + 3.days) },
+        "handed on" => ->(copy) { copy.update!(assigned_user: users(:two)) },
+        "made to repeat differently" => ->(copy) { copy.update!(recurrence_rule: "monthly") },
+        "moved to another list" => ->(copy) { copy.move_to(todo_lists(:backlog)) }
+      }.each do |change, make|
+        tools(:my_todos).collaborators.find_or_create_by!(user: users(:two)) { |c| c.role = "collaborator" }
+        item = todo_lists(:main).items.create!(title: "Buy groceries", recurrence_rule: "weekly", due_date: Date.current,
+          assigned_user: users(:one), description: "<p>Milk, eggs, bread</p>")
+        item.complete!(by: users(:one))
+        copy = item.spawned_copy
+        make.call(copy)
+
+        item.discard_untouched_copy!
+
+        assert Todos::Item.exists?(copy.id), "a copy that was #{change} should stay"
+      end
+    end
+
+    test "completing an item says it did, once" do
+      item = todo_items(:pending_one)
+
+      assert item.complete!(by: users(:one))
+      assert_equal users(:one), item.updated_by
+      assert_predicate item.reload, :completed?
+
+      assert_not item.complete!(by: users(:two))
+      assert_equal users(:one), item.reload.updated_by
+    end
+
+    # Two requests that arrive together both read the item as open. The second
+    # one to get the lock has to look again before it makes a copy.
+    test "completing a recurring item twice at once makes one copy" do
+      item = todo_items(:pending_one)
+      item.update!(recurrence_rule: "daily", due_date: Date.current)
+      same_item_in_another_request = Todos::Item.find(item.id)
+
+      assert_difference -> { item.list.items.count }, 1 do
+        assert item.complete!(by: users(:one))
+        assert_not same_item_in_another_request.complete!(by: users(:one))
+      end
+    end
+
     test "spawn_next_instance copies the rich-text description" do
       item = todo_items(:pending_one)
       item.update!(recurrence_rule: "daily", description: "<p>Take out the trash</p>")

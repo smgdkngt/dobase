@@ -35,6 +35,20 @@ module Todos
 
     def recurring? = recurrence_rule.present?
 
+    # Ticks the item off, and makes the next one if it repeats. Answers whether
+    # this call did it. Two requests can arrive together and both find the item
+    # open, so the row is locked and read again: only one of them completes it,
+    # and a repeating item gets one copy.
+    def complete!(by:)
+      with_lock do
+        next false if completed?
+
+        update!(completed_at: Time.current, updated_by: by)
+        spawn_next_instance!
+        true
+      end
+    end
+
     # Creates the next instance of a recurring item with the schedule advanced
     # one interval, at the top of the list. Comments and attachments stay on the
     # completed record as history; the new instance starts fresh, unassigned if
@@ -43,10 +57,7 @@ module Todos
       return unless recurring?
 
       new_item = list.items.new(
-        title: title,
-        assigned_user_id: (assigned_user_id if assignee_on_tool?),
-        recurrence_rule: recurrence_rule,
-        due_date: next_due_date,
+        **next_instance_attributes,
         created_by: created_by,
         updated_by: updated_by,
         spawned_from: self
@@ -58,11 +69,13 @@ module Todos
     end
 
     # Un-completing a repeating item takes back the copy that completing it
-    # made, as long as nobody has picked that copy up: it's still open, and
-    # nothing has been said or attached on it.
+    # made, as long as nobody has picked that copy up: it's still open, nothing
+    # has been said or attached on it, and it is still what was made — not
+    # renamed, rewritten, rescheduled, handed on or moved to another list.
     def discard_untouched_copy!
       copy = spawned_copy
       return if copy.nil? || copy.completed? || copy.comments.any? || copy.attachments.any?
+      return unless as_spawned?(copy)
 
       copy.destroy!
     end
@@ -101,6 +114,22 @@ module Todos
     end
 
     private
+      # What the next instance of a repeating item starts out with
+      def next_instance_attributes
+        {
+          title: title,
+          assigned_user_id: (assigned_user_id if assignee_on_tool?),
+          recurrence_rule: recurrence_rule,
+          due_date: next_due_date
+        }
+      end
+
+      def as_spawned?(copy)
+        copy.todo_list_id == todo_list_id &&
+          copy.slice(*next_instance_attributes.keys).symbolize_keys == next_instance_attributes &&
+          copy.description.body&.to_html == description.body&.to_html
+      end
+
       def assignee_on_tool?
         assigned_user.present? && list.tool.accessible_by?(assigned_user)
       end

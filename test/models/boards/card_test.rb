@@ -72,6 +72,28 @@ module Boards
       assert card.valid?
     end
 
+    test "move_to counts open cards, with the archived ones after them" do
+      column = columns(:todo)
+      cards(:first_task).update!(archived_at: Time.current)
+      fourth = column.cards.create!(title: "Fourth task", position: 2)
+
+      cards(:third_task).move_to(column, position: 1)
+
+      assert_equal [ cards(:second_task), cards(:third_task), fourth ], column.cards.active.reload.to_a
+      assert_equal [ 0, 1, 2 ], column.cards.active.map(&:position)
+      assert_equal 3, cards(:first_task).reload.position
+    end
+
+    test "move_to without a position puts the card under the last open one" do
+      column = columns(:todo)
+      cards(:second_task).update!(archived_at: Time.current)
+
+      cards(:third_task).move_to(column)
+
+      assert_equal [ cards(:first_task), cards(:third_task) ], column.cards.active.reload.to_a
+      assert_equal [ 0, 1 ], column.cards.active.map(&:position)
+    end
+
     test "assigned_to scopes to cards owned by the given user" do
       card = cards(:first_task)
       card.update!(assigned_user: users(:one))

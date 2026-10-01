@@ -11,13 +11,9 @@ module Tools
 
         # POST /tools/:tool_id/todo/items/:item_id/completion
         # Completing an item twice changes nothing, so a retry can't spawn a
-        # second copy of a recurring item.
+        # second copy of a recurring item, or notify its assignee again.
         def create
-          unless @item.completed?
-            @item.update!(completed_at: Time.current, updated_by: current_user)
-            @item.spawn_next_instance! if @item.recurring?
-            notify_completion
-          end
+          notify_completion if @item.complete!(by: current_user)
           respond_with_item
         end
 

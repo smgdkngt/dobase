@@ -69,7 +69,7 @@ module Tools
             # who edited it gets it back in the response too: their form has to
             # give way to the rewritten message even if the broadcast doesn't
             # reach them.
-            format.any { render_message_errors(extra: turbo_stream.replace(@message, partial: "tools/chats/message", locals: { message: @message })) }
+            format.any { render_message_errors(extra: turbo_stream.replace(@message, partial: "tools/chats/message", locals: { message: @message, is_continuation: @message.continuation? })) }
             format.json { render :show }
           else
             format.any { render_message_errors(status: :unprocessable_entity) }

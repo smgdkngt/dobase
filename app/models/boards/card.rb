@@ -25,12 +25,16 @@ module Boards
 
     validates :color, inclusion: { in: COLORS }, allow_blank: true
 
-    # Places the card at `position` (0-based, clamped) in `target`, renumbering
-    # the cards around it. Without a position the card goes to the bottom.
+    # Places the card at `position` (0-based, clamped) in `target`, counting the
+    # column the way it is shown: only its open cards, with the archived ones
+    # kept after them. Renumbers the cards around it. Without a position the
+    # card goes to the bottom, under the last open card.
     def move_to(target, position: nil, by: nil)
       transaction do
-        siblings = target.cards.where.not(id: id).to_a
-        index = position.nil? ? siblings.size : position.to_i.clamp(0, siblings.size)
+        others = target.cards.where.not(id: id)
+        open_cards = others.active.to_a
+        siblings = open_cards + others.archived.to_a
+        index = position.nil? ? open_cards.size : position.to_i.clamp(0, open_cards.size)
 
         siblings.each_with_index do |card, sibling_index|
           Card.where(id: card.id).update_all(position: sibling_index < index ? sibling_index : sibling_index + 1)

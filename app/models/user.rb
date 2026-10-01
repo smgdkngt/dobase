@@ -43,7 +43,8 @@ class User < ApplicationRecord
       Array(urls).map { |url| %("url":"#{url}") }
     return if patterns.empty?
 
-    matches = patterns.map { "noticed_events.params LIKE ?" }.join(" OR ")
+    # SQLite only reads sanitize_sql_like's backslashes as escapes when told to
+    matches = patterns.map { "noticed_events.params LIKE ? ESCAPE '\\'" }.join(" OR ")
     values = patterns.map { |pattern| "%#{self.class.sanitize_sql_like(pattern)}%" }
     scope = notifications.unread.joins(:event).where(matches, *values)
     scope = scope.where(noticed_events: { type: types }) if types.any?
