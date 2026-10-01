@@ -532,6 +532,50 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     assert_requested stub
   end
 
+  test "update_event sends its change again when the event changed on the server since the last sync" do
+    event = calendars_events(:meeting)
+    event.update!(summary: "Team Meeting, moved to room B")
+    stale = stub_request(:put, event.remote_href).with(headers: { "If-Match" => '"etag-meeting-123"' }).to_return(status: 412)
+    stub_request(:head, event.remote_href).to_return(status: 200, headers: { "ETag" => 'W/"changed-on-server"' })
+    current = stub_request(:put, event.remote_href)
+      .with(headers: { "If-Match" => 'W/"changed-on-server"' }, body: /moved to room B/)
+      .to_return(status: 204, headers: { "ETag" => '"after-update"' })
+
+    @service.update_event(event)
+
+    assert_requested stale
+    assert_requested current
+    assert_equal "after-update", event.reload.etag
+  end
+
+  test "update_event doesn't bring back an event that was deleted on the server" do
+    event = calendars_events(:meeting)
+    put = stub_request(:put, event.remote_href).to_return(status: 412)
+    stub_request(:head, event.remote_href).to_return(status: 404)
+
+    error = assert_raises(CaldavSyncService::SyncError) { @service.update_event(event) }
+    assert_match "404", error.message
+    assert_requested put, times: 1
+  end
+
+  test "delete_event is done when the event turns out to be gone from the server" do
+    event = calendars_events(:meeting)
+    stub_request(:delete, event.remote_href).to_return(status: 412)
+    stub_request(:head, event.remote_href).to_return(status: 404)
+
+    assert_nothing_raised { @service.delete_event(event) }
+  end
+
+  test "delete_event gives up when the server turns the second try down too" do
+    event = calendars_events(:meeting)
+    deletion = stub_request(:delete, event.remote_href).to_return(status: 412)
+    stub_request(:head, event.remote_href).to_return(status: 200, headers: { "ETag" => '"changed-again"' })
+
+    error = assert_raises(CaldavSyncService::SyncError) { @service.delete_event(event) }
+    assert_match "412", error.message
+    assert_requested deletion, times: 2
+  end
+
   test "update_event sends the organizer and attendees" do
     event = calendars_events(:meeting)
     event.update!(organizer_email: "rachel@example.com", organizer_name: "Rachel Kim", attendees: [

@@ -150,10 +150,12 @@ class CaldavSyncService
     url = event.remote_href.presence || "#{event.calendar.remote_url}#{event.uid}.ics"
     ics_data = Caldav::EventIcalendar.new(event).to_ical
 
-    response = http_client.put(url) do |req|
-      req.headers["Content-Type"] = "text/calendar; charset=utf-8"
-      req.headers["If-Match"] = %("#{event.etag}") if event.etag.present?
-      req.body = ics_data
+    response = with_current_etag(url, event.etag) do |if_match|
+      http_client.put(url) do |req|
+        req.headers["Content-Type"] = "text/calendar; charset=utf-8"
+        req.headers["If-Match"] = if_match if if_match
+        req.body = ics_data
+      end
     end
 
     check_change!(response, "Failed to update event")
@@ -228,12 +230,25 @@ class CaldavSyncService
   end
 
   def delete_resource(href, etag)
-    response = http_client.delete(href) do |req|
-      req.headers["If-Match"] = %("#{etag}") if etag.present?
+    response = with_current_etag(href, etag) do |if_match|
+      http_client.delete(href) { |req| req.headers["If-Match"] = if_match if if_match }
     end
 
     # 404: the event is gone already
     check_change!(response, "Failed to delete event") unless response.status == 404
+  end
+
+  # Sends a change for the version of an event that was synced last. A 412 means the event changed
+  # on the server since. What someone just did here is the newer of the two, and dropping it would
+  # undo it at the next sync (a deleted event comes back), so it's sent once more for the version
+  # the server has now. An event that is gone from the server isn't brought back: the answer is then
+  # what the server said when asked for its version.
+  def with_current_etag(url, etag)
+    response = yield(etag.present? ? %("#{etag}") : nil)
+    return response unless response.status == 412
+
+    current = http_client.head(url)
+    current.success? ? yield(current.headers["etag"].presence) : current
   end
 
   # A server error may pass, so it counts as a connection error and the change is sent again later
