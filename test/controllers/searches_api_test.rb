@@ -37,4 +37,12 @@ class SearchesControllerTest < ActionDispatch::IntegrationTest
     assert_select "turbo-frame#command_palette_search a.command-palette-item", text: /First task/
     assert_nil users(:one).reload.last_visited_path&.then { |path| path if path.start_with?("/search") }
   end
+
+  test "the search page opened on its own goes home: it is a frame's worth of results" do
+    sign_in_as users(:one)
+
+    get search_path(q: "First task")
+
+    assert_redirected_to root_path
+  end
 end

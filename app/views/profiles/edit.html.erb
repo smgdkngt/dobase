@@ -1,4 +1,5 @@
 <% unless turbo_frame_request? %>
+  <% content_for :title, "Profile - #{app_name}" %>
   <div class="p-6"><div class="max-w-3xl mx-auto card overflow-hidden">
     <div class="card-header"><h2 class="text-lg font-semibold">Profile</h2></div>
 <% end %>

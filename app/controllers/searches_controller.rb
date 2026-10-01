@@ -9,7 +9,8 @@ class SearchesController < ApplicationController
     @search = WorkspaceSearch.new(Current.user, params[:q])
 
     respond_to do |format|
-      format.html { render layout: false }
+      # The page is a frame's worth of results; opened on its own it has nothing to sit in
+      format.html { turbo_frame_request? ? render(layout: false) : redirect_to(root_path) }
       format.json
     end
   end

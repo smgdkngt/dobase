@@ -13,6 +13,14 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "the profile page has a title, the profile dialog needs none" do
+    get edit_profile_path
+    assert_select "title", "Profile - Dobase"
+
+    get edit_profile_path, headers: { "Turbo-Frame" => "profile-form" }
+    assert_response :success
+  end
+
   test "update profile details without password" do
     patch profile_path, params: { user: { first_name: "Updated", last_name: "Name", email_address: @user.email_address, password: "", password_confirmation: "" } }
     assert_redirected_to root_path
