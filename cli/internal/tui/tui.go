@@ -49,6 +49,8 @@ func Run(cfg *config.Config, userAgent string) error {
 }
 
 func loop(screen tcell.Screen, app *App) {
+	// The terminal marks where pasted text starts and ends, so it isn't taken for typing.
+	screen.EnablePaste()
 	events := make(chan tcell.Event, 16)
 	quit := make(chan struct{})
 	defer close(quit)
@@ -67,8 +69,14 @@ func loop(screen tcell.Screen, app *App) {
 		select {
 		case event := <-events:
 			switch event := event.(type) {
+			case *tcell.EventPaste:
+				app.pasting, app.pastedBreak = event.Start(), false
 			case *tcell.EventKey:
-				if key, ok := keyFrom(event); ok {
+				if app.pasting {
+					if char, ok := pastedChar(event); ok {
+						app.Paste(char)
+					}
+				} else if key, ok := keyFrom(event); ok {
 					app.Key(key)
 				}
 			case *tcell.EventResize:
@@ -119,6 +127,20 @@ func styleOf(c *cell) tcell.Style {
 		style = style.Underline(true)
 	}
 	return style
+}
+
+// pastedChar is the character a key event stands for in pasted text; other
+// keys in it (escape, arrows, ctrl-c) are nothing.
+func pastedChar(event *tcell.EventKey) (rune, bool) {
+	switch event.Key() {
+	case tcell.KeyRune:
+		return event.Rune(), true
+	case tcell.KeyEnter, tcell.KeyLF:
+		return '\n', true
+	case tcell.KeyTab:
+		return '\t', true
+	}
+	return 0, false
 }
 
 // keyFrom turns a tcell key event into a Key.

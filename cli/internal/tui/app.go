@@ -117,6 +117,9 @@ type App struct {
 	lastChange time.Time
 	undo       *undo
 	background *background
+	// pasting is on between the start and the end of pasted text; pastedBreak
+	// says whether the last character of it was a line break.
+	pasting, pastedBreak bool
 }
 
 func NewApp(server api.API, base string, browser func(string) error) *App {
@@ -230,6 +233,41 @@ func (a *App) Key(key Key) {
 		a.globalKey(key, fx)
 	}
 	a.apply(fx)
+}
+
+// input is the text field being written in, if there is one.
+func (a *App) input() *TextInput {
+	switch popup := a.popup.(type) {
+	case *InputPopup:
+		return &popup.input
+	case *SearchPopup:
+		return &popup.input
+	case nil:
+		if chat, ok := a.screen.(*Chat); ok && chat.writing {
+			return &chat.input
+		}
+	}
+	return nil
+}
+
+// Paste takes in a character of pasted text. It goes into the field being
+// written in, with a space for a tab or a run of line breaks, so a pasted
+// line is never sent by itself. Without a field it goes nowhere: pasted text
+// isn't keys to run.
+func (a *App) Paste(char rune) {
+	input := a.input()
+	if input == nil {
+		return
+	}
+	lineBreak := char == '\n' || char == '\r'
+	if lineBreak && a.pastedBreak {
+		return
+	}
+	a.pastedBreak = lineBreak
+	if lineBreak || char == '\t' {
+		char = ' '
+	}
+	input.Key(Key{Code: KeyRune, Rune: char})
 }
 
 func (a *App) globalKey(key Key, fx *Fx) {
