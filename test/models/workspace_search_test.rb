@@ -37,6 +37,38 @@ class WorkspaceSearchTest < ActiveSupport::TestCase
     assert_empty search(users(:one), "%%")
   end
 
+  test "an underscore is looked for, not treated as any character" do
+    tool = tools(:my_files)
+    Files::Item.create!(tool: tool, name: "IMG_1234.jpg")
+    Files::Item.create!(tool: tool, name: "IMGX1234.jpg")
+    Files::Folder.create!(tool: tool, name: "raw_scans")
+
+    assert_equal [ "IMG_1234.jpg" ], search(users(:one), "IMG_1234").map(&:title)
+    assert_equal [ "raw_scans" ], search(users(:one), "raw_scans").map(&:title)
+  end
+
+  test "a percent sign in the middle of a search finds itself" do
+    column = boards(:shared).columns.create!(name: "Doing", position: 0)
+    column.cards.create!(title: "Budget is 50% spent", position: 0)
+    column.cards.create!(title: "Budget is 500 spent", position: 1)
+    todo_lists(:main).items.create!(title: "Ask for 50% off", position: 9)
+
+    assert_equal [ "Budget is 50% spent", "Ask for 50% off" ], search(users(:one), "50%").map(&:title)
+  end
+
+  test "an underscore finds a chat message and a document that have one" do
+    docs_documents(:meeting_notes).update!(content: "<p>Set APP_HOST before deploying.</p>")
+    chat_type = ToolType.find_by(slug: "chat") || ToolType.create!(slug: "chat", name: "Chat", icon: "message-circle")
+    chat = Tool.create!(name: "Team Chat", tool_type: chat_type, owner: users(:one)).chat
+    chat.messages.create!(user: users(:one), body: "<p>APP_HOST is wrong on staging</p>")
+    chat.messages.create!(user: users(:one), body: "<p>APPXHOST is something else</p>")
+
+    hits = search(users(:one), "APP_HOST")
+
+    assert_equal %i[document message], hits.map(&:kind)
+    assert_includes hits.last.excerpt, "APP_HOST is wrong"
+  end
+
   test "one letter isn't enough to search on" do
     assert_not WorkspaceSearch.new(users(:one), "a").searchable?
     assert_empty search(users(:one), "a")

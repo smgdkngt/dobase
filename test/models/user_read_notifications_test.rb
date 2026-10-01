@@ -28,6 +28,15 @@ class UserReadNotificationsTest < ActiveSupport::TestCase
     assert_equal [ "/tools/#{@tool.id}/board?card=70" ], @reader.notifications.unread.map(&:url)
   end
 
+  test "an underscore in the page a mention points at is matched as written" do
+    MentionNotifier.with(mentioner: @commenter, tool: @tool, context: "a chat message", url: "/tools/#{@tool.id}/chat#message_7").deliver(@reader)
+    MentionNotifier.with(mentioner: @commenter, tool: @tool, context: "a chat message", url: "/tools/#{@tool.id}/chat#messageX7").deliver(@reader)
+
+    @reader.read_notifications_about!(urls: [ "/tools/#{@tool.id}/chat#message_7" ])
+
+    assert_equal [ "/tools/#{@tool.id}/chat#messageX7" ], @reader.notifications.unread.map(&:url)
+  end
+
   test "the bells on every open page are told the new count" do
     notify_comment(cards(:first_task))
 
