@@ -154,6 +154,45 @@ class ChatTest < ApplicationSystemTestCase
       "expected the older messages to go in above the reader, not to drop them at the top of the chat"
   end
 
+  test "what arrives leaves a reader who scrolled up where they are, and their own message brings them back" do
+    colleague = users(:two)
+    @tool.collaborators.create!(user: colleague, role: "collaborator")
+    messages = 30.times.map do |index|
+      @tool.chat.messages.create!(user: colleague, body: "<p>Message #{index}</p><p>with</p><p>more lines</p>")
+    end
+
+    visit tool_chat_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "chat"
+    assert_text "Message 29"
+    assert_operator chat_scroll_top, :>, 200, "the chat should be long enough to scroll"
+
+    # At the newest message, the reader follows what arrives
+    @tool.chat.messages.create!(user: colleague, body: "<p>Lunch?</p>")
+    assert_text "Lunch?"
+    assert_at_newest_message
+
+    scroll_chat_to 100
+    messages.last.reactions.create!(user: colleague, emoji: "🎉")
+    assert_selector ".chat-reaction", text: "🎉"
+    messages.last.update!(body: "<p>Rewritten</p>")
+    assert_text "Rewritten"
+    messages.first.destroy!
+    assert_no_text "Message 0"
+    ChatChannel.typing(@tool.chat, colleague)
+    assert_text "#{colleague.name} is typing..."
+    @tool.chat.messages.create!(user: colleague, body: "<p>Pizza</p>")
+    assert_text "Pizza"
+    # Scrolling to the newest message happened a moment after each of those
+    sleep 0.3
+    assert_operator chat_distance_from_newest, :>, 200, "the reader was taken to the newest message"
+
+    fill_in_editor "Fine by me"
+    click_send
+    assert_text "Fine by me"
+    assert_at_newest_message
+  end
+
   test "an author rewrites their own message from the page, and it says it was edited" do
     @tool.chat.messages.create!(user: @user, body: "<p>Tpyo</p>")
 
@@ -193,6 +232,29 @@ class ChatTest < ApplicationSystemTestCase
   end
 
   private
+
+  def chat_scroll_top
+    evaluate_script("document.querySelector(\"[data-chat-target='messages']\").scrollTop")
+  end
+
+  def chat_distance_from_newest
+    evaluate_script(<<~JS)
+      (() => {
+        const list = document.querySelector("[data-chat-target='messages']")
+        return list.scrollHeight - list.scrollTop - list.clientHeight
+      })()
+    JS
+  end
+
+  def assert_at_newest_message
+    page.document.synchronize do
+      raise Capybara::ExpectationNotMet, "the chat isn't at its newest message" unless chat_distance_from_newest < 5
+    end
+  end
+
+  def scroll_chat_to(top)
+    execute_script("document.querySelector(\"[data-chat-target='messages']\").scrollTop = #{top}")
+  end
 
   # Submits a genuinely blank body straight to the server (bypassing the
   # client-side isEmpty guard, which is exercised separately by "an empty

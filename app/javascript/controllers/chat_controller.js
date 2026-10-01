@@ -125,6 +125,7 @@ export default class extends Controller {
     if (!this.hasTypingIndicatorTarget) return
 
     const names = Array.from(this.typingUsers.values())
+    const follow = this.atNewestMessage
     this.typingIndicatorTarget.classList.toggle("hidden", names.length === 0)
 
     if (names.length > 0) {
@@ -132,7 +133,7 @@ export default class extends Controller {
         : names.length === 2 ? `${names[0]} and ${names[1]} are typing...`
         : `${names.length} people are typing...`
       this.typingIndicatorTarget.querySelector("[data-typing-text]").textContent = text
-      this.scrollToBottom()
+      if (follow) this.scrollToBottom()
     }
   }
 
@@ -179,8 +180,11 @@ export default class extends Controller {
         return
       }
 
+      // Anything else (a message, an edit, a reaction, a removal) keeps a reader who is at
+      // the newest message there, and leaves one who scrolled up to read where they are.
+      const follow = this.atNewestMessage
       fallback(streamElement)
-      setTimeout(() => this.scrollToBottom(), 50)
+      if (follow) setTimeout(() => this.scrollToBottom(), 50)
     }
   }
 
@@ -197,6 +201,13 @@ export default class extends Controller {
   }
 
   // Scrolling & Read receipts
+  get atNewestMessage() {
+    if (!this.hasMessagesTarget) return false
+
+    const { scrollHeight, scrollTop, clientHeight } = this.messagesTarget
+    return scrollHeight - scrollTop - clientHeight < 80
+  }
+
   scrollToBottom() {
     if (this.hasMessagesTarget) {
       this.messagesTarget.scrollTop = this.messagesTarget.scrollHeight
@@ -327,6 +338,8 @@ export default class extends Controller {
         if (controller) controller.clear()
         this.clearFiles()
         this.cancelReply()
+        // Their own message always shows, wherever they were reading
+        this.scrollToBottom()
       }
     }, { once: true })
   }
