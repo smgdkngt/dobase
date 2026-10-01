@@ -19,6 +19,8 @@ const GAP = 6
 // A split never leaves a tile narrower or lower than this
 const MIN_TILE = 220
 const GLIDE = "transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1)"
+// What the plus and minus keys give a tile, or take from it
+const RESIZE_STEP = 0.05
 
 export default class extends Controller {
   static targets = ["tiles", "tileTemplate", "empty", "desks", "title", "menu"]
@@ -443,6 +445,17 @@ export default class extends Controller {
     this.grabFocus()
   }
 
+  // The tile you are on gets more of the split it is in, or less
+  resize(step) {
+    const split = parentOf(this.desk.tree, this.desk.focus)
+    if (!split) return
+
+    const first = split.first.tile === this.desk.focus
+    split.ratio = Math.min(0.85, Math.max(0.15, split.ratio + (first ? step : -step)))
+    this.save()
+    this.arrange({ glide: true })
+  }
+
   // The tile alone, and back
   toggleAlone() {
     if (!this.desk.focus) return
@@ -479,6 +492,12 @@ export default class extends Controller {
         break
       case "zoom":
         this.toggleAlone()
+        break
+      case "grow":
+        this.resize(RESIZE_STEP)
+        break
+      case "shrink":
+        this.resize(-RESIZE_STEP)
         break
       case "menu":
         this.toggleMenu()

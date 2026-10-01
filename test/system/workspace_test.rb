@@ -70,6 +70,20 @@ class WorkspaceTest < ApplicationSystemTestCase
     within_tile(0) { assert_selector "h1", text: @board.name }
   end
 
+  test "plus and minus give the tile more of the room, or less" do
+    launch @board
+    launch @files
+    board, files = tiles
+    assert_in_delta board[:width], files[:width], 2
+
+    press "="
+    assert_operator tiles[1][:width], :>, files[:width]
+
+    press "-"
+    press "-"
+    assert_operator tiles[1][:width], :<, files[:width]
+  end
+
   test "a tile trades places with the one beside it" do
     launch @board
     launch @files

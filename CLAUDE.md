@@ -335,7 +335,7 @@ A tool's button in the sidebar, Alt+click on a tool or on a link to one, or Alt+
 - A desktop is a binary tree of splits with tiles as leaves. A new tile halves the one you are on: side by side when it is wide, stacked when it is tall. Tiles are flat children of one element, placed with `left/top/width/height`: **a frame that moves in the DOM reloads**, so nothing ever re-parents. Rearranging animates with a transform (the pages lay out once, not per frame).
 - Nine desktops; tiles on another desktop stay loaded and hidden, and a desktop's frames are only created when you first go there.
 - Anything on the workspace page that visits a tool (the command palette, the menu, a notification, the redirect after making a tool) is caught in `turbo:before-visit` and opened as a tile. That is why leaving the workspace is a form without Turbo.
-- Keys (`services/workspace_keys.js`) go with Alt, on a Mac with Control+Option: arrows or HJKL go to a tile, with Shift they move it, 1–9 is a desktop, F the tile alone, W closes, M the menu. They are caught in the capture phase on the workspace page and inside every tile, so they work wherever the keyboard is.
+- Keys (`services/workspace_keys.js`) go with Alt, on a Mac with Control+Option: arrows or HJKL go to a tile, with Shift they move it, 1–9 is a desktop, F the tile alone, plus and minus resize it, W closes, M the menu. They are caught in the capture phase on the workspace page and inside every tile, so they work wherever the keyboard is.
 - State (the trees, focus, each tile's address) is in `localStorage` per person; that this browser works in the workspace is a `workspace` cookie, which sends `/` there.
 
 ### Component System

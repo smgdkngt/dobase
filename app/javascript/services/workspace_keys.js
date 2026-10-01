@@ -11,6 +11,8 @@ const COMMANDS = {
   ArrowDown: "down", KeyJ: "down",
   KeyW: "close", KeyQ: "close",
   KeyF: "zoom",
+  Equal: "grow",
+  Minus: "shrink",
   KeyM: "menu",
   Space: "launcher"
 }
