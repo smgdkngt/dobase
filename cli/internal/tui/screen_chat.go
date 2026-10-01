@@ -212,6 +212,7 @@ func (s *Chat) Key(key Key, view *View, fx *Fx) bool {
 			tool, id := s.tool.Get("id").Int(), message.Get("id").Int()
 			author := command.Poster(message, "someone")
 			path := fmt.Sprintf("/tools/%d/chat/messages/%d/reactions", tool, id)
+			already := reacted(message, "👍", view.me)
 			fx.job("Reacting", func(app *App) error {
 				if _, err := app.post(path, api.Object("emoji", "👍")); err != nil {
 					return err
@@ -220,6 +221,10 @@ func (s *Chat) Key(key Key, view *View, fx *Fx) bool {
 					return err
 				}
 				app.say("👍 for "+author, ToneSuccess)
+				// A 👍 you gave before stays yours: undoing this one would take that away.
+				if already {
+					return nil
+				}
 				app.offerUndo("the 👍", func(app *App) error {
 					if _, err := app.delete(path + "/" + url.QueryEscape("👍")); err != nil {
 						return err
@@ -233,6 +238,21 @@ func (s *Chat) Key(key Key, view *View, fx *Fx) bool {
 		return false
 	}
 	return true
+}
+
+// reacted says whether user already put emoji on message.
+func reacted(message api.Value, emoji string, user api.Value) bool {
+	for _, reaction := range message.Get("reactions").Items() {
+		if reaction.Get("emoji").S() != emoji {
+			continue
+		}
+		for _, other := range reaction.Get("users").Items() {
+			if other.Get("id").Equal(user.Get("id")) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (s *Chat) Draw(b *Buffer, area Rect, view *View) {

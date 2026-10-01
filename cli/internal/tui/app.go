@@ -116,7 +116,10 @@ type App struct {
 	// lastChange is when a job last changed something, so an older background refresh can't undo it on screen.
 	lastChange time.Time
 	undo       *undo
-	background *background
+	// changed and offered say whether the running job changed something on the
+	// server, and whether it offered an undo for that.
+	changed, offered bool
+	background       *background
 	// pasting is on between the start and the end of pasted text; pastedBreak
 	// says whether the last character of it was a line break.
 	pasting, pastedBreak bool
@@ -142,6 +145,7 @@ func (a *App) refreshInBackground(client api.API) {
 // offerUndo lets `u` take back what was just done, for a minute.
 func (a *App) offerUndo(label string, job Job) {
 	a.undo = &undo{label: label, job: job, at: time.Now()}
+	a.offered = true
 }
 
 // -- API ------------------------------------------------------------------------
@@ -151,15 +155,22 @@ func (a *App) get(path string, params ...api.Param) (api.Value, error) {
 }
 
 func (a *App) post(path string, body api.Value) (api.Value, error) {
-	return a.api.Request(api.Post, path, nil, body)
+	return a.change(api.Post, path, body)
 }
 
 func (a *App) patch(path string, body api.Value) (api.Value, error) {
-	return a.api.Request(api.Patch, path, nil, body)
+	return a.change(api.Patch, path, body)
 }
 
 func (a *App) delete(path string) (api.Value, error) {
-	return a.api.Request(api.Delete, path, nil, nil)
+	return a.change(api.Delete, path, nil)
+}
+
+// change sends a request that changes something, and notes that it did.
+func (a *App) change(method api.Method, path string, body any) (api.Value, error) {
+	value, err := a.api.Request(method, path, nil, body)
+	a.changed = a.changed || err == nil
+	return value, err
 }
 
 // Start loads who's signed in, their tools and the home screen.
@@ -469,7 +480,13 @@ func (a *App) runJob() {
 	}
 	next := a.jobs[0]
 	a.jobs = a.jobs[1:]
+	a.changed, a.offered = false, false
 	err := next.job(a)
+	// `u` takes back the last change only: after one that can't be undone,
+	// the offer for an earlier one is over.
+	if a.changed && !a.offered {
+		a.undo = nil
+	}
 	a.busy = ""
 	a.lastChange = time.Now()
 	if err != nil {
