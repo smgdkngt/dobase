@@ -104,7 +104,11 @@ export default class extends Controller {
     const desk = this.state.desks[this.deskNumberOf(id)]
     if (desk) {
       const next = this.remove(desk, id)
-      if (desk.focus === id) desk.focus = next || null
+      if (desk.focus === id) {
+        desk.focus = next || null
+        // The tile that had the room to itself is gone: the others share it again
+        desk.alone = false
+      }
     }
     delete this.state.tiles[id]
     this.elements.get(id)?.remove()
@@ -429,6 +433,7 @@ export default class extends Controller {
     if (!id || number === this.state.desk) return
 
     this.desk.focus = this.remove(this.desk, id) || null
+    this.desk.alone = false
     this.state.desk = number
     this.insert(this.desk, id)
     this.desk.focus = id
@@ -603,6 +608,8 @@ export default class extends Controller {
       }
       const desks = {}
       for (const [ number, desk ] of Object.entries(kept.desks)) {
+        if (!/^[1-9]$/.test(number)) continue
+
         const tree = pruned(desk?.tree, tiles)
         const held = leaves(tree)
         desks[number] = { tree, focus: held.includes(desk.focus) ? desk.focus : held[0] || null, alone: Boolean(desk.alone) }
@@ -610,7 +617,9 @@ export default class extends Controller {
       const placed = Object.values(desks).flatMap((desk) => leaves(desk.tree))
       for (const id of Object.keys(tiles)) if (!placed.includes(id)) delete tiles[id]
 
-      return { desk: Number(kept.desk) || 1, next: Number(kept.next) || Object.keys(tiles).length + 1, desks, tiles }
+      const desk = Math.min(9, Math.max(1, Math.floor(Number(kept.desk)) || 1))
+      const next = Math.max(Number(kept.next) || 1, ...Object.keys(tiles).map((id) => Number(id.slice(1)) + 1 || 1))
+      return { desk, next, desks, tiles }
     } catch {
       return fresh
     }
