@@ -178,7 +178,7 @@ func (s *Files) Draw(b *Buffer, area Rect, view *View) {
 		}
 		items[i] = Item(LineOf(
 			Raw(" "+fileIcon(name)+" "),
-			Raw(fmt.Sprintf("%-*s", width, truncate(name, width))),
+			Raw(padded(truncate(name, width), width)),
 			Styled(fmt.Sprintf("  %8s  %s", command.Bytes(entry.value.Get("file_size")), command.Day(entry.value.Get("created_at"))), dim()),
 			Styled(shared, dim())))
 	}

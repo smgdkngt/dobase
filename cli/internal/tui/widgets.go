@@ -10,6 +10,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/rivo/uniseg"
 	"github.com/smgdkngt/dobase/cli/internal/api"
 	"github.com/smgdkngt/dobase/cli/internal/command"
 )
@@ -148,8 +149,12 @@ func (t *TextInput) Key(key Key) bool {
 
 // Render draws the text in area (one line), scrolled so the cursor shows, and places the cursor.
 func (t *TextInput) Render(b *Buffer, area Rect, placeholder string, focused bool) {
-	width := max(area.W, 1)
-	start := sat(t.cursor + 1 - width)
+	// The text starts as far left as leaves the cursor a cell in the field.
+	start, room := t.cursor, sat(area.W-1)
+	for start > 0 && textWidth(string(t.chars[start-1])) <= room {
+		start--
+		room -= textWidth(string(t.chars[start]))
+	}
 	if len(t.chars) == 0 && placeholder != "" {
 		b.RenderLine(StyledLine(placeholder, dim()), area)
 	} else {
@@ -265,15 +270,34 @@ func wrap(text string, width int) []string {
 				line = word
 			}
 			for textWidth(line) > width {
-				runes := []rune(line)
-				cut := min(width, len(runes))
-				lines = append(lines, string(runes[:cut]))
-				line = string(runes[cut:])
+				var head string
+				head, line = cut(line, width)
+				lines = append(lines, head)
 			}
 		}
 		lines = append(lines, line)
 	}
 	return lines
+}
+
+// cut splits text after the characters that fit in width cells; the first one always goes along.
+func cut(text string, width int) (string, string) {
+	rest, used, state := text, 0, -1
+	for rest != "" {
+		cluster, after, _, next := uniseg.FirstGraphemeClusterInString(rest, state)
+		cells := textWidth(cluster)
+		if used > 0 && used+cells > width {
+			break
+		}
+		used += cells
+		rest, state = after, next
+	}
+	return text[:len(text)-len(rest)], rest
+}
+
+// padded is text with spaces after it up to width cells.
+func padded(text string, width int) string {
+	return text + strings.Repeat(" ", sat(width-textWidth(text)))
 }
 
 // truncate cuts text to width columns with an ellipsis.

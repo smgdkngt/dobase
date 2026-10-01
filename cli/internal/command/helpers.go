@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 	"unicode"
-	"unicode/utf8"
 
+	"github.com/rivo/uniseg"
 	"github.com/smgdkngt/dobase/cli/internal/api"
 )
 
@@ -87,10 +87,11 @@ func EscapeHTML(text string) string {
 	return strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", "\"", "&quot;", "'", "&#39;").Replace(text)
 }
 
-// Width is the length of text in characters.
-func Width(text string) int { return utf8.RuneCountInString(text) }
+// Width is how many columns text takes in a terminal: two for a CJK character
+// or an emoji, none for a combining accent.
+func Width(text string) int { return uniseg.StringWidth(text) }
 
-// Ljust pads text with spaces to width characters.
+// Ljust pads text with spaces to width columns.
 func Ljust(text string, width int) string {
 	if length := Width(text); length < width {
 		return text + strings.Repeat(" ", width-length)

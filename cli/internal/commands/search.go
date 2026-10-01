@@ -2,6 +2,7 @@ package commands
 
 import (
 	"strings"
+	"unicode/utf8"
 
 	"github.com/smgdkngt/dobase/cli/internal/api"
 	. "github.com/smgdkngt/dobase/cli/internal/command"
@@ -15,7 +16,7 @@ func search() []*Definition {
 
 func runSearch(ctx *Ctx, args *Args) error {
 	query := strings.TrimSpace(strings.Join(args.Rest(0), " "))
-	if Width(query) < 2 {
+	if utf8.RuneCountInString(query) < 2 {
 		return api.Usagef("Give at least two characters to search for.")
 	}
 

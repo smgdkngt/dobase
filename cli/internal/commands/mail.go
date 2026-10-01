@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/smgdkngt/dobase/cli/internal/api"
 	. "github.com/smgdkngt/dobase/cli/internal/command"
@@ -656,7 +657,7 @@ func syncMail(ctx *Ctx, args *Args) error {
 
 func mailContacts(ctx *Ctx, args *Args) error {
 	query := strings.TrimSpace(args.At(1))
-	if Width(query) < 2 {
+	if utf8.RuneCountInString(query) < 2 {
 		return api.Usagef("QUERY needs at least 2 characters.")
 	}
 
