@@ -85,7 +85,9 @@ module Mails
           ImapSyncJob.perform_later(id, "move_to_folder_by_message_id", nil, TRASH, "INBOX", message.message_id)
           message.move_to_folder!("INBOX", on_server: false)
         else
-          message.update!(trashed: false)
+          # Its UID went with it on the server: with that UID the folder's next sync would take
+          # it for mail gone from the folder, and remove it. A server that still has it gives it its UID again.
+          message.update!(trashed: false, uid: nil)
         end
       end
     end

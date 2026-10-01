@@ -707,6 +707,36 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_equal [ "Projects", 4 ], [ moved.reload.folder, moved.uid ]
   end
 
+  # A server without a trash deletes trashed mail, and it's kept here for 30 days
+
+  test "mail restored after the server deleted it stays, in the inbox and through the next sync" do
+    incoming_message.send(:save_email, fetch_data(7, mail_with_id("restored-7").to_s), "INBOX")
+    restored = @account.messages.find_by!(message_id: "restored-7@example.com")
+    server = FakeImapServer.new
+
+    connect_to_imap(server) { perform_enqueued_jobs(only: ImapSyncJob) { @account.trash([ restored ]) } }
+    assert_equal [ [ 7 ] ], server.expunged
+    @account.restore([ restored.reload ])
+
+    @service.send(:fetch_recent_emails, FakeImap.new(uids: [ 3 ], messages: [ fetch_data(3, mail_with_id("other-3").to_s) ]), "INBOX", 50)
+
+    assert Mails::Message.exists?(restored.id), "the restored mail is gone"
+    assert_includes @account.messages.inbox, restored
+    assert_nil restored.reload.uid
+  end
+
+  test "mail restored before the server deleted it gets its UID again from the next sync" do
+    incoming_message.send(:save_email, fetch_data(7, mail_with_id("restored-7").to_s), "INBOX")
+    restored = @account.messages.find_by!(message_id: "restored-7@example.com")
+
+    @account.trash([ restored ])
+    @account.restore([ restored.reload ])
+    @service.send(:fetch_recent_emails, FakeImap.new(uids: [ 7 ], messages: [ fetch_data(7, mail_with_id("restored-7").to_s) ]), "INBOX", 50)
+
+    assert_equal [ "INBOX", 7, false ], restored.reload.values_at(:folder, :uid, :trashed)
+    assert_equal 1, @account.messages.where(message_id: "restored-7@example.com").count
+  end
+
   test "mail that left another folder on the server is removed there" do
     incoming_message.send(:save_email, fetch_data(1, mail_with_id("gone-1").to_s), "Projects")
     incoming_message.send(:save_email, fetch_data(2, mail_with_id("kept-2").to_s), "Projects")
