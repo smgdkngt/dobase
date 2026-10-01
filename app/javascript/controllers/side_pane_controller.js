@@ -1,0 +1,350 @@
+import { Controller } from "@hotwired/stimulus"
+
+// A second tool beside the one you have open.
+//
+// The tool beside is a page of its own in a frame. The server draws it without the
+// sidebar (ApplicationController#side_pane?), and because its window is narrow it
+// gets the layout of a narrow screen. This element sits next to <body>, not in it
+// (application.js puts it there): Turbo swaps the body on every visit, and a frame
+// that moves loads its page again. Out here the tool beside stays as it is, a
+// half-written message and all, while the main one goes from page to page.
+//
+// What is beside, and how wide, is kept in this browser, per person.
+const MIN_WIDTH = 320
+const DEFAULT_WIDTH = 420
+// What the main tool keeps, however wide the pane is asked to be
+const MAIN_MIN_WIDTH = 480
+const KEY_STEP = 24
+
+export default class extends Controller {
+  static targets = ["slot", "resizer"]
+  static values = { userId: Number }
+
+  connect() {
+    this.root = document.documentElement
+    // Under this the sidebar is a sheet and a tool takes the whole screen
+    this.wide = window.matchMedia("(min-width: 1024px)")
+    this.state = this.load()
+    this.mainToolId = toolIdOf(location.pathname)
+
+    this.listening = new AbortController()
+    this.listen(document, "click", (event) => this.clicked(event), true)
+    this.listen(document, "turbo:load", () => this.pageChanged())
+    // The sidebar is drawn again by the server; say once more what is beside
+    this.listen(document, "turbo:render", () => this.markSidebar())
+    this.listen(document, "turbo:morph", () => this.markSidebar())
+    this.listen(window, "message", (event) => this.heard(event))
+    this.listen(window, "resize", () => this.applyWidth())
+    this.listen(window, "pagehide", () => this.remember())
+    this.listen(window, "side-pane:open", (event) => this.open(event.detail.url))
+    this.listen(window, "side-pane:toggle", (event) => this.toggle(event.detail.url))
+    this.listen(window, "theme:change", (event) => this.tell("theme", { theme: event.detail }))
+    this.listen(this.wide, "change", () => this.show())
+
+    this.show()
+  }
+
+  disconnect() {
+    this.listening.abort()
+    delete this.root.dataset.sidePane
+    this.root.style.removeProperty("--side-pane-width")
+  }
+
+  listen(target, type, handler, capture = false) {
+    target.addEventListener(type, handler, { capture, signal: this.listening.signal })
+  }
+
+  // ── Opening and closing ──
+
+  open(url) {
+    const path = pathOf(url)
+    if (!path || !this.wide.matches) return
+
+    this.state.url = path
+    this.save()
+    this.show()
+  }
+
+  close() {
+    this.state.url = null
+    this.save()
+    this.show()
+  }
+
+  // The button on a tool in the sidebar: beside, or not beside any more
+  toggle(url) {
+    const path = pathOf(url)
+    if (!path) return
+
+    this.shown && toolIdOf(path) === toolIdOf(this.state.url) ? this.close() : this.open(path)
+  }
+
+  // The tool beside becomes the main one, and the main one goes beside
+  swap() {
+    const beside = this.currentUrl()
+    if (!beside) return
+
+    this.open(location.pathname + location.search)
+    Turbo.visit(beside)
+  }
+
+  // To the tool beside with the keyboard; F6 there comes back
+  focus() {
+    this.frame?.contentWindow.focus()
+  }
+
+  get shown() {
+    return !this.element.hidden
+  }
+
+  get frame() {
+    return this.slotTarget.querySelector("iframe")
+  }
+
+  // Draws what the state says: the page at state.url in a frame, or nothing
+  show() {
+    const open = Boolean(this.state.url) && this.wide.matches
+
+    this.element.hidden = !open
+    if (open) {
+      this.root.dataset.sidePane = "open"
+      this.applyWidth()
+      this.showPage(this.state.url)
+    } else {
+      delete this.root.dataset.sidePane
+      this.root.style.removeProperty("--side-pane-width")
+      this.frame?.remove()
+    }
+    this.markSidebar()
+  }
+
+  showPage(url) {
+    const frame = this.frame
+    if (!frame) return this.slotTarget.append(this.frameFor(url))
+    if (this.currentUrl() === url) return
+
+    // Turbo in the frame gets there without a blank moment; a page without it
+    // (an error page) is replaced whole. Neither adds a step to the back button.
+    try {
+      const turbo = frame.contentWindow.Turbo
+      turbo ? turbo.visit(url, { action: "replace" }) : frame.contentWindow.location.replace(url)
+    } catch {
+      frame.replaceWith(this.frameFor(url))
+    }
+  }
+
+  frameFor(url) {
+    const frame = document.createElement("iframe")
+    frame.src = url
+    // How the page in it knows it is the one beside (application.js)
+    frame.name = "side-pane"
+    frame.title = "Tool beside"
+    // A call in a room beside asks for these itself
+    frame.allow = "camera; microphone; display-capture; fullscreen; clipboard-write"
+    return frame
+  }
+
+  // Where the page beside is now: it tells us on every visit, and anything it did
+  // to its address since (a card it opened) is read from the frame itself
+  currentUrl() {
+    try {
+      const { pathname, search } = this.frame.contentWindow.location
+      // A frame that hasn't loaded yet is at about:blank
+      return pathname.startsWith("/") ? pathname + search : this.state.url
+    } catch {
+      return this.state.url
+    }
+  }
+
+  // ── What the page beside says (side_pane_page_controller.js) ──
+
+  heard(event) {
+    const frame = this.frame
+    if (!frame || event.origin !== location.origin || event.source !== frame.contentWindow) return
+
+    const message = event.data || {}
+    switch (message.sidePane) {
+      case "location":
+        // Sent away from its tool (deleted, or not yours any more): nothing to keep beside
+        if (!toolIdOf(pathOf(message.url))) return this.close()
+
+        this.state.url = pathOf(message.url)
+        this.save()
+        frame.title = message.title || "Tool beside"
+        this.element.setAttribute("aria-label", `Beside: ${frame.title}`)
+        this.markSidebar()
+        break
+      case "notifications":
+        // The bell is on this page
+        window.focus()
+        document.querySelector("[data-notifications-target='trigger'][data-hotkey]")?.click()
+        break
+      case "leave":
+        window.focus()
+        document.getElementById("main-content")?.focus()
+        break
+      case "gone":
+        // Signed out, or a page that isn't a tool's: nothing to keep beside
+        this.close()
+        break
+    }
+  }
+
+  tell(what, details = {}) {
+    this.frame?.contentWindow.postMessage({ sidePane: what, ...details }, location.origin)
+  }
+
+  // ── The page around it ──
+
+  // Alt and a click on a link to a tool opens it beside instead
+  clicked(event) {
+    if (!event.altKey || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return
+    if (!this.wide.matches) return
+
+    const link = event.target.closest?.("a[href]")
+    if (!link || !opensBeside(link)) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    link.closest("dialog")?.close()
+    this.open(link.href)
+  }
+
+  pageChanged() {
+    const toolId = toolIdOf(location.pathname)
+    const arrived = toolId && toolId !== this.mainToolId
+    this.mainToolId = toolId
+
+    // The tool that was beside is the main one now: it has moved over
+    if (arrived && this.shown && toolId === toolIdOf(this.state.url)) return this.close()
+
+    this.markSidebar()
+  }
+
+  // The button of the tool that is beside stays lit, and what is beside is seen
+  markSidebar() {
+    const beside = this.shown ? toolIdOf(this.state.url) : null
+
+    document.querySelectorAll("[data-side-pane-toggle]").forEach((button) => {
+      const on = Boolean(beside) && button.dataset.toolId === beside
+      button.setAttribute("aria-pressed", on)
+      if (on) button.parentElement.querySelector("[data-sidebar-tool-link]")?.removeAttribute("data-unread")
+    })
+  }
+
+  // ── Width ──
+
+  startResize(event) {
+    if (event.button !== 0) return
+    event.preventDefault()
+
+    const handle = event.currentTarget
+    const dragging = new AbortController()
+    const stop = () => {
+      dragging.abort()
+      delete this.element.dataset.resizing
+      this.save()
+    }
+
+    // The frame would take the pointer as soon as it is over it
+    this.element.dataset.resizing = ""
+    handle.setPointerCapture(event.pointerId)
+    handle.addEventListener("pointermove", (move) => this.setWidth(window.innerWidth - move.clientX), { signal: dragging.signal })
+    handle.addEventListener("pointerup", stop, { signal: dragging.signal })
+    handle.addEventListener("pointercancel", stop, { signal: dragging.signal })
+  }
+
+  resizeWithKeys(event) {
+    const step = { ArrowLeft: KEY_STEP, ArrowRight: -KEY_STEP }[event.key]
+    if (!step) return
+
+    event.preventDefault()
+    this.setWidth(this.width + step)
+    this.save()
+  }
+
+  resetWidth() {
+    this.setWidth(DEFAULT_WIDTH)
+    this.save()
+  }
+
+  setWidth(width) {
+    this.state.width = this.fitting(width)
+    this.applyWidth()
+  }
+
+  get width() {
+    return this.fitting(this.state.width || DEFAULT_WIDTH)
+  }
+
+  // As wide as asked, as long as the main tool keeps room; never too narrow to use
+  fitting(width) {
+    const sidebar = parseFloat(getComputedStyle(this.root).getPropertyValue("--sidebar-width")) || 0
+    const room = window.innerWidth - sidebar - MAIN_MIN_WIDTH
+    return Math.round(Math.max(MIN_WIDTH, Math.min(width, room)))
+  }
+
+  applyWidth() {
+    if (!this.shown) return
+
+    this.root.style.setProperty("--side-pane-width", `${this.width}px`)
+    this.resizerTarget.setAttribute("aria-valuenow", this.width)
+  }
+
+  // ── Remembering ──
+
+  get storageKey() {
+    return `dobase:side-pane:${this.userIdValue}`
+  }
+
+  load() {
+    try {
+      const kept = JSON.parse(localStorage.getItem(this.storageKey)) || {}
+      return { url: pathOf(kept.url), width: Number(kept.width) || DEFAULT_WIDTH }
+    } catch {
+      return { url: null, width: DEFAULT_WIDTH }
+    }
+  }
+
+  save() {
+    try {
+      localStorage.setItem(this.storageKey, JSON.stringify(this.state))
+    } catch {
+      // No storage (private browsing, a full disk): the pane works, and is gone after a reload
+    }
+  }
+
+  remember() {
+    if (!this.frame) return
+
+    this.state.url = this.currentUrl()
+    this.save()
+  }
+}
+
+// "/tools/12/board?card=3" from an address on this site; nothing from any other
+function pathOf(url) {
+  if (!url) return null
+
+  try {
+    const address = new URL(url, location.origin)
+    return address.origin === location.origin ? address.pathname + address.search : null
+  } catch {
+    return null
+  }
+}
+
+function toolIdOf(path) {
+  return path?.match(/^\/tools\/(\d+)/)?.[1] || null
+}
+
+// A link that goes to a page of a tool, rather than into a frame, to a download
+// or off to do something
+function opensBeside(link) {
+  if (link.origin !== location.origin || !toolIdOf(link.pathname)) return false
+  if (link.hasAttribute("download") || link.dataset.turboMethod || link.dataset.turbo === "false") return false
+  if (link.target && link.target !== "_self") return false
+
+  const frame = link.dataset.turboFrame || link.closest("turbo-frame")?.getAttribute("target") || (link.closest("turbo-frame") ? "frame" : "_top")
+  return frame === "_top"
+}

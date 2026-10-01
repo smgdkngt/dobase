@@ -2,6 +2,10 @@
 
 class DashboardController < ApplicationController
   def index
+    # Beside another tool there is no "where you were" to go back to: a pane that
+    # ends up here (its tool was deleted, or isn't yours any more) closes itself
+    return if side_pane?
+
     # Redirect to last visited tool path if it's a navigational page the user
     # can still reach. Skip download endpoints — a stale one would otherwise
     # bounce the user straight into a file download on every visit.

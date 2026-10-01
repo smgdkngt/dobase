@@ -85,7 +85,7 @@ export default class extends Controller {
         break
       case "Enter":
         event.preventDefault()
-        this.#activateSelected()
+        this.#activateSelected({ beside: event.altKey })
         break
     }
   }
@@ -150,7 +150,7 @@ export default class extends Controller {
     visible[nextIndex].scrollIntoView({ block: "nearest" })
   }
 
-  #activateSelected() {
+  #activateSelected({ beside = false } = {}) {
     // Results can arrive a moment before the palette marks the first one, and
     // Enter pressed in that moment means that first one
     const selected = this.#selectedItem || this.#visibleItems[0]
@@ -162,8 +162,15 @@ export default class extends Controller {
       return
     }
 
-    // Tool items have an href — navigate via Turbo
+    // Tool items have an href — navigate via Turbo, or with Alt open it beside
+    // (side_pane_controller.js, which a page that is itself beside doesn't have)
     this.element.close()
-    if (selected.href) Turbo.visit(selected.href)
+    if (!selected.href) return
+
+    if (beside && document.getElementById("side-pane")) {
+      window.dispatchEvent(new CustomEvent("side-pane:open", { detail: { url: selected.href } }))
+    } else {
+      Turbo.visit(selected.href)
+    }
   }
 }

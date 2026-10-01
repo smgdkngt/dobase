@@ -407,7 +407,8 @@
   /* Toasts sit bottom-right; on tools with a composer at the bottom (chat,
      room) they move to the top so they never cover Send */
   .flash-toast {
-    @apply fixed right-6 z-[9999] max-w-sm;
+    @apply fixed z-[9999] max-w-sm;
+    right: calc(1.5rem + var(--side-pane-width));
     bottom: calc(1.5rem + var(--demo-banner-height));
   }
 

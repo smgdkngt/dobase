@@ -23,9 +23,12 @@ self.addEventListener("activate", (event) => {
   self.clients.claim()
 })
 
-// Fetch: network-first for navigations, offline fallback on failure
+// Fetch: network-first for navigations, offline fallback on failure.
+// Only the page itself: a frame in it (the tool beside another one) goes to the network
+// as the browser sends it. Fetched from here it would no longer say it is a frame, and
+// the server would draw the whole page in it, sidebar and all.
 self.addEventListener("fetch", (event) => {
-  if (event.request.mode === "navigate") {
+  if (event.request.mode === "navigate" && event.request.destination === "document") {
     event.respondWith(
       fetch(event.request).catch(() =>
         caches.match(OFFLINE_URL)

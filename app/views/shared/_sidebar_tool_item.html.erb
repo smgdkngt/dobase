@@ -36,6 +36,17 @@
       <% end %>
     <% end %>
   </a>
+  <%# Opens this tool beside the one you have open, or closes it there (side_pane_controller.js) %>
+  <button type="button" class="sidebar-tool-menu-btn max-lg:hidden"
+          aria-label="Open <%= instance.display_name %> beside"
+          aria-pressed="false"
+          title="Open beside"
+          data-side-pane-toggle
+          data-action="click->sidebar#toggleBeside"
+          data-tool-id="<%= instance.id %>"
+          data-url="<%= tool_path(instance) %>">
+    <%= render "shared/icon", name: "panel-right", size: 14 %>
+  </button>
   <button type="button" class="sidebar-tool-menu-btn"
           aria-label="Settings for <%= instance.display_name %>"
           data-action="click->sidebar#editTool"

@@ -59,7 +59,9 @@ export default class extends Controller {
     // Show activity dot on sidebar tool item
     if (data.tool_id) {
       const toolItem = document.querySelector(`[data-tool-id="${data.tool_id}"]`)
-      if (toolItem && !toolItem.classList.contains("sidebar-item-active")) {
+      // Not for the tool you are looking at: the open one, or the one beside it
+      const beside = toolItem?.querySelector("[data-side-pane-toggle][aria-pressed='true']")
+      if (toolItem && !toolItem.classList.contains("sidebar-item-active") && !beside) {
         const link = toolItem.querySelector("[data-sidebar-tool-link]") || toolItem
         link.setAttribute("data-unread", "")
       }

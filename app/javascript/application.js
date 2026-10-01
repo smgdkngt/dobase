@@ -105,6 +105,47 @@ function markAppWindow() {
 markAppWindow()
 document.addEventListener("turbo:load", markAppWindow)
 
+// The tool beside (shared/_side_pane, side_pane_controller.js) goes next to <body>, where
+// Turbo's page swaps leave it alone. A page without the template has nobody signed in,
+// or somebody else: the pane of whoever was here goes.
+function installSidePane() {
+  const template = document.getElementById("side-pane-template")
+  const pane = document.getElementById("side-pane")
+  const owner = template?.content.firstElementChild.dataset.sidePaneUserIdValue
+
+  if (pane && pane.dataset.sidePaneUserIdValue !== owner) pane.remove()
+  if (template && !document.getElementById("side-pane")) document.documentElement.append(template.content.cloneNode(true))
+}
+
+if (window.self === window.top) {
+  document.addEventListener("turbo:load", installSidePane)
+} else if (window.name === "side-pane") {
+  // This page is the one beside. The server leaves the sidebar out of it
+  // (ApplicationController#side_pane?): the browser says it is a frame when it loads
+  // one, and for every page after that Turbo says so here.
+  const root = document.documentElement
+  let serverKnows = root.hasAttribute("data-in-side-pane")
+  root.setAttribute("data-in-side-pane", "")
+
+  document.addEventListener("turbo:before-fetch-request", (event) => {
+    event.detail.fetchOptions.headers["X-Side-Pane"] = "1"
+  })
+
+  document.addEventListener("turbo:load", () => {
+    if (document.querySelector("[data-controller~='side-pane-page']")) return
+
+    if (serverKnows) {
+      // Not a tool's page (signed out: the sign-in page). Nothing to keep beside.
+      window.parent.postMessage({ sidePane: "gone" }, window.location.origin)
+    } else {
+      // The browser didn't say (a service worker from before there was a pane fetched
+      // the page itself): ask again, now that Turbo does
+      serverKnows = true
+      Turbo.visit(window.location.href, { action: "replace" })
+    }
+  })
+}
+
 // Register service worker for PWA support
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/service-worker.js", { scope: "/" })

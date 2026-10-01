@@ -226,17 +226,18 @@ rhino-editor.compose-editor .trix-content {
   }
 }
 
-/* Wide screens: the folders get their own column instead of the menu */
+/* Wide screens: the folders get their own column instead of the menu. Not with a tool
+   beside this one (side_pane.css): the window is wide then, the mail isn't. */
 @media (min-width: 1440px) {
-  .mail-layout {
+  :root:not([data-side-pane]) .mail-layout {
     grid-template-columns: 200px 320px 1fr;
   }
 
-  .mail-folder-rail {
+  :root:not([data-side-pane]) .mail-folder-rail {
     @apply flex;
   }
 
-  .mail-topbar > .mail-folder-picker {
+  :root:not([data-side-pane]) .mail-topbar > .mail-folder-picker {
     @apply hidden;
   }
 }

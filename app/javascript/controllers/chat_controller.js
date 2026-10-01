@@ -26,6 +26,7 @@ export default class extends Controller {
 
     this.setupActionCable()
     this.scrollToBottom()
+    this.stayAtNewestMessage()
     this.markAsRead()
   }
 
@@ -36,6 +37,8 @@ export default class extends Controller {
     this.channel?.unsubscribe()
     this.topObserver?.disconnect()
     this.topObserver = null
+    this.sizeObserver?.disconnect()
+    this.sizeObserver = null
     if (this.typingTimeout) clearTimeout(this.typingTimeout)
   }
 
@@ -212,6 +215,18 @@ export default class extends Controller {
     if (this.hasMessagesTarget) {
       this.messagesTarget.scrollTop = this.messagesTarget.scrollHeight
     }
+  }
+
+  // The list gets shorter when the box under it grows (the editor arrives after the
+  // page does), and its lines wrap again when the chat gets narrower (beside another
+  // tool, say). Whoever was at the newest message stays there.
+  stayAtNewestMessage() {
+    if (!this.hasMessagesTarget) return
+
+    let following = true
+    this.messagesTarget.addEventListener("scroll", () => { following = this.atNewestMessage }, { passive: true })
+    this.sizeObserver = new ResizeObserver(() => { if (following) this.scrollToBottom() })
+    this.sizeObserver.observe(this.messagesTarget)
   }
 
   async markAsRead() {

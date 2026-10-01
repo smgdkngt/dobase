@@ -82,7 +82,8 @@ module Authentication
       if request.format.json?
         render json: { error: "Authentication required" }, status: :unauthorized
       else
-        session[:return_to_after_authenticating] = request.fullpath
+        # Signing in again returns to the page itself, not to the one that was beside it
+        session[:return_to_after_authenticating] = request.fullpath unless side_pane?
         redirect_to new_session_path
       end
     end

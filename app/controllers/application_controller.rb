@@ -13,7 +13,16 @@ class ApplicationController < ActionController::Base
   after_action :track_last_visited_path
   after_action :remember_theme
 
+  helper_method :side_pane?
+
   private
+
+  # A tool shown beside another one (side_pane_controller.js) is a page of its own
+  # in a frame, drawn without the sidebar and everything else around a tool. The
+  # browser says so when it loads the frame, Turbo inside it with every request.
+  def side_pane?
+    request.headers["Sec-Fetch-Dest"] == "iframe" || request.headers["X-Side-Pane"].present?
+  end
 
   def set_time_zone(&block)
     timezone = current_user&.timezone.presence || "UTC"
@@ -72,7 +81,8 @@ class ApplicationController < ActionController::Base
     # dashboard would redirect straight back into the download on every visit.
     return if response.headers["Content-Disposition"].to_s.start_with?("attachment")
 
-    current_user.update_column(:last_visited_path, request.path)
+    # The dashboard returns to the tool you had open, not to the one beside it
+    current_user.update_column(:last_visited_path, request.path) unless side_pane?
 
     tool_id = request.path.match(%r{/tools/(\d+)})&.[](1)
     if tool_id
