@@ -21,10 +21,12 @@ type call struct {
 	body   api.Value
 }
 
-// fakeServer answers from a map of paths (and records every request).
+// fakeServer answers from a map of paths (and records every request). A
+// request whose key is in failing gets an error instead.
 type fakeServer struct {
 	responses api.Value
 	calls     *[]call
+	failing   map[string]bool
 }
 
 func (f *fakeServer) Request(method api.Method, path string, params []api.Param, body any) (api.Value, error) {
@@ -32,6 +34,9 @@ func (f *fakeServer) Request(method api.Method, path string, params []api.Param,
 	key := path
 	if method != api.Get {
 		key = string(method[0]) + strings.ToLower(string(method[1:])) + " " + path
+	}
+	if f.failing[key] {
+		return api.Null, api.Failf("The server is having a moment (HTTP 500)")
 	}
 	if response := f.responses.Get(key); f.responses.Has(key) {
 		return response, nil
@@ -81,12 +86,14 @@ type harness struct {
 	app    *App
 	screen tcell.SimulationScreen
 	calls  *[]call
+	server *fakeServer
 }
 
 func newHarness(t *testing.T) *harness {
 	t.Helper()
 	calls := &[]call{}
-	app := NewApp(&fakeServer{responses: server(), calls: calls}, "http://localhost", nil)
+	fake := &fakeServer{responses: server(), calls: calls, failing: map[string]bool{}}
+	app := NewApp(fake, "http://localhost", nil)
 	app.launchBrowser = false
 	if err := app.Start(); err != nil {
 		t.Fatal(err)
@@ -97,7 +104,19 @@ func newHarness(t *testing.T) *harness {
 	}
 	t.Cleanup(screen.Fini)
 	screen.SetSize(100, 30)
-	return &harness{t: t, app: app, screen: screen, calls: calls}
+	return &harness{t: t, app: app, screen: screen, calls: calls, server: fake}
+}
+
+// answer makes the server answer key ("/path", or "Post /path") with this JSON from now on.
+func (h *harness) answer(key, response string) *harness {
+	h.server.responses = h.server.responses.With(key, api.MustParse(response))
+	return h
+}
+
+// fail makes requests to key fail, or work again.
+func (h *harness) fail(key string, failing bool) *harness {
+	h.server.failing[key] = failing
+	return h
 }
 
 func (h *harness) press(key Key) *harness {
