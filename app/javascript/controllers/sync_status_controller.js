@@ -33,7 +33,10 @@ export default class extends Controller {
     this.startPolling()
   }
 
+  // One timer at a time: a second click on "Sync now" (or a click during a sync the
+  // page already polls for) must not leave an earlier timer running that nothing clears
   startPolling() {
+    this.stopPolling()
     this.pollInterval = setInterval(() => this.checkStatus(), 1000)
   }
 

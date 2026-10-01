@@ -3,6 +3,8 @@
 require "application_system_test_case"
 
 class CalendarsTest < ApplicationSystemTestCase
+  include ActiveJob::TestHelper
+
   setup do
     @tool = tools(:my_calendar)
     sign_in_as users(:one)
@@ -72,6 +74,26 @@ class CalendarsTest < ApplicationSystemTestCase
       assert_selector "[data-recurrence-form-target=weekdayLabel]", text: "The 2nd Friday", visible: :all
       assert_checked_field "Never"
     end
+  end
+
+  test "Sync now clicked twice refreshes the page once when the sync ends" do
+    visit tool_calendar_path(@tool, week_start: "2030-01-07")
+    wait_for_stimulus "sync-status"
+    execute_script("window.visits = 0; document.addEventListener('turbo:visit', () => window.visits++)")
+
+    2.times do
+      find("a[title='Sync now']").click
+      wait_for_turbo
+    end
+    assert_selector "[data-sync-status-target='status']", text: "Syncing..."
+    assert calendars_accounts(:icloud_account).reload.syncing?
+
+    calendars_accounts(:icloud_account).update!(sync_status: "synced", last_synced_at: Time.current)
+    assert_selector "[data-sync-status-target='status']", text: "less than a minute"
+
+    # A timer left behind by the first click would visit the page again every second
+    sleep 2.5
+    assert_equal 1, evaluate_script("window.visits")
   end
 
   private
