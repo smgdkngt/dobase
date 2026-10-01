@@ -432,12 +432,76 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_equal "héllo", incoming_message.send(:safe_utf8, "héllo")
   end
 
-  test "safe_utf8 replaces invalid bytes with the replacement character" do
+  test "safe_utf8 replaces invalid bytes with the replacement character, and keeps the letters around them" do
     invalid = (+"héllo").force_encoding("ASCII-8BIT") + "\xC3".b
     result = incoming_message.send(:safe_utf8, invalid)
 
     assert_equal Encoding::UTF_8, result.encoding
-    assert_includes result, "�"
+    assert_equal "héllo�", result
+    assert_equal "héllo�", incoming_message.send(:safe_utf8, "héllo\xC3")
+  end
+
+  # net-imap hands a message over as bytes; its Content-Type says which letters they are
+
+  test "a mail of one part keeps its letters, however it was encoded for the way" do
+    bodies = { "8bit" => "Eén café kost €5", "quoted-printable" => [ "Eén café kost €5" ].pack("M"), "base64" => [ "Eén café kost €5" ].pack("m") }
+
+    bodies.each do |transfer_encoding, body|
+      incoming_message.send(:save_email, fetch_data(11, one_part_mail("text/plain; charset=UTF-8", body, transfer_encoding: transfer_encoding, id: transfer_encoding)), "INBOX")
+
+      assert_equal "Eén café kost €5", @account.messages.find_by!(message_id: "#{transfer_encoding}@example.com").body_plain.strip, transfer_encoding
+    end
+  end
+
+  test "a mail of only HTML keeps its letters, in the HTML and in its text" do
+    incoming_message.send(:save_email, fetch_data(11, one_part_mail("text/html; charset=UTF-8", "<p>Eén café kost €5</p>")), "INBOX")
+
+    email = @account.messages.find_by!(message_id: "one-part@example.com")
+    assert_equal "<p>Eén café kost €5</p>", email.body_html
+    assert_equal "Eén café kost €5", email.body_plain
+  end
+
+  test "a mail in another charset is read in that charset" do
+    { "ISO-8859-1" => "Eén café", "windows-1252" => "Eén café kost €5", '"Windows-1252"' => "“Eén café”" }.each_with_index do |(charset, text), index|
+      raw = one_part_mail("text/plain; charset=#{charset}", text.encode(charset.delete('"')), id: "charset-#{index}")
+      incoming_message.send(:save_email, fetch_data(11, raw), "INBOX")
+
+      assert_equal text, @account.messages.find_by!(message_id: "charset-#{index}@example.com").body_plain, charset
+    end
+  end
+
+  test "a mail without a Content-Type is plain text" do
+    incoming_message.send(:save_email, fetch_data(11, one_part_mail(nil, "Eén café kost €5")), "INBOX")
+
+    email = @account.messages.find_by!(message_id: "one-part@example.com")
+    assert_equal "Eén café kost €5", email.body_plain
+    assert_nil email.body_html
+  end
+
+  test "text that doesn't name its charset is read as UTF-8 when it is that, and as Windows-1252 otherwise" do
+    incoming_message.send(:save_email, fetch_data(11, one_part_mail("text/plain", "Eén café kost €5", id: "unnamed-utf8")), "INBOX")
+    incoming_message.send(:save_email, fetch_data(12, one_part_mail("text/plain", "Eén café kost €5".encode("Windows-1252"), id: "unnamed-1252")), "INBOX")
+    incoming_message.send(:save_email, fetch_data(13, one_part_mail("text/plain; charset=us-ascii", "Eén café kost €5", id: "wrongly-named")), "INBOX")
+    incoming_message.send(:save_email, fetch_data(14, one_part_mail(nil, "Eén café".encode("ISO-8859-1"), id: "no-type-latin")), "INBOX")
+    incoming_message.send(:save_email, fetch_data(15, one_part_mail("text/plain; charset=utf-7", "Eén café kost €5", id: "unreadable-charset")), "INBOX")
+
+    assert_equal [ "Eén café kost €5" ] * 3 + [ "Eén café", "Eén café kost €5" ],
+      %w[unnamed-utf8 unnamed-1252 wrongly-named no-type-latin unreadable-charset].map { |id| @account.messages.find_by!(message_id: "#{id}@example.com").body_plain }
+  end
+
+  test "the parts of a mail that don't name their charset keep their letters too" do
+    raw = one_part_mail("multipart/alternative; boundary=b", "--b\r\nContent-Type: text/plain\r\nContent-Transfer-Encoding: 8bit\r\n\r\nEén café kost €5\r\n" \
+      "--b\r\nContent-Type: text/html\r\nContent-Transfer-Encoding: 8bit\r\n\r\n<p>Eén café kost €5</p>\r\n--b--\r\n")
+    incoming_message.send(:save_email, fetch_data(11, raw), "INBOX")
+
+    email = @account.messages.find_by!(message_id: "one-part@example.com")
+    assert_equal [ "Eén café kost €5", "<p>Eén café kost €5</p>" ], [ email.body_plain.strip, email.body_html.strip ]
+  end
+
+  test "a byte that is no letter in the mail's charset is replaced, the rest is kept" do
+    incoming_message.send(:save_email, fetch_data(11, one_part_mail("text/plain; charset=UTF-8", "caf\xC3\xA9 \x81 thee".b)), "INBOX")
+
+    assert_equal "café � thee", @account.messages.find_by!(message_id: "one-part@example.com").body_plain
   end
 
   # --- Fetching and attachments -------------------------------------------------
@@ -679,6 +743,14 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
 
     def mail_with_id(id)
       Mail.new(from: "ann@example.com", to: "me@example.com", subject: id, message_id: "<#{id}@example.com>", body: "Hello")
+    end
+
+    # A message as net-imap hands it over: bytes, without an encoding. Without a content type
+    # it has no Content-Type header at all.
+    def one_part_mail(content_type, body, transfer_encoding: "8bit", id: "one-part")
+      headers = [ "From: Ann <ann@example.com>", "To: me@example.com", "Subject: Koffie", "Message-ID: <#{id}@example.com>", "MIME-Version: 1.0" ]
+      headers += [ "Content-Type: #{content_type}", "Content-Transfer-Encoding: #{transfer_encoding}" ] if content_type
+      "#{headers.join("\r\n")}\r\n\r\n".b + body.b
     end
 
     def report_mail

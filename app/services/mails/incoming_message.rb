@@ -5,6 +5,10 @@ module Mails
   # Dobase stores for it.
   class IncomingMessage
     MAX_ATTACHMENT_SIZE = 25.megabytes
+    # Shown where a byte is no letter in the mail's charset
+    REPLACEMENT = "\uFFFD"
+    # Charsets that mail with other letters in it names anyway
+    UNSPECIFIC_CHARSET = /\A(us-ascii|utf-?8)\z/i
 
     def initialize(account)
       @account = account
@@ -120,16 +124,19 @@ module Mails
 
       mail = Mail.read_from_string(raw_message)
 
+      # A mail without a Content-Type is plain text (RFC 2045, 5.2)
+      mime_type = mail.mime_type || "text/plain"
+
       plain = if mail.multipart?
-                mail.text_part&.decoded
+                text_of(mail.text_part)
       else
-                mail.mime_type.to_s.start_with?("text/") && mail.mime_type != "text/html" ? mail.body.decoded : nil
+                mime_type.start_with?("text/") && mime_type != "text/html" ? text_of(mail) : nil
       end
 
       html = if mail.multipart?
-               mail.html_part&.decoded
+               text_of(mail.html_part)
       else
-               mail.mime_type == "text/html" ? mail.body.decoded : nil
+               mime_type == "text/html" ? text_of(mail) : nil
       end
 
       # A mail with only HTML gets its text for the list's preview and for search
@@ -140,6 +147,29 @@ module Mails
       Rails.logger.warn("Failed to parse email body: #{e.message}")
       # Fall back to raw body
       { plain: raw_message, html: nil, mail: nil }
+    end
+
+    # The text of a part, in the charset its Content-Type names. Text that names none, or one
+    # its bytes don't fit ("us-ascii" above text with accents), is UTF-8 when it reads as
+    # that. Text without a single UTF-8 letter in it is Windows-1252, which is what mail
+    # programs that don't say send. Bytes that are no letter either way are replaced.
+    def text_of(part)
+      return unless part
+
+      bytes = part.body.decoded
+      charset = part.charset.presence if part.has_content_type?
+      # A charset Ruby can't read these bytes in counts as none
+      named = (Mail::Encodings.transcode_charset(bytes, charset) rescue nil) if charset
+      return named if named && named.exclude?(REPLACEMENT)
+
+      utf8 = bytes.dup.force_encoding(Encoding::UTF_8)
+      if utf8.valid_encoding?
+        utf8
+      elsif (charset.nil? || charset.match?(UNSPECIFIC_CHARSET)) && utf8.scrub("").ascii_only?
+        bytes.dup.force_encoding(Encoding::WINDOWS_1252).encode(Encoding::UTF_8, invalid: :replace, undef: :replace, replace: REPLACEMENT)
+      else
+        named || utf8.scrub(REPLACEMENT)
+      end
     end
 
     def attachment_parts_of(mail)
@@ -186,9 +216,13 @@ module Mails
       name.strip[1..-2].gsub(/\\+(.)/m, '\1').strip
     end
 
+    # Bytes without an encoding (net-imap hands some strings over that way) are read as UTF-8
     def safe_utf8(str)
       return nil if str.nil?
-      str.encode("UTF-8", invalid: :replace, undef: :replace, replace: "\uFFFD")
+      str = str.dup.force_encoding(Encoding::UTF_8) if str.encoding == Encoding::BINARY
+      return str.scrub(REPLACEMENT) if str.encoding == Encoding::UTF_8
+
+      str.encode("UTF-8", invalid: :replace, undef: :replace, replace: REPLACEMENT)
     end
   end
 end
