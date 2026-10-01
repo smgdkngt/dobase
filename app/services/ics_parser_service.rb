@@ -18,6 +18,7 @@ class IcsParserService
     return empty_result if calendars.empty?
 
     calendar = calendars.first
+    @timezones = calendar.timezones
     # A series comes with its moved and cancelled occurrences, which have a RECURRENCE-ID
     event = calendar.events.find { |component| component.recurrence_id.nil? } || calendar.events.first
     return empty_result unless event
@@ -81,9 +82,15 @@ class IcsParserService
     elsif dt.respond_to?(:value) && dt.value.respond_to?(:time_zone)
       dt.value.to_time.in_time_zone(dt.value.time_zone)
     elsif dt.respond_to?(:value) && dt.value.is_a?(::DateTime)
-      # Floating, or in a time zone that can't be looked up: the time on the clock in the given zone
       time = dt.value
-      zone.local(time.year, time.month, time.day, time.hour, time.min, time.sec)
+      if (timezone = described_timezone(dt))
+        # In a time zone the calendar describes itself, like the "W. Europe Standard Time" of every
+        # invitation from Exchange: icalendar worked out the offset from that description
+        time.to_time.in_time_zone(zone_like(timezone, time) || zone)
+      else
+        # Floating, or in a time zone that can't be looked up: the time on the clock in the given zone
+        zone.local(time.year, time.month, time.day, time.hour, time.min, time.sec)
+      end
     elsif dt.respond_to?(:to_time)
       dt.to_time.in_time_zone(zone)
     else
@@ -91,6 +98,37 @@ class IcsParserService
     end
   rescue ArgumentError
     nil
+  end
+
+  # The VTIMEZONE a time refers to with its TZID, if the calendar has it
+  def described_timezone(dt)
+    tzid = Array(dt.ical_params["tzid"]).first.to_s
+    return if tzid.blank?
+
+    @timezones.to_a.find { |timezone| timezone.tzid.to_s.casecmp?(tzid) }
+  end
+
+  # A zone Rails knows that keeps the same time as a VTIMEZONE in the year after the given time, so
+  # a series in it changes to and from summer time on the same days. The zone Windows means by the
+  # name comes first, then the given zone.
+  def zone_like(timezone, time)
+    clock = ::DateTime.new(time.year, time.month, time.day, time.hour, time.min, time.sec)
+    months = (0..11).map { |count| clock >> count }
+    offsets = months.map { |month| offset_seconds(timezone.offset_for_local(month)) }
+
+    windows = ActiveSupport::TimeZone[Icalendar::Offset::WindowsToIana::WINDOWS_TO_IANA[timezone.tzid.to_s].to_s]
+    [ windows, @time_zone, *ActiveSupport::TimeZone.all ].compact.find do |candidate|
+      months.zip(offsets).all? do |month, offset|
+        candidate.local(month.year, month.month, month.day, month.hour, month.min, month.sec).utc_offset == offset
+      end
+    end
+  end
+
+  def offset_seconds(offset)
+    return 0 unless offset.respond_to?(:hours)
+
+    seconds = offset.hours * 3600 + offset.minutes * 60 + offset.seconds
+    offset.behind? ? -seconds : seconds
   end
 
   def parse_end_datetime(event)
