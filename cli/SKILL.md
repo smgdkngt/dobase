@@ -31,7 +31,8 @@ token. Tell them; don't look for a way around it.
 - USER is `me`, `none`, an id, an email address, or part of a name, matched
   against the tool's collaborators (`dobase tool show TOOL`).
 - A TEXT argument of `-` reads stdin (one per command). Use a heredoc for anything
-  longer than a line.
+  longer than a line. Text may start with a dash (`"- first point"`); only a
+  TEXT that looks like an option needs `--` before it (`-- "--force"`).
 - Text is plain by default: paragraphs on blank lines, line breaks kept, and
   http(s) URLs become links, so a bare URL needs no `--html`. Pass
   `--html` to send HTML (`<p>`, `<strong>`, `<em>`, `<a>`, `<ul>/<ol>/<li>`,
