@@ -26,6 +26,23 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     assert_select "span", text: "Owner", count: users(:one).accessible_tools.count { |tool| tool.owned_by?(users(:one)) }
   end
 
+  test "a leading emoji in a tool's name takes the icon's place in the sidebar" do
+    tools(:project_board).update!(name: "🚀 Launch")
+
+    get new_tool_path
+
+    assert_select "[data-tool-id='#{tools(:project_board).id}'] .tool-emoji", text: "🚀"
+    assert_select "[data-tool-id='#{tools(:project_board).id}'] .tool-emoji + span", text: "Launch"
+  end
+
+  test "the name field says an emoji becomes the icon, when adding a tool and in its settings" do
+    get new_tool_path
+    assert_select ".help-text", text: /Start with an emoji/, count: 2
+
+    get edit_tool_path(tools(:project_board)), headers: { "Turbo-Frame" => "edit-tool-form" }
+    assert_select ".help-text", text: /Start with an emoji/
+  end
+
   test "every label on the new tool page, which renders the add tool modal too, has a field of its own" do
     get new_tool_path
 

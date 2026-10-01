@@ -66,6 +66,11 @@
     @apply flex items-center gap-3 flex-1 min-w-0 -my-2 py-2 text-inherit no-underline;
   }
 
+  /* An emoji standing in for a tool's icon takes the icon's 18px box, so names line up */
+  .tool-emoji {
+    @apply flex items-center justify-center shrink-0 w-4.5 h-4.5 text-[0.9375rem] leading-none;
+  }
+
   /* Faces of the people who have a tool open right now */
   .sidebar-presence {
     @apply flex items-center shrink-0 pl-1;
