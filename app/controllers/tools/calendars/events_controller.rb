@@ -48,7 +48,7 @@ module Tools
           notify_event_created
 
           respond_to do |format|
-            format.html { redirect_to tool_calendar_path(@tool), notice: "Event created successfully.", status: :see_other }
+            format.html { redirect_to calendar_path_after_change, notice: "Event created successfully.", status: :see_other }
             format.json { render :show, status: :created }
           end
         else
@@ -75,7 +75,7 @@ module Tools
           PushEventJob.perform_later(@event.id, @event.saved_change_to_calendar_id? ? :move : :update)
 
           respond_to do |format|
-            format.html { redirect_to tool_calendar_path(@tool), notice: "Event updated successfully.", status: :see_other }
+            format.html { redirect_to calendar_path_after_change, notice: "Event updated successfully.", status: :see_other }
             format.json { render :show }
           end
         else
@@ -101,7 +101,7 @@ module Tools
         DeleteCalendarEventJob.perform_later(event_data)
 
         respond_to do |format|
-          format.html { redirect_to tool_calendar_path(@tool), notice: "Event deleted successfully.", status: :see_other }
+          format.html { redirect_to calendar_path_after_change, notice: "Event deleted successfully.", status: :see_other }
           format.json { head :no_content }
         end
       end
@@ -122,6 +122,27 @@ module Tools
       def set_event
         @event = @calendar_account.events.find(params[:id])
         @calendar = @event.calendar
+      end
+
+      # Back to the calendar on a week that shows the change: the week the request came
+      # from when the event is in it (or is gone, or is a series, which runs through many
+      # weeks), and otherwise the event's own week. It used to be the week on the page every
+      # time, which hid an event made for next month behind its own success notice.
+      def calendar_path_after_change
+        asked, viewed = viewed_week
+        stay = @event.destroyed? || (@event.is_recurring? && !@event.previously_new_record?) ||
+          (@event.first_day..@event.last_day).overlap?(viewed..viewed + 6)
+
+        tool_calendar_path(@tool, week_start: stay ? asked : @event.first_day.beginning_of_week(:monday))
+      end
+
+      # The week of the calendar page the request came from: as its address names it
+      # (not at all for this week), and its Monday
+      def viewed_week
+        asked = Rack::Utils.parse_query(URI.parse(request.referer.to_s).query)["week_start"].presence
+        [ asked, (asked ? Date.parse(asked) : Date.current).beginning_of_week(:monday) ]
+      rescue URI::InvalidURIError, Date::Error
+        [ nil, Date.current.beginning_of_week(:monday) ]
       end
 
       def writable_calendars

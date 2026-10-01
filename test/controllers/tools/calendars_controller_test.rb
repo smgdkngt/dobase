@@ -115,12 +115,12 @@ module Tools
       assert_select "div", text: "The owner of Team Calendar hasn't connected a calendar account yet. Once they have, the calendar shows up here."
     end
 
-    test "creating an event redirects to the calendar" do
+    test "creating an event redirects to the calendar, on the week the event is in" do
       post tool_calendar_events_path(@tool), params: {
         calendars_event: { calendar_id: @work.id, summary: "Dentist", start_time: "2030-01-08T14:00", end_time: "2030-01-08T15:00", recurrence_frequency: "none" }
       }
 
-      assert_redirected_to tool_calendar_path(@tool)
+      assert_redirected_to tool_calendar_path(@tool, week_start: "2030-01-07")
       assert_equal "Event created successfully.", flash[:notice]
       assert_enqueued_with job: PushEventJob, args: [ @work.events.find_by!(summary: "Dentist").id, :create ]
     end

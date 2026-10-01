@@ -23,6 +23,50 @@ class CalendarsTest < ApplicationSystemTestCase
     end
   end
 
+  test "moving through the weeks keeps the page, and with it a call in the corner" do
+    visit tool_calendar_path(@tool, week_start: "2030-01-07")
+    wait_for_stimulus "calendar"
+    execute_script("window.pageNeverReloaded = true")
+
+    find("button[title^='Next week']").click
+    assert_current_path tool_calendar_path(@tool, week_start: "2030-01-14")
+    wait_for_stimulus "calendar"
+    find("button[title^='Today']").click
+    assert_current_path tool_calendar_path(@tool, week_start: Date.current.beginning_of_week(:monday).iso8601)
+
+    assert evaluate_script("window.pageNeverReloaded === true"), "the page was loaded anew"
+  end
+
+  test "picking a date goes to its week, with a picker every browser has" do
+    visit tool_calendar_path(@tool, week_start: "2030-01-07")
+    wait_for_stimulus "calendar"
+
+    # Safari and Firefox have no week picker; every browser has one for dates
+    picker = find("input[type=date][data-calendar-target='weekInput']", visible: :all)
+    picker.execute_script("this.value = '2030-02-14'; this.dispatchEvent(new Event('change', { bubbles: true }))")
+
+    assert_current_path tool_calendar_path(@tool, week_start: "2030-02-11")
+    assert_selector "h1", text: "February 2030"
+  end
+
+  test "an event made for another week shows after it is saved" do
+    visit tool_calendar_path(@tool, week_start: "2030-01-07")
+    wait_for_turbo
+    wait_for_stimulus "calendar"
+
+    click_hour_slot("2030-01-11", 10)
+    within("dialog#new-event-modal[open]") do
+      fill_in "calendars_event[summary]", with: "Dentist"
+      find_field("calendars_event[start_time]").set(Time.utc(2030, 1, 30, 10))
+      find_field("calendars_event[end_time]").set(Time.utc(2030, 1, 30, 11))
+      click_on "Create"
+    end
+
+    assert_text "Event created successfully."
+    assert_current_path tool_calendar_path(@tool, week_start: "2030-01-28")
+    assert_selector "[data-event-id]", text: "Dentist"
+  end
+
   test "a week opens at the start of the day, just under the day names" do
     visit tool_calendar_path(@tool, week_start: "2030-01-07")
     wait_for_stimulus "calendar"

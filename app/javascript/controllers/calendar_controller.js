@@ -169,27 +169,22 @@ export default class extends Controller {
     this.navigateToWeek(monday)
   }
 
+  // A date input, not a week input: Safari and Firefox have no week picker
   openWeekPicker() {
-    if (this.hasWeekInputTarget) {
+    if (!this.hasWeekInputTarget) return
+
+    try {
       this.weekInputTarget.showPicker()
+    } catch {
+      this.weekInputTarget.focus()
+      this.weekInputTarget.click()
     }
   }
 
   jumpToWeek(event) {
-    const weekValue = event.target.value // Format: "2024-W07"
-    if (!weekValue) return
+    if (!event.target.value) return
 
-    const [year, week] = weekValue.split("-W")
-    const date = this.getDateOfISOWeek(parseInt(week), parseInt(year))
-    this.navigateToWeek(date)
-  }
-
-  getDateOfISOWeek(week, year) {
-    const jan4 = new Date(year, 0, 4)
-    const dayOfWeek = jan4.getDay() || 7
-    const monday = new Date(jan4)
-    monday.setDate(jan4.getDate() - dayOfWeek + 1 + (week - 1) * 7)
-    return monday
+    this.navigateToWeek(this.getMonday(this.parseDate(event.target.value)))
   }
 
   previousWeek() {
@@ -210,9 +205,11 @@ export default class extends Controller {
     return new Date(year, month - 1, day)
   }
 
+  // A Turbo visit, not a page load: loading the page anew would end a call that is
+  // going on in the corner (the browser asks "Leave site?" first)
   navigateToWeek(date) {
     const weekStart = this.formatDate(date)
-    window.location.href = `/tools/${this.toolIdValue}/calendar?week_start=${weekStart}`
+    Turbo.visit(`/tools/${this.toolIdValue}/calendar?week_start=${weekStart}`)
   }
 
   getMonday(date) {

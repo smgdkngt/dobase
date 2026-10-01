@@ -51,9 +51,9 @@
       <%= render "components/nav_pill_button", icon: "plus", title: "New event (n)", data: { controller: "hotkey", action: "calendar#newEvent", hotkey: "n" } %>
       <%= render "components/nav_pill_button", icon: "calendar-days", title: "Pick a week", data: { action: "calendar#openWeekPicker" } %>
       <%= render "components/nav_pill_button", icon: "chevron-right", title: "Next week (\u2318\u2192)", data: { controller: "hotkey", action: "calendar#nextWeek", hotkey: "Mod+ArrowRight" } %>
-      <input type="week"
-             aria-label="Jump to week"
-             value="<%= @week_start.strftime("%G-W%V") %>"
+      <input type="date"
+             aria-label="Jump to the week of a date"
+             value="<%= @week_start.iso8601 %>"
              class="absolute opacity-0 pointer-events-none"
              data-action="change->calendar#jumpToWeek"
              data-calendar-target="weekInput">
