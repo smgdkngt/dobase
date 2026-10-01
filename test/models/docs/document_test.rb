@@ -4,6 +4,8 @@ require "test_helper"
 
 module Docs
   class DocumentTest < ActiveSupport::TestCase
+    include ActionCable::TestHelper
+
     test "belongs to a tool" do
       document = docs_documents(:meeting_notes)
       assert_equal tools(:my_docs), document.tool
@@ -148,6 +150,27 @@ module Docs
       touched.touch
 
       assert_equal [ edited, touched ], tool.documents.ordered.where(id: [ edited, touched ]).to_a
+    end
+
+    test "throwing the shared copy away starts a new one and tells the open editors" do
+      document = docs_documents(:meeting_notes)
+      document.updates.create!(data: "\x01")
+
+      assert_broadcast_on(DocumentSyncChannel.broadcasting_for(document), type: "replaced", generation: 1) do
+        assert_difference -> { document.reload.shared_copy_generation }, 1 do
+          document.reset_shared_copy!
+        end
+      end
+
+      assert_empty document.updates
+    end
+
+    test "throwing the shared copy away doesn't count as an edit" do
+      document = docs_documents(:empty_document)
+
+      assert_no_changes -> { document.reload.edited_at } do
+        document.reset_shared_copy!
+      end
     end
   end
 end

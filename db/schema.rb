@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_01_140000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_01_150000) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -311,6 +311,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_01_140000) do
     t.datetime "updated_at", null: false
     t.integer "updated_by_id"
     t.integer "word_count", default: 0, null: false
+    t.integer "shared_copy_generation", default: 0, null: false
     t.index ["created_by_id"], name: "index_documents_on_created_by_id"
     t.index ["locked_by_id"], name: "index_documents_on_locked_by_id"
     t.index ["tool_id", "updated_at"], name: "index_documents_on_tool_id_and_updated_at"

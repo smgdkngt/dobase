@@ -1,4 +1,7 @@
 <% content_for(:title) { "#{@document.title} - #{app_name}" } %>
+<%# The editor opens the document again when its text was replaced from outside it (the API).
+    Morphing the page would leave the old editor standing, with its controller not started again. %>
+<% content_for :turbo_refresh_method, "replace" %>
 
 <div class="tool-layout flex flex-col h-full"
      data-controller="document-editor"

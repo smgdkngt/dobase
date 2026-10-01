@@ -31,8 +31,21 @@ module Docs
     # Throws away the shared copy, so the next page to open the document builds
     # a fresh one from the text as it is saved now. This is what makes a write
     # from outside the editor (the API) stick instead of being edited back out.
+    #
+    # A page that still has the old copy open would go on adding to it, and
+    # changes to a copy that is gone fit nowhere. So each copy has a number:
+    # DocumentSyncChannel takes no more changes for an older one, and the open
+    # editors are told to start over from the saved text. They hear which copy
+    # is the document's now, because the news can reach a page that only just
+    # joined that one.
     def reset_shared_copy!
-      updates.delete_all
+      transaction do
+        updates.delete_all
+        increment!(:shared_copy_generation)
+      end
+
+      current = self.class.where(id: id).pick(:shared_copy_generation)
+      DocumentSyncChannel.broadcast_to(self, { type: "replaced", generation: current })
     end
 
     # When the content was last changed. Taking the edit lock touches updated_at too.

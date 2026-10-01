@@ -74,6 +74,25 @@ module Tools
       assert_equal @user.email_address, body.dig("creator", "email_address")
     end
 
+    test "reading a document through the API leaves its notifications unread" do
+      DocumentCreatedNotifier.with(document: @document, creator: @other_user, tool: @tool).deliver(@user)
+
+      assert_no_difference -> { @user.notifications.unread.count } do
+        get tool_docs_document_path(@tool, @document), headers: @headers
+      end
+
+      assert_response :success
+    end
+
+    test "opening a document in the browser reads its notifications" do
+      DocumentCreatedNotifier.with(document: @document, creator: @other_user, tool: @tool).deliver(@user)
+      sign_in_as @user
+
+      assert_difference -> { @user.notifications.unread.count }, -1 do
+        get tool_docs_document_path(@tool, @document)
+      end
+    end
+
     test "plain-text content keeps headings on their own line" do
       @document.update!(content: "<h2>Brand voice</h2><p>Fun and adventurous</p>")
 
@@ -140,6 +159,29 @@ module Tools
       assert_equal "Updated", response.parsed_body["content"]
       assert_equal "Updated", @document.reload.content.to_plain_text
       assert_equal @user, @document.updated_by
+    end
+
+    test "update throws away the copy the editors shared and tells the ones still open" do
+      @document.updates.create!(data: "\x01")
+
+      assert_broadcast_on(DocumentSyncChannel.broadcasting_for(@document), type: "replaced", generation: 1) do
+        patch tool_docs_document_path(@tool, @document), params: { docs_document: { content: "<p>From outside</p>" } }, headers: @headers, as: :json
+      end
+
+      assert_response :success
+      assert_empty @document.updates.reload
+    end
+
+    test "a save that leaves the content out keeps it" do
+      @document.update!(content: "<p>Still here</p>")
+      sign_in_as @user
+
+      patch tool_docs_document_path(@tool, @document),
+        params: { docs_document: { title: "Renamed" } }, headers: { "Accept" => "application/json" }
+
+      assert_response :success
+      assert_equal "Renamed", @document.reload.title
+      assert_equal "Still here", @document.content.to_plain_text
     end
 
     test "update with a blank title returns errors" do
