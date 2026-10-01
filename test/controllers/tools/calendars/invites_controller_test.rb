@@ -109,6 +109,37 @@ module Tools
         assert_equal [ Time.utc(2030, 10, 7, 8), Time.utc(2030, 10, 21, 12), Time.utc(2030, 10, 28, 9), Time.utc(2030, 11, 4, 9) ], starts
       end
 
+      test "accepting an invite the calendar server already added uses the server's event instead of adding another" do
+        calendar = calendars_calendars(:personal)
+        synced = calendar.events.create!(uid: @own_invite.uid, summary: "Planning session (room 4)", starts_at: 2.days.from_now, ends_at: 2.days.from_now + 1.hour,
+          etag: "from-server", remote_href: "#{calendar.remote_url}planning.ics")
+
+        assert_no_difference -> { ::Calendars::Event.count } do
+          post tool_calendar_invites_path(@calendar_tool), params: { invite_id: @own_invite.id, calendar_id: calendar.id }
+        end
+
+        assert_equal [ "accepted", calendar, synced ], [ @own_invite.reload.status, @own_invite.added_to_calendar, @own_invite.created_event ]
+        assert_equal [ "Planning session (room 4)", "from-server" ], [ synced.reload.summary, synced.etag ]
+        assert_no_enqueued_jobs only: PushEventJob
+      end
+
+      test "accepting a newer invitation for an event added from an earlier one moves that event" do
+        calendar = calendars_calendars(:personal)
+        post tool_calendar_invites_path(@calendar_tool), params: { invite_id: @own_invite.id, calendar_id: calendar.id }
+        event = calendar.events.find_by!(uid: @own_invite.uid)
+        event.update!(etag: "pushed", remote_href: "#{calendar.remote_url}#{event.uid}.ics")
+        moved = mails_messages(:inbox_read).calendar_invites.create!(uid: @own_invite.uid, summary: "Planning session (moved)", status: "pending",
+          starts_at: Time.utc(2031, 3, 4, 13), ends_at: Time.utc(2031, 3, 4, 14))
+
+        assert_no_difference -> { ::Calendars::Event.count } do
+          post tool_calendar_invites_path(@calendar_tool), params: { invite_id: moved.id, calendar_id: calendar.id }
+        end
+
+        assert_equal [ "Planning session (moved)", Time.utc(2031, 3, 4, 13) ], [ event.reload.summary, event.starts_at ]
+        assert_equal [ "accepted", event ], [ moved.reload.status, moved.created_event ]
+        assert_enqueued_with job: PushEventJob, args: [ event.id, :update ]
+      end
+
       test "accepting an invite without a title adds an untitled event" do
         @own_invite.update!(summary: nil)
         calendar = calendars_calendars(:personal)

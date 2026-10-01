@@ -13,21 +13,15 @@ module Tools
         @invite = accessible_invites.find(params[:invite_id] || params[:id])
         @calendar = find_target_calendar
 
-        # Create event from invite
-        @event = @calendar.events.build(
-          uid: @invite.uid,
-          summary: @invite.summary.presence || ::Calendars::Event::UNTITLED,
-          description: @invite.description,
-          location: @invite.location,
-          starts_at: @invite.starts_at,
-          ends_at: @invite.ends_at,
-          all_day: @invite.all_day,
-          organizer_email: @invite.organizer_email,
-          organizer_name: @invite.organizer_name,
-          attendees: @invite.attendees,
-          raw_icalendar: @invite.raw_icalendar,
-          **invite_recurrence
-        )
+        # Nothing keeps a calendar from holding an event twice, so one that is there already is used:
+        # the server's own copy as it is, one added from an earlier invitation with what this one says
+        @event = @calendar.events.find_by(uid: @invite.uid) || @calendar.events.build(uid: @invite.uid)
+        push = if @event.new_record?
+          :create
+        elsif ::Calendars::Invite.exists?(created_event_id: @event.id)
+          @event.remote_href.present? ? :update : :create
+        end
+        @event.assign_attributes(invite_attributes) if push
 
         if @event.save
           @invite.update!(
@@ -36,7 +30,7 @@ module Tools
             created_event: @event
           )
 
-          PushEventJob.perform_later(@event.id, :create)
+          PushEventJob.perform_later(@event.id, push) if push
           # Back to the email, like declining. The calendar answers Turbo form redirects with a refresh stream,
           # which would refresh the mail page anyway instead of navigating to the calendar.
           redirect_back fallback_location: tool_calendar_path(@tool, week_start: @event.first_day), notice: "Invite accepted and added to calendar."
@@ -70,13 +64,34 @@ module Tools
           .where(mail_accounts: { tool_id: current_user.accessible_tools.select(:id) })
       end
 
+      def invite_attributes
+        {
+          summary: @invite.summary.presence || ::Calendars::Event::UNTITLED,
+          description: @invite.description,
+          location: @invite.location,
+          starts_at: @invite.starts_at,
+          ends_at: @invite.ends_at,
+          all_day: @invite.all_day,
+          organizer_email: @invite.organizer_email,
+          organizer_name: @invite.organizer_name,
+          attendees: @invite.attendees,
+          raw_icalendar: @invite.raw_icalendar,
+          **invite_recurrence
+        }
+      end
+
       # An invitation to a series repeats like the series: the invite itself only holds the first occurrence,
       # so the rule, the skipped and the moved occurrences come from its iCalendar data, like a synced event's
       def invite_recurrence
         parsed = IcsParserService.new(@invite.raw_icalendar, time_zone: @invite.mail_message.account.tool.owner.timezone).parse
-        return {} unless parsed[:uid] == @invite.uid && parsed[:rrule].present?
+        parsed = {} unless parsed[:uid] == @invite.uid
 
-        { is_recurring: true, **parsed.slice(:rrule, :recurrence_schedule, :recurrence_overrides) }
+        {
+          is_recurring: parsed[:rrule].present?,
+          rrule: parsed[:rrule],
+          recurrence_schedule: parsed[:recurrence_schedule],
+          recurrence_overrides: parsed[:recurrence_overrides] || []
+        }
       end
 
       def find_target_calendar
