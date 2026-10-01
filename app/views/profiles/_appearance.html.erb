@@ -1,13 +1,34 @@
 <%# Locals: user %>
+<%= render "shared/flash", position: :inline %>
+
 <%
   current = user.theme
   # A palette of their own (sent by `dobase theme sync`) is shown next to the built-in ones
   custom = current if user.theme_colors.present?
 %>
-<h3 class="text-sm font-semibold text-text-primary mb-1">Theme</h3>
-<p class="text-xs text-text-tertiary mb-4">The colours you see <%= app_name %> in, on every device you're signed in on.</p>
+<h3 class="text-sm font-semibold text-text-primary mb-1">Typeface</h3>
+<p class="text-xs text-text-tertiary mb-4">What everything is set in. Monospace is your system's monospace font: on Omarchy, the font the desktop is in.</p>
 
-<%= render "shared/flash", position: :inline %>
+<%= form_with url: appearance_path, method: :patch, data: { turbo_frame: "_top" } do %>
+  <div class="theme-grid">
+    <% [ [ nil, app_name, "The system's own font" ], [ "mono", "Monospace", "Like a terminal" ] ].each do |typeface, label, hint| %>
+      <% selected = user.typeface.presence_in(Theme::TYPEFACES) == typeface %>
+      <%= tag.button type: "submit", name: "typeface", value: typeface.to_s,
+            class: [ "theme-option", ("theme-option-selected" if selected) ],
+            aria: { pressed: selected, label: "#{label} typeface" } do %>
+        <span class="typeface-sample <%= typeface ? "typeface-sample-mono" : "typeface-sample-ui" %>" aria-hidden="true">Ag 123</span>
+        <span class="theme-option-label">
+          <span class="truncate"><%= label %></span>
+          <% if selected %><%= render "shared/icon", name: "check", size: 14, class: "text-accent shrink-0" %><% end %>
+        </span>
+        <span class="theme-option-hint"><%= hint %></span>
+      <% end %>
+    <% end %>
+  </div>
+<% end %>
+
+<h3 class="text-sm font-semibold text-text-primary mt-6 mb-1">Theme</h3>
+<p class="text-xs text-text-tertiary mb-4">The colours you see <%= app_name %> in, on every device you're signed in on.</p>
 
 <%= form_with url: appearance_path, method: :patch, data: { turbo_frame: "_top" } do %>
   <div class="theme-grid">

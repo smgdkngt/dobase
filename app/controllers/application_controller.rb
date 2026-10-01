@@ -25,7 +25,9 @@ class ApplicationController < ActionController::Base
   def remember_theme
     return unless current_user && Current.session && request.format.html?
 
-    theme = { name: current_user.theme_name, colors: current_user.theme_colors }.to_json if current_user.theme_name.present?
+    if current_user.theme_name.present? || current_user.typeface.present?
+      theme = { name: current_user.theme_name, colors: current_user.theme_colors, typeface: current_user.typeface }.compact.to_json
+    end
     return if cookies.signed[:theme] == theme
 
     if theme

@@ -613,7 +613,7 @@
     pre { @apply bg-background-secondary p-1.5 rounded my-1 overflow-x-auto text-xs; }
     pre code { @apply bg-transparent p-0; }
     ul { @apply list-disc pl-4 my-0.5; }
-    ol { @apply list-decimal pl-4 my-0.5; }
+    ol { @apply list-decimal pl-5 my-0.5; }
     li { @apply my-0; }
     blockquote { @apply border-l-2 border-border pl-2 text-text-secondary italic my-0.5; }
     h1, h2, h3, h4 { @apply font-semibold text-inherit my-0.5; }
@@ -856,6 +856,19 @@
     background: #1c1c1e;
     .theme-swatch-line { background: #f5f5f7; }
     .theme-swatch-button { background: #0064d2; }
+  }
+
+  /* A typeface, shown in itself */
+  .typeface-sample {
+    @apply flex h-16 items-center justify-center rounded-lg border border-border-light bg-background text-xl text-text-primary;
+  }
+
+  .typeface-sample-ui {
+    font-family: var(--font-family-ui);
+  }
+
+  .typeface-sample-mono {
+    font-family: var(--font-family-mono);
   }
 
   .theme-command {

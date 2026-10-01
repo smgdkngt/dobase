@@ -12,7 +12,7 @@ class ThemesTest < ApplicationSystemTestCase
     visit edit_profile_path(tab: "appearance")
     assert_selector "html[data-theme-version='default']"
 
-    find("button.theme-option[value='tokyo-night']").click
+    find("button.theme-option[name='theme'][value='tokyo-night']").click
 
     assert_selector "html[data-theme='tokyo-night'][data-theme-mode='dark']"
     assert_selector "button.theme-option-selected[value='tokyo-night']"
@@ -31,7 +31,7 @@ class ThemesTest < ApplicationSystemTestCase
     visit edit_profile_path(tab: "appearance")
     assert_selector "html[data-theme='gruvbox']"
 
-    find("button.theme-option[value='']").click
+    find("button.theme-option[name='theme'][value='']").click
 
     assert_selector "html[data-theme-version='default']:not([data-theme])"
     assert_equal "", page.evaluate_script("document.documentElement.style.getPropertyValue('--color-background')")
@@ -52,6 +52,23 @@ class ThemesTest < ApplicationSystemTestCase
 
     @user.choose_theme(nil)
     assert_selector "html[data-theme-version='default']:not([data-theme])"
+  end
+
+  test "monospace sets the whole interface in the monospace font, and Dobase takes it back" do
+    visit edit_profile_path(tab: "appearance")
+    own = page.evaluate_script("getComputedStyle(document.body).fontFamily")
+    assert_no_match(/monospace/, own)
+
+    find("button.theme-option[name='typeface'][value='mono']").click
+
+    assert_selector "html[data-typeface='mono']"
+    assert_selector "button.theme-option-selected[name='typeface'][value='mono']"
+    assert_match(/monospace/, page.evaluate_script("getComputedStyle(document.body).fontFamily"))
+
+    find("button.theme-option[name='typeface'][value='']").click
+
+    assert_selector "html:not([data-typeface])"
+    assert_equal own, page.evaluate_script("getComputedStyle(document.body).fontFamily")
   end
 
   test "the command palette puts a theme on, right where you are" do

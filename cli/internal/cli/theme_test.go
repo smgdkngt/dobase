@@ -26,6 +26,10 @@ func (f *themeAPI) Request(method api.Method, path string, _ []api.Param, body a
 	if method == api.Patch {
 		sent := api.Of(body)
 		*f.sent = append(*f.sent, sent)
+		if sent.Has("typeface") {
+			f.current = f.current.With("typeface", sent.Get("typeface"))
+			return f.current, nil
+		}
 		name := sent.Get("theme")
 		switch {
 		case name.IsNull():
@@ -89,6 +93,38 @@ func TestThemeSetAndList(t *testing.T) {
 
 	if err := invoke(ctx, "theme set", "no-such"); err == nil || !strings.Contains(err.Error(), "Unknown theme") {
 		t.Errorf("got %v", err)
+	}
+}
+
+func TestThemeFontSetsTheTypeface(t *testing.T) {
+	ctx, out, sent := themeCtx(t)
+
+	if err := invoke(ctx, "theme font", "Mono"); err != nil {
+		t.Fatal(err)
+	}
+	if got := (*sent)[0].JSON(); got != `{"typeface":"mono"}` {
+		t.Errorf("sent %s", got)
+	}
+	if !strings.Contains(out.String(), "set in your monospace font") {
+		t.Errorf("out %q", out.String())
+	}
+
+	out.Reset()
+	if err := invoke(ctx, "theme font", "default"); err != nil {
+		t.Fatal(err)
+	}
+	if got := (*sent)[1].JSON(); got != `{"typeface":null}` {
+		t.Errorf("sent %s", got)
+	}
+	if !strings.Contains(out.String(), "back in its own typeface") {
+		t.Errorf("out %q", out.String())
+	}
+
+	if err := invoke(ctx, "theme font", "comic sans"); err == nil || !strings.Contains(err.Error(), "mono or default") {
+		t.Errorf("got %v", err)
+	}
+	if len(*sent) != 2 {
+		t.Errorf("sent %d requests", len(*sent))
 	}
 }
 

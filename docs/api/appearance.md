@@ -14,6 +14,7 @@ light or dark with the system. The built-in themes are the ones
   "label": "Tokyo Night",
   "mode": "dark",
   "custom": false,
+  "typeface": null,
   "colors": { "background": "#1a1b26", "foreground": "#a9b1d6", "accent": "#7aa2f7", "red": "#f7768e" },
   "version": "tokyo-night-5b0c2a91",
   "style": "color-scheme: dark; --color-background: #1a1b26; …",
@@ -26,6 +27,8 @@ light or dark with the system. The built-in themes are the ones
 ```
 
 - `name`, `label` and `mode` are `null` on the app's own look.
+- `typeface` is `"mono"` when the whole interface is set in the monospace font,
+  `null` for the app's own typeface.
 - `custom` says the colours are your own rather than a built-in theme's.
 - `colors` is the palette the theme is made from (`null` on the app's own
   look), for a client that draws itself.
@@ -87,6 +90,15 @@ An unknown name without colours, or colours that don't make a palette, is a
 ```json
 { "error": "Unknown theme. Pick one of the built-in themes, or send its colors." }
 ```
+
+## Pick a typeface
+
+`PATCH /appearance` with `{ "typeface": "mono" }` sets the whole interface in
+the system's monospace font; `{ "typeface": null }` goes back to the app's own.
+On an Omarchy desktop the monospace font is the one the desktop is set in
+(`omarchy font set`), so there is nothing to send along.
+
+A request changes what it names: `theme`, `typeface`, or both.
 
 ## Following an Omarchy desktop
 

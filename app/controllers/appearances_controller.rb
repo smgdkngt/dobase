@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-# The colours someone sees the app in: a built-in theme, a palette of their own, or
-# the app's own look. It is cosmetic, so a token may set it, which is how
+# The colours and the typeface someone sees the app in: a built-in theme, a palette of
+# their own, or the app's own look. It is cosmetic, so a token may set it, which is how
 # `dobase theme sync` keeps the app on the theme of an Omarchy desktop.
 class AppearancesController < ApplicationController
   allow_access_tokens
@@ -13,6 +13,7 @@ class AppearancesController < ApplicationController
     end
   end
 
+  # Changes what the request names: the theme, the typeface, or both
   def update
     name = params[:theme].to_s.strip
 
@@ -23,7 +24,8 @@ class AppearancesController < ApplicationController
       end
     end
 
-    current_user.choose_theme(name, colors)
+    current_user.choose_theme(name, colors) if params.key?(:theme)
+    current_user.choose_typeface(params[:typeface]) if params.key?(:typeface)
 
     respond_to do |format|
       format.html { redirect_to edit_profile_path(tab: "appearance"), status: :see_other }

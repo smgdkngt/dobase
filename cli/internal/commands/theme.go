@@ -16,6 +16,7 @@ func theme() []*Definition {
 	return []*Definition{
 		New("theme list", "List the themes Dobase comes with (* = yours)", nil, nil, listThemes),
 		New("theme set", "Wear a built-in theme; `default` is Dobase's own light and dark", []string{"NAME"}, nil, setTheme),
+		New("theme font", "Set everything in your monospace font (mono), or in Dobase's own again (default)", []string{"NAME"}, nil, setTypeface),
 		New("theme sync", "Wear the theme your Omarchy desktop is on, colours and all", nil,
 			[]Flag{F("file", "PATH", "A colors.toml to read instead of the desktop's current theme"),
 				F("name", "NAME", "What to call it (default: the desktop theme's name)")}, syncTheme),
@@ -58,6 +59,31 @@ func setTheme(ctx *Ctx, args *Args) error {
 	}
 	return ctx.Output(appearance, func() error {
 		ctx.Say(wearing(appearance))
+		return nil
+	})
+}
+
+func setTypeface(ctx *Ctx, args *Args) error {
+	name := strings.ToLower(strings.TrimSpace(args.At(0)))
+	body := map[string]any{"typeface": name}
+	switch name {
+	case "mono", "monospace":
+		body["typeface"] = "mono"
+	case "default", "dobase":
+		body["typeface"] = nil
+	default:
+		return api.Usagef("The typeface is mono or default, not %s.", Quoted(args.At(0)))
+	}
+	appearance, err := ctx.Patch("/appearance", body)
+	if err != nil {
+		return err
+	}
+	return ctx.Output(appearance, func() error {
+		if appearance.Get("typeface").S() == "mono" {
+			ctx.Say("Dobase is set in your monospace font now.")
+		} else {
+			ctx.Say("Dobase is back in its own typeface.")
+		}
 		return nil
 	})
 }

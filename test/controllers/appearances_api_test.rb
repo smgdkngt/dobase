@@ -84,6 +84,22 @@ class AppearancesApiTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
+  test "update sets the typeface, and leaves the theme as it is" do
+    @user.choose_theme("nord")
+
+    patch appearance_path, params: { typeface: "mono" }, headers: @headers, as: :json
+
+    assert_response :success
+    assert_equal "mono", response.parsed_body["typeface"]
+    assert_equal "nord", response.parsed_body["name"]
+    assert_equal "#{Theme.find("nord").version}+mono", response.parsed_body["version"]
+
+    patch appearance_path, params: { typeface: nil }, headers: @headers, as: :json
+    assert_nil response.parsed_body["typeface"]
+    assert_nil @user.reload.typeface
+    assert_equal "nord", @user.theme_name
+  end
+
   test "a read token can look but not change" do
     headers = api_headers(@user, permission: "read", name: "Read only")
 
