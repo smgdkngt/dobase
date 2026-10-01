@@ -524,6 +524,65 @@ class MailsTest < ApplicationSystemTestCase
     assert_db_change(-> { account.reload.syncing? })
   end
 
+  test "auto-refresh waits while conversations are ticked, a search is typed or a dialog is open" do
+    account = @tool.mail_account
+    visit tool_mails_path(@tool)
+    wait_for_stimulus "mail-refresh"
+    wait_for_stimulus "mail-bulk"
+
+    first(".mail-list-checkbox").click
+    auto_refresh_mail
+    assert first(".mail-list-checkbox").checked?, "the refresh unticked the conversation"
+    first(".mail-list-checkbox").click
+
+    find("input[type=search]").send_keys("week")
+    auto_refresh_mail
+    assert_equal "week", find("input[type=search]").value
+    find("input[type=search]").send_keys([ :backspace ] * 4)
+
+    find("[data-action~='click->sidebar#editTool'][data-tool-id='#{@tool.id}']", visible: :all).execute_script("this.click()")
+    assert_selector "dialog#edit-tool-modal[open]"
+    auto_refresh_mail
+    assert_selector "dialog#edit-tool-modal[open]"
+    assert account.reload.synced?, "the mail page asked for a sync"
+
+    find("dialog#edit-tool-modal[open]").send_keys(:escape)
+    assert_no_selector "dialog[open]"
+    execute_script("document.activeElement.blur()")
+    auto_refresh_mail
+    assert account.reload.syncing?, "the mail page didn't refresh once it could"
+  end
+
+  test "a refresh keeps the images the reader asked for" do
+    message = mails_messages(:inbox_unread)
+    message.update!(body_html: %(<p>Our logo</p><img src="https://images.example.invalid/logo.png" alt="logo">))
+    visit tool_mail_path(@tool, message)
+    wait_for_stimulus "email-frame"
+
+    click_on "Show images"
+    assert_no_text "Images are hidden"
+    auto_refresh_mail
+
+    assert @tool.mail_account.reload.syncing?
+    assert_no_text "Images are hidden"
+    assert_includes find("iframe[data-email-frame-target=frame]")["srcdoc"], %(src="https://images.example.invalid/logo.png")
+  end
+
+  test "a refresh keeps an earlier message of the conversation open" do
+    visit tool_mail_path(@tool, mails_messages(:sent_message))
+    wait_for_stimulus "collapse"
+    assert_selector "[data-collapse-target=content]", text: "Thanks for the report."
+    assert_no_selector "[data-collapse-target=content]", text: "Here is your weekly report summary."
+
+    find("button[data-action='click->collapse#toggle']", text: "Reports Bot").click
+    assert_selector "[data-collapse-target=content]", text: "Here is your weekly report summary."
+    auto_refresh_mail
+
+    assert @tool.mail_account.reload.syncing?
+    assert_selector "[data-collapse-target=content]", text: "Here is your weekly report summary."
+    assert_selector "[data-collapse-target=content]", text: "Thanks for the report."
+  end
+
   test "mail settings that can't be saved show what to fix" do
     open_mail_settings
     within "dialog#edit-tool-modal[open]" do
@@ -541,6 +600,15 @@ class MailsTest < ApplicationSystemTestCase
   end
 
   private
+
+  # What the auto-refresh timer does when its minute is up
+  def auto_refresh_mail
+    page.evaluate_async_script(<<~JS)
+      const element = document.querySelector("[data-controller~='mail-refresh']")
+      window.Stimulus.getControllerForElementAndIdentifier(element, "mail-refresh").sync().then(arguments[0])
+    JS
+    wait_for_turbo
+  end
 
   # The editor takes the prefilled body, and typing, once it has started. Headless Chrome
   # can drop input that arrives before the page has shown a frame, so wait for two.

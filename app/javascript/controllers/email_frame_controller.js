@@ -4,6 +4,15 @@ export default class extends Controller {
   static targets = ["frame", "banner"]
   static values = { fullSrcdoc: String }
 
+  connect() {
+    this._keepImages = this._keepImages.bind(this)
+    this.element.addEventListener("turbo:before-morph-attribute", this._keepImages)
+  }
+
+  disconnect() {
+    this.element.removeEventListener("turbo:before-morph-attribute", this._keepImages)
+  }
+
   frameTargetConnected(iframe) {
     this.loadHandler = () => this.resize(iframe)
     iframe.addEventListener("load", this.loadHandler)
@@ -27,15 +36,29 @@ export default class extends Controller {
     }
   }
 
+  // The banner is hidden rather than removed: a morph refresh matches elements by their
+  // place, and with one gone it would take the frame for the banner and build a new frame
   showImages() {
     if (!this.fullSrcdocValue) return
 
-    const iframe = this.frameTarget
-    iframe.srcdoc = this.fullSrcdocValue
+    this.frameTarget.srcdoc = this.fullSrcdocValue
+    this._shown = this.fullSrcdocValue
 
-    if (this.hasBannerTarget) {
-      this.bannerTarget.remove()
-    }
+    if (this.hasBannerTarget) this.bannerTarget.hidden = true
+  }
+
+  // Only for the same email: after a refresh this frame can hold another message of the
+  // conversation
+  get showingImages() {
+    return Boolean(this._shown) && this._shown === this.fullSrcdocValue
+  }
+
+  // Images the reader asked for stay through a morph refresh, which would otherwise put
+  // back the frame without them, and the banner
+  _keepImages(event) {
+    const kept = { frame: "srcdoc", banner: "hidden" }[event.target.dataset.emailFrameTarget]
+
+    if (kept && kept === event.detail.attributeName && this.showingImages) event.preventDefault()
   }
 
   resize(iframe) {

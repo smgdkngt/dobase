@@ -41,8 +41,21 @@ export default class extends Controller {
     }
   }
 
+  // The refresh morphs the page back to what the server renders: it closes dialogs and
+  // menus, unticks the bulk checkboxes and empties a field that is being typed in. So it
+  // waits for a later turn while one of those is going on.
+  get busy() {
+    if (document.querySelector("dialog[open], [popover]:popover-open")) return true
+    if (this.element.querySelector("[data-mail-bulk-target='checkbox']:checked")) return true
+
+    const field = document.activeElement
+    if (!field) return false
+    if (field.isContentEditable || field.shadowRoot?.activeElement) return true
+    return field.matches("input, textarea") && field.value !== field.defaultValue
+  }
+
   async sync() {
-    if (this.syncing || !this.urlValue) return
+    if (this.syncing || !this.urlValue || this.busy) return
     this.syncing = true
     if (this.hasIndicatorTarget) this.indicatorTarget.classList.remove("hidden")
 
