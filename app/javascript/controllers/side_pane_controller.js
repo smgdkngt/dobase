@@ -31,6 +31,8 @@ export default class extends Controller {
 
     this.listening = new AbortController()
     this.listen(document, "click", (event) => this.clicked(event), true)
+    this.listen(document, "keydown", (event) => this.keyed(event))
+    this.listen(document, "turbo:visit", (event) => { this.visitAction = event.detail.action })
     this.listen(document, "turbo:load", () => this.pageChanged())
     // The sidebar is drawn again by the server; say once more what is beside
     this.listen(document, "turbo:render", () => this.markSidebar())
@@ -38,7 +40,7 @@ export default class extends Controller {
     this.listen(window, "message", (event) => this.heard(event))
     this.listen(window, "resize", () => this.applyWidth())
     this.listen(window, "pagehide", () => this.remember())
-    this.listen(window, "side-pane:open", (event) => this.open(event.detail.url))
+    this.listen(window, "side-pane:open", (event) => { if (this.open(event.detail.url)) event.preventDefault() })
     this.listen(window, "side-pane:toggle", (event) => this.toggle(event.detail.url))
     this.listen(window, "theme:change", (event) => this.tell("theme", { theme: event.detail }))
     this.listen(this.wide, "change", () => this.show())
@@ -58,16 +60,31 @@ export default class extends Controller {
 
   // ── Opening and closing ──
 
+  // True when the pane took it: whoever asked (the command palette) otherwise opens
+  // the page the usual way
   open(url) {
     const path = pathOf(url)
-    if (!path || !this.wide.matches) return
+    if (!path || !this.wide.matches) return false
 
-    this.state.url = path
-    this.save()
+    if (this.frame) {
+      this.goTo(path)
+    } else {
+      this.state.url = path
+      this.save()
+    }
     this.show()
+    return true
   }
 
-  close() {
+  // The close button, and the sidebar button of the tool that is beside
+  async close() {
+    if (this.frameHasUnfinishedWork() && !(await this.confirmed())) return
+
+    this.forget()
+  }
+
+  // Closes without asking: the page beside is gone already, or there is nothing on it
+  forget() {
     // Focus that was in the pane (its close button, the tool itself) goes to the main tool
     const focusWasHere = this.element.contains(document.activeElement)
 
@@ -87,11 +104,23 @@ export default class extends Controller {
 
   // The tool beside becomes the main one, and the main one goes beside
   swap() {
-    const beside = this.currentUrl()
+    const beside = this.frameAddress || this.state.url
     if (!beside) return
 
-    this.open(location.pathname + location.search)
-    Turbo.visit(beside)
+    // Either page may not want to leave (an unsent mail asks first). If the one beside
+    // stays, nothing moves; if the main one stays, the one beside goes back.
+    if (!this.goTo(location.pathname + location.search)) return
+    if (!this.visitMain(beside)) this.goTo(beside)
+  }
+
+  // False when the main page wouldn't go. Turbo says "turbo:visit" at once when a visit is on.
+  visitMain(url) {
+    const started = () => { this.swapping = true }
+    this.swapping = false
+    document.addEventListener("turbo:visit", started, { once: true })
+    Turbo.visit(url)
+    document.removeEventListener("turbo:visit", started)
+    return this.swapping
   }
 
   // To the tool beside with the keyboard; F6 there comes back
@@ -107,7 +136,9 @@ export default class extends Controller {
     return this.slotTarget.querySelector("iframe")
   }
 
-  // Draws what the state says: the page at state.url in a frame, or nothing
+  // Draws what the state says: the page at state.url in a frame, or nothing.
+  // A window that is only too narrow keeps the page it has, out of sight: taking the
+  // frame away would take a half-written message or a call with it.
   show() {
     const open = Boolean(this.state.url) && this.wide.matches
 
@@ -115,28 +146,42 @@ export default class extends Controller {
     if (open) {
       this.root.dataset.sidePane = "open"
       this.applyWidth()
-      this.showPage(this.state.url)
+      if (!this.frame) this.slotTarget.append(this.frameFor(this.state.url))
     } else {
       delete this.root.dataset.sidePane
       this.root.style.removeProperty("--side-pane-width")
-      this.frame?.remove()
+      if (!this.state.url) this.frame?.remove()
     }
     this.markSidebar()
   }
 
-  showPage(url) {
+  // Sends the page beside somewhere else. False when it wouldn't go: it asked its
+  // person first (an unsent mail does) and they said no. What is beside is only
+  // written down once the page agrees to leave.
+  goTo(path) {
     const frame = this.frame
-    if (!frame) return this.slotTarget.append(this.frameFor(url))
-    if (this.currentUrl() === url) return
+    const page = frame.contentWindow
+    let leaving = true
 
-    // Turbo in the frame gets there without a blank moment; a page without it
-    // (an error page) is replaced whole. Neither adds a step to the back button.
-    try {
-      const turbo = frame.contentWindow.Turbo
-      turbo ? turbo.visit(url, { action: "replace" }) : frame.contentWindow.location.replace(url)
-    } catch {
-      frame.replaceWith(this.frameFor(url))
+    if (this.frameAddress && page.Turbo) {
+      // Turbo in the frame gets there without a blank moment, and without a step for
+      // the back button. It says "turbo:visit" at once when the visit is on.
+      leaving = false
+      const started = () => { leaving = true }
+      page.document.addEventListener("turbo:visit", started, { once: true })
+      page.Turbo.visit(path, { action: "replace" })
+      page.document.removeEventListener("turbo:visit", started)
+    } else {
+      // Nothing there to ask: still loading, or a page that isn't the app's (an error page)
+      frame.replaceWith(this.frameFor(path))
     }
+
+    if (leaving) {
+      this.state.url = path
+      this.save()
+      this.markSidebar()
+    }
+    return leaving
   }
 
   frameFor(url) {
@@ -150,16 +195,36 @@ export default class extends Controller {
     return frame
   }
 
-  // Where the page beside is now: it tells us on every visit, and anything it did
-  // to its address since (a card it opened) is read from the frame itself
-  currentUrl() {
+  // Where the page beside is: read from the frame itself, so anything it did to its
+  // address between visits (a card it opened) counts. Nothing while it is still
+  // loading its first page, or shows a page that isn't the app's.
+  get frameAddress() {
     try {
-      const { pathname, search } = this.frame.contentWindow.location
-      // A frame that hasn't loaded yet is at about:blank
-      return pathname.startsWith("/") ? pathname + search : this.state.url
+      const { protocol, pathname, search } = this.frame.contentWindow.location
+      return protocol.startsWith("http") ? pathname + search : null
     } catch {
-      return this.state.url
+      return null
     }
+  }
+
+  // An unsent mail, a call: the page beside says so the way it would tell the browser
+  // before its tab is closed. A document being written sends its last words on the same
+  // occasion.
+  frameHasUnfinishedWork() {
+    try {
+      const page = this.frame.contentWindow
+      const leaving = new page.Event("beforeunload", { cancelable: true })
+      page.dispatchEvent(leaving)
+      return leaving.defaultPrevented
+    } catch {
+      return false
+    }
+  }
+
+  // The app's own confirmation dialog (application.js), with its button saying Close
+  confirmed() {
+    const message = "Something beside isn't finished: an unsent message, or a call. Close it anyway?"
+    return Turbo.config.forms.confirm(message, null, { dataset: { turboConfirmButton: "Close" } })
   }
 
   // ── What the page beside says (side_pane_page_controller.js) ──
@@ -172,7 +237,7 @@ export default class extends Controller {
     switch (message.sidePane) {
       case "location":
         // Sent away from its tool (deleted, or not yours any more): nothing to keep beside
-        if (!toolIdOf(pathOf(message.url))) return this.close()
+        if (!toolIdOf(pathOf(message.url))) return this.forget()
 
         this.state.url = pathOf(message.url)
         this.save()
@@ -191,7 +256,7 @@ export default class extends Controller {
         break
       case "gone":
         // Signed out, or a page that isn't a tool's: nothing to keep beside
-        this.close()
+        this.forget()
         break
     }
   }
@@ -216,13 +281,29 @@ export default class extends Controller {
     this.open(link.href)
   }
 
+  // F6 goes to the tool beside, and from there back (side_pane_page_controller.js).
+  // Not through the shortcut library: that leaves keys typed in a field alone, and
+  // a field is where you usually are.
+  keyed(event) {
+    if (event.key !== "F6" || !this.shown) return
+
+    event.preventDefault()
+    this.focus()
+  }
+
   pageChanged() {
     const toolId = toolIdOf(location.pathname)
     const arrived = toolId && toolId !== this.mainToolId
+    // Back and forward return to a page as it was, and leave the pane as it is
+    const returned = this.visitAction === "restore"
+    // The two just traded places, and the page beside may not have said where it is yet
+    const swapped = this.swapping
     this.mainToolId = toolId
+    this.visitAction = null
+    this.swapping = false
 
     // The tool that was beside is the main one now: it has moved over
-    if (arrived && this.shown && toolId === toolIdOf(this.state.url)) return this.close()
+    if (arrived && !returned && !swapped && this.shown && toolId === toolIdOf(this.state.url)) this.close()
 
     this.markSidebar()
   }
@@ -325,9 +406,9 @@ export default class extends Controller {
   }
 
   remember() {
-    if (!this.frame) return
+    if (!this.frameAddress) return
 
-    this.state.url = this.currentUrl()
+    this.state.url = this.frameAddress
     this.save()
   }
 }
@@ -340,7 +421,7 @@ function pathOf(url) {
 
   try {
     const address = new URL(url, location.origin)
-    const path = address.pathname + address.search
+    const path = address.pathname + address.search + address.hash
     return address.origin === location.origin && !path.startsWith("//") ? path : null
   } catch {
     return null

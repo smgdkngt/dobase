@@ -322,7 +322,9 @@ A tool's button in the sidebar, Alt+click on a tool or on a link to one, or Alt+
 - The page in the frame is drawn without the sidebar, the notifications and the bottom bar: `side_pane?` (`ApplicationController`) is true for `Sec-Fetch-Dest: iframe` (the browser's first load) and for the `X-Side-Pane` header Turbo sends from inside the frame (`application.js`). `<html data-in-side-pane>` marks such a page; it runs `side_pane_page_controller.js`, which tells the page around it where it is (`postMessage`) and hands over `b` and `F6`. It keeps its own command palette and shortcuts.
 - Its window is narrow, so a tool beside gets the **narrow-screen layout** by the same media queries a phone does, minus the bottom bar (`side_pane.css`). The main tool keeps the desktop layout in less room; rules for very wide windows must not apply then (`:root:not([data-side-pane])`, see the mail folder column).
 - Whatever is `fixed` to the right edge of the window keeps clear with `var(--side-pane-width)` (toasts, the call window).
-- What is beside and how wide is kept in `localStorage` per person. A pane request touches `last_seen_at` but never `last_visited_path`.
+- What is beside and how wide is kept in `localStorage` per person, and only written once the page in the frame agrees to leave (an unsent mail asks first; `goTo`). A pane request touches `last_seen_at` but never `last_visited_path`.
+- Taking the frame away takes its page along without the browser asking, so the pane asks itself: it sends the page a `beforeunload` of its own and, when that is refused (an unsent mail, a call), shows the confirmation dialog. A window that gets too narrow hides the pane and keeps the frame.
+- On plain HTTP outside localhost browsers send no `Sec-Fetch-Dest`: the first page in the pane is then drawn whole and asked for again (`application.js`), and that first request counts as the last visited page.
 - The service worker leaves frame navigations alone: fetched from there they lose `Sec-Fetch-Dest`. System tests switch the service worker off, so that path is only seen in a real browser.
 
 ### Component System

@@ -8,7 +8,9 @@ export default class extends Controller {
   connect() {
     this._onMessage = (event) => this.heard(event)
     this._onLoad = () => this.report()
+    this._onKey = (event) => this.keyed(event)
     window.addEventListener("message", this._onMessage)
+    document.addEventListener("keydown", this._onKey)
     // Once the visit is done as well: a page that was redirected to still has the
     // address that was asked for while it is being drawn
     document.addEventListener("turbo:load", this._onLoad)
@@ -18,6 +20,7 @@ export default class extends Controller {
   disconnect() {
     window.removeEventListener("message", this._onMessage)
     document.removeEventListener("turbo:load", this._onLoad)
+    document.removeEventListener("keydown", this._onKey)
   }
 
   report() {
@@ -35,8 +38,12 @@ export default class extends Controller {
     this.say("notifications")
   }
 
-  // Back to the main tool with the keyboard
-  leave() {
+  // F6 goes back to the main tool. Not through the shortcut library: that leaves keys
+  // typed in a field alone, and a field is where you usually are.
+  keyed(event) {
+    if (event.key !== "F6") return
+
+    event.preventDefault()
     this.say("leave")
   }
 

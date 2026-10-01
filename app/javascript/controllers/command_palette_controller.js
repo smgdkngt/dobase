@@ -162,15 +162,15 @@ export default class extends Controller {
       return
     }
 
-    // Tool items have an href — navigate via Turbo, or with Alt open it beside
-    // (side_pane_controller.js, which a page that is itself beside doesn't have)
+    // Tool items have an href — navigate via Turbo, or with Alt open it beside.
+    // The pane (side_pane_controller.js) says when it took it; it doesn't in a narrow
+    // window, and a page that is itself beside has none.
     this.element.close()
     if (!selected.href) return
 
-    if (beside && document.getElementById("side-pane")) {
-      window.dispatchEvent(new CustomEvent("side-pane:open", { detail: { url: selected.href } }))
-    } else {
-      Turbo.visit(selected.href)
-    }
+    const opening = new CustomEvent("side-pane:open", { cancelable: true, detail: { url: selected.href } })
+    if (beside && !window.dispatchEvent(opening)) return
+
+    Turbo.visit(selected.href)
   }
 }

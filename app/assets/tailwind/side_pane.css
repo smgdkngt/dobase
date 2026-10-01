@@ -72,10 +72,6 @@
   margin-right: var(--side-pane-width);
 }
 
-:root[data-side-pane][data-resizing] body {
-  transition: none;
-}
-
 /* ── A page that is itself shown beside another: the tool alone ── */
 
 :root[data-in-side-pane] {
