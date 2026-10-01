@@ -299,11 +299,33 @@ func (c *Client) Download(path, destination string) (string, error) {
 			err = closeErr
 		}
 		if err != nil {
+			// Part of a file passes for the file: better none.
+			os.Remove(destination)
 			return "", Failf("Download failed: %v", err)
 		}
 		return filename, nil
 	}
 	return "", Failf("Too many redirects")
+}
+
+// DownloadWhole downloads like server.Download and then checks that the file
+// is size bytes long: its size as the API gave it, or null when there's none
+// to check. A server that fails halfway can end a download as if it were
+// done; a file that came up short is removed.
+func DownloadWhole(server API, path, destination string, size Value) (string, error) {
+	filename, err := server.Download(path, destination)
+	if err != nil || size.IsNull() {
+		return filename, err
+	}
+	info, err := os.Stat(destination)
+	if err != nil {
+		return "", PathError(destination, err)
+	}
+	if info.Size() != size.Int() {
+		os.Remove(destination)
+		return "", Failf("Download failed: %s came in at %d of %d bytes. Try again.", filepath.Base(destination), info.Size(), size.Int())
+	}
+	return filename, nil
 }
 
 // PathError is a failed file operation, worded like "PATH: reason".

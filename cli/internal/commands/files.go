@@ -171,7 +171,7 @@ func downloadFile(ctx *Ctx, args *Args) error {
 		return err
 	}
 
-	path, err := saveDownload(ctx, fmt.Sprintf("/tools/%s/files/items/%d/download", tool.Get("id").S(), id), file.Get("name").S(), args)
+	path, err := saveDownload(ctx, fmt.Sprintf("/tools/%s/files/items/%d/download", tool.Get("id").S(), id), file.Get("name").S(), file.Get("file_size"), args)
 	if err != nil {
 		return err
 	}
@@ -316,7 +316,8 @@ func downloadFolder(ctx *Ctx, args *Args) error {
 	folder := listing.Get("folder")
 
 	name := folder.Get("name").S() + ".zip"
-	path, err := saveDownload(ctx, fmt.Sprintf("/tools/%s/files/folders/%d/download", tool.Get("id").S(), id), name, args)
+	// A zip is made as it's sent, so nothing says how big it will be.
+	path, err := saveDownload(ctx, fmt.Sprintf("/tools/%s/files/folders/%d/download", tool.Get("id").S(), id), name, api.Null, args)
 	if err != nil {
 		return err
 	}
@@ -348,8 +349,9 @@ func folderPlace(tool, folderID api.Value) string {
 }
 
 // saveDownload saves a download into the current directory under name (only its
-// last path segment, whatever the server sent), or to --output. It returns the path.
-func saveDownload(ctx *Ctx, path, name string, args *Args) (string, error) {
+// last path segment, whatever the server sent), or to --output. It returns the
+// path. size is how big the file should be, or null when nothing says.
+func saveDownload(ctx *Ctx, path, name string, size api.Value, args *Args) (string, error) {
 	name = lastSegment(name)
 	if strings.NewReplacer(".", "", "/", "").Replace(name) == "" {
 		name = "download"
@@ -374,7 +376,7 @@ func saveDownload(ctx *Ctx, path, name string, args *Args) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if _, err := server.Download(path, destination); err != nil {
+	if _, err := api.DownloadWhole(server, path, destination, size); err != nil {
 		return "", err
 	}
 	return destination, nil

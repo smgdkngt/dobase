@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -78,5 +79,21 @@ func TestANarrowWindowKeepsTheToolNameAndTheHelpKey(t *testing.T) {
 	h.screen.SetSize(62, 30)
 	if header, _, _ := strings.Cut(h.text(), "\n"); !strings.Contains(header, "Roadmap 2026") || !strings.Contains(header, "Sem Goedknegt") || strings.Contains(header, "localhost") {
 		t.Errorf("the header at 62 columns is %q", header)
+	}
+}
+
+func TestDSavesAFileAndRefusesHalfOfOne(t *testing.T) {
+	t.Chdir(t.TempDir())
+	h := otherTools(newHarness(t))
+	h.char('2').code(KeyDown).char('d').char('y')
+	if data, err := os.ReadFile("draft.pdf"); err != nil || string(data) != "ten bytes!" {
+		t.Fatalf("saved %q, %v", data, err)
+	}
+
+	// contract.pdf is 2048 bytes; ten of them aren't the file
+	h.code(KeyDown).char('d').char('y')
+	expectContains(t, h.text(), "Download failed")
+	if _, err := os.Stat("contract.pdf"); !os.IsNotExist(err) {
+		t.Fatalf("the cut-off file is still there: %v", err)
 	}
 }

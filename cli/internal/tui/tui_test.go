@@ -5,6 +5,7 @@ package tui
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -54,7 +55,11 @@ func (f *fakeServer) Upload(string, []api.FilePart, []api.Param) (api.Value, err
 	panic("unreachable")
 }
 
-func (f *fakeServer) Download(string, string) (string, error) { panic("unreachable") }
+// Download saves ten bytes, whatever the file.
+func (f *fakeServer) Download(path, destination string) (string, error) {
+	*f.calls = append(*f.calls, call{method: api.Get, path: path})
+	return "", os.WriteFile(destination, []byte("ten bytes!"), 0o644)
+}
 
 func card(id int, title string) string {
 	return fmt.Sprintf(`{ "id": %d, "title": %q, "color": "", "comments_count": 0, "attachments_count": 0 }`, id, title)

@@ -128,10 +128,10 @@ func (s *Files) Key(key Key, view *View, fx *Fx) bool {
 		}
 	case key.Is('d'):
 		if entry != nil && !entry.folder {
-			id, name := entry.value.Get("id").Int(), entry.value.Get("name").S()
+			id, name, size := entry.value.Get("id").Int(), entry.value.Get("name").S(), entry.value.Get("file_size")
 			destination := downloadPath(name)
 			fx.popup = confirmPopup(fmt.Sprintf("Download “%s” to %s?", name, destination), "Downloading", func(app *App) error {
-				if _, err := app.api.Download(fmt.Sprintf("/tools/%d/files/items/%d/download", tool, id), destination); err != nil {
+				if _, err := api.DownloadWhole(app.api, fmt.Sprintf("/tools/%d/files/items/%d/download", tool, id), destination, size); err != nil {
 					return err
 				}
 				app.say(fmt.Sprintf("Saved to %s 📥", destination), ToneSuccess)

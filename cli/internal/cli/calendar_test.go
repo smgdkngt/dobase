@@ -18,7 +18,8 @@ const calendarResponses = `{
 		"starts_at": "2026-10-01T09:00:00+02:00", "ends_at": "2026-10-01T09:45:00+02:00"},
 	"/tools/22/calendar/events/6": {"id": 6, "all_day": true, "recurring": true,
 		"starts_at": "2026-10-03T00:00:00+02:00", "ends_at": "2026-10-05T23:59:59+02:00"},
-	"/tools/19/files/items/7": {"id": 7, "name": "../../etc/report.pdf", "file_size": 2048}
+	"/tools/19/files/items/7": {"id": 7, "name": "../../etc/report.pdf", "file_size": 42},
+	"/tools/19/files/items/8": {"id": 8, "name": "film.mov", "file_size": 2048}
 }`
 
 func calendarCtx(sent *[]api.Value) (*command.Ctx, *bytes.Buffer) {
@@ -158,7 +159,7 @@ func TestFileDownloadsKeepOnlyTheLastPartOfTheName(t *testing.T) {
 	if data, err := os.ReadFile("report.pdf"); err != nil || string(data) != "data from /tools/19/files/items/7/download" {
 		t.Errorf("saved %q, %v", data, err)
 	}
-	if want := "Downloaded ../../etc/report.pdf (2.0 KB) to report.pdf.\n"; out.String() != want {
+	if want := "Downloaded ../../etc/report.pdf (42 B) to report.pdf.\n"; out.String() != want {
 		t.Errorf("out %q", out.String())
 	}
 
@@ -179,6 +180,21 @@ func TestFileDownloadsKeepOnlyTheLastPartOfTheName(t *testing.T) {
 	}
 	if err := invoke(ctx, "file download", "19/7", "--output", "missing/x.pdf"); err == nil || err.Error() != "missing is not a directory." {
 		t.Errorf("got %v", err)
+	}
+}
+
+func TestADownloadThatCameUpShortFailsAndLeavesNoFile(t *testing.T) {
+	t.Chdir(t.TempDir())
+	var sent []api.Value
+	ctx, out := calendarCtx(&sent)
+
+	// The fake sends 42 bytes of a file the API says is 2048 bytes long
+	err := invoke(ctx, "file download", "19/8")
+	if err == nil || err.Error() != "Download failed: film.mov came in at 42 of 2048 bytes. Try again." {
+		t.Errorf("got %v, out %q", err, out.String())
+	}
+	if _, err := os.Stat("film.mov"); !os.IsNotExist(err) {
+		t.Errorf("the cut-off file is still there: %v", err)
 	}
 }
 
