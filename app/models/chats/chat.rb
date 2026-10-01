@@ -37,14 +37,15 @@ module Chats
       from_others.where("chat_messages.created_at > ?", receipt.last_read_at).count
     end
 
+    # Written in one statement: two tabs opening a chat for the first time both
+    # found no receipt and both made one, and the second failed on the index.
     def mark_as_read_for!(user)
       last_message = messages.order(created_at: :desc).first
-      read_receipts.find_or_initialize_by(user: user).tap do |receipt|
-        receipt.update!(
-          last_read_message: last_message,
-          last_read_at: Time.current
-        )
-      end
+      read_receipts.upsert(
+        { user_id: user.id, last_read_message_id: last_message&.id, last_read_at: Time.current },
+        unique_by: %i[chat_id user_id]
+      )
+      read_receipts.find_by!(user: user)
     end
   end
 end
