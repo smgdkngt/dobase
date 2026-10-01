@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { pageInUse } from "services/page_in_use"
 
 const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content
 
@@ -45,13 +46,7 @@ export default class extends Controller {
   // menus, unticks the bulk checkboxes and empties a field that is being typed in. So it
   // waits for a later turn while one of those is going on.
   get busy() {
-    if (document.querySelector("dialog[open], [popover]:popover-open")) return true
-    if (this.element.querySelector("[data-mail-bulk-target='checkbox']:checked")) return true
-
-    const field = document.activeElement
-    if (!field) return false
-    if (field.isContentEditable || field.shadowRoot?.activeElement) return true
-    return field.matches("input, textarea") && field.value !== field.defaultValue
+    return pageInUse() || Boolean(this.element.querySelector("[data-mail-bulk-target='checkbox']:checked"))
   }
 
   async sync() {

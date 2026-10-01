@@ -2,6 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import { api } from "services/api"
 import { showFlash } from "services/flash"
 import { reportPresence } from "services/presence"
+import { pageInUse } from "services/page_in_use"
 
 export default class extends Controller {
   static targets = ["itemModal", "itemDetailDialog", "addItemForm", "addItemInput", "addItemBtn", "completedSection", "completedToggle", "completedToggleLabel"]
@@ -26,11 +27,18 @@ export default class extends Controller {
           this._suppressCloseVisit = false
           return
         }
+        // Opened again before this close was heard (the next todo clicked while the dialog
+        // was fading out): the visit would close it. Its own close brings the refresh.
+        if (this.itemDetailDialogTarget.open) return
+
         const url = new URL(window.location.href)
         url.searchParams.delete("item")
+        this._refreshingAfterClose = true
         Turbo.visit(url.toString(), { action: "replace" })
       }
       this.itemDetailDialogTarget.addEventListener("close", this._onModalClose)
+      this._onBeforeRender = this._keepWhatWasStarted.bind(this)
+      document.addEventListener("turbo:before-render", this._onBeforeRender)
 
       // Auto-open item if ?item=ID is in the URL
       const itemId = new URL(window.location.href).searchParams.get("item")
@@ -41,7 +49,19 @@ export default class extends Controller {
   disconnect() {
     if (this.hasItemDetailDialogTarget && this._onModalClose) {
       this.itemDetailDialogTarget.removeEventListener("close", this._onModalClose)
+      document.removeEventListener("turbo:before-render", this._onBeforeRender)
     }
+  }
+
+  // The refresh after a close takes a moment to arrive. Whatever was started in the
+  // meantime (the next todo opened, a title being typed) would be closed and emptied by
+  // it, so then it is let go: the address is right already, and the page catches up at
+  // the next close or save.
+  _keepWhatWasStarted(event) {
+    if (!this._refreshingAfterClose) return
+
+    this._refreshingAfterClose = false
+    if (pageInUse()) event.detail.render = () => {}
   }
 
   // The row body is a role="button" div (the row also holds a checkbox and a
