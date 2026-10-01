@@ -576,7 +576,16 @@ export default class extends Controller {
 
   async _requestDeviceAccess() {
     try {
-      this.previewStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+      // The browser can take a while to answer (a permission prompt, a slow camera). By
+      // then the reader may have left the page or joined the call, and nothing would
+      // ever stop this stream: the camera light stayed on.
+      this._stopPreview()
+      if (!this.element.isConnected || this.room) {
+        stream.getTracks().forEach(track => track.stop())
+        return
+      }
+      this.previewStream = stream
       if (this.hasPreviewVideoTarget) {
         this.previewVideoTarget.srcObject = this.previewStream
       }

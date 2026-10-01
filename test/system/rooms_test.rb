@@ -47,6 +47,30 @@ class RoomsTest < ApplicationSystemTestCase
     assert_selector "[data-room-target='preJoinError'] button", text: "Try again"
   end
 
+  test "a camera that answers after the reader left the room is switched off again" do
+    visit tool_files_path(tools(:my_files))
+    wait_for_turbo
+    # A camera that answers when the test says so
+    page.execute_script(<<~JS)
+      const canvas = document.createElement("canvas")
+      canvas.getContext("2d")
+      window.__camera = canvas.captureStream()
+      navigator.mediaDevices.getUserMedia = () => new Promise(resolve => { window.__answer = () => resolve(window.__camera) })
+    JS
+
+    find(".sidebar a", text: @tool.name).click
+    wait_for_stimulus "room"
+    find(".sidebar a", text: "My Files").click
+    assert_selector "h1", text: "My Files"
+    assert_no_selector "[data-controller~='room']"
+
+    page.execute_script("window.__answer()")
+    page.document.synchronize do
+      stopped = evaluate_script("window.__camera.getTracks().every(track => track.readyState === 'ended')")
+      raise Capybara::ExpectationNotMet, "the camera is still on" unless stopped
+    end
+  end
+
   test "shows a clear error when LiveKit isn't configured" do
     visit tool_path(@tool)
     wait_for_turbo
