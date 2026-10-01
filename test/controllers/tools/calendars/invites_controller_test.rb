@@ -50,6 +50,65 @@ module Tools
         end
       end
 
+      test "accepting an invitation to a series adds the whole series, with its skipped and moved occurrences" do
+        ics = <<~ICS
+          BEGIN:VCALENDAR
+          METHOD:REQUEST
+          PRODID:Microsoft Exchange Server 2010
+          VERSION:2.0
+          BEGIN:VTIMEZONE
+          TZID:W. Europe Standard Time
+          BEGIN:STANDARD
+          DTSTART:16010101T030000
+          TZOFFSETFROM:+0200
+          TZOFFSETTO:+0100
+          RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=-1SU;BYMONTH=10
+          END:STANDARD
+          BEGIN:DAYLIGHT
+          DTSTART:16010101T020000
+          TZOFFSETFROM:+0100
+          TZOFFSETTO:+0200
+          RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=-1SU;BYMONTH=3
+          END:DAYLIGHT
+          END:VTIMEZONE
+          BEGIN:VEVENT
+          UID:weekly-sync@example.com
+          DTSTART;TZID=W. Europe Standard Time:20301007T100000
+          DTEND;TZID=W. Europe Standard Time:20301007T103000
+          RRULE:FREQ=WEEKLY;COUNT=5
+          EXDATE;TZID=W. Europe Standard Time:20301014T100000
+          SUMMARY:Weekly sync
+          END:VEVENT
+          BEGIN:VEVENT
+          UID:weekly-sync@example.com
+          RECURRENCE-ID;TZID=W. Europe Standard Time:20301021T100000
+          DTSTART;TZID=W. Europe Standard Time:20301021T140000
+          DTEND;TZID=W. Europe Standard Time:20301021T143000
+          SUMMARY:Weekly sync (afternoon)
+          END:VEVENT
+          END:VCALENDAR
+        ICS
+        users(:one).update!(timezone: "Eastern Time (US & Canada)")
+        invite = mails_messages(:inbox_unread).calendar_invites.create!(uid: "weekly-sync@example.com", summary: "Weekly sync", status: "pending",
+          starts_at: Time.utc(2030, 10, 7, 8), ends_at: Time.utc(2030, 10, 7, 8, 30), raw_icalendar: ics)
+        calendar = calendars_calendars(:personal)
+
+        post tool_calendar_invites_path(@calendar_tool), params: { invite_id: invite.id, calendar_id: calendar.id }
+
+        event = calendar.events.find_by!(uid: "weekly-sync@example.com")
+        assert event.is_recurring?
+        assert_equal "FREQ=WEEKLY;COUNT=5", event.rrule
+        # 10:00 in Amsterdam, before and after the clocks go back on October 27th; the 14th is skipped, the 21st moved
+        assert_equal [ Time.utc(2030, 10, 7, 8), Time.utc(2030, 10, 28, 9), Time.utc(2030, 11, 4, 9) ],
+          IceCube::Schedule.from_yaml(event.recurrence_schedule).all_occurrences.map(&:utc)
+        assert_equal [ [ Time.utc(2030, 10, 21, 12), "Weekly sync (afternoon)" ] ],
+          event.recurrence_overrides.map { |override| [ Time.iso8601(override["starts_at"]).utc, override["summary"] ] }
+
+        get tool_calendar_path(@calendar_tool, format: :json), params: { start_date: "2030-10-01", end_date: "2030-11-10" }
+        starts = response.parsed_body["events"].select { |listed| listed["uid"] == "weekly-sync@example.com" }.map { |listed| Time.iso8601(listed["starts_at"]).utc }
+        assert_equal [ Time.utc(2030, 10, 7, 8), Time.utc(2030, 10, 21, 12), Time.utc(2030, 10, 28, 9), Time.utc(2030, 11, 4, 9) ], starts
+      end
+
       test "accepting an invite without a title adds an untitled event" do
         @own_invite.update!(summary: nil)
         calendar = calendars_calendars(:personal)

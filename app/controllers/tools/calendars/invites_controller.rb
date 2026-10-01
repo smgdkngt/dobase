@@ -25,7 +25,8 @@ module Tools
           organizer_email: @invite.organizer_email,
           organizer_name: @invite.organizer_name,
           attendees: @invite.attendees,
-          raw_icalendar: @invite.raw_icalendar
+          raw_icalendar: @invite.raw_icalendar,
+          **invite_recurrence
         )
 
         if @event.save
@@ -67,6 +68,15 @@ module Tools
       def accessible_invites
         ::Calendars::Invite.joins(mail_message: :account)
           .where(mail_accounts: { tool_id: current_user.accessible_tools.select(:id) })
+      end
+
+      # An invitation to a series repeats like the series: the invite itself only holds the first occurrence,
+      # so the rule, the skipped and the moved occurrences come from its iCalendar data, like a synced event's
+      def invite_recurrence
+        parsed = IcsParserService.new(@invite.raw_icalendar, time_zone: @invite.mail_message.account.tool.owner.timezone).parse
+        return {} unless parsed[:uid] == @invite.uid && parsed[:rrule].present?
+
+        { is_recurring: true, **parsed.slice(:rrule, :recurrence_schedule, :recurrence_overrides) }
       end
 
       def find_target_calendar
