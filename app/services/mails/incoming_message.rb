@@ -74,6 +74,9 @@ module Mails
       # A message in several folders on the server has a copy here for each of them
       email = @account.messages.find_or_initialize_by(message_id: message_id, folder: folder_name)
       is_new_email = email.new_record?
+      # Mail archived here keeps its place in its folder, flagged archived, while the server has
+      # it in the archive folder. In its folder again under a new UID, another mail program moved it back.
+      email.archived = false if email.archived? && @account.archive_folder.present? && email.uid.present? && email.uid != uid
 
       email.assign_attributes(
         folder: folder_name,

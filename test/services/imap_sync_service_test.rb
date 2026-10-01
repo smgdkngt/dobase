@@ -747,6 +747,49 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_equal [ "Projects", 4 ], [ moved.reload.folder, moved.uid ]
   end
 
+  # --- Archived mail ------------------------------------------------------------
+  # Mail archived here keeps its place in the folder it was archived from, flagged
+  # archived, while the server moves it to the archive folder.
+
+  test "archived mail that another mail program moved back to its folder is there again" do
+    @account.update!(archive_folder: "Archive", synced_folders: %w[INBOX Sent Archive].to_json)
+    incoming_message.send(:save_email, fetch_data(7, mail_with_id("back-7").to_s), "INBOX")
+    archived = @account.messages.find_by!(message_id: "back-7@example.com")
+    archived.update!(archived: true)
+
+    # The server hasn't moved it yet: it's in the inbox under the UID it had
+    @service.send(:fetch_recent_emails, FakeImap.new(uids: [ 7 ], messages: [ fetch_data(7, mail_with_id("back-7").to_s) ]), "INBOX", 50)
+    assert archived.reload.archived?
+
+    # Moved to the archive, and by another mail program back to the inbox, where it got a new UID
+    @service.send(:fetch_recent_emails, FakeImap.new(uids: [], messages: []), "INBOX", 50)
+    assert archived.reload.archived?
+    @service.send(:fetch_recent_emails, FakeImap.new(uids: [ 9 ], messages: [ fetch_data(9, mail_with_id("back-7").to_s) ]), "INBOX", 50)
+
+    assert_equal [ false, 9, "INBOX" ], archived.reload.values_at(:archived, :uid, :folder)
+    assert_includes @account.messages.inbox.not_archived, archived
+    assert_equal 1, @account.messages.where(message_id: "back-7@example.com").count
+  end
+
+  test "mail archived on an account without an archive folder stays archived, whatever the server says" do
+    incoming_message.send(:save_email, fetch_data(7, mail_with_id("flagged-7").to_s), "INBOX")
+    archived = @account.messages.find_by!(message_id: "flagged-7@example.com")
+    archived.update!(archived: true)
+
+    @service.send(:fetch_recent_emails, FakeImap.new(uids: [ 9 ], messages: [ fetch_data(9, mail_with_id("flagged-7").to_s) ]), "INBOX", 50)
+
+    assert_equal [ true, 9 ], archived.reload.values_at(:archived, :uid)
+  end
+
+  test "archived mail that had no UID yet stays archived when the sync gives it one" do
+    @account.update!(archive_folder: "Archive")
+    archived = @account.messages.create!(message_id: "pending-7@example.com", folder: "INBOX", archived: true, from_address: "ann@example.com", to_addresses: "[]", sent_at: Time.current)
+
+    @service.send(:fetch_recent_emails, FakeImap.new(uids: [ 9 ], messages: [ fetch_data(9, mail_with_id("pending-7").to_s) ]), "INBOX", 50)
+
+    assert_equal [ true, 9 ], archived.reload.values_at(:archived, :uid)
+  end
+
   # A server without a trash deletes trashed mail, and it's kept here for 30 days
 
   test "mail restored after the server deleted it stays, in the inbox and through the next sync" do
