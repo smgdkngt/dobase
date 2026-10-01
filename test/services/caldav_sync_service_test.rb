@@ -173,6 +173,54 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     assert_raises(CaldavSyncService::SyncError) { @service.discover_calendars }
   end
 
+  test "discover_calendars learns from the server which calendars the user can't change" do
+    writable = calendars_calendars(:personal)
+    writable.update!(read_only: true)
+    stub_request(:propfind, @account.caldav_url).to_return(status: 207, body: principal_response)
+    stub_request(:propfind, "https://caldav.icloud.com/123456789/principal/").to_return(status: 207, body: calendar_home_response)
+    listing = stub_request(:propfind, "https://caldav.icloud.com/123456789/calendars/").with(body: /current-user-privilege-set/)
+
+    listing.to_return(status: 207, body: calendars_list_response(remote_id: "/123456789/calendars/holidays/", privileges: %w[read read-current-user-privilege-set]))
+    @service.discover_calendars
+    listing.to_return(status: 207, body: calendars_list_response(remote_id: writable.remote_id, privileges: %w[read write write-content bind unbind]))
+    @service.discover_calendars
+
+    assert @account.calendars.find_by!(remote_id: "/123456789/calendars/holidays/").read_only?
+    assert_not writable.reload.read_only?
+  end
+
+  test "a sync someone asked for gives a read-only calendar another try when the server doesn't say what the user may do" do
+    calendar = calendars_calendars(:personal)
+    calendar.update!(read_only: true)
+    stub_request(:propfind, @account.caldav_url).to_return(status: 207, body: principal_response)
+    stub_request(:propfind, "https://caldav.icloud.com/123456789/principal/").to_return(status: 207, body: calendar_home_response)
+    stub_request(:propfind, "https://caldav.icloud.com/123456789/calendars/").to_return(status: 207, body: calendars_list_response(remote_id: calendar.remote_id))
+
+    @service.discover_calendars
+
+    assert_not calendar.reload.read_only?
+  end
+
+  test "every sync checks whether the user can change the calendar" do
+    calendar = calendars_calendars(:personal)
+    calendar.update!(read_only: true)
+    checked = stub_request(:propfind, calendar.remote_url).with(body: /current-user-privilege-set/)
+    stub_request(:report, calendar.remote_url).to_return(status: 207, body: delta_sync_response(calendar.sync_token, [], []))
+
+    # A server that doesn't say leaves the calendar as it was
+    checked.to_return(status: 207, body: ctag_response(calendar.ctag))
+    @service.sync_calendar(calendar)
+    assert calendar.reload.read_only?
+
+    checked.to_return(status: 207, body: ctag_response(calendar.ctag, privileges: %w[read write]))
+    @service.sync_calendar(calendar)
+    assert_not calendar.reload.read_only?
+
+    checked.to_return(status: 207, body: ctag_response(calendar.ctag, privileges: %w[read]))
+    @service.sync_calendar(calendar)
+    assert calendar.reload.read_only?
+  end
+
   # Sync tests
 
   test "sync_calendar performs full sync when no sync_token" do
@@ -778,7 +826,14 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     XML
   end
 
-  def calendars_list_response(remote_id: nil)
+  # privileges: what the server lets this user do with the calendar, or nil for a server that doesn't say
+  def privileges_xml(privileges)
+    return "" unless privileges
+
+    "<d:current-user-privilege-set>#{privileges.map { |privilege| "<d:privilege><d:#{privilege}/></d:privilege>" }.join}</d:current-user-privilege-set>"
+  end
+
+  def calendars_list_response(remote_id: nil, privileges: nil)
     remote_id ||= "/123456789/calendars/new-personal/"
 
     <<~XML
@@ -807,6 +862,7 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
               <x:calendar-color>#3b82f6FF</x:calendar-color>
               <cs:getctag>ctag-personal-123</cs:getctag>
               <d:sync-token>https://caldav.icloud.com/sync/token-new</d:sync-token>
+              #{privileges_xml(privileges)}
             </d:prop>
             <d:status>HTTP/1.1 200 OK</d:status>
           </d:propstat>
@@ -875,7 +931,7 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     XML
   end
 
-  def ctag_response(ctag)
+  def ctag_response(ctag, privileges: nil)
     <<~XML
       <?xml version="1.0" encoding="UTF-8"?>
       <d:multistatus xmlns:d="DAV:" xmlns:cs="http://calendarserver.org/ns/">
@@ -884,9 +940,11 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
           <d:propstat>
             <d:prop>
               <cs:getctag>#{ctag}</cs:getctag>
+              #{privileges_xml(privileges)}
             </d:prop>
             <d:status>HTTP/1.1 200 OK</d:status>
           </d:propstat>
+          #{'<d:propstat><d:prop><d:current-user-privilege-set/></d:prop><d:status>HTTP/1.1 404 Not Found</d:status></d:propstat>' unless privileges}
         </d:response>
       </d:multistatus>
     XML

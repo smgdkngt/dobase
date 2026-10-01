@@ -13,6 +13,8 @@ class CaldavSyncService
   class ConnectionError < StandardError; end
   class AuthenticationError < StandardError; end
   class SyncError < StandardError; end
+  # The server refused a change (403)
+  class ForbiddenError < SyncError; end
 
   # Custom HTTP request classes for WebDAV methods
   class Propfind < Net::HTTPRequest
@@ -51,6 +53,9 @@ class CaldavSyncService
       principal_path: "/caldav/v2/%{username}/"
     }
   }.freeze
+
+  # The WebDAV privileges (RFC 3744) that let a user add or change events in a calendar
+  WRITE_PRIVILEGES = %w[all write write-content bind].freeze
 
   DAV_NAMESPACE = { "d" => "DAV:", "c" => "urn:ietf:params:xml:ns:caldav", "cs" => "http://calendarserver.org/ns/" }.freeze
 
@@ -104,8 +109,19 @@ class CaldavSyncService
 
     doc = Caldav::Xml.parse(response.body)
     server_ctag = doc.at_xpath("//*[local-name()='getctag']")&.text
+    # The one request every sync makes, so a calendar doesn't stay read-only after the server opened it up
+    note_write_access(calendar, doc)
 
     calendar.ctag != server_ctag
+  end
+
+  # Asks the server whether the user can change a calendar and remembers the answer:
+  # true when it's read-only, false when it isn't, nil when the server doesn't say
+  def refresh_write_access(calendar)
+    return if calendar.local?
+
+    response = propfind(calendar.remote_url, depth: 0, body: Caldav::Xml.ctag)
+    note_write_access(calendar, Caldav::Xml.parse(response.body)) if response.success?
   end
 
   def create_event(event)
@@ -225,7 +241,10 @@ class CaldavSyncService
     return if response.success?
     raise AuthenticationError, Calendars::Account::AUTHENTICATION_FAILED if response.status == 401
 
-    error = response.status >= 500 ? ConnectionError : SyncError
+    error = if response.status >= 500 then ConnectionError
+    elsif response.status == 403 then ForbiddenError
+    else SyncError
+    end
     raise error, "#{failure}: #{response.status}"
   end
 
@@ -366,7 +385,8 @@ class CaldavSyncService
         name: displayname || File.basename(href),
         color: normalize_color(color),
         ctag: ctag,
-        sync_token: sync_token
+        sync_token: sync_token,
+        read_only: read_only_in(resp)
       }
     end
 
@@ -387,7 +407,9 @@ class CaldavSyncService
         sync_token: is_new ? cal_data[:sync_token] : calendar.sync_token,
         position: is_new ? index : calendar.position,
         enabled: is_new ? true : calendar.enabled,
-        is_default: is_new && index == 0
+        is_default: is_new && index == 0,
+        # A server that doesn't say what the user may do gets another try: a refused change marks it again
+        read_only: cal_data[:read_only] || false
       )
       calendar.save!
     end
@@ -554,6 +576,23 @@ class CaldavSyncService
     ctag = doc.at_xpath("//*[local-name()='getctag']")&.text
 
     calendar.update!(sync_token: sync_token, ctag: ctag)
+    note_write_access(calendar, doc)
+  end
+
+  def note_write_access(calendar, doc)
+    read_only = read_only_in(doc)
+    calendar.update!(read_only: read_only) unless read_only.nil? || read_only == calendar.read_only
+    read_only
+  end
+
+  # Whether the privileges the server lists for the user (current-user-privilege-set, where the
+  # server found that property) leave out changing the calendar. Nil when it lists none.
+  def read_only_in(node)
+    found = "*[local-name()='propstat'][*[local-name()='status'][contains(text(), ' 200')]]"
+    privileges = node.xpath(".//#{found}//*[local-name()='current-user-privilege-set']/*[local-name()='privilege']/*").map(&:name)
+    return if privileges.empty?
+
+    !privileges.intersect?(WRITE_PRIVILEGES)
   end
 
   # A stored calendar object: no METHOD, which RFC 4791 (4.1) doesn't allow there

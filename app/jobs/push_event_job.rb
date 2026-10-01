@@ -31,12 +31,7 @@ class PushEventJob < ApplicationJob
     end
   rescue CaldavSyncService::SyncError => e
     Rails.logger.error("Failed to push event #{event_id} (#{action}): #{e.message}")
-
-    # Mark calendar as read-only if server rejects writes with 403
-    if e.message.include?("403") && event
-      event.calendar.update!(read_only: true)
-      Rails.logger.warn("Marked calendar '#{event.calendar.name}' as read-only (403 from server)")
-    end
+    note_refusal(service, event) if e.is_a?(CaldavSyncService::ForbiddenError)
   rescue CaldavSyncService::AuthenticationError => e
     # Trying again gets the same answer, so it shows on the account instead
     Rails.logger.error("Failed to push event #{event_id} (#{action}): #{e.message}")
@@ -45,5 +40,26 @@ class PushEventJob < ApplicationJob
     Rails.logger.error("Connection error pushing event #{event_id}: #{e.message}")
     # Re-raise to trigger job retry
     raise
+  end
+
+  private
+
+  # A refused event doesn't have to mean its calendar is read-only: servers also refuse changes to
+  # an event someone else organizes. So the server is asked what the user may do with the calendar,
+  # and only when it doesn't say is a refused event of the user's own taken as the sign.
+  def note_refusal(service, event)
+    calendar = event.calendar
+    read_only = begin
+      service.refresh_write_access(calendar)
+    rescue CaldavSyncService::ConnectionError, CaldavSyncService::AuthenticationError, CaldavSyncService::SyncError
+      nil
+    end
+
+    calendar.update!(read_only: true) if read_only.nil? && !organized_by_someone_else?(event)
+    Rails.logger.warn("Marked calendar '#{calendar.name}' as read-only (403 from server)") if calendar.read_only?
+  end
+
+  def organized_by_someone_else?(event)
+    event.organizer_email.present? && !event.organizer_email.casecmp?(event.calendar.account.username.to_s)
   end
 end
