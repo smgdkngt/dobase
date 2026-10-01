@@ -14,15 +14,22 @@ import { Y, Awareness, applyAwarenessUpdate, encodeAwarenessUpdate, removeAwaren
 // Action Cable writes every message to the database here, and a sentence is
 // worth one row, not forty.
 const SEND_EVERY_MS = 250
+// Someone reading along sends nothing, and still has the document open. The
+// server takes five minutes of silence for having left.
+const STILL_HERE_EVERY_MS = 60000
 
 export class DocumentSync {
-  constructor(documentId, { onSynced, onRefused } = {}) {
+  constructor(documentId, { onSynced, onRefused, onReplaced } = {}) {
     this.doc = new Y.Doc()
     this.awareness = new Awareness(this.doc)
     this.origin = Math.random().toString(36).slice(2)
     this.onSynced = onSynced
     this.onRefused = onRefused
+    this.onReplaced = onReplaced
     this.synced = false
+    this.replaced = false
+    // The newest copy this page has heard of; the one it joined is `generation`
+    this.newest = 0
 
     this.pending = []
     this.doc.on("update", (update, origin) => {
@@ -43,6 +50,8 @@ export class DocumentSync {
       { channel: "DocumentSyncChannel", document_id: documentId },
       { received: (data) => this.receive(data) }
     )
+
+    this.stillHere = setInterval(() => this.send("still_here"), STILL_HERE_EVERY_MS)
 
     this.beforeUnload = () => {
       this.flush()
@@ -68,6 +77,7 @@ export class DocumentSync {
 
   destroy() {
     this.flush()
+    clearInterval(this.stillHere)
     window.removeEventListener("beforeunload", this.beforeUnload)
     this.forgetMyCaret()
     this.channel?.unsubscribe()
@@ -81,13 +91,32 @@ export class DocumentSync {
   }
 
   send(action, payload) {
+    if (this.replaced) return
+
     this.channel?.perform(action, { ...payload, origin: this.origin })
   }
 
   receive(data) {
+    if (this.replaced) return
+
     switch (data.type) {
       case "sync":
+        // Back after the line was down, to find another copy than the one this
+        // page has: the text was replaced while it was away
+        if (this.synced && data.generation !== this.generation) return this.startOver()
+
+        this.generation = data.generation
+        this.upto = data.upto
+        if (this.outdated()) return this.startOver()
+
         this.applyStored(data)
+        break
+      case "replaced":
+        // Everyone hears which copy is the document's now, and a page that
+        // joined that very one has nothing to do. Said to this page alone, about
+        // a change it sent, there is no number: its copy is gone.
+        this.newest = Math.max(this.newest, data.generation ?? Infinity)
+        if (this.synced && this.outdated()) this.startOver()
         break
       case "update":
         if (data.origin === this.origin) return
@@ -107,25 +136,63 @@ export class DocumentSync {
   }
 
   applyStored(data) {
+    const stored = (data.updates || []).map(decode).filter((bytes) => bytes.length > 0)
+    const back = this.synced
+
     this.doc.transact(() => {
-      (data.updates || []).forEach((update) => {
-        const bytes = decode(update)
-        if (bytes.length > 0) Y.applyUpdate(this.doc, bytes, this)
-      })
+      stored.forEach((bytes) => Y.applyUpdate(this.doc, bytes, this))
     }, this)
 
     this.synced = true
     this.sendMyCaret({ hello: true })
+    if (back) return this.sendWhatWasMissed(stored)
+
     // A document nobody has opened since this was built starts from the text as
     // it was last saved; every later page joins the copy that page made.
     this.onSynced?.({ seed: data.seed, compact: data.compact })
   }
 
-  // Folds every stored change into one, which is all the server keeps afterwards
+  // The line was down and is back. What this page wrote in the meantime was
+  // sent into nothing, and everything it writes from here builds on that: the
+  // others, and whoever opens the document later, could make nothing of it.
+  // Yjs can tell what the stored copy lacks, so that goes out now.
+  sendWhatWasMissed(stored) {
+    const theirs = new Y.Doc()
+    stored.forEach((bytes) => Y.applyUpdate(theirs, bytes))
+    const missed = Y.equalSnapshots(Y.snapshot(theirs), Y.snapshot(this.doc))
+      ? null
+      : Y.encodeStateAsUpdate(this.doc, Y.encodeStateVector(theirs))
+    theirs.destroy()
+
+    if (missed) this.send("apply_update", { update: encode(missed) })
+  }
+
+  // The copy this page writes in was thrown away: the text was replaced from
+  // outside the editor, or the page that was to build the copy left before it
+  // had. Nothing more goes out or comes in — a change to a copy that is gone
+  // fits nowhere — and the page opens the document again.
+  startOver() {
+    this.abandon()
+    this.onReplaced?.()
+  }
+
+  outdated() {
+    return this.generation < this.newest
+  }
+
+  abandon() {
+    this.replaced = true
+    this.pending = []
+    clearTimeout(this.flushTimer)
+    this.flushTimer = null
+  }
+
+  // Folds every stored change into one, which replaces them on the server — as
+  // far as this page had read them; a change that came in since is kept beside it
   compact() {
     if (!this.synced) return
 
-    this.send("merge_updates", { snapshot: encode(Y.encodeStateAsUpdate(this.doc)) })
+    this.send("merge_updates", { snapshot: encode(Y.encodeStateAsUpdate(this.doc)), upto: this.upto })
   }
 
   sendMyCaret({ hello = false } = {}) {

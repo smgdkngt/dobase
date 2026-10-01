@@ -21,6 +21,8 @@ export default class extends Controller {
     this.isSaving = false
     this.pendingSave = false
     this.lastSavedTitle = this.titleTarget.value
+    this.loaded = false
+    this.startingOver = false
 
     // The editor is deferred so its options can be set before it starts
     applyPlaceholder(this.editorTarget)
@@ -34,6 +36,7 @@ export default class extends Controller {
     // Leaving the page (a Turbo visit keeps the document alive, so the save still goes through)
     this.flushPendingSave()
     window.removeEventListener("pagehide", this.saveBeforeLeaving)
+    clearTimeout(this.waiting)
     this.sync?.destroy()
     this.sync = null
     this.removeKeyboardShortcuts()
@@ -47,7 +50,8 @@ export default class extends Controller {
     this.sync = new DocumentSync(this.documentIdValue, {
       onSynced: ({ seed, compact }) => this.onSynced(seed, compact),
       // The others don't have that change, so saying "Saved" would be wrong
-      onRefused: (reason) => this.showSaveIndicator(reason, true)
+      onRefused: (reason) => this.showSaveIndicator(reason, true),
+      onReplaced: () => this.startOver()
     })
     this.sync.describeMe({ name: this.userNameValue, color: this.userColorValue })
     this.sync.awareness.on("change", (changes, origin) => this._showNamesOfMoved(changes, origin))
@@ -77,6 +81,11 @@ export default class extends Controller {
     this.savedHtml = input?.value || ""
     if (input) input.value = ""
     this.editorTarget.startEditor()
+
+    // Until the shared copy is here the editor is empty and the document isn't:
+    // nothing can be typed in it yet, and after a few seconds of that it says why
+    this.editorTarget.inert = true
+    this.waiting = setTimeout(() => this.showSaveIndicator("Connecting..."), 3000)
   }
 
   // Someone else's caret: a line in their colour with their name on it, the
@@ -118,13 +127,37 @@ export default class extends Controller {
 
   // The first page to open a document since this was built fills the shared copy
   // with the text as it was saved; everyone after joins what that page made.
-  onSynced(seed, compact) {
+  async onSynced(seed, compact) {
+    // The copy can be here before the editor is: a tab opened in the background
+    // takes its time starting one, and the text would be handed to nobody
+    await this.editorTarget.initializationComplete
+    if (!this.sync || this.startingOver) return
+
     if (seed !== null && seed !== undefined) {
       const html = seed || this.savedHtml
       if (html) this.editorTarget.editor?.commands.setContent(html)
     }
+    // Only now is what the editor holds the document: it can be written in, and saved
+    this.loaded = true
+    this.editorTarget.inert = false
+    clearTimeout(this.waiting)
+    if (this.hasSaveIndicatorTarget && this.saveIndicatorTarget.textContent === "Connecting...") this.showSaveIndicator("Saved")
 
     if (compact) this.sync.compact()
+  }
+
+  // The shared copy this page writes in was thrown away, most often because
+  // the text was replaced from outside the editor (the API). This page still
+  // shows the old text, so it opens the document again — without saving on the
+  // way out, which would put the old text back.
+  startOver() {
+    if (this.startingOver) return
+
+    this.startingOver = true
+    this.sync?.abandon()
+    clearTimeout(this.saveTimeout)
+    this.saveTimeout = null
+    Turbo.visit(window.location.href, { action: "replace" })
   }
 
   setupKeyboardShortcuts() {
@@ -162,6 +195,8 @@ export default class extends Controller {
   // keepalive lets the request outlive a closing tab (for bodies up to 64 KB)
   async save({ keepalive = false } = {}) {
     this.saveTimeout = null
+    if (this.startingOver) return
+
     if (this.isSaving) {
       this.pendingSave = true
       return
@@ -174,6 +209,9 @@ export default class extends Controller {
     try {
       const formData = new FormData(this.formTarget)
       formData.set("docs_document[title]", this.titleTarget.value)
+      // Until the shared copy has arrived the editor is empty and the document
+      // isn't. A new title can be saved by then; the text stays as it is.
+      if (!this.loaded) formData.delete("docs_document[content]")
 
       const response = await fetch(this.saveUrlValue, {
         method: "PATCH",

@@ -10,14 +10,24 @@
 #
 # Only a browser can merge those changes into one, so when the pile grows the
 # newest arrival is asked to send a merged copy back, which replaces it.
+#
+# The pile is one copy of the text, and a page writes in the copy it joined.
+# When that copy is thrown away (Docs::Document#reset_shared_copy!) the page's
+# changes fit nowhere any more: they are refused, and the page starts over.
 class DocumentSyncChannel < ApplicationCable::Channel
   # Past this many stored changes, ask for a merged copy
   COMPACT_AFTER = 200
+  # Carets move with every keystroke; that the document is open is written down
+  # this often at most. Well inside Docs::Document::LOCK_TIMEOUT.
+  HOLD_EVERY = 30.seconds
   # A change this big is no longer typing: whole books are a few MB of text.
   # The limits keep one page from filling the database.
   MAX_UPDATE_SIZE = 5.megabytes
   MAX_DOCUMENT_SIZE = 50.megabytes
   MAX_CARET_SIZE = 64.kilobytes
+  # People leave one at a time, so that who is left is still there when the
+  # "is editing" sign is passed on to them
+  LEAVING = Mutex.new
 
   def subscribed
     document = Docs::Document.find_by(id: params[:document_id])
@@ -28,19 +38,16 @@ class DocumentSyncChannel < ApplicationCable::Channel
     DocumentPresence.connect(@document.id, current_user.id)
     hold_editing_open
 
-    transmit({
-      type: "sync",
-      updates: stored_updates,
-      seed: seed_html,
-      compact: @document.updates.count > COMPACT_AFTER
-    })
+    transmit(copy_to_join)
   end
 
   def unsubscribed
     return unless @document
-    return unless DocumentPresence.disconnect(@document.id, current_user.id)
 
-    release_editing
+    give_up_seeding
+    LEAVING.synchronize do
+      release_editing if DocumentPresence.disconnect(@document.id, current_user.id)
+    end
   end
 
   # A change someone made, on its way to everyone else and to the filing cabinet
@@ -57,8 +64,9 @@ class DocumentSyncChannel < ApplicationCable::Channel
     return refuse("This document is too large to share more changes") if stored_size + payload.bytesize > MAX_DOCUMENT_SIZE
     return refuse("The demo is full right now") if Demo.over_budget?
 
-    @document.updates.create!(data: payload)
-    hold_editing_open
+    return start_over unless in_this_copy { @document.updates.create!(data: payload) }
+
+    keep_editing_open
     broadcast(type: "update", update: data["update"], origin: data["origin"])
   end
 
@@ -68,10 +76,19 @@ class DocumentSyncChannel < ApplicationCable::Channel
     return unless @document
     return if data["awareness"].to_s.empty? || data["awareness"].to_s.bytesize > MAX_CARET_SIZE
 
+    keep_editing_open
     broadcast(type: "awareness", awareness: data["awareness"], origin: data["origin"], hello: data["hello"].present?)
   end
 
-  # The pile, merged into one by a browser that had the whole document
+  # Someone reading along, or thinking, types nothing and moves no caret, and
+  # still has the document open. Their page says so every minute.
+  def still_here
+    keep_editing_open if @document
+  end
+
+  # The pile, merged into one by a browser that had the whole document — as far
+  # as it had read. It says how far, and only that much is replaced: a change
+  # that came in while it was merging is not in its copy, and stays.
   def merge_updates(data)
     return unless @document
 
@@ -80,10 +97,18 @@ class DocumentSyncChannel < ApplicationCable::Channel
     payload = decode(data["snapshot"])
     return if payload.nil? || payload.empty?
 
-    Docs::Update.transaction do
-      @document.updates.delete_all
+    upto = data["upto"].to_i
+    return unless upto.positive?
+
+    merged = in_this_copy do
+      # Another page sent its merged copy in the meantime, and that one has more in it
+      next if @document.updates.where(seed: true).where("id > ?", upto).exists?
+
+      @document.updates.where(id: ..upto).delete_all
       @document.updates.create!(data: payload, seed: true)
     end
+
+    start_over unless merged
   end
 
   private
@@ -92,24 +117,83 @@ class DocumentSyncChannel < ApplicationCable::Channel
     DocumentSyncChannel.broadcast_to(@document, payload)
   end
 
+  # What a joining page is handed: which copy this is, every change in it, and
+  # the text to build it from if nobody has yet. Read in one transaction, so the
+  # copy can't be thrown away halfway and leave the page with a bit of each.
+  def copy_to_join
+    Docs::Update.transaction do
+      @generation = Docs::Document.where(id: @document.id).pick(:shared_copy_generation)
+      stored = @document.updates.oldest_first.pluck(:id, :data)
+
+      {
+        type: "sync",
+        generation: @generation,
+        updates: readable(stored),
+        # How far this page has read, for when it sends a merged copy back
+        upto: stored.last&.first,
+        seed: (seed_html if stored.empty?),
+        compact: stored.size > COMPACT_AFTER
+      }
+    end
+  end
+
   # The row that claims the first fill holds no change of its own, and Yjs
   # refuses to read an empty one
-  def stored_updates
-    @document.updates.oldest_first.pluck(:data)
+  def readable(stored)
+    stored.map(&:last)
       .reject { |data| data.nil? || data.empty? }
       .map { |data| Base64.strict_encode64(data) }
   end
 
   # The text as it stands goes to the first page to open the document, which
   # builds the shared copy from it. The row claiming that is written here, so
-  # two pages arriving together can't both fill the same document.
+  # two pages arriving together can't both fill the same document. A document
+  # with nothing to read in it (new, or emptied: an editor leaves an empty
+  # paragraph behind) has nothing to build from, and needs no claim.
   def seed_html
-    return nil if @document.updates.exists?
+    html = @document.content&.body&.to_html.to_s
+    return html if @document.content.to_plain_text.blank?
 
     @document.updates.create!(data: "", seed: true)
-    @document.content&.body&.to_html.to_s
+    @seeding = true
+    html
   rescue ActiveRecord::RecordNotUnique
     nil
+  end
+
+  # The page that was handed the text left before any of it came back as a
+  # change, so the copy it was to build was never made. Left alone, the claim
+  # would have everyone after it join an empty copy and save that over the text.
+  # So it goes the way of any copy that is thrown away: the next page is handed
+  # the text, pages already waiting start over, and should this one come back
+  # with what it built by itself, that is not added to someone else's.
+  def give_up_seeding
+    return unless @seeding && current_copy?
+    return if @document.updates.where("length(data) > 0").exists?
+
+    @document.reset_shared_copy!
+  end
+
+  # Runs the block when this page still writes in the document's copy, and says
+  # whether it did. One transaction, and SQLite takes the write lock when one
+  # starts, so the copy can't be thrown away between the check and the write.
+  def in_this_copy
+    Docs::Update.transaction do
+      next false unless current_copy?
+
+      yield
+      true
+    end
+  end
+
+  def current_copy?
+    Docs::Document.where(id: @document.id).pick(:shared_copy_generation) == @generation
+  end
+
+  # Only the page that sent it hears: the copy it writes in is gone, and it is
+  # to open the document again
+  def start_over
+    transmit({ type: "replaced" })
   end
 
   def decode(value)
@@ -133,23 +217,35 @@ class DocumentSyncChannel < ApplicationCable::Channel
   end
 
   # The documents list and the API ask whether anyone has this open. Taking it
-  # doesn't keep anyone else out — it's a sign, not a lock.
+  # doesn't keep anyone else out — it's a sign, not a lock. One name is on it;
+  # anyone else in the document takes it when it is free or has gone stale.
   def hold_editing_open
     taken = Docs::Document.where(id: @document.id)
       .where("locked_by_id IS NULL OR locked_at < ? OR locked_by_id = ?", Docs::Document::LOCK_TIMEOUT.ago, current_user.id)
       .update_all(locked_by_id: current_user.id, locked_at: Time.current)
 
     announce_editing(current_user.name) if taken.positive? && !@holding
-    @holding = true if taken.positive?
+    @holding = taken.positive?
+    @held_at = Time.current
   end
 
+  # The same, for what happens all the time: once it's ours, saying so again
+  # can wait a little
+  def keep_editing_open
+    hold_editing_open unless @holding && @held_at > HOLD_EVERY.ago
+  end
+
+  # The sign only comes down when the last one leaves: with someone else still
+  # in the document it goes on in their name
   def release_editing
-    return unless @holding
+    held = Docs::Document.where(id: @document.id, locked_by_id: current_user.id)
+    heir = User.find_by(id: DocumentPresence.others(@document.id, current_user.id).first)
 
-    released = Docs::Document.where(id: @document.id, locked_by_id: current_user.id)
-      .update_all(locked_by_id: nil, locked_at: nil)
-
-    announce_editing(nil) if released.positive?
+    if heir
+      announce_editing(heir.name) if held.update_all(locked_by_id: heir.id, locked_at: Time.current).positive?
+    elsif held.update_all(locked_by_id: nil, locked_at: nil).positive?
+      announce_editing(nil)
+    end
   end
 
   # Two audiences: whoever is reading this document (DocumentChannel) and the

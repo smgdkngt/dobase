@@ -34,6 +34,13 @@ class DocumentPresence
       end
     end
 
+    # Who else has the document open, for passing on the "is editing" sign
+    def others(document_id, user_id)
+      @lock.synchronize do
+        @connections.keys.filter_map { |document, user| user if document == document_id.to_i && user != user_id.to_i }
+      end
+    end
+
     def connections(document_id, user_id)
       @lock.synchronize { @connections[key_for(document_id, user_id)] }
     end

@@ -155,7 +155,7 @@ The API is the web app answering JSON: same routes and controllers, `respond_to`
 ### Real-time (ActionCable)
 
 - **ChatChannel** — messaging, typing indicators, presence
-- **DocumentSyncChannel** — shared Yjs editing of a document: stores and relays updates (`Docs::Update`), relays cursors (awareness), and marks the document "open" (`locked_by`) for the documents list and the API. The vendored rhino-editor bundle carries the Collaboration extensions; see `vendor/javascript/README.md`
+- **DocumentSyncChannel** — shared Yjs editing of a document: stores and relays updates (`Docs::Update`), relays cursors (awareness), and marks the document "open" (`locked_by`) for the documents list and the API. A write from outside the editor throws that copy away (`Docs::Document#reset_shared_copy!` bumps `shared_copy_generation`): changes to an older copy are refused and open editors load the document again. The vendored rhino-editor bundle carries the Collaboration extensions; see `vendor/javascript/README.md`
 - **DocumentChannel** — read-only viewers of a document: saved content and whether someone has it open
 - **PresenceChannel** — who is in a tool and what they have open (`presence:context` events, `data-presence-item`/`data-presence-target` in views), plus comment typing. Nothing stored: pages announce every 30s and forget anyone quiet for 90s. **WorkspacePresenceChannel** listens to every shared tool for the sidebar faces
 - **NotificationChannel** — per-user stream (`notifications:#{user.id}`) for real-time notification delivery

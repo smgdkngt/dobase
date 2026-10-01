@@ -13,7 +13,8 @@ module Tools
       def show
         @locked_by = @document.locked? ? @document.locked_by : nil
         @presence_context = "document:#{@document.id}"
-        current_user.read_notifications_about!(records: [ @document ], urls: [ tool_docs_document_path(@tool, @document) ])
+        # A token fetching the document is not its owner having read it
+        current_user.read_notifications_about!(records: [ @document ], urls: [ tool_docs_document_path(@tool, @document) ]) if request.format.html?
       end
 
       # Everyone may open the editor at once: the text is a shared copy that
@@ -56,6 +57,8 @@ module Tools
             # A write from outside the editor replaces the text, so the copy the
             # editors share has to start again from it — otherwise the next
             # keystroke in an open editor would put the old text straight back.
+            # An editor that is open (the token's own, which doesn't stop the
+            # write) is told, and opens the document again with this text.
             @document.reset_shared_copy! if access_token_request?
             @document.broadcast_content_update
             format.html { redirect_to edit_tool_docs_document_path(@tool, @document) }

@@ -71,8 +71,9 @@ because their editor would save over your change:
 ```
 
 Try again once `locked` is false. Your own editor doesn't stop you, and a
-write that goes through replaces the shared copy the editors were using: they
-pick up your text on their next visit.
+write that goes through replaces the shared copy the editors were using: an
+editor that is still open loads the document again with your text, and what
+was being typed in it at that moment is dropped.
 
 ## Delete a document
 
