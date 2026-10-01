@@ -49,3 +49,20 @@ func TestTheLastMessageLeavesTheScreenWhenItIsDeleted(t *testing.T) {
 	}
 	expectContains(t, h.text(), "It's quiet in here.")
 }
+
+func TestAMessageThatCouldNotBeSentStaysInTheField(t *testing.T) {
+	h := newHarness(t)
+	h.fail("Post /tools/12/chat/messages", true)
+	h.char('3').char('i').typing("Lunch at one?").code(KeyEnter)
+
+	chat := h.app.screen.(*Chat)
+	if got := chat.input.Text(); got != "Lunch at one?" || !chat.writing {
+		t.Fatalf("the field holds %q", got)
+	}
+	expectContains(t, h.text(), "The server is having a moment", "Lunch at one?")
+
+	h.fail("Post /tools/12/chat/messages", false).code(KeyEnter)
+	if got := chat.input.Text(); got != "" {
+		t.Fatalf("after sending, the field holds %q", got)
+	}
+}

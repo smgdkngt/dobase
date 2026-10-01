@@ -170,6 +170,10 @@ func (s *Chat) Key(key Key, view *View, fx *Fx) bool {
 				fx.job("Sending", func(app *App) error {
 					message, err := app.post(fmt.Sprintf("/tools/%d/chat/messages", tool), api.Object("message", api.Object("body", command.Paragraphs(text))))
 					if err != nil {
+						// Nothing was sent, so what was written comes back to send again.
+						if s.input.IsBlank() {
+							s.input = textInputWith(text)
+						}
 						return err
 					}
 					if err := reloadChat(app); err != nil {
