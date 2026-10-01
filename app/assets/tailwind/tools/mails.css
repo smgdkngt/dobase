@@ -242,6 +242,24 @@ rhino-editor.compose-editor .trix-content {
   }
 }
 
+/* With a tool beside this one mail has less room. In the top bar the sync dot and button
+   stay and the words go; an open mail puts its buttons under the subject, as on a phone. */
+:root[data-side-pane] .mail-topbar .mail-sync-text {
+  @apply hidden;
+}
+
+:root[data-side-pane] .mail-detail-header {
+  @apply flex-wrap gap-2 py-2;
+}
+
+:root[data-side-pane] .mail-detail-header > h1 {
+  @apply w-full;
+}
+
+:root[data-side-pane] .mail-detail-header > div:last-child {
+  @apply w-full flex-wrap;
+}
+
 /* Responsive: Mobile */
 @media (max-width: 1023px) {
   /* Single column layout on mobile */

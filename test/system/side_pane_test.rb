@@ -110,6 +110,34 @@ class SidePaneTest < ApplicationSystemTestCase
     assert_equal alone - 444, width.call
   end
 
+  test "a window too narrow for two tools shows one, and the other is back when it widens" do
+    open_beside @files
+
+    page.driver.browser.manage.window.resize_to(1100, 900)
+    assert_no_selector "#side-pane iframe", visible: :all
+    assert_equal "0px", page.evaluate_script("getComputedStyle(document.body).marginRight")
+    assert_no_selector "[data-side-pane-toggle]"
+
+    page.driver.browser.manage.window.resize_to(1400, 1400)
+    within_pane { assert_selector "h1", text: @files.name }
+  ensure
+    page.driver.browser.manage.window.resize_to(1400, 1400)
+  end
+
+  test "Alt and Enter in the command palette opens what is selected beside" do
+    find("body").send_keys([ :meta, "k" ])
+    within "dialog[data-controller~='command-palette'][open]" do
+      assert_text "Open beside"
+      input = find("input[data-command-palette-target='input']")
+      input.set(@files.name)
+      assert_selector ".command-palette-item.selected", text: @files.name
+      input.send_keys([ :alt, :enter ])
+    end
+
+    within_pane { assert_selector "h1", text: @files.name }
+    assert_selector "main h1", text: @board.name
+  end
+
   test "a pane whose tool is gone closes" do
     open_beside @files
     @files.destroy!

@@ -12,8 +12,9 @@ import { Controller } from "@hotwired/stimulus"
 // What is beside, and how wide, is kept in this browser, per person.
 const MIN_WIDTH = 320
 const DEFAULT_WIDTH = 420
-// What the main tool keeps, however wide the pane is asked to be
-const MAIN_MIN_WIDTH = 480
+// What the main tool keeps, however wide the pane is asked to be: it has the layout
+// of a wide screen, which needs about this much
+const MAIN_MIN_WIDTH = 640
 const KEY_STEP = 24
 
 export default class extends Controller {
@@ -22,8 +23,9 @@ export default class extends Controller {
 
   connect() {
     this.root = document.documentElement
-    // Under this the sidebar is a sheet and a tool takes the whole screen
-    this.wide = window.matchMedia("(min-width: 1024px)")
+    // Room for the sidebar, a main tool and a tool beside it; a narrower window shows
+    // one tool, and the tool beside comes back when it is wide again
+    this.wide = window.matchMedia("(min-width: 1280px)")
     this.state = this.load()
     this.mainToolId = toolIdOf(location.pathname)
 
@@ -66,9 +68,13 @@ export default class extends Controller {
   }
 
   close() {
+    // Focus that was in the pane (its close button, the tool itself) goes to the main tool
+    const focusWasHere = this.element.contains(document.activeElement)
+
     this.state.url = null
     this.save()
     this.show()
+    if (focusWasHere) document.getElementById("main-content")?.focus()
   }
 
   // The button on a tool in the sidebar: beside, or not beside any more
@@ -288,6 +294,8 @@ export default class extends Controller {
     if (!this.shown) return
 
     this.root.style.setProperty("--side-pane-width", `${this.width}px`)
+    this.resizerTarget.setAttribute("aria-valuemin", MIN_WIDTH)
+    this.resizerTarget.setAttribute("aria-valuemax", this.fitting(Infinity))
     this.resizerTarget.setAttribute("aria-valuenow", this.width)
   }
 

@@ -108,9 +108,13 @@
   }
 }
 
-/* An installed app draws a line under its title bar */
+/* An installed app draws a line under its title bar; the pane has it, so the page in it doesn't */
 @media (display-mode: standalone) and (min-width: 1024px) {
   .side-pane {
     border-top: 1px solid var(--color-border-light);
+  }
+
+  :root[data-in-side-pane] .main-content {
+    border-top: 0;
   }
 }

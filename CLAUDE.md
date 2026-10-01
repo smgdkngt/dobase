@@ -314,6 +314,17 @@ All keyboard shortcuts use the `@github/hotkey` library with **declarative `data
 - **Global shortcuts**: `?` help dialog, `Cmd+K` command palette, `b` notifications
 - **Exception**: Document editor `Ctrl+S` stays in its controller since `@github/hotkey` skips contentEditable elements
 
+### Side pane (a second tool beside the one you have open)
+
+A tool's button in the sidebar, Alt+click on a tool or on a link to one, or Alt+Enter in the command palette opens it beside the main tool. One pane, in windows from 1280px; it can be dragged wider, swapped with the main tool, and closed.
+
+- The pane (`shared/_side_pane`, `side_pane_controller.js`) is an `<iframe>` on the same page of the app. `application.js` puts it **next to `<body>`**, not in it: Turbo swaps the body on every visit, and a frame that moves loads its page again. So the tool beside keeps its state while the main one navigates.
+- The page in the frame is drawn without the sidebar, the notifications and the bottom bar: `side_pane?` (`ApplicationController`) is true for `Sec-Fetch-Dest: iframe` (the browser's first load) and for the `X-Side-Pane` header Turbo sends from inside the frame (`application.js`). `<html data-in-side-pane>` marks such a page; it runs `side_pane_page_controller.js`, which tells the page around it where it is (`postMessage`) and hands over `b` and `F6`. It keeps its own command palette and shortcuts.
+- Its window is narrow, so a tool beside gets the **narrow-screen layout** by the same media queries a phone does, minus the bottom bar (`side_pane.css`). The main tool keeps the desktop layout in less room; rules for very wide windows must not apply then (`:root:not([data-side-pane])`, see the mail folder column).
+- Whatever is `fixed` to the right edge of the window keeps clear with `var(--side-pane-width)` (toasts, the call window).
+- What is beside and how wide is kept in `localStorage` per person. A pane request touches `last_seen_at` but never `last_visited_path`.
+- The service worker leaves frame navigations alone: fetched from there they lose `Sec-Fetch-Dest`. System tests switch the service worker off, so that path is only seen in a real browser.
+
 ### Component System
 
 **All UI must use components** — no freeform HTML. Components use Rails `tag.*` helpers with hash options for HTML attributes (never manual string interpolation):
