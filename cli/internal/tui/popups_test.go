@@ -3,6 +3,8 @@ package tui
 import (
 	"strings"
 	"testing"
+
+	"github.com/smgdkngt/dobase/cli/internal/api"
 )
 
 func TestALongCardScrollsToItsLastLine(t *testing.T) {
@@ -18,4 +20,21 @@ func TestALongCardScrollsToItsLastLine(t *testing.T) {
 		h.code(KeyDown)
 	}
 	expectContains(t, h.text(), "The last line")
+}
+
+func TestOnlyYConfirms(t *testing.T) {
+	const archive = "/tools/10/board/cards/101/archive"
+	h := newHarness(t)
+	h.char('2').char('a')
+	expectContains(t, h.text(), "y yes · any other key no")
+
+	h.code(KeyEnter)
+	if h.app.popup != nil || h.requests(api.Post, archive) != 0 {
+		t.Fatalf("enter archived the card, or left the question open: %v", *h.calls)
+	}
+
+	h.char('a').char('y')
+	if h.requests(api.Post, archive) != 1 {
+		t.Fatal("y didn't archive the card")
+	}
 }
