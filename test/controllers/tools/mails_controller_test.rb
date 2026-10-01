@@ -469,6 +469,63 @@ module Tools
       assert_equal [ "quote-#{logo.id}@dobase" ], copy.attachments.map(&:content_id)
     end
 
+    # A job runs in the time zone it was queued in (ActiveJob), which is the sender's
+
+    test "a reply says when the mail it answers was sent in the sender's time zone, as the compose page did" do
+      users(:one).update!(timezone: "Amsterdam")
+      original = mails_messages(:inbox_read)
+      original.update!(sent_at: Time.utc(2026, 9, 29, 8, 23))
+
+      get new_tool_mail_path(@tool, reply_to: original.id)
+      assert_select ".compose-quote", text: /On Tue, Sep 29, 2026 at 10:23 AM, Reports Bot/
+
+      deliveries = capture_smtp_deliveries_in_the_background do
+        post tool_mails_path(@tool), params: {
+          to: "reports@example.com", subject: "Re: Lunch", body: "<p>Sure</p>", in_reply_to: original.message_id, quoted_message_id: original.id
+        }
+      end
+
+      sent = Mail.new(deliveries.sole[:message])
+      assert_includes sent.html_part.decoded, "On Tue, Sep 29, 2026 at 10:23 AM, Reports Bot"
+      assert_includes sent.text_part.decoded, "On Tue, Sep 29, 2026 at 10:23 AM, Reports Bot"
+      assert_includes @account.messages.sent.find_by!(subject: "Re: Lunch").body_html, "On Tue, Sep 29, 2026 at 10:23 AM, Reports Bot"
+    end
+
+    test "a draft on the server says when the mail it answers was sent in the time zone of whoever saved it" do
+      users(:one).update!(timezone: "Amsterdam")
+      original = mails_messages(:inbox_read)
+      original.update!(sent_at: Time.utc(2026, 9, 29, 8, 23))
+      server = FakeImapServer.new(folders: [ "INBOX", "Drafts" ])
+
+      connect_to_imap(server) do
+        perform_enqueued_jobs(only: SyncDraftJob) do
+          post tool_mail_drafts_path(@tool), params: { to: "reports@example.com", subject: "Re: Lunch", body: "<p>Sure</p>", in_reply_to: original.message_id, quoted_message_id: original.id }
+        end
+      end
+
+      assert_includes Mail.new(server.appended_messages.sole[:message]).html_part.decoded, "On Tue, Sep 29, 2026 at 10:23 AM, Reports Bot"
+    end
+
+    test "mail that couldn't be sent is a draft on the server with its quote in the sender's time zone" do
+      users(:one).update!(timezone: "Amsterdam")
+      original = mails_messages(:inbox_read)
+      original.update!(sent_at: Time.utc(2026, 9, 29, 8, 23))
+      server = FakeImapServer.new(folders: [ "INBOX", "Drafts" ])
+      smtp = SmtpTestHelper::FakeSmtp.new
+      smtp.define_singleton_method(:start) { |*| raise SocketError, "getaddrinfo: Temporary failure in name resolution" }
+      SmtpSendService.singleton_class.define_method(:new) { |*args| super(*args).tap { |service| service.define_singleton_method(:build_smtp) { smtp } } }
+
+      connect_to_imap(server) do
+        perform_enqueued_jobs(only: [ SendMailJob, SyncDraftJob ]) do
+          post tool_mails_path(@tool), params: { to: "reports@example.com", subject: "Re: Lunch", body: "<p>Sure</p>", in_reply_to: original.message_id, quoted_message_id: original.id }
+        end
+      end
+
+      assert_includes Mail.new(server.appended_messages.sole[:message]).html_part.decoded, "On Tue, Sep 29, 2026 at 10:23 AM, Reports Bot"
+    ensure
+      SmtpSendService.singleton_class.remove_method(:new)
+    end
+
     test "a draft keeps the mail it quotes, and without it goes out without a quote" do
       original = mails_messages(:inbox_read)
 
