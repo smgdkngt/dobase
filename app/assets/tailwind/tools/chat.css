@@ -20,8 +20,30 @@
     @apply text-xs font-medium tabular-nums;
   }
 
+  /* A message's actions sit on its top right corner, out of the row: in the row
+     they took their width from the text even while hidden, a third of a phone's
+     screen. Hidden, they let a tap through to the message, which shows them. */
+  .chat-message {
+    @apply relative;
+  }
+
+  .chat-message-actions {
+    @apply absolute -top-3 right-2 sm:right-4 z-10 opacity-0 pointer-events-none transition-opacity;
+  }
+
+  .chat-message:is(:hover, :focus-within) > .chat-message-actions,
+  .chat-message-actions:has(+ :popover-open) {
+    @apply opacity-100 pointer-events-auto;
+  }
+
   .chat-reaction-picker {
-    @apply w-auto flex gap-0.5 p-1;
+    @apply w-auto gap-0.5 p-1;
+  }
+
+  /* A row only while open: a display set on the closed popover overrides the browser
+     hiding it, and it then sits over the messages, see-through and taking taps */
+  .chat-reaction-picker:popover-open {
+    @apply flex;
   }
 
   .chat-reaction-choice {

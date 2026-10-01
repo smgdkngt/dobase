@@ -8,6 +8,14 @@ module ApplicationHelper
   # The name a message or comment goes by: its agent's, or its author's
   def poster_name(record) = record.agent? ? record.via : author_name(record.user)
 
+  # An iPhone zooms the page in when a field with text under 16px takes focus, and leaves
+  # it zoomed. A maximum scale stops that there, and people can still pinch to zoom; other
+  # browsers take pinch zoom away for it, so only the iPhone gets one.
+  def viewport_content
+    content = "width=device-width,initial-scale=1,viewport-fit=cover"
+    request.user_agent.to_s.match?(/iPhone|iPod/) ? "#{content},maximum-scale=1" : content
+  end
+
   def absolute_url(path)
     return path if path.start_with?("http")
     "#{root_url.chomp('/')}#{path}"
