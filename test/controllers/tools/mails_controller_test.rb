@@ -101,6 +101,21 @@ module Tools
       assert_not_includes shown, "Notification"
     end
 
+    test "show keeps text that reads like an event handler, and no event handlers" do
+      msg = mails_messages(:inbox_unread)
+      msg.update!(body_html: %(<p>Totaal onkosten = 45,00 euro</p><p>De <b>online = "ja"</b> optie</p><p onclick="alert(1)">Hi</p><img src="https://example.com/a.png" onerror=alert(2) onload='alert(3)'>))
+
+      get tool_mail_path(@tool, msg)
+
+      frame = css_select("iframe[data-email-frame-target='frame']").first
+      [ frame["srcdoc"], frame.parent.parent["data-email-frame-full-srcdoc-value"] ].each do |shown|
+        assert_includes shown, "<p>Totaal onkosten = 45,00 euro</p>"
+        assert_includes shown, %(<b>online = "ja"</b>)
+        assert_not_includes shown, "alert"
+        assert_empty Nokogiri::HTML5(shown).css("*").flat_map { |element| element.attribute_nodes.map(&:name) }.grep(/\Aon/i)
+      end
+    end
+
     test "show puts the pictures a message carries in its text, and lists only the other attachments" do
       msg = mails_messages(:inbox_unread)
       msg.update!(body_html: %(<p>Look</p><img src="cid:logo@example.com">))

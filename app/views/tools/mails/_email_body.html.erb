@@ -1,10 +1,8 @@
 <%# Locals: message, actions (false inside a form, like the compose page's quote: no buttons that are forms themselves) %>
 <% if message.body_html.present? %>
   <%
+    # Only the attributes Mails::ReadableHtml allows are left: no event handlers
     sanitized = Mails::ReadableHtml.from(message)
-
-    # Strip any on* event handler attributes that slipped through
-    sanitized = sanitized.gsub(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/i, "")
 
     # Strip remote images: replace src with blank, track if any were found
     has_remote_images = sanitized.match?(/<img\b[^>]*?\bsrc\s*=\s*["']https?:\/\//i) || sanitized.match?(/url\(\s*["']?\s*https?:/i) ||
