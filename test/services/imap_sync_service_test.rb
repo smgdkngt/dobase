@@ -552,6 +552,19 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_equal [ "photo.png" ], email.attachments.map(&:filename)
   end
 
+  # A group ("undisclosed-recipients:;", "team: ann@example.com, bob@example.com;") is listed
+  # in the envelope as a start and an end without a host, around its members
+
+  test "the names of groups among the recipients aren't addresses" do
+    incoming_message.send(:save_email, fetch_data(8, mail_with_id("groups-8").to_s,
+      to: [ [ "undisclosed-recipients", nil ], [ nil, nil ] ],
+      cc: [ [ "team", nil ], %w[ann example.com], %w[bob example.com], [ nil, nil ], %w[cc example.com] ]), "INBOX")
+
+    email = @account.messages.find_by!(message_id: "groups-8@example.com")
+    assert_equal [], email.to_addresses_list
+    assert_equal %w[ann@example.com bob@example.com cc@example.com], email.cc_addresses_list
+  end
+
   test "a mail with only HTML gets the HTML's text as its text" do
     mail = Mail.new(from: "ann@example.com", to: "me@example.com", subject: "Code", message_id: "<html-only@example.com>",
       content_type: "text/html; charset=UTF-8", body: "<!DOCTYPE html><html><head><title>Code</title></head><body><p>Your code is 1234</p></body></html>")
@@ -825,10 +838,12 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     @incoming_message ||= Mails::IncomingMessage.new(@account)
   end
 
-  def fetch_data(uid, raw, from_name: "Ann", message_id: "<#{Mail.new(raw).message_id}>")
+  # to and cc: [mailbox, host] pairs, as the server lists them in the envelope
+  def fetch_data(uid, raw, from_name: "Ann", message_id: "<#{Mail.new(raw).message_id}>", to: [ %w[me example.com] ], cc: nil)
+      to, cc = [ to, cc ].map { |addresses| addresses&.map { |mailbox, host| Net::IMAP::Address.new(nil, nil, mailbox, host) } }
       envelope = Net::IMAP::Envelope.new(
         nil, Mail.new(raw).subject || "Test", [ Net::IMAP::Address.new(from_name, nil, "ann", "example.com") ], nil, nil,
-        [ Net::IMAP::Address.new(nil, nil, "me", "example.com") ], nil, nil, nil, message_id
+        to, cc, nil, nil, message_id
       )
       Net::IMAP::FetchData.new(1, { "UID" => uid, "ENVELOPE" => envelope, "FLAGS" => [], "INTERNALDATE" => Time.current, "BODY[]" => raw })
     end

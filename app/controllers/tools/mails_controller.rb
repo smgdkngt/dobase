@@ -283,6 +283,8 @@ module Tools
             @to = original.from_address
             others = original.to_addresses_list + original.cc_addresses_list - [ @to ]
           end
+          # Mail synced before group names were left out ("undisclosed-recipients:;") has them as addresses without a host
+          others = others.reject { |address| address.end_with?("@") }
           @cc = (others - [ @tool.mail_account.email_address ]).join(", ") if params[:reply_all]
         end
       elsif params[:forward].present?

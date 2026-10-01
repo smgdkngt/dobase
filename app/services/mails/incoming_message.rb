@@ -48,8 +48,8 @@ module Mails
       from_address = from ? "#{from.mailbox}@#{from.host}" : nil
       from_name = unquote(decode_rfc2047(from&.name))
 
-      to_list = (envelope.to || []).map { |addr| "#{addr.mailbox}@#{addr.host}" }
-      cc_list = (envelope.cc || []).map { |addr| "#{addr.mailbox}@#{addr.host}" }
+      to_list = addresses_of(envelope.to)
+      cc_list = addresses_of(envelope.cc)
 
       sent_at = begin
         Time.parse(envelope.date.to_s)
@@ -104,6 +104,12 @@ module Mails
 
       # Detect and create calendar invites for new emails
       detect_calendar_invite(email, calendar_data_of(parsed_mail)) if is_new_email
+    end
+
+    # A group among the recipients ("undisclosed-recipients:;") is listed as a start and an
+    # end without a host, around its members: those two aren't addresses
+    def addresses_of(list)
+      (list || []).select { |addr| addr.mailbox.present? && addr.host.present? }.map { |addr| "#{addr.mailbox}@#{addr.host}" }
     end
 
     def detect_calendar_invite(email, calendar_data = nil)

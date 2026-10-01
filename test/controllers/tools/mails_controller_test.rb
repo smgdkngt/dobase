@@ -633,6 +633,16 @@ module Tools
       assert_select "input[name=cc][value=?]", "bob@example.com"
     end
 
+    test "a reply to all leaves out what was saved as an address of a group's name" do
+      original = mails_messages(:inbox_read)
+      original.update!(to_addresses: [ "undisclosed-recipients@", "@" ].to_json, cc_addresses: [ "bob@example.com" ].to_json)
+
+      get new_tool_mail_path(@tool, reply_to: original.id, reply_all: true)
+
+      assert_select "input[name=to][value=?]", "reports@example.com"
+      assert_select "input[name=cc][value=?]", "bob@example.com"
+    end
+
     test "mail that can't be sent stays a draft, with its attachments, and the sender hears why" do
       attachment = attachment_on(mails_messages(:inbox_read), "report.pdf")
       SmtpSendService.alias_method :send_email_without_failure, :send_email
