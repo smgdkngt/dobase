@@ -308,7 +308,9 @@ export default class extends Controller {
   load() {
     try {
       const kept = JSON.parse(localStorage.getItem(this.storageKey)) || {}
-      return { url: pathOf(kept.url), width: Number(kept.width) || DEFAULT_WIDTH }
+      const url = pathOf(kept.url)
+      // Only ever a tool's page: that is all the pane writes here
+      return { url: toolIdOf(url) ? url : null, width: Number(kept.width) || DEFAULT_WIDTH }
     } catch {
       return { url: null, width: DEFAULT_WIDTH }
     }
@@ -330,13 +332,16 @@ export default class extends Controller {
   }
 }
 
-// "/tools/12/board?card=3" from an address on this site; nothing from any other
+// "/tools/12/board?card=3" from an address on this site; nothing from any other.
+// A path can itself start with two slashes ("/.//elsewhere.example"), which a frame
+// would read as another site.
 function pathOf(url) {
   if (!url) return null
 
   try {
     const address = new URL(url, location.origin)
-    return address.origin === location.origin ? address.pathname + address.search : null
+    const path = address.pathname + address.search
+    return address.origin === location.origin && !path.startsWith("//") ? path : null
   } catch {
     return null
   }

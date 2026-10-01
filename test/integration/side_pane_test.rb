@@ -38,6 +38,15 @@ class SidePaneTest < ActionDispatch::IntegrationTest
     assert_select "dialog[data-controller~='command-palette']"
   end
 
+  test "the app can be framed by itself and by nobody else" do
+    sign_in_as @user
+
+    get tool_files_path(@tool), headers: { "Sec-Fetch-Dest" => "iframe" }
+
+    assert_includes response.headers["Content-Security-Policy"], "frame-ancestors 'self'"
+    assert_equal "SAMEORIGIN", response.headers["X-Frame-Options"]
+  end
+
   test "a page Turbo asks for from inside the frame is the tool alone too" do
     sign_in_as @user
 
