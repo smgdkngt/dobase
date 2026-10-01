@@ -39,6 +39,14 @@ else
   fail "needs curl or wget to download."
 fi
 
+if command -v sha256sum > /dev/null; then
+  checksum() { sha256sum "$1" | cut -d ' ' -f 1; }
+elif command -v shasum > /dev/null; then
+  checksum() { shasum -a 256 "$1" | cut -d ' ' -f 1; }
+else
+  fail "needs sha256sum or shasum to check the download."
+fi
+
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
@@ -47,11 +55,8 @@ fetch "$base/$archive" "$tmp/$archive" || fail "could not download $base/$archiv
 fetch "$base/$archive.sha256" "$tmp/$archive.sha256" || fail "could not download the checksum for $archive"
 
 expected="$(cut -d ' ' -f 1 < "$tmp/$archive.sha256")"
-if command -v sha256sum > /dev/null; then
-  actual="$(sha256sum "$tmp/$archive" | cut -d ' ' -f 1)"
-else
-  actual="$(shasum -a 256 "$tmp/$archive" | cut -d ' ' -f 1)"
-fi
+actual="$(checksum "$tmp/$archive")"
+[ -n "$actual" ] || fail "could not work out the checksum of the download."
 [ "$expected" = "$actual" ] || fail "the download doesn't match its checksum. Try again later."
 
 tar -xzf "$tmp/$archive" -C "$tmp"
