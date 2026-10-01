@@ -5,6 +5,13 @@ require "net/imap"
 class ImapSyncService
   class ConnectionError < StandardError; end
   class AuthenticationError < StandardError; end
+  # The mail server wasn't reached, or the connection broke, while making a change there.
+  # Making the change again is safe.
+  class Unreachable < ConnectionError; end
+
+  # Failures to find, connect to or keep talking to the mail server, which may pass
+  UNREACHABLE = [ SocketError, Timeout::Error, IOError, OpenSSL::SSL::SSLError, Errno::ECONNREFUSED, Errno::ECONNRESET,
+                  Errno::EHOSTUNREACH, Errno::ENETUNREACH, Errno::ETIMEDOUT, Errno::EPIPE, Net::IMAP::ByeResponseError ].freeze
 
   SPECIAL_FOLDERS = {
     "Sent" => [ :Sent, [ "Sent", "INBOX.Sent", "[Gmail]/Sent Mail", "Sent Messages", "Sent Items" ] ],
@@ -75,26 +82,28 @@ class ImapSyncService
     Rails.logger.warn("Could not sync folder #{folder_name}: #{e.class}: #{e.message}")
   end
 
+  # --- Changes made in Dobase, made on the server afterwards (ImapSyncJob, SyncDraftJob) ---
+  # Each raises Unreachable when the server couldn't be reached, for the job to try again.
+  # Setting a flag or deleting a message twice comes to the same as once, so those are tried
+  # again wherever the connection broke. A move copies and a draft is added: once that has
+  # gone to the server it may have arrived, and it isn't tried again (`unrepeatable!`).
+
   def mark_as_read(uid, folder: "INBOX")
-    connect do |imap|
+    changing_server("mark email as read on IMAP") do |imap|
       select_folder(imap, folder)
       imap.uid_store(uid, "+FLAGS", [ :Seen ])
     end
-  rescue StandardError => e
-    Rails.logger.error("Failed to mark email as read on IMAP: #{e.message}")
   end
 
   def mark_as_unread(uid, folder: "INBOX")
-    connect do |imap|
+    changing_server("mark email as unread on IMAP") do |imap|
       select_folder(imap, folder)
       imap.uid_store(uid, "-FLAGS", [ :Seen ])
     end
-  rescue StandardError => e
-    Rails.logger.error("Failed to mark email as unread on IMAP: #{e.message}")
   end
 
   def set_starred(uid, starred, folder: "INBOX")
-    connect do |imap|
+    changing_server("update starred flag on IMAP") do |imap|
       select_folder(imap, folder)
       if starred
         imap.uid_store(uid, "+FLAGS", [ :Flagged ])
@@ -102,8 +111,6 @@ class ImapSyncService
         imap.uid_store(uid, "-FLAGS", [ :Flagged ])
       end
     end
-  rescue StandardError => e
-    Rails.logger.error("Failed to update starred flag on IMAP: #{e.message}")
   end
 
   def create_folder(folder_name)
@@ -112,9 +119,8 @@ class ImapSyncService
   end
 
   def save_draft(message)
-    raw = build_raw_email(message)
-
-    connect do |imap|
+    changing_server("save draft to IMAP") do |imap|
+      raw = build_raw_email(message)
       drafts_folder = find_special_folder(imap.list("", "*"), "Drafts")
 
       # Delete old draft from server if it exists
@@ -125,6 +131,7 @@ class ImapSyncService
 
       # Upload new version
       if drafts_folder
+        unrepeatable!
         imap.append(drafts_folder, raw, [ :Draft, :Seen ])
         # Get the UID of the just-appended message
         imap.select(drafts_folder)
@@ -132,8 +139,6 @@ class ImapSyncService
         message.update_column(:uid, uids.last) if uids.any?
       end
     end
-  rescue StandardError => e
-    Rails.logger.error("Failed to save draft to IMAP: #{e.message}")
   end
 
   def delete_draft(uid)
@@ -144,49 +149,43 @@ class ImapSyncService
 
   # Takes one UID or several in the same folder
   def delete_message(uids, folder:)
-    connect do |imap|
+    changing_server("delete email #{Array(uids).join(", ")} from #{folder}") do |imap|
       select_folder(imap, folder)
       remove_from_folder(imap, uids)
     end
-  rescue StandardError => e
-    Rails.logger.error("Failed to delete email #{Array(uids).join(", ")} from #{folder}: #{e.message}")
   end
 
   def move_to_folder(uid, source_folder:, destination_folder:)
-    connect do |imap|
+    changing_server("move email #{Array(uid).join(", ")} from #{source_folder} to #{destination_folder}") do |imap|
       source, destination = server_folder_names(imap, source_folder, destination_folder)
       imap.select(source)
+      unrepeatable!
       imap.uid_copy(uid, destination)
       remove_from_folder(imap, uid)
     end
-  rescue StandardError => e
-    Rails.logger.error("Failed to move email #{uid} from #{source_folder} to #{destination_folder}: #{e.message}")
   end
 
   def delete_message_by_message_id(message_id, folder:)
-    connect do |imap|
+    changing_server("delete email #{message_id} from #{folder}") do |imap|
       select_folder(imap, folder)
       uids = find_by_message_id(imap, message_id)
       remove_from_folder(imap, uids) if uids.any?
     end
-  rescue StandardError => e
-    Rails.logger.error("Failed to delete email #{message_id} from #{folder}: #{e.message}")
   end
 
   # A moved message gets a new UID in its new folder, so mail that was moved before, like
   # archived mail, is found by its Message-ID.
   def move_to_folder_by_message_id(message_id, source_folder:, destination_folder:)
-    connect do |imap|
+    changing_server("move email #{message_id} from #{source_folder} to #{destination_folder}") do |imap|
       source, destination = server_folder_names(imap, source_folder, destination_folder)
       imap.select(source)
       uids = find_by_message_id(imap, message_id)
       next if uids.empty?
 
+      unrepeatable!
       imap.uid_copy(uids, destination)
       remove_from_folder(imap, uids)
     end
-  rescue StandardError => e
-    Rails.logger.error("Failed to move email #{message_id} from #{source_folder} to #{destination_folder}: #{e.message}")
   end
 
   # Mail saved before attachments kept their Content-IDs shows the pictures in its text
@@ -219,9 +218,30 @@ class ImapSyncService
     @incoming_message ||= ::Mails::IncomingMessage.new(@account)
   end
 
+  # Connects for a change the server should get. A server that can't be reached raises
+  # Unreachable as long as trying again can't make the change twice. Anything else, like a
+  # server that turns the change down, is logged: trying again wouldn't help.
+  def changing_server(description)
+    @unrepeatable = false
+    connect { |imap| yield imap }
+  rescue Unreachable, *UNREACHABLE => error
+    raise Unreachable, "Couldn't reach #{@account.imap_host} to #{description}: #{error.message}" unless @unrepeatable
+    Rails.logger.error("Failed to #{description}: #{error.message}")
+  rescue StandardError => error
+    Rails.logger.error("Failed to #{description}: #{error.message}")
+  end
+
+  # What comes next may reach the server even when the connection breaks, and would be
+  # done twice by trying again
+  def unrepeatable!
+    @unrepeatable = true
+  end
+
   def connect
     begin
       RemoteHost.verify!(@account.imap_host)
+    rescue RemoteHost::LookupFailed => e
+      raise Unreachable, e.message
     rescue RemoteHost::Forbidden => e
       raise ConnectionError, e.message
     end

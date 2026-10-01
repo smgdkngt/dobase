@@ -3,6 +3,12 @@
 class ImapSyncJob < ApplicationJob
   queue_as :default
   skip_in_demo
+  # Tried again for a few minutes while the mail server can't be reached. After that the
+  # change stays unmade there. The waits are the same for every change, so changes to the
+  # same mail (trashed, then restored) are tried again in the order they were made.
+  retry_on ImapSyncService::Unreachable, wait: :polynomially_longer, jitter: 0, attempts: 5 do |job, error|
+    Rails.logger.error("Gave up on #{job.arguments.second} for mail account #{job.arguments.first}: #{error.message}")
+  end
 
   def perform(mail_account_id, action, uid, folder, *args)
     mail_account = Mails::Account.find_by(id: mail_account_id)
@@ -25,7 +31,9 @@ class ImapSyncJob < ApplicationJob
       destination, message_id = args
       service.move_to_folder_by_message_id(message_id, source_folder: folder, destination_folder: destination)
     when "delete_message"
-      service.delete_message(uid, folder: folder)
+      # Mail that was restored while this waited for the server, and has its UID again, stays
+      uids = Array(uid) - mail_account.messages.not_trashed.where(folder: folder, uid: uid).pluck(:uid)
+      service.delete_message(uids, folder: folder) if uids.any?
     when "delete_message_by_message_id"
       service.delete_message_by_message_id(args.first, folder: folder)
     when "delete_draft"
