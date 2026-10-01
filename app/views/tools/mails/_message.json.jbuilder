@@ -5,7 +5,7 @@ if message.draft?
   json.bcc message.bcc_addresses_list
   json.quoted_message_id message.quoted_message_id
 end
-json.(message, :sent_at, :read, :starred, :archived, :trashed, :draft, :folder, :message_id, :in_reply_to)
+json.(message, :sent_at, :read, :starred, :archived, :trashed, :draft, :sending, :folder, :message_id, :in_reply_to)
 json.body message.plain_text_body
 json.body_html message.body_html
 

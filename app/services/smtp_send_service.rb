@@ -61,13 +61,16 @@ class SmtpSendService
 
   # A reply passes the message_id of the message it answers as in_reply_to.
   # inline_images are the pictures the HTML shows by cid: (a quote's, Mails::Quote#inline_images).
-  def send_email(to:, subject:, body:, body_html: nil, cc: nil, bcc: nil, attachments: nil, inline_images: nil, in_reply_to: nil)
+  # sent_copy is the mail as it's kept in Sent, when it's there already (the compose page's,
+  # which shows in its conversation while it's sent): it goes out under its Message-ID.
+  def send_email(to:, subject:, body:, body_html: nil, cc: nil, bcc: nil, attachments: nil, inline_images: nil, in_reply_to: nil, sent_copy: nil)
     in_reply_to = in_reply_to.presence
     email = { to: to, subject: subject, body: body, body_html: body_html, cc: cc, bcc: bcc, attachments: attachments,
-              inline_images: inline_images, in_reply_to: in_reply_to, references: references_for(in_reply_to) }
+              inline_images: inline_images, in_reply_to: in_reply_to, references: references_for(in_reply_to),
+              message_id: sent_copy&.message_id }
 
     mail = deliver(**email)
-    file_sent_email(mail, **email)
+    file_sent_email(mail, sent_copy: sent_copy, **email)
 
     true
   end
@@ -132,7 +135,7 @@ class SmtpSendService
     smtp
   end
 
-  def build_mail(to:, subject:, body:, body_html:, cc:, bcc:, attachments:, inline_images:, in_reply_to:, references:)
+  def build_mail(to:, subject:, body:, body_html:, cc:, bcc:, attachments:, inline_images:, in_reply_to:, references:, message_id:)
     mail = Mail.new
 
     mail.from = @account.display_name.present? ? "#{@account.display_name} <#{@account.email_address}>" : @account.email_address
@@ -141,7 +144,7 @@ class SmtpSendService
     mail.bcc = Array(bcc).join(", ") if bcc.present?
     mail.subject = subject
     mail.date = Time.current
-    mail.message_id = "<#{SecureRandom.uuid}@#{@account.smtp_host}>"
+    mail.message_id = "<#{message_id || "#{SecureRandom.uuid}@#{@account.smtp_host}"}>"
 
     if in_reply_to
       mail.in_reply_to = in_reply_to
@@ -254,8 +257,9 @@ class SmtpSendService
     [ nil, nil ]
   end
 
-  def save_sent_email(mail, subject:, body:, body_html:, attachments:, inline_images:, in_reply_to:, references:, **)
-    email = @account.messages.create!(
+  def save_sent_email(mail, subject:, body:, body_html:, attachments:, inline_images:, in_reply_to:, references:, sent_copy: nil, **)
+    email = sent_copy || @account.messages.new
+    email.update!(
       message_id: mail.message_id,
       in_reply_to: in_reply_to,
       references: references,
@@ -270,11 +274,14 @@ class SmtpSendService
       body_html: body_html,
       read: true,
       has_attachments: Array(attachments).any?,
-      sent_at: Time.current
+      sent_at: Time.current,
+      # A quote is part of the text by now
+      quoted_message: nil,
+      sending: false
     )
 
-    # Save attachments to the email record if present
-    save_attachments(email, attachments) if attachments.present?
+    # A copy that was there already has its attachments
+    save_attachments(email, attachments) if attachments.present? && !sent_copy
     # The copy shows its quote's pictures too
     Array(inline_images).each do |image|
       email.attachments.create!(image.slice(:filename, :content_type, :content_id).merge(file_size: image[:content].bytesize))

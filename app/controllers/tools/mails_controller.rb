@@ -83,13 +83,16 @@ module Tools
       end
 
       # From the compose page the mail goes out in the background, so the page doesn't wait
-      # for the mail server. The API sends it right away, to say whether it went.
+      # for the mail server: it opens the conversation, with the mail in it. The API sends it
+      # right away, to say whether it went.
       if request.format.json?
         send_now(to: to, cc: cc, bcc: bcc)
       else
-        draft = outgoing_draft(to: to, cc: cc, bcc: bcc)
-        SendMailJob.perform_later(draft, Current.user)
-        redirect_to tool_mails_path(@tool, folder: params[:folder].presence || "inbox"), notice: "Sending your email…"
+        message = outgoing_draft(to: to, cc: cc, bcc: bcc)
+        message.start_sending!
+        SendMailJob.perform_later(message, Current.user)
+        folder = params[:folder].presence || "inbox"
+        redirect_to tool_mail_path(@tool, opened_in_folder(message, folder), folder: folder)
       end
     end
 
@@ -269,16 +272,18 @@ module Tools
           @heading = params[:reply_all] ? "Reply All" : "Reply"
           @composing_from = original
           @in_reply_to = original.message_id
-          @to = original.from_address
           @subject = "Re: #{original.normalized_subject}" unless @subject.present?
           @quoted_message = original
 
-          if params[:reply_all]
-            all_recipients = original.to_addresses_list + original.cc_addresses_list
-            all_recipients -= [ @tool.mail_account.email_address ]
-            all_recipients -= [ @to ]
-            @cc = all_recipients.join(", ")
+          # A reply to mail of your own, like the one just sent, goes to the people it went to
+          if original.from_address.to_s.casecmp?(@tool.mail_account.email_address)
+            @to = original.to_addresses_list.join(", ")
+            others = original.cc_addresses_list
+          else
+            @to = original.from_address
+            others = original.to_addresses_list + original.cc_addresses_list - [ @to ]
           end
+          @cc = (others - [ @tool.mail_account.email_address ]).join(", ") if params[:reply_all]
         end
       elsif params[:forward].present?
         original = @tool.mail_account.messages.find_by(id: params[:forward])
@@ -318,7 +323,7 @@ module Tools
       render_send_error e.message
     end
 
-    # What the compose page sends is kept as a draft until SendMailJob has sent it, so mail
+    # What the compose page sends is saved as the draft it was or would have been, so mail
     # that can't be sent is still there to try again
     def outgoing_draft(to:, cc:, bcc:)
       draft = @mail_account.messages.drafts.find_by(id: params[:draft_id]) || @mail_account.new_draft
@@ -336,6 +341,13 @@ module Tools
       draft.attach_uploads(Array(params[:attachments])) if params[:attachments].present?
       draft.save!
       draft
+    end
+
+    # A conversation opens the way the folder's list opens it: on its last message in that
+    # folder, which is what archiving and trashing then act on. Mail that isn't in a
+    # conversation there opens by itself.
+    def opened_in_folder(message, folder)
+      mail_folder_scope(folder).where(thread_id: message.thread_id).order(sent_at: :desc).first || message
     end
 
     # The mail a reply or forward quotes below its text, only from this account's own mail

@@ -174,6 +174,17 @@
   .mail-message-in {
     animation: empty-state-in 200ms var(--ease-out) both;
   }
+
+  /* Toasts sit above the bar at the bottom of an open mail (the reply bar, the compose
+     form's Send row) instead of over its buttons. Without one they stay where they are. */
+  .mail-reply-bar,
+  .compose-footer {
+    anchor-name: --mail-bottom-bar;
+  }
+
+  body:has(.mail-layout) .flash-toast {
+    bottom: calc(anchor(--mail-bottom-bar top, calc(0.75rem + var(--demo-banner-height))) + 0.75rem);
+  }
 }
 
 /* The compose editor's text, spaced and quoted the way Mails::OutgoingHtml styles it for
@@ -297,6 +308,11 @@ rhino-editor.compose-editor .trix-content {
 
   .mail-detail-header > div:last-child {
     @apply w-full order-2 flex-wrap;
+  }
+
+  /* The toast above the bottom bar of an open mail, as on wide screens */
+  body:has(.mail-layout) .flash-toast {
+    bottom: calc(anchor(--mail-bottom-bar top, calc(var(--mobile-bar-clearance) - 0.75rem)) + 0.75rem);
   }
 
   /* Hide "select a message" empty state on mobile */

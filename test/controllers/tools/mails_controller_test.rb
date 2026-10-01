@@ -266,7 +266,7 @@ module Tools
         }
       end
 
-      assert_redirected_to tool_mails_path(@tool, folder: "inbox")
+      assert_redirected_to tool_mail_path(@tool, @account.messages.sent.find_by!(subject: "Hello"), folder: "inbox")
       assert_equal [ "sender@example.com", "reports@example.com", "boss@example.com" ], deliveries.sole[:recipients]
       assert_match "To: Friendly Sender <sender@example.com>", deliveries.sole[:message]
     end
@@ -293,11 +293,10 @@ module Tools
         }
       end
 
-      assert_redirected_to tool_mails_path(@tool, folder: "inbox")
+      reply = @account.messages.sent.find_by!(subject: "Re: Your weekly report")
+      assert_redirected_to tool_mail_path(@tool, original, folder: "inbox")
       assert_match "In-Reply-To: <msg-002@example.com>", deliveries.sole[:message]
       assert_match(/References: <msg-000@example.com>\s+<msg-002@example.com>/, deliveries.sole[:message])
-
-      reply = @account.messages.sent.find_by!(subject: "Re: Your weekly report")
       assert_equal original.message_id, reply.in_reply_to
       assert_includes original.conversation, reply
     end
@@ -404,7 +403,7 @@ module Tools
         }
       end
 
-      assert_redirected_to tool_mails_path(@tool, folder: "inbox")
+      assert_redirected_to tool_mail_path(@tool, @account.messages.sent.find_by!(subject: "Fwd: files"), folder: "inbox")
       assert_equal 1, deliveries.size
       assert_equal [ own_attachment.file.blob ], deliveries.first[:attachments]
     end
@@ -470,22 +469,66 @@ module Tools
       assert_equal "<p>Sure</p>", draft.outgoing_html
     end
 
-    test "mail goes out in the background, and the draft it was is gone once it has" do
+    test "mail sent off has left Drafts and opens as sent mail, marked until it has gone out in the background" do
       draft = mails_messages(:draft_message)
       draft.update!(uid: 9)
 
-      post tool_mails_path(@tool), params: { draft_id: draft.id, folder: "archive", to: "friend@example.com", bcc: "me@example.com", subject: "Plans", body: "<p>Hi</p>" }
+      post tool_mails_path(@tool), params: { draft_id: draft.id, folder: "drafts", to: "friend@example.com", bcc: "me@example.com", subject: "Plans", body: "<p>Hi</p>" }
 
-      assert_redirected_to tool_mails_path(@tool, folder: "archive")
+      assert_redirected_to tool_mail_path(@tool, draft, folder: "drafts")
       assert_enqueued_with(job: SendMailJob, args: [ draft, users(:one) ])
+      assert_enqueued_with(job: ImapSyncJob, args: [ @account.id, "delete_draft", 9, "Drafts" ])
       assert_equal [ [ "friend@example.com" ], [ "me@example.com" ], "Plans" ], [ draft.reload.to_addresses_list, draft.bcc_addresses_list, draft.subject ]
+      assert_equal [ "Sent", false, true, nil ], draft.values_at(:folder, :draft, :sending, :uid)
+
+      follow_redirect!
+      assert_select "h1", "Plans"
+      assert_select "[data-controller~='mail-sending'] .badge", text: "Sending…"
+      assert_select "#conversation-#{draft.id}", count: 0
+      assert_select ".mail-draft-note", count: 0
 
       deliveries = capture_smtp_deliveries { perform_enqueued_jobs(only: SendMailJob) }
 
       assert_equal [ "friend@example.com", "me@example.com" ], deliveries.sole[:recipients]
-      assert_not ::Mails::Message.exists?(draft.id)
-      assert_enqueued_with(job: ImapSyncJob, args: [ @account.id, "delete_draft", 9, "Drafts" ])
-      assert @account.messages.sent.exists?(subject: "Plans")
+      assert_equal [ "Sent", false, false ], draft.reload.values_at(:folder, :draft, :sending)
+      assert_equal draft.message_id, Mail.new(deliveries.sole[:message]).message_id
+      assert_equal draft, @account.messages.sent.find_by!(subject: "Plans")
+
+      get tool_mail_path(@tool, draft, folder: "drafts")
+      assert_select "[data-controller~='mail-sending']", count: 0
+    end
+
+    test "a reply sent off shows in the conversation it answers, opened as the folder's list opens it" do
+      original = mails_messages(:inbox_read)
+
+      post tool_mails_path(@tool), params: {
+        folder: "inbox", to: "reports@example.com", subject: "Re: Your weekly report", body: "<p>Thanks for these</p>", in_reply_to: original.message_id
+      }
+
+      # On the mail in the inbox, so archiving the conversation leaves the reply in Sent
+      assert_redirected_to tool_mail_path(@tool, original, folder: "inbox")
+      follow_redirect!
+      assert_select "#conversation-#{original.id}.selected"
+      assert_select "h1", "Your weekly report"
+      assert_select "[data-controller~='mail-sending']", count: 1
+      assert_includes response.body, "Thanks for these"
+
+      post tool_mail_archive_path(@tool, original, folder: "inbox")
+      reply = @account.messages.sent.find_by!(subject: "Re: Your weekly report")
+      assert_equal [ true, false ], [ original.reload.archived?, reply.archived? ]
+    end
+
+    test "a reply to mail of your own goes to the people it went to" do
+      sent = mails_messages(:sent_message)
+      sent.update!(to_addresses: [ "ann@example.com" ].to_json, cc_addresses: [ "bob@example.com", @account.email_address ].to_json)
+
+      get new_tool_mail_path(@tool, reply_to: sent.id)
+      assert_select "input[name=to][value=?]", "ann@example.com"
+      assert_select "input[name=cc][value=?]", ""
+
+      get new_tool_mail_path(@tool, reply_to: sent.id, reply_all: true)
+      assert_select "input[name=to][value=?]", "ann@example.com"
+      assert_select "input[name=cc][value=?]", "bob@example.com"
     end
 
     test "mail that can't be sent stays a draft, with its attachments, and the sender hears why" do

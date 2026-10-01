@@ -1,6 +1,7 @@
 <%# Locals: email_message, is_last %>
 <% attachments = email_message.listed_attachments %>
-<div class="border-b border-border-light last:border-b-0" data-controller="collapse" data-collapse-open-value="<%= is_last %>">
+<%# Mail sent off from the compose page shows here while it's on its way to the mail server %>
+<div class="border-b border-border-light last:border-b-0" data-controller="collapse<%= " mail-sending" if email_message.sending? %>" data-collapse-open-value="<%= is_last %>">
   <button type="button" class="w-full flex items-start gap-3 p-4 bg-transparent border-none cursor-pointer text-left hover:bg-background-tertiary" data-action="click->collapse#toggle">
     <% if email_message.draft? %>
       <div class="mail-draft-avatar">
@@ -18,6 +19,9 @@
           <%= render "components/badge", text: "Draft", variant: :warning, size: :sm %>
         <% elsif email_message.from_name.present? && email_message.from_name != email_message.from_address %>
           <span class="text-xs text-text-tertiary"><%= email_message.from_address %></span>
+        <% end %>
+        <% if email_message.sending? %>
+          <%= render "components/badge", text: "Sending…", variant: :muted, size: :sm %>
         <% end %>
         <span class="text-xs text-text-tertiary ml-auto inline-flex items-center gap-1.5">
           <% if attachments.any? %>

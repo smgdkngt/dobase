@@ -230,6 +230,8 @@ All mail actions sync to the IMAP server: trash, archive, read/unread, star, mov
 
 Mail drafts save locally and sync to the IMAP Drafts folder via `SyncDraftJob`. The compose form uses `formaction` on the Save Draft button to submit to the drafts controller.
 
+Sending from the compose page is asynchronous (`SendMailJob`). The draft becomes the mail in Sent at once (`Mails::Message#start_sending!`: `sending: true`, its final Message-ID), so it has left Drafts and shows in its conversation, which the page opens. The job sends that record (`sent_copy:`); refused mail is a draft again (`back_to_drafts!`) and the sender is notified. `mail_sending_controller` refreshes the page while a message is `sending`. The sync doesn't copy mail to the server's sent folder while it's `sending`. The JSON API sends synchronously.
+
 **Important**: Never use `button_to` inside a `form_with` — it creates nested `<form>` tags which browsers break. Use `link_to` with `data-turbo-method` instead.
 
 ### Email Delivery

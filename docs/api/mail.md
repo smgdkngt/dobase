@@ -86,6 +86,7 @@ a conversation this way doesn't mark it read.
       "archived": false,
       "trashed": false,
       "draft": false,
+      "sending": false,
       "folder": "INBOX",
       "message_id": "<004@moonshot-snacks.com>",
       "in_reply_to": null,
@@ -108,6 +109,7 @@ a conversation this way doesn't mark it read.
       "archived": false,
       "trashed": false,
       "draft": false,
+      "sending": false,
       "folder": "Sent",
       "message_id": "<007@moonshot-snacks.com>",
       "in_reply_to": "<004@moonshot-snacks.com>",
@@ -132,6 +134,8 @@ a conversation this way doesn't mark it read.
 - Calendar invitations found in a message are listed under `calendar_invites`
   as `{"id", "summary", "starts_at", "ends_at", "all_day", "location", "organizer_name", "organizer_email", "status"}`.
 - Drafts have `"draft": true`, and their `url` opens them in the compose form.
+- Mail sent from the compose page is in Sent with `"sending": true` until the
+  mail server has taken it. Mail it refuses becomes a draft again.
 
 ## Flags, archive and folders
 

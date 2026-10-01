@@ -183,11 +183,43 @@ class MailsTest < ApplicationSystemTestCase
       find("input[name='subject']").set("Hello")
       perform_enqueued_jobs(only: SendMailJob) do
         click_on "Send"
-        assert_text "Sending your email…"
+        assert_selector ".mail-detail-header"
       end
     end
 
     assert_equal [ "sender@example.com" ], deliveries.sole[:recipients]
+  end
+
+  test "a reply sent off shows in its conversation as being sent, until it has gone out" do
+    original = mails_messages(:inbox_read)
+    visit new_tool_mail_path(@tool, reply_to: original.id, folder: "inbox")
+    wait_for_compose_editor
+    find("rhino-editor [contenteditable]").send_keys("Thanks for these")
+
+    click_on "Send"
+
+    assert_selector ".mail-list-item.selected", text: "Your weekly report"
+    assert_selector ".mail-detail-header h1", text: "Your weekly report"
+    assert_selector "[data-controller~='mail-sending']", text: "Sending…"
+    within_frame(find(".mail-message-in iframe")) { assert_text "Thanks for these" }
+
+    deliveries = capture_smtp_deliveries { perform_enqueued_jobs(only: SendMailJob) }
+
+    assert_equal [ original.from_address ], deliveries.sole[:recipients]
+    assert_no_selector "[data-controller~='mail-sending']", wait: 10
+    within_frame(find(".mail-message-in iframe")) { assert_text "Thanks for these" }
+  end
+
+  test "a toast sits above the reply bar of an open mail, not over it" do
+    visit tool_mail_path(@tool, mails_messages(:inbox_unread), folder: "inbox")
+    find("a[title='Archive (e)']").click
+
+    assert_selector ".flash-toast .flash", text: "Email archived."
+    assert_selector ".mail-reply-bar"
+    toast_bottom, bar_top = evaluate_script(<<~JS)
+      [document.querySelector(".flash-toast").getBoundingClientRect().bottom, document.querySelector(".mail-reply-bar").getBoundingClientRect().top]
+    JS
+    assert_operator toast_bottom, :<=, bar_top
   end
 
   test "a reply shows the mail it quotes below the editor, and goes out without it once it's removed" do
@@ -206,7 +238,7 @@ class MailsTest < ApplicationSystemTestCase
     deliveries = capture_smtp_deliveries do
       perform_enqueued_jobs(only: SendMailJob) do
         click_on "Send"
-        assert_text "Sending your email…"
+        assert_selector ".mail-detail-header"
       end
     end
 
@@ -228,7 +260,7 @@ class MailsTest < ApplicationSystemTestCase
 
       perform_enqueued_jobs(only: SendMailJob) do
         click_on "Send"
-        assert_text "Sending your email…"
+        assert_selector ".mail-detail-header"
       end
     end
 
@@ -355,9 +387,10 @@ class MailsTest < ApplicationSystemTestCase
 
     visit new_tool_mail_path(@tool, draft_id: draft.id)
     wait_for_compose_editor
+    # Refused while the page waited for it, it opens as the draft it is again
     perform_enqueued_jobs(only: SendMailJob) do
       click_on "Send"
-      assert_text "Sending your email…"
+      assert_selector "h1", text: "Edit Draft"
     end
 
     assert_match "Error: certificate verify failed", users(:one).notifications.order(:created_at).last.message

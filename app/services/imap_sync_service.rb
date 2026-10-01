@@ -301,9 +301,10 @@ class ImapSyncService
   # Mail sent from here goes out over SMTP, and most servers don't keep a copy of that
   # (Gmail and Office 365 do). Sent mail that has no copy on the server yet gets one, so
   # other mail programs show it too. A copy the server made itself is found by its
-  # Message-ID and not added again. Either way the mail gets the UID of the copy.
+  # Message-ID and not added again. Either way the mail gets the UID of the copy. Mail that
+  # is still being sent waits until it has gone out.
   def file_sent_mail(imap, sent_folder)
-    @account.messages.where(folder: "Sent", uid: nil, draft: false, trashed: false, archived: false).find_each do |message|
+    @account.messages.where(folder: "Sent", uid: nil, draft: false, sending: false, trashed: false, archived: false).find_each do |message|
       uid = find_by_message_id(imap, message.message_id).last
       unless uid
         imap.append(sent_folder, build_raw_email(message), [ :Seen ], message.sent_at || Time.current)
