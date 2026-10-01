@@ -24,11 +24,13 @@
   wrapper_class = position == :toast ? "flash-toast" : "mb-4"
 %>
 <% if position == :toast || has_messages %>
-  <div id="flash" class="flex flex-col gap-2 <%= wrapper_class %>" data-controller="flash" aria-live="polite" aria-atomic="false">
+  <%# The toast holder stays when its last message goes: messages made on the page (services/flash) land in it too %>
+  <div id="flash" class="flex flex-col gap-2 <%= wrapper_class %>" data-controller="flash" data-flash-toast-value="<%= position == :toast %>" aria-live="polite" aria-atomic="false">
     <% flash.each do |type, message| %>
       <% cfg = flash_config[type.to_s] %>
       <% next unless cfg %>
-      <div class="flash <%= cfg[:css] %>" data-flash-target="message" <% if dismissable %>data-action="click->flash#dismiss"<% end %> role="alert">
+      <%# data-turbo-temporary: not kept in the copy of the page Turbo shows on Back, where it would show again %>
+      <div class="flash <%= cfg[:css] %>" data-flash-target="message" data-turbo-temporary <% if dismissable %>data-action="click->flash#dismiss"<% end %> role="alert">
         <%= render "shared/icon", name: cfg[:icon], size: 18 %>
         <span class="flex-1"><%= message %></span>
         <% if dismissable %>

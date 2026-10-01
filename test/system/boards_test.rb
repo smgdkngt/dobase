@@ -151,6 +151,32 @@ class BoardsTest < ApplicationSystemTestCase
     within("#board-column-#{columns(:done).id}") { assert_text "First task" }
   end
 
+  test "a message made on the page still shows after the one the page came with was dismissed" do
+    rename_board_to "Roadmap"
+    assert_text "Roadmap updated successfully."
+    wait_for_stimulus "flash"
+    find("button[aria-label='Dismiss message']").click
+    assert_no_text "Roadmap updated successfully."
+    wait_for_stimulus "board"
+
+    cards(:second_task).destroy!
+    find("[data-card-id='#{cards(:second_task).id}']").click
+
+    assert_text "This card no longer exists."
+  end
+
+  test "a notice doesn't come back with the page on Back" do
+    rename_board_to "Roadmap"
+    assert_text "Roadmap updated successfully."
+
+    find(".sidebar a", text: "My Files").click
+    assert_selector "h1", text: "My Files"
+    page.go_back
+
+    assert_selector "h1", text: "Roadmap"
+    assert_no_text "Roadmap updated successfully.", wait: 0
+  end
+
   test "a card is dragged to a new place with the mouse, right away" do
     first, second = cards(:first_task), cards(:second_task)
     visit tool_board_path(@tool)
@@ -194,6 +220,18 @@ class BoardsTest < ApplicationSystemTestCase
   end
 
   private
+
+  # Saving the tool's settings comes back to the board with a notice
+  def rename_board_to(name)
+    visit tool_board_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "sidebar"
+    find("[data-action~='click->sidebar#editTool'][data-tool-id='#{@tool.id}']", visible: :all).execute_script("this.click()")
+    within("dialog#edit-tool-modal[open]") do
+      fill_in "Name", with: name
+      click_on "Save Changes"
+    end
+  end
 
   def centre_of(selector)
     evaluate_script(<<~JS).symbolize_keys
