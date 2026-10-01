@@ -122,6 +122,57 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
     assert_not_requested elsewhere
   end
 
+  test "a server on a port of its own is found, and its calendars and events are at that port" do
+    @account.update!(caldav_url: "https://dav.example.com:5232/")
+    stub_request(:propfind, "https://dav.example.com:5232/").to_return(status: 207, body: principal_response)
+    stub_request(:propfind, "https://dav.example.com:5232/123456789/principal/").to_return(status: 207, body: calendar_home_response)
+    stub_request(:propfind, "https://dav.example.com:5232/123456789/calendars/").to_return(status: 207, body: calendars_list_response)
+    service = CaldavSyncService.new(@account)
+
+    service.discover_calendars
+
+    calendar = @account.calendars.find_by!(remote_id: "/123456789/calendars/new-personal/")
+    assert_equal "https://dav.example.com:5232/123456789/calendars/new-personal/", calendar.remote_url
+
+    calendar.update!(sync_token: nil, ctag: nil)
+    stub_request(:report, calendar.remote_url).to_return(status: 207, body: calendar_query_response([ { uid: "lunch", summary: "Lunch" } ]))
+    stub_request(:propfind, calendar.remote_url).to_return(status: 207, body: sync_token_response)
+    service.sync_calendar(calendar)
+
+    assert_equal "https://dav.example.com:5232/calendars/lunch.ics", calendar.events.find_by!(uid: "lunch").remote_href
+  end
+
+  test "a path the server left a space in still makes an address" do
+    assert_equal "https://caldav.icloud.com/calendars/Team%20events/lunch%40example.com.ics",
+      @service.send(:resolve_url, "/calendars/Team events/lunch%40example.com.ics")
+  end
+
+  test "an address the server gives in full is used as it is, as iCloud does for its calendars" do
+    stub_request(:propfind, @account.caldav_url).to_return(status: 207, body: principal_response)
+    stub_request(:propfind, "https://caldav.icloud.com/123456789/principal/")
+      .to_return(status: 207, body: calendar_home_response.sub("/123456789/calendars/", "https://p42-caldav.icloud.com:443/123456789/calendars/"))
+    listed = stub_request(:propfind, "https://p42-caldav.icloud.com/123456789/calendars/").to_return(status: 207, body: calendars_list_response)
+
+    @service.discover_calendars
+
+    assert_requested listed
+  end
+
+  test "an address the server gives in full isn't followed to a local address, nor one that isn't a web address" do
+    stub_request(:propfind, @account.caldav_url).to_return(status: 207, body: principal_response)
+    home = stub_request(:propfind, "https://caldav.icloud.com/123456789/principal/")
+
+    home.to_return(status: 207, body: calendar_home_response.sub("/123456789/calendars/", "http://127.0.0.1:5232/calendars/"))
+    error = assert_raises(CaldavSyncService::ConnectionError) { @service.discover_calendars }
+    assert_match "local address", error.message
+
+    home.to_return(status: 207, body: calendar_home_response.sub("/123456789/calendars/", "//localhost:5232/calendars/"))
+    assert_raises(CaldavSyncService::ConnectionError) { @service.discover_calendars }
+
+    home.to_return(status: 207, body: calendar_home_response.sub("/123456789/calendars/", "file:///etc/passwd"))
+    assert_raises(CaldavSyncService::SyncError) { @service.discover_calendars }
+  end
+
   # Sync tests
 
   test "sync_calendar performs full sync when no sync_token" do

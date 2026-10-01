@@ -565,10 +565,26 @@ class CaldavSyncService
   # ones changed on their own (a VEVENT with a RECURRENCE-ID), so they're sent back as they came,
   # with the time zones they use. Once the series starts at another time they no longer fit.
 
+  UNESCAPED_IN_HREF = /[^-_.!~*'()a-zA-Z\d;\/?:@&=+$,\[\]%]/
+
+  # The address a server names in a response, which is usually only a path: taken from the account's
+  # address, so with its port (Radicale's 5232, a Nextcloud on 8443). Another host, as iCloud names for
+  # its calendars, is checked like every host when it's contacted.
   def resolve_url(href)
-    return href if href.start_with?("http")
-    uri = URI.parse(@account.caldav_url)
-    "#{uri.scheme}://#{uri.host}#{href}"
+    return if href.blank?
+
+    base = URI.parse(@account.caldav_url)
+    target = begin
+      base.merge(href.strip)
+    rescue URI::InvalidURIError
+      # Some servers leave spaces and the like in their paths as they are. What is escaped already stays.
+      base.merge(URI::RFC2396_PARSER.escape(href.strip, UNESCAPED_IN_HREF))
+    end
+    raise SyncError, "The CalDAV server pointed at an address that isn't a web address: #{href}" unless target.is_a?(URI::HTTP)
+
+    target.to_s
+  rescue URI::Error
+    raise SyncError, "The CalDAV server pointed at an address that can't be read: #{href}"
   end
 
   def normalize_color(color)
