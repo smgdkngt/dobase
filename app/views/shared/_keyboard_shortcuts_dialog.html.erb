@@ -20,5 +20,10 @@
     </div>
 
     <%= content_for(:keyboard_shortcuts) %>
+
+    <%# A page in a frame may be a tile in the workspace; only there this shows (workspace.css) %>
+    <% if side_pane? %>
+      <div class="workspace-tile-only"><%= render "workspaces/shortcuts" %></div>
+    <% end %>
   </div>
 </dialog>

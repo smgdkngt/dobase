@@ -122,6 +122,37 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_no_selector ".sidebar.open"
   end
 
+  test "a tool made here opens as a tile, and the menu and the launcher know it at once" do
+    launch @board
+    find(".workspace-bar-btn[aria-label='Menu with all your tools']").click
+    find(".sidebar-logo-btn", match: :first).click
+    click_on "Add Tool"
+    within "dialog#new-tool-modal[open]" do
+      find("label", text: "Todos").click
+      fill_in "Name", with: "Groceries"
+      click_on "Create"
+    end
+
+    assert_selector ".workspace-tile:not([hidden])", count: 2
+    within_tile(1) { assert_selector "h1", text: "Groceries" }
+    assert_current_path workspace_path
+    assert_selector "[data-sidebar-tool-link]", text: "Groceries", visible: :all
+    assert_selector ".command-palette-item", text: "Groceries", visible: :all
+    # The tiles were left alone while the page around them was drawn again
+    within_tile(0) { assert_selector "h1", text: @board.name }
+  end
+
+  test "a tile whose tool is deleted goes" do
+    launch @board
+    launch @files
+    @files.destroy!
+
+    page.execute_script("Turbo.visit(location.href, { action: 'replace' })")
+
+    assert_selector ".workspace-tile:not([hidden])", count: 1
+    within_tile(0) { assert_selector "h1", text: @board.name }
+  end
+
   test "leaving the workspace brings the sidebar and one tool back" do
     launch @board
     find(".workspace-bar-btn[aria-label='Menu with all your tools']").click

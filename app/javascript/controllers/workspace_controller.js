@@ -35,7 +35,8 @@ export default class extends Controller {
 
     this.listening = new AbortController()
     this.listen(document, "turbo:before-visit", (event) => this.visiting(event))
-    this.listen(document, "turbo:morph", () => this.drawBar())
+    this.listen(document, "turbo:submit-end", () => { this.submittedAt = performance.now() })
+    this.listen(document, "turbo:morph", () => this.refreshed())
     this.listen(document, "keydown", (event) => this.keyed(event), true)
     this.listen(window, "message", (event) => this.heard(event))
     this.listen(window, "pagehide", () => this.remember())
@@ -341,6 +342,11 @@ export default class extends Controller {
       return button
     }))
 
+    // What is open as a tile is seen: no dot for it in the menu
+    for (const tile of Object.values(this.state.tiles)) {
+      document.querySelector(`[data-sidebar-tool-link][href="/tools/${toolIdOf(tile.url)}"]`)?.removeAttribute("data-unread")
+    }
+
     const title = this.state.tiles[this.desk.focus]?.title || ""
     this.titleTarget.textContent = title
     document.title = title ? `${title} - ${this.appNameValue}` : this.appNameValue
@@ -494,6 +500,20 @@ export default class extends Controller {
     event.preventDefault()
     this.open(address.href)
     this.closeMenu()
+    // A form on this page led here (Turbo follows its redirect right after it ends): a
+    // tool was made or renamed, and the menu and the launcher still have the old
+    // list. The page is drawn again around the tiles.
+    if (performance.now() - this.submittedAt < 1000) Turbo.visit(location.href, { action: "replace" })
+  }
+
+  // The server drew this page again (a morph, which leaves the tiles alone): the bar
+  // is ours to fill, and a tile whose tool is no longer in the menu has lost it
+  refreshed() {
+    const tools = new Set(Array.from(document.querySelectorAll("[data-sidebar-tool-link]")).map((link) => toolIdOf(link.getAttribute("href"))))
+    for (const [ id, tile ] of Object.entries(this.state.tiles)) {
+      if (tools.size > 0 && !tools.has(toolIdOf(tile.url))) this.drop(id)
+    }
+    this.drawBar()
   }
 
   closeMenu() {

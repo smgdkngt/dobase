@@ -191,3 +191,12 @@
   min-height: var(--workspace-topbar-height);
   padding-right: 2.5rem;
 }
+
+/* The workspace's keys in a tile's shortcuts dialog, and nowhere else a page is in a frame */
+.workspace-tile-only {
+  display: none;
+}
+
+:root[data-in-workspace] .workspace-tile-only {
+  display: block;
+}
