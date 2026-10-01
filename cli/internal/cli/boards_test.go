@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"slices"
 	"strings"
 	"testing"
 
@@ -133,5 +134,33 @@ func TestTodoCreateAndUpdateBodies(t *testing.T) {
 	}
 	if err := invoke(ctx, "todo update", "14/7", "--repeat", "yearly"); err == nil || err.Error() != "--repeat must be one of: daily, weekly, monthly, none" {
 		t.Errorf("got %v", err)
+	}
+}
+
+func TestCommentsAreDeletedByTheIDShowPrints(t *testing.T) {
+	var sent []api.Value
+	var out bytes.Buffer
+	fake := newFakeAPI(boardsAndTodos, &sent)
+	ctx := command.NewCtx(&config.Config{}, &out, false, "test")
+	ctx.SetAPI(fake)
+
+	if err := invoke(ctx, "card uncomment", "roadmap/104", "77"); err != nil {
+		t.Fatal(err)
+	}
+	if err := invoke(ctx, "todo uncomment", "14/7", "78"); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"DELETE /tools/13/board/cards/104/comments/77", "DELETE /tools/14/todo/items/7/comments/78"}
+	if !slices.Equal(fake.requests, want) {
+		t.Errorf("requests %v", fake.requests)
+	}
+	if want := "Deleted comment 77 from card 13/104.\nDeleted comment 78 from todo 14/7.\n"; out.String() != want {
+		t.Errorf("out %q", out.String())
+	}
+
+	for _, comment := range []string{"first", "13/104", "-1"} {
+		if err := invoke(ctx, "card uncomment", "13/104", comment); api.KindOf(err) != api.Usage || !strings.Contains(err.Error(), "comment id like 77") {
+			t.Errorf("%s: %v", comment, err)
+		}
 	}
 }

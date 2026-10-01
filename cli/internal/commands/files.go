@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -25,6 +26,7 @@ func files() []*Definition {
 		New("file rename", "Rename a file", []string{"TOOL/FILE", "NAME"}, nil, renameFile),
 		New("file move", "Move a file into FOLDER (a folder id), or to the top level with root", []string{"TOOL/FILE", "FOLDER"}, nil, moveFile),
 		New("file delete", "Delete a file permanently", []string{"TOOL/FILE"}, nil, deleteFile),
+		New("folder show", "Show a folder: where it is, how much is in it, and its public link, if it has one", []string{"TOOL/FOLDER"}, nil, showFolder),
 		New("folder create", "Create a folder, at the top level unless --parent", []string{"TOOL", "NAME"},
 			[]Flag{F("parent", "FOLDER", "Folder id to create it in")}, createFolder),
 		New("folder rename", "Rename a folder", []string{"TOOL/FOLDER", "NAME"}, nil, renameFolder),
@@ -252,6 +254,41 @@ func createFolder(ctx *Ctx, args *Args) error {
 	}
 	return ctx.Output(folder, func() error {
 		ctx.Sayf("Created folder %s/%s %s %s: %s", tool.Get("id").S(), folder.Get("id").S(), Quoted(folder.Get("name").S()), location, folder.Get("url").S())
+		return nil
+	})
+}
+
+func showFolder(ctx *Ctx, args *Args) error {
+	tool, id, err := ctx.ToolAndID(args.At(0), "files", "folder")
+	if err != nil {
+		return err
+	}
+	listing, err := ctx.Get(fmt.Sprintf("/tools/%s/files", tool.Get("id").S()), "folder_id", strconv.FormatInt(id, 10))
+	if err != nil {
+		return err
+	}
+	share, err := ctx.Get(fmt.Sprintf("/tools/%s/files/folders/%d/share", tool.Get("id").S(), id))
+	// A folder without a link is a 404 there
+	if api.StatusOf(err) == http.StatusNotFound {
+		share, err = api.Null, nil
+	}
+	if err != nil {
+		return err
+	}
+
+	folder := listing.Get("folder").With("url", listing.Get("url")).With("shared", !share.IsNull()).With("share", share)
+	return ctx.Output(folder, func() error {
+		ctx.Sayf("%s (folder %s/%d)", folder.Get("name").S(), tool.Get("id").S(), id)
+		trail := []string{tool.Get("name").S()}
+		for _, crumb := range listing.Get("breadcrumbs").Items() {
+			trail = append(trail, crumb.Get("name").S())
+		}
+		ctx.Field("Inside", strings.Join(trail, " / "))
+		ctx.Field("Holds", Count(int64(len(listing.Get("folders").Items())), "folder")+", "+Count(int64(len(listing.Get("files").Items())), "file"))
+		ctx.Field("URL", folder.Get("url").S())
+		if !share.IsNull() {
+			ctx.Field("Shared", shareSummary(share))
+		}
 		return nil
 	})
 }

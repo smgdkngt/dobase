@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -365,7 +364,7 @@ func apiError(status int, body []byte) error {
 			message = string(runes)
 		}
 	}
-	return Failf("%s (HTTP %s)", message, strconv.Itoa(status))
+	return &Error{Kind: Failed, Message: fmt.Sprintf("%s (HTTP %d)", message, status), Status: status}
 }
 
 func escapeQuotes(text string) string {

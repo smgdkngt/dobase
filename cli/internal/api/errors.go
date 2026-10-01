@@ -21,18 +21,20 @@ const (
 type Error struct {
 	Kind    Kind
 	Message string
+	// Status is the HTTP status when the server turned the request down, else 0.
+	Status int
 }
 
 func (e *Error) Error() string { return e.Message }
 
 // Failf is an error that exits with 1.
 func Failf(format string, args ...any) error {
-	return &Error{Failed, fmt.Sprintf(format, args...)}
+	return &Error{Kind: Failed, Message: fmt.Sprintf(format, args...)}
 }
 
 // Usagef is a usage error, which exits with 2.
 func Usagef(format string, args ...any) error {
-	return &Error{Usage, fmt.Sprintf(format, args...)}
+	return &Error{Kind: Usage, Message: fmt.Sprintf(format, args...)}
 }
 
 // KindOf is the kind of any error: Failed unless it's an *Error saying otherwise.
@@ -42,4 +44,13 @@ func KindOf(err error) Kind {
 		return e.Kind
 	}
 	return Failed
+}
+
+// StatusOf is the HTTP status the server answered an error with, or 0.
+func StatusOf(err error) int {
+	var e *Error
+	if errors.As(err, &e) {
+		return e.Status
+	}
+	return 0
 }

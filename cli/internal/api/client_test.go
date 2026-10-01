@@ -44,3 +44,23 @@ func TestADownloadThatBreaksOffFailsAndLeavesNoFile(t *testing.T) {
 		t.Errorf("got %q in %q, %v", data, filename, err)
 	}
 }
+
+func TestAnErrorFromTheServerKeepsItsStatus(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(`{"error": "This folder has no share link"}`))
+	}))
+	defer server.Close()
+	client, err := NewClient(server.URL, "token", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = client.Request(Get, "/tools/5/files/folders/7/share", nil, nil)
+	if err == nil || err.Error() != "This folder has no share link (HTTP 404)" || StatusOf(err) != http.StatusNotFound {
+		t.Errorf("got %v, status %d", err, StatusOf(err))
+	}
+	if status := StatusOf(Failf("Could not reach the server")); status != 0 {
+		t.Errorf("an error that isn't the server's has status %d", status)
+	}
+}
