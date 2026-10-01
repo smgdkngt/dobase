@@ -315,12 +315,11 @@ func notificationItem(item api.Value, width int) ListItem {
 		StyledLine("  "+ago(item.Get("created_at")), dim()))
 }
 
-// wrappedHeight is about how many rows lines take when wrapped at width.
+// wrappedHeight is how many rows lines take when a Paragraph wraps them at width.
 func wrappedHeight(lines []Line, width int) int {
-	width = max(width, 1)
 	total := 0
 	for _, line := range lines {
-		total += (max(line.Width(), 1) + width - 1) / width
+		total += len(wordWrap(line.graphemes(Style{}), max(width, 1), false))
 	}
 	return total
 }
