@@ -29,6 +29,10 @@
       <%= render "components/icon_button", icon: "rotate-ccw", title: "Restore",
           href: tool_mail_trash_path(@tool, @selected_message), method: :delete,
           data: { turbo_frame: "_top" } %>
+    <% elsif @current_folder == "archive" %>
+      <%= render "components/icon_button", icon: "archive-restore", title: "Unarchive (e)",
+          href: tool_mail_archive_path(@tool, @selected_message), method: :delete,
+          data: { controller: "hotkey", hotkey: "e", turbo_frame: "_top" } %>
     <% else %>
       <%= render "components/icon_button", icon: "archive", title: "Archive (e)",
           href: tool_mail_archive_path(@tool, @selected_message, folder: @current_folder), method: :post,

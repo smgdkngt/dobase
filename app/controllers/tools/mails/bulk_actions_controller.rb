@@ -31,8 +31,10 @@ module Tools
           count = @mail_account.restore(conversations_of(messages, "trash").to_a).size
           "#{count} email(s) restored."
         when "archive"
-          messages = conversations_of(messages, folder).where(archived: false)
           archive_folder = @mail_account.archive_folder.presence
+          messages = conversations_of(messages, folder).where(archived: false)
+          # Mail in the server's archive folder is archived already
+          messages = messages.where(folder: nil).or(messages.where.not(folder: archive_folder)) if archive_folder
           messages.where.not(uid: nil).find_each do |message|
             if archive_folder
               ImapSyncJob.perform_later(@mail_account.id, "move_to_folder", message.uid, message.folder || "INBOX", archive_folder)

@@ -103,6 +103,17 @@ class MailsTest < ApplicationSystemTestCase
     click_with_retry("[title='Archive (e)']") { message.reload.archived? }
   end
 
+  test "unarchiving a message from the archive" do
+    message = mails_messages(:archived_message)
+    visit tool_mail_path(@tool, message, folder: "archive")
+    assert_text "This has been archived.", wait: 5
+
+    click_with_retry("[title='Unarchive (e)']") { !message.reload.archived? }
+
+    assert_selector ".flash-toast .flash", text: "Email unarchived."
+    assert_no_selector ".mail-list-item", text: "Archived conversation"
+  end
+
   test "trashing a message" do
     message = mails_messages(:inbox_unread)
     visit tool_mail_path(@tool, message)

@@ -152,10 +152,13 @@ Each of these returns `200` and the message (the fields above):
 | `POST /tools/:tool_id/mails/:id/move` with `{"folder": "Receipts"}` | Move to a folder |
 
 Read, star, archive and move changes are copied to the mail server in the
-background. Archiving moves the message to the account's archive folder if it
+background, and tried again for a few minutes while the server can't be
+reached. Archiving moves the message to the account's archive folder if it
 has one, and otherwise only marks it read on the server. Unarchiving moves it
-from the archive folder back to the inbox, or marks it unread when there's no
-archive folder.
+from the archive folder back to the folder it was archived from, or marks it
+unread when there's no archive folder. Mail that another mail program put in
+the archive folder is listed under `archive` too; archiving it changes nothing,
+and unarchiving moves it to the inbox.
 
 Archive and move act on the whole conversation in the folder you're looking
 at, the way the list shows it: pass that folder as `folder` when archiving and

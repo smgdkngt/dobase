@@ -199,9 +199,14 @@ module Mails
     # would take it for mail gone from the folder, and remove it.
     def move_to_folder!(target_folder, on_server: true)
       source_folder, source_uid = folder || "INBOX", uid
+      in_archive = account.archived_on_server?(self)
       account.messages.where(folder: target_folder, message_id: message_id).where.not(id: id).destroy_all
       update!(folder: target_folder, archived: false, trashed: false, uid: nil)
-      ImapSyncJob.perform_later(account.id, "move_to_folder", source_uid, source_folder, target_folder) if on_server && source_uid
+      return unless on_server
+
+      ImapSyncJob.perform_later(account.id, "move_to_folder", source_uid, source_folder, target_folder) if source_uid
+      # Archived here, the server has it in the archive folder, under another UID
+      ImapSyncJob.perform_later(account.id, "move_to_folder_by_message_id", nil, account.archive_folder, target_folder, message_id) if in_archive
     end
 
     # Into the server's trash, where Mails::Account#trash moves it on the server

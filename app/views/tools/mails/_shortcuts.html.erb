@@ -4,7 +4,11 @@
   <%# These act on the open message, rendered by tools/mails/mail_detail — hide
       them when there isn't one, since their hotkey target wouldn't be on the page. %>
   <% if @selected_message %>
-    <%= render "shared/command_palette_action", key: "e", description: "Archive", icon: "archive" %>
+    <% if @current_folder == "archive" %>
+      <%= render "shared/command_palette_action", key: "e", description: "Unarchive", icon: "archive-restore" %>
+    <% else %>
+      <%= render "shared/command_palette_action", key: "e", description: "Archive", icon: "archive" %>
+    <% end %>
     <%= render "shared/command_palette_action", key: "s", description: "Star / unstar", icon: "star" %>
     <%= render "shared/command_palette_action", key: "r", description: "Reply", icon: "reply" %>
     <%= render "shared/command_palette_action", key: "f", description: "Forward", icon: "forward" %>

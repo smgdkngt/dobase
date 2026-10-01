@@ -28,7 +28,9 @@
               <%= render "components/icon_button", icon: "trash-2", title: "Delete forever", type: :submit, name: "action_type", value: "delete", size: :sm %>
               <%= render "components/icon_button", icon: "rotate-ccw", title: "Restore", type: :submit, name: "action_type", value: "restore", size: :sm %>
             <% else %>
-              <%= render "components/icon_button", icon: "archive", title: "Archive (e)", type: :submit, name: "action_type", value: "archive", size: :sm %>
+              <% unless @current_folder == "archive" %>
+                <%= render "components/icon_button", icon: "archive", title: "Archive (e)", type: :submit, name: "action_type", value: "archive", size: :sm %>
+              <% end %>
               <%= render "components/icon_button", icon: "trash-2", title: "Delete (#)", type: :submit, name: "action_type", value: "trash", size: :sm %>
               <div class="relative">
                 <button type="button"
