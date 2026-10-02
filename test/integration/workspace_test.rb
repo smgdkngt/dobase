@@ -4,7 +4,7 @@ require "test_helper"
 
 # The tiling workspace (WorkspacesController, workspace_controller.js): the server
 # draws the room, the browser keeps the tiles. It is how a wide window works unless
-# the browser asked for one tool at a time.
+# the window is a phone's.
 class WorkspaceTest < ActionDispatch::IntegrationTest
   setup do
     @user = users(:one)
@@ -20,7 +20,8 @@ class WorkspaceTest < ActionDispatch::IntegrationTest
     assert_select "[data-controller~='workspace'] #workspace-tiles[data-turbo-permanent]"
     assert_select "aside.sidebar"
     assert_select "meta[name='turbo-cache-control'][content='no-cache']"
-    assert_select "form[action='#{workspace_path}'][data-turbo='false'] button", text: /Use one tool at a time/
+    # There is no way out of it: this is how a wide window works
+    assert_select "#sidebar-user-menu form[action='#{workspace_path}']", count: 0
   end
 
   test "an empty workspace opens with the tool you were last on, or your first one" do
@@ -47,20 +48,17 @@ class WorkspaceTest < ActionDispatch::IntegrationTest
     assert_select "[data-workspace-target='empty']", text: /Create your first tool/
   end
 
-  test "the start page is the workspace, until this browser asks for one tool at a time" do
+  test "the start page is the workspace" do
     @user.update_column(:last_visited_path, tool_files_path(@files))
 
     get root_path
     assert_redirected_to workspace_path
+  end
 
-    delete workspace_path
-    assert_redirected_to root_path
-    get root_path
-    assert_redirected_to tool_files_path(@files)
+  test "there is no asking for one tool at a time" do
+    delete "/workspace"
 
-    get workspace_path
-    get root_path
-    assert_redirected_to workspace_path
+    assert_response :not_found
   end
 
   test "a phone, and a window the workspace found too narrow, get one tool" do
@@ -84,15 +82,6 @@ class WorkspaceTest < ActionDispatch::IntegrationTest
     get workspace_path
 
     assert_select "head script[src*='workspace_gate'][data-narrow='#{root_path(one: 1)}'][data-storage-key='dobase:workspace:#{@user.id}'][data-tools~='#{@files.id}']"
-  end
-
-  test "with one tool at a time a tool's address is just its page" do
-    delete workspace_path
-
-    get tool_files_path(@files)
-
-    assert_select "script[src*='workspace_gate']", count: 0
-    assert_select "#sidebar-user-menu a[href='#{workspace_path}']", text: /Use the tiling workspace/
   end
 
   test "a tile never holds the workspace itself" do

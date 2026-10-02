@@ -10,15 +10,8 @@ class WorkspacesController < ApplicationController
     # is no tool's page
     return redirect_to root_path if tile?
 
-    cookies.delete(:workspace)
     @workspace = true
     @start_path = start_path
-  end
-
-  # One tool at a time, with the sidebar, in this browser from now on
-  def destroy
-    cookies.permanent[:workspace] = { value: "off", same_site: :lax }
-    redirect_to root_path, status: :see_other
   end
 
   private

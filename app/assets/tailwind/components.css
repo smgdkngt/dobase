@@ -808,6 +808,15 @@
     @apply border-accent ring-2 ring-accent/25;
   }
 
+  /* The mark of the one that is on: in every option, shown in that one */
+  .theme-option-check {
+    @apply hidden text-accent shrink-0;
+  }
+
+  .theme-option-selected .theme-option-check {
+    @apply block;
+  }
+
   .theme-option:disabled {
     @apply cursor-default;
   }

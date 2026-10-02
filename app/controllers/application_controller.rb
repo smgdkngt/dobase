@@ -17,11 +17,11 @@ class ApplicationController < ActionController::Base
 
   private
 
-  # The tiling workspace is how a wide window works, unless this browser said it
-  # would rather have one tool at a time (WorkspacesController#destroy). A cookie
-  # and not a setting of the person: it is about the screen they are at.
+  # The tiling workspace is how a wide window works; a narrow one (a phone) shows one
+  # tool at a time. There is no choosing between them. The cookie is the system
+  # tests' own: they try every tool as a page of its own, in a wide window.
   def workspace_wanted?
-    cookies[:workspace] != "off"
+    !(Rails.env.test? && cookies[:workspace] == "off")
   end
 
   # A tile in the workspace (workspace_controller.js) is a tool's page of its own in

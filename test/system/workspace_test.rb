@@ -11,6 +11,8 @@ class WorkspaceTest < ApplicationSystemTestCase
     @files = tools(:my_files)
     @todos = tools(:my_todos)
     sign_in_as users(:one)
+    # As it is outside the tests: a wide window works in the workspace
+    page.driver.browser.manage.delete_cookie("workspace")
     visit workspace_path
     wait_for_stimulus "workspace"
     # A workspace with nothing in it yet opens with the tool you were last on
@@ -120,16 +122,6 @@ class WorkspaceTest < ApplicationSystemTestCase
       assert_selector "h1", text: @board.name
     end
     assert_equal 1, tiles.size
-  end
-
-  test "the way out is there in a window that got narrow too" do
-    page.driver.browser.manage.window.resize_to(900, 900)
-
-    assert_equal 1, tiles.size
-    find(".mobile-bottom-bar-item[popovertarget='sidebar-user-menu']").click
-    assert_selector "button", text: "Use one tool at a time"
-  ensure
-    page.driver.browser.manage.window.resize_to(1400, 1400)
   end
 
   test "a narrow window whose tile is on a tool that is gone gets a tool that exists" do
@@ -372,6 +364,23 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_current_path workspace_path
   end
 
+  test "a theme picked in the profile dialog is put on without leaving it, or the workspace" do
+    find(".workspace-bar-btn[popovertarget='sidebar-user-menu']").click
+    click_on "Profile"
+
+    within "dialog#profile-modal[open]" do
+      find("[data-tabs-target='tab'][data-tab='appearance']").click
+      find("button.theme-option[name='theme'][value='nord']").click
+      assert_selector "button.theme-option-selected[value='nord']"
+      assert_selector "button.theme-option-selected[name='theme']", count: 1
+    end
+
+    assert_selector "html[data-theme='nord']"
+    assert_selector "dialog#profile-modal[open]"
+    assert_current_path workspace_path
+    within_tile(0) { assert_selector "html[data-theme='nord']" }
+  end
+
   test "the bell in the bar opens the notifications over the tiles" do
     find(".workspace-bar-btn[aria-label='Notifications']").click
 
@@ -478,25 +487,6 @@ class WorkspaceTest < ApplicationSystemTestCase
     page.execute_script("Turbo.visit(location.href, { action: 'replace' })")
 
     assert_selector ".workspace-tile:not([hidden], [data-leaving])", count: 1
-    within_tile(0) { assert_selector "h1", text: @board.name }
-  end
-
-  test "one tool at a time brings the sidebar back, and the workspace is a click away" do
-    find(".workspace-bar-btn[popovertarget='sidebar-user-menu']").click
-    click_on "Use one tool at a time"
-
-    assert_no_selector "[data-controller~='workspace']"
-    assert_selector ".sidebar"
-    assert_selector "main h1"
-
-    # And stays: a tool's address is its page
-    visit tool_files_path(@files)
-    assert_selector "main h1", text: @files.name
-    assert_current_path tool_files_path(@files)
-
-    find(".sidebar-user-btn").click
-    click_on "Use the tiling workspace"
-    assert_selector "[data-controller~='workspace']"
     within_tile(0) { assert_selector "h1", text: @board.name }
   end
 

@@ -63,8 +63,11 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   end
 
   # The first sign-in of a run can take a while on a busy machine
-  # One tool at a time, with the sidebar: what a narrow window gets, and what these
-  # tests are about. The workspace tests go to the workspace themselves.
+  # Every tool as a page of its own, with the sidebar, in a wide window: nobody gets
+  # that outside these tests (a wide window works in the workspace), and it is what
+  # they are about. The cookie asks for it, in the test environment only
+  # (ApplicationController#workspace_wanted?). The workspace tests go to the
+  # workspace themselves.
   def sign_in_as(user)
     visit new_session_path
     page.driver.browser.manage.add_cookie(name: "workspace", value: "off")
