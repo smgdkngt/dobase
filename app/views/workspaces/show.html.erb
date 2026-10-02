@@ -27,7 +27,8 @@
               aria-label="Menu" aria-expanded="false" aria-controls="sidebar"
               data-workspace-target="menu"
               data-action="click->mobile-sidebar#toggle click->workspace#menuAsked">
-        <%= render "shared/logo", class: "w-5 h-5" %>
+        <%# As large as a desktop's button beside it, with its corners %>
+        <%= render "shared/logo", class: "w-6 h-6 rounded-md" %>
       </button>
 
       <nav class="workspace-desks" aria-label="Desktops" data-workspace-target="desks"></nav>
