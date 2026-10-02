@@ -186,7 +186,7 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_equal 2, tiles.size
 
     # The tool is open, so the launcher would go to it; with Shift it opens beside it
-    find(".workspace-launcher").click
+    find(".workspace-bar-btn[aria-label='Menu']").click
     within MENU_SEARCH do
       input = find("input[data-command-palette-target='input']")
       input.set(docs.name)
@@ -283,7 +283,7 @@ class WorkspaceTest < ApplicationSystemTestCase
     launch @files
     assert_equal 2, tiles.size
 
-    find(".workspace-launcher").click
+    find(".workspace-bar-btn[aria-label='Menu']").click
     within MENU_SEARCH do
       assert_no_selector ".command-palette-item", text: "Close the tile"
       input = find("input[data-command-palette-target='input']")
@@ -527,7 +527,7 @@ class WorkspaceTest < ApplicationSystemTestCase
   # Through the launcher, as a person would
   def launch(tool, new_tile: true, on_new_desktop: false)
     count = on_new_desktop ? 0 : tiles.size
-    find(".workspace-launcher").click
+    find(".workspace-bar-btn[aria-label='Menu']").click
     within MENU_SEARCH do
       input = find("input[data-command-palette-target='input']")
       input.set(tool.name)

@@ -30,14 +30,6 @@
         <%= render "shared/logo", class: "w-5 h-5" %>
       </button>
 
-      <%# The same menu, with the keyboard in its search %>
-      <button type="button" class="workspace-launcher"
-              data-action="click->keyboard-shortcuts#openCommandPalette">
-        <%= render "shared/icon", name: "search", size: 14 %>
-        <span>Open a tool…</span>
-        <kbd class="shortcut-key"><%= launcher_key %></kbd>
-      </button>
-
       <nav class="workspace-desks" aria-label="Desktops" data-workspace-target="desks"></nav>
     </div>
 

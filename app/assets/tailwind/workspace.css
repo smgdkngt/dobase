@@ -63,12 +63,6 @@
     @apply min-w-0 max-w-[40vw] truncate text-center text-xs text-text-tertiary;
   }
 
-  .workspace-launcher {
-    @apply flex items-center gap-2 h-7 pl-2 pr-1 mr-1 shrink-0 rounded-md text-xs text-text-tertiary
-           bg-surface border border-border-light hover:text-text-primary hover:border-border
-           transition-colors cursor-pointer;
-  }
-
   /* The room the tiles share. They are placed in it by the controller. */
   .workspace-room {
     @apply relative flex-1 min-h-0;
