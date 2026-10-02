@@ -2,7 +2,7 @@
 
 @layer components {
   .workspace {
-    @apply flex flex-col h-full bg-background-secondary;
+    @apply relative flex flex-col h-full bg-background-secondary;
   }
 
   /* A slim bar along the top: the menu, the desktops, what you are on, and yourself */
@@ -28,8 +28,17 @@
            hover:bg-background-tertiary transition-colors cursor-pointer;
   }
 
+  .workspace-desk {
+    @apply inline-flex items-center gap-1;
+  }
+
   .workspace-desk[data-empty] {
     @apply text-text-tertiary;
+  }
+
+  /* The tools on a desktop, by the icons they have in the menu */
+  .workspace-desk-icon {
+    @apply w-3 h-3 shrink-0 text-[0.625rem] leading-none opacity-70;
   }
 
   .workspace-desk[aria-current="true"] {
@@ -67,8 +76,27 @@
     border-color: var(--color-accent);
   }
 
+  .workspace-tile {
+    transition: border-color 120ms ease;
+  }
+
   .workspace-tile[data-arriving] {
     animation: workspace-tile-in 160ms var(--ease-out) both;
+  }
+
+  /* Closed: it fades where it was while the others take its room */
+  .workspace-tile[data-leaving] {
+    @apply z-0 pointer-events-none;
+    animation: workspace-tile-out 140ms ease-in both;
+  }
+
+  /* On arriving at a desktop its tiles come in from the side it lies on */
+  .workspace-tile[data-sliding="right"] {
+    animation: workspace-slide-from-right 180ms var(--ease-out) both;
+  }
+
+  .workspace-tile[data-sliding="left"] {
+    animation: workspace-slide-from-left 180ms var(--ease-out) both;
   }
 
   .workspace-tile > iframe {
@@ -118,7 +146,44 @@
   }
 
   .workspace-empty {
-    @apply absolute inset-0 flex items-center justify-center;
+    @apply absolute inset-0 flex items-center justify-center overflow-y-auto;
+  }
+
+  .workspace-empty-hints {
+    @apply flex flex-col items-center;
+  }
+
+  .workspace-keys {
+    @apply grid grid-cols-[auto_auto] gap-x-3 gap-y-1.5 text-xs text-text-tertiary;
+  }
+
+  .workspace-keys > div {
+    @apply contents;
+  }
+
+  .workspace-keys dt {
+    @apply justify-self-end;
+  }
+
+  /* What is different here, said once: along the bottom, over the tiles */
+  .workspace-hint {
+    @apply absolute left-1/2 bottom-4 z-30 flex items-center gap-4 w-max max-w-[calc(100%-2rem)] -translate-x-1/2
+           px-4 py-2.5 rounded-xl bg-surface border border-border-light shadow-lg text-sm text-text-secondary;
+  }
+
+  .workspace-hint > .btn {
+    @apply shrink-0 whitespace-nowrap;
+  }
+
+  .workspace-hint[hidden] {
+    @apply hidden;
+  }
+
+  /* In the menu, a tool that is open says on which desktop */
+  .sidebar-tool-link[data-workspace-desk]::after {
+    @apply inline-flex items-center justify-center w-4 h-4 shrink-0 rounded text-[0.625rem] font-medium tabular-nums
+           bg-background-tertiary text-text-tertiary;
+    content: attr(data-workspace-desk);
   }
 }
 
@@ -129,6 +194,27 @@
   }
 }
 
+@keyframes workspace-tile-out {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+@keyframes workspace-slide-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(2rem);
+  }
+}
+
+@keyframes workspace-slide-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-2rem);
+  }
+}
+
 :root {
   /* As high as a tool's top bar is inside a tile */
   --workspace-topbar-height: 40px;
@@ -136,42 +222,42 @@
 
 /* ── The page around the tiles: no sidebar until it is asked for ── */
 
-:root[data-workspace] .main-content {
+body[data-workspace] .main-content {
   margin-left: 0;
 }
 
 @media (min-width: 1024px) {
-  :root[data-workspace] .demo-banner {
+  body[data-workspace] .demo-banner {
     left: 0;
   }
 
   /* The sidebar is the menu: off to the left, and in over the tiles when asked. Out of
      sight it is out of reach of the Tab key too, once it has slid away. */
-  :root[data-workspace] .sidebar {
+  body[data-workspace] .sidebar {
     @apply z-50 shadow-xl;
     transform: translateX(-100%);
     visibility: hidden;
     transition: transform 200ms var(--ease-out), visibility 0s 200ms;
   }
 
-  :root[data-workspace] .sidebar.open {
+  body[data-workspace] .sidebar.open {
     transform: none;
     visibility: visible;
     transition-delay: 0s;
   }
 
   /* You and your notifications are in the bar at the top, so their menus open from there */
-  :root[data-workspace] .sidebar-bottom-bar {
+  body[data-workspace] .sidebar-bottom-bar {
     display: none;
   }
 
-  :root[data-workspace] .sidebar-user-popover {
+  body[data-workspace] .sidebar-user-popover {
     position-anchor: --workspace-user-btn;
     position-area: block-end span-inline-start;
     margin: 0.25rem 0 0;
   }
 
-  :root[data-workspace] .sidebar-notifications-popover {
+  body[data-workspace] .sidebar-notifications-popover {
     position-anchor: --workspace-notifications-btn;
     position-area: block-end span-inline-start;
     margin: 0.25rem 0 0;

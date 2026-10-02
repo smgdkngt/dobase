@@ -31,6 +31,18 @@ export function toolFrame(url) {
   return frame
 }
 
+// A link that goes to a page of a tool, rather than into a frame of the page, to a
+// download, or off to do something: what can be opened as a tile of its own
+export function opensAsTile(link) {
+  if (link.origin !== location.origin || !toolIdOf(link.pathname)) return false
+  if (link.hasAttribute("download") || link.dataset.turboMethod || link.dataset.turbo === "false") return false
+  if (link.target && link.target !== "_self") return false
+
+  const around = link.closest("turbo-frame")
+  const frame = link.dataset.turboFrame || around?.getAttribute("target") || (around ? "frame" : "_top")
+  return frame === "_top"
+}
+
 // Where the page in a frame is: read from the frame itself, so anything it did to
 // its address between visits (a card it opened) counts. Nothing while it is still
 // loading its first page, or shows a page that isn't the app's.

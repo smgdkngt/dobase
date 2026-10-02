@@ -35,7 +35,7 @@
     <button type="button" class="workspace-bar-btn" title="Menu (<%= workspace_modifier %> M)"
             aria-label="Menu with all your tools"
             data-workspace-target="menu"
-            data-action="click->mobile-sidebar#toggle">
+            data-action="click->mobile-sidebar#toggle click->workspace#menuOpened">
       <%= render "shared/logo", class: "w-5 h-5" %>
     </button>
 
@@ -82,14 +82,32 @@
   <div class="workspace-tiles" id="workspace-tiles" data-turbo-permanent data-workspace-target="tiles">
     <div class="workspace-empty" data-workspace-target="empty" hidden>
       <% if @start_path %>
-        <%= render "components/empty_state", title: "Nothing open on this desktop", icon: "grid-2x2",
-              description: "Press ⌘K and pick a tool. It opens as a tile, next to what is already here." %>
+        <div class="workspace-empty-hints">
+          <%= render "components/empty_state", title: "Nothing open on this desktop", icon: "grid-2x2",
+                description: "Open a tool and it takes the room. The next one goes beside it." %>
+          <dl class="workspace-keys">
+            <div><dt><kbd class="shortcut-key">⌘K</kbd></dt><dd>Open a tool</dd></div>
+            <div><dt><kbd class="shortcut-key"><%= workspace_modifier %> M</kbd></dt><dd>The menu</dd></div>
+            <div><dt><kbd class="shortcut-key"><%= workspace_modifier %> 1 – 9</kbd></dt><dd>Another desktop</dd></div>
+            <div><dt><kbd class="shortcut-key">?</kbd></dt><dd>All the keys</dd></div>
+          </dl>
+        </div>
       <% else %>
         <%# Nothing to open yet: the same welcome as without the workspace %>
         <%= render template: "dashboard/index" %>
       <% end %>
     </div>
   </div>
+
+  <%# Shown until it is dismissed, once per browser: what is different here %>
+  <aside class="workspace-hint" hidden data-workspace-target="hint" aria-label="About the workspace">
+    <p>
+      Every tool you open is a tile here, and the tiles arrange themselves.
+      <kbd class="shortcut-key">⌘K</kbd> opens one, <kbd class="shortcut-key">?</kbd> shows the keys.
+    </p>
+    <%= render "components/button", text: "Got it", size: :sm, variant: :secondary, type: :button,
+          data: { action: "click->workspace#dismissHint" } %>
+  </aside>
 
   <template data-workspace-target="tileTemplate">
     <section class="workspace-tile" aria-label="Tile">

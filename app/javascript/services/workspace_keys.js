@@ -14,6 +14,7 @@ const COMMANDS = {
   Equal: "grow",
   Minus: "shrink",
   KeyM: "menu",
+  KeyR: "reload",
   Space: "launcher"
 }
 

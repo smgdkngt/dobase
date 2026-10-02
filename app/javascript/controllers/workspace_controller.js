@@ -25,7 +25,7 @@ const GLIDE = "transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1)"
 const RESIZE_STEP = 0.05
 
 export default class extends Controller {
-  static targets = ["tiles", "tileTemplate", "empty", "desks", "title", "menu"]
+  static targets = ["tiles", "tileTemplate", "empty", "desks", "title", "menu", "hint"]
   static values = { userId: Number, appName: String, start: String, oneToolPath: String }
 
   connect() {
@@ -53,7 +53,9 @@ export default class extends Controller {
 
     this.listening = new AbortController()
     this.listen(document, "turbo:before-visit", (event) => this.visiting(event))
+    this.listen(window, "workspace:open", (event) => { if (this.open(event.detail.url, { fresh: event.detail.fresh })) event.preventDefault() })
     this.listen(document, "turbo:submit-end", () => { this.submittedAt = performance.now() })
+    this.listen(document, "turbo:before-render", () => { this.menuWasOpen = this.menuOpen })
     this.listen(document, "turbo:morph", () => this.refreshed())
     this.listen(document, "keydown", (event) => this.keyed(event), true)
     this.listen(window, "message", (event) => this.heard(event))
@@ -66,6 +68,26 @@ export default class extends Controller {
 
     this.draw()
     this.arrive()
+    this.grabFocus()
+    this.hintTarget.hidden = this.seen("hint")
+  }
+
+  // Things this browser has been told once
+  seen(what) {
+    try {
+      return localStorage.getItem(`dobase:workspace:${what}`) === "seen"
+    } catch {
+      return true
+    }
+  }
+
+  dismissHint() {
+    this.hintTarget.hidden = true
+    try {
+      localStorage.setItem("dobase:workspace:hint", "seen")
+    } catch {
+      // No storage: it shows again next time
+    }
     this.grabFocus()
   }
 
@@ -96,13 +118,15 @@ export default class extends Controller {
   // ── Opening and closing ──
 
   // A tool that is open already is gone to; any other becomes a new tile beside the
-  // one you are on
-  open(url) {
+  // one you are on. Asked for a tile of its own (Shift in the launcher, Alt and a
+  // click on a link in a tile), a page gets one even when its tool is open: two
+  // documents side by side.
+  open(url, { fresh = false } = {}) {
     const path = pathOf(url)
     const toolId = toolIdOf(path)
     if (!toolId) return false
 
-    const open = Object.keys(this.state.tiles).find((id) => toolIdOf(this.state.tiles[id].url) === toolId)
+    const open = !fresh && Object.keys(this.state.tiles).find((id) => toolIdOf(this.state.tiles[id].url) === toolId)
     if (open) {
       this.goToDesk(this.deskNumberOf(open))
       this.focus(open)
@@ -149,11 +173,31 @@ export default class extends Controller {
     const keyboardWasHere = this.tilesTarget.contains(document.activeElement) || document.activeElement === document.body
 
     delete this.state.tiles[id]
-    this.elements.get(id)?.remove()
+    this.leave(this.elements.get(id))
     this.elements.delete(id)
     this.save()
     this.draw({ glide: true })
     if (keyboardWasHere) this.grabFocus()
+  }
+
+  // A tile fades out where it was while the others take its room
+  leave(tile) {
+    if (!tile || tile.hidden || this.still.matches) return tile?.remove()
+
+    tile.dataset.leaving = ""
+    tile.inert = true
+    tile.addEventListener("animationend", () => tile.remove(), { once: true })
+    setTimeout(() => tile.remove(), 400)
+  }
+
+  // The page in a tile, loaded again
+  reload(id) {
+    const frame = this.frameOf(id)
+    try {
+      frame?.contentWindow.location.reload()
+    } catch {
+      if (frame) frame.src = this.state.tiles[id].url
+    }
   }
 
   send(id, path) {
@@ -388,33 +432,66 @@ export default class extends Controller {
     handle.addEventListener("pointercancel", stop, { signal: dragging.signal })
   }
 
-  // The desktops that have something on them, the one you are on, and the next free one
+  // The desktops that have something on them, the one you are on, and the next free
+  // one. Each shows the tools that are on it, by their icons from the menu.
   drawBar() {
     const used = Object.keys(this.state.desks).filter((number) => this.state.desks[number].tree).map(Number)
     const last = Math.min(9, Math.max(this.state.desk, ...used, 0) + 1)
 
     this.desksTarget.replaceChildren(...Array.from({ length: last }, (_, index) => {
       const number = index + 1
+      const tiles = leaves(this.state.desks[number]?.tree)
       const button = document.createElement("button")
       button.type = "button"
       button.className = "workspace-desk"
-      button.textContent = number
-      button.setAttribute("aria-label", `Desktop ${number}`)
       button.setAttribute("aria-current", number === this.state.desk)
-      button.toggleAttribute("data-empty", !used.includes(number))
+      button.toggleAttribute("data-empty", tiles.length === 0)
       button.addEventListener("click", () => this.goToDesk(number))
+
+      const names = tiles.map((id) => this.state.tiles[id].title).filter(Boolean)
+      button.title = names.join(", ")
+      button.setAttribute("aria-label", names.length ? `Desktop ${number}: ${names.join(", ")}` : `Desktop ${number}`)
+      button.append(String(number), ...tiles.slice(0, 4).map((id) => this.iconOf(id)).filter(Boolean))
       return button
     }))
 
-    // What is open as a tile is seen: no dot for it in the menu
-    for (const id of this.elements.keys()) {
-      const toolId = toolIdOf(this.state.tiles[id]?.url)
-      document.querySelector(`[data-sidebar-tool-link][href="/tools/${toolId}"]`)?.removeAttribute("data-unread")
-    }
+    this.markMenu()
 
-    const title = this.state.tiles[this.desk.focus]?.title || ""
-    this.titleTarget.textContent = title
+    const desk = this.desk
+    const title = this.state.tiles[desk.focus]?.title || ""
+    const behind = desk.alone ? leaves(desk.tree).length - 1 : 0
+    this.titleTarget.textContent = behind > 0 ? `${title} · ${behind} more behind it` : title
     document.title = title ? `${title} - ${this.appNameValue}` : this.appNameValue
+  }
+
+  // A tool's icon as the menu draws it
+  iconOf(id) {
+    const link = this.menuLinkFor(this.state.tiles[id]?.url)
+    const icon = link?.querySelector("svg, [aria-hidden='true']")?.cloneNode(true)
+    if (!icon) return null
+
+    icon.removeAttribute("width")
+    icon.removeAttribute("height")
+    icon.setAttribute("class", "workspace-desk-icon")
+    return icon
+  }
+
+  menuLinkFor(url) {
+    return document.querySelector(`[data-sidebar-tool-link][href="/tools/${toolIdOf(url)}"]`)
+  }
+
+  // In the menu, a tool that is open says on which desktop, and needs no dot for
+  // what is new in it: the ones that are loaded are seen
+  markMenu() {
+    document.querySelectorAll("[data-sidebar-tool-link][data-workspace-desk]").forEach((link) => link.removeAttribute("data-workspace-desk"))
+
+    for (const [ id, tile ] of Object.entries(this.state.tiles)) {
+      const link = this.menuLinkFor(tile.url)
+      if (!link) continue
+
+      link.dataset.workspaceDesk = this.deskNumberOf(id)
+      if (this.elements.has(id)) link.removeAttribute("data-unread")
+    }
   }
 
   // ── Moving around ──
@@ -438,10 +515,25 @@ export default class extends Controller {
     number = Number(number)
     if (!number || number === this.state.desk) return
 
+    const from = this.state.desk
     this.state.desk = number
     this.save()
     this.draw()
+    this.slideIn(number > from ? "right" : "left")
     this.grabFocus()
+  }
+
+  // The tiles of the desktop you arrive on come in from the side it lies on
+  slideIn(side) {
+    if (this.still.matches) return
+
+    for (const id of leaves(this.desk.tree)) {
+      const tile = this.elements.get(id)
+      if (!tile || tile.hidden) continue
+
+      tile.dataset.sliding = side
+      tile.addEventListener("animationend", () => delete tile.dataset.sliding, { once: true })
+    }
   }
 
   // The tile on that side of the one you are on
@@ -521,6 +613,7 @@ export default class extends Controller {
     this.desk.alone = !this.desk.alone
     this.save()
     this.arrange({ glide: true })
+    this.drawBar()
   }
 
   // ── Keys ──
@@ -528,6 +621,10 @@ export default class extends Controller {
   // On this page; a page inside a tile hands the same keys on (heard, below)
   keyed(event) {
     if (event.key === "Escape" && this.menuOpen) return this.closeMenu()
+    if (event.key === "F6") {
+      event.preventDefault()
+      return this.goToNext()
+    }
 
     const command = workspaceCommand(event)
     if (!command) return
@@ -559,6 +656,9 @@ export default class extends Controller {
         break
       case "menu":
         this.toggleMenu()
+        break
+      case "reload":
+        if (this.desk.focus) this.reload(this.desk.focus)
         break
       case "launcher":
         this.launch()
@@ -592,6 +692,12 @@ export default class extends Controller {
   // The server drew this page again (a morph, which leaves the tiles alone): the bar
   // is ours to fill, and a tile whose tool is no longer in the menu has lost it
   refreshed() {
+    // The server draws the menu closed; it stays as it was
+    if (this.menuWasOpen) {
+      this.menu?.classList.add("open")
+      document.querySelector("[data-mobile-sidebar-target='overlay']")?.classList.add("active")
+    }
+
     const tools = new Set(Array.from(document.querySelectorAll("[data-sidebar-tool-link]")).map((link) => toolIdOf(link.getAttribute("href"))))
     for (const [ id, tile ] of Object.entries(this.state.tiles)) {
       if (tools.size > 0 && !tools.has(toolIdOf(tile.url))) this.drop(id)
@@ -615,6 +721,12 @@ export default class extends Controller {
     window.focus()
     this.menuTarget.click()
     this.menu?.querySelector("[data-sidebar-tool-link]")?.focus()
+  }
+
+  // The menu was drawn when this page was, which can be hours ago: what is new in
+  // which tool is asked again whenever it opens (the logo's click comes here too)
+  menuOpened() {
+    if (this.menuOpen) Turbo.visit(location.href, { action: "replace" })
   }
 
   closeMenu() {
@@ -654,6 +766,9 @@ export default class extends Controller {
         break
       case "command":
         this.run(message.command)
+        break
+      case "open":
+        this.open(message.url, { fresh: true })
         break
       case "launcher":
         this.launch()

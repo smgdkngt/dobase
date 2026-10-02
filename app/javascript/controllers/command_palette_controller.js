@@ -85,7 +85,7 @@ export default class extends Controller {
         break
       case "Enter":
         event.preventDefault()
-        this.#activateSelected()
+        this.#activateSelected({ fresh: event.shiftKey })
         break
     }
   }
@@ -150,7 +150,7 @@ export default class extends Controller {
     visible[nextIndex].scrollIntoView({ block: "nearest" })
   }
 
-  #activateSelected() {
+  #activateSelected({ fresh = false } = {}) {
     // Results can arrive a moment before the palette marks the first one, and
     // Enter pressed in that moment means that first one
     const selected = this.#selectedItem || this.#visibleItems[0]
@@ -162,8 +162,15 @@ export default class extends Controller {
       return
     }
 
-    // Tool items have an href — navigate via Turbo
+    // Tool items have an href — navigate via Turbo. In the workspace that opens a tile
+    // (workspace_controller.js), and with Shift a tile of its own even when the tool
+    // is open already; where there is no workspace to take it, Shift changes nothing.
     this.element.close()
-    if (selected.href) Turbo.visit(selected.href)
+    if (!selected.href) return
+
+    const opening = new CustomEvent("workspace:open", { cancelable: true, detail: { url: selected.href, fresh: true } })
+    if (fresh && !window.dispatchEvent(opening)) return
+
+    Turbo.visit(selected.href)
   }
 }

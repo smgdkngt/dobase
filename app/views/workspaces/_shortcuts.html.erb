@@ -4,6 +4,8 @@
   <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Workspace</h3>
   <div class="shortcut-list">
     <%= render "shared/shortcut_row", key: "⌘K", description: "Open a tool as a tile" %>
+    <%= render "shared/shortcut_row", key: "⇧ ↵", description: "In the launcher: a tile of its own, also for a tool that is open" %>
+    <%= render "shared/shortcut_row", key: "Alt + click", description: "A link in a tile: open it as a tile of its own" %>
     <%= render "shared/shortcut_row", key: "⌘⇧K", description: "What the tool in this tile can do" %>
     <%= render "shared/shortcut_row", key: "#{workspace_modifier} ← ↑ ↓ →", description: "Go to the tile on that side" %>
     <%= render "shared/shortcut_row", key: "#{workspace_modifier} Shift ← ↑ ↓ →", description: "Move the tile that way" %>
@@ -13,5 +15,7 @@
     <%= render "shared/shortcut_row", key: "#{workspace_modifier} F", description: "The tile alone, and back" %>
     <%= render "shared/shortcut_row", key: "#{workspace_modifier} W", description: "Close the tile" %>
     <%= render "shared/shortcut_row", key: "#{workspace_modifier} M", description: "The menu with all your tools" %>
+    <%= render "shared/shortcut_row", key: "#{workspace_modifier} R", description: "Load the tile again" %>
+    <%= render "shared/shortcut_row", key: "F6", description: "On to the next tile" %>
   </div>
 </div>

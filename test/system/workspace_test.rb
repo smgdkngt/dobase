@@ -95,13 +95,13 @@ class WorkspaceTest < ApplicationSystemTestCase
       assert_selector ".command-palette-item.selected", text: @todos.name
       input.send_keys(:enter)
     end
-    assert_selector ".workspace-tile:not([hidden])", count: 3
+    assert_selector ".workspace-tile:not([hidden], [data-leaving])", count: 3
     within_tile(2) { assert_selector "h1", text: @todos.name }
     assert_focused 2
 
     type_keys(*(mac? ? %i[control alt] : %i[alt]), "w")
 
-    assert_selector ".workspace-tile:not([hidden])", count: 2
+    assert_selector ".workspace-tile:not([hidden], [data-leaving])", count: 2
     within_tile(0) { assert_selector "h1", text: @board.name }
     within_tile(1) { assert_selector "h1", text: @files.name }
   end
@@ -196,7 +196,7 @@ class WorkspaceTest < ApplicationSystemTestCase
       click_on "Create"
     end
 
-    assert_selector ".workspace-tile:not([hidden])", count: 2
+    assert_selector ".workspace-tile:not([hidden], [data-leaving])", count: 2
     within_tile(1) { assert_selector "h1", text: "Groceries" }
     assert_current_path workspace_path
     assert_selector "[data-sidebar-tool-link]", text: "Groceries", visible: :all
@@ -211,7 +211,7 @@ class WorkspaceTest < ApplicationSystemTestCase
 
     page.execute_script("Turbo.visit(location.href, { action: 'replace' })")
 
-    assert_selector ".workspace-tile:not([hidden])", count: 1
+    assert_selector ".workspace-tile:not([hidden], [data-leaving])", count: 1
     within_tile(0) { assert_selector "h1", text: @board.name }
   end
 
@@ -272,7 +272,7 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_no_selector "dialog[data-controller~='command-palette'][open]"
     return unless new_tile
 
-    assert_selector ".workspace-tile:not([hidden])", count: count + 1
+    assert_selector ".workspace-tile:not([hidden], [data-leaving])", count: count + 1
     within_tile(count) { assert_selector "h1", text: tool.name }
   end
 
@@ -298,7 +298,7 @@ class WorkspaceTest < ApplicationSystemTestCase
   # are going, while they still slide there)
   def tiles
     page.evaluate_script(<<~JS).map(&:symbolize_keys)
-      Array.from(document.querySelectorAll(".workspace-tile:not([hidden])")).map((tile) => {
+      Array.from(document.querySelectorAll(".workspace-tile:not([hidden], [data-leaving])")).map((tile) => {
         const [ left, top, width, height ] = [ "left", "top", "width", "height" ].map((side) => parseFloat(tile.style[side]))
         return { left, top, width, height, focused: tile.hasAttribute("data-focused") }
       })
@@ -315,6 +315,6 @@ class WorkspaceTest < ApplicationSystemTestCase
   end
 
   def within_tile(index, &block)
-    within_frame(all(".workspace-tile:not([hidden]) iframe")[index], &block)
+    within_frame(all(".workspace-tile:not([hidden], [data-leaving]) iframe")[index], &block)
   end
 end

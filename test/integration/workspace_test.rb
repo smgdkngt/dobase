@@ -16,7 +16,7 @@ class WorkspaceTest < ActionDispatch::IntegrationTest
     get workspace_path
 
     assert_response :success
-    assert_select "html[data-workspace]"
+    assert_select "body[data-workspace]"
     assert_select "[data-controller~='workspace'] #workspace-tiles[data-turbo-permanent]"
     assert_select "aside.sidebar"
     assert_select "meta[name='turbo-cache-control'][content='no-cache']"

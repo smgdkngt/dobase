@@ -731,6 +731,11 @@
     @apply hidden;
   }
 
+  /* What Enter does, under the results */
+  .command-palette-hint {
+    @apply flex items-center justify-end gap-4 px-4 py-2 border-t border-border-light text-xs text-text-tertiary;
+  }
+
   /* ── Reorder Mode (shared across board, todo, sidebar) ── */
   .reorder-mode > [data-sort-id] {
     @apply cursor-grab outline-2 outline-accent outline -outline-offset-2;

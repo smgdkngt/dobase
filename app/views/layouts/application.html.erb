@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-turbo-not-loaded <%= tag.attributes(theme_attributes) %><%= " data-in-tile" if tile? %><%= " data-workspace" if @workspace %>>
+<html data-turbo-not-loaded <%= tag.attributes(theme_attributes) %><%= " data-in-tile" if tile? %>>
   <head>
     <title><%= content_for(:title) || app_name %></title>
     <meta name="viewport" content="<%= viewport_content %>">
@@ -74,8 +74,10 @@
     <script async defer src="/altcha.min.js" type="module"></script>
   </head>
 
+  <%# data-workspace on the body, not on <html>: Turbo brings a new body with every
+      visit and leaves <html> as the first page had it %>
   <body class="bg-background-secondary text-text-primary" data-controller="keyboard-shortcuts theme"
-        data-theme-version-value="<%= theme_version %>">
+        data-theme-version-value="<%= theme_version %>"<%= " data-workspace" if @workspace %>>
     <%# data-turbo="false" so the browser handles the fragment itself and moves
         focus into <main>; a Turbo anchor visit only scrolls. %>
     <a href="#main-content" class="skip-link" data-turbo="false">Skip to main content</a>

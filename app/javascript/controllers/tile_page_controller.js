@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { applyTheme } from "services/theme"
 import { workspaceCommand, isLauncherKey } from "services/workspace_keys"
+import { opensAsTile } from "services/tool_frame"
 
 // On a page that is a tile in the workspace (workspace_controller.js is on the page
 // around it). Says where this page is, so it is the one that comes back after a
@@ -12,6 +13,8 @@ export default class extends Controller {
     this._onLoad = () => this.report()
     this._onKey = (event) => this.keyed(event)
     this._onFocus = (event) => this.say("focus", { pointer: event.type === "pointerdown" })
+    this._onClick = (event) => this.clicked(event)
+    document.addEventListener("click", this._onClick, true)
     window.addEventListener("message", this._onMessage)
     // The keyboard arrives here by Tab or F6, or with a click
     window.addEventListener("focus", this._onFocus)
@@ -28,6 +31,7 @@ export default class extends Controller {
     window.removeEventListener("message", this._onMessage)
     window.removeEventListener("focus", this._onFocus)
     document.removeEventListener("pointerdown", this._onFocus, true)
+    document.removeEventListener("click", this._onClick, true)
     document.removeEventListener("turbo:load", this._onLoad)
     document.removeEventListener("keydown", this._onKey, true)
   }
@@ -45,6 +49,19 @@ export default class extends Controller {
 
   notifications() {
     this.say("notifications")
+  }
+
+  // Alt and a click on a link to a tool's page opens it as a tile of its own: this
+  // document stays, and the other one comes beside it
+  clicked(event) {
+    if (!event.altKey || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return
+
+    const link = event.target.closest?.("a[href]")
+    if (!link || !opensAsTile(link)) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    this.say("open", { url: link.pathname + link.search + link.hash })
   }
 
   // Not through the shortcut library: that leaves keys typed in a field alone, and a

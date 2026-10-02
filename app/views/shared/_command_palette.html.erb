@@ -68,4 +68,11 @@
     <%= turbo_frame_tag "command_palette_search",
           data: { command_palette_target: "searchFrame", action: "turbo:frame-load->command-palette#searched" } %>
   </div>
+  <%# In the workspace this is the launcher: what Enter does there %>
+  <% if @workspace %>
+    <p class="command-palette-hint">
+      <span><kbd class="shortcut-key">↵</kbd> Open as a tile</span>
+      <span><kbd class="shortcut-key">⇧</kbd> <kbd class="shortcut-key">↵</kbd> In a tile of its own</span>
+    </p>
+  <% end %>
 </dialog>
