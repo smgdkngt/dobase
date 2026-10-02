@@ -251,6 +251,13 @@
   }
 }
 
+@keyframes workspace-menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
 @keyframes workspace-tile-out {
   to {
     opacity: 0;
@@ -288,24 +295,30 @@ body[data-workspace] .main-content {
     left: 0;
   }
 
-  /* The sidebar is the menu: off to the left, and in over the tiles when asked. Out of
-     sight it is out of reach of the Tab key too, once it has slid away. */
+  /* The sidebar is the menu: a panel in the middle of the window, over the tiles, when
+     asked for. As high as what is in it, up to most of the window; its top stays
+     where it is while the list under the search changes. Out of sight it is out of
+     reach of the Tab key too. */
   body[data-workspace] .sidebar {
-    @apply z-50 shadow-xl;
-    transform: translateX(-100%);
+    @apply z-50 shadow-xl rounded-xl border border-border-light overflow-hidden;
+    inset: 12vh 0 auto;
+    margin-inline: auto;
+    width: min(30rem, calc(100vw - 2rem));
+    max-height: min(76vh, 46rem);
+    padding: 0;
     visibility: hidden;
-    transition: transform 200ms var(--ease-out), visibility 0s 200ms;
   }
 
+  /* It comes in with a short fade and is gone at once. Not faded by its own opacity
+     while away: the account and notification menus live in it, and are opened from
+     the bar while it is. */
   body[data-workspace] .sidebar.open {
-    transform: none;
     visibility: visible;
-    transition-delay: 0s;
+    animation: workspace-menu-in 140ms var(--ease-out);
   }
 
-  /* Wider than the sidebar it is elsewhere: what the search finds has to fit */
-  body[data-workspace] .sidebar {
-    width: 20rem;
+  body[data-workspace] .sidebar-overlay {
+    transition-duration: 140ms;
   }
 
   /* While the search has something typed, what it finds is the menu */
