@@ -12,6 +12,7 @@
       <%= render "shared/shortcut_row", key: "u", description: "Upload file" %>
       <%= render "shared/shortcut_row", key: "n", description: "New folder" %>
       <%= render "shared/shortcut_row", key: "Esc", description: "Clear selection" %>
+      <%= render "shared/shortcut_row", key: "← → ↑ ↓", description: "From file to file; Enter opens, ← past the first goes up a folder" %>
     </div>
   </div>
 <% end %>
@@ -94,6 +95,7 @@
       <%= link_to tool_files_path(@tool),
           class: "flex items-center justify-center w-8 h-8 rounded-lg text-text-secondary hover:text-accent hover:bg-background-tertiary transition-all",
           data: { file_drag_target: "dropTarget", item_type: "folder", item_id: "",
+                  arrow_keys_target: (@ancestors.size == 1 ? "back" : nil),
                   action: "dragover->file-drag#dragOverFolder dragenter->file-drag#dragEnterFolder dragleave->file-drag#dragLeaveFolder drop->file-drag#dropOnFolder" } do %>
         <%= render "shared/icon", name: "home", size: 16 %>
       <% end %>
@@ -105,6 +107,7 @@
           <%= link_to ancestor.name, tool_files_path(@tool, folder_id: ancestor.id),
               class: "px-2 py-1 rounded-lg text-text-secondary hover:text-accent hover:bg-background-tertiary transition-all",
               data: { file_drag_target: "dropTarget", item_type: "folder", item_id: ancestor.id,
+                      arrow_keys_target: (ancestor == @ancestors[-2] ? "back" : nil),
                       action: "dragover->file-drag#dragOverFolder dragenter->file-drag#dragEnterFolder dragleave->file-drag#dragLeaveFolder drop->file-drag#dropOnFolder" } %>
         <% end %>
       <% end %>

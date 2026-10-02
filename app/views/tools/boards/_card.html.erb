@@ -9,6 +9,7 @@
      data-presence-item="card:<%= card.id %>"
      role="button"
      tabindex="0"
+     data-arrow-keys-target="item"
      data-action="click->board#openCard keydown->board#openCardKey">
   <% if card_color(card) %>
     <div class="h-[3px] rounded-sm mb-2" style="background-color: <%= card_color(card)[:fill] %>;"></div>

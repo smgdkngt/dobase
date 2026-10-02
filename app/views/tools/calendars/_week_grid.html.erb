@@ -143,6 +143,9 @@
           <div class="all-day-event-span <%= rounded_class %>"
                style="grid-column: <%= span_info[:start_col] + 1 %> / span <%= span_info[:span] %>; grid-row: <%= span_info[:row] + 1 %>; <%= event_color_style(calendar) %>"
                data-event-id="<%= event.id %>"
+               role="button"
+               tabindex="0"
+               data-arrow-keys-target="item"
                data-action="click->calendar#showEvent">
             <span class="truncate text-xs font-medium">
               <% if span_info[:is_continuation] %>

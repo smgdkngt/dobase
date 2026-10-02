@@ -21,6 +21,7 @@
 
   <%# Collapsed strip %>
   <button type="button" class="board-column-collapsed-strip"
+          data-arrow-keys-target="item"
           aria-label="Expand <%= column.name %> column"
           data-action="click->board#expandColumn"
           data-column-id="<%= column.id %>">
@@ -104,6 +105,7 @@
     <div class="board-add-card p-2">
       <button type="button" class="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md border-none bg-transparent text-text-tertiary text-sm cursor-pointer transition-all hover:bg-background-tertiary hover:text-text-primary"
               data-board-target="addCardBtn"
+              data-arrow-keys-target="item"
               data-action="board#showAddCard"
               data-column-id="<%= column.id %>">
         <%= render "shared/icon", name: "plus", size: 14 %>

@@ -24,6 +24,8 @@
 <div id="<%= dom_id(message) %>"
      class="chat-message group/message flex gap-2.5 sm:gap-3 px-2 sm:px-4 py-1.5 sm:py-2 hover:bg-background-tertiary/50 <%= is_continuation ? '' : 'mt-2 sm:mt-3' %>"
      data-controller="message reactions"
+     data-arrow-keys-target="item"
+     data-action="keydown->chat#messageKey"
      data-message-user-id-value="<%= message.user_id %>"
      data-reactions-url-value="<%= tool_chat_message_reactions_path(tool, message) %>"
      data-message-id="<%= message.id %>"

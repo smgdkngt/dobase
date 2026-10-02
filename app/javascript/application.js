@@ -105,6 +105,16 @@ function markAppWindow() {
 markAppWindow()
 document.addEventListener("turbo:load", markAppWindow)
 
+// A tool opened by its address in a window wide enough for tiles becomes a tile in
+// the workspace. The layout does this itself before a page it loads is drawn; this
+// is for a page Turbo brought in, whose own script it won't run.
+document.addEventListener("turbo:load", () => {
+  const workspace = document.querySelector("meta[name='workspace-open']")?.content
+  if (workspace && window.self === window.top && window.matchMedia("(min-width: 1024px)").matches) {
+    window.location.replace(workspace)
+  }
+})
+
 // A page that is a tile in the workspace (workspace_controller.js) is in a frame with
 // this name. The server draws it without the sidebar (ApplicationController#tile?):
 // the browser says it is a frame when it loads one, and for every page after that

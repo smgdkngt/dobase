@@ -331,6 +331,49 @@ export default class extends Controller {
     this.#editor?.commands.focus()
   }
 
+  // The keyboard in the messages
+  //
+  // The arrow keys go from message to message (arrow_keys_controller.js). Up from an
+  // empty message box gets there, and down past the newest message comes back.
+  composerKey(event) {
+    if (event.key !== "ArrowUp" || !this.#editor?.isEmpty) return
+
+    const messages = this.messagesTarget.querySelectorAll("[data-controller~='message']")
+    const newest = messages[messages.length - 1]
+    if (!newest) return
+
+    event.preventDefault()
+    if (!newest.hasAttribute("tabindex")) newest.tabIndex = -1
+    newest.focus()
+  }
+
+  pastTheMessages(event) {
+    if (event.detail.side === "down" && this.messagesTarget.contains(document.activeElement)) this.focusInput()
+  }
+
+  // On the message itself, not in something inside it: r replies, e edits your own,
+  // Delete deletes what you may delete
+  messageKey(event) {
+    if (event.target !== event.currentTarget || event.metaKey || event.ctrlKey || event.altKey) return
+
+    const message = event.currentTarget
+    const press = (selector) => {
+      const control = message.querySelector(selector)
+      if (!control || control.closest(".hidden")) return
+      event.preventDefault()
+      control.click()
+    }
+
+    if (event.key === "r") {
+      event.preventDefault()
+      this.startReply(event)
+    } else if (event.key === "e") {
+      press("[data-message-edit] a")
+    } else if (event.key === "Delete" || event.key === "Backspace") {
+      press("[data-message-delete] a")
+    }
+  }
+
   // Form submission
   submit(event) {
     const editor = this.#editor

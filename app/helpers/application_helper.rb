@@ -148,6 +148,14 @@ module ApplicationHelper
     }
   end
 
+  # What <main> carries on every page: the arrow keys go through whatever the page
+  # marks as an item (arrow_keys_controller.js), and on a tool's page people see each
+  # other there.
+  def main_attributes
+    data = @tool&.persisted? ? presence_attributes[:data] : {}
+    { data: data.merge(controller: [ data[:controller], "arrow-keys" ].compact.join(" "), arrow_keys_main_value: true) }
+  end
+
   # The colour beside someone's name where several people work in one place: a
   # caret in a document today. Keyed off the id, so it is the same colour for
   # everyone looking, and the same one tomorrow.

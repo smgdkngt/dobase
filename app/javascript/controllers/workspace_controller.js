@@ -26,16 +26,24 @@ const RESIZE_STEP = 0.05
 
 export default class extends Controller {
   static targets = ["tiles", "tileTemplate", "empty", "desks", "title", "menu"]
-  static values = { userId: Number, appName: String, start: String }
+  static values = { userId: Number, appName: String, start: String, oneToolPath: String }
 
   connect() {
     // Never tiles inside a tile: a frame that ends up on this page (its tool is gone,
     // and the browser didn't say it was a frame) reports where it is and is dealt with
-    this.framed = window.self !== window.top
-    if (this.framed) return
+    // (inert: this controller does nothing for the rest of its life)
+    this.inert = window.self !== window.top
+    if (this.inert) return
 
     this.state = this.load()
     this.narrow = window.matchMedia("(max-width: 1023px)")
+    // Arrived in a window too narrow for tiles: one tool the usual way, the one you
+    // were on (the page does this itself when it is loaded rather than visited)
+    if (this.narrow.matches) {
+      this.inert = true
+      return window.location.replace(this.state.tiles[this.deskAt(this.state.desk).focus]?.url || this.oneToolPathValue)
+    }
+
     this.still = window.matchMedia("(prefers-reduced-motion: reduce)")
     this.handles = []
     // Tiles that are in the page already (the element outlives a morph refresh)
@@ -75,7 +83,7 @@ export default class extends Controller {
   }
 
   disconnect() {
-    if (this.framed) return
+    if (this.inert) return
 
     this.listening.abort()
     this.sizes.disconnect()

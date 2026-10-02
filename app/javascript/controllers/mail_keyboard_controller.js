@@ -5,7 +5,7 @@ import { Controller } from "@hotwired/stimulus"
 // those hotkey-triggered buttons call.
 
 export default class extends Controller {
-  static targets = ["list", "item"]
+  static targets = ["list", "item", "reader"]
 
   connect() {
     this._onFrameLoad = this._handleFrameLoad.bind(this)
@@ -44,6 +44,55 @@ export default class extends Controller {
     if (!items.length) return
     const prev = this.selectedIndex > 0 ? this.selectedIndex - 1 : items.length - 1
     this.navigateToItem(items[prev])
+  }
+
+  // The arrow keys
+  //
+  // With the list and the message side by side they read on to the next conversation,
+  // as j and k do. In a narrow window (a tile in the workspace, a phone with a
+  // keyboard) the list and the message take turns: in the list the arrows move a
+  // highlight and Enter or the right arrow opens; in the message they scroll, and the
+  // left arrow goes back to the list.
+  down() {
+    this._arrow(1)
+  }
+
+  up() {
+    this._arrow(-1)
+  }
+
+  _arrow(step) {
+    if (!this._listShows) return this._readOn(step)
+    if (this._messageShows) return step > 0 ? this.selectNext() : this.selectPrevious()
+
+    const items = this.items
+    if (!items.length) return
+
+    const next = this.selectedIndex < 0 ? (step > 0 ? 0 : items.length - 1) : Math.min(items.length - 1, Math.max(0, this.selectedIndex + step))
+    items.forEach((item) => item.classList.remove("selected"))
+    items[next].classList.add("selected")
+    items[next].scrollIntoView({ block: "nearest" })
+  }
+
+  _readOn(step) {
+    const reader = this.readerTargets.find((target) => target.getClientRects().length > 0)
+    reader?.scrollBy({ top: step * 80 })
+  }
+
+  // Only where the list and the message take turns: side by side there is nothing to go back to
+  backToList() {
+    if (this._listShows) return
+
+    this.element.classList.remove("mail-detail-open")
+  }
+
+  get _listShows() {
+    return this.hasListTarget && this.listTarget.getClientRects().length > 0
+  }
+
+  get _messageShows() {
+    const frame = document.getElementById("mail-content")
+    return Boolean(frame) && frame.getClientRects().length > 0
   }
 
   navigateToItem(item) {

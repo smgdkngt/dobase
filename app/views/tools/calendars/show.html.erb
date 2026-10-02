@@ -14,6 +14,7 @@
       <%= render "shared/shortcut_row", key: "t", description: "Go to today" %>
       <%= render "shared/shortcut_row", key: "\u2318\u2190", description: "Previous week" %>
       <%= render "shared/shortcut_row", key: "\u2318\u2192", description: "Next week" %>
+      <%= render "shared/shortcut_row", key: "← → ↑ ↓", description: "From event to event, and on to the week before or after" %>
     </div>
   </div>
 <% end %>
@@ -24,6 +25,7 @@
 
 <div class="tool-layout calendar-layout"
      data-controller="calendar"
+     data-action="arrow-keys:edge@window->calendar#pastTheWeek"
      data-calendar-tool-id-value="<%= @tool.id %>"
      data-calendar-week-start-value="<%= @week_start.iso8601 %>">
 
@@ -95,7 +97,7 @@
   </div>
 
   <!-- Week grid -->
-  <div class="tool-scroll-area calendar-week-container" id="calendar-week-container" data-calendar-target="grid">
+  <div class="tool-scroll-area calendar-week-container" id="calendar-week-container" data-calendar-target="grid" data-arrow-keys-target="scroller">
     <%= render "tools/calendars/week_grid",
         week_start: @week_start,
         events: @events,

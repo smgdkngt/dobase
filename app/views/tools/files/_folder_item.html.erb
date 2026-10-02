@@ -17,6 +17,7 @@
      draggable="true"
      role="button"
      tabindex="0"
+     data-arrow-keys-target="item"
      aria-label="Folder <%= folder.name %>"
      data-action="keydown->files#openItemKey click->file-selection#select click->file-drag#recordClick dblclick->files#openItem contextmenu->file-selection#selectForMenu contextmenu->file-context-menu#show dragstart->file-drag#dragStart dragend->file-drag#dragEnd dragover->file-drag#dragOverFolder dragenter->file-drag#dragEnterFolder dragleave->file-drag#dragLeaveFolder drop->file-drag#dropOnFolder">
   <div class="<%= icon_base %> <%= icon_size %>">

@@ -98,6 +98,57 @@ export default class extends Controller {
     }
   }
 
+  // What a drag does, for the keyboard (arrow_keys_controller.js): the item goes one
+  // place up or down among its siblings, or across to the list of the same group on
+  // that side, at the height it was. False when there is nowhere to go.
+  moveWithKeys(item, side) {
+    if (!this.enabledValue) return false
+
+    const siblings = Array.from(this.element.querySelectorAll(":scope > [data-sort-id]"))
+    const index = siblings.indexOf(item)
+
+    if (side === "up" || side === "down") {
+      const other = siblings[index + (side === "up" ? -1 : 1)]
+      if (!other) return false
+
+      side === "up" ? other.before(item) : other.after(item)
+      this._saveContainerOrder(this.element)
+      return true
+    }
+
+    const to = this._listBeside(side)
+    if (!to) return false
+
+    const from = this.element
+    const there = Array.from(to.querySelectorAll(":scope > [data-sort-id]"))
+    there[index] ? there[index].before(item) : there.length ? there.at(-1).after(item) : to.prepend(item)
+    this._moved(item, from, to)
+    return true
+  }
+
+  // The nearest list of the same group to the left or the right of this one
+  _listBeside(side) {
+    if (!this.hasGroupValue) return null
+
+    const here = this.element.getBoundingClientRect()
+    return Array.from(document.querySelectorAll(`[data-controller~='sortable'][data-sortable-group-value='${this.groupValue}']`))
+      .filter((list) => list !== this.element && list.getClientRects().length > 0)
+      .map((list) => ({ list, rect: list.getBoundingClientRect() }))
+      .filter(({ rect }) => side === "left" ? rect.left < here.left : rect.left > here.left)
+      .sort((a, b) => Math.abs(a.rect.left - here.left) - Math.abs(b.rect.left - here.left))[0]?.list || null
+  }
+
+  async _moved(item, from, to) {
+    const pending = []
+    this.dispatch("move", {
+      detail: { itemId: item.dataset.sortId, fromId: from.dataset.groupId, toId: to.dataset.groupId, waitUntil: (promise) => pending.push(promise) }
+    })
+    await Promise.all(pending)
+
+    this._saveContainerOrder(to)
+    this._saveContainerOrder(from)
+  }
+
   _saveContainerOrder(container) {
     const ctrl = this.application.getControllerForElementAndIdentifier(container, "sortable")
     if (!ctrl?.hasUrlValue) return

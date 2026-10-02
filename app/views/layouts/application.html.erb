@@ -26,11 +26,15 @@
     <%= yield :head %>
 
     <%# A tool opened by its address (a link in a mail, a bookmark) in a window wide
-        enough for tiles becomes a tile in the workspace. Before anything is drawn, and
-        never for a page that is itself in a frame. %>
+        enough for tiles becomes a tile in the workspace: never for a page that is
+        itself in a frame. The script does it before anything is drawn when the page
+        is loaded; Turbo doesn't run it after a visit (its nonce is another page's),
+        so application.js reads the same address from the meta tag. %>
     <% if user_signed_in? && workspace_wanted? && !tile? && !@workspace && request.get? && request.path.match?(%r{\A/tools/\d+}) %>
+      <% in_workspace = workspace_path(open: request.fullpath) %>
+      <%= tag.meta name: "workspace-open", content: in_workspace %>
       <%= javascript_tag nonce: true do %>
-        if (window.self === window.top && window.matchMedia("(min-width: 1024px)").matches) window.location.replace(<%= raw workspace_path(open: request.fullpath).to_json %>)
+        if (window.self === window.top && window.matchMedia("(min-width: 1024px)").matches) window.location.replace(<%= raw in_workspace.to_json %>)
       <% end %>
     <% end %>
 
@@ -82,7 +86,7 @@
       <%= render "shared/flash" %>
       <div data-controller="tile-page">
         <main class="main-content" id="main-content" tabindex="-1"
-              <%= tag.attributes(presence_attributes) if @tool&.persisted? %>>
+              <%= tag.attributes(main_attributes) %>>
           <%= yield %>
         </main>
         <div id="persistent-room" data-turbo-permanent hidden></div>
@@ -102,7 +106,7 @@
         <%# A tool page tells everyone else on it that you are here, and what you
             have open; see presence_controller.js and PresenceChannel. %>
         <main class="main-content" id="main-content" tabindex="-1"
-              <%= tag.attributes(presence_attributes) if @tool&.persisted? %>>
+              <%= tag.attributes(main_attributes) %>>
           <%= yield %>
         </main>
 

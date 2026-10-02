@@ -127,6 +127,11 @@ export default class extends Controller {
     if (frame) {
       frame.reload()
     }
+
+    // The keyboard goes along (the bell that was pressed may be another one's: the
+    // bars at the top and the bottom each have one for the same list)
+    const popover = document.getElementById("sidebar-notifications")
+    requestAnimationFrame(() => { if (popover?.matches(":popover-open")) popover.focus({ preventScroll: true }) })
   }
 
   // One line can stand for several notifications (a busy chat); all of them are read

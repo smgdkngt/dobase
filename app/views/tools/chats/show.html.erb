@@ -9,6 +9,9 @@
     <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Chat</h3>
     <div class="shortcut-list">
       <%= render "shared/shortcut_row", key: "/", description: "Focus message input" %>
+      <%= render "shared/shortcut_row", key: "↑", description: "From an empty message: up into the messages" %>
+      <%= render "shared/shortcut_row", key: "r", description: "Reply to the message you are on" %>
+      <%= render "shared/shortcut_row", key: "e", description: "Edit it, if it is yours" %>
     </div>
   </div>
 <% end %>
@@ -87,7 +90,9 @@
     <div class="flex-1 flex flex-col overflow-hidden min-h-0">
       <!-- Messages container -->
       <%= turbo_stream_from @chat %>
+      <%# The arrow keys start from the newest message (arrow_keys_controller.js) %>
       <div class="flex-1 overflow-y-auto px-2 sm:px-4 py-4"
+           data-arrow-keys-from="end"
            data-chat-target="messages">
         <%= render "tools/chats/older_messages", tool: @tool, messages: @messages, has_more: @has_more %>
 
@@ -152,7 +157,7 @@
                       method: :post,
                       multipart: true,
                       data: {
-                        action: "submit->chat#submit",
+                        action: "submit->chat#submit keydown->chat#composerKey arrow-keys:edge@window->chat#pastTheMessages",
                         chat_target: "form"
                       } do |f| %>
           <input type="hidden" name="message[reply_to_id]" value="" data-chat-target="replyToId">

@@ -41,6 +41,10 @@
 <div class="event-block-in absolute rounded-md shadow-sm cursor-pointer overflow-hidden border border-white/20 transition-all duration-150 hover:shadow-md hover:brightness-105 hover:z-10 min-h-5"
      style="top: <%= top_position %>%; height: <%= height %>%; left: calc(<%= left %>% + 2px); width: calc(<%= width %>% - 4px); <%= event_color_style(calendar) %>"
      data-event-id="<%= event.id %>"
+     role="button"
+     tabindex="0"
+     aria-label="<%= event.summary %>, <%= format_datetime(event.start_time) %>"
+     data-arrow-keys-target="item"
      data-action="click->calendar#showEvent">
   <div class="<%= compact ? 'px-1.5 py-0.5' : 'p-1.5' %> h-full overflow-hidden">
     <% if compact %>

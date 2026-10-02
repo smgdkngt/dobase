@@ -14,6 +14,7 @@
   <a href="<%= tool_path(instance) %>"
      class="sidebar-tool-link"
      data-sidebar-tool-link
+     data-arrow-keys-target="item"
      <%= 'data-unread' if has_unread %>
      <%= 'aria-current="page"'.html_safe if is_active %>
      data-action="click->mobile-sidebar#navigate">

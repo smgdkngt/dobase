@@ -197,6 +197,13 @@ export default class extends Controller {
     this.navigateToWeek(this.getMonday(this.parseDate(event.target.value)))
   }
 
+  // The arrow keys go from event to event (arrow_keys_controller.js); past the first
+  // or the last one of the week they go on to the week before or after
+  pastTheWeek(event) {
+    if (event.detail.side === "left") this.previousWeek()
+    if (event.detail.side === "right") this.nextWeek()
+  }
+
   previousWeek() {
     const currentWeekStart = this.parseDate(this.weekStartValue)
     currentWeekStart.setDate(currentWeekStart.getDate() - 7)

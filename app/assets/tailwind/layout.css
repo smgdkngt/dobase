@@ -196,6 +196,12 @@
     @apply mb-1;
   }
 
+  /* It holds the keyboard while it is open, so the arrow keys go through the list;
+     the row you are on shows that, the box around them needn't */
+  .sidebar-notifications-popover:focus {
+    @apply outline-none;
+  }
+
   /* Add popover (opens downward, left-aligned to trigger in logo bar) — CSS Anchor Positioning */
   .sidebar-add-popover {
     position-anchor: --sidebar-add-btn;

@@ -65,6 +65,7 @@
       <button type="button"
               class="flex items-center gap-1.5 px-2 py-1.5 text-xs text-text-tertiary hover:text-text-primary transition-colors"
               data-action="todo#toggleCompleted"
+              data-arrow-keys-target="item"
               data-todo-target="completedToggle"
               data-list-id="<%= list.id %>">
         <%= render "shared/icon", name: "check-circle", size: 12 %>
@@ -82,6 +83,7 @@
   <div class="todo-add-item px-2 pb-2">
     <button type="button" class="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-md border-none bg-transparent text-text-tertiary text-sm cursor-pointer transition-all hover:bg-background-tertiary hover:text-text-primary"
             data-todo-target="addItemBtn"
+            data-arrow-keys-target="item"
             data-action="todo#showAddItem"
             data-list-id="<%= list.id %>">
       <%= render "shared/icon", name: "plus", size: 14 %>
