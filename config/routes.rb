@@ -35,6 +35,8 @@ Rails.application.routes.draw do
     end
   end
   resource :appearance, only: %i[show update]
+  # The logo in a theme's colours, as a picture a mail can show: /logos/7aa2f7-1a1b26.png
+  resources :logos, only: :show
   resource :two_factor_setup, only: %i[new create destroy]
 
   # Notifications
