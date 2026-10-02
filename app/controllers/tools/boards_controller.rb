@@ -8,7 +8,7 @@ module Tools
 
     def show
       @board = @tool.board
-      @columns = @board.columns.includes(cards: [ :assigned_user, :comments, :attachments, :rich_text_description ]).order(:position)
+      @columns = @board.columns.includes(cards: [ { assigned_user: { avatar_attachment: :blob } }, :comments, :attachments, :rich_text_description ]).order(:position)
       @collapsed_column_ids = ::Boards::Column.collapsed_ids_for(current_user, @columns)
       @collaborators = @tool.users
       @assignee_filter = params[:assignee]

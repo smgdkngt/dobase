@@ -308,6 +308,10 @@
     --avatar-art: conic-gradient(from 200deg at 50% 50%, var(--avatar-shape) 0 28%, transparent 28.5%);
   }
 
+  .avatar-xs {
+    @apply w-5 h-5 text-[0.5625rem];
+  }
+
   .avatar-sm {
     @apply w-6 h-6 text-xs;
   }

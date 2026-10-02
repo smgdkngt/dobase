@@ -9,7 +9,7 @@ module Tools
     def show
       respond_to do |format|
         format.html do
-          @lists = @tool.todo_lists.includes(items: [ :assigned_user, :comments, :attachments, :rich_text_description ]).order(:position)
+          @lists = @tool.todo_lists.includes(items: [ { assigned_user: { avatar_attachment: :blob } }, :comments, :attachments, :rich_text_description ]).order(:position)
           @collaborators = @tool.users
           @assignee_filter = params[:assignee]
         end
@@ -26,7 +26,7 @@ module Tools
     # With completed=true, every completed item instead.
     def listed_items
       items = ::Todos::Item.joins(:list).where(todo_lists: { tool_id: @tool.id })
-        .includes(:assigned_user, :comments, :attachments).order(:position)
+        .includes({ assigned_user: { avatar_attachment: :blob } }, :comments, :attachments).order(:position)
 
       params[:completed] == "true" ? items.completed : items.pending + items.recently_completed
     end
