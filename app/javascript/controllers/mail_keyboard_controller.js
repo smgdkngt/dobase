@@ -22,30 +22,52 @@ export default class extends Controller {
     document.removeEventListener("keydown", this._onKey)
   }
 
-  // The arrow keys are listened for here, not through hidden hotkey buttons as the
-  // letters are: a hotkey takes its key whatever else is going on, and the arrows are
-  // also how you scroll a dialog that lies over the mail.
+  // The arrow keys go through the conversations as they go through any tool's items
+  // (arrow_keys_controller.js; each conversation's link is one), on to the buttons
+  // above the list and into the message beside it. What is mail's own:
+  //
+  // - With the message beside the list, getting to a conversation opens it, as j and
+  //   k do. In a narrow window (a tile, a phone with a keyboard) the list and the
+  //   message take turns: the arrows move through the list, and Enter or the right
+  //   arrow opens.
+  // - The space bar turns the page of the message, Escape lets go of the conversation.
   _keyed(event) {
     if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return
     if (typing(event) || document.querySelector("dialog[open], :popover-open")) return
 
-    const act = {
-      ArrowDown: () => this._arrow(1, event),
-      ArrowUp: () => this._arrow(-1, event),
-      ArrowRight: () => this._in(event),
-      ArrowLeft: () => this._out(event),
-      Home: () => this._far(-1),
-      End: () => this._far(1),
-      PageDown: () => this._page(1),
-      PageUp: () => this._page(-1),
-      " ": () => this._page(event.shiftKey ? -1 : 1)
-    }[event.key]
-    // With Shift the arrows select text; the space bar is a button's when it is on one
-    if (!act || (event.shiftKey && event.key !== " ")) return
-    if (event.key === " " && event.target.matches?.("a[href], button, input, summary, [role='button']")) return
+    if (event.key === "Escape" && (this.selectedItem || !this._listShows)) {
+      event.preventDefault()
+      return this._listShows ? this.deselect() : this.backToList()
+    }
+    if (event.key === " " && this._messageShows && !event.target.matches?.("a[href], button, input, summary, [role='button']")) {
+      event.preventDefault()
+      const scroller = this._scroller
+      scroller?.scrollBy({ top: (event.shiftKey ? -1 : 1) * scroller.clientHeight * 0.85 })
+    }
+  }
 
-    event.preventDefault()
-    act()
+  // The arrow keys got to a conversation
+  went(event) {
+    const item = event.target.closest?.("[data-mail-keyboard-target='item']")
+    if (!item || item.classList.contains("selected")) return
+    if (this._messageShows) return this.navigateToItem(item)
+
+    this.items.forEach((other) => other.classList.remove("selected"))
+    item.classList.add("selected")
+  }
+
+  // Nothing further on a side. To the right of the list, where the message doesn't
+  // show beside it: the conversation opens. To the left of a message that has the
+  // window to itself: back to the list.
+  edge(event) {
+    const { side } = event.detail
+    if (side === "right" && this._listShows && !this._messageShows && this.selectedItem) {
+      event.preventDefault()
+      this.openSelected()
+    } else if (side === "left" && !this._listShows) {
+      event.preventDefault()
+      this.backToList()
+    }
   }
 
   get items() {
@@ -76,83 +98,6 @@ export default class extends Controller {
     this.navigateToItem(items[prev])
   }
 
-  // The arrow keys
-  //
-  // In the list they go from conversation to conversation: with the message beside
-  // the list each one opens as you get to it, as j and k do; in a narrow window (a
-  // tile in the workspace, a phone with a keyboard) they move a highlight, and Enter
-  // or the right arrow opens. The right arrow goes into the message: there up and
-  // down read on, the space bar turns the page, Home and End go to its top and its
-  // end, and the left arrow comes back to the list. Past the list or the message on
-  // a side, the arrows say "edge", as arrow_keys_controller.js does for the other
-  // tools: in the workspace the tile on that side takes over.
-  down() {
-    this._arrow(1)
-  }
-
-  up() {
-    this._arrow(-1)
-  }
-
-  get reading() {
-    return !this._listShows || this.element.hasAttribute("data-reading")
-  }
-
-  _arrow(step, event) {
-    if (this.reading) return this._readOn(step * 80)
-
-    const items = this.items
-    const at = this.selectedIndex
-    const to = at < 0 ? (step > 0 ? 0 : items.length - 1) : at + step
-    if (!items[to]) return this._edge(step > 0 ? "down" : "up", event)
-
-    this._goTo(items[to])
-  }
-
-  // To a conversation: opened where the message shows beside the list, lit where it doesn't
-  _goTo(item) {
-    if (this._messageShows) return this.navigateToItem(item)
-
-    this.items.forEach((other) => other.classList.remove("selected"))
-    item.classList.add("selected")
-    item.scrollIntoView({ block: "nearest" })
-  }
-
-  _far(step) {
-    if (this.reading) return this._scroller?.scrollTo({ top: step > 0 ? this._scroller.scrollHeight : 0 })
-
-    const items = this.items
-    if (items.length) this._goTo(step > 0 ? items.at(-1) : items[0])
-  }
-
-  _page(step) {
-    if (!this._messageShows) return
-
-    const scroller = this._scroller
-    scroller?.scrollBy({ top: step * scroller.clientHeight * 0.85 })
-  }
-
-  // The right arrow: into the conversation
-  _in(event) {
-    if (!this._listShows || this.element.hasAttribute("data-reading")) return this._edge("right", event)
-    if (!this._messageShows) return this.selectedItem ? this.openSelected() : this._edge("right", event)
-    if (!this.selectedItem || !this._scroller) return this._edge("right", event)
-
-    this.element.setAttribute("data-reading", "")
-  }
-
-  // The left arrow: back to the list
-  _out(event) {
-    if (!this._listShows) return this.backToList()
-    if (!this.element.hasAttribute("data-reading")) return this._edge("left", event)
-
-    this.element.removeAttribute("data-reading")
-  }
-
-  _readOn(by) {
-    this._scroller?.scrollBy({ top: by })
-  }
-
   // What scrolls the message that shows: the reader, or what it lies in
   get _scroller() {
     const reader = this.readerTargets.find((target) => target.getClientRects().length > 0)
@@ -162,17 +107,13 @@ export default class extends Controller {
     return reader || null
   }
 
-  // Nothing further on that side (arrow_keys_controller.js says it the same way)
-  _edge(side, event) {
-    const page = this.element.closest("main") || this.element
-    page.dispatchEvent(new CustomEvent("arrow-keys:edge", { bubbles: true, cancelable: true, detail: { side, repeat: Boolean(event?.repeat) } }))
-  }
-
-  // Only where the list and the message take turns: side by side there is nothing to go back to
+  // Only where the list and the message take turns: side by side there is nothing to
+  // go back to. The keyboard goes back to the conversation it came from.
   backToList() {
     if (this._listShows) return
 
     this.element.classList.remove("mail-detail-open")
+    this.selectedItem?.querySelector("a[href]")?.focus()
   }
 
   get _listShows() {
@@ -186,6 +127,8 @@ export default class extends Controller {
 
   navigateToItem(item) {
     if (!item) return
+    // The keyboard goes along, so the arrow keys go on from here
+    item.querySelector("a[href]")?.focus({ preventScroll: true })
     // Update visual selection immediately
     this.items.forEach(i => i.classList.remove("selected"))
     item.classList.add("selected")
@@ -204,7 +147,6 @@ export default class extends Controller {
   selectItem(event) {
     const item = event.currentTarget.closest("[data-mail-keyboard-target='item']")
     if (!item) return
-    this.element.removeAttribute("data-reading")
     this.items.forEach(i => i.classList.remove("selected"))
     item.classList.add("selected")
     this._markItemRead(item)
@@ -218,7 +160,6 @@ export default class extends Controller {
   }
 
   deselect() {
-    this.element.removeAttribute("data-reading")
     this.items.forEach(item => item.classList.remove("selected"))
     document.activeElement?.blur()
   }
@@ -226,6 +167,9 @@ export default class extends Controller {
   // Toggle mobile detail view when mail-content frame loads
   _handleFrameLoad() {
     this.element.classList.add("mail-detail-open")
+    // Where the message takes the list's place, the keyboard doesn't stay on a
+    // conversation that is out of sight: the arrows read the message from here
+    if (!this._listShows && this.listTarget.contains(document.activeElement)) document.activeElement.blur()
   }
 
   // Remove unread indicators from a conversation item (dot, bold from/subject)

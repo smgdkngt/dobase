@@ -175,15 +175,6 @@
     background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
   }
 
-  /* The arrow keys went into the message (mail_keyboard_controller.js): they read on
-     there now. The message says so with an edge, and the list stands back. */
-  .mail-layout[data-reading] > .mail-content {
-    box-shadow: inset 2px 0 0 var(--color-accent);
-  }
-
-  .mail-layout[data-reading] .mail-list-item.selected {
-    @apply opacity-70;
-  }
 
   /* Reading pane settles in on each message switch instead of hard-cutting */
   .mail-message-in {

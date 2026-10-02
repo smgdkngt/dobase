@@ -90,6 +90,9 @@ export default class extends Controller {
   handleKeydown(event) {
     switch (event.key) {
       case "Escape":
+        // The viewer's, and nobody else's (in the workspace Escape with nothing left to
+        // let go of closes the tile)
+        event.preventDefault()
         this.close()
         break
       case "ArrowLeft":

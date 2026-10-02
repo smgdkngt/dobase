@@ -33,6 +33,18 @@ export default class extends Controller {
     // (a chat message deletes on it), which they have by the time it gets to the window.
     this._onBackspace = (event) => { if (event.key === "Backspace" && !typing(event)) event.preventDefault() }
     window.addEventListener("keydown", this._onBackspace)
+    // Escape lets go of things one at a time: a dialog or a menu closes, a view lets go
+    // of what is picked (they take the key, and it doesn't count here), then the
+    // keyboard leaves what it is on. With nothing left to let go of, it closes the tile.
+    this._onEscape = (event) => {
+      if (event.key !== "Escape" || event.defaultPrevented || typing(event)) return
+      if (document.querySelector("dialog[open], :popover-open, [aria-modal='true']:not([hidden]):not(dialog)")) return
+
+      event.preventDefault()
+      const on = document.activeElement
+      on && on !== document.body && on !== document.documentElement ? on.blur() : this.say("escape")
+    }
+    window.addEventListener("keydown", this._onEscape)
     // Chosen in this page's own shortcuts dialog: the workspace and the other tiles hear of it
     this._onKeysChosen = (event) => this.say("keys", { chosen: event.detail })
     window.addEventListener("workspace:keys-chosen", this._onKeysChosen)
@@ -53,6 +65,7 @@ export default class extends Controller {
     window.removeEventListener("message", this._onMessage)
     window.removeEventListener("arrow-keys:edge", this._onEdge)
     window.removeEventListener("keydown", this._onBackspace)
+    window.removeEventListener("keydown", this._onEscape)
     window.removeEventListener("workspace:keys-chosen", this._onKeysChosen)
     window.removeEventListener("focus", this._onFocus)
     document.removeEventListener("pointerdown", this._onFocus, true)

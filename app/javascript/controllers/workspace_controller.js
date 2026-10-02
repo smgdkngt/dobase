@@ -1111,6 +1111,10 @@ export default class extends Controller {
         // came from for a moment, and that tile says so after the launcher has
         // already opened another.
         if (message.pointer || this.frameOf(id) === document.activeElement) this.focus(id)
+        // A click that something in the tile kept to itself (a card that can be dragged
+        // takes the press for the drag) moves no keyboard: the tile is lit and the keys
+        // still go to the one you were in. The keyboard goes along with the click.
+        if (message.pointer && this.frameOf(id) !== document.activeElement && !this.menuOpen && !document.querySelector("dialog[open]")) this.grabFocus()
         break
       case "command":
         this.run(message.command)
@@ -1127,6 +1131,10 @@ export default class extends Controller {
         break
       case "next":
         this.goToNext(message.back ? -1 : 1)
+        break
+      case "escape":
+        // Escape in a tile with nothing left to let go of: the tile itself
+        this.close(id)
         break
       case "edge":
         // The arrow keys ran out of things on that side of the tile you are on: on to

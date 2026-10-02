@@ -39,6 +39,14 @@ export default class extends Controller {
     this.dispatch("opened", { detail: { item } })
   }
 
+  // Escape closes the menu when it is open, and is then nobody else's
+  escape(event) {
+    if (!this.hasMenuTarget || this.menuTarget.classList.contains("hidden")) return
+
+    event.preventDefault()
+    this.close()
+  }
+
   close() {
     if (!this.hasMenuTarget) return
     this.menuTarget.classList.add("hidden")

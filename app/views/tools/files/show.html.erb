@@ -24,8 +24,7 @@
      data-controller="files file-selection file-context-menu file-upload file-drag gallery"
      data-files-tool-id-value="<%= @tool.id %>"
      data-file-drag-tool-id-value="<%= @tool.id %>"
-     data-action="file-context-menu:action->files#handleContextAction file-selection:changed->file-drag#selectionChanged turbo:morph@document->file-selection#clear">
-  <button data-controller="hotkey" data-hotkey="Escape" data-action="click->file-selection#clear click->file-context-menu#close" hidden>Clear selection</button>
+     data-action="file-context-menu:action->files#handleContextAction file-selection:changed->file-drag#selectionChanged turbo:morph@document->file-selection#clear keydown.esc@document->file-context-menu#escape keydown.esc@document->file-selection#escape">
   <%# Topbar %>
   <div class="tool-topbar">
     <h1 class="tool-topbar-title"><%= @tool.name %></h1>

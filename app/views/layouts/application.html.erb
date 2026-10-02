@@ -70,7 +70,7 @@
 
   <%# data-workspace on the body, not on <html>: Turbo brings a new body with every
       visit and leaves <html> as the first page had it %>
-  <body class="bg-background-secondary text-text-primary" data-controller="keyboard-shortcuts theme"
+  <body class="bg-background-secondary text-text-primary" data-controller="keyboard-shortcuts theme arrow-keys" data-arrow-keys-over-value="true"
         data-theme-version-value="<%= theme_version %>"<%= " data-workspace" if @workspace %>>
     <%# data-turbo="false" so the browser handles the fragment itself and moves
         focus into <main>; a Turbo anchor visit only scrolls. %>

@@ -157,8 +157,10 @@
                       method: :post,
                       multipart: true,
                       data: {
-                        action: "submit->chat#submit keydown->chat#composerKey arrow-keys:edge@window->chat#pastTheMessages",
-                        chat_target: "form"
+                        action: "submit->chat#submit keydown->chat#composerKey arrow-keys:went->chat#focusInput",
+                        chat_target: "form",
+                        # Down from the newest message is the message box, before anything beside it
+                        arrow_keys_target: "item"
                       } do |f| %>
           <input type="hidden" name="message[reply_to_id]" value="" data-chat-target="replyToId">
           <input type="file"

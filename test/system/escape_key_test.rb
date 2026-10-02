@@ -53,7 +53,7 @@ class EscapeKeyTest < ApplicationSystemTestCase
     assert_text message.body_plain
     wait_for_stimulus "sidebar"
     wait_for_stimulus "keyboard-shortcuts"
-    wait_for_stimulus "hotkey", "[data-hotkey='Escape']"
+    wait_for_stimulus "mail-keyboard"
 
     find("[data-action~='click->sidebar#editTool'][data-tool-id='#{tools(:my_mail).id}']", visible: :all).execute_script("this.click()")
     assert_selector "dialog#edit-tool-modal[open]"

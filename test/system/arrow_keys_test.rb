@@ -218,13 +218,11 @@ class ArrowKeysTest < ApplicationSystemTestCase
     press :escape
     assert_selector "##{second}.selected"
 
-    # Into the message: the arrows read on there, and the list stays where it is
+    # To the right of the list is the message: its buttons are gone through like anything else
     press :arrow_right
-    assert_selector ".mail-layout[data-reading]"
-    press :arrow_down
-    assert_selector "##{second}.selected"
+    assert page.evaluate_script("document.getElementById('mail-content').contains(document.activeElement)"), "the keyboard went into the message"
     press :arrow_left
-    assert_no_selector ".mail-layout[data-reading]"
+    assert_selector "##{second} a:focus"
 
     # End and Home: the last conversation and the first
     press_and_wait_for_the_conversation :end
@@ -240,7 +238,7 @@ class ArrowKeysTest < ApplicationSystemTestCase
 
     press "?"
     assert_selector "dialog[open]", text: "Keyboard shortcuts"
-    scroller = "document.querySelector('dialog[open] [data-arrow-keys-target=scroller]')"
+    scroller = "document.querySelector('dialog[open] .modal-body')"
     assert_equal 0, page.evaluate_script("#{scroller}.scrollTop")
 
     3.times { press :arrow_down }
@@ -250,6 +248,49 @@ class ArrowKeysTest < ApplicationSystemTestCase
     assert_no_selector ".board-card:focus"
   ensure
     page.driver.browser.manage.window.resize_to(1400, 1400)
+  end
+
+  test "in a dialog the arrows go through what takes the keyboard: tabs, fields, buttons" do
+    visit tool_board_path(tools(:project_board))
+    wait_for_stimulus "arrow-keys"
+
+    find(".sidebar-user-btn").click
+    # The menu that opened has the keyboard on its first entry
+    assert_selector "#sidebar-user-menu button:focus", text: "Profile"
+    press :enter
+
+    within "dialog#profile-modal[open]" do
+      assert_selector "[data-tabs-target='tab'][data-tab='profile']"
+      find("[data-tabs-target='tab'][data-tab='profile']").send_keys(:arrow_down)
+      assert_selector "[data-tabs-target='tab'][data-tab='appearance']:focus"
+      press :enter
+      assert_selector ".theme-option", minimum: 3
+
+      # Into the grid of themes and through it
+      press :arrow_right
+      assert_selector ".theme-option:focus"
+      first = page.evaluate_script("document.activeElement.value")
+      press :arrow_right
+      assert_not_equal first, page.evaluate_script("document.activeElement.value")
+      assert_selector ".theme-option:focus"
+    end
+    # Nothing behind the dialog was reached
+    assert_no_selector ".board-card:focus"
+    assert_current_path tool_board_path(tools(:project_board))
+  end
+
+  test "from a one-line field in a dialog, down goes on to what is under it" do
+    visit tool_board_path(tools(:project_board))
+    wait_for_stimulus "arrow-keys"
+
+    press "n"
+    within "dialog#add-column-modal[open]" do
+      field = find("input[type='text']", match: :first)
+      field.send_keys("Later")
+      press :arrow_down
+      assert_selector "button:focus"
+      assert_equal "Later", field.value
+    end
   end
 
   test "the menu: a tool's settings are one arrow to the right of it" do

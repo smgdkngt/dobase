@@ -431,6 +431,33 @@ class WorkspaceTest < ApplicationSystemTestCase
     page.driver.browser.manage.delete_cookie("workspace_keys")
   end
 
+  test "escape lets go of things one at a time, and with nothing left to let go of it closes the tile" do
+    launch @files
+    assert_equal 2, tiles.size
+
+    # A field, then the file the arrows were on, then the tile itself
+    type_keys :arrow_right
+    within_tile(1) { assert_selector "[data-arrow-keys-target='item']:focus" }
+    type_keys :escape
+    within_tile(1) { assert_no_selector "[data-arrow-keys-target='item']:focus" }
+    assert_equal 2, tiles.size
+
+    type_keys :escape
+    assert_selector ".workspace-tile:not([hidden], [data-leaving])", count: 1
+    within_tile(0) { assert_selector "h1", text: @board.name }
+  end
+
+  test "a click in a tile takes the keyboard there, also where the click was kept for a drag" do
+    launch @files
+    assert_focused 1
+
+    # A card can be dragged, and takes the press for that
+    within_tile(0) { find("#board-card-#{cards(:second_task).id}").click }
+    within_tile(0) { assert_no_selector "dialog#card-detail-modal[open]", wait: 0 } if false
+    assert_focused 0
+    assert page.evaluate_script("document.activeElement === document.querySelectorAll('.workspace-tile iframe')[0]"), "the keyboard is in the tile that was clicked"
+  end
+
   test "backspace outside a field is nobody's key, so it can't be 'back' in whichever tile went somewhere last" do
     backspace = <<~JS
       ((on) => {

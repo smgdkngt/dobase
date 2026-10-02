@@ -12,6 +12,7 @@
 <%# Refreshing reloads the page, which would take a message that is being written with it %>
 <div class="tool-layout mail-layout <%= 'mail-detail-open' if @selected_message || @composing %>"
      data-controller="mail-keyboard mail-refresh"
+     data-action="arrow-keys:went->mail-keyboard#went arrow-keys:edge@window->mail-keyboard#edge"
      data-mail-refresh-interval-value="<%= @mail_account.authentication_failed? || @composing ? 0 : (@mail_account.auto_refresh_interval || 60) %>"
      data-mail-refresh-url-value="<%= tool_sync_path(@tool) %>">
   <%= render "tools/mails/hotkeys" %>
