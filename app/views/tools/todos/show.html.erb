@@ -63,17 +63,7 @@
     <% end %>
   </div>
 
-  <%# Item detail dialog %>
-  <dialog id="item-detail-modal"
-          aria-label="Todo details"
-          class="modal-dialog"
-          style="max-width: 56rem;"
-          data-controller="modal"
-          data-todo-target="itemDetailDialog">
-    <div data-todo-target="itemModal">
-      <%# Content loaded dynamically via todo#openItem %>
-    </div>
-  </dialog>
+  <%= render "tools/todos/item_dialog" %>
 
   <%# Add list dialog %>
   <%= render "shared/modal", id: "add-list-modal", title: "Add List", size: :sm do %>

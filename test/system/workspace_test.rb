@@ -510,6 +510,8 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_selector "#workspace-tiles[inert]"
     within_float do
       assert_selector "dialog#card-detail-modal[open] h2", text: "First task"
+      # The page that floats is drawn as the card alone: no board to draw around it
+      assert_no_selector ".board-column", visible: :all
       # As wide as the window, not as the tile it came from: the dialog has its two columns
       assert_operator page.evaluate_script("document.querySelector('dialog[open]').getBoundingClientRect().width"), :>, 700
     end
@@ -547,7 +549,10 @@ class WorkspaceTest < ApplicationSystemTestCase
     visit workspace_path(open: tool_todo_path(@todos))
     wait_for_stimulus "workspace"
     within_tile(1) { find("[aria-label='Open #{todo_items(:pending_one).title}']").click }
-    within_float { assert_selector "dialog#item-detail-modal[open]", text: todo_items(:pending_one).title }
+    within_float do
+      assert_selector "dialog#item-detail-modal[open]", text: todo_items(:pending_one).title
+      assert_no_selector ".todo-list-items", visible: :all
+    end
     type_keys :escape
     assert_no_selector ".workspace-float iframe"
 
@@ -555,7 +560,11 @@ class WorkspaceTest < ApplicationSystemTestCase
     visit workspace_path(open: tool_calendar_path(calendar))
     wait_for_stimulus "workspace"
     within_tile(2) { find("[data-event-id]", match: :first).click }
-    within_float { assert_selector "dialog[open]", text: "Event Details" }
+    within_float do
+      assert_selector "dialog[open]", text: "Event Details"
+      assert_selector "dialog[open] button", text: "Close"
+      assert_no_selector "#calendar-week-container", visible: :all
+    end
     type_keys :escape
     assert_no_selector ".workspace-float iframe"
   end

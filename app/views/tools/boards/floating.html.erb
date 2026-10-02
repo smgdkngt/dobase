@@ -1,0 +1,7 @@
+<%# The board's page when it floats over the workspace (floating?): one card's
+    details, opened by board#connect from the ?card in the address %>
+<% content_for(:title) { "#{@tool.name} - #{app_name}" } %>
+
+<div data-controller="board" data-board-tool-id-value="<%= @tool.id %>">
+  <%= render "tools/boards/card_dialog", card: @card %>
+</div>

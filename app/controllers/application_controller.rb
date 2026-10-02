@@ -13,7 +13,7 @@ class ApplicationController < ActionController::Base
   after_action :track_last_visited_path
   after_action :remember_theme
 
-  helper_method :tile?, :workspace_wanted?, :browser_scheme
+  helper_method :tile?, :floating?, :workspace_wanted?, :browser_scheme
 
   private
 
@@ -29,6 +29,14 @@ class ApplicationController < ActionController::Base
   # browser says so when it loads the frame, Turbo inside it with every request.
   def tile?
     request.headers["Sec-Fetch-Dest"] == "iframe" || request.headers["X-Tile"].present?
+  end
+
+  # A page that floats over the workspace to show one dialog (services/float.js): a
+  # card, a todo, an event. The workspace asks for the tool's page with ?float, and
+  # that dialog is all the page draws, with what it shows already in it: no board
+  # around it, and nothing to fetch afterwards.
+  def floating?
+    tile? && params[:float].present?
   end
 
   def set_time_zone(&block)

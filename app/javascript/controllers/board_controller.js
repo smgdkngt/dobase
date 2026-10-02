@@ -3,7 +3,7 @@ import { api } from "services/api"
 import { showFlash } from "services/flash"
 import { reportPresence } from "services/presence"
 import { pageInUse } from "services/page_in_use"
-import { floats } from "services/float"
+import { floats, floating, drawnWith } from "services/float"
 
 export default class extends Controller {
   static targets = ["cardModal", "cardDetailDialog", "addCardForm", "addCardInput", "addCardBtn", "archivedSection", "archivedToggle", "archivedToggleLabel"]
@@ -15,6 +15,9 @@ export default class extends Controller {
     if (this.hasCardDetailDialogTarget) {
       this._onModalClose = () => {
         reportPresence(null)
+        // Floating over the workspace, the page goes with its dialog: the tile it came
+        // from is the one that is drawn again
+        if (floating) return
         // Closed because the page is going elsewhere: that visit stands
         if ("closedForNavigation" in this.cardDetailDialogTarget.dataset) {
           delete this.cardDetailDialogTarget.dataset.closedForNavigation
@@ -84,6 +87,14 @@ export default class extends Controller {
 
     const url = `/tools/${this.toolIdValue}/board/cards/${cardId}`
     reportPresence(`card:${cardId}`)
+
+    // The page that floats over the workspace is drawn with the card in its dialog
+    // already: nothing to fetch, and no skeleton to look at
+    if (this.hasCardModalTarget && drawnWith(this.cardModalTarget, cardId)) {
+      this.cardDetailDialogTarget.showModal()
+      this.cardModalTarget.querySelector("[autofocus], button, a[href]")?.focus()
+      return
+    }
 
     // Open immediately with a skeleton so the dialog's entrance isn't spent
     // staring at a blank sheet — content swaps in once the fetch resolves.

@@ -130,11 +130,5 @@
     </div>
   <% end %>
 
-  <!-- Event Details Modal -->
-  <%= render "shared/modal", id: "event-details-modal", title: "Event Details", size: :lg,
-        data: { calendar_target: "eventDetailDialog" } do %>
-    <div data-calendar-target="eventModal">
-      <!-- Content loaded dynamically -->
-    </div>
-  <% end %>
+  <%= render "tools/calendars/event_dialog" %>
 </div>

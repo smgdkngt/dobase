@@ -47,17 +47,7 @@
           locals: { tool: @tool, reorder_mode: reorder_mode, assignee_filter: @assignee_filter, collapsed_column_ids: @collapsed_column_ids } %>
   </div>
 
-  <%# Card detail dialog — larger two-column layout %>
-  <dialog id="card-detail-modal"
-          aria-label="Card details"
-          class="modal-dialog"
-          style="max-width: 56rem;"
-          data-controller="modal"
-          data-board-target="cardDetailDialog">
-    <div data-board-target="cardModal">
-      <%# Content loaded dynamically via board#openCard %>
-    </div>
-  </dialog>
+  <%= render "tools/boards/card_dialog" %>
 
   <%# Add column dialog %>
   <%= render "shared/modal", id: "add-column-modal", title: "Add Column", size: :sm do %>

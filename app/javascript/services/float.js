@@ -10,11 +10,25 @@
 // is asked for with the address that opens the dialog by itself (?card=12), so every
 // button in it works as it does anywhere. When the dialog closes the frame goes, and
 // the tile it came from is drawn again (workspace_controller.js).
+//
+// The workspace asks for that page with ?float, and the server then draws nothing
+// but the dialog, with the card in it (floating? in ApplicationController): no board
+// to draw first and no card to fetch afterwards, which is what made it slow. A page
+// the float goes on to (the board after a card is saved) is the whole page, as before.
 
 // Whether this page is such a floating frame
 export const floating = window.self !== window.top && window.name === "workspace-float"
 // The address it was opened with, which is the one that opens the dialog
 export const floatedAt = floating ? window.location.pathname + window.location.search : null
+
+// Whether the server drew `holder` (what a dialog fetches its content into) with
+// `id` in it already. Once: what is opened after that is fetched like anywhere.
+export function drawnWith(holder, id) {
+  if (holder?.dataset.drawn !== String(id)) return false
+
+  delete holder.dataset.drawn
+  return true
+}
 
 // From a tile: asks the workspace to float `url`. True when it will, and then the
 // tile opens nothing itself. `clear` is the parameter in the tile's own address that

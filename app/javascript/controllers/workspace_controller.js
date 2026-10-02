@@ -1181,7 +1181,10 @@ export default class extends Controller {
     if (!toolIdOf(path) || !this.hasFloatTarget) return
 
     this.unfloat({ refresh: false })
-    const frame = toolFrame(path)
+    // With ?float the server draws the dialog and nothing else (floating?)
+    const asked = new URL(path, location.origin)
+    asked.searchParams.set("float", "1")
+    const frame = toolFrame(asked.pathname + asked.search)
     frame.name = "workspace-float"
     frame.title = `${this.nameOf(id)}: details`
     this.floatTarget.replaceChildren(frame)
