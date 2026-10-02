@@ -228,6 +228,41 @@ class ChatTest < ApplicationSystemTestCase
     assert_at_newest_message
   end
 
+  test "coming to the chat from another tool lands on the newest message, with nothing of it behind the message box" do
+    colleague = users(:two)
+    30.times { |index| @tool.chat.messages.create!(user: colleague, body: "<p>Message #{index}</p>") }
+
+    # From another page of the app the chat is drawn before its message box has its
+    # height, which a first page load never shows
+    visit edit_profile_path
+    find(".sidebar a[href='#{tool_path(@tool)}']").click
+    wait_for_stimulus "chat"
+    assert_selector "rhino-editor .ProseMirror"
+
+    assert_at_newest_message
+    assert_operator chat_distance_from_newest, :<, 2
+  end
+
+  test "a picture that gets its height after the chat is drawn doesn't push the newest message out of sight" do
+    30.times { |index| @tool.chat.messages.create!(user: @user, body: "<p>Message #{index}</p>") }
+    visit tool_chat_path(@tool)
+    wait_for_stimulus "chat"
+    assert_at_newest_message
+
+    page.execute_script(<<~JS)
+      const late = document.createElement("div")
+      late.style.height = "300px"
+      document.querySelector("#chat_messages").append(late)
+    JS
+    assert_operator chat_distance_from_newest, :<, 2
+
+    # Someone who scrolled up to read is left where they are
+    scroll_chat_to(0)
+    page.execute_script("document.querySelector('#chat_messages').lastElementChild.style.height = '600px'")
+    sleep 0.2
+    assert_equal 0, chat_scroll_top
+  end
+
   test "an author rewrites their own message from the page, and it says it was edited" do
     @tool.chat.messages.create!(user: @user, body: "<p>Tpyo</p>")
 
