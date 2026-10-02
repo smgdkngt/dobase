@@ -36,13 +36,16 @@
     else
       has_image = false
       initials = "#{user.first_name[0]}#{user.last_name[0]}".upcase
+      # Their own colours and shape behind the letters (User#avatar_look)
+      look = user.avatar_look
     end
   else
     has_image = false
     initials ||= "?"
   end
 %>
-<div class="avatar <%= size_classes[size] %> <%= extra_class %>">
+<%= tag.div class: [ "avatar", size_classes[size], extra_class.presence ],
+      data: (look ? { avatar_hue: look[:hue], avatar_second: look[:second], avatar_pattern: look[:pattern] } : nil) do %>
   <% if local_assigns[:agent] %>
     <%= render "shared/icon", name: "bot", size: { sm: 14, md: 18, lg: 22, xl: 24, "2xl": 32 }[size], label: "Agent" %>
   <% elsif has_image %>
@@ -50,4 +53,4 @@
   <% else %>
     <span><%= initials %></span>
   <% end %>
-</div>
+<% end %>

@@ -51,6 +51,20 @@ class User < ApplicationRecord
   # What an avatar falls back to, the same two letters the avatar partial draws
   def initials = "#{first_name.to_s.first}#{last_name.to_s.first}".upcase
 
+  # How those two letters are drawn: in one of the theme's label colours, over a
+  # shape in a second one. Always the same for the same person, and spread so that
+  # the people of one team seldom look alike (shared/avatar, components.css).
+  AVATAR_HUES = %w[red orange yellow green cyan blue purple pink].freeze
+  AVATAR_PATTERNS = 6
+
+  def avatar_look
+    seed = Zlib.crc32("avatar-#{id}")
+    hue = seed % AVATAR_HUES.size
+    second = (hue + 1 + (seed / AVATAR_HUES.size) % (AVATAR_HUES.size - 1)) % AVATAR_HUES.size
+
+    { hue: AVATAR_HUES[hue], second: AVATAR_HUES[second], pattern: (seed / 64) % AVATAR_PATTERNS + 1 }
+  end
+
   validates :password, length: { minimum: 8 }, allow_nil: true
   validates :timezone, inclusion: { in: ActiveSupport::TimeZone.all.map(&:name) }, allow_nil: true
   validates :notification_digest, inclusion: { in: NOTIFICATION_DIGEST_OPTIONS }

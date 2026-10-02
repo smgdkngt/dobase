@@ -104,6 +104,6 @@ class PresenceChannelTest < ActionCable::Channel::TestCase
   end
 
   def user_payload
-    { id: @user.id, name: @user.name, initials: @user.initials, avatar_url: nil }
+    { id: @user.id, name: @user.name, initials: @user.initials, avatar_url: nil, avatar_look: @user.avatar_look }
   end
 end

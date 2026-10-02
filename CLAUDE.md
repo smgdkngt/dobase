@@ -232,7 +232,7 @@ Collaborators are always added via invitation (never direct-add). Flow:
 
 ### Avatars (Active Storage)
 
-`User` model: `has_one_attached :avatar` with content type (PNG/JPEG/GIF/WebP) and size (5MB) validation. Displayed via `shared/avatar` partial with `variant(resize_to_fill: [200, 200])`. Requires `libvips` system library.
+`User` model: `has_one_attached :avatar` with content type (PNG/JPEG/GIF/WebP) and size (5MB) validation. Displayed via `shared/avatar` partial with `variant(resize_to_fill: [200, 200])`. Requires `libvips` system library. Without a picture it is the initials in one of the theme's label colours over a shape in a second one, the same for the same person everywhere (`User#avatar_look`, `.avatar[data-avatar-hue]` in `components.css`; faces drawn in the browser get it through `services/avatar.js`).
 
 ### Email Tool (IMAP/SMTP)
 

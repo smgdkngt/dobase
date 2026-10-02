@@ -57,4 +57,22 @@ class UserTest < ActiveSupport::TestCase
     assert_not comment.valid?
     assert_includes comment.errors[:user], "can't be blank"
   end
+
+  test "a default avatar looks the same for the same person, in two different label colours" do
+    look = users(:one).avatar_look
+
+    assert_equal look, User.find(users(:one).id).avatar_look
+    assert_includes User::AVATAR_HUES, look[:hue]
+    assert_includes User::AVATAR_HUES, look[:second]
+    assert_not_equal look[:hue], look[:second]
+    assert_includes 1..User::AVATAR_PATTERNS, look[:pattern]
+  end
+
+  test "people get different default avatars" do
+    looks = (1..40).map { |id| User.new(id: id).avatar_look }
+
+    assert_operator looks.uniq.size, :>, 30
+    assert_equal User::AVATAR_HUES.sort, looks.map { |look| look[:hue] }.uniq.sort
+    looks.each { |look| assert_not_equal look[:hue], look[:second] }
+  end
 end

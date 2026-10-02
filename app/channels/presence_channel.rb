@@ -22,7 +22,7 @@ class PresenceChannel < ApplicationCable::Channel
   # The identity comes from the connection, never from the browser: a page can
   # say what it is looking at, not who is looking.
   def self.person(user)
-    { id: user.id, name: user.name, initials: user.initials, avatar_url: avatar_url(user) }
+    { id: user.id, name: user.name, initials: user.initials, avatar_url: avatar_url(user), avatar_look: user.avatar_look }
   end
 
   def self.avatar_url(user)
