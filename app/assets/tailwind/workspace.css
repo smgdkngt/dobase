@@ -31,7 +31,7 @@
 
   /* A desktop: its number, and the tools on it */
   .workspace-desk {
-    @apply inline-flex items-center gap-1.5 min-w-6 h-6 px-1.5 rounded-md text-xs font-medium tabular-nums text-text-secondary
+    @apply inline-flex items-center justify-center gap-1.5 min-w-6 h-6 px-1.5 rounded-md text-xs font-medium tabular-nums text-text-secondary
            hover:bg-background-tertiary hover:text-text-primary transition-colors cursor-pointer;
   }
 
