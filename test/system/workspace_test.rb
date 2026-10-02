@@ -409,6 +409,10 @@ class WorkspaceTest < ApplicationSystemTestCase
   end
 
   test "a theme picked in the profile dialog is put on without leaving it, or the workspace" do
+    # (a tile that fades into a theme by itself comes in after the window around it)
+    within_tile(0) do
+      page.execute_script("document.startViewTransition = (change) => { window.fadedByItself = true; change(); return {} }")
+    end
     find(".workspace-bar-btn[popovertarget='sidebar-user-menu']").click
     click_on "Profile"
 
@@ -422,7 +426,10 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_selector "html[data-theme='nord']"
     assert_selector "dialog#profile-modal[open]"
     assert_current_path workspace_path
-    within_tile(0) { assert_selector "html[data-theme='nord']" }
+    within_tile(0) do
+      assert_selector "html[data-theme='nord']"
+      assert_not page.evaluate_script("window.fadedByItself === true"), "the tile faded into the theme by itself"
+    end
   end
 
   test "the workspace's keys go with another modifier, for whoever has these taken" do

@@ -512,6 +512,14 @@ body[data-workspace] .main-content {
   display: none !important;
 }
 
+/* A tile takes a new theme in one go (services/theme.js): the page around the tiles
+   fades the whole window, and anything easing by itself would trail behind that */
+:root[data-theme-changing] *,
+:root[data-theme-changing] *::before,
+:root[data-theme-changing] *::after {
+  transition: none !important;
+}
+
 /* ── A page that floats over the workspace to show one dialog (services/float.js) ──
    Nothing of it is seen but the dialog: the tiles show through the rest. The dark
    behind the dialog is the workspace's. */

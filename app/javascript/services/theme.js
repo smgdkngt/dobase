@@ -53,7 +53,9 @@ export function rememberTheme() {
   }
 }
 
-export function applyTheme(theme) {
+// `fade: false` is for a tile in the workspace: the page around it fades the whole
+// window, tiles included, and a fade of the tile's own would come in after that one.
+export function applyTheme(theme, { fade = true } = {}) {
   if (!theme?.version) return
   // Said even when the colours stay as they are: whether the system going light or
   // dark brings another theme
@@ -65,7 +67,9 @@ export function applyTheme(theme) {
 
   // The old colours fade into the new ones where the browser can do that
   const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  if (document.startViewTransition && !still && !document.hidden) {
+  if (!fade) {
+    wearAtOnce(theme)
+  } else if (document.startViewTransition && !still && !document.hidden) {
     // A transition that is skipped (another one started, the tab went away) rejects
     // its promises; the colours are on either way
     const transition = document.startViewTransition(() => wear(theme))
@@ -73,6 +77,14 @@ export function applyTheme(theme) {
   } else {
     wear(theme)
   }
+}
+
+// Every colour at the same moment: nothing eases into the new theme by itself (a
+// button's own fade would trail behind everything around it)
+function wearAtOnce(theme) {
+  root.dataset.themeChanging = ""
+  wear(theme)
+  requestAnimationFrame(() => requestAnimationFrame(() => delete root.dataset.themeChanging))
 }
 
 function wear(theme) {

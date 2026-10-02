@@ -112,7 +112,7 @@ export default class extends Controller {
     if (event.origin !== location.origin || event.source !== window.parent) return
 
     // A theme picked while this page is open; only the page around it hears of it
-    if (event.data?.tile === "theme") applyTheme(event.data.theme)
+    if (event.data?.tile === "theme") applyTheme(event.data.theme, { fade: false })
     // The workspace's keys go with another modifier: this page names them too
     if (event.data?.tile === "keys") renameWorkspaceKeys(event.data.chosen || {})
   }
