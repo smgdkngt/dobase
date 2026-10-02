@@ -153,7 +153,8 @@
                       multipart: true,
                       data: {
                         action: "submit->chat#submit",
-                        chat_target: "form"
+                        chat_target: "form",
+                        sound: "send"
                       } do |f| %>
           <input type="hidden" name="message[reply_to_id]" value="" data-chat-target="replyToId">
           <input type="file"

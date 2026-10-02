@@ -2,6 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import { formatFileSize } from "services/file_size"
 import { api } from "services/api"
 import consumer from "channels/consumer"
+import { play } from "services/sound"
 
 export default class extends Controller {
   static targets = ["messages", "typingIndicator", "fileInput", "filePreview", "form", "replyPreview", "replyToId", "replyAuthor", "replyContent", "onlineIndicator", "imagePreviewTemplate", "filePreviewTemplate", "olderMessages", "olderMessagesTrigger", "olderMessagesPlaceholder"]
@@ -186,8 +187,20 @@ export default class extends Controller {
       // Anything else (a message, an edit, a reaction, a removal) keeps a reader who is at
       // the newest message there, and leaves one who scrolled up to read where they are.
       const follow = this.atNewestMessage
+      this.hearNewMessage(streamElement)
       fallback(streamElement)
       if (follow) setTimeout(() => this.scrollToBottom(), 50)
+    }
+  }
+
+  // Someone else's message arriving while you look at the chat. One you aren't looking
+  // at is a notification, which has a sound of its own (notifications_controller.js).
+  hearNewMessage(streamElement) {
+    if (document.hidden || streamElement.getAttribute("action") !== "append" || streamElement.getAttribute("target") !== "chat_messages") return
+
+    const message = streamElement.templateContent.querySelector("[data-message-id]")
+    if (message && Number(message.dataset.messageUserIdValue) !== this.userIdValue) {
+      play("receive", { once: `message-${message.dataset.messageId}` })
     }
   }
 

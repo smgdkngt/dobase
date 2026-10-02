@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import Sortable from "sortablejs"
 import { apiPatch } from "services/api"
+import { play } from "services/sound"
 
 let dragInProgress = false
 
@@ -72,6 +73,7 @@ export default class extends Controller {
     // dragInProgress synchronously, those callbacks see it as false and
     // incorrectly destroy card sortable instances inside moved columns.
     requestAnimationFrame(() => { dragInProgress = false })
+    if (evt.from !== evt.to || evt.oldIndex !== evt.newIndex) play("drop")
 
     if (evt.from !== evt.to) {
       // Whoever hears the move may have to tell the server first (the sidebar moves the

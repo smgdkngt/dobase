@@ -317,6 +317,16 @@ All keyboard shortcuts use the `@github/hotkey` library with **declarative `data
 - **Global shortcuts**: `?` help dialog, `Cmd+K` command palette, `b` notifications
 - **Exception**: Document editor `Ctrl+S` stays in its controller since `@github/hotkey` skips contentEditable elements
 
+### Sounds
+
+`services/sound.js` makes the app's sounds: a dozen short, quiet notes (a message sent, one arriving, a notification, new mail, mail sent, a todo ticked off, something dropped, archived, trashed, a call joined or left, an error). Nothing is loaded: each is one or two Web Audio voices (`note`, `glide`, `air`), all pitches from one scale, every one over within a quarter of a second.
+
+- **In a view**: `data-sound="send"` on a form plays when the form went through; on anything else, when it is clicked (a hotkey's click counts). **From a controller**: `play("receive", { once: "message-12" })`. `once` names what happened: with the app open in several tabs only one plays it (Web Locks).
+- Arriving things: a message in the chat you are looking at is `receive` (`chat_controller.js`); a notification is `notify` unless it is about the tool you are looking at; more unread mail than before is `mail` (`notifications_controller.js`). Mail is `sent` when the mail server took it, not when Send is pressed (`mail_sending_controller.js`).
+- A browser lets a page make sound only once it has been touched, so a sound before the first click or key is lost. The output is given back after a few idle seconds.
+- On by default, switched off per browser (`localStorage`) under Profile, Notifications, where each sound can be tried. A new sound gets a row there (`profiles/edit`).
+- Tests can't hear: the service dispatches `sound:played` for every sound it starts (`test/system/sounds_test.rb`).
+
 ### Component System
 
 **All UI must use components** — no freeform HTML. Components use Rails `tag.*` helpers with hash options for HTML attributes (never manual string interpolation):

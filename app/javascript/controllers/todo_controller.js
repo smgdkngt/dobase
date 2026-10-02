@@ -3,6 +3,7 @@ import { api } from "services/api"
 import { showFlash } from "services/flash"
 import { reportPresence } from "services/presence"
 import { pageInUse } from "services/page_in_use"
+import { play } from "services/sound"
 
 export default class extends Controller {
   static targets = ["itemModal", "itemDetailDialog", "addItemForm", "addItemInput", "addItemBtn", "completedSection", "completedToggle", "completedToggleLabel"]
@@ -166,8 +167,9 @@ export default class extends Controller {
     const url = checkbox.dataset.completeUrl
     const method = checkbox.checked ? "POST" : "DELETE"
 
-    // Play the completion burst animation before the network call
+    // The completion burst and its sound come before the network call
     if (checkbox.checked) {
+      play("done")
       const wrapper = checkbox.closest("[data-checkbox-wrapper]")
       if (wrapper) {
         wrapper.classList.add("completing")

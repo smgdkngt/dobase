@@ -36,6 +36,7 @@ export function showFlash(message, type = "alert") {
   el.className = `flash flash-${type}`
   el.setAttribute("role", "alert")
   el.dataset.flashTarget = "message"
+  el.dataset.flashKind = type
   el.dataset.turboTemporary = ""
   el.dataset.action = "click->flash#dismiss"
 

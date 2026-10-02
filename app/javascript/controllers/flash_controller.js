@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { play } from "services/sound"
 
 export default class extends Controller {
   static targets = ["message"]
@@ -16,6 +17,11 @@ export default class extends Controller {
         }, this.dismissAfterValue + (index * 200))
       })
     }
+  }
+
+  // A message that says something went wrong is heard too
+  messageTargetConnected(message) {
+    if (message.dataset.flashKind === "alert") play("error")
   }
 
   dismiss(event) {
