@@ -7,6 +7,8 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     @user = users(:one)
     @tool = tools(:my_files)
     sign_in_as @user
+    # One tool at a time: with tiles the start page is the workspace (WorkspaceTest)
+    cookies[:workspace] = "off"
   end
 
   test "redirects to a navigational last visited tool path" do

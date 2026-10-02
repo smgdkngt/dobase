@@ -1,5 +1,5 @@
-// A tool's own page in a frame: beside another tool (side_pane_controller.js) or as a
-// tile in the workspace (workspace_controller.js). What both do with such a frame.
+// A tool's own page in a frame: a tile in the workspace (workspace_controller.js).
+// What the workspace does with such a frame.
 
 // "/tools/12/board?card=3" from an address on this site; nothing from any other.
 // A path can itself start with two slashes ("/.//elsewhere.example"), which a frame
@@ -20,11 +20,11 @@ export function toolIdOf(path) {
   return path?.match(/^\/tools\/(\d+)/)?.[1] || null
 }
 
-// The name is how the page in the frame knows where it is (application.js)
-export function toolFrame(url, name) {
+// The name is how the page in the frame knows it is a tile (application.js)
+export function toolFrame(url) {
   const frame = document.createElement("iframe")
   frame.src = url
-  frame.name = name
+  frame.name = "workspace-tile"
   frame.title = "Tool"
   // A call in a room asks for these itself
   frame.allow = "camera; microphone; display-capture; fullscreen; clipboard-write"

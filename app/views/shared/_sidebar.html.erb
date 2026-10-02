@@ -207,10 +207,10 @@
         <%= button_to workspace_path, method: :delete, form: { data: { turbo: false } },
               class: "dropdown-item flex items-center gap-2" do %>
           <%= render "shared/icon", name: "panel-left-close", size: 16 %>
-          <span>Leave the workspace</span>
+          <span>One tool at a time</span>
         <% end %>
       <% else %>
-        <%= link_to workspace_path, class: "dropdown-item flex items-center gap-2 max-lg:hidden" do %>
+        <%= link_to workspace_path, class: "dropdown-item flex items-center gap-2 max-lg:hidden", data: { turbo: false } do %>
           <%= render "shared/icon", name: "grid-2x2", size: 16 %>
           <span>Tiling workspace</span>
         <% end %>

@@ -1,6 +1,6 @@
 // The keys that move tiles around in the workspace (workspace_controller.js). They go
 // with Alt, and on a Mac with Control and Option: Option alone types letters there,
-// and moves by word. A page inside a tile hands them on (side_pane_page_controller.js),
+// and moves by word. A page inside a tile hands them on (tile_page_controller.js),
 // so they work wherever the keyboard is.
 const MAC = /Mac|iP/.test(navigator.platform)
 

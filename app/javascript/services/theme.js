@@ -44,7 +44,6 @@ export function applyTheme(theme) {
 
 function wear(theme) {
   for (const property of [...root.style]) {
-    if (property === "--side-pane-width") continue // the pane's, not a theme's (side_pane_controller.js)
     if (property.startsWith("--") || property === "color-scheme") root.style.removeProperty(property)
   }
   for (const declaration of (theme.style || "").split("; ")) {
@@ -57,7 +56,7 @@ function wear(theme) {
   setData("typeface", theme.typeface)
   setChromeColor(theme.chrome_color)
   rememberTheme()
-  // A tool beside this page is a page of its own; the pane passes the theme on
+  // A tile in the workspace is a page of its own; the workspace passes the theme on
   window.dispatchEvent(new CustomEvent("theme:change", { detail: theme }))
 }
 

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-turbo-not-loaded <%= tag.attributes(theme_attributes) %><%= " data-in-side-pane" if side_pane? %><%= " data-workspace" if @workspace %>>
+<html data-turbo-not-loaded <%= tag.attributes(theme_attributes) %><%= " data-in-tile" if tile? %><%= " data-workspace" if @workspace %>>
   <head>
     <title><%= content_for(:title) || app_name %></title>
     <meta name="viewport" content="<%= viewport_content %>">
@@ -19,11 +19,20 @@
     <%# A page whose widgets can't be morphed (the compose form) asks for "replace" %>
     <meta name="turbo-refresh-method" content="<%= content_for(:turbo_refresh_method).presence || "morph" %>">
     <meta name="turbo-refresh-scroll" content="preserve">
-    <%# A page in a frame (beside another tool, a tile) goes without the cross-fade:
-        Turbo waits for it, three times as long as the page itself takes %>
-    <% unless side_pane? %><meta name="view-transition" content="same-origin"><% end %>
+    <%# A page that is a tile goes without the cross-fade: Turbo waits for it, three
+        times as long as the page itself takes %>
+    <% unless tile? %><meta name="view-transition" content="same-origin"><% end %>
 
     <%= yield :head %>
+
+    <%# A tool opened by its address (a link in a mail, a bookmark) in a window wide
+        enough for tiles becomes a tile in the workspace. Before anything is drawn, and
+        never for a page that is itself in a frame. %>
+    <% if user_signed_in? && workspace_wanted? && !tile? && !@workspace && request.get? && request.path.match?(%r{\A/tools/\d+}) %>
+      <%= javascript_tag nonce: true do %>
+        if (window.self === window.top && window.matchMedia("(min-width: 1024px)").matches) window.location.replace(<%= raw workspace_path(open: request.fullpath).to_json %>)
+      <% end %>
+    <% end %>
 
     <%# With credentials, so the manifest can carry the colours of this browser's theme %>
     <%= tag.link rel: "manifest", href: pwa_manifest_path(format: :json), crossorigin: "use-credentials" %>
@@ -67,17 +76,17 @@
         focus into <main>; a Turbo anchor visit only scrolls. %>
     <a href="#main-content" class="skip-link" data-turbo="false">Skip to main content</a>
     <%= render "shared/turbo_confirm_dialog" %>
-    <% if user_signed_in? && side_pane? %>
-      <%# Shown beside another tool (shared/_side_pane): the tool alone. The sidebar,
-          the notifications and the bottom bar belong to the page it sits in. %>
+    <% if user_signed_in? && tile? %>
+      <%# A tile in the workspace (workspaces/show): the tool alone. The menu, the
+          notifications and the launcher belong to the page around the tiles. %>
       <%= render "shared/flash" %>
-      <div data-controller="side-pane-page">
+      <div data-controller="tile-page">
         <main class="main-content" id="main-content" tabindex="-1"
               <%= tag.attributes(presence_attributes) if @tool&.persisted? %>>
           <%= yield %>
         </main>
         <div id="persistent-room" data-turbo-permanent hidden></div>
-        <button data-controller="hotkey" data-hotkey="b" data-action="click->side-pane-page#notifications" hidden>Notifications</button>
+        <button data-controller="hotkey" data-hotkey="b" data-action="click->tile-page#notifications" hidden>Notifications</button>
       </div>
       <%# With Shift too: in the workspace Mod+K is the launcher of the page around the tiles %>
       <button data-controller="hotkey" data-hotkey="Mod+k,Mod+Shift+K" data-action="click->keyboard-shortcuts#openCommandPalette" hidden>Command palette</button>
@@ -145,8 +154,6 @@
 
         <div id="persistent-room" data-turbo-permanent hidden></div>
         <%= render "shared/demo_banner" if Demo.enabled? %>
-        <%# The workspace has tiles instead: every tool there is beside the others %>
-        <%= render "shared/side_pane" unless @workspace %>
       </div>
       <button data-controller="hotkey" data-hotkey="Mod+k" data-action="click->keyboard-shortcuts#openCommandPalette" hidden>Command palette</button>
       <%= render "shared/command_palette" %>

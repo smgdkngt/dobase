@@ -68,11 +68,4 @@
     <%= turbo_frame_tag "command_palette_search",
           data: { command_palette_target: "searchFrame", action: "turbo:frame-load->command-palette#searched" } %>
   </div>
-  <%# Not on a page that is itself beside another, nor in a window too narrow for two tools %>
-  <% unless side_pane? %>
-    <p class="command-palette-hint max-xl:hidden">
-      <span><kbd class="shortcut-key">↵</kbd> Open</span>
-      <span><kbd class="shortcut-key">Alt</kbd> <kbd class="shortcut-key">↵</kbd> Open beside</span>
-    </p>
-  <% end %>
 </dialog>

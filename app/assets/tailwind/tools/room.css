@@ -167,16 +167,15 @@
     @apply fixed z-20;
     top: 0;
     left: var(--sidebar-width);
-    right: var(--side-pane-width);
+    right: 0;
     bottom: var(--demo-banner-height);
   }
 
   /* ── Room mode: PiP ────────────────────────────────────────────── */
 
   [data-room-mode-value="pip"] {
-    @apply fixed z-30 w-52 h-auto rounded-md overflow-hidden
+    @apply fixed right-4 z-30 w-52 h-auto rounded-md overflow-hidden
            shadow-lg border border-border-light bg-surface;
-    right: calc(1rem + var(--side-pane-width));
     bottom: calc(1rem + var(--demo-banner-height));
   }
 

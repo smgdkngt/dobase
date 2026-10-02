@@ -5,8 +5,8 @@ import { workspaceCommand } from "services/workspace_keys"
 // The tiling workspace: every tool you open is a tile, and the tiles arrange
 // themselves, the way a tiling window manager does it.
 //
-// A tile is the tool's own page in a frame, drawn without the sidebar, as beside
-// another tool (side_pane_controller.js). A desktop is a tree: a tile, or a split
+// A tile is the tool's own page in a frame, drawn without the sidebar
+// (ApplicationController#tile?, tile_page_controller.js). A desktop is a tree: a tile, or a split
 // with two halves, each of them a tile or a split again. A new tile halves the one
 // you are on, side by side when that one is wide and stacked when it is tall.
 //
@@ -16,15 +16,17 @@ import { workspaceCommand } from "services/workspace_keys"
 //
 // Which tiles, where, and on which desktop is kept in this browser, per person.
 const GAP = 6
-// A split never leaves a tile narrower or lower than this
+// Dragging a split never leaves a tile narrower or lower than this
 const MIN_TILE = 220
+// A new tile only halves one that leaves both halves at least this big
+const ROOM_TO_SPLIT = { width: 340, height: 240 }
 const GLIDE = "transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1)"
 // What the plus and minus keys give a tile, or take from it
 const RESIZE_STEP = 0.05
 
 export default class extends Controller {
   static targets = ["tiles", "tileTemplate", "empty", "desks", "title", "menu"]
-  static values = { userId: Number, appName: String }
+  static values = { userId: Number, appName: String, start: String }
 
   connect() {
     // Never tiles inside a tile: a frame that ends up on this page (its tool is gone,
@@ -55,7 +57,21 @@ export default class extends Controller {
     this.sizes.observe(this.tilesTarget)
 
     this.draw()
+    this.arrive()
     this.grabFocus()
+  }
+
+  // What this visit came for: a tool that was opened by its address (a link in a
+  // mail, a bookmark: the page it would have been sends it here as ?open=), or, in a
+  // workspace with nothing in it yet, the tool you were last on
+  arrive() {
+    const asked = new URLSearchParams(location.search).get("open")
+    if (asked) {
+      this.open(asked)
+      history.replaceState(history.state, "", location.pathname)
+    } else if (Object.keys(this.state.tiles).length === 0 && this.startValue) {
+      this.open(this.startValue)
+    }
   }
 
   disconnect() {
@@ -90,7 +106,7 @@ export default class extends Controller {
 
     const id = `t${this.state.next++}`
     this.state.tiles[id] = { url: path }
-    this.insert(this.desk, id)
+    this.state.desk = this.insert(this.state.desk, id)
     this.desk.focus = id
     this.desk.alone = false
     this.save()
@@ -145,29 +161,51 @@ export default class extends Controller {
   // ── The tree ──
 
   get desk() {
-    return (this.state.desks[this.state.desk] ||= { tree: null, focus: null, alone: false })
+    return this.deskAt(this.state.desk)
+  }
+
+  deskAt(number) {
+    return (this.state.desks[number] ||= { tree: null, focus: null, alone: false })
   }
 
   deskNumberOf(id) {
     return Object.keys(this.state.desks).find((number) => leaves(this.state.desks[number].tree).includes(id))
   }
 
-  // Halves the tile you are on: side by side when it is wide, stacked when it is tall
-  insert(desk, id) {
-    if (!desk.tree) return void (desk.tree = { tile: id })
+  // Finds a new tile its place, and says on which desktop that is. It halves the tile
+  // you are on, side by side when that is wide and stacked when it is tall. When
+  // those halves would be too small it halves the biggest tile that has the room,
+  // and when none has, it takes the next desktop with nothing on it.
+  insert(number, id) {
+    const desk = this.deskAt(number)
+    if (!desk.tree) {
+      desk.tree = { tile: id }
+      return number
+    }
 
+    const rects = this.place(desk).tiles
     const tiles = leaves(desk.tree)
-    const target = tiles.includes(desk.focus) ? desk.focus : tiles.at(-1)
-    const rect = this.place(desk).tiles.get(target)
-    const node = find(desk.tree, target)
+    const candidates = [ desk.focus, ...tiles.sort((a, b) => area(rects.get(b)) - area(rects.get(a))) ]
+    for (const target of candidates) {
+      const split = rects.has(target) && splitFor(rects.get(target))
+      if (!split) continue
 
+      const node = find(desk.tree, target)
+      delete node.tile
+      Object.assign(node, { split, ratio: 0.5, first: { tile: target }, second: { tile: id } })
+      return number
+    }
+
+    const free = [ ...Array(9).keys() ].map((index) => (number + index) % 9 + 1).find((other) => !this.state.desks[other]?.tree)
+    if (free) return this.insert(free, id)
+
+    // Every desktop is in use and nothing has room: halve the one you are on anyway
+    const target = tiles.includes(desk.focus) ? desk.focus : tiles.at(-1)
+    const rect = rects.get(target)
+    const node = find(desk.tree, target)
     delete node.tile
-    Object.assign(node, {
-      split: rect.height > rect.width ? "column" : "row",
-      ratio: 0.5,
-      first: { tile: target },
-      second: { tile: id }
-    })
+    Object.assign(node, { split: rect.height > rect.width ? "column" : "row", ratio: 0.5, first: { tile: target }, second: { tile: id } })
+    return number
   }
 
   // The other half takes the room of both. Returns the tile that is nearest now.
@@ -235,7 +273,7 @@ export default class extends Controller {
     tile.dataset.tileId = id
     tile.dataset.arriving = ""
     tile.addEventListener("animationend", () => delete tile.dataset.arriving, { once: true })
-    tile.append(toolFrame(this.state.tiles[id].url, "workspace-tile"))
+    tile.append(toolFrame(this.state.tiles[id].url))
     this.tilesTarget.append(tile)
     this.elements.set(id, tile)
   }
@@ -449,8 +487,7 @@ export default class extends Controller {
 
     this.desk.focus = this.remove(this.desk, id) || null
     this.desk.alone = false
-    this.state.desk = number
-    this.insert(this.desk, id)
+    this.state.desk = this.insert(number, id)
     this.desk.focus = id
     this.desk.alone = false
     this.save()
@@ -580,16 +617,16 @@ export default class extends Controller {
     this.grabFocus()
   }
 
-  // ── What the pages in the tiles say (side_pane_page_controller.js) ──
+  // ── What the pages in the tiles say (tile_page_controller.js) ──
 
   heard(event) {
     if (event.origin !== location.origin) return
 
     const id = Array.from(this.elements.keys()).find((tile) => this.frameOf(tile)?.contentWindow === event.source)
     const message = event.data || {}
-    if (!id || !message.sidePane) return
+    if (!id || !message.tile) return
 
-    switch (message.sidePane) {
+    switch (message.tile) {
       case "location": {
         const path = pathOf(message.url)
         if (!toolIdOf(path)) return this.strayed(id)
@@ -617,7 +654,7 @@ export default class extends Controller {
         window.focus()
         this.element.querySelector("[data-notifications-target='trigger']")?.click()
         break
-      case "leave":
+      case "next":
         this.goToNext()
         break
       case "gone":
@@ -658,7 +695,7 @@ export default class extends Controller {
 
   tellAll(what, details = {}) {
     for (const id of this.elements.keys()) {
-      this.frameOf(id)?.contentWindow.postMessage({ sidePane: what, ...details }, location.origin)
+      this.frameOf(id)?.contentWindow.postMessage({ tile: what, ...details }, location.origin)
     }
   }
 
@@ -755,6 +792,20 @@ function pruned(node, tiles, seen) {
 
   const ratio = Math.min(0.9, Math.max(0.1, Number(node.ratio) || 0.5))
   return { split: node.split === "column" ? "column" : "row", ratio, first, second }
+}
+
+function area(rect) {
+  return rect ? rect.width * rect.height : 0
+}
+
+// How a tile of this size is halved for a new one beside it: along its longer side,
+// or along the other when only that leaves two halves worth having. Nothing when
+// neither does.
+function splitFor(rect) {
+  const row = (rect.width - GAP) / 2 >= ROOM_TO_SPLIT.width && rect.height >= ROOM_TO_SPLIT.height
+  const column = (rect.height - GAP) / 2 >= ROOM_TO_SPLIT.height && rect.width >= ROOM_TO_SPLIT.width
+  if (row && column) return rect.height > rect.width ? "column" : "row"
+  return row ? "row" : column ? "column" : null
 }
 
 function px(rect) {

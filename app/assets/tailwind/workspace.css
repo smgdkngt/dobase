@@ -140,11 +140,6 @@
   margin-left: 0;
 }
 
-/* The side pane's button means nothing here: every tool is beside the others */
-:root[data-workspace] [data-side-pane-toggle] {
-  display: none;
-}
-
 @media (min-width: 1024px) {
   :root[data-workspace] .demo-banner {
     left: 0;
@@ -190,104 +185,125 @@
   }
 }
 
-/* ── A page that is a tile: everything a size smaller, there are many of them ── */
+/* ── A page that is a tile: the tool alone, a size smaller (there are many of them) ── */
 
-/* Type a step down, and the space around it a step further: Tailwind measures every
-   padding, gap and size in --spacing */
-:root[data-in-workspace] {
+:root[data-in-tile] {
+  --sidebar-width: 0px;
+  /* Type a step down, and the space around it a step further: Tailwind measures every
+     padding, gap and size in --spacing */
   font-size: 14px;
   --spacing: 0.22rem;
 }
 
-:root[data-in-workspace] :is(.tool-topbar, .mail-topbar) {
+/* Should the server have drawn them (application.js asks again without) */
+:root[data-in-tile] :is(.sidebar, .sidebar-overlay, .mobile-bottom-bar, .demo-banner) {
+  display: none !important;
+}
+
+/* The top bar is lower, and keeps room for the tile's close button, which lies over it */
+:root[data-in-tile] :is(.tool-topbar, .mail-topbar) {
   min-height: var(--workspace-topbar-height);
   padding-right: 2.5rem;
 }
 
-/* The workspace's keys in a tile's shortcuts dialog, and nowhere else a page is in a frame */
-.workspace-tile-only {
-  display: none;
+@media (max-width: 1023px) {
+  /* There is no bottom bar to stay clear of */
+  :root[data-in-tile] {
+    --mobile-bar-clearance: 0px;
+  }
+
+  :root[data-in-tile] .flash-toast {
+    bottom: 1rem;
+  }
+
+  /* A dialog opens under the tile's close button, not behind it */
+  :root[data-in-tile] .modal-dialog {
+    margin-top: var(--workspace-topbar-height);
+  }
 }
 
-:root[data-in-workspace] .workspace-tile-only {
-  display: block;
+/* An installed app draws a line under its title bar; a tile has its own edge */
+@media (display-mode: standalone) and (min-width: 1024px) {
+  :root[data-in-tile] .main-content {
+    border-top: 0;
+  }
 }
 
 /* ── Denser tools in a tile: the lists, where rows are what there is most of ── */
 
 /* Mail: a conversation is two lines, and one in a tile wide enough for it */
-:root[data-in-workspace] .mail-list-item {
+:root[data-in-tile] .mail-list-item {
   padding-block: 0.3rem;
 }
 
-:root[data-in-workspace] .mail-list-head {
+:root[data-in-tile] .mail-list-head {
   margin-bottom: 0;
 }
 
-:root[data-in-workspace] .mail-list-subject {
+:root[data-in-tile] .mail-list-subject {
   margin-bottom: 0;
 }
 
-:root[data-in-workspace] .mail-list-preview {
+:root[data-in-tile] .mail-list-preview {
   display: none;
 }
 
 @media (min-width: 520px) and (max-width: 1023px) {
-  :root[data-in-workspace] .mail-list-item {
+  :root[data-in-tile] .mail-list-item {
     align-items: center;
   }
 
-  :root[data-in-workspace] .mail-list-item > a {
+  :root[data-in-tile] .mail-list-item > a {
     display: grid;
     grid-template-columns: 10rem minmax(0, 1fr) auto;
     column-gap: 0.75rem;
     align-items: center;
   }
 
-  :root[data-in-workspace] .mail-list-head {
+  :root[data-in-tile] .mail-list-head {
     display: contents;
   }
 
-  :root[data-in-workspace] .mail-list-subject {
+  :root[data-in-tile] .mail-list-subject {
     order: 2;
   }
 
-  :root[data-in-workspace] .mail-list-meta {
+  :root[data-in-tile] .mail-list-meta {
     order: 3;
   }
 }
 
 /* Chat: small faces, and lines that follow each other closely */
-:root[data-in-workspace] .chat-message {
+:root[data-in-tile] .chat-message {
   padding-block: 0.1rem;
 }
 
-:root[data-in-workspace] .chat-message:where(.mt-2) {
+:root[data-in-tile] .chat-message:where(.mt-2) {
   margin-top: 0.4rem;
 }
 
-:root[data-in-workspace] .chat-message-avatar {
+:root[data-in-tile] .chat-message-avatar {
   width: 1.75rem;
 }
 
-:root[data-in-workspace] .chat-message-avatar .avatar {
+:root[data-in-tile] .chat-message-avatar .avatar {
   width: 1.75rem;
   height: 1.75rem;
   font-size: 0.625rem;
 }
 
 /* Todos: a row is as high as its line of text */
-:root[data-in-workspace] .todo-item {
+:root[data-in-tile] .todo-item {
   padding-block: 0.2rem;
 }
 
 /* Board: cards closer to their text */
-:root[data-in-workspace] .board-card {
+:root[data-in-tile] .board-card {
   padding: 0.4rem 0.5rem;
 }
 
 /* The box you write in keeps its toolbar until you are in it */
-:root[data-in-workspace] .rich-text-input:not(:focus-within) rhino-editor [role="toolbar"],
-:root[data-in-workspace] .rich-text-input:not(:focus-within) rhino-editor::part(toolbar) {
+:root[data-in-tile] .rich-text-input:not(:focus-within) rhino-editor [role="toolbar"],
+:root[data-in-tile] .rich-text-input:not(:focus-within) rhino-editor::part(toolbar) {
   display: none;
 }

@@ -407,8 +407,7 @@
   /* Toasts sit bottom-right; on tools with a composer at the bottom (chat,
      room) they move to the top so they never cover Send */
   .flash-toast {
-    @apply fixed z-[9999] max-w-sm;
-    right: calc(1.5rem + var(--side-pane-width));
+    @apply fixed right-6 z-[9999] max-w-sm;
     bottom: calc(1.5rem + var(--demo-banner-height));
   }
 
@@ -730,11 +729,6 @@
   }
   .command-palette-item.hidden {
     @apply hidden;
-  }
-
-  /* What Enter does, under the results */
-  .command-palette-hint {
-    @apply flex items-center justify-end gap-4 px-4 py-2 border-t border-border-light text-xs text-text-tertiary;
   }
 
   /* ── Reorder Mode (shared across board, todo, sidebar) ── */

@@ -10,18 +10,13 @@ class WorkspaceTest < ApplicationSystemTestCase
     sign_in_as users(:one)
     visit workspace_path
     wait_for_stimulus "workspace"
+    # A workspace with nothing in it yet opens with the tool you were last on
+    within_tile(0) { assert_selector "h1", text: @board.name }
   end
 
   test "tools open as tiles that arrange themselves: side by side, then stacked" do
-    assert_text "Nothing open on this desktop"
-
-    launch @board
-    assert_no_text "Nothing open on this desktop"
     assert_equal 1, tiles.size
-    within_tile(0) do
-      assert_selector "h1", text: @board.name
-      assert_no_selector ".sidebar"
-    end
+    within_tile(0) { assert_no_selector ".sidebar" }
 
     launch @files
     first, second = tiles
@@ -37,8 +32,26 @@ class WorkspaceTest < ApplicationSystemTestCase
     within_tile(2) { assert_selector "h1", text: @todos.name }
   end
 
+  test "a new tile takes the room of the biggest one when the one you are on is too small, and the next desktop when none has room" do
+    page.driver.browser.manage.window.resize_to(1100, 760)
+    launch @files
+    launch @todos
+    assert_equal 3, tiles.size
+
+    # The tile you are on (bottom right) can't be halved; the big one on the left can
+    launch tools(:my_docs)
+    board, _, _, docs = tiles
+    assert_equal board[:left], docs[:left]
+    assert_operator board[:top] + board[:height], :<=, docs[:top]
+
+    launch tools(:shared_board), on_new_desktop: true
+    assert_equal 1, tiles.size
+    assert_selector ".workspace-desk[aria-current='true']", text: "2"
+  ensure
+    page.driver.browser.manage.window.resize_to(1400, 1400)
+  end
+
   test "a tool that is open already is gone to, not opened twice" do
-    launch @board
     launch @files
     assert_focused 1
 
@@ -49,7 +62,6 @@ class WorkspaceTest < ApplicationSystemTestCase
   end
 
   test "keys go from tile to tile, set one alone, and close it" do
-    launch @board
     launch @files
     assert_focused 1
 
@@ -71,7 +83,6 @@ class WorkspaceTest < ApplicationSystemTestCase
   end
 
   test "a tool launched from inside a tile gets the keyboard, and closing closes that one" do
-    launch @board
     launch @files
     within_tile(0) { find("h1").click }
     assert_focused 0
@@ -96,28 +107,24 @@ class WorkspaceTest < ApplicationSystemTestCase
   end
 
   test "a tile sent away from a page that is gone goes back to its tool" do
-    launch @board
-
     within_tile(0) { page.execute_script("Turbo.visit('#{tool_board_card_path(@board, 0)}')") }
 
     within_tile(0) { assert_selector "h1", text: @board.name }
     assert_equal 1, tiles.size
   end
 
-  test "the way out is there in a narrow window too" do
-    launch @board
+  test "the way out is there in a window that got narrow too" do
     page.driver.browser.manage.window.resize_to(900, 900)
 
     assert_equal 1, tiles.size
     find(".mobile-bottom-bar-center").click
     find(".sidebar-logo-btn", match: :first).click
-    assert_selector "button", text: "Leave the workspace"
+    assert_selector "button", text: "One tool at a time"
   ensure
     page.driver.browser.manage.window.resize_to(1400, 1400)
   end
 
   test "plus and minus give the tile more of the room, or less" do
-    launch @board
     launch @files
     board, files = tiles
     assert_in_delta board[:width], files[:width], 2
@@ -131,7 +138,6 @@ class WorkspaceTest < ApplicationSystemTestCase
   end
 
   test "a tile trades places with the one beside it" do
-    launch @board
     launch @files
 
     press :arrow_left, shift: true
@@ -143,7 +149,6 @@ class WorkspaceTest < ApplicationSystemTestCase
   end
 
   test "another desktop has its own tiles, and the ones left behind stay as they were" do
-    launch @board
     within_tile(0) { page.execute_script("window.stillHere = true") }
 
     press "2"
@@ -162,7 +167,6 @@ class WorkspaceTest < ApplicationSystemTestCase
   end
 
   test "the tiles are back after a reload" do
-    launch @board
     launch @files
 
     visit workspace_path
@@ -177,13 +181,12 @@ class WorkspaceTest < ApplicationSystemTestCase
     find(".workspace-bar-btn[aria-label='Menu with all your tools']").click
     find("[data-sidebar-tool-link]", text: @todos.name).click
 
-    within_tile(0) { assert_selector "h1", text: @todos.name }
+    within_tile(1) { assert_selector "h1", text: @todos.name }
     assert_current_path workspace_path
     assert_no_selector ".sidebar.open"
   end
 
   test "a tool made here opens as a tile, and the menu and the launcher know it at once" do
-    launch @board
     find(".workspace-bar-btn[aria-label='Menu with all your tools']").click
     find(".sidebar-logo-btn", match: :first).click
     click_on "Add Tool"
@@ -203,7 +206,6 @@ class WorkspaceTest < ApplicationSystemTestCase
   end
 
   test "a tile whose tool is deleted goes" do
-    launch @board
     launch @files
     @files.destroy!
 
@@ -213,22 +215,53 @@ class WorkspaceTest < ApplicationSystemTestCase
     within_tile(0) { assert_selector "h1", text: @board.name }
   end
 
-  test "leaving the workspace brings the sidebar and one tool back" do
-    launch @board
+  test "one tool at a time brings the sidebar back, and the workspace is a click away" do
     find(".workspace-bar-btn[aria-label='Menu with all your tools']").click
     find(".sidebar-logo-btn", match: :first).click
-    click_on "Leave the workspace"
+    click_on "One tool at a time"
 
     assert_no_selector "[data-controller~='workspace']"
     assert_selector ".sidebar"
     assert_selector "main h1"
+
+    # And stays: a tool's address is its page
+    visit tool_files_path(@files)
+    assert_selector "main h1", text: @files.name
+    assert_current_path tool_files_path(@files)
+
+    find(".sidebar-logo-btn", match: :first).click
+    click_on "Tiling workspace"
+    assert_selector "[data-controller~='workspace']"
+    within_tile(0) { assert_selector "h1", text: @board.name }
+  end
+
+  test "a tool opened by its address becomes a tile" do
+    visit tool_todo_path(@todos)
+
+    assert_current_path workspace_path
+    assert_equal 2, tiles.size
+    within_tile(1) { assert_selector "h1", text: @todos.name }
+    assert_focused 1
+  end
+
+  test "a window too narrow for tiles shows the tool you were on, the usual way" do
+    launch @files
+    page.driver.browser.manage.window.resize_to(900, 900)
+
+    visit workspace_path
+
+    assert_current_path tool_files_path(@files), ignore_query: true
+    assert_selector "main h1", text: @files.name
+    assert_no_selector "[data-controller~='workspace']"
+  ensure
+    page.driver.browser.manage.window.resize_to(1400, 1400)
   end
 
   private
 
   # Through the launcher, as a person would
-  def launch(tool, new_tile: true)
-    count = tiles.size
+  def launch(tool, new_tile: true, on_new_desktop: false)
+    count = on_new_desktop ? 0 : tiles.size
     find(".workspace-launcher").click
     within "dialog[data-controller~='command-palette'][open]" do
       input = find("input[data-command-palette-target='input']")

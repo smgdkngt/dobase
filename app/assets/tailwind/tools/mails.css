@@ -226,38 +226,19 @@ rhino-editor.compose-editor .trix-content {
   }
 }
 
-/* Wide screens: the folders get their own column instead of the menu. Not with a tool
-   beside this one (side_pane.css): the window is wide then, the mail isn't. */
+/* Wide screens: the folders get their own column instead of the menu */
 @media (min-width: 1440px) {
-  :root:not([data-side-pane]) .mail-layout {
+  .mail-layout {
     grid-template-columns: 200px 320px 1fr;
   }
 
-  :root:not([data-side-pane]) .mail-folder-rail {
+  .mail-folder-rail {
     @apply flex;
   }
 
-  :root:not([data-side-pane]) .mail-topbar > .mail-folder-picker {
+  .mail-topbar > .mail-folder-picker {
     @apply hidden;
   }
-}
-
-/* With a tool beside this one mail has less room. In the top bar the sync dot and button
-   stay and the words go; an open mail puts its buttons under the subject, as on a phone. */
-:root[data-side-pane] .mail-topbar .mail-sync-text {
-  @apply hidden;
-}
-
-:root[data-side-pane] .mail-detail-header {
-  @apply flex-wrap gap-2 py-2;
-}
-
-:root[data-side-pane] .mail-detail-header > h1 {
-  @apply w-full;
-}
-
-:root[data-side-pane] .mail-detail-header > div:last-child {
-  @apply w-full flex-wrap;
 }
 
 /* Responsive: Mobile */

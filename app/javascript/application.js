@@ -105,44 +105,30 @@ function markAppWindow() {
 markAppWindow()
 document.addEventListener("turbo:load", markAppWindow)
 
-// The tool beside (shared/_side_pane, side_pane_controller.js) goes next to <body>, where
-// Turbo's page swaps leave it alone. A page without the template has nobody signed in,
-// or somebody else: the pane of whoever was here goes.
-function installSidePane() {
-  const template = document.getElementById("side-pane-template")
-  const pane = document.getElementById("side-pane")
-  const owner = template?.content.firstElementChild.dataset.sidePaneUserIdValue
-
-  if (pane && pane.dataset.sidePaneUserIdValue !== owner) pane.remove()
-  if (template && !document.getElementById("side-pane")) document.documentElement.append(template.content.cloneNode(true))
-}
-
-if (window.self === window.top) {
-  document.addEventListener("turbo:load", installSidePane)
-} else if (window.name === "side-pane" || window.name === "workspace-tile") {
-  // This page is the one beside another, or a tile in the workspace
-  // (workspace_controller.js). The server leaves the sidebar out of it
-  // (ApplicationController#side_pane?): the browser says it is a frame when it loads
-  // one, and for every page after that Turbo says so here.
+// A page that is a tile in the workspace (workspace_controller.js) is in a frame with
+// this name. The server draws it without the sidebar (ApplicationController#tile?):
+// the browser says it is a frame when it loads one, and for every page after that
+// Turbo says so here. Tiles are small and many, so everything in one is drawn a size
+// smaller (workspace.css, <html data-in-tile>).
+if (window.self !== window.top && window.name === "workspace-tile") {
   const root = document.documentElement
-  let serverKnows = root.hasAttribute("data-in-side-pane")
-  root.setAttribute("data-in-side-pane", "")
-  // Tiles are small and many: everything in them is drawn a size smaller (workspace.css)
-  if (window.name === "workspace-tile") root.setAttribute("data-in-workspace", "")
+  let serverKnows = root.hasAttribute("data-in-tile")
+  root.setAttribute("data-in-tile", "")
 
   document.addEventListener("turbo:before-fetch-request", (event) => {
-    event.detail.fetchOptions.headers["X-Side-Pane"] = "1"
+    event.detail.fetchOptions.headers["X-Tile"] = "1"
   })
 
   document.addEventListener("turbo:load", () => {
-    if (document.querySelector("[data-controller~='side-pane-page']")) return
+    if (document.querySelector("[data-controller~='tile-page']")) return
 
     if (serverKnows) {
-      // Not a tool's page (signed out: the sign-in page). Nothing to keep beside.
-      window.parent.postMessage({ sidePane: "gone" }, window.location.origin)
+      // Not a tool's page (signed out: the sign-in page). The workspace deals with it.
+      window.parent.postMessage({ tile: "gone" }, window.location.origin)
     } else {
-      // The browser didn't say (a service worker from before there was a pane fetched
-      // the page itself): ask again, now that Turbo does
+      // The browser didn't say it was loading a frame (plain HTTP, or a service worker
+      // from before there were tiles fetched the page itself): ask again, now that
+      // Turbo says so
       serverKnows = true
       Turbo.visit(window.location.href, { action: "replace" })
     }

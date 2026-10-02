@@ -14,16 +14,12 @@
         <%= render "shared/shortcut_row", key: "?", description: "Show keyboard shortcuts" %>
         <%= render "shared/shortcut_row", key: "\u2318K", description: "Jump to tool" %>
         <%= render "shared/shortcut_row", key: "b", description: "Notifications" %>
-        <%= render "shared/shortcut_row", key: "Alt + click", description: "Open a tool or a link beside this one" %>
-        <%= render "shared/shortcut_row", key: "F6", description: "Move between the two tools" %>
       </div>
     </div>
 
     <%= content_for(:keyboard_shortcuts) %>
 
-    <%# A page in a frame may be a tile in the workspace; only there this shows (workspace.css) %>
-    <% if side_pane? %>
-      <div class="workspace-tile-only"><%= render "workspaces/shortcuts" %></div>
-    <% end %>
+    <%# In a tile: the keys of the workspace around it %>
+    <%= render "workspaces/shortcuts" if tile? %>
   </div>
 </dialog>

@@ -2,14 +2,12 @@ import { Controller } from "@hotwired/stimulus"
 import { applyTheme } from "services/theme"
 import { workspaceCommand, isLauncherKey } from "services/workspace_keys"
 
-// On a page that is shown beside another one (side_pane_controller.js is on the
-// page around it), or as a tile in the workspace (workspace_controller.js). Says
-// where this page is, so it is the one that comes back after a reload, and hands
-// over what only the page around it has: the notifications, and in the workspace
-// the launcher and the keys that move tiles.
+// On a page that is a tile in the workspace (workspace_controller.js is on the page
+// around it). Says where this page is, so it is the one that comes back after a
+// reload, and hands over what only the page around it has: the notifications, the
+// launcher and the keys that move tiles.
 export default class extends Controller {
   connect() {
-    this.inWorkspace = window.name === "workspace-tile"
     this._onMessage = (event) => this.heard(event)
     this._onLoad = () => this.report()
     this._onKey = (event) => this.keyed(event)
@@ -42,18 +40,18 @@ export default class extends Controller {
     if (event.origin !== location.origin || event.source !== window.parent) return
 
     // A theme picked while this page is open; only the page around it hears of it
-    if (event.data?.sidePane === "theme") applyTheme(event.data.theme)
+    if (event.data?.tile === "theme") applyTheme(event.data.theme)
   }
 
   notifications() {
     this.say("notifications")
   }
 
-  // F6 goes back to the main tool. Not through the shortcut library: that leaves keys
-  // typed in a field alone, and a field is where you usually are.
+  // Not through the shortcut library: that leaves keys typed in a field alone, and a
+  // field is where you usually are.
   keyed(event) {
-    if (event.key === "F6") return this.handOn(event, "leave")
-    if (!this.inWorkspace) return
+    // On to the next tile
+    if (event.key === "F6") return this.handOn(event, "next")
 
     // The workspace has one launcher (with Shift it is this page's own palette, which
     // knows what the page can do), and the keys that move tiles are its own
@@ -69,6 +67,6 @@ export default class extends Controller {
   }
 
   say(what, details = {}) {
-    window.parent.postMessage({ sidePane: what, ...details }, location.origin)
+    window.parent.postMessage({ tile: what, ...details }, location.origin)
   }
 }

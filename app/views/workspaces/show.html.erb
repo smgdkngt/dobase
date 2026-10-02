@@ -3,6 +3,19 @@
     frames, which load their first page again %>
 <% content_for :head do %>
   <meta name="turbo-cache-control" content="no-cache">
+  <%# A window too narrow for tiles (a phone, a small tablet) shows one tool the usual
+      way: the one you were on here, before anything is drawn %>
+  <%= javascript_tag nonce: true do %>
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+      let to = <%= raw root_path(one: 1).to_json %>
+      try {
+        const kept = JSON.parse(localStorage.getItem(<%= raw "dobase:workspace:#{current_user.id}".to_json %>))
+        const tile = kept.tiles[kept.desks[kept.desk].focus]
+        if (/^\/tools\/\d+/.test(tile.url)) to = tile.url
+      } catch {}
+      window.location.replace(to)
+    }
+  <% end %>
 <% end %>
 
 <% content_for :keyboard_shortcuts do %>
@@ -14,7 +27,8 @@
 <div class="workspace tool-layout"
      data-controller="workspace"
      data-workspace-user-id-value="<%= current_user.id %>"
-     data-workspace-app-name-value="<%= app_name %>">
+     data-workspace-app-name-value="<%= app_name %>"
+     data-workspace-start-value="<%= @start_path %>">
   <header class="workspace-bar">
     <button type="button" class="workspace-bar-btn" title="Menu (<%= workspace_modifier %> M)"
             aria-label="Menu with all your tools"
@@ -65,8 +79,13 @@
 
   <div class="workspace-tiles" id="workspace-tiles" data-turbo-permanent data-workspace-target="tiles">
     <div class="workspace-empty" data-workspace-target="empty" hidden>
-      <%= render "components/empty_state", title: "Nothing open on this desktop", icon: "grid-2x2",
-            description: "Press ⌘K and pick a tool. It opens as a tile, next to what is already here." %>
+      <% if @start_path %>
+        <%= render "components/empty_state", title: "Nothing open on this desktop", icon: "grid-2x2",
+              description: "Press ⌘K and pick a tool. It opens as a tile, next to what is already here." %>
+      <% else %>
+        <%# Nothing to open yet: the same welcome as without the workspace %>
+        <%= render template: "dashboard/index" %>
+      <% end %>
     </div>
   </div>
 

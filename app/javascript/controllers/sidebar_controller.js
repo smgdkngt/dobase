@@ -91,16 +91,6 @@ export default class extends Controller {
     if (dialog) dialog.showModal()
   }
 
-  // ── The tool beside ──
-
-  // Opens a tool beside the one you have open, or closes it there. The pane lives
-  // next to <body> (side_pane_controller.js), so it hears of it on the window.
-  toggleBeside(event) {
-    event.stopPropagation()
-    event.preventDefault()
-    window.dispatchEvent(new CustomEvent("side-pane:toggle", { detail: { url: event.currentTarget.dataset.url } }))
-  }
-
   // ── Reorder Mode ──
 
   toggleReorder() {
