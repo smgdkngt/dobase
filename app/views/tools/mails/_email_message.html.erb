@@ -43,7 +43,7 @@
   </button>
   <div data-collapse-target="content" class="<%= is_last ? '' : 'hidden' %>">
     <div class="px-4 pb-4 pl-[4.25rem]">
-      <% if email_message.draft? %>
+      <% if email_message.draft? && !email_message.trashed? %>
         <div class="mail-draft-note">
           <span class="flex-1">Not sent yet.</span>
           <%= render "components/button", text: "Discard", variant: :ghost, size: :sm,

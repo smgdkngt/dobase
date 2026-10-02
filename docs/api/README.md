@@ -52,10 +52,10 @@ A token acts as you inside your tools, with some limits. It cannot:
 - connect or change mail and calendar accounts
 - invite or remove collaborators
 - create or remove public share links
-- trash or permanently delete mail
+- permanently delete mail, or trash it on a mail server that has no trash folder
 - delete whole tools
 
-These actions answer `403` to token requests, so a leaked token can't lock you
+These actions answer `403` to token requests (trashing without a trash folder `422`), so a leaked token can't lock you
 out or leave anything behind that outlives revoking it.
 
 A request that carries a token ignores any session cookie and doesn't need a

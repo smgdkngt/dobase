@@ -272,6 +272,31 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_not Mails::Message.exists?(binned.id)
   end
 
+  test "a discarded draft in the server's trash stays as it was written, and leaves when the server empties it" do
+    draft = mails_messages(:draft_message)
+    draft.move_to_trash!
+    on_server = Mail.new(from: "testuser@example.com", to: "recipient@example.com", subject: "Draft email", message_id: draft.message_id, body: "With its quote")
+
+    incoming_message.send(:save_email, fetch_data(7, on_server.to_s), "Trash")
+
+    assert_equal [ 7, true, true, "<p>This is a draft message.</p>" ], [ draft.reload.uid, draft.draft?, draft.trashed?, draft.body_html ]
+    assert_equal 1, @account.messages.where(message_id: draft.message_id).count
+
+    reconcile("Trash", [])
+
+    assert_not Mails::Message.exists?(draft.id)
+  end
+
+  test "a draft without a UID, like one restored from the trash, replaces its copy on the server" do
+    draft = mails_messages(:draft_message)
+    server = FakeImapServer.new(folders: [ "INBOX", "Drafts" ], message_ids: { [ "Drafts", draft.message_id ] => [ 41 ] })
+
+    connect_to_imap(server) { @service.save_draft(draft) }
+
+    assert_equal [ [ 41 ] ], server.expunged
+    assert_equal [ [ "Drafts", [ :Draft, :Seen ] ] ], server.appended
+  end
+
   test "mail is deleted from the server's trash by its Message-ID" do
     server = FakeImapServer.new(folders: [ "INBOX", [ "Deleted Messages", :Trash ] ], message_ids: { [ "Deleted Messages", "<binned@example.com>" ] => [ 31 ] })
 

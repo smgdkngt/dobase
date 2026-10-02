@@ -18,11 +18,18 @@ type Flag struct {
 	Name        string
 	Placeholder string
 	Description string
+	// Repeatable flags can be given several times, and keep every value.
+	Repeatable bool
 }
 
 // F is `--name VALUE`.
 func F(name, placeholder, description string) Flag {
 	return Flag{Name: name, Placeholder: placeholder, Description: description}
+}
+
+// Each is `--name VALUE`, as often as needed: `--attach a.pdf --attach b.pdf`.
+func Each(name, placeholder, description string) Flag {
+	return Flag{Name: name, Placeholder: placeholder, Description: description, Repeatable: true}
 }
 
 // Switch is `--name`.
@@ -131,7 +138,7 @@ func optionLike(name string) bool {
 // what looks like a flag the command doesn't have is refused. After "--" every
 // word is an argument.
 func (d *Definition) Parse(argv []string) (*Args, error) {
-	args := &Args{values: map[string]string{}}
+	args := &Args{values: map[string]string{}, lists: map[string][]string{}}
 
 	for i := 0; i < len(argv); i++ {
 		word := argv[i]
@@ -165,6 +172,9 @@ func (d *Definition) Parse(argv []string) (*Args, error) {
 				value = argv[i]
 			}
 			args.values[flag.Name] = value
+			if flag.Repeatable {
+				args.lists[flag.Name] = append(args.lists[flag.Name], value)
+			}
 		case hasInline:
 			return nil, api.Usagef("needless argument: %s\n\n%s", word, d.Help())
 		default:
@@ -182,6 +192,7 @@ func (d *Definition) Parse(argv []string) (*Args, error) {
 type Args struct {
 	Positional []string
 	values     map[string]string
+	lists      map[string][]string
 }
 
 // At is a required positional argument.
@@ -208,6 +219,9 @@ func (a *Args) Flag(name string) (string, bool) {
 	value, ok := a.values[name]
 	return value, ok
 }
+
+// All are the values of a repeatable flag, in the order they were given.
+func (a *Args) All(name string) []string { return a.lists[name] }
 
 // Value is the value of a `--name VALUE` flag, or "".
 func (a *Args) Value(name string) string { return a.values[name] }
