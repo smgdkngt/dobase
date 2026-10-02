@@ -36,10 +36,10 @@
     <button type="button"
             class="sidebar-jump-pill"
             data-action="click->keyboard-shortcuts#openCommandPalette"
-            title="Jump to a tool or action (⌘K)">
+            title="Jump to a tool or action (<%= launcher_key %>)">
       <%= render "shared/icon", name: "search", size: 14, class: "text-text-tertiary flex-shrink-0" %>
       <span class="sidebar-jump-pill-label">Jump to…</span>
-      <kbd class="shortcut-key sidebar-jump-pill-kbd">⌘K</kbd>
+      <kbd class="shortcut-key sidebar-jump-pill-kbd"><%= launcher_key %></kbd>
     </button>
   </div>
   <% end %>

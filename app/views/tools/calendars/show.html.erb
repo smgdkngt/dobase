@@ -12,8 +12,8 @@
     <div class="shortcut-list">
       <%= render "shared/shortcut_row", key: "n", description: "New event" %>
       <%= render "shared/shortcut_row", key: "t", description: "Go to today" %>
-      <%= render "shared/shortcut_row", key: "\u2318\u2190", description: "Previous week" %>
-      <%= render "shared/shortcut_row", key: "\u2318\u2192", description: "Next week" %>
+      <%= render "shared/shortcut_row", key: mod_key("←"), description: "Previous week" %>
+      <%= render "shared/shortcut_row", key: mod_key("→"), description: "Next week" %>
       <%= render "shared/shortcut_row", key: "← → ↑ ↓", description: "Go from event to event" %>
       <%= render "shared/shortcut_row", key: "Enter", description: "Open the event" %>
     </div>
@@ -49,11 +49,11 @@
 
     <!-- Center: Week navigation pill -->
     <%= render "components/nav_pill" do %>
-      <%= render "components/nav_pill_button", icon: "chevron-left", title: "Previous week (\u2318\u2190)", data: { controller: "hotkey", action: "calendar#previousWeek", hotkey: "Mod+ArrowLeft" } %>
+      <%= render "components/nav_pill_button", icon: "chevron-left", title: "Previous week (#{mod_key("←")})", data: { controller: "hotkey", action: "calendar#previousWeek", hotkey: "Mod+ArrowLeft" } %>
       <%= render "components/nav_pill_button", icon: "clock-arrow-down", title: "Today (t)", data: { controller: "hotkey", action: "calendar#goToToday", hotkey: "t" } %>
       <%= render "components/nav_pill_button", icon: "plus", title: "New event (n)", data: { controller: "hotkey", action: "calendar#newEvent", hotkey: "n" } %>
       <%= render "components/nav_pill_button", icon: "calendar-days", title: "Pick a week", data: { action: "calendar#openWeekPicker" } %>
-      <%= render "components/nav_pill_button", icon: "chevron-right", title: "Next week (\u2318\u2192)", data: { controller: "hotkey", action: "calendar#nextWeek", hotkey: "Mod+ArrowRight" } %>
+      <%= render "components/nav_pill_button", icon: "chevron-right", title: "Next week (#{mod_key("→")})", data: { controller: "hotkey", action: "calendar#nextWeek", hotkey: "Mod+ArrowRight" } %>
       <input type="date"
              aria-label="Jump to the week of a date"
              value="<%= @week_start.iso8601 %>"

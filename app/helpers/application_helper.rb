@@ -55,9 +55,12 @@ module ApplicationHelper
   # The keys that move tiles around in the workspace go with Alt, and on a Mac with
   # Control and Option: Option alone types letters there, and moves by word. A
   # browser can pick another pair (services/workspace_keys.js keeps it in a cookie).
-  # workspace_key("M") is "⌃⌥M" or "Alt+M".
+  # workspace_key("M") is "Ctrl+Opt+M" or "Alt+M".
+  #
+  # Keys are written in words on a Mac too. The signs for them (⌃ ⌥ ⌘) are on Apple's
+  # own keyboards and on few others, and two of them are easily taken for each other.
   WORKSPACE_MODIFIERS = {
-    mac: { "ctrl-alt" => [ "⌃⌥", "Control + Option" ], "ctrl-meta" => [ "⌃⌘", "Control + Command" ], "alt-meta" => [ "⌥⌘", "Option + Command" ] },
+    mac: { "ctrl-alt" => [ "Ctrl+Opt", "Control + Option" ], "ctrl-meta" => [ "Ctrl+Cmd", "Control + Command" ], "alt-meta" => [ "Opt+Cmd", "Option + Command" ] },
     other: { "alt" => [ "Alt", "Alt" ], "ctrl-alt" => [ "Ctrl+Alt", "Ctrl + Alt" ] }
   }.freeze
 
@@ -69,14 +72,16 @@ module ApplicationHelper
   end
 
   def workspace_key(key, shift: false)
-    held = workspace_modifiers[workspace_modifier].first
-    mac? ? "#{held}#{'⇧' if shift}#{key}" : [ held, ("Shift" if shift), key ].compact.join("+")
+    [ workspace_modifiers[workspace_modifier].first, ("Shift" if shift), key ].compact.join("+")
+  end
+
+  # A key that goes with Command on a Mac and with Control elsewhere: mod_key("K")
+  def mod_key(key, shift: false)
+    [ mac? ? "Cmd" : "Ctrl", ("Shift" if shift), key ].compact.join("+")
   end
 
   # The launcher's key as this keyboard has it
-  def launcher_key
-    mac? ? "⌘K" : "Ctrl+K"
-  end
+  def launcher_key = mod_key("K")
 
   def mac?
     request.user_agent.to_s.match?(/Macintosh|Mac OS X/)

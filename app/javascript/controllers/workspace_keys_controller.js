@@ -15,7 +15,7 @@ export default class extends Controller {
     window.dispatchEvent(new CustomEvent("workspace:keys-chosen", { detail: chosen }))
   }
 
-  // How a key written with that choice begins: "⌃⌥", "Alt+"
+  // How a key written with that choice begins: "Ctrl+Opt+", "Alt+"
   prefixOf(value) {
     return Array.from(this.element.options).find((option) => option.value === value)?.dataset.prefix
   }

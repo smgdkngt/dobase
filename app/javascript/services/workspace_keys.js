@@ -28,10 +28,10 @@ export function chooseWorkspaceModifier(modifier) {
 }
 
 // A page names the keys in many places (the shortcuts dialog, tooltips, the menu's
-// commands), written by the server with what they went with then: "⌃⌥W", "Alt+W".
+// commands), written by the server with what they went with then: "Ctrl+Opt+W", "Alt+W".
 // With another choice those are rewritten where they stand, so nothing is loaded
 // again and nothing half-typed is lost. `chosen` is { value, before, after }: the
-// choice, and how the keys began and begin now ("⌃⌥" to "⌃⌘", "Alt+" to "Ctrl+Alt+").
+// choice, and how the keys began and begin now ("Ctrl+Opt+" to "Ctrl+Cmd+", "Alt+" to "Ctrl+Alt+").
 export function renameWorkspaceKeys({ value, before, after }) {
   if (!before || !after || before === after) return
 

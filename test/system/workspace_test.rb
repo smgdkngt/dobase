@@ -384,7 +384,7 @@ class WorkspaceTest < ApplicationSystemTestCase
   test "the workspace's keys go with another modifier, for whoever has these taken" do
     launch @files
     assert_focused 1
-    other = mac? ? [ "ctrl-meta", %i[control meta], "⌃⌘" ] : [ "ctrl-alt", %i[control alt], "Ctrl+Alt+" ]
+    other = mac? ? [ "ctrl-meta", %i[control meta], "Ctrl+Cmd+" ] : [ "ctrl-alt", %i[control alt], "Ctrl+Alt+" ]
 
     find("body").send_keys("?")
     within "dialog[open]" do
