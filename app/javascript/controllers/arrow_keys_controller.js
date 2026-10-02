@@ -41,6 +41,8 @@ export default class extends Controller {
     const side = SIDES[event.key]
     if (side) return this.arrow(event, side)
     if (event.key === "Enter" && !event.shiftKey) this.open(event)
+    // What says it is a button is pressed with the space bar too
+    if (event.key === " " && document.activeElement?.matches("[role='button']")) this.open(event)
   }
 
   arrow(event, side) {

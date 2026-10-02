@@ -67,8 +67,8 @@ export default class extends Controller {
   // Not through the shortcut library: that leaves keys typed in a field alone, and a
   // field is where you usually are.
   keyed(event) {
-    // On to the next tile
-    if (event.key === "F6") return this.handOn(event, "next")
+    // On to the next tile, with Shift back to the one before
+    if (event.key === "F6") return this.handOn(event, "next", { back: event.shiftKey })
 
     // The workspace has one launcher (with Shift it is this page's own palette, which
     // knows what the page can do), and the keys that move tiles are its own

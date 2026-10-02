@@ -9,14 +9,15 @@ const COMMANDS = {
   ArrowRight: "right", KeyL: "right",
   ArrowUp: "up", KeyK: "up",
   ArrowDown: "down", KeyJ: "down",
-  KeyW: "close", KeyQ: "close",
+  KeyW: "close",
   KeyF: "zoom",
-  Equal: "grow",
-  Minus: "shrink",
+  Equal: "grow", NumpadAdd: "grow",
+  Minus: "shrink", NumpadSubtract: "shrink",
   KeyM: "menu",
-  KeyR: "reload",
-  Space: "launcher"
+  KeyR: "reload"
 }
+// Plus and minus are not where the American keyboard has them everywhere
+const BY_CHARACTER = { "+": "grow", "=": "grow", "-": "shrink", "_": "shrink" }
 
 // { name: "left" | … | "desk", desk: 3, shift: true } for a key that is the workspace's
 export function workspaceCommand(event) {
@@ -26,7 +27,7 @@ export function workspaceCommand(event) {
   if (!held) return null
 
   const desk = event.code.match(/^Digit([1-9])$/)
-  const name = desk ? "desk" : COMMANDS[event.code]
+  const name = desk ? "desk" : COMMANDS[event.code] || BY_CHARACTER[event.key]
   return name ? { name, desk: desk ? Number(desk[1]) : null, shift: event.shiftKey } : null
 }
 

@@ -1,4 +1,4 @@
-<aside class="sidebar" aria-label="Workspace" data-controller="sidebar"
+<aside class="sidebar" id="sidebar" aria-label="Workspace" data-controller="sidebar"
        data-action="sortable:move->sidebar#handleToolMove"
        data-mobile-sidebar-target="sidebar">
   <%# ── Logo ── %>
@@ -203,21 +203,6 @@
         <%= render "shared/icon", name: "folder-plus", size: 16 %>
         <span>New Group</span>
       <% end %>
-      <%# Tiles need a wide window, so that is where the workspace is offered. The way out
-          of it is there at any width: a window can get narrow after you went in. %>
-      <% if @workspace %>
-        <%# A page load of its own: a visit from this page to a tool would open it as a tile %>
-        <%= button_to workspace_path, method: :delete, form: { data: { turbo: false } },
-              class: "dropdown-item flex items-center gap-2" do %>
-          <%= render "shared/icon", name: "panel-left-close", size: 16 %>
-          <span>One tool at a time</span>
-        <% end %>
-      <% else %>
-        <%= link_to workspace_path, class: "dropdown-item flex items-center gap-2 max-lg:hidden", data: { turbo: false } do %>
-          <%= render "shared/icon", name: "grid-2x2", size: 16 %>
-          <span>Tiling workspace</span>
-        <% end %>
-      <% end %>
       <div class="dropdown-divider"></div>
       <button type="button" class="dropdown-item flex items-center gap-2"
               data-action="click->sidebar#toggleReorder"
@@ -237,6 +222,21 @@
         <%= render "shared/icon", name: "user", size: 16 %>
         <span>Profile</span>
       </button>
+      <%# Tiles need a wide window, so that is where the workspace is offered. The way out
+          of it is there at any width: a window can get narrow after you went in. %>
+      <% if @workspace %>
+        <%# A page load of its own: a visit from this page to a tool would open it as a tile %>
+        <%= button_to workspace_path, method: :delete, form: { data: { turbo: false } },
+              class: "dropdown-item flex items-center gap-2" do %>
+          <%= render "shared/icon", name: "panel-left-close", size: 16 %>
+          <span>Use one tool at a time</span>
+        <% end %>
+      <% else %>
+        <%= link_to workspace_path, class: "dropdown-item flex items-center gap-2 max-lg:hidden", data: { turbo: false } do %>
+          <%= render "shared/icon", name: "grid-2x2", size: 16 %>
+          <span>Use the tiling workspace</span>
+        <% end %>
+      <% end %>
       <div class="dropdown-divider"></div>
       <%= button_to logout_path, method: :delete, class: "dropdown-item flex items-center gap-2 text-error" do %>
         <%= render "shared/icon", name: "log-out", size: 16 %>

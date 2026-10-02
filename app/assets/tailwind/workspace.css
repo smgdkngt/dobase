@@ -7,7 +7,13 @@
 
   /* A slim bar along the top: the menu, the desktops, what you are on, and yourself */
   .workspace-bar {
-    @apply flex items-center gap-1 px-2 shrink-0 h-9;
+    @apply grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-2 shrink-0 h-9;
+  }
+
+  /* Left and right of the title, as wide as each other: the title is in the middle
+     of the window */
+  .workspace-bar-side {
+    @apply flex items-center gap-1 min-w-0;
   }
 
   .workspace-bar-btn {
@@ -32,6 +38,10 @@
     @apply inline-flex items-center gap-1;
   }
 
+  .workspace-desk[hidden] {
+    @apply hidden;
+  }
+
   .workspace-desk[data-empty] {
     @apply text-text-tertiary;
   }
@@ -45,8 +55,12 @@
     @apply bg-accent-solid text-text-inverse;
   }
 
+  .workspace-desk[aria-current="true"] .workspace-desk-icon {
+    @apply opacity-100;
+  }
+
   .workspace-bar-title {
-    @apply flex-1 min-w-0 truncate text-center text-xs text-text-tertiary;
+    @apply min-w-0 max-w-[40vw] truncate text-center text-xs text-text-tertiary;
   }
 
   .workspace-launcher {
@@ -71,13 +85,14 @@
     @apply hidden;
   }
 
-  /* The one the keyboard is in, when there is more than one */
+  /* The one the keyboard is in, when there is more than one: its edge twice as heavy */
   .workspace-tile[data-focused] {
     border-color: var(--color-accent);
+    box-shadow: 0 0 0 1px var(--color-accent);
   }
 
   .workspace-tile {
-    transition: border-color 120ms ease;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
   }
 
   .workspace-tile[data-arriving] {
@@ -127,6 +142,12 @@
     touch-action: none;
   }
 
+  /* Easier to get hold of than the gap is wide */
+  .workspace-split::before {
+    @apply absolute content-[''];
+    inset: -3px;
+  }
+
   .workspace-split[data-split="row"] {
     @apply cursor-col-resize;
   }
@@ -154,7 +175,7 @@
   }
 
   .workspace-keys {
-    @apply grid grid-cols-[auto_auto] gap-x-3 gap-y-1.5 text-xs text-text-tertiary;
+    @apply grid grid-cols-[auto_auto] items-center gap-x-3 gap-y-1.5 text-xs text-text-tertiary;
   }
 
   .workspace-keys > div {
@@ -179,11 +200,12 @@
     @apply hidden;
   }
 
-  /* In the menu, a tool that is open says on which desktop */
+  /* In the menu, a tool that is open says on which desktop: an outlined square, so it
+     isn't taken for a count of what is new */
   .sidebar-tool-link[data-workspace-desk]::after {
-    @apply inline-flex items-center justify-center w-4 h-4 shrink-0 rounded text-[0.625rem] font-medium tabular-nums
-           bg-background-tertiary text-text-tertiary;
-    content: attr(data-workspace-desk);
+    @apply inline-flex items-center justify-center w-4 h-4 shrink-0 rounded-sm text-[0.625rem] font-medium tabular-nums
+           border border-border text-text-tertiary;
+    content: attr(data-workspace-desk) / "";
   }
 }
 
@@ -246,9 +268,14 @@ body[data-workspace] .main-content {
     transition-delay: 0s;
   }
 
-  /* You and your notifications are in the bar at the top, so their menus open from there */
+  /* You and your notifications are in the bar at the top, so their menus open from
+     there: they live in the sidebar, and are in sight while it isn't */
   body[data-workspace] .sidebar-bottom-bar {
     display: none;
+  }
+
+  body[data-workspace] :is(.sidebar-user-popover, .sidebar-notifications-popover):popover-open {
+    visibility: visible;
   }
 
   body[data-workspace] .sidebar-user-popover {
@@ -362,6 +389,11 @@ body[data-workspace] .main-content {
 /* Chat: small faces, and lines that follow each other closely */
 :root[data-in-tile] .chat-message {
   padding-block: 0.1rem;
+}
+
+/* The ring around the message you are on stays inside its row */
+.chat-message:focus-visible {
+  outline-offset: -2px;
 }
 
 :root[data-in-tile] .chat-message:where(.mt-2) {

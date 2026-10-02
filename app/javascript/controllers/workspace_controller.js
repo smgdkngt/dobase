@@ -25,9 +25,10 @@ const GLIDE = "transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1)"
 const RESIZE_STEP = 0.05
 // How often the page around the tiles is drawn again while it is in view
 const FRESHEN_EVERY_MS = 3 * 60 * 1000
+const DESKS = [ 1, 2, 3, 4, 5, 6, 7, 8, 9 ]
 
 export default class extends Controller {
-  static targets = ["tiles", "tileTemplate", "empty", "desks", "title", "menu", "hint"]
+  static targets = ["tiles", "tileTemplate", "empty", "desks", "title", "menu", "hint", "status"]
   static values = { userId: Number, appName: String, start: String }
 
   connect() {
@@ -44,11 +45,12 @@ export default class extends Controller {
     // Tiles that are in the page already (the element outlives a morph refresh)
     this.elements = new Map()
     this.tilesTarget.querySelectorAll("[data-tile-id]").forEach((tile) => this.elements.set(tile.dataset.tileId, tile))
-    this.tilesTarget.querySelectorAll("[role='separator']").forEach((handle) => handle.remove())
+    this.tilesTarget.querySelectorAll("[data-split]").forEach((handle) => handle.remove())
 
     this.listening = new AbortController()
     this.listen(document, "turbo:before-visit", (event) => this.visiting(event))
     this.listen(window, "workspace:open", (event) => { if (this.open(event.detail.url, { fresh: event.detail.fresh })) event.preventDefault() })
+    this.listen(window, "workspace:command", (event) => this.run(event.detail))
     this.listen(document, "turbo:submit-end", () => { this.submittedAt = performance.now() })
     this.listen(document, "turbo:morph", () => this.refreshed())
     this.listen(document, "keydown", (event) => this.keyed(event), true)
@@ -61,6 +63,8 @@ export default class extends Controller {
 
     this.sizes = new ResizeObserver(() => this.arrange())
     this.sizes.observe(this.tilesTarget)
+    this.menuWatch = new MutationObserver(() => this.menuChanged())
+    this.watchMenu()
 
     this.draw()
     this.arrive()
@@ -105,6 +109,7 @@ export default class extends Controller {
 
     this.listening.abort()
     this.sizes.disconnect()
+    this.menuWatch.disconnect()
     clearInterval(this.freshening)
   }
 
@@ -135,12 +140,14 @@ export default class extends Controller {
 
     const id = `t${this.state.next++}`
     this.state.tiles[id] = { url: path }
+    const from = this.state.desk
     this.state.desk = this.insert(this.state.desk, id)
     this.desk.focus = id
     this.desk.alone = false
     this.save()
     this.draw({ glide: true })
     this.grabFocus()
+    this.say(`${this.nameOf(id)} opened${this.state.desk === from ? "" : ` on desktop ${this.state.desk}`}`)
     return true
   }
 
@@ -169,6 +176,7 @@ export default class extends Controller {
     // The keyboard goes on to the next tile, unless it was somewhere else on the page
     const keyboardWasHere = this.tilesTarget.contains(document.activeElement) || document.activeElement === document.body
 
+    this.say(`${this.nameOf(id)} closed`)
     delete this.state.tiles[id]
     this.leave(this.elements.get(id))
     this.elements.delete(id)
@@ -325,6 +333,29 @@ export default class extends Controller {
     tile.append(toolFrame(this.state.tiles[id].url))
     this.tilesTarget.append(tile)
     this.elements.set(id, tile)
+    this.nameTile(id)
+  }
+
+  // What a tile shows, by the name its page gave it, or its tool's name in the menu
+  nameOf(id) {
+    const tile = this.state.tiles[id]
+    return tile?.title || this.menuLinkFor(tile?.url)?.dataset.toolName || "Tool"
+  }
+
+  // A tile, its frame and its close button are called after what is in it
+  nameTile(id) {
+    const tile = this.elements.get(id)
+    if (!tile) return
+
+    const name = this.nameOf(id)
+    tile.setAttribute("aria-label", name)
+    tile.querySelector("iframe").title = name
+    tile.querySelector("button")?.setAttribute("aria-label", `Close ${name}`)
+  }
+
+  // Said to whoever can't see it happen
+  say(what) {
+    if (this.hasStatusTarget) this.statusTarget.textContent = what
   }
 
   arrange({ glide = false } = {}) {
@@ -339,6 +370,7 @@ export default class extends Controller {
 
       tile.hidden = !rect
       tile.toggleAttribute("data-focused", id === desk.focus && tiles.size > 1 && !alone)
+      id === desk.focus ? tile.setAttribute("aria-current", "true") : tile.removeAttribute("aria-current")
       if (rect) Object.assign(tile.style, px(rect))
     }
 
@@ -380,7 +412,8 @@ export default class extends Controller {
     while (this.handles.length < splits.length) {
       const handle = document.createElement("div")
       handle.className = "workspace-split"
-      handle.setAttribute("role", "separator")
+      // For the pointer only: the keys resize the tile you are on
+      handle.setAttribute("aria-hidden", "true")
       handle.addEventListener("pointerdown", (event) => this.startResize(event))
       this.tilesTarget.append(handle)
       this.handles.push(handle)
@@ -393,7 +426,6 @@ export default class extends Controller {
 
       handle.split = split
       handle.dataset.split = split.node.split
-      handle.setAttribute("aria-orientation", split.node.split === "row" ? "vertical" : "horizontal")
       Object.assign(handle.style, px(split.rect))
     })
   }
@@ -429,36 +461,51 @@ export default class extends Controller {
     handle.addEventListener("pointercancel", stop, { signal: dragging.signal })
   }
 
-  // The desktops that have something on them, the one you are on, and the next free
-  // one. Each shows the tools that are on it, by their icons from the menu.
+  // The desktops that have something on them, the one you are on, and the first
+  // free one. Each shows the tools that are on it, by their icons from the menu. The
+  // buttons stay the same ones, so the keyboard can stay on one.
   drawBar() {
     const used = Object.keys(this.state.desks).filter((number) => this.state.desks[number].tree).map(Number)
-    const last = Math.min(9, Math.max(this.state.desk, ...used, 0) + 1)
+    const free = DESKS.find((number) => !used.includes(number))
+    const shown = new Set([ ...used, this.state.desk, free ])
 
-    this.desksTarget.replaceChildren(...Array.from({ length: last }, (_, index) => {
-      const number = index + 1
+    if (this.desksTarget.children.length !== DESKS.length) {
+      this.desksTarget.replaceChildren(...DESKS.map((number) => {
+        const button = document.createElement("button")
+        button.type = "button"
+        button.className = "workspace-desk"
+        button.dataset.desk = number
+        button.dataset.action = "click->workspace#deskClicked"
+        return button
+      }))
+    }
+
+    Array.from(this.desksTarget.children).forEach((button, index) => {
+      const number = DESKS[index]
       const tiles = leaves(this.state.desks[number]?.tree)
-      const button = document.createElement("button")
-      button.type = "button"
-      button.className = "workspace-desk"
+      const names = tiles.map((id) => this.nameOf(id))
+
+      button.hidden = !shown.has(number)
       button.setAttribute("aria-current", number === this.state.desk)
       button.toggleAttribute("data-empty", tiles.length === 0)
-      button.addEventListener("click", () => this.goToDesk(number))
-
-      const names = tiles.map((id) => this.state.tiles[id].title).filter(Boolean)
       button.title = names.join(", ")
       button.setAttribute("aria-label", names.length ? `Desktop ${number}: ${names.join(", ")}` : `Desktop ${number}`)
-      button.append(String(number), ...tiles.slice(0, 4).map((id) => this.iconOf(id)).filter(Boolean))
-      return button
-    }))
+      button.replaceChildren(String(number), ...tiles.slice(0, 4).map((id) => this.iconOf(id)).filter(Boolean))
+    })
 
     this.markMenu()
 
+    // A tile says its own name; among several, the bar says which one you are on
     const desk = this.desk
+    const count = leaves(desk.tree).length
     const title = this.state.tiles[desk.focus]?.title || ""
-    const behind = desk.alone ? leaves(desk.tree).length - 1 : 0
-    this.titleTarget.textContent = behind > 0 ? `${title} · ${behind} more behind it` : title
+    this.titleTarget.textContent = count < 2 ? "" : desk.alone ? `${title} · ${count - 1} more behind it` : title
     document.title = title ? `${title} - ${this.appNameValue}` : this.appNameValue
+  }
+
+  // By the keyboard the keyboard stays on the button, to go on to the next desktop
+  deskClicked(event) {
+    this.goToDesk(event.currentTarget.dataset.desk, { keyboardStays: event.detail === 0 })
   }
 
   // A tool's icon as the menu draws it
@@ -480,13 +527,17 @@ export default class extends Controller {
   // In the menu, a tool that is open says on which desktop, and needs no dot for
   // what is new in it: the ones that are loaded are seen
   markMenu() {
-    document.querySelectorAll("[data-sidebar-tool-link][data-workspace-desk]").forEach((link) => link.removeAttribute("data-workspace-desk"))
+    document.querySelectorAll("[data-sidebar-tool-link][data-workspace-desk]").forEach((link) => {
+      link.removeAttribute("data-workspace-desk")
+      link.removeAttribute("title")
+    })
 
     for (const [ id, tile ] of Object.entries(this.state.tiles)) {
       const link = this.menuLinkFor(tile.url)
       if (!link) continue
 
       link.dataset.workspaceDesk = this.deskNumberOf(id)
+      link.title = `Open on desktop ${this.deskNumberOf(id)}`
       if (this.elements.has(id)) link.removeAttribute("data-unread")
     }
   }
@@ -508,7 +559,7 @@ export default class extends Controller {
     frame ? frame.focus() : this.element.closest("main")?.focus()
   }
 
-  goToDesk(number) {
+  goToDesk(number, { keyboardStays = false } = {}) {
     number = Number(number)
     if (!number || number === this.state.desk) return
 
@@ -517,7 +568,10 @@ export default class extends Controller {
     this.save()
     this.draw()
     this.slideIn(number > from ? "right" : "left")
-    this.grabFocus()
+    if (!keyboardStays) this.grabFocus()
+
+    const names = leaves(this.desk.tree).map((id) => this.nameOf(id))
+    this.say(names.length ? `Desktop ${number}: ${names.join(", ")}` : `Desktop ${number}, nothing open`)
   }
 
   // The tiles of the desktop you arrive on come in from the side it lies on
@@ -575,6 +629,7 @@ export default class extends Controller {
     here.tile = other
     this.save()
     this.arrange({ glide: true })
+    this.say(`${this.nameOf(this.desk.focus)} moved ${direction}`)
   }
 
   // The tile you are on goes to another desktop, and you go with it
@@ -590,6 +645,7 @@ export default class extends Controller {
     this.save()
     this.draw()
     this.grabFocus()
+    this.say(`${this.nameOf(id)} moved to desktop ${this.state.desk}`)
   }
 
   // The tile you are on gets more of the split it is in, or less
@@ -611,6 +667,7 @@ export default class extends Controller {
     this.save()
     this.arrange({ glide: true })
     this.drawBar()
+    this.say(this.desk.alone ? `${this.nameOf(this.desk.focus)} alone` : "All tiles side by side again")
   }
 
   // ── Keys ──
@@ -620,7 +677,7 @@ export default class extends Controller {
     if (event.key === "Escape" && this.menuOpen) return this.closeMenu()
     if (event.key === "F6") {
       event.preventDefault()
-      return this.goToNext()
+      return this.goToNext(event.shiftKey ? -1 : 1)
     }
 
     const command = workspaceCommand(event)
@@ -657,9 +714,6 @@ export default class extends Controller {
       case "reload":
         if (this.desk.focus) this.reload(this.desk.focus)
         break
-      case "launcher":
-        this.launch()
-        break
     }
   }
 
@@ -679,6 +733,8 @@ export default class extends Controller {
 
     event.preventDefault()
     this.open(address.href)
+    // The keyboard goes to the tile that was asked for, not back to the menu's button
+    this.menuReturnsToButton = false
     this.closeMenu()
     // A form on this page led here (Turbo follows its redirect right after it ends): a
     // tool was made or renamed, and the menu and the launcher still have the old
@@ -696,10 +752,12 @@ export default class extends Controller {
       if (tools.size > 0 && !tools.has(toolIdOf(tile.url))) this.drop(id)
     }
     this.drawBar()
+    this.watchMenu()
+    this.menuChanged()
   }
 
   // The sidebar is the menu here: in over the tiles, with the keyboard on its first
-  // tool, and out again with the keyboard back in the tile
+  // tool, and out again with the keyboard back where it came from
   get menu() {
     return document.querySelector("[data-mobile-sidebar-target='sidebar']")
   }
@@ -713,7 +771,44 @@ export default class extends Controller {
 
     window.focus()
     this.menuTarget.click()
-    this.menu?.querySelector("[data-sidebar-tool-link]")?.focus()
+  }
+
+  // The menu's button: pressed with the keyboard on it, the keyboard comes back to it
+  menuAsked(event) {
+    this.menuReturnsToButton = event.isTrusted && event.detail === 0
+  }
+
+  closeMenu() {
+    if (!this.menuOpen) return
+
+    const around = this.element.closest("[data-controller~='mobile-sidebar']")
+    this.application.getControllerForElementAndIdentifier(around, "mobile-sidebar")?.close()
+  }
+
+  // Others open and close the menu too (its button, a click beside it), so what
+  // follows from that hangs on the menu itself
+  watchMenu() {
+    this.menuWatch.disconnect()
+    if (this.menu) this.menuWatch.observe(this.menu, { attributes: true, attributeFilter: [ "class" ] })
+  }
+
+  // In: its button says so, the tiles under it are out of reach, the keyboard is on
+  // the first tool. Out: the keyboard is back, and the page around the tiles is drawn
+  // again.
+  menuChanged() {
+    const open = Boolean(this.menuOpen)
+    if (open === Boolean(this.menuWasOpen)) return
+
+    this.menuWasOpen = open
+    this.menuTarget.setAttribute("aria-expanded", open)
+    this.tilesTarget.inert = open
+    if (open) {
+      this.menu.querySelector("[data-sidebar-tool-link]")?.focus()
+    } else {
+      this.menuReturnsToButton ? this.menuTarget.focus() : this.grabFocus()
+      this.menuReturnsToButton = false
+      this.freshen()
+    }
   }
 
   // The menu and the launcher were drawn when this page was, which can be hours ago:
@@ -724,15 +819,6 @@ export default class extends Controller {
     if (document.hidden || this.menuOpen || document.querySelector("dialog[open], :popover-open")) return
 
     Turbo.visit(location.href, { action: "replace" })
-  }
-
-  closeMenu() {
-    if (!this.menuOpen) return
-
-    const around = this.element.closest("[data-controller~='mobile-sidebar']")
-    this.application.getControllerForElementAndIdentifier(around, "mobile-sidebar")?.close()
-    this.grabFocus()
-    this.freshen()
   }
 
   // ── What the pages in the tiles say (tile_page_controller.js) ──
@@ -750,7 +836,7 @@ export default class extends Controller {
         if (!toolIdOf(path)) return this.strayed(id)
 
         Object.assign(this.state.tiles[id], { url: path, title: titleOf(message.title, this.appNameValue), strayed: false })
-        this.frameOf(id).title = this.state.tiles[id].title || "Tool"
+        this.nameTile(id)
         this.save()
         this.drawBar()
         break
@@ -776,7 +862,7 @@ export default class extends Controller {
         this.element.querySelector("[data-notifications-target='trigger']")?.click()
         break
       case "next":
-        this.goToNext()
+        this.goToNext(message.back ? -1 : 1)
         break
       case "gone":
         this.left(id)
@@ -806,10 +892,10 @@ export default class extends Controller {
     this.drop(id)
   }
 
-  // F6 in a tile: on to the next one
-  goToNext() {
+  // F6: on to the next tile, with Shift back to the one before
+  goToNext(step = 1) {
     const tiles = leaves(this.desk.tree)
-    const next = tiles[(tiles.indexOf(this.desk.focus) + 1) % tiles.length]
+    const next = tiles[(tiles.indexOf(this.desk.focus) + step + tiles.length) % tiles.length]
     if (next) this.focus(next)
     this.grabFocus()
   }

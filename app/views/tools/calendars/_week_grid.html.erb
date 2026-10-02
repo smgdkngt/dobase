@@ -145,6 +145,7 @@
                data-event-id="<%= event.id %>"
                role="button"
                tabindex="0"
+               aria-label="<%= event.summary %>, <%= event.all_day? ? format_date(event.start_time) : format_datetime(event.start_time) %>"
                data-arrow-keys-target="item"
                data-action="click->calendar#showEvent">
             <span class="truncate text-xs font-medium">

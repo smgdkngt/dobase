@@ -98,6 +98,6 @@ export function hasUnfinishedWork(frame) {
 
 // The app's own confirmation dialog (application.js), with its button saying Close
 export function confirmClosing() {
-  const message = "Something there isn't finished: an unsent message, or a call. Close it anyway?"
+  const message = "This tile has unfinished work, such as an unsent mail or a call. Close it anyway?"
   return Turbo.config.forms.confirm(message, null, { dataset: { turboConfirmButton: "Close" } })
 }

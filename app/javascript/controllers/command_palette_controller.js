@@ -66,7 +66,7 @@ export default class extends Controller {
   // matches tools leaves a dangling "ACTIONS" label with nothing below it.
   _toggleEmptySections() {
     const visible = (item) => !item.classList.contains("hidden")
-    const sectionOf = (item) => [ "action", "theme" ].includes(item.dataset.type) ? item.dataset.type : "tool"
+    const sectionOf = (item) => item.dataset.section || ([ "action", "theme" ].includes(item.dataset.type) ? item.dataset.type : "tool")
     const shown = new Set(this.itemTargets.filter(item => !item.dataset.searchResult && visible(item)).map(sectionOf))
 
     this.sectionHeaderTargets.forEach(header => header.classList.toggle("hidden", !shown.has(header.dataset.section)))
@@ -105,6 +105,14 @@ export default class extends Controller {
     } else {
       target.click()
     }
+  }
+
+  // Something the workspace does with its tiles (workspaces/_launcher_actions):
+  // workspace_controller.js hears it
+  workspaceCommand(event) {
+    const { command, desk } = event.currentTarget.dataset
+    this.element.close()
+    window.dispatchEvent(new CustomEvent("workspace:command", { detail: { name: command, desk: Number(desk) || null, shift: false } }))
   }
 
   // Puts a theme on, here and on every other page this person has open
@@ -156,8 +164,9 @@ export default class extends Controller {
     const selected = this.#selectedItem || this.#visibleItems[0]
     if (!selected) return
 
-    // Actions click the element their hotkey is on; a theme puts itself on
-    if (selected.dataset.hotkeyTrigger || selected.dataset.type === "theme") {
+    // Actions click the element their hotkey is on; a theme puts itself on, and so
+    // does anything else that is a button
+    if (selected.dataset.hotkeyTrigger || selected.dataset.type === "theme" || selected.matches("button")) {
       selected.click()
       return
     }

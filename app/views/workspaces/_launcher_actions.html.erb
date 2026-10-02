@@ -1,0 +1,51 @@
+<%# What the workspace does with its tiles, by name: for whoever's keyboard has other
+    plans for those keys (a screen reader, a window manager). Shown once you type
+    towards one. command_palette_controller.js#workspaceCommand %>
+<%
+  actions = [
+    [ "Close the tile", "close", "x", workspace_key("W") ],
+    [ "Show the tile alone, and back", "zoom", "grid-2x2", workspace_key("F") ],
+    [ "Go to the tile on the left", "left", "arrow-left", workspace_key("←") ],
+    [ "Go to the tile on the right", "right", "arrow-right", workspace_key("→") ],
+    [ "Go to the tile above", "up", "arrow-up", workspace_key("↑") ],
+    [ "Go to the tile below", "down", "arrow-down", workspace_key("↓") ],
+    [ "Make the tile bigger", "grow", "plus", workspace_key("Plus") ],
+    [ "Make the tile smaller", "shrink", "minus", workspace_key("Minus") ],
+    [ "Reload the tile", "reload", "refresh-cw", workspace_key("R") ],
+    [ "Open the menu", "menu", "menu", workspace_key("M") ]
+  ]
+%>
+<div class="px-4 py-1.5 hidden" data-command-palette-target="sectionHeader" data-section="workspace">
+  <span class="text-xs font-semibold text-text-tertiary uppercase tracking-wider">Workspace</span>
+</div>
+<% actions.each do |description, command, icon, key| %>
+  <button type="button"
+          class="command-palette-item w-full text-left hidden"
+          data-command-palette-target="item"
+          data-action="click->command-palette#workspaceCommand"
+          data-when-typed
+          data-section="workspace"
+          data-name="<%= description.downcase %>"
+          data-type="workspace tile"
+          data-command="<%= command %>">
+    <%= render "shared/icon", name: icon, size: 18, class: "text-text-secondary" %>
+    <span class="flex-1 truncate"><%= description %></span>
+    <kbd class="shortcut-key"><%= key %></kbd>
+  </button>
+<% end %>
+<% (1..9).each do |desk| %>
+  <button type="button"
+          class="command-palette-item w-full text-left hidden"
+          data-command-palette-target="item"
+          data-action="click->command-palette#workspaceCommand"
+          data-when-typed
+          data-section="workspace"
+          data-name="go to desktop <%= desk %>"
+          data-type="workspace"
+          data-command="desk"
+          data-desk="<%= desk %>">
+    <%= render "shared/icon", name: "grid-2x2", size: 18, class: "text-text-secondary" %>
+    <span class="flex-1 truncate">Go to desktop <%= desk %></span>
+    <kbd class="shortcut-key"><%= workspace_key(desk) %></kbd>
+  </button>
+<% end %>

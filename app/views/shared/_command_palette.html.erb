@@ -44,6 +44,8 @@
       </a>
     <% end %>
 
+    <%= render "workspaces/launcher_actions" if @workspace %>
+
     <%# The themes, once you type towards one %>
     <div class="px-4 py-1.5 hidden" data-command-palette-target="sectionHeader" data-section="theme">
       <span class="text-xs font-semibold text-text-tertiary uppercase tracking-wider">Themes</span>
@@ -72,7 +74,7 @@
   <% if @workspace %>
     <p class="command-palette-hint">
       <span><kbd class="shortcut-key">↵</kbd> Open as a tile</span>
-      <span><kbd class="shortcut-key">⇧</kbd> <kbd class="shortcut-key">↵</kbd> In a tile of its own</span>
+      <span><kbd class="shortcut-key"><%= mac? ? "⇧↵" : "Shift+Enter" %></kbd> In a new tile</span>
     </p>
   <% end %>
 </dialog>

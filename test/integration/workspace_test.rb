@@ -20,7 +20,7 @@ class WorkspaceTest < ActionDispatch::IntegrationTest
     assert_select "[data-controller~='workspace'] #workspace-tiles[data-turbo-permanent]"
     assert_select "aside.sidebar"
     assert_select "meta[name='turbo-cache-control'][content='no-cache']"
-    assert_select "form[action='#{workspace_path}'][data-turbo='false'] button", text: /One tool at a time/
+    assert_select "form[action='#{workspace_path}'][data-turbo='false'] button", text: /Use one tool at a time/
   end
 
   test "an empty workspace opens with the tool you were last on, or your first one" do
@@ -92,7 +92,7 @@ class WorkspaceTest < ActionDispatch::IntegrationTest
     get tool_files_path(@files)
 
     assert_select "script[src*='workspace_gate']", count: 0
-    assert_select "#sidebar-add-menu a[href='#{workspace_path}']", text: /Tiling workspace/
+    assert_select "#sidebar-user-menu a[href='#{workspace_path}']", text: /Use the tiling workspace/
   end
 
   test "a tile never holds the workspace itself" do

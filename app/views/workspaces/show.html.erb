@@ -21,64 +21,82 @@
      data-workspace-app-name-value="<%= app_name %>"
      data-workspace-start-value="<%= @start_path %>">
   <header class="workspace-bar">
-    <button type="button" class="workspace-bar-btn" title="Menu (<%= workspace_modifier %> M)"
-            aria-label="Menu with all your tools"
-            data-workspace-target="menu"
-            data-action="click->mobile-sidebar#toggle">
-      <%= render "shared/logo", class: "w-5 h-5" %>
-    </button>
+    <div class="workspace-bar-side">
+      <button type="button" class="workspace-bar-btn" title="Menu (<%= workspace_key("M") %>)"
+              aria-label="Menu" aria-expanded="false" aria-controls="sidebar"
+              data-workspace-target="menu"
+              data-action="click->mobile-sidebar#toggle click->workspace#menuAsked">
+        <%= render "shared/logo", class: "w-5 h-5" %>
+      </button>
 
-    <nav class="workspace-desks" aria-label="Desktops" data-workspace-target="desks"></nav>
+      <nav class="workspace-desks" aria-label="Desktops" data-workspace-target="desks"></nav>
+    </div>
 
     <p class="workspace-bar-title" data-workspace-target="title"></p>
 
-    <button type="button" class="workspace-launcher"
-            data-action="click->keyboard-shortcuts#openCommandPalette">
-      <%= render "shared/icon", name: "search", size: 14 %>
-      <span>Open a tool…</span>
-      <kbd class="shortcut-key"><%= launcher_key %></kbd>
-    </button>
+    <div class="workspace-bar-side justify-end">
+      <button type="button" class="workspace-launcher"
+              data-action="click->keyboard-shortcuts#openCommandPalette">
+        <%= render "shared/icon", name: "search", size: 14 %>
+        <span>Open a tool…</span>
+        <kbd class="shortcut-key"><%= launcher_key %></kbd>
+      </button>
 
-    <% unread_count = current_user.notifications.unread.count %>
-    <div class="relative flex"
-         data-controller="notifications"
-         data-notifications-user-id-value="<%= current_user.id %>"
-         data-notifications-app-name-value="<%= app_name %>"
-         data-notifications-unread-count-value="<%= unread_count %>"
-         data-notifications-unread-mail-count-value="<%= current_user.unread_mail_count %>">
-      <button type="button" class="workspace-bar-btn relative"
-              aria-label="Notifications"
-              popovertarget="sidebar-notifications"
-              style="anchor-name: --workspace-notifications-btn"
-              data-notifications-target="trigger"
-              data-action="click->notifications#togglePopover">
-        <%= render "shared/icon", name: "bell", size: 16 %>
-        <span class="absolute -top-0.5 -right-0.5 badge badge-sm <%= "hidden" if unread_count.zero? %>"
-              aria-hidden="true"
-              data-notifications-target="badge"><%= unread_count %></span>
+      <% unread_count = current_user.notifications.unread.count %>
+      <div class="relative flex"
+           data-controller="notifications"
+           data-notifications-user-id-value="<%= current_user.id %>"
+           data-notifications-app-name-value="<%= app_name %>"
+           data-notifications-unread-count-value="<%= unread_count %>"
+           data-notifications-unread-mail-count-value="<%= current_user.unread_mail_count %>">
+        <button type="button" class="workspace-bar-btn relative"
+                aria-label="Notifications"
+                popovertarget="sidebar-notifications"
+                style="anchor-name: --workspace-notifications-btn"
+                data-notifications-target="trigger"
+                data-action="click->notifications#togglePopover">
+          <%= render "shared/icon", name: "bell", size: 16 %>
+          <span class="absolute -top-0.5 -right-0.5 badge badge-sm <%= "hidden" if unread_count.zero? %>"
+                aria-hidden="true"
+                data-notifications-target="badge"><%= unread_count %></span>
+        </button>
+      </div>
+
+      <button type="button" class="workspace-bar-btn"
+              aria-label="Account menu for <%= current_user.name %>"
+              aria-haspopup="menu"
+              popovertarget="sidebar-user-menu"
+              style="anchor-name: --workspace-user-btn">
+        <%= render "shared/avatar", user: current_user, size: :sm %>
       </button>
     </div>
 
-    <button type="button" class="workspace-bar-btn"
-            aria-label="Account menu for <%= current_user.name %>"
-            aria-haspopup="menu"
-            popovertarget="sidebar-user-menu"
-            style="anchor-name: --workspace-user-btn">
-      <%= render "shared/avatar", user: current_user, size: :sm %>
-    </button>
+    <%# What happened to the tiles, for whoever can't see it happen %>
+    <p class="sr-only" role="status" data-workspace-target="status"></p>
   </header>
+
+  <%# Shown until it is dismissed, once per browser: what is different here. Before the
+      tiles, so the Tab key gets to it before it goes through every one of them. %>
+  <aside class="workspace-hint" hidden data-workspace-target="hint" aria-label="About the workspace">
+    <p>
+      Every tool you open is a tile here, and the tiles share the window.
+      <kbd class="shortcut-key"><%= launcher_key %></kbd> opens a tool, <kbd class="shortcut-key">?</kbd> lists the shortcuts.
+    </p>
+    <%= render "components/button", text: "Got it", size: :sm, variant: :secondary, type: :button,
+          data: { action: "click->workspace#dismissHint" } %>
+  </aside>
 
   <div class="workspace-tiles" id="workspace-tiles" data-turbo-permanent data-workspace-target="tiles">
     <div class="workspace-empty" data-workspace-target="empty" hidden>
       <% if @start_path %>
         <div class="workspace-empty-hints">
           <%= render "components/empty_state", title: "Nothing open on this desktop", icon: "grid-2x2",
-                description: "Open a tool and it takes the room. The next one goes beside it." %>
+                description: "Open a tool, and the next one tiles beside it." %>
           <dl class="workspace-keys">
             <div><dt><kbd class="shortcut-key"><%= launcher_key %></kbd></dt><dd>Open a tool</dd></div>
-            <div><dt><kbd class="shortcut-key"><%= workspace_modifier %> M</kbd></dt><dd>The menu</dd></div>
-            <div><dt><kbd class="shortcut-key"><%= workspace_modifier %> 1 – 9</kbd></dt><dd>Another desktop</dd></div>
-            <div><dt><kbd class="shortcut-key">?</kbd></dt><dd>All the keys</dd></div>
+            <div><dt><kbd class="shortcut-key"><%= workspace_key("M") %></kbd></dt><dd>Open the menu</dd></div>
+            <div><dt><kbd class="shortcut-key"><%= workspace_key("1–9") %></kbd></dt><dd>Go to a desktop</dd></div>
+            <div><dt><kbd class="shortcut-key">?</kbd></dt><dd>Show all shortcuts</dd></div>
           </dl>
         </div>
       <% else %>
@@ -88,20 +106,10 @@
     </div>
   </div>
 
-  <%# Shown until it is dismissed, once per browser: what is different here %>
-  <aside class="workspace-hint" hidden data-workspace-target="hint" aria-label="About the workspace">
-    <p>
-      Every tool you open is a tile here, and the tiles arrange themselves.
-      <kbd class="shortcut-key"><%= launcher_key %></kbd> opens one, <kbd class="shortcut-key">?</kbd> shows the keys.
-    </p>
-    <%= render "components/button", text: "Got it", size: :sm, variant: :secondary, type: :button,
-          data: { action: "click->workspace#dismissHint" } %>
-  </aside>
-
   <template data-workspace-target="tileTemplate">
     <section class="workspace-tile" aria-label="Tile">
       <div class="workspace-tile-controls">
-        <%= render "components/icon_button", icon: "x", title: "Close this tile (#{workspace_modifier} W)", size: :sm,
+        <%= render "components/icon_button", icon: "x", title: "Close this tile (#{workspace_key("W")})", size: :sm,
               data: { action: "click->workspace#closeTile" } %>
       </div>
     </section>

@@ -117,9 +117,8 @@ class WorkspaceTest < ApplicationSystemTestCase
     page.driver.browser.manage.window.resize_to(900, 900)
 
     assert_equal 1, tiles.size
-    find(".mobile-bottom-bar-center").click
-    find(".sidebar-logo-btn", match: :first).click
-    assert_selector "button", text: "One tool at a time"
+    find(".mobile-bottom-bar-item[popovertarget='sidebar-user-menu']").click
+    assert_selector "button", text: "Use one tool at a time"
   ensure
     page.driver.browser.manage.window.resize_to(1400, 1400)
   end
@@ -144,7 +143,7 @@ class WorkspaceTest < ApplicationSystemTestCase
     # The tool is open, so the launcher would go to it; with Shift it opens beside it
     find(".workspace-launcher").click
     within "dialog[data-controller~='command-palette'][open]" do
-      assert_text "In a tile of its own"
+      assert_text "In a new tile"
       input = find("input[data-command-palette-target='input']")
       input.set(docs.name)
       assert_selector ".command-palette-item.selected", text: docs.name
@@ -170,6 +169,79 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_no_selector ".sidebar.open"
     assert_selector ".workspace-tile:not([hidden], [data-leaving])", count: 2
     within_tile(1) { assert_selector "h1", text: opened }
+  end
+
+  test "the menu's button says it is open, keeps the tiles out of reach, and gets the keyboard back" do
+    menu = find(".workspace-bar-btn[aria-label='Menu']")
+    assert_equal "false", menu["aria-expanded"]
+
+    menu.send_keys(:enter)
+    assert_selector ".sidebar.open"
+    assert_selector ".workspace-bar-btn[aria-label='Menu'][aria-expanded='true']"
+    assert_selector "#workspace-tiles[inert]"
+    assert_selector "[data-sidebar-tool-link]:focus"
+
+    type_keys :escape
+    assert_no_selector ".sidebar.open"
+    assert_selector ".workspace-bar-btn[aria-label='Menu'][aria-expanded='false']:focus"
+    assert_no_selector "#workspace-tiles[inert]"
+  end
+
+  test "a tile, its frame and its close button are called after what is in it" do
+    launch @files
+
+    assert_selector ".workspace-tile[aria-label='#{@files.name}'][aria-current='true']"
+    assert_selector ".workspace-tile[aria-label='#{@board.name}']:not([aria-current])"
+    assert_selector ".workspace-tile iframe[title='#{@files.name}']"
+    assert_selector ".workspace-tile button[aria-label='Close #{@files.name}']", visible: :all
+    assert_selector "[data-workspace-target='status']", text: "#{@files.name} opened", visible: :all
+  end
+
+  test "what the keys do is in the launcher by name" do
+    launch @files
+    assert_equal 2, tiles.size
+
+    find(".workspace-launcher").click
+    within "dialog[data-controller~='command-palette'][open]" do
+      assert_no_selector ".command-palette-item", text: "Close the tile"
+      input = find("input[data-command-palette-target='input']")
+      input.set("close the tile")
+      assert_selector ".command-palette-item.selected", text: "Close the tile"
+      input.send_keys(:enter)
+    end
+
+    assert_selector ".workspace-tile:not([hidden], [data-leaving])", count: 1
+    within_tile(0) { assert_selector "h1", text: @board.name }
+    assert_selector "[data-workspace-target='status']", text: "#{@files.name} closed", visible: :all
+  end
+
+  test "a desktop picked with the keyboard on its button leaves the keyboard there" do
+    assert_selector ".workspace-desk", count: 2
+    find(".workspace-desk", text: "2").send_keys(:enter)
+
+    assert_selector ".workspace-desk[aria-current='true']:focus", text: "2"
+    assert_text "Nothing open on this desktop"
+    # The one in use, the one you are on; nothing further is on offer until this one is used
+    assert_selector ".workspace-desk", count: 2
+  end
+
+  test "F6 goes on to the next tile, and with Shift back" do
+    launch @files
+    launch @todos
+    assert_focused 2
+
+    type_keys :f6
+    assert_focused 0
+    type_keys :shift, :f6
+    assert_focused 2
+  end
+
+  test "the bell in the bar opens the notifications over the tiles" do
+    find(".workspace-bar-btn[aria-label='Notifications']").click
+
+    assert_selector "#sidebar-notifications", text: "Notifications"
+    type_keys :escape
+    assert_no_selector "#sidebar-notifications"
   end
 
   test "the desktops in the bar show which tools are on them" do
@@ -236,7 +308,7 @@ class WorkspaceTest < ApplicationSystemTestCase
   end
 
   test "a tool picked from the menu opens as a tile" do
-    find(".workspace-bar-btn[aria-label='Menu with all your tools']").click
+    find(".workspace-bar-btn[aria-label='Menu']").click
     find("[data-sidebar-tool-link]", text: @todos.name).click
 
     within_tile(1) { assert_selector "h1", text: @todos.name }
@@ -245,7 +317,7 @@ class WorkspaceTest < ApplicationSystemTestCase
   end
 
   test "a tool made here opens as a tile, and the menu and the launcher know it at once" do
-    find(".workspace-bar-btn[aria-label='Menu with all your tools']").click
+    find(".workspace-bar-btn[aria-label='Menu']").click
     find(".sidebar-logo-btn", match: :first).click
     click_on "Add Tool"
     within "dialog#new-tool-modal[open]" do
@@ -274,9 +346,8 @@ class WorkspaceTest < ApplicationSystemTestCase
   end
 
   test "one tool at a time brings the sidebar back, and the workspace is a click away" do
-    find(".workspace-bar-btn[aria-label='Menu with all your tools']").click
-    find(".sidebar-logo-btn", match: :first).click
-    click_on "One tool at a time"
+    find(".workspace-bar-btn[popovertarget='sidebar-user-menu']").click
+    click_on "Use one tool at a time"
 
     assert_no_selector "[data-controller~='workspace']"
     assert_selector ".sidebar"
@@ -287,8 +358,8 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_selector "main h1", text: @files.name
     assert_current_path tool_files_path(@files)
 
-    find(".sidebar-logo-btn", match: :first).click
-    click_on "Tiling workspace"
+    find(".sidebar-user-btn").click
+    click_on "Use the tiling workspace"
     assert_selector "[data-controller~='workspace']"
     within_tile(0) { assert_selector "h1", text: @board.name }
   end
