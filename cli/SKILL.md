@@ -130,6 +130,7 @@ dobase mail list inbox                   # --folder sent|starred|archive|drafts|
 dobase mail show 8/310                   # the whole conversation as text; --html for bodies
 dobase mail archive 8/310                # also: read, unread, star, unstar, unarchive
 dobase mail move 8/310 Receipts          # INBOX, Sent or a custom folder
+dobase mail trash 8/310                  # to the server's trash, with its conversation in the inbox; restore brings it back
 dobase mail reply 8/310 --body "Thanks, I'll take a look."  # a DRAFT with the original quoted below; --all to reply all
 dobase mail forward 8/310 --to bob@example.com --body "FYI"  # a DRAFT with the original quoted and its attachments
 dobase mail attachments 8/310            # list them; --save DIR downloads all, --name FILE just one
@@ -138,7 +139,10 @@ Hi Anna,
 
 The invoice is attached in Dobase.
 TXT
+dobase mail draft 8 --to a@example.com --subject "Offer" --body "Attached." --attach offer.pdf --attach terms.pdf
 dobase mail update 8/312 --subject "Invoice for September"  # change a saved draft; only what you pass changes
+dobase mail update 8/312 --attach invoice.pdf               # add a file; the attachments it has stay
+dobase mail discard 8/312                # a draft to the trash, by itself; mail restore 8/312 makes it a draft again
 dobase mail contacts 8 anna              # find an address
 dobase mail send 8 --draft 312           # sends real email: see the rules below
 dobase mail sync 8
@@ -151,9 +155,18 @@ separate `<p>`, `<ul>` and `<ol>` blocks; don't add empty `<p><br></p>` for spac
 installed Dobase app or the browser, ready to edit and send. Only when someone
 is at the computer.
 
-The CLI can't trash or delete mail. Trashing moves the message to the mail
-server's trash (or deletes it, on a server without one), so it stays in the
-browser. Archive instead.
+`--attach PATH` on `draft`, `update`, `reply` and `forward` puts a file on the
+draft; repeat it for more (25 MB together). The summary says how many
+attachments the draft has. With `--send` the mail goes out with them. To change
+a draft, use `mail update` on it: a new draft would lose the attachments and
+edits someone made in the compose page.
+
+The trash is the mail server's trash folder, whatever the server calls it
+("Deleted Messages", "Bin"): use `mail trash`, not `mail move`. `mail trash`
+takes the whole conversation in the inbox (or `--folder NAME`) along, like
+`mail archive`; `mail discard` takes only the draft. Both are undone with
+`mail restore`. The CLI can't delete mail for good or empty the trash, and on
+a mail server without a trash folder it can't trash either: archive instead.
 
 ## Calendar
 
@@ -208,7 +221,7 @@ dobase folder download 5/7 --output /tmp/  # a zip of everything inside
   and name it first. Prefer the reversible options: archive a card, finish a
   todo, archive an email.
 - The token can't change the account, connect mail or calendar accounts, invite
-  people, create or remove public share links, trash or delete mail, or delete
+  people, create or remove public share links, delete mail for good, or delete
   whole tools. Point the user to the browser for those.
 - Ids are stable, but check that a thing still exists (`show`) before acting on
   an id from much earlier in the conversation.

@@ -23,6 +23,8 @@ const (
 	mailBcc  = "Bcc recipients, comma-separated"
 	mailBody = "Message (plain text, or HTML with --html)"
 	mailOpen = "Open the saved draft in the Dobase app or your browser, ready to edit and send"
+	// The server takes this much per draft
+	mailAttach = "Attach this file; repeat for more (25 MB together)"
 )
 
 func mail() []*Definition {
@@ -48,6 +50,10 @@ func mail() []*Definition {
 		New("mail unarchive", "Move an archived message back to the inbox", []string{"TOOL/MESSAGE"}, nil, unarchiveMail),
 		New("mail move", "Move a message to another folder on the mail server: INBOX, Sent or a custom folder",
 			[]string{"TOOL/MESSAGE", "FOLDER"}, nil, moveMail),
+		New("mail trash", "Move a message, with its conversation in the inbox, to the trash on the mail server (nothing is deleted)",
+			[]string{"TOOL/MESSAGE"}, []Flag{F("folder", "FOLDER", "The folder the conversation is in, when it isn't the inbox")}, trashMail),
+		New("mail restore", "Bring a message back from the trash: to the inbox, or to Drafts when it is a draft", []string{"TOOL/MESSAGE"}, nil, restoreMail),
+		New("mail discard", "Discard a saved draft: it moves to the trash, and `mail restore` brings it back", []string{"TOOL/DRAFT"}, nil, discardMailDraft),
 		New("mail draft", "Save a new draft (nothing is sent; it is copied to the server's Drafts folder)", []string{"TOOL"},
 			[]Flag{
 				F("to", "ADDRS", mailTo),
@@ -56,9 +62,10 @@ func mail() []*Definition {
 				F("subject", "TEXT", "Subject"),
 				F("body", "TEXT", mailBody),
 				Switch("html", "The body is HTML"),
+				Each("attach", "PATH", mailAttach),
 				Switch("open", mailOpen),
 			}, draftMail),
-		New("mail update", "Change a saved draft: only what you pass changes, and nothing is sent", []string{"TOOL/DRAFT"},
+		New("mail update", "Change a saved draft: only what you pass changes (attachments are added to the ones it has), and nothing is sent", []string{"TOOL/DRAFT"},
 			[]Flag{
 				F("to", "ADDRS", mailTo),
 				F("cc", "ADDRS", mailCc),
@@ -66,6 +73,7 @@ func mail() []*Definition {
 				F("subject", "TEXT", "Subject"),
 				F("body", "TEXT", mailBody),
 				Switch("html", "The body is HTML"),
+				Each("attach", "PATH", mailAttach),
 				Switch("open", mailOpen),
 			}, updateMailDraft),
 		New("mail reply", "Reply to a message, quoting it below your text: saves a draft, or sends real email right away with --send", []string{"TOOL/MESSAGE"},
@@ -73,6 +81,7 @@ func mail() []*Definition {
 				F("body", "TEXT", "Your reply (plain text, or HTML with --html)"),
 				Switch("all", "Reply to all: cc everyone else on the message"),
 				Switch("html", "The body is HTML"),
+				Each("attach", "PATH", mailAttach),
 				Switch("send", "Send it now through the mail server instead of saving a draft"),
 				Switch("open", mailOpen),
 			}, replyMail),
@@ -83,6 +92,7 @@ func mail() []*Definition {
 				F("cc", "ADDRS", mailCc),
 				F("body", "TEXT", "A note above the forwarded message (plain text, or HTML with --html)"),
 				Switch("html", "The body is HTML"),
+				Each("attach", "PATH", "Attach this file too, next to the original's; repeat for more (25 MB together)"),
 				Switch("send", "Send it now through the mail server instead of saving a draft"),
 				Switch("open", mailOpen),
 			}, forwardMail),
@@ -286,6 +296,10 @@ func moveMail(ctx *Ctx, args *Args) error {
 			hint = "; use `dobase mail star`"
 		case "archive":
 			hint = "; use `dobase mail archive`"
+		case "trash":
+			hint = "; use `dobase mail trash`"
+		case "drafts":
+			hint = "; a discarded draft comes back with `dobase mail restore`"
 		}
 		return api.Usagef("%s is a view, not a folder%s. Move to INBOX, Sent or a custom folder (see `dobase mail list`).", folder, hint)
 	}
@@ -295,6 +309,11 @@ func moveMail(ctx *Ctx, args *Args) error {
 		return err
 	}
 	message, err := ctx.Post(fmt.Sprintf("/tools/%s/mails/%d/move", tool.Get("id").S(), id), api.Object("folder", folder))
+	if api.StatusOf(err) == 422 {
+		// The server's trash ("Deleted Messages", "Bin", ...) is no folder to move to: it is the trash here
+		return api.Failf("%s has no folder %s to move mail to. Move to INBOX, Sent or a custom folder (see `dobase mail list`), or trash it with `dobase mail trash`.",
+			tool.Get("name").S(), Quoted(folder))
+	}
 	if err != nil {
 		return err
 	}
@@ -304,8 +323,57 @@ func moveMail(ctx *Ctx, args *Args) error {
 	})
 }
 
+func trashMail(ctx *Ctx, args *Args) error {
+	tool, id, err := ctx.ToolAndID(args.At(0), "mail", "message")
+	if err != nil {
+		return err
+	}
+	message, err := ctx.Post(fmt.Sprintf("/tools/%s/mails/%d/trash", tool.Get("id").S(), id), api.Object("folder", optionalMailFlag(args, "folder")))
+	if err != nil {
+		return err
+	}
+	return ctx.Output(message, func() error {
+		ctx.Sayf("Moved %s to the trash. Bring it back with: dobase mail restore %s/%s", mailDescribe(tool, message), tool.Get("id").S(), message.Get("id").S())
+		return nil
+	})
+}
+
+func restoreMail(ctx *Ctx, args *Args) error {
+	return changeMail(ctx, args, false, "trash", func(message string) string { return "Restored " + message + " from the trash." })
+}
+
+func discardMailDraft(ctx *Ctx, args *Args) error {
+	tool, id, err := ctx.ToolAndID(args.At(0), "mail", "draft")
+	if err != nil {
+		return err
+	}
+	saved, err := messageInConversation(ctx, tool, id)
+	if err != nil {
+		return err
+	}
+	if !saved.Get("draft").Truthy() {
+		return api.Failf("%[1]s/%[2]d is not a draft. Trash mail with: dobase mail trash %[1]s/%[2]d", tool.Get("id").S(), id)
+	}
+	if saved.Get("trashed").Truthy() {
+		return api.Failf("Draft %s/%d is in the trash already.", tool.Get("id").S(), id)
+	}
+	draft, err := ctx.Post(fmt.Sprintf("/tools/%s/mails/%d/trash", tool.Get("id").S(), id), map[string]any{})
+	if err != nil {
+		return err
+	}
+	return ctx.Output(draft, func() error {
+		ctx.Sayf("Discarded draft %s: it is in the trash. Bring it back with: dobase mail restore %s/%s",
+			mailDescribe(tool, draft), tool.Get("id").S(), draft.Get("id").S())
+		return nil
+	})
+}
+
 func draftMail(ctx *Ctx, args *Args) error {
 	if err := requireMailFlags(args, "to", "subject", "body"); err != nil {
+		return err
+	}
+	files, err := mailFiles(args)
+	if err != nil {
 		return err
 	}
 	tool, err := ctx.Tool(args.At(0), "mail")
@@ -326,9 +394,12 @@ func draftMail(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
+	if draft, err = attachToDraft(ctx, tool, draft, files); err != nil {
+		return err
+	}
 	err = ctx.Output(draft, func() error {
-		ctx.Sayf("Saved draft %s to %s. Send it with: dobase mail send %s --draft %s",
-			mailDescribe(tool, draft), mailList(draft.Get("to")), tool.Get("id").S(), draft.Get("id").S())
+		ctx.Sayf("Saved draft %s to %s%s. Send it with: dobase mail send %s --draft %s",
+			mailDescribe(tool, draft), mailList(draft.Get("to")), mailAttached(draft), tool.Get("id").S(), draft.Get("id").S())
 		return nil
 	})
 	if err != nil {
@@ -360,17 +431,27 @@ func updateMailDraft(ctx *Ctx, args *Args) error {
 			return err
 		}
 	}
-	if len(fields) == 0 {
-		return api.Usagef("Nothing to update. See `dobase help mail`.")
-	}
-
-	draft, err := ctx.Patch(fmt.Sprintf("/tools/%s/mails/drafts/%d", tool.Get("id").S(), id), fields)
+	files, err := mailFiles(args)
 	if err != nil {
 		return err
 	}
+	if len(fields) == 0 && len(files) == 0 {
+		return api.Usagef("Nothing to update. See `dobase help mail`.")
+	}
+
+	// Attaching alone changes nothing else: the files go onto the draft as it is
+	draft := api.Object("id", id)
+	if len(fields) > 0 {
+		if draft, err = ctx.Patch(fmt.Sprintf("/tools/%s/mails/drafts/%d", tool.Get("id").S(), id), fields); err != nil {
+			return err
+		}
+	}
+	if draft, err = attachToDraft(ctx, tool, draft, files); err != nil {
+		return err
+	}
 	err = ctx.Output(draft, func() error {
-		ctx.Sayf("Updated draft %s to %s. Send it with: dobase mail send %s --draft %s",
-			mailDescribe(tool, draft), mailRecipients(draft), tool.Get("id").S(), draft.Get("id").S())
+		ctx.Sayf("Updated draft %s to %s%s. Send it with: dobase mail send %s --draft %s",
+			mailDescribe(tool, draft), mailRecipients(draft), mailAttached(draft), tool.Get("id").S(), draft.Get("id").S())
 		return nil
 	})
 	if err != nil {
@@ -384,6 +465,10 @@ func replyMail(ctx *Ctx, args *Args) error {
 		return err
 	}
 	if err := refuseOpenWithSend(args); err != nil {
+		return err
+	}
+	files, err := mailFiles(args)
+	if err != nil {
 		return err
 	}
 	tool, id, err := ctx.ToolAndID(args.At(0), "mail", "message")
@@ -420,7 +505,7 @@ func replyMail(ctx *Ctx, args *Args) error {
 		// The server quotes it below the text as it was written, like the compose page does
 		"quoted_message_id", original.Get("id"),
 	)
-	if args.On("send") {
+	if args.On("send") && len(files) == 0 {
 		sent, err := ctx.Post(fmt.Sprintf("/tools/%s/mails", tool.Get("id").S()), reply)
 		if err != nil {
 			return err
@@ -434,9 +519,22 @@ func replyMail(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
+	if draft, err = attachToDraft(ctx, tool, draft, files); err != nil {
+		return err
+	}
+	if args.On("send") {
+		sent, err := sendMailDraft(ctx, tool, reply, draft)
+		if err != nil {
+			return err
+		}
+		return ctx.Output(sent, func() error {
+			ctx.Sayf("Sent %s to %s%s.", Quoted(sent.Get("subject").S()), mailRecipients(sent), mailAttached(draft))
+			return nil
+		})
+	}
 	err = ctx.Output(draft, func() error {
-		ctx.Sayf("Saved reply draft %s to %s. Send it with: dobase mail send %s --draft %s",
-			mailDescribe(tool, draft), mailRecipients(draft), tool.Get("id").S(), draft.Get("id").S())
+		ctx.Sayf("Saved reply draft %s to %s%s. Send it with: dobase mail send %s --draft %s",
+			mailDescribe(tool, draft), mailRecipients(draft), mailAttached(draft), tool.Get("id").S(), draft.Get("id").S())
 		return nil
 	})
 	if err != nil {
@@ -450,6 +548,10 @@ func forwardMail(ctx *Ctx, args *Args) error {
 		return err
 	}
 	if err := refuseOpenWithSend(args); err != nil {
+		return err
+	}
+	files, err := mailFiles(args)
+	if err != nil {
 		return err
 	}
 	tool, id, err := ctx.ToolAndID(args.At(0), "mail", "message")
@@ -486,8 +588,8 @@ func forwardMail(ctx *Ctx, args *Args) error {
 		"quoted_message_id", original.Get("id"),
 		"forward_attachment_ids", attachmentIDs,
 	)
-	attached := Count(int64(len(attachmentIDs)), "attachment")
-	if args.On("send") {
+	attached := Count(int64(len(attachmentIDs)+len(files)), "attachment")
+	if args.On("send") && len(files) == 0 {
 		sent, err := ctx.Post(fmt.Sprintf("/tools/%s/mails", tool.Get("id").S()), email)
 		if err != nil {
 			return err
@@ -500,6 +602,19 @@ func forwardMail(ctx *Ctx, args *Args) error {
 	draft, err := ctx.Post(fmt.Sprintf("/tools/%s/mails/drafts", tool.Get("id").S()), email)
 	if err != nil {
 		return err
+	}
+	if draft, err = attachToDraft(ctx, tool, draft, files); err != nil {
+		return err
+	}
+	if args.On("send") {
+		sent, err := sendMailDraft(ctx, tool, email, draft)
+		if err != nil {
+			return err
+		}
+		return ctx.Output(sent, func() error {
+			ctx.Sayf("Forwarded %s to %s with %s.", Quoted(sent.Get("subject").S()), mailRecipients(sent), attached)
+			return nil
+		})
 	}
 	err = ctx.Output(draft, func() error {
 		ctx.Sayf("Saved forward draft %s to %s with %s. Send it with: dobase mail send %s --draft %s",
@@ -775,6 +890,58 @@ func messageInConversation(ctx *Ctx, tool api.Value, id int64) (api.Value, error
 		return api.Null, api.Failf("%s/%d is not in its conversation.", tool.Get("id").S(), id)
 	}
 	return message, nil
+}
+
+// mailFiles are the files --attach names, checked before anything is saved or sent.
+func mailFiles(args *Args) ([]api.FilePart, error) {
+	var files []api.FilePart
+	for _, path := range args.All("attach") {
+		info, err := os.Stat(path)
+		if err != nil {
+			return nil, api.PathError(path, err)
+		}
+		if info.IsDir() {
+			return nil, api.Failf("%s is a directory. Attach files one by one.", path)
+		}
+		files = append(files, api.FilePart{Field: "files[]", Path: path})
+	}
+	return files, nil
+}
+
+// attachToDraft uploads files onto a saved draft, and is the draft with them on it.
+func attachToDraft(ctx *Ctx, tool, draft api.Value, files []api.FilePart) (api.Value, error) {
+	if len(files) == 0 {
+		return draft, nil
+	}
+	server, err := ctx.API()
+	if err != nil {
+		return draft, err
+	}
+	attached, err := server.Upload(fmt.Sprintf("/tools/%s/mails/drafts/%s/attachments", tool.Get("id").S(), draft.Get("id").S()), files, nil)
+	if err != nil {
+		return draft, api.Failf("Draft %s/%s is saved, but nothing was attached to it: %v", tool.Get("id").S(), draft.Get("id").S(), err)
+	}
+	return attached, nil
+}
+
+// mailAttached is " with 2 attachments" for a draft that has them.
+func mailAttached(draft api.Value) string {
+	count := int64(len(draft.Get("attachments").Items()))
+	return If(count > 0, " with "+Count(count, "attachment"))
+}
+
+// sendMailDraft sends email as the saved draft it was made into, with everything attached to that draft.
+func sendMailDraft(ctx *Ctx, tool, email, draft api.Value) (api.Value, error) {
+	attachmentIDs := []api.Value{}
+	for _, attachment := range draft.Get("attachments").Items() {
+		attachmentIDs = append(attachmentIDs, attachment.Get("id"))
+	}
+	email = email.With("draft_id", draft.Get("id")).With("forward_attachment_ids", attachmentIDs)
+	sent, err := ctx.Post(fmt.Sprintf("/tools/%s/mails", tool.Get("id").S()), email)
+	if err != nil {
+		return api.Null, api.Failf("Nothing was sent, and the mail is saved as draft %s/%s: %v", tool.Get("id").S(), draft.Get("id").S(), err)
+	}
+	return sent, nil
 }
 
 func refuseOpenWithSend(args *Args) error {

@@ -11,7 +11,8 @@ class SyncDraftJob < ApplicationJob
 
   def perform(draft_id)
     draft = Mails::Message.find_by(id: draft_id)
-    return unless draft&.draft?
+    # A draft discarded before it got here stays off the server
+    return unless draft&.draft? && !draft.trashed?
 
     ImapSyncService.new(draft.account).save_draft(draft)
   end

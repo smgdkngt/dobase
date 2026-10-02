@@ -35,6 +35,8 @@ Rails.application.routes.draw do
     end
   end
   resource :appearance, only: %i[show update]
+  # The logo in a theme's colours, as a picture a mail can show: /logos/7aa2f7-1a1b26.png
+  resources :logos, only: :show
   resource :two_factor_setup, only: %i[new create destroy]
 
   # Notifications
@@ -128,7 +130,9 @@ Rails.application.routes.draw do
 
       resources :mails, only: %i[index show new create destroy]
 
-      resources :mail_drafts, only: %i[create update], path: "mails/drafts", controller: "mails/drafts"
+      resources :mail_drafts, only: %i[create update], path: "mails/drafts", controller: "mails/drafts" do
+        resources :attachments, only: :create, controller: "mails/draft_attachments"
+      end
 
       resource :mails_account, only: %i[new create update], path: "mails/account", controller: "mails/accounts"
 

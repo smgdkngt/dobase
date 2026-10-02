@@ -287,3 +287,175 @@ func TestADraftIsChangedOnlyWhereFlagsSay(t *testing.T) {
 		t.Errorf("bcc %q", got)
 	}
 }
+
+func TestFilesAreAttachedToTheSavedDraft(t *testing.T) {
+	var sent []api.Value
+	var opened []string
+	var out bytes.Buffer
+	fake := newFakeAPI(mailWithAttachments, &sent)
+	ctx := mailCtx(&out, false, fake, &opened)
+
+	directory := t.TempDir()
+	offer, terms := filepath.Join(directory, "offer.pdf"), filepath.Join(directory, "terms.pdf")
+	for _, path := range []string{offer, terms} {
+		if err := os.WriteFile(path, []byte("pdf"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := invoke(ctx, "mail draft", "8", "--to", "ann@example.com", "--subject", "Plans", "--body", "Hi", "--attach", offer, "--attach", terms); err != nil {
+		t.Fatal(err)
+	}
+	if err := invoke(ctx, "mail reply", "8/310", "--body", "Sure", "--attach="+offer, "--open"); err != nil {
+		t.Fatal(err)
+	}
+	if err := invoke(ctx, "mail forward", "8/310", "--to", "bob@example.com", "--attach", terms); err != nil {
+		t.Fatal(err)
+	}
+	// Attaching alone leaves the rest of the draft as it is
+	if err := invoke(ctx, "mail update", "8/312", "--attach", offer); err != nil {
+		t.Fatal(err)
+	}
+
+	if want := []string{"POST /tools/8/mails/drafts", "POST /tools/8/mails/drafts", "POST /tools/8/mails/drafts"}; !slices.Equal(fake.requests, want) {
+		t.Errorf("requests %v", fake.requests)
+	}
+	if want := []string{
+		"/tools/8/mails/drafts/400/attachments: files[]=offer.pdf, files[]=terms.pdf",
+		"/tools/8/mails/drafts/400/attachments: files[]=offer.pdf",
+		"/tools/8/mails/drafts/400/attachments: files[]=terms.pdf",
+		"/tools/8/mails/drafts/312/attachments: files[]=offer.pdf",
+	}; !slices.Equal(fake.uploads, want) {
+		t.Errorf("uploads %v", fake.uploads)
+	}
+	for _, want := range []string{
+		`Saved draft 8/400 "Plans" to ann@example.com with 2 attachments. Send it`,
+		`Saved reply draft 8/400 "Plans" to ann@example.com with 1 attachment. Send it`,
+		`Saved forward draft 8/400 "Plans" to ann@example.com with 3 attachments. Send it`,
+		`Updated draft 8/400 "Plans" to ann@example.com with 1 attachment. Send it`,
+	} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("no %q in %q", want, out.String())
+		}
+	}
+	if len(opened) != 1 {
+		t.Errorf("opened %v", opened)
+	}
+}
+
+func TestAMissingFileStopsTheDraftBeforeItIsSaved(t *testing.T) {
+	var sent []api.Value
+	var opened []string
+	var out bytes.Buffer
+	fake := newFakeAPI(mailWithAttachments, &sent)
+	ctx := mailCtx(&out, false, fake, &opened)
+	directory := t.TempDir()
+
+	for _, path := range []string{filepath.Join(directory, "missing.pdf"), directory} {
+		for _, command := range [][]string{
+			{"mail draft", "8", "--to", "ann@example.com", "--subject", "Plans", "--body", "Hi", "--attach", path},
+			{"mail reply", "8/310", "--body", "Sure", "--send", "--attach", path},
+			{"mail forward", "8/310", "--to", "bob@example.com", "--attach", path},
+			{"mail update", "8/312", "--subject", "Plans", "--attach", path},
+		} {
+			if err := invoke(ctx, command[0], command[1:]...); err == nil || !strings.Contains(err.Error(), path) {
+				t.Errorf("%s: got %v", command[0], err)
+			}
+		}
+	}
+	if len(fake.requests) > 0 || len(fake.uploads) > 0 {
+		t.Errorf("requests %v, uploads %v", fake.requests, fake.uploads)
+	}
+}
+
+func TestADraftThatCouldNotTakeItsFilesIsStillThere(t *testing.T) {
+	var sent []api.Value
+	var opened []string
+	var out bytes.Buffer
+	fake := newFakeAPI(mailWithAttachments, &sent)
+	fake.errors = map[string]error{"/tools/8/mails/drafts/400/attachments": api.Failf("A draft's attachments can be 25 MB together (HTTP 422)")}
+	ctx := mailCtx(&out, false, fake, &opened)
+	big := filepath.Join(t.TempDir(), "big.zip")
+	if err := os.WriteFile(big, []byte("zip"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	err := invoke(ctx, "mail reply", "8/310", "--body", "Sure", "--send", "--attach", big)
+
+	if err == nil || !strings.Contains(err.Error(), "Draft 8/400 is saved, but nothing was attached to it: A draft's attachments can be 25 MB together") {
+		t.Errorf("got %v", err)
+	}
+	// Nothing went out without its attachment
+	if want := []string{"POST /tools/8/mails/drafts"}; !slices.Equal(fake.requests, want) {
+		t.Errorf("requests %v", fake.requests)
+	}
+}
+
+func TestSendingWithAttachmentsGoesThroughADraftThatHasThem(t *testing.T) {
+	var sent []api.Value
+	var opened []string
+	var out bytes.Buffer
+	fake := newFakeAPI(mailWithAttachments, &sent)
+	ctx := mailCtx(&out, false, fake, &opened)
+	offer := filepath.Join(t.TempDir(), "offer.pdf")
+	if err := os.WriteFile(offer, []byte("pdf"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := invoke(ctx, "mail reply", "8/310", "--body", "Sure", "--send", "--attach", offer); err != nil {
+		t.Fatal(err)
+	}
+
+	if want := []string{"POST /tools/8/mails/drafts", "POST /tools/8/mails"}; !slices.Equal(fake.requests, want) {
+		t.Errorf("requests %v", fake.requests)
+	}
+	if got := sent[1].Get("draft_id").JSON() + " " + sent[1].Get("forward_attachment_ids").JSON(); got != "400 [900]" {
+		t.Errorf("draft and attachments %s", got)
+	}
+	for _, key := range []string{"to", "subject", "body", "in_reply_to", "quoted_message_id"} {
+		if !sent[1].Get(key).Equal(sent[0].Get(key)) {
+			t.Errorf("%s: sent %s, saved %s", key, sent[1].Get(key).JSON(), sent[0].Get(key).JSON())
+		}
+	}
+	if !strings.Contains(out.String(), `Sent "Re: Plans" to ann@example.com with 1 attachment.`) {
+		t.Errorf("out %q", out.String())
+	}
+}
+
+func TestTrashIsItsOwnCommandAndADraftIsDiscardedByItself(t *testing.T) {
+	var sent []api.Value
+	var opened []string
+	var out bytes.Buffer
+	fake := newFakeAPI(mailWithAttachments, &sent)
+	fake.errors = map[string]error{"/tools/8/mails/310/move": &api.Error{Message: "Invalid folder name (HTTP 422)", Status: 422}}
+	ctx := mailCtx(&out, false, fake, &opened)
+
+	// The server's trash is no folder to move to, whatever the server calls it
+	err := invoke(ctx, "mail move", "8/310", "Deleted Messages")
+	if err == nil || !strings.Contains(err.Error(), "dobase mail trash") {
+		t.Errorf("got %v", err)
+	}
+	if err := invoke(ctx, "mail move", "8/310", "trash"); api.KindOf(err) != api.Usage || !strings.Contains(err.Error(), "dobase mail trash") {
+		t.Errorf("got %v", err)
+	}
+
+	for _, command := range [][]string{{"mail trash", "8/310"}, {"mail trash", "8/310", "--folder", "Receipts"}, {"mail restore", "8/310"}, {"mail discard", "8/312"}} {
+		if err := invoke(ctx, command[0], command[1:]...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Only a draft is discarded
+	if err := invoke(ctx, "mail discard", "8/310"); err == nil || !strings.Contains(err.Error(), "is not a draft") {
+		t.Errorf("got %v", err)
+	}
+
+	if want := []string{"POST /tools/8/mails/310/trash", "POST /tools/8/mails/310/trash", "DELETE /tools/8/mails/310/trash", "POST /tools/8/mails/312/trash"}; !slices.Equal(fake.requests, want) {
+		t.Errorf("requests %v", fake.requests)
+	}
+	if got := sent[1].Get("folder").S(); got != "Receipts" {
+		t.Errorf("folder %q", got)
+	}
+	if !strings.Contains(out.String(), "Discarded draft 8/400") || !strings.Contains(out.String(), "dobase mail restore 8/400") {
+		t.Errorf("out %q", out.String())
+	}
+}

@@ -154,7 +154,8 @@
   }
 
   /* HTML email: always on a light page, framed as a light card in dark mode, and in
-     a theme, whose page is rarely plain white */
+     a theme, whose page is rarely plain white. An email that paints a page of its
+     own gets the card in that colour (email_frame_controller.js). */
   .email-frame {
     @apply rounded-lg;
   }

@@ -446,6 +446,30 @@ class MailsTest < ApplicationSystemTestCase
     assert_selector "input[name='to'][value='not-an-address']", visible: :hidden
   end
 
+  test "an email that paints its own page has no white rim around it in a theme" do
+    @user.choose_theme("tokyo-night")
+    message = mails_messages(:inbox_unread)
+    message.update!(body_html: %(<div style="display:none">Preview</div><table width="100%" style="background-color: #1a1b26;"><tr><td style="color: #c0caf5; padding: 24px;">A mail in a dark theme</td></tr></table>))
+
+    visit tool_mail_path(@tool, message)
+    wait_for_stimulus "email-frame"
+    within_frame(find("iframe[data-email-frame-target=frame]")) { assert_text "A mail in a dark theme" }
+
+    card_color = -> { page.evaluate_script("getComputedStyle(document.querySelector('[data-email-frame-target=card]')).backgroundColor") }
+    assert_equal "rgb(26, 27, 38)", card_color.call
+
+    auto_refresh_mail
+    assert @tool.mail_account.reload.syncing?
+    assert_equal "rgb(26, 27, 38)", card_color.call, "a refresh put the white card back"
+
+    # An ordinary email stays on its white card
+    message.update!(body_html: "<p>Just some words</p>")
+    visit tool_mail_path(@tool, message)
+    wait_for_stimulus "email-frame"
+    within_frame(find("iframe[data-email-frame-target=frame]")) { assert_text "Just some words" }
+    assert_equal "rgb(255, 255, 255)", card_color.call
+  end
+
   test "a draft that fails to send stays whole, and the sender hears why" do
     draft = mails_messages(:draft_message)
     draft.update!(body_html: "<p>Hello there</p>")

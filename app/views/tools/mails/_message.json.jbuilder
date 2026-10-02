@@ -18,4 +18,4 @@ json.calendar_invites message.calendar_invites do |invite|
   json.(invite, :id, :summary, :starts_at, :ends_at, :all_day, :location, :organizer_name, :organizer_email, :status)
 end
 
-json.url message.draft? ? new_tool_mail_url(tool, draft_id: message.id) : tool_mail_url(tool, message)
+json.url (message.draft? && !message.trashed?) ? new_tool_mail_url(tool, draft_id: message.id) : tool_mail_url(tool, message)

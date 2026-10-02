@@ -23,12 +23,14 @@ module Tools
     def show
       respond_to do |format|
         format.html do
-          if @message.draft?
+          # A discarded draft is read in the trash, like other mail there
+          if @message.draft? && !@message.trashed?
             redirect_to new_tool_mail_path(@tool, draft_id: @message.id)
           else
             @selected_message = @message
             @current_folder = params[:folder] || "inbox"
-            @conversation_messages = @message.conversation_without_copies
+            # A discarded draft is out of its conversation: it only shows when it's opened from the trash
+            @conversation_messages = @message.conversation_without_copies.reject { |message| message.draft? && message.trashed? && message != @message }
             unread = @message.conversation.unread.to_a
             unread.each(&:mark_as_read!)
             # Read by now, which is what its "Mark unread" button goes by
@@ -229,7 +231,7 @@ module Tools
           has_attachments: thread.has_attachments,
           count: thread.count,
           unread_count: thread.unread_count,
-          draft: latest.draft?,
+          draft: latest.draft? && !latest.trashed?,
           participants: thread_messages.map { |message| [ message.from_name, message.from_address ] }.uniq.map { |name, address| name.presence || address }.first(3)
         }
       end

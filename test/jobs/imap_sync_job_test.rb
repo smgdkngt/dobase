@@ -199,6 +199,16 @@ class ImapSyncJobTest < ActiveJob::TestCase
     assert_equal [ [ "Drafts", [ :Draft, :Seen ] ] ], server.appended
   end
 
+  test "a draft that was discarded before it was saved on the server stays off it" do
+    draft = mails_messages(:draft_message)
+    draft.move_to_trash!
+    server = FakeImapServer.new(folders: [ "INBOX", "Drafts" ])
+
+    connect_to_imap(server) { perform_enqueued_jobs(only: SyncDraftJob) { SyncDraftJob.perform_later(draft.id) } }
+
+    assert_empty server.appended
+  end
+
   test "a draft that was on its way when the connection broke isn't saved again" do
     draft = mails_messages(:draft_message)
     server = FakeImapServer.new(folders: [ "INBOX", "Drafts" ])

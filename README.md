@@ -30,7 +30,7 @@ Built with Ruby on Rails 8.1, Hotwire, and Tailwind CSS.
 
 ## Themes
 
-Dobase follows your system's light and dark mode, or wears one of 22 themes: Tokyo Night, Catppuccin, Gruvbox, Nord, Rosé Pine and the rest of the [Omarchy](https://omarchy.org) set. Pick one under **Profile → Appearance**, or press <kbd>Cmd</kbd>+<kbd>K</kbd> and type its name. The typeface can be the system's monospace font, which on Omarchy is the font the desktop is set in. A theme goes all the way: labels, icons, the logo, the sign-in page, shared links and the installed app's title bar. On an Omarchy desktop, `dobase theme follow` makes Dobase switch along whenever you change the desktop's theme, with your own themes too.
+Dobase follows your system's light and dark mode, or wears one of 22 themes: Tokyo Night, Catppuccin, Gruvbox, Nord, Rosé Pine and the rest of the [Omarchy](https://omarchy.org) set. Pick one under **Profile → Appearance**, or press <kbd>Cmd</kbd>+<kbd>K</kbd> and type its name. The typeface can be the system's monospace font, which on Omarchy is the font the desktop is set in. The mails Dobase sends you come in your theme as well. A theme goes all the way: labels, icons, the logo, the sign-in page, shared links and the installed app's title bar. On an Omarchy desktop, `dobase theme follow` makes Dobase switch along whenever you change the desktop's theme, with your own themes too.
 
 ## API and command line
 

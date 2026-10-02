@@ -123,10 +123,12 @@ class ImapSyncService
       raw = build_raw_email(message)
       drafts_folder = find_special_folder(imap.list("", "*"), "Drafts")
 
-      # Delete old draft from server if it exists
-      if message.uid.present? && drafts_folder
+      # Delete old draft from server if it exists. A draft restored from the trash has no
+      # UID in the drafts folder yet, and is found by its Message-ID.
+      if drafts_folder
         imap.select(drafts_folder)
-        remove_from_folder(imap, message.uid)
+        earlier = message.uid.presence || find_by_message_id(imap, message.message_id)
+        remove_from_folder(imap, earlier) if earlier.present?
       end
 
       # Upload new version
@@ -310,10 +312,10 @@ class ImapSyncService
     # Remove local messages that no longer exist on the server in this folder.
     # Skip trashed/archived/draft rows — those are kept intentionally in other views.
     scope = @account.messages
-      .where(folder: folder_name, archived: false, draft: false)
+      .where(folder: folder_name, archived: false)
       .where.not(uid: nil)
-    # Mail in the server's trash is trashed here too, and leaves when the server empties it
-    scope = scope.where(trashed: false) unless folder_name == Mails::Account::TRASH
+    # Mail in the server's trash is trashed here too, discarded drafts with it, and leaves when the server empties it
+    scope = scope.where(trashed: false, draft: false) unless folder_name == Mails::Account::TRASH
     stale_uids = scope.pluck(:uid) - server_uids
     scope.where(uid: stale_uids).destroy_all if stale_uids.any?
   end
