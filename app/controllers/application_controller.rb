@@ -13,7 +13,7 @@ class ApplicationController < ActionController::Base
   after_action :track_last_visited_path
   after_action :remember_theme
 
-  helper_method :tile?, :workspace_wanted?
+  helper_method :tile?, :workspace_wanted?, :browser_scheme
 
   private
 
@@ -36,13 +36,22 @@ class ApplicationController < ActionController::Base
     Time.use_zone(timezone, &block)
   end
 
+  # Whether this browser's system is light or dark, as it said last (services/theme.js
+  # keeps a cookie): which of someone's two themes a page is drawn in. Nothing when
+  # it never said.
+  def browser_scheme
+    cookies[:scheme].presence_in(%w[light dark])
+  end
+
   # The sign-in page and shared links have nobody to ask for a theme, so the
   # browser keeps the one its person has (ApplicationHelper#remembered_theme).
   def remember_theme
     return unless current_user && Current.session && request.format.html?
 
-    if current_user.theme_name.present? || current_user.typeface.present?
-      theme = { name: current_user.theme_name, colors: current_user.theme_colors, typeface: current_user.typeface }.compact.to_json
+    worn = current_user.theme(browser_scheme)
+    if worn || current_user.typeface.present?
+      colors = current_user.theme_colors if worn && worn.name == current_user.theme_name
+      theme = { name: worn&.name, colors: colors, typeface: current_user.typeface }.compact.to_json
     end
     return if cookies.signed[:theme] == theme
 

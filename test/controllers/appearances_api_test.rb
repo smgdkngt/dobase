@@ -109,4 +109,38 @@ class AppearancesApiTest < ActionDispatch::IntegrationTest
     patch appearance_path, params: { theme: "nord" }, headers: headers, as: :json
     assert_response :forbidden
   end
+
+  test "a theme for light and one for dark, and each is shown by its scheme" do
+    patch appearance_path, params: { theme: "catppuccin-latte", scheme: "light" }, headers: @headers, as: :json
+    patch appearance_path, params: { theme: "tokyo-night", scheme: "dark" }, headers: @headers, as: :json
+
+    assert_response :success
+    body = response.parsed_body
+    assert_equal true, body["follows_system"]
+    assert_equal({ "name" => "catppuccin-latte", "label" => "Catppuccin Latte" }, body["light"])
+    assert_equal({ "name" => "tokyo-night", "label" => "Tokyo Night" }, body["dark"])
+    assert_equal "tokyo-night", body["name"]
+
+    get appearance_path, headers: @headers
+    assert_equal "catppuccin-latte", response.parsed_body["name"]
+
+    get appearance_path(scheme: "dark"), headers: @headers
+    assert_equal "tokyo-night", response.parsed_body["name"]
+    assert_equal "dark", response.parsed_body["mode"]
+  end
+
+  test "follow_system turns two themes on and off, and a theme without a scheme is one theme" do
+    patch appearance_path, params: { theme: "nord" }, headers: @headers, as: :json
+    patch appearance_path, params: { follow_system: true }, headers: @headers, as: :json
+
+    body = response.parsed_body
+    assert_equal true, body["follows_system"]
+    assert_equal "Dobase", body["light"]["label"]
+    assert_equal "nord", body["dark"]["name"]
+
+    patch appearance_path, params: { theme: "gruvbox" }, headers: @headers, as: :json
+    assert_equal false, response.parsed_body["follows_system"]
+    assert_nil response.parsed_body["dark"]
+    assert_equal "gruvbox", @user.reload.theme("dark").name
+  end
 end

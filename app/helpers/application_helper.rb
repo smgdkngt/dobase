@@ -22,7 +22,7 @@ module ApplicationHelper
   def current_theme
     return @current_theme if defined?(@current_theme)
 
-    @current_theme = Current.user ? Current.user.theme : Theme.for(remembered_appearance["name"], remembered_appearance["colors"])
+    @current_theme = Current.user ? Current.user.theme(browser_scheme) : Theme.for(remembered_appearance["name"], remembered_appearance["colors"])
   end
 
   # "mono" when the interface is set in the monospace font, by the same rule
@@ -45,7 +45,8 @@ module ApplicationHelper
   # What <html> wears for them; a change later on goes through services/theme.js
   def theme_attributes
     theme = current_theme
-    data = { theme_version: theme_version, typeface: current_typeface }.compact
+    # (follows the system: services/theme.js asks again when that goes light or dark)
+    data = { theme_version: theme_version, typeface: current_typeface, theme_follows_system: Current.user&.theme_follows_system? || nil }.compact
     return { data: data } unless theme
 
     { style: theme.style, data: data.merge(theme: theme.name, theme_mode: theme.mode) }

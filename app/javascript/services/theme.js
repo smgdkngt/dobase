@@ -1,7 +1,36 @@
 // Puts a theme on <html>, or takes it off again. The server renders a page with its
 // theme already on; this is for a theme that changes while a page is open.
 // `theme` is what Theme.payload gives: { version, name, mode, style, chrome_color }.
+import { api } from "services/api"
+
 const root = document.documentElement
+const dark = window.matchMedia("(prefers-color-scheme: dark)")
+
+// Whether the system is light or dark right now
+export function scheme() {
+  return dark.matches ? "dark" : "light"
+}
+
+// Someone can have one theme for light and one for dark. Only the browser knows
+// which of the two it is, so it keeps the server told (a cookie the next page is
+// drawn by), and asks for the other theme when the system changes over.
+function tellScheme() {
+  document.cookie = `scheme=${scheme()}; path=/; max-age=31536000; samesite=lax`
+}
+
+function schemeChanged() {
+  tellScheme()
+  if (root.dataset.themeFollowsSystem) refreshTheme()
+}
+
+// The theme this page should be in, asked of the server again
+export async function refreshTheme() {
+  const theme = await api("/appearance")
+  if (theme) applyTheme(theme)
+}
+
+if (document.cookie.match(/(?:^|; )scheme=(\w+)/)?.[1] !== scheme()) schemeChanged()
+dark.addEventListener("change", schemeChanged)
 
 export function themeVersion() {
   return root.dataset.themeVersion || "default"
@@ -25,7 +54,11 @@ export function rememberTheme() {
 }
 
 export function applyTheme(theme) {
-  if (!theme?.version || theme.version === themeVersion()) return
+  if (!theme?.version) return
+  // Said even when the colours stay as they are: whether the system going light or
+  // dark brings another theme
+  setData("themeFollowsSystem", theme.follows_system ? "true" : null)
+  if (theme.version === themeVersion()) return
   // Set at once: the same theme arrives more than once (each notification
   // subscription hears of it), and only the first should do anything
   root.dataset.themeVersion = theme.version

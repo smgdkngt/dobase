@@ -2,9 +2,13 @@
 <%= render "shared/flash", position: :inline %>
 
 <%
-  current = user.theme
+  # One theme, or one for when the system is light and one for when it is dark. With
+  # two, the grid picks for one of them at a time: the one this browser is in first.
+  follows = user.theme_follows_system?
+  slot = browser_scheme || "light"
+  current = user.theme(slot)
   # A palette of their own (sent by `dobase theme sync`) is shown next to the built-in ones
-  custom = current if user.theme_colors.present?
+  custom = current if user.theme_colors.present? && !(follows && slot == "dark")
 %>
 <h3 class="text-sm font-semibold text-text-primary mb-1">Typeface</h3>
 <p class="text-xs text-text-tertiary mb-4">What everything is set in. Monospace is your system's monospace font: on Omarchy, the font the desktop is in.</p>
@@ -34,10 +38,32 @@
 <h3 class="text-sm font-semibold text-text-primary mt-6 mb-1">Theme</h3>
 <p class="text-xs text-text-tertiary mb-4">The colours you see <%= app_name %> in, on every device you're signed in on.</p>
 
-<%# A pick is put on where you are (appearance_controller.js); without scripts the
-    form goes to the profile page with it on %>
 <%= form_with url: appearance_path, method: :patch,
       data: { turbo_frame: "_top", controller: "appearance", action: "submit->appearance#pick" } do %>
+  <div class="theme-modes" role="group" aria-label="One theme, or one for light and one for dark">
+    <%= tag.button "One theme", type: "submit", name: "follow_system", value: "0",
+          class: [ "theme-mode", ("theme-mode-on" unless follows) ], aria: { pressed: !follows }, data: { appearance_target: "mode" } %>
+    <%= tag.button "One for light, one for dark", type: "submit", name: "follow_system", value: "1",
+          class: [ "theme-mode", ("theme-mode-on" if follows) ], aria: { pressed: follows }, data: { appearance_target: "mode" } %>
+  </div>
+
+  <%# Which of the two the grid below picks for; each says what it is on %>
+  <%= tag.div class: "theme-slots", hidden: !follows, data: { appearance_target: "slots" } do %>
+    <% [ [ "light", "sun", "When your system is light" ], [ "dark", "moon", "When your system is dark" ] ].each do |scheme, icon, label| %>
+      <% worn = user.theme(scheme) if follows %>
+      <%= tag.button type: "button", class: [ "theme-slot", ("theme-slot-on" if scheme == slot) ], aria: { pressed: scheme == slot },
+            data: { appearance_target: "slot", scheme: scheme, theme: worn&.name.to_s, action: "click->appearance#showSlot" } do %>
+        <%= render "shared/icon", name: icon, size: 16 %>
+        <span class="theme-slot-text">
+          <span class="theme-slot-when"><%= label %></span>
+          <span class="theme-slot-theme" data-slot-label><%= worn&.label || app_name %></span>
+        </span>
+      <% end %>
+    <% end %>
+  <% end %>
+  <%# Without scripts the grid picks for the one this browser is in %>
+  <%= hidden_field_tag :scheme, slot, id: nil, disabled: !follows, data: { appearance_target: "scheme" } %>
+
   <div class="theme-grid">
     <%= render "profiles/theme_option", theme: nil, selected: current.nil? %>
     <%= render "profiles/theme_option", theme: custom, selected: true, custom: true if custom %>

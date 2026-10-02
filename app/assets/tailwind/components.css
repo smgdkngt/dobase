@@ -874,6 +874,50 @@
     @apply border-accent ring-2 ring-accent/25;
   }
 
+  /* One theme, or one for light and one for dark: two buttons that read as one control */
+  .theme-modes {
+    @apply inline-flex p-0.5 mb-3 rounded-lg bg-background-tertiary;
+  }
+
+  .theme-mode {
+    @apply px-3 py-1 rounded-md text-xs font-medium text-text-secondary cursor-pointer transition-colors;
+  }
+
+  .theme-mode-on {
+    @apply bg-surface text-text-primary shadow-sm;
+  }
+
+  /* The two themes, each saying what it is on; the one the grid picks for is lit */
+  .theme-slots {
+    @apply grid grid-cols-2 gap-3 mb-3;
+  }
+
+  .theme-slots[hidden] {
+    @apply hidden;
+  }
+
+  .theme-slot {
+    @apply flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border-light bg-surface text-left text-text-secondary
+           cursor-pointer transition-all duration-150 hover:border-border;
+  }
+
+  .theme-slot-on,
+  .theme-slot-on:hover {
+    @apply border-accent ring-2 ring-accent/25 text-text-primary;
+  }
+
+  .theme-slot-text {
+    @apply flex flex-col min-w-0;
+  }
+
+  .theme-slot-when {
+    @apply text-xs text-text-tertiary truncate;
+  }
+
+  .theme-slot-theme {
+    @apply text-sm font-medium text-text-primary truncate;
+  }
+
   /* The mark of the one that is on: in every option, shown in that one */
   .theme-option-check {
     @apply hidden text-accent shrink-0;

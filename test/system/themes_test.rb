@@ -71,6 +71,45 @@ class ThemesTest < ApplicationSystemTestCase
     assert_equal own, page.evaluate_script("getComputedStyle(document.body).fontFamily")
   end
 
+  test "a theme for when the system is light and one for when it is dark" do
+    emulate_scheme "light"
+    visit edit_profile_path(tab: "appearance")
+
+    click_on "One for light, one for dark"
+    assert_selector ".theme-slot.theme-slot-on[data-scheme='light']", text: "Dobase"
+
+    find("button.theme-option[name='theme'][value='catppuccin-latte']").click
+    assert_selector "html[data-theme='catppuccin-latte'][data-theme-follows-system]"
+    assert_selector ".theme-slot[data-scheme='light']", text: "Catppuccin Latte"
+
+    # The other one is picked without it going on: the system is light
+    find(".theme-slot[data-scheme='dark']").click
+    find("button.theme-option[name='theme'][value='tokyo-night']").click
+    assert_selector ".theme-slot[data-scheme='dark']", text: "Tokyo Night"
+    assert_selector "button.theme-option-selected[name='theme'][value='tokyo-night']"
+    assert_selector "html[data-theme='catppuccin-latte']"
+
+    # The system goes dark: the page changes over by itself, and the next one is drawn dark
+    emulate_scheme "dark"
+    assert_selector "html[data-theme='tokyo-night'][data-theme-mode='dark']"
+    visit tool_board_path(tools(:shared_board))
+    assert_selector "html[data-theme='tokyo-night']"
+
+    emulate_scheme "light"
+    assert_selector "html[data-theme='catppuccin-latte']"
+
+    # One theme again: the one that is on stays
+    visit edit_profile_path(tab: "appearance")
+    click_on "One theme"
+    assert_no_selector ".theme-slots"
+    assert_selector "button.theme-option-selected[name='theme'][value='catppuccin-latte']"
+    emulate_scheme "dark"
+    assert_no_selector "html[data-theme-follows-system]"
+    assert_selector "html[data-theme='catppuccin-latte']"
+  ensure
+    emulate_scheme nil
+  end
+
   test "the command palette puts a theme on, right where you are" do
     visit tool_board_path(tools(:shared_board))
     wait_for_stimulus "command-palette", "dialog[data-controller~='command-palette']"
@@ -91,5 +130,11 @@ class ThemesTest < ApplicationSystemTestCase
 
   def css_variable(name)
     page.evaluate_script("getComputedStyle(document.documentElement).getPropertyValue('#{name}').trim()")
+  end
+
+  # What the system says about light and dark, as the browser hears it
+  def emulate_scheme(scheme)
+    features = scheme ? [ { name: "prefers-color-scheme", value: scheme } ] : []
+    page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: features)
   end
 end

@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import consumer from "channels/consumer"
-import { applyTheme } from "services/theme"
+import { applyTheme, refreshTheme } from "services/theme"
 
 export default class extends Controller {
   static targets = ["badge", "badgeStatus", "trigger", "popover", "list", "markAllRead", "desktopOffer"]
@@ -35,7 +35,9 @@ export default class extends Controller {
 
     // A theme was picked: on the profile page, on another device, by the CLI
     if (data.type === "theme") {
-      applyTheme(data.theme)
+      // Without one in the message there is a theme for light and one for dark, and
+      // each page asks for its own
+      data.theme ? applyTheme(data.theme) : refreshTheme()
       return
     }
 
