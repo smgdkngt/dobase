@@ -26,16 +26,10 @@
     <%= yield :head %>
 
     <%# A tool opened by its address (a link in a mail, a bookmark) in a window wide
-        enough for tiles becomes a tile in the workspace: never for a page that is
-        itself in a frame. The script does it before anything is drawn when the page
-        is loaded; Turbo doesn't run it after a visit (its nonce is another page's),
-        so application.js reads the same address from the meta tag. %>
+        enough for tiles becomes a tile in the workspace, before anything is drawn
+        (workspace_gate.js). Never for a page that is itself in a frame. %>
     <% if user_signed_in? && workspace_wanted? && !tile? && !@workspace && request.get? && request.path.match?(%r{\A/tools/\d+}) %>
-      <% in_workspace = workspace_path(open: request.fullpath) %>
-      <%= tag.meta name: "workspace-open", content: in_workspace %>
-      <%= javascript_tag nonce: true do %>
-        if (window.self === window.top && window.matchMedia("(min-width: 1024px)").matches) window.location.replace(<%= raw in_workspace.to_json %>)
-      <% end %>
+      <%= javascript_include_tag "workspace_gate", data: { wide: workspace_path(open: request.fullpath) } %>
     <% end %>
 
     <%# With credentials, so the manifest can carry the colours of this browser's theme %>

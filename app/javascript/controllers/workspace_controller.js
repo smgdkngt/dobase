@@ -23,10 +23,12 @@ const ROOM_TO_SPLIT = { width: 340, height: 240 }
 const GLIDE = "transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1)"
 // What the plus and minus keys give a tile, or take from it
 const RESIZE_STEP = 0.05
+// How often the page around the tiles is drawn again while it is in view
+const FRESHEN_EVERY_MS = 3 * 60 * 1000
 
 export default class extends Controller {
   static targets = ["tiles", "tileTemplate", "empty", "desks", "title", "menu", "hint"]
-  static values = { userId: Number, appName: String, start: String, oneToolPath: String }
+  static values = { userId: Number, appName: String, start: String }
 
   connect() {
     // Never tiles inside a tile: a frame that ends up on this page (its tool is gone,
@@ -37,13 +39,6 @@ export default class extends Controller {
 
     this.state = this.load()
     this.narrow = window.matchMedia("(max-width: 1023px)")
-    // Arrived in a window too narrow for tiles: one tool the usual way, the one you
-    // were on (the page does this itself when it is loaded rather than visited)
-    if (this.narrow.matches) {
-      this.inert = true
-      return window.location.replace(this.state.tiles[this.deskAt(this.state.desk).focus]?.url || this.oneToolPathValue)
-    }
-
     this.still = window.matchMedia("(prefers-reduced-motion: reduce)")
     this.handles = []
     // Tiles that are in the page already (the element outlives a morph refresh)
@@ -55,11 +50,12 @@ export default class extends Controller {
     this.listen(document, "turbo:before-visit", (event) => this.visiting(event))
     this.listen(window, "workspace:open", (event) => { if (this.open(event.detail.url, { fresh: event.detail.fresh })) event.preventDefault() })
     this.listen(document, "turbo:submit-end", () => { this.submittedAt = performance.now() })
-    this.listen(document, "turbo:before-render", () => { this.menuWasOpen = this.menuOpen })
     this.listen(document, "turbo:morph", () => this.refreshed())
     this.listen(document, "keydown", (event) => this.keyed(event), true)
     this.listen(window, "message", (event) => this.heard(event))
     this.listen(window, "pagehide", () => this.remember())
+    this.listen(document, "visibilitychange", () => this.freshen())
+    this.freshening = setInterval(() => this.freshen(), FRESHEN_EVERY_MS)
     this.listen(window, "theme:change", (event) => this.tellAll("theme", { theme: event.detail }))
     this.listen(this.narrow, "change", () => this.arrange())
 
@@ -109,6 +105,7 @@ export default class extends Controller {
 
     this.listening.abort()
     this.sizes.disconnect()
+    clearInterval(this.freshening)
   }
 
   listen(target, type, handler, capture = false) {
@@ -692,11 +689,7 @@ export default class extends Controller {
   // The server drew this page again (a morph, which leaves the tiles alone): the bar
   // is ours to fill, and a tile whose tool is no longer in the menu has lost it
   refreshed() {
-    // The server draws the menu closed; it stays as it was
-    if (this.menuWasOpen) {
-      this.menu?.classList.add("open")
-      document.querySelector("[data-mobile-sidebar-target='overlay']")?.classList.add("active")
-    }
+    this.hintTarget.hidden = this.seen("hint")
 
     const tools = new Set(Array.from(document.querySelectorAll("[data-sidebar-tool-link]")).map((link) => toolIdOf(link.getAttribute("href"))))
     for (const [ id, tile ] of Object.entries(this.state.tiles)) {
@@ -723,10 +716,14 @@ export default class extends Controller {
     this.menu?.querySelector("[data-sidebar-tool-link]")?.focus()
   }
 
-  // The menu was drawn when this page was, which can be hours ago: what is new in
-  // which tool is asked again whenever it opens (the logo's click comes here too)
-  menuOpened() {
-    if (this.menuOpen) Turbo.visit(location.href, { action: "replace" })
+  // The menu and the launcher were drawn when this page was, which can be hours ago:
+  // the page around the tiles is drawn again now and then (a morph, which leaves the
+  // tiles alone), when the menu closes and when you come back to the window. Never
+  // while a menu or a dialog is open: a morph closes those under your hands.
+  freshen() {
+    if (document.hidden || this.menuOpen || document.querySelector("dialog[open], :popover-open")) return
+
+    Turbo.visit(location.href, { action: "replace" })
   }
 
   closeMenu() {
@@ -735,6 +732,7 @@ export default class extends Controller {
     const around = this.element.closest("[data-controller~='mobile-sidebar']")
     this.application.getControllerForElementAndIdentifier(around, "mobile-sidebar")?.close()
     this.grabFocus()
+    this.freshen()
   }
 
   // ── What the pages in the tiles say (tile_page_controller.js) ──

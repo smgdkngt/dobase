@@ -4,19 +4,9 @@
 <% content_for :head do %>
   <meta name="turbo-cache-control" content="no-cache">
   <%# A window too narrow for tiles (a phone, a small tablet) shows one tool the usual
-      way: the one you were on here. Before anything is drawn when the page is loaded;
-      after a Turbo visit, which doesn't run this, the controller does the same. %>
-  <%= javascript_tag nonce: true do %>
-    if (window.matchMedia("(max-width: 1023px)").matches) {
-      let to = <%= raw root_path(one: 1).to_json %>
-      try {
-        const kept = JSON.parse(localStorage.getItem(<%= raw "dobase:workspace:#{current_user.id}".to_json %>))
-        const tile = kept.tiles[kept.desks[kept.desk].focus]
-        if (/^\/tools\/\d+/.test(tile.url)) to = tile.url
-      } catch {}
-      window.location.replace(to)
-    }
-  <% end %>
+      way: the one you were on here, before anything is drawn (workspace_gate.js) %>
+  <%= javascript_include_tag "workspace_gate",
+        data: { narrow: root_path(one: 1), storage_key: "dobase:workspace:#{current_user.id}" } %>
 <% end %>
 
 <% content_for :keyboard_shortcuts do %>
@@ -29,13 +19,12 @@
      data-controller="workspace"
      data-workspace-user-id-value="<%= current_user.id %>"
      data-workspace-app-name-value="<%= app_name %>"
-     data-workspace-start-value="<%= @start_path %>"
-     data-workspace-one-tool-path-value="<%= root_path(one: 1) %>">
+     data-workspace-start-value="<%= @start_path %>">
   <header class="workspace-bar">
     <button type="button" class="workspace-bar-btn" title="Menu (<%= workspace_modifier %> M)"
             aria-label="Menu with all your tools"
             data-workspace-target="menu"
-            data-action="click->mobile-sidebar#toggle click->workspace#menuOpened">
+            data-action="click->mobile-sidebar#toggle">
       <%= render "shared/logo", class: "w-5 h-5" %>
     </button>
 

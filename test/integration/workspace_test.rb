@@ -77,7 +77,13 @@ class WorkspaceTest < ActionDispatch::IntegrationTest
     get tool_files_path(@files, view: "list")
 
     assert_response :success
-    assert_select "script[nonce]", text: /min-width: 1024px.*#{Regexp.escape(workspace_path(open: tool_files_path(@files, view: "list")).to_json[1..-2])}/m
+    assert_select "head script[src*='workspace_gate'][data-wide='#{workspace_path(open: tool_files_path(@files, view: "list"))}']"
+  end
+
+  test "the workspace hands a narrow window over to one tool" do
+    get workspace_path
+
+    assert_select "head script[src*='workspace_gate'][data-narrow='#{root_path(one: 1)}'][data-storage-key='dobase:workspace:#{@user.id}']"
   end
 
   test "with one tool at a time a tool's address is just its page" do
@@ -85,7 +91,7 @@ class WorkspaceTest < ActionDispatch::IntegrationTest
 
     get tool_files_path(@files)
 
-    assert_no_match(/workspace\?open/, response.body)
+    assert_select "script[src*='workspace_gate']", count: 0
     assert_select "#sidebar-add-menu a[href='#{workspace_path}']", text: /Tiling workspace/
   end
 

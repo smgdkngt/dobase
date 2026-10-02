@@ -42,7 +42,7 @@ class TilePageTest < ActionDispatch::IntegrationTest
 
     get tool_files_path(@tool), headers: { "Sec-Fetch-Dest" => "iframe" }
 
-    assert_no_match(/workspace\?open/, response.body)
+    assert_select "script[src*='workspace_gate']", count: 0
   end
 
   test "the app can be framed by itself and by nobody else" do

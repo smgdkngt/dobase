@@ -16,9 +16,13 @@ class TryTheDemoTest < ApplicationSystemTestCase
 
     click_on "Try the demo"
 
-    assert_selector ".sidebar", wait: 15
-    assert_text "Product Launch"
-    assert_text "Write press release for launch day"
+    # In the workspace, with the first tool open as a tile and a line about what that is
+    assert_selector "[data-controller~='workspace']", wait: 15
+    within_frame(find(".workspace-tile iframe")) do
+      assert_text "Product Launch"
+      assert_text "Write press release for launch day"
+    end
+    assert_selector ".workspace-hint", text: "Every tool you open is a tile here"
     within ".demo-banner" do
       assert_text "You're trying the Dobase demo."
       assert_link "Get Dobase", href: "https://github.com/smgdkngt/dobase"
@@ -28,6 +32,7 @@ class TryTheDemoTest < ApplicationSystemTestCase
 
   test "inviting someone says it's switched off, and the settings stay open" do
     visit new_session_path
+    one_tool_at_a_time
     click_on "Try the demo"
     assert_selector ".sidebar", wait: 15
     board = Demo.visitors.last.owned_tools.find_by!(name: "Product Launch")
@@ -47,6 +52,7 @@ class TryTheDemoTest < ApplicationSystemTestCase
 
   test "a visitor asks a friend over as Marcus, and they chat live" do
     visit new_session_path
+    one_tool_at_a_time
     click_on "Try the demo"
     assert_selector ".sidebar", wait: 15
     visitor = Demo.visitors.last
@@ -68,6 +74,7 @@ class TryTheDemoTest < ApplicationSystemTestCase
 
     using_session("friend") do
       visit link
+      one_tool_at_a_time
       assert_text "Join Moonshot Snacks"
       assert_text "open the link in a private window"
       click_on "Join as Marcus"
@@ -93,6 +100,12 @@ class TryTheDemoTest < ApplicationSystemTestCase
   end
 
   private
+
+  # With the sidebar: what these tests are about. A visitor's browser starts in the
+  # workspace (the first test).
+  def one_tool_at_a_time
+    page.driver.browser.manage.add_cookie(name: "workspace", value: "off")
+  end
 
   def fill_in_editor(text)
     editable = find("rhino-editor .ProseMirror")

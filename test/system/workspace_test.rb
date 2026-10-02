@@ -124,6 +124,64 @@ class WorkspaceTest < ApplicationSystemTestCase
     page.driver.browser.manage.window.resize_to(1400, 1400)
   end
 
+  test "a first visit says what is different here, once" do
+    assert_selector ".workspace-hint", text: "Every tool you open is a tile here"
+
+    within(".workspace-hint") { click_on "Got it" }
+    assert_no_selector ".workspace-hint"
+
+    visit workspace_path
+    wait_for_stimulus "workspace"
+    within_tile(0) { assert_selector "h1", text: @board.name }
+    assert_no_selector ".workspace-hint"
+  end
+
+  test "a page gets a tile of its own with Shift in the launcher, and with Alt and a click in a tile" do
+    docs = tools(:my_docs)
+    launch docs
+    assert_equal 2, tiles.size
+
+    # The tool is open, so the launcher would go to it; with Shift it opens beside it
+    find(".workspace-launcher").click
+    within "dialog[data-controller~='command-palette'][open]" do
+      assert_text "In a tile of its own"
+      input = find("input[data-command-palette-target='input']")
+      input.set(docs.name)
+      assert_selector ".command-palette-item.selected", text: docs.name
+      input.send_keys([ :shift, :enter ])
+    end
+    assert_selector ".workspace-tile:not([hidden], [data-leaving])", count: 3
+
+    within_tile(2) { find("a", text: docs_documents(:meeting_notes).title).click(:alt) }
+    assert_selector ".workspace-tile:not([hidden], [data-leaving])", count: 4
+    within_tile(3) { assert_selector "h1", text: docs_documents(:meeting_notes).title }
+    within_tile(2) { assert_selector "h1", text: docs.name }
+  end
+
+  test "the menu is gone through with the arrow keys, and a tool opened from it" do
+    press "m"
+    assert_selector ".sidebar.open"
+    assert_selector "[data-sidebar-tool-link]:focus"
+
+    type_keys :arrow_down
+    opened = page.evaluate_script("document.activeElement.textContent.trim().split('\\n')[0]")
+    type_keys :enter
+
+    assert_no_selector ".sidebar.open"
+    assert_selector ".workspace-tile:not([hidden], [data-leaving])", count: 2
+    within_tile(1) { assert_selector "h1", text: opened }
+  end
+
+  test "the desktops in the bar show which tools are on them" do
+    launch @files
+    assert_selector ".workspace-desk[aria-current='true'] .workspace-desk-icon", count: 2
+
+    press "2", shift: true
+    assert_selector ".workspace-desk[aria-current='true']", text: "2"
+    assert_selector ".workspace-desk[aria-current='true'] .workspace-desk-icon", count: 1
+    assert_selector ".workspace-desk[aria-label='Desktop 1: #{@board.name}']"
+  end
+
   test "plus and minus give the tile more of the room, or less" do
     launch @files
     board, files = tiles
@@ -315,6 +373,6 @@ class WorkspaceTest < ApplicationSystemTestCase
   end
 
   def within_tile(index, &block)
-    within_frame(all(".workspace-tile:not([hidden], [data-leaving]) iframe")[index], &block)
+    within_frame(all(".workspace-tile:not([hidden], [data-leaving]) iframe", minimum: index + 1)[index], &block)
   end
 end
