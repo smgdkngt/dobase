@@ -36,14 +36,20 @@ export default class extends Controller {
     window.addEventListener("keydown", this._onBackspace)
     // Escape lets go of things one at a time: a dialog or a menu closes, a view lets go
     // of what is picked (they take the key, and it doesn't count here), then the
-    // keyboard leaves what it is on. With nothing left to let go of, it closes the tile.
+    // keyboard leaves what it is on, then the page goes up a level. Only at the top of
+    // a tool, with nothing left to let go of, does it close the tile.
     this._onEscape = (event) => {
       if (event.key !== "Escape" || event.defaultPrevented || typing(event)) return
       if (document.querySelector("dialog[open], :popover-open, [aria-modal='true']:not([hidden]):not(dialog)")) return
 
       event.preventDefault()
       const on = document.activeElement
-      on && on !== document.body && on !== document.documentElement ? on.blur() : this.say("escape")
+      if (on && on !== document.body && on !== document.documentElement) return on.blur()
+
+      // Inside a tool (a document that is open, a folder) it goes up a level, by the
+      // way back the page has. Only at the top of a tool does it close the tile.
+      const back = Array.from(document.querySelectorAll("[data-arrow-keys-target~='back']")).find((way) => way.getClientRects().length > 0)
+      back ? back.click() : this.say("escape")
     }
     window.addEventListener("keydown", this._onEscape)
     // Chosen in this page's own shortcuts dialog: the workspace and the other tiles hear of it

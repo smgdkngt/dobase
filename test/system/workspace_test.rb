@@ -470,6 +470,24 @@ class WorkspaceTest < ApplicationSystemTestCase
     within_tile(0) { assert_selector "h1", text: @board.name }
   end
 
+  test "escape inside a tool goes up a level, and only closes the tile at the top of the tool" do
+    docs = tools(:my_docs)
+    document = docs_documents(:meeting_notes)
+    visit workspace_path(open: tool_docs_document_path(docs, document))
+    wait_for_stimulus "workspace"
+    within_tile(1) { assert_selector "h1", text: document.title }
+
+    # In a document: out of it, to the documents
+    type_keys :escape
+    within_tile(1) { assert_selector "h1", text: docs.name }
+    assert_equal 2, tiles.size
+
+    # At the top of the tool: the tile
+    type_keys :escape
+    assert_selector ".workspace-tile:not([hidden], [data-leaving])", count: 1
+    within_tile(0) { assert_selector "h1", text: @board.name }
+  end
+
   test "a click in a tile takes the keyboard there, also where the click was kept for a drag" do
     launch @files
     assert_focused 1
