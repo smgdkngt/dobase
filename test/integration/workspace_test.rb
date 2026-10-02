@@ -83,7 +83,7 @@ class WorkspaceTest < ActionDispatch::IntegrationTest
   test "the workspace hands a narrow window over to one tool" do
     get workspace_path
 
-    assert_select "head script[src*='workspace_gate'][data-narrow='#{root_path(one: 1)}'][data-storage-key='dobase:workspace:#{@user.id}']"
+    assert_select "head script[src*='workspace_gate'][data-narrow='#{root_path(one: 1)}'][data-storage-key='dobase:workspace:#{@user.id}'][data-tools~='#{@files.id}']"
   end
 
   test "with one tool at a time a tool's address is just its page" do

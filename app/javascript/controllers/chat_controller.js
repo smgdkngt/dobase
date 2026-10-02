@@ -348,7 +348,10 @@ export default class extends Controller {
   }
 
   pastTheMessages(event) {
-    if (event.detail.side === "down" && this.messagesTarget.contains(document.activeElement)) this.focusInput()
+    if (event.detail.side !== "down" || !this.messagesTarget.contains(document.activeElement)) return
+
+    event.preventDefault()
+    this.focusInput()
   }
 
   // On the message itself, not in something inside it: r replies, e edits your own,

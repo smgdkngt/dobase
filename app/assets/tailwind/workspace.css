@@ -70,8 +70,12 @@
   }
 
   /* The room the tiles share. They are placed in it by the controller. */
-  .workspace-tiles {
+  .workspace-room {
     @apply relative flex-1 min-h-0;
+  }
+
+  .workspace-tiles {
+    @apply absolute inset-0;
   }
 
   .workspace-tile {

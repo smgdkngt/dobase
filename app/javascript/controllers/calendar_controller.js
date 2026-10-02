@@ -200,8 +200,11 @@ export default class extends Controller {
   // The arrow keys go from event to event (arrow_keys_controller.js); past the first
   // or the last one of the week they go on to the week before or after
   pastTheWeek(event) {
-    if (event.detail.side === "left") this.previousWeek()
-    if (event.detail.side === "right") this.nextWeek()
+    // The page's own arrow keys, not the menu's or the notifications'
+    if (!event.target.contains(this.element) || ![ "left", "right" ].includes(event.detail.side)) return
+
+    event.preventDefault()
+    event.detail.side === "left" ? this.previousWeek() : this.nextWeek()
   }
 
   previousWeek() {

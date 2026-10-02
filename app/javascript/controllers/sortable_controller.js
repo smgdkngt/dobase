@@ -106,6 +106,8 @@ export default class extends Controller {
 
     const siblings = Array.from(this.element.querySelectorAll(":scope > [data-sort-id]"))
     const index = siblings.indexOf(item)
+    // Not one of this list's own (a done todo, kept apart further down)
+    if (index < 0) return false
 
     if (side === "up" || side === "down") {
       const other = siblings[index + (side === "up" ? -1 : 1)]

@@ -57,7 +57,7 @@ export default class extends Controller {
     this.listen(window, "message", (event) => this.heard(event))
     this.listen(window, "pagehide", () => this.remember())
     this.listen(document, "visibilitychange", () => this.freshen())
-    this.freshening = setInterval(() => this.freshen(), FRESHEN_EVERY_MS)
+    this.freshenTimer = setInterval(() => this.freshen(), FRESHEN_EVERY_MS)
     this.listen(window, "theme:change", (event) => this.tellAll("theme", { theme: event.detail }))
     this.listen(this.narrow, "change", () => this.arrange())
 
@@ -110,7 +110,7 @@ export default class extends Controller {
     this.listening.abort()
     this.sizes.disconnect()
     this.menuWatch.disconnect()
-    clearInterval(this.freshening)
+    clearInterval(this.freshenTimer)
   }
 
   listen(target, type, handler, capture = false) {
@@ -739,7 +739,7 @@ export default class extends Controller {
     // A form on this page led here (Turbo follows its redirect right after it ends): a
     // tool was made or renamed, and the menu and the launcher still have the old
     // list. The page is drawn again around the tiles.
-    if (performance.now() - this.submittedAt < 1000) Turbo.visit(location.href, { action: "replace" })
+    if (performance.now() - this.submittedAt < 1000) this.freshen({ evenIfBusy: true })
   }
 
   // The server drew this page again (a morph, which leaves the tiles alone): the bar
@@ -751,6 +751,7 @@ export default class extends Controller {
     for (const [ id, tile ] of Object.entries(this.state.tiles)) {
       if (tools.size > 0 && !tools.has(toolIdOf(tile.url))) this.drop(id)
     }
+    this.arrange()
     this.drawBar()
     this.watchMenu()
     this.menuChanged()
@@ -812,13 +813,34 @@ export default class extends Controller {
   }
 
   // The menu and the launcher were drawn when this page was, which can be hours ago:
-  // the page around the tiles is drawn again now and then (a morph, which leaves the
-  // tiles alone), when the menu closes and when you come back to the window. Never
-  // while a menu or a dialog is open: a morph closes those under your hands.
-  freshen() {
-    if (document.hidden || this.menuOpen || document.querySelector("dialog[open], :popover-open")) return
+  // the page around the tiles is drawn again now and then, when the menu closes and
+  // when you come back to the window. Never while a menu or a dialog is open: that
+  // closes them under your hands.
+  //
+  // Not a Turbo visit: one that fails (no network yet after the lid opens, a server
+  // error, new assets after a deploy) loads the whole page again or replaces it, and
+  // every tile with it. The page is fetched here, and only an answer that is this
+  // page is morphed in (which leaves the tiles alone).
+  async freshen({ evenIfBusy = false } = {}) {
+    if (this.freshening || !(evenIfBusy || this.calm)) return
 
-    Turbo.visit(location.href, { action: "replace" })
+    this.freshening = true
+    try {
+      const response = await fetch(location.href, { headers: { Accept: "text/html" } })
+      if (!response.ok || response.redirected) return
+
+      const fresh = new DOMParser().parseFromString(await response.text(), "text/html")
+      if (!fresh.querySelector("[data-controller~='workspace']") || tracked(fresh) !== tracked(document)) return
+      if (evenIfBusy || this.calm) Turbo.morphBodyElements(document.body, fresh.body)
+    } catch {
+      // No network: next time
+    } finally {
+      this.freshening = false
+    }
+  }
+
+  get calm() {
+    return !document.hidden && !this.menuOpen && !document.querySelector("dialog[open], :popover-open")
   }
 
   // ── What the pages in the tiles say (tile_page_controller.js) ──
@@ -1017,6 +1039,11 @@ function splitFor(rect) {
 
 function px(rect) {
   return { left: `${rect.x}px`, top: `${rect.y}px`, width: `${rect.width}px`, height: `${rect.height}px` }
+}
+
+// The scripts and styles a page was built with: other ones mean a deploy since
+function tracked(page) {
+  return Array.from(page.querySelectorAll("head [data-turbo-track='reload']"), (asset) => asset.getAttribute("src") || asset.getAttribute("href")).join(" ")
 }
 
 // "Team Chat" from "Team Chat - Dobase"

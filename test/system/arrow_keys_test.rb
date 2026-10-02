@@ -115,7 +115,11 @@ class ArrowKeysTest < ApplicationSystemTestCase
     wait_for_stimulus "arrow-keys"
     week = page.evaluate_script("document.querySelector('[data-calendar-week-start-value]').dataset.calendarWeekStartValue")
 
-    10.times { press :arrow_right }
+    # Until the week changes, and not a press further: those would be the next week's
+    12.times do
+      press :arrow_right
+      break if page.has_no_selector?("[data-calendar-week-start-value='#{week}']", wait: 0.4)
+    end
 
     assert_no_selector "[data-calendar-week-start-value='#{week}']"
     assert_selector "[data-calendar-week-start-value='#{(Date.parse(week) + 7).iso8601}']"
@@ -134,6 +138,14 @@ class ArrowKeysTest < ApplicationSystemTestCase
     press :arrow_down
     assert_no_selector "##{first}.selected"
     assert_selector ".mail-list-item.selected", count: 1
+
+    # The keys dialog lies over the mail: the arrows are its own, to scroll with
+    second = find(".mail-list-item.selected")[:id]
+    press "?"
+    assert_selector "dialog[open]", text: "Keyboard shortcuts"
+    press :arrow_down
+    press :escape
+    assert_selector "##{second}.selected"
   end
 
   test "the arrows are left alone while you type" do

@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { typing } from "services/typing"
 
 // The arrow keys move through what a page is made of: the cards of a board, the rows
 // of a list, the files in a folder. Whatever a view marks as an item
@@ -36,7 +37,7 @@ export default class extends Controller {
 
   keyed(event) {
     if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return
-    if (!this.hasTheKeyboard || typing(event)) return
+    if (!this.hasTheKeyboard || typing(event) || somethingOverThePage()) return
 
     const side = SIDES[event.key]
     if (side) return this.arrow(event, side)
@@ -61,10 +62,14 @@ export default class extends Controller {
     if (to) {
       this.goTo(to)
     } else if (!this.goBack(side)) {
-      // Nothing further that way: a view may have something of its own to do there
-      // (the calendar goes to the next week)
-      this.dispatch("edge", { detail: { side } })
+      this.pastTheEdge(side)
     }
+  }
+
+  // Nothing further that way: a view may have something of its own to do there (the
+  // calendar goes to the next week), and says so by preventing the default
+  pastTheEdge(side) {
+    return this.dispatch("edge", { detail: { side }, cancelable: true }).defaultPrevented
   }
 
   goBack(side) {
@@ -98,12 +103,14 @@ export default class extends Controller {
   // Nothing to go through: up and down read on, left goes back, and a view may have
   // its own idea of what lies to the left and right (the calendar: another week)
   scroll(event, side) {
+    // With Shift the arrows select what is being read
+    if (event.shiftKey) return
+
     const reach = this.reach
     if (side === "left" || side === "right") {
-      if (reach !== this.element) return
-
-      event.preventDefault()
-      if (!this.goBack(side)) this.dispatch("edge", { detail: { side } })
+      // The key stays free for whoever else wants it (mail's own keys) when nothing
+      // was done with it here
+      if (reach === this.element && (this.goBack(side) || this.pastTheEdge(side))) event.preventDefault()
       return
     }
 
@@ -198,13 +205,10 @@ export default class extends Controller {
   }
 }
 
-// In a field the arrows move the caret, in a select or a group of radio buttons the choice
-function typing(event) {
-  const target = event.composedPath()[0] || event.target
-  if (!(target instanceof HTMLElement)) return false
-  if (target.isContentEditable || target.matches("textarea, select, [role='slider'], [role='tab'], [role='menuitem'], [role='option']")) return true
-
-  return target.matches("input") && ![ "checkbox", "button", "submit" ].includes(target.type)
+// A viewer that lies over the page without being a <dialog> (the picture gallery) has
+// the arrow keys to itself
+function somethingOverThePage() {
+  return Array.from(document.querySelectorAll("[aria-modal='true']:not(dialog)")).some(visible)
 }
 
 function visible(element) {

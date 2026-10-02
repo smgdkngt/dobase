@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { typing } from "services/typing"
 
 // Keyboard shortcuts are handled declaratively via data-hotkey attributes
 // in the view. This controller only provides the behavior methods that
@@ -11,11 +12,33 @@ export default class extends Controller {
     this._onFrameLoad = this._handleFrameLoad.bind(this)
     const frame = document.getElementById("mail-content")
     if (frame) frame.addEventListener("turbo:frame-load", this._onFrameLoad)
+    this._onKey = (event) => this._keyed(event)
+    document.addEventListener("keydown", this._onKey)
   }
 
   disconnect() {
     const frame = document.getElementById("mail-content")
     if (frame) frame.removeEventListener("turbo:frame-load", this._onFrameLoad)
+    document.removeEventListener("keydown", this._onKey)
+  }
+
+  // The arrow keys are listened for here, not through hidden hotkey buttons as the
+  // letters are: a hotkey takes its key whatever else is going on, and the arrows are
+  // also how you scroll a dialog that lies over the mail.
+  _keyed(event) {
+    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
+    if (typing(event) || document.querySelector("dialog[open], :popover-open")) return
+
+    const act = {
+      ArrowDown: () => this.down(),
+      ArrowUp: () => this.up(),
+      ArrowRight: () => this.openSelected(),
+      ArrowLeft: () => this.backToList()
+    }[event.key]
+    if (!act) return
+
+    event.preventDefault()
+    act()
   }
 
   get items() {

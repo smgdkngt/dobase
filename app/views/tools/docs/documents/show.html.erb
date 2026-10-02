@@ -31,6 +31,7 @@
          class="btn btn-sm <%= @locked_by ? 'btn-secondary opacity-50 pointer-events-none' : 'btn-primary' %>"
          data-controller="hotkey" data-hotkey="e"
          data-document-viewer-target="editButton"
+         data-action="click->document-viewer#edit"
          <% if @locked_by %>
            aria-disabled="true"
            title="<%= @locked_by.name %> is currently editing"

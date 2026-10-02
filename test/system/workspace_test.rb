@@ -107,9 +107,15 @@ class WorkspaceTest < ApplicationSystemTestCase
   end
 
   test "a tile sent away from a page that is gone goes back to its tool" do
-    within_tile(0) { page.execute_script("Turbo.visit('#{tool_board_card_path(@board, 0)}')") }
+    within_tile(0) { page.execute_script("window.before = true; Turbo.visit('#{tool_board_card_path(@board, 0)}')") }
 
-    within_tile(0) { assert_selector "h1", text: @board.name }
+    # Its tool's page, loaded afresh: not the page it was on, still standing
+    within_tile(0) do
+      page.document.synchronize do
+        raise Capybara::ExpectationNotMet, "the tile is still on the page it was on" if page.evaluate_script("window.before")
+      end
+      assert_selector "h1", text: @board.name
+    end
     assert_equal 1, tiles.size
   end
 
@@ -119,6 +125,42 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_equal 1, tiles.size
     find(".mobile-bottom-bar-item[popovertarget='sidebar-user-menu']").click
     assert_selector "button", text: "Use one tool at a time"
+  ensure
+    page.driver.browser.manage.window.resize_to(1400, 1400)
+  end
+
+  test "a narrow window whose tile is on a tool that is gone gets a tool that exists" do
+    launch @todos
+    @todos.destroy
+    page.driver.browser.manage.window.resize_to(900, 900)
+
+    visit workspace_path
+
+    assert_selector "main h1"
+    assert_no_selector "[data-controller~='workspace']"
+    assert_match %r{\A/tools/\d+}, page.current_path
+    assert_no_match %r{\A/tools/#{@todos.id}\b}, page.current_path
+  ensure
+    page.driver.browser.manage.window.resize_to(1400, 1400)
+  end
+
+  test "a narrow window whose tile is on a page that sends it back to the start doesn't go round" do
+    # The tile's address is a tool of yours, on a page of it that refuses and sends you to the start
+    page.execute_script(<<~JS)
+      window.addEventListener("pagehide", () => {
+        const key = "dobase:workspace:#{users(:one).id}"
+        const kept = JSON.parse(localStorage.getItem(key))
+        kept.tiles[kept.desks[kept.desk].focus].url = "#{tool_board_card_path(@board, 0)}"
+        localStorage.setItem(key, JSON.stringify(kept))
+      })
+    JS
+    page.driver.browser.manage.window.resize_to(900, 900)
+
+    visit workspace_path
+
+    assert_selector "main h1"
+    assert_no_selector "[data-controller~='workspace']"
+    assert_match %r{\A/tools/\d+}, page.current_path
   ensure
     page.driver.browser.manage.window.resize_to(1400, 1400)
   end
@@ -234,6 +276,58 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_focused 0
     type_keys :shift, :f6
     assert_focused 2
+  end
+
+  test "the arrow keys go through the tool in the tile you are on" do
+    type_keys :arrow_down
+    within_tile(0) { assert_selector "#board-card-#{cards(:first_task).id}:focus" }
+
+    type_keys :arrow_right
+    within_tile(0) { assert_selector "#board-card-#{cards(:third_task).id}:focus" }
+  end
+
+  test "mail in a tile: the arrows go down the list, into a conversation and back to the list" do
+    visit workspace_path(open: tool_mails_path(tools(:my_mail)))
+    wait_for_stimulus "workspace"
+    within_tile(1) { assert_selector ".mail-list-item" }
+
+    # A tile is narrow: the list and the conversation take turns
+    type_keys :arrow_down
+    within_tile(1) do
+      assert_selector ".mail-list-item.selected", count: 1
+      assert_no_selector ".mail-detail-header"
+    end
+
+    type_keys :arrow_right
+    within_tile(1) { assert_selector ".mail-detail-header" }
+
+    type_keys :arrow_left
+    within_tile(1) do
+      assert_no_selector ".mail-detail-header"
+      assert_selector ".mail-list-item.selected", count: 1
+    end
+  end
+
+  test "the page around the tiles is drawn again without touching them, and not at all when the answer is no good" do
+    within_tile(0) { page.execute_script("window.stillHere = true") }
+    Tool.create!(name: "Made elsewhere", tool_type: tool_types(:todos), owner: users(:one))
+
+    page.execute_script("document.dispatchEvent(new Event('visibilitychange'))")
+    assert_selector "[data-sidebar-tool-link]", text: "Made elsewhere", visible: :all
+    within_tile(0) { assert page.evaluate_script("window.stillHere"), "the tile was loaded again" }
+    assert_current_path workspace_path
+
+    # No network, or a server in trouble: everything stays as it is
+    page.execute_script(<<~JS)
+      window.fetch = () => Promise.resolve(new Response("<html><body>Something went wrong</body></html>", { status: 500 }))
+      document.dispatchEvent(new Event("visibilitychange"))
+      window.fetch = () => Promise.reject(new TypeError("Failed to fetch"))
+      document.dispatchEvent(new Event("visibilitychange"))
+    JS
+    sleep 0.5
+    assert_selector "[data-controller~='workspace'] .workspace-bar"
+    assert_no_text "Something went wrong"
+    within_tile(0) { assert page.evaluate_script("window.stillHere"), "the tile was loaded again" }
   end
 
   test "the bell in the bar opens the notifications over the tiles" do

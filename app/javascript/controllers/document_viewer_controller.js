@@ -13,6 +13,12 @@ export default class extends Controller {
     this.channel?.unsubscribe()
   }
 
+  // While someone else is editing, the Edit link takes no clicks (pointer-events),
+  // but its key still gets through to it
+  edit(event) {
+    if (this.editButtonTarget.getAttribute("aria-disabled") === "true") event.preventDefault()
+  }
+
   setupChannel() {
     this.channel = consumer.subscriptions.create(
       { channel: "DocumentChannel", document_id: this.documentIdValue },

@@ -6,7 +6,8 @@
   <%# A window too narrow for tiles (a phone, a small tablet) shows one tool the usual
       way: the one you were on here, before anything is drawn (workspace_gate.js) %>
   <%= javascript_include_tag "workspace_gate",
-        data: { narrow: root_path(one: 1), storage_key: "dobase:workspace:#{current_user.id}" } %>
+        data: { narrow: root_path(one: 1), storage_key: "dobase:workspace:#{current_user.id}",
+                tools: current_user.accessible_tools.ids.join(" ") } %>
 <% end %>
 
 <% content_for :keyboard_shortcuts do %>
@@ -86,7 +87,10 @@
           data: { action: "click->workspace#dismissHint" } %>
   </aside>
 
-  <div class="workspace-tiles" id="workspace-tiles" data-turbo-permanent data-workspace-target="tiles">
+  <div class="workspace-room">
+    <div class="workspace-tiles" id="workspace-tiles" data-turbo-permanent data-workspace-target="tiles"></div>
+
+    <%# Outside what Turbo leaves alone: someone's first tool changes what it says %>
     <div class="workspace-empty" data-workspace-target="empty" hidden>
       <% if @start_path %>
         <div class="workspace-empty-hints">
