@@ -198,6 +198,11 @@
     @apply hidden;
   }
 
+  /* In the shortcuts dialog: what the workspace's keys go with */
+  .workspace-keys-choice {
+    @apply flex items-center justify-between gap-4 mt-3 pt-3 border-t border-border-light;
+  }
+
   /* The search at the top of the menu (shared/command_palette with menu: true). With
      nothing typed it is a field above the tools; typed into, what it finds takes the
      menu's room (the rules for that are further down, outside this layer). */

@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { pathOf, toolIdOf, toolFrame, frameAddress, sendFrameTo, hasUnfinishedWork, confirmClosing } from "services/tool_frame"
-import { workspaceCommand } from "services/workspace_keys"
+import { workspaceCommand, renameWorkspaceKeys } from "services/workspace_keys"
 
 // The tiling workspace: every tool you open is a tile, and the tiles arrange
 // themselves, the way a tiling window manager does it.
@@ -53,6 +53,9 @@ export default class extends Controller {
     this.listen(document, "turbo:before-visit", (event) => this.visiting(event))
     this.listen(window, "workspace:open", (event) => { if (this.open(event.detail.url, { fresh: event.detail.fresh })) event.preventDefault() })
     this.listen(window, "workspace:command", (event) => this.run(event.detail))
+    // The keys go with another modifier now (workspace_keys_controller.js chose here):
+    // the tiles name them too
+    this.listen(window, "workspace:keys-chosen", (event) => this.tellAll("keys", { chosen: event.detail }))
     // The search at the top of the menu (command_palette_controller.js) asks for the
     // menu when its key is pressed, and to have it away when something was picked
     this.listen(window, "command-palette:show", () => this.showMenu())
@@ -900,6 +903,11 @@ export default class extends Controller {
         break
       case "next":
         this.goToNext(message.back ? -1 : 1)
+        break
+      case "keys":
+        // Chosen in that tile's own shortcuts dialog: here and in the other tiles too
+        renameWorkspaceKeys(message.chosen || {})
+        this.tellAll("keys", { chosen: message.chosen })
         break
       case "gone":
         this.left(id)

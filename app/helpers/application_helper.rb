@@ -53,10 +53,24 @@ module ApplicationHelper
   end
 
   # The keys that move tiles around in the workspace go with Alt, and on a Mac with
-  # Control and Option: Option alone types letters there, and moves by word.
+  # Control and Option: Option alone types letters there, and moves by word. A
+  # browser can pick another pair (services/workspace_keys.js keeps it in a cookie).
   # workspace_key("M") is "⌃⌥M" or "Alt+M".
+  WORKSPACE_MODIFIERS = {
+    mac: { "ctrl-alt" => [ "⌃⌥", "Control + Option" ], "ctrl-meta" => [ "⌃⌘", "Control + Command" ], "alt-meta" => [ "⌥⌘", "Option + Command" ] },
+    other: { "alt" => [ "Alt", "Alt" ], "ctrl-alt" => [ "Ctrl+Alt", "Ctrl + Alt" ] }
+  }.freeze
+
+  def workspace_modifiers = WORKSPACE_MODIFIERS[mac? ? :mac : :other]
+
+  # The one this browser chose, or the first
+  def workspace_modifier
+    cookies[:workspace_keys].presence_in(workspace_modifiers.keys) || workspace_modifiers.keys.first
+  end
+
   def workspace_key(key, shift: false)
-    mac? ? "⌃⌥#{'⇧' if shift}#{key}" : [ "Alt", ("Shift" if shift), key ].compact.join("+")
+    held = workspace_modifiers[workspace_modifier].first
+    mac? ? "#{held}#{'⇧' if shift}#{key}" : [ held, ("Shift" if shift), key ].compact.join("+")
   end
 
   # The launcher's key as this keyboard has it

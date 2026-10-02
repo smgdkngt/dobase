@@ -381,6 +381,35 @@ class WorkspaceTest < ApplicationSystemTestCase
     within_tile(0) { assert_selector "html[data-theme='nord']" }
   end
 
+  test "the workspace's keys go with another modifier, for whoever has these taken" do
+    launch @files
+    assert_focused 1
+    other = mac? ? [ "ctrl-meta", %i[control meta], "⌃⌘" ] : [ "ctrl-alt", %i[control alt], "Ctrl+Alt+" ]
+
+    find("body").send_keys("?")
+    within "dialog[open]" do
+      find("select[data-controller~='workspace-keys']").find("option[value='#{other[0]}']").select_option
+      # The keys the page names are the new ones at once, and nothing was loaded again
+      assert_selector "kbd", text: "#{other[2]}W", exact_text: true
+    end
+    type_keys :escape
+    assert_no_selector "dialog[open]"
+
+    # The keys as they were do nothing now; the chosen ones do
+    press :arrow_left
+    sleep 0.3
+    assert_focused 1
+    type_keys(*other[1], :arrow_left)
+    assert_focused 0
+
+    # And it is kept: the page is drawn with them the next time
+    visit workspace_path
+    wait_for_stimulus "workspace"
+    assert_selector ".workspace-tile button[title='Close this tile (#{other[2]}W)']", visible: :all, minimum: 1
+  ensure
+    page.driver.browser.manage.delete_cookie("workspace_keys")
+  end
+
   test "the bell in the bar opens the notifications over the tiles" do
     find(".workspace-bar-btn[aria-label='Notifications']").click
 

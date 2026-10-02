@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { applyTheme } from "services/theme"
-import { workspaceCommand, isLauncherKey } from "services/workspace_keys"
+import { workspaceCommand, isLauncherKey, renameWorkspaceKeys } from "services/workspace_keys"
 import { opensAsTile } from "services/tool_frame"
 
 // On a page that is a tile in the workspace (workspace_controller.js is on the page
@@ -14,6 +14,9 @@ export default class extends Controller {
     this._onKey = (event) => this.keyed(event)
     this._onFocus = (event) => this.say("focus", { pointer: event.type === "pointerdown" })
     this._onClick = (event) => this.clicked(event)
+    // Chosen in this page's own shortcuts dialog: the workspace and the other tiles hear of it
+    this._onKeysChosen = (event) => this.say("keys", { chosen: event.detail })
+    window.addEventListener("workspace:keys-chosen", this._onKeysChosen)
     document.addEventListener("click", this._onClick, true)
     window.addEventListener("message", this._onMessage)
     // The keyboard arrives here by Tab or F6, or with a click
@@ -29,6 +32,7 @@ export default class extends Controller {
 
   disconnect() {
     window.removeEventListener("message", this._onMessage)
+    window.removeEventListener("workspace:keys-chosen", this._onKeysChosen)
     window.removeEventListener("focus", this._onFocus)
     document.removeEventListener("pointerdown", this._onFocus, true)
     document.removeEventListener("click", this._onClick, true)
@@ -45,6 +49,8 @@ export default class extends Controller {
 
     // A theme picked while this page is open; only the page around it hears of it
     if (event.data?.tile === "theme") applyTheme(event.data.theme)
+    // The workspace's keys go with another modifier: this page names them too
+    if (event.data?.tile === "keys") renameWorkspaceKeys(event.data.chosen || {})
   }
 
   notifications() {
