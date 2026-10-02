@@ -66,6 +66,38 @@ module Tools
       assert_includes response.body, "No messages in Büro"
     end
 
+    test "folders the server keeps inside the inbox show by their own names" do
+      @account.update!(folder_prefix: "INBOX.", synced_folders: %w[INBOX Sent INBOX.blorpo INBOX.Templates].to_json)
+
+      get tool_mail_path(@tool, mails_messages(:inbox_read))
+
+      assert_select "nav.mail-folder-rail a[href=?]", tool_mails_path(@tool, folder: "INBOX.blorpo"), text: "blorpo"
+      assert_select "#move-to-menu form" do
+        assert_select "input[name=folder][value=?]", "INBOX.Templates"
+        assert_select "button", text: "Templates"
+      end
+      assert_select "#bulk-move-menu button[data-folder=?]", "INBOX.blorpo", text: "blorpo"
+      assert_not_includes response.body, ">INBOX.blorpo<"
+
+      get tool_mails_path(@tool, folder: "INBOX.blorpo")
+
+      assert_select ".mail-folder-picker button span", text: "blorpo"
+      assert_includes response.body, "No messages in blorpo"
+    end
+
+    test "a new folder is made where the server keeps its folders, and opened" do
+      server = FakeImapServer.new(folders: [ "INBOX" ], capabilities: %w[IMAP4REV1 NAMESPACE], namespace: "INBOX.", delimiter: ".")
+
+      connect_to_imap(server) { post tool_folder_path(@tool), params: { folder_name: "Clients" } }
+
+      assert_equal %w[INBOX.Clients], server.created
+      assert_redirected_to tool_mails_path(@tool, folder: "INBOX.Clients")
+      assert_equal "Folder \"Clients\" created.", flash[:notice]
+
+      follow_redirect!
+      assert_select ".mail-folder-picker button span", text: "Clients"
+    end
+
     test "a new folder gets a plain name" do
       [ "Work (old)", "Receipts*", "Büro", "a" * 101, "" ].each do |name|
         post tool_folder_path(@tool), params: { folder_name: name }

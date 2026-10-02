@@ -5,17 +5,20 @@ require "net/imap"
 # An IMAP server for tests. It lists its folders, finds messages by Message-ID
 # and records what it's asked to do. `connect_to_imap` sends connections to it.
 class FakeImapServer
-  attr_reader :selected, :searched, :stored, :copied, :appended, :appended_messages, :expunged, :lists
+  attr_reader :selected, :searched, :stored, :copied, :appended, :appended_messages, :expunged, :lists, :created
 
   # folders: names, or [name, *attributes] for folders with SPECIAL-USE attributes like :Drafts
   # message_ids: { [folder, "<message-id>"] => [uid, ...] }
   # messages: { [folder, uid] => raw message }, for fetching them
-  def initialize(folders: [ "INBOX" ], message_ids: {}, messages: {}, capabilities: %w[IMAP4REV1 UIDPLUS])
+  # namespace: what the server keeps the account's own folders under, like "INBOX."; it says so when it has NAMESPACE
+  def initialize(folders: [ "INBOX" ], message_ids: {}, messages: {}, capabilities: %w[IMAP4REV1 UIDPLUS], namespace: "", delimiter: "/")
     @folders = folders
+    @namespace = namespace
+    @delimiter = delimiter
     @message_ids = message_ids
     @messages = messages
     @capabilities = capabilities
-    @selected, @searched, @stored, @copied, @appended, @appended_messages, @expunged, @lists = [], [], [], [], [], [], [], 0
+    @selected, @searched, @stored, @copied, @appended, @appended_messages, @expunged, @lists, @created = [], [], [], [], [], [], [], 0, []
   end
 
   def login(_username, _password) = nil
@@ -37,7 +40,17 @@ class FakeImapServer
 
   def list(_reference, _pattern)
     @lists += 1
-    @folders.map { |name, *attributes| Net::IMAP::MailboxList.new(attributes, "/", name) }
+    @folders.map { |name, *attributes| Net::IMAP::MailboxList.new(attributes, @delimiter, name) }
+  end
+
+  def namespace
+    Net::IMAP::Namespaces.new([ Net::IMAP::Namespace.new(@namespace, @delimiter, {}) ], [], [])
+  end
+
+  # A new folder is listed from then on
+  def create(folder)
+    @created << folder
+    @folders += [ folder ]
   end
 
   def select(folder) = @selected << folder

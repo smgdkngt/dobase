@@ -29,6 +29,8 @@ module Mails
     BUILT_IN_FOLDERS = %w[INBOX Sent Drafts Trash Spam INBOX.spam INBOX.Spam Junk].freeze
     # The server's trash, whatever the server calls it ("Deleted Messages", "[Gmail]/Trash", ...)
     TRASH = "Trash"
+    # What the mail page lists itself, before the account's own folders
+    VIEWS = %w[inbox drafts starred sent archive trash].freeze
 
     # Images load straight away in mail from a trusted sender, and in your own
     def shows_images_from?(address)
@@ -48,7 +50,25 @@ module Mails
     # one of the account's own folders. Nil for a folder the server doesn't have.
     def folder_to_move_to(name)
       folders = [ "INBOX", "Sent", *custom_folders ]
-      folders.find { |folder| folder == name.to_s } || folders.find { |folder| folder == name.to_s.strip }
+      folders.find { |folder| folder == name.to_s } || folders.find { |folder| folder == name.to_s.strip } || custom_folder_shown_as(name)
+    end
+
+    # Some servers keep every folder inside the inbox: "INBOX.Receipts". That prefix
+    # (`folder_prefix`, which the sync learns from the server) says nothing, so the folder
+    # shows as Receipts. It keeps its whole name where that would read as another folder:
+    # one the mail page has itself, or one the server has under the short name too.
+    def folder_without_prefix(folder)
+      folder = folder.to_s
+      return folder if folder_prefix.blank? || !folder.start_with?(folder_prefix)
+
+      name = folder.delete_prefix(folder_prefix)
+      name.blank? || name.downcase.in?(VIEWS) || name.in?(server_folders) ? folder : name
+    end
+
+    # One of the account's own folders by the name it shows under
+    def custom_folder_shown_as(name)
+      name = name.to_s.strip
+      custom_folders.find { |folder| folder != name && folder_without_prefix(folder) == name } if name.present?
     end
 
     # The folders synced besides the inbox and sent mail: the account's own, and the archive

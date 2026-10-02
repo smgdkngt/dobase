@@ -54,6 +54,20 @@ module Tools
       @faked_services&.each { |service| service.singleton_class.remove_method(:new) }
     end
 
+    test "index lists a folder inside the inbox by the server's name or by its own" do
+      @tool.mail_account.update!(folder_prefix: "INBOX.", synced_folders: %w[INBOX Sent INBOX.Receipts].to_json)
+      mails_messages(:inbox_read).update!(folder: "INBOX.Receipts")
+
+      [ "INBOX.Receipts", "Receipts" ].each do |folder|
+        get tool_mails_path(@tool, folder: folder), headers: @headers
+
+        assert_response :success
+        assert_equal "INBOX.Receipts", response.parsed_body["folder"], folder
+        assert_equal [ mails_messages(:inbox_read).subject ], response.parsed_body["conversations"].map { |conversation| conversation["subject"] }
+      end
+      assert_equal %w[INBOX.Receipts], response.parsed_body["custom_folders"]
+    end
+
     test "index lists inbox conversations with counts and folders" do
       get tool_mails_path(@tool), headers: @headers
 

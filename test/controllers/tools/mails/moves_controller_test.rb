@@ -28,6 +28,18 @@ module Tools
         assert_equal "INBOX", mails_messages(:inbox_read).reload.folder
       end
 
+      test "mail moves to a folder inside the inbox by its own name, and says so by that name" do
+        @tool.mail_account.update!(folder_prefix: "INBOX.", synced_folders: %w[INBOX Sent INBOX.Receipts].to_json)
+        msg = mails_messages(:inbox_read)
+        msg.update!(uid: 102)
+
+        assert_enqueued_with(job: ImapSyncJob, args: [ msg.mail_account_id, "move_to_folder", 102, "INBOX", "INBOX.Receipts" ]) do
+          post tool_mail_move_path(@tool, msg), params: { folder: "Receipts" }
+        end
+        assert_equal "INBOX.Receipts", msg.reload.folder
+        assert_equal "Moved to Receipts.", flash[:notice]
+      end
+
       test "mail moves to any folder the server has, whatever is in its name" do
         @tool.mail_account.update!(synced_folders: [ "INBOX", "Sent", "Facturen &- bonnen", "Work (old)", "B&APw-ro", "Klanten/Caf&AOk-" ].to_json)
         msg = mails_messages(:inbox_read)
