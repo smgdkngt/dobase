@@ -173,6 +173,10 @@ it. That is the name the mail server has for the folder, which for names with
 is `R &- D`. A folder the account doesn't have returns `422` with
 `{"errors": ["Invalid folder name"]}`.
 
+Some mail servers keep every folder inside the inbox, so "Receipts" is
+`INBOX.Receipts` there. The list gives that whole name; moving to it and
+listing it (`folder`) take the short name too, `Receipts`.
+
 ## Trash
 
 | Request | Does |

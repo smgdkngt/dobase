@@ -17,8 +17,8 @@ module Tools
           return
         end
 
-        ImapSyncService.new(@tool.mail_account).create_folder(folder_name)
-        redirect_to tool_mails_path(@tool, folder: folder_name), notice: "Folder \"#{folder_name}\" created."
+        created = ImapSyncService.new(@tool.mail_account).create_folder(folder_name)
+        redirect_to tool_mails_path(@tool, folder: created), notice: "Folder \"#{folder_name}\" created."
       rescue StandardError => e
         redirect_to tool_mails_path(@tool), alert: "Could not create folder: #{e.message}"
       end

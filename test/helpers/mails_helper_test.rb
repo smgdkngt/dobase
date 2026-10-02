@@ -17,6 +17,21 @@ class MailsHelperTest < ActionView::TestCase
     ], mail_folder_tree(folders).map { |folder| folder.values_at(:key, :label, :depth) }
   end
 
+  test "folders the server keeps inside the inbox show by their own names" do
+    account = mails_accounts(:primary)
+    folders = [ "INBOX.Templates", "INBOX.blorpo", "INBOX.Clients.Acme", "INBOX.Clients", "INBOX.B&APw-ro" ]
+    account.update!(folder_prefix: "INBOX.", synced_folders: [ "INBOX", "Sent", *folders ].to_json)
+    @tool = account.tool
+
+    assert_equal [
+      [ "INBOX.blorpo", "blorpo", "blorpo", 0 ],
+      [ "INBOX.B&APw-ro", "Büro", "Büro", 0 ],
+      [ "INBOX.Clients", "Clients", "Clients", 0 ],
+      [ "INBOX.Clients.Acme", "Acme", "Clients.Acme", 1 ],
+      [ "INBOX.Templates", "Templates", "Templates", 0 ]
+    ], mail_folder_tree(folders).map { |folder| folder.values_at(:key, :label, :name, :depth) }
+  end
+
   # Servers name folders in modified UTF-7 (RFC 3501, 5.1.3): "&" is "&-", other letters are encoded
 
   test "a folder shows by the name it was given, and keeps the server's name as its key" do

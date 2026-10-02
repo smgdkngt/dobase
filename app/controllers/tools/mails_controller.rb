@@ -16,7 +16,8 @@ module Tools
 
     def index
       @mail_account = @tool.mail_account
-      @current_folder = params[:folder] || "inbox"
+      # A folder of the account's own is asked for by the server's name or by the one it shows under
+      @current_folder = @mail_account.custom_folder_shown_as(params[:folder]) || params[:folder] || "inbox"
       load_index_data
     end
 

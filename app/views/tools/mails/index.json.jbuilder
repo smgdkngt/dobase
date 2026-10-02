@@ -15,7 +15,7 @@ json.counts do
   json.drafts @drafts_count
   json.trash @trash_count
 end
-json.folders %w[inbox drafts starred sent archive trash]
+json.folders Mails::Account::VIEWS
 json.custom_folders @custom_folders
 
 json.conversations @conversations do |conversation|

@@ -17,6 +17,41 @@ module Mails
       assert_equal %w[Archive Clients], @account.other_folders_to_sync
     end
 
+    test "a folder shows without what the server keeps its folders under" do
+      @account.update!(folder_prefix: "INBOX.", synced_folders: %w[INBOX Sent INBOX.Receipts INBOX.Clients INBOX.Clients.Acme Notes].to_json)
+
+      assert_equal "Receipts", @account.folder_without_prefix("INBOX.Receipts")
+      assert_equal "Clients.Acme", @account.folder_without_prefix("INBOX.Clients.Acme")
+      assert_equal "Notes", @account.folder_without_prefix("Notes")
+      assert_equal "INBOX", @account.folder_without_prefix("INBOX")
+      assert_equal "", @account.folder_without_prefix(nil)
+    end
+
+    test "a folder keeps its whole name where the short one is another folder's" do
+      @account.update!(folder_prefix: "INBOX.", synced_folders: %w[INBOX Sent INBOX.Sent INBOX.archive INBOX.Notes Notes INBOX.].to_json)
+
+      # The mail page has a Sent and an Archive itself, and the server a Notes beside the inbox
+      %w[INBOX.Sent INBOX.archive INBOX.Notes INBOX.].each { |folder| assert_equal folder, @account.folder_without_prefix(folder) }
+    end
+
+    test "a server with its folders beside the inbox shows them as they are" do
+      [ nil, "" ].each do |prefix|
+        @account.update!(folder_prefix: prefix)
+        assert_equal "INBOX.Receipts", @account.folder_without_prefix("INBOX.Receipts")
+      end
+    end
+
+    test "mail moves to a folder by the server's name or by the name it shows under" do
+      @account.update!(folder_prefix: "INBOX.", synced_folders: %w[INBOX Sent INBOX.Receipts INBOX.Notes Notes].to_json)
+
+      assert_equal "INBOX.Receipts", @account.folder_to_move_to("INBOX.Receipts")
+      assert_equal "INBOX.Receipts", @account.folder_to_move_to("Receipts")
+      assert_equal "Notes", @account.folder_to_move_to("Notes")
+      assert_equal "INBOX.Notes", @account.folder_to_move_to("INBOX.Notes")
+      assert_nil @account.folder_to_move_to("Clients")
+      assert_nil @account.folder_to_move_to("")
+    end
+
     test "trashed mail moves to the server's trash, one move per folder, and can come back from there" do
       @account.update!(synced_folders: %w[INBOX Sent Trash].to_json)
       first, second = mails_messages(:inbox_read), mails_messages(:inbox_unread)

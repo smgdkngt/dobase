@@ -16,12 +16,14 @@ module MailsHelper
   end
 
   # A folder's name as it was given. The server has it in modified UTF-7 (RFC 3501, 5.1.3),
-  # where "Büro" is "B&APw-ro" and "&" is "&-". That stays the folder's name for the server
-  # and in links; this is the name to show.
-  def mail_folder_name(folder)
-    Net::IMAP.decode_utf7(folder.to_s).scrub
+  # where "Büro" is "B&APw-ro" and "&" is "&-", and some servers have it inside the inbox,
+  # as "INBOX.Büro". That stays the folder's name for the server and in links; this is the
+  # name to show.
+  def mail_folder_name(folder, account: @tool&.mail_account)
+    name = account ? account.folder_without_prefix(folder) : folder.to_s
+    Net::IMAP.decode_utf7(name).scrub
   rescue StandardError
-    folder.to_s
+    name || folder.to_s
   end
 
   # The account's own folders as the server nests them: in alphabetical order, each

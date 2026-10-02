@@ -230,6 +230,67 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_equal %w[INBOX Receipts Sent Drafts], JSON.parse(@account.reload.synced_folders)
   end
 
+  test "a server that keeps its folders inside the inbox says so, and the account remembers" do
+    server = FakeImapServer.new(folders: [ "INBOX", "INBOX.Receipts", [ "INBOX.Sent", :Sent ] ], capabilities: %w[IMAP4REV1 NAMESPACE], namespace: "INBOX.", delimiter: ".")
+
+    connect_to_imap(server) { @service.sync_folders }
+
+    assert_equal "INBOX.", @account.reload.folder_prefix
+    assert_equal %w[INBOX INBOX.Receipts Sent], JSON.parse(@account.synced_folders)
+    assert_equal "Receipts", @account.folder_without_prefix("INBOX.Receipts")
+  end
+
+  test "a server with its folders beside the inbox has no prefix, also when one folder is inside the inbox" do
+    server = FakeImapServer.new(folders: [ "INBOX", "INBOX/Receipts", "Clients" ], capabilities: %w[IMAP4REV1 NAMESPACE])
+
+    connect_to_imap(server) { @service.sync_folders }
+
+    assert_equal "", @account.reload.folder_prefix
+    assert_equal "INBOX/Receipts", @account.folder_without_prefix("INBOX/Receipts")
+  end
+
+  test "a server that doesn't say where its folders are has them inside the inbox when every one of them is" do
+    connect_to_imap(FakeImapServer.new(folders: [ "INBOX", "INBOX.Receipts", "INBOX.Clients" ], delimiter: ".")) { @service.sync_folders }
+    assert_equal "INBOX.", @account.reload.folder_prefix
+
+    connect_to_imap(FakeImapServer.new(folders: [ "INBOX", "INBOX.Receipts", "Clients" ], delimiter: ".")) { @service.sync_folders }
+    assert_equal "", @account.reload.folder_prefix
+
+    connect_to_imap(FakeImapServer.new(folders: [ "INBOX" ], delimiter: ".")) { @service.sync_folders }
+    assert_equal "", @account.reload.folder_prefix
+  end
+
+  test "a server that won't say where its folders are doesn't stop the folders from syncing" do
+    @account.update!(folder_prefix: "INBOX.")
+    server = FakeImapServer.new(folders: [ "INBOX", "INBOX.Receipts" ], capabilities: %w[IMAP4REV1 NAMESPACE])
+    refusal = Net::IMAP::NoResponseError.new(Struct.new(:data).new(Struct.new(:text).new("Not now")))
+    server.define_singleton_method(:namespace) { raise refusal }
+
+    connect_to_imap(server) { @service.sync_folders }
+
+    assert_equal [ "INBOX.", %w[INBOX.Receipts] ], [ @account.reload.folder_prefix, @account.custom_folders ]
+  end
+
+  test "a new folder is made where the server keeps its folders" do
+    server = FakeImapServer.new(folders: [ "INBOX", "INBOX.Receipts" ], capabilities: %w[IMAP4REV1 NAMESPACE], namespace: "INBOX.", delimiter: ".")
+
+    connect_to_imap(server) do
+      assert_equal "INBOX.Clients", @service.create_folder("Clients")
+      assert_equal "INBOX.Invoices", @service.create_folder("INBOX.Invoices")
+    end
+
+    assert_equal %w[INBOX.Clients INBOX.Invoices], server.created
+    assert_equal %w[INBOX.Receipts INBOX.Clients INBOX.Invoices], @account.reload.custom_folders
+  end
+
+  test "a new folder keeps its name on a server with its folders beside the inbox" do
+    server = FakeImapServer.new(folders: [ "INBOX" ], capabilities: %w[IMAP4REV1 NAMESPACE])
+
+    connect_to_imap(server) { assert_equal "Clients", @service.create_folder("Clients") }
+
+    assert_equal %w[Clients], server.created
+  end
+
   test "an account without an archive folder archives to the server's, and mail archived before moves there" do
     archived = mails_messages(:inbox_unread)
     archived.update!(archived: true, uid: 41)
