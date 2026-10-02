@@ -393,3 +393,25 @@ body[data-workspace] .main-content {
 :root[data-in-tile] .rich-text-input:not(:focus-within) rhino-editor::part(toolbar) {
   display: none;
 }
+
+/* Documents: written to be read across a page, here they are read across a tile */
+:root[data-in-tile] :is(rhino-editor.document-editor .trix-content, .document-view .rich-text-content) {
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+
+:root[data-in-tile] :is(rhino-editor.document-editor .trix-content, .document-view .rich-text-content) h1 {
+  font-size: 1.6rem;
+}
+
+:root[data-in-tile] :is(rhino-editor.document-editor .trix-content, .document-view .rich-text-content) h2 {
+  font-size: 1.35rem;
+}
+
+:root[data-in-tile] :is(rhino-editor.document-editor .trix-content, .document-view .rich-text-content) h3 {
+  font-size: 1.15rem;
+}
+
+:root[data-in-tile] :is(rhino-editor.document-editor .trix-content, .document-view .rich-text-content) h4 {
+  font-size: 1.0625rem;
+}

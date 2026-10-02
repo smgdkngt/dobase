@@ -54,7 +54,16 @@ module ApplicationHelper
   # The keys that move tiles around in the workspace go with Alt, and on a Mac with
   # Control and Option: Option alone types letters there, and moves by word.
   def workspace_modifier
-    request.user_agent.to_s.match?(/Macintosh|Mac OS X/) ? "⌃⌥" : "Alt +"
+    mac? ? "⌃⌥" : "Alt +"
+  end
+
+  # The launcher's key as this keyboard has it
+  def launcher_key
+    mac? ? "⌘K" : "Ctrl K"
+  end
+
+  def mac?
+    request.user_agent.to_s.match?(/Macintosh|Mac OS X/)
   end
 
   def absolute_url(path)
