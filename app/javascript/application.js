@@ -114,7 +114,10 @@ if (window.self !== window.top && (window.name === "workspace-tile" || window.na
   const root = document.documentElement
   let serverKnows = root.hasAttribute("data-in-tile")
   root.setAttribute("data-in-tile", "")
-  // A frame over all the tiles that shows nothing but a dialog of this page (services/float.js)
+  // A frame over all the tiles that shows nothing but a dialog of this page
+  // (services/float.js). The server says so itself (floating?), so the page is
+  // see-through from its first paint: marked only here, it would lie over all the
+  // tiles as one flat colour until this ran.
   if (window.name === "workspace-float") root.setAttribute("data-floating", "")
 
   document.addEventListener("turbo:before-fetch-request", (event) => {

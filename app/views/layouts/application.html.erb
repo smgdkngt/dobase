@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-turbo-not-loaded <%= tag.attributes(theme_attributes) %><%= " data-in-tile" if tile? %>>
+<html data-turbo-not-loaded <%= tag.attributes(theme_attributes) %><%= " data-in-tile" if tile? %><%= " data-floating" if floating? %>>
   <head>
     <title><%= content_for(:title) || app_name %></title>
     <meta name="viewport" content="<%= viewport_content %>">

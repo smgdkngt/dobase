@@ -307,6 +307,13 @@
   .workspace-float {
     @apply fixed inset-0 z-[60] bg-black/40;
     animation: workspace-float-in 120ms ease-out;
+    transition: opacity 180ms var(--ease-out);
+  }
+
+  /* The dialog is closed: it fades out with the dark behind it, and the tiles under
+     it can be clicked already (workspace_controller.js#unfloat takes it away after) */
+  .workspace-float[data-closing] {
+    @apply opacity-0 pointer-events-none;
   }
 
   .workspace-float[hidden] {

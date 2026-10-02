@@ -39,6 +39,8 @@ const SEEN_AFTER_MS = 800
 // goes this long after it left
 const CARD_AFTER_MS = 300
 const CARD_GONE_AFTER_MS = 180
+// How long a floating dialog takes to fade out (workspace.css), after which its frame goes
+const FLOAT_FADE = 180
 
 export default class extends Controller {
   static targets = ["tiles", "tileTemplate", "empty", "desks", "deskCard", "title", "menu", "hint", "status", "float"]
@@ -151,6 +153,7 @@ export default class extends Controller {
     this.menuWatch.disconnect()
     this.newsWatch.disconnect()
     clearTimeout(this.cardTimer)
+    clearTimeout(this.floatGoing)
     clearInterval(this.freshenTimer)
   }
 
@@ -1181,6 +1184,7 @@ export default class extends Controller {
     if (!toolIdOf(path) || !this.hasFloatTarget) return
 
     this.unfloat({ refresh: false })
+    this.clearFloat()
     // With ?float the server draws the dialog and nothing else (floating?)
     const asked = new URL(path, location.origin)
     asked.searchParams.set("float", "1")
@@ -1194,18 +1198,26 @@ export default class extends Controller {
     frame.focus()
   }
 
-  // The dialog is closed: the frame goes, the tile it came from is drawn again with
-  // whatever was changed in the dialog, and has the keyboard back
+  // The dialog is closed: the tile it came from is drawn again with whatever was
+  // changed in the dialog, and has the keyboard back. The frame fades out with the
+  // dark behind it, as a dialog does anywhere, and then goes.
   unfloat({ refresh = true } = {}) {
     if (!this.floating) return
 
     const { id } = this.floating
     this.floating = null
-    this.floatTarget.replaceChildren()
-    this.floatTarget.hidden = true
+    this.floatTarget.dataset.closing = ""
+    this.floatGoing = setTimeout(() => this.clearFloat(), FLOAT_FADE)
     this.tilesTarget.inert = Boolean(this.menuOpen)
     if (refresh && this.elements.has(id)) this.refresh(id)
     this.grabFocus()
+  }
+
+  clearFloat() {
+    clearTimeout(this.floatGoing)
+    this.floatTarget.replaceChildren()
+    this.floatTarget.hidden = true
+    delete this.floatTarget.dataset.closing
   }
 
   // A click beside the dialog before it has arrived (afterwards the frame takes it)

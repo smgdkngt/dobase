@@ -19,6 +19,8 @@ class FloatingPageTest < ActionDispatch::IntegrationTest
     get tool_board_path(board, card: card.id, float: 1), headers: FRAME
 
     assert_response :success
+    # See-through from the first paint, before any script has run
+    assert_select "html[data-in-tile][data-floating]"
     assert_select "[data-controller='board'] dialog#card-detail-modal [data-board-target='cardModal'][data-drawn='#{card.id}']" do
       assert_select "h2", text: "First task"
     end
@@ -82,6 +84,7 @@ class FloatingPageTest < ActionDispatch::IntegrationTest
     get tool_board_path(board, card: cards(:first_task).id, float: 1)
 
     assert_response :success
+    assert_select "html[data-floating]", count: 0
     assert_select ".board-column"
     assert_select "[data-board-target='cardModal'][data-drawn]", count: 0
   end
