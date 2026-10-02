@@ -14,6 +14,17 @@ export default class extends Controller {
     this._onKey = (event) => this.keyed(event)
     this._onFocus = (event) => this.say("focus", { pointer: event.type === "pointerdown" })
     this._onClick = (event) => this.clicked(event)
+    // The arrow keys ran out of things on a side of this page (arrow_keys_controller.js,
+    // mail's own keys): the tile on that side takes over. Not while a key is held down
+    // (an edge is where that stops), not from a dialog or a menu, and only when no
+    // view had a use of its own for it, which they say by preventing the default: so
+    // this looks once everyone has heard.
+    this._onEdge = (event) => {
+      if (event.detail.repeat || !event.target.matches?.("main")) return
+
+      queueMicrotask(() => { if (!event.defaultPrevented) this.say("edge", { side: event.detail.side }) })
+    }
+    window.addEventListener("arrow-keys:edge", this._onEdge)
     // Chosen in this page's own shortcuts dialog: the workspace and the other tiles hear of it
     this._onKeysChosen = (event) => this.say("keys", { chosen: event.detail })
     window.addEventListener("workspace:keys-chosen", this._onKeysChosen)
@@ -32,6 +43,7 @@ export default class extends Controller {
 
   disconnect() {
     window.removeEventListener("message", this._onMessage)
+    window.removeEventListener("arrow-keys:edge", this._onEdge)
     window.removeEventListener("workspace:keys-chosen", this._onKeysChosen)
     window.removeEventListener("focus", this._onFocus)
     document.removeEventListener("pointerdown", this._onFocus, true)

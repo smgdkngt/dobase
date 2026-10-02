@@ -10,13 +10,30 @@ import { typing } from "services/typing"
 // With Shift, an item that can be dragged to another place (sortable_controller.js)
 // moves there instead.
 //
-// A page without items scrolls its scroller target, so reading a document or a mail
-// needs no mouse either. Where there is nothing further to the left, the left arrow
-// goes back (the back target: the arrow in a tool's top bar), the way the right
-// arrow or Enter went in. The keys are left alone while you type, and to whatever
-// took them first (a tool with arrows of its own prevents the default).
+// Home and End go as far as it goes up or down from where you are (the top of this
+// column, the end of this list), Page Up and Page Down about a screen.
+//
+// A page without items scrolls instead, so reading a document or what is in a dialog
+// needs no mouse either: its scroller target, or whatever in it scrolls. There the
+// space bar turns the page too. Where there is nothing further to the left, the
+// left arrow goes back (the back target: the arrow in a tool's top bar), the way the
+// right arrow or Enter went in.
+//
+// Past the last item on a side the controller says "edge": a view may have something
+// of its own to do there (the calendar: another week), and in the workspace the tile
+// on that side takes over (tile_page_controller.js), so the arrows go from tool to
+// tool as well.
+//
+// Where you were on a page is kept while the tab is open: coming back to a list, the
+// first arrow lands on what you left it by. The keys are left alone while you type,
+// and to whatever took them first (a tool with arrows of its own prevents the default).
 const SIDES = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" }
+// The keys that go far: which way, and whether all the way or about a screen
+const FAR = { Home: [ "up", "end" ], End: [ "down", "end" ], PageUp: [ "up", "page" ], PageDown: [ "down", "page" ] }
 const SCROLL_STEP = 80
+// How much of what is in sight a page is: a little stays, to read on from
+const PAGE = 0.85
+const KEPT = "dobase:arrow-keys"
 // How much a step sideways counts against a step ahead: the item straight ahead wins
 // over a nearer one off to the side
 const ASIDE_COSTS = 3
@@ -41,9 +58,49 @@ export default class extends Controller {
 
     const side = SIDES[event.key]
     if (side) return this.arrow(event, side)
+    if (FAR[event.key]) return this.far(event, ...FAR[event.key])
     if (event.key === "Enter" && !event.shiftKey) this.open(event)
-    // What says it is a button is pressed with the space bar too
-    if (event.key === " " && document.activeElement?.matches("[role='button']")) this.open(event)
+    if (event.key === " ") this.space(event)
+  }
+
+  // What says it is a button is pressed with the space bar too. On a page that is
+  // read (nothing to go through) the space bar turns the page, with Shift back,
+  // unless it is on something it presses.
+  space(event) {
+    const on = document.activeElement
+    if (on?.matches("[role='button']")) return this.open(event)
+    if (on?.matches("a[href], button, input, summary, [tabindex='0']") || this.items.length > 0) return
+
+    this.scrollFar(event, event.shiftKey ? "up" : "down", "page")
+  }
+
+  // Home, End, Page Up, Page Down: from the item you are on as far as it goes that
+  // way, or about as far as is in sight
+  far(event, side, how) {
+    const items = this.items
+    if (items.length === 0) return this.scrollFar(event, side, how)
+
+    let to = this.itemWithFocus(items) || this.start(items)
+    if (!to) return
+
+    const from = middle(to.getBoundingClientRect()).y
+    const page = window.innerHeight * PAGE
+    for (let next = this.neighbour(to, side, items); next; next = this.neighbour(to, side, items)) {
+      if (how === "page" && Math.abs(middle(next.getBoundingClientRect()).y - from) > page) break
+      to = next
+    }
+    event.preventDefault()
+    this.goTo(to)
+  }
+
+  scrollFar(event, side, how) {
+    const scroller = this.scrollerIn(this.reach)
+    if (!scroller) return
+
+    event.preventDefault()
+    const down = side === "down"
+    if (how === "page") scroller.scrollBy({ top: (down ? 1 : -1) * scroller.clientHeight * PAGE })
+    else scroller.scrollTo({ top: down ? scroller.scrollHeight : 0 })
   }
 
   arrow(event, side) {
@@ -62,14 +119,15 @@ export default class extends Controller {
     if (to) {
       this.goTo(to)
     } else if (!this.goBack(side)) {
-      this.pastTheEdge(side)
+      this.pastTheEdge(side, event)
     }
   }
 
   // Nothing further that way: a view may have something of its own to do there (the
-  // calendar goes to the next week), and says so by preventing the default
-  pastTheEdge(side) {
-    return this.dispatch("edge", { detail: { side }, cancelable: true }).defaultPrevented
+  // calendar goes to the next week), and says so by preventing the default. `repeat`
+  // says the key is being held down: an edge is where that stops.
+  pastTheEdge(side, event) {
+    return this.dispatch("edge", { detail: { side, repeat: Boolean(event?.repeat) }, cancelable: true }).defaultPrevented
   }
 
   goBack(side) {
@@ -110,15 +168,25 @@ export default class extends Controller {
     if (side === "left" || side === "right") {
       // The key stays free for whoever else wants it (mail's own keys) when nothing
       // was done with it here
-      if (reach === this.element && (this.goBack(side) || this.pastTheEdge(side))) event.preventDefault()
+      if (reach === this.element && (this.goBack(side) || this.pastTheEdge(side, event))) event.preventDefault()
       return
     }
 
-    const scroller = this.scrollerTargets.find((target) => reach.contains(target) && visible(target))
+    const scroller = this.scrollerIn(reach)
     if (!scroller) return
 
     event.preventDefault()
     scroller.scrollBy({ top: side === "down" ? SCROLL_STEP : -SCROLL_STEP })
+  }
+
+  // What scrolls there: the view's scroller, or else the first thing in it that does
+  // (a dialog, the part of a card's details that is longer than its room)
+  scrollerIn(reach) {
+    const named = this.scrollerTargets.find((target) => reach.contains(target) && visible(target))
+    if (named) return named
+    if (reach === this.element && this.mainValue) return null
+
+    return [ reach, ...Array.from(reach.querySelectorAll("*")).slice(0, 600) ].find(scrolls) || null
   }
 
   goTo(item) {
@@ -127,6 +195,34 @@ export default class extends Controller {
     item.focus({ preventScroll: true })
     item.scrollIntoView({ block: "nearest", inline: "nearest" })
     this.last = item
+    this.keep(item)
+  }
+
+  // Where you were on this page, for when you come back to it (a list you opened
+  // something from): by what the item is, not where it stood
+  keep(item) {
+    if (!this.mainValue) return
+
+    try {
+      sessionStorage.setItem(`${KEPT}:${location.pathname}${location.search}`, this.nameOf(item))
+    } catch {
+      // No storage: the first arrow starts at the top again
+    }
+  }
+
+  kept(items) {
+    if (!this.mainValue) return null
+
+    try {
+      const name = sessionStorage.getItem(`${KEPT}:${location.pathname}${location.search}`)
+      return (name && items.find((item) => this.nameOf(item) === name)) || null
+    } catch {
+      return null
+    }
+  }
+
+  nameOf(item) {
+    return item.id ? `#${item.id}` : item.getAttribute("href") || `at ${this.itemTargets.indexOf(item)}`
   }
 
   // ── Which one ──
@@ -151,7 +247,7 @@ export default class extends Controller {
 
     const fromEnd = items.filter((item) => item.closest("[data-arrow-keys-from='end']"))
     // A row's name rather than the checkbox in front of it
-    return fromEnd.at(-1) || items.find((item) => inSight(item) && !item.matches("input")) || items.find(inSight) || items[0]
+    return fromEnd.at(-1) || this.kept(items) || items.find((item) => inSight(item) && !item.matches("input")) || items.find(inSight) || items[0]
   }
 
   // The nearest item on that side. Distance is what lies between the two ahead, plus
@@ -213,6 +309,11 @@ function somethingOverThePage() {
 
 function visible(element) {
   return element.getClientRects().length > 0 && !element.closest("[inert]")
+}
+
+// Longer than its room, and made to scroll
+function scrolls(element) {
+  return element.scrollHeight > element.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(element).overflowY)
 }
 
 function inSight(element) {

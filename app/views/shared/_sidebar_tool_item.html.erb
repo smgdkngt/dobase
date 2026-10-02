@@ -39,6 +39,7 @@
     <% end %>
   </a>
   <button type="button" class="sidebar-tool-menu-btn"
+          data-arrow-keys-target="item"
           aria-label="Settings for <%= instance.display_name %>"
           data-action="click->sidebar#editTool"
           data-tool-id="<%= instance.id %>">

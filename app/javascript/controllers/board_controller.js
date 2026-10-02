@@ -236,9 +236,12 @@ export default class extends Controller {
 
   // ── Add card form ──
 
+  // To the column the card you are on is in (the arrow keys go from card to card);
+  // the first column when you are on none
   addCardToFirstColumn() {
-    const firstBtn = this.addCardBtnTargets[0]
-    if (firstBtn) firstBtn.click()
+    const columnId = document.activeElement?.closest?.("[data-column-id]")?.dataset.columnId
+    const button = this.addCardBtnTargets.find((add) => add.dataset.columnId === columnId && add.getClientRects().length > 0) || this.addCardBtnTargets[0]
+    if (button) button.click()
   }
 
   showAddCard(event) {

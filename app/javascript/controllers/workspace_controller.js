@@ -1124,6 +1124,12 @@ export default class extends Controller {
       case "next":
         this.goToNext(message.back ? -1 : 1)
         break
+      case "edge":
+        // The arrow keys ran out of things on that side of the tile you are on: on to
+        // the tile that lies there. Not with one tile alone in the room: there the
+        // others are behind it, not beside it.
+        if (id === this.desk.focus && !this.desk.alone && !this.narrow.matches) this.goToward(message.side)
+        break
       case "keys":
         // Chosen in that tile's own shortcuts dialog: here and in the other tiles too
         renameWorkspaceKeys(message.chosen || {})

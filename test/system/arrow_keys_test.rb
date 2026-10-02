@@ -38,6 +38,25 @@ class ArrowKeysTest < ApplicationSystemTestCase
     assert_db_change -> { cards(:first_task).reload.column_id == cards(:third_task).column_id }
   end
 
+  test "a board: Home and End go to the top and the bottom of the column, and c adds a card to it" do
+    board = tools(:project_board)
+    visit tool_board_path(board)
+    wait_for_stimulus "arrow-keys"
+
+    press :arrow_down
+    assert_focused "#board-card-#{cards(:first_task).id}"
+    press :end
+    # The last thing in the column is its "Add card"
+    assert_selector "[data-board-target='addCardBtn'][data-column-id='#{cards(:first_task).column_id}']:focus"
+    press :home
+    assert_focused "#board-card-#{cards(:first_task).id}"
+
+    press :arrow_right
+    assert_focused "#board-card-#{cards(:third_task).id}"
+    press "c"
+    assert_selector "textarea[data-board-target='addCardInput'][data-column-id='#{cards(:third_task).column_id}']:focus"
+  end
+
   test "todos: from item to item, to its checkbox, and an item moved up" do
     visit tool_todo_path(tools(:my_todos))
     wait_for_stimulus "arrow-keys"
@@ -54,6 +73,11 @@ class ArrowKeysTest < ApplicationSystemTestCase
     press [ :shift, :arrow_up ]
     assert_equal "Open #{second.title}", focused_label
     assert_db_change -> { second.reload.position < first.reload.position }
+
+    # The space bar ticks the todo you are on; Enter is what opens it
+    press :space
+    assert_db_change -> { second.reload.completed? }
+    assert_no_selector "dialog#item-detail-modal[open]"
   end
 
   test "docs: from document to document, into one and back out with the left arrow" do
@@ -69,6 +93,31 @@ class ArrowKeysTest < ApplicationSystemTestCase
 
     press :arrow_left
     assert_current_path tool_docs_path(docs)
+
+    # Back in the list, the first arrow lands on the document you left it by
+    wait_for_turbo
+    wait_for_stimulus "arrow-keys"
+    press :arrow_down
+    assert_selector "a[href='#{opened}']:focus"
+  end
+
+  test "docs: the place in the list is kept, wherever it was" do
+    docs = tools(:my_docs)
+    visit tool_docs_path(docs)
+    wait_for_stimulus "arrow-keys"
+
+    press :arrow_down
+    press :arrow_right
+    second = page.evaluate_script("document.activeElement.getAttribute('href')")
+    press :enter
+    assert_current_path second
+    press :arrow_left
+    assert_current_path tool_docs_path(docs)
+    wait_for_turbo
+    wait_for_stimulus "arrow-keys"
+
+    press :arrow_down
+    assert_selector "a[href='#{second}']:focus"
   end
 
   test "files: into a folder and back up with the left arrow" do
@@ -84,6 +133,20 @@ class ArrowKeysTest < ApplicationSystemTestCase
 
     press :arrow_left
     assert_current_path tool_files_path(files)
+  end
+
+  test "files: the space bar picks the file you are on, beside what is picked" do
+    visit tool_files_path(tools(:my_files))
+    wait_for_stimulus "arrow-keys"
+
+    press :arrow_right
+    press :space
+    assert_selector "[data-file-selection-target='item'].ring-accent", count: 1
+    press :arrow_right
+    press :space
+    assert_selector "[data-file-selection-target='item'].ring-accent", count: 2
+    press :space
+    assert_selector "[data-file-selection-target='item'].ring-accent", count: 1
   end
 
   test "chat: up from an empty message box into the messages, and down back to it" do
@@ -138,20 +201,14 @@ class ArrowKeysTest < ApplicationSystemTestCase
     visit tool_mails_path(mail)
     wait_for_stimulus "mail-keyboard"
 
-    list = current_url
-    press :arrow_down
+    press_and_wait_for_the_conversation :arrow_down
     assert_selector ".mail-list-item.selected", count: 1
     first = find(".mail-list-item.selected")[:id]
     assert_selector ".mail-detail-header"
-    wait_for_address_other_than list
 
-    opened = current_url
-    press :arrow_down
+    press_and_wait_for_the_conversation :arrow_down
     assert_no_selector "##{first}.selected"
     assert_selector ".mail-list-item.selected", count: 1
-    # Until the second conversation is the page's address: a conversation that arrives
-    # is a visit, and a visit closes whatever dialog is open (modal_controller.js)
-    wait_for_address_other_than opened
 
     # The keys dialog lies over the mail: the arrows are its own, to scroll with
     second = find(".mail-list-item.selected")[:id]
@@ -160,6 +217,49 @@ class ArrowKeysTest < ApplicationSystemTestCase
     press :arrow_down
     press :escape
     assert_selector "##{second}.selected"
+
+    # Into the message: the arrows read on there, and the list stays where it is
+    press :arrow_right
+    assert_selector ".mail-layout[data-reading]"
+    press :arrow_down
+    assert_selector "##{second}.selected"
+    press :arrow_left
+    assert_no_selector ".mail-layout[data-reading]"
+
+    # End and Home: the last conversation and the first
+    press_and_wait_for_the_conversation :end
+    assert_selector ".mail-list-item:last-child.selected"
+    press_and_wait_for_the_conversation :home
+    assert_selector "##{first}.selected"
+  end
+
+  test "a dialog scrolls with the arrows, the page under it stays as it is" do
+    visit tool_board_path(tools(:project_board))
+    wait_for_stimulus "arrow-keys"
+    page.driver.browser.manage.window.resize_to(1400, 500)
+
+    press "?"
+    assert_selector "dialog[open]", text: "Keyboard shortcuts"
+    scroller = "document.querySelector('dialog[open] [data-arrow-keys-target=scroller]')"
+    assert_equal 0, page.evaluate_script("#{scroller}.scrollTop")
+
+    3.times { press :arrow_down }
+    assert_operator page.evaluate_script("#{scroller}.scrollTop"), :>, 100
+    press :end
+    assert page.evaluate_script("#{scroller}.scrollTop + #{scroller}.clientHeight >= #{scroller}.scrollHeight - 2")
+    assert_no_selector ".board-card:focus"
+  ensure
+    page.driver.browser.manage.window.resize_to(1400, 1400)
+  end
+
+  test "the menu: a tool's settings are one arrow to the right of it" do
+    visit tool_board_path(tools(:project_board))
+    wait_for_stimulus "arrow-keys"
+
+    find("[data-sidebar-tool-link]", match: :first).send_keys(:arrow_right)
+    assert_selector ".sidebar-tool-menu-btn:focus"
+    press :enter
+    assert_selector "dialog#edit-tool-modal[open]"
   end
 
   test "the arrows are left alone while you type" do
@@ -187,10 +287,13 @@ class ArrowKeysTest < ApplicationSystemTestCase
   end
 
   # A conversation that opens beside the list becomes the page's address a moment
-  # after it shows
-  def wait_for_address_other_than(address)
+  # after it shows. That is a visit, and a visit closes whatever dialog is open
+  # (modal_controller.js): nothing that opens one is pressed until it is over.
+  def press_and_wait_for_the_conversation(key)
+    page.execute_script("window.__arrived = false; document.addEventListener('turbo:load', () => { window.__arrived = true }, { once: true })")
+    press key
     page.document.synchronize do
-      raise Capybara::ExpectationNotMet, "still at #{address}" if current_url == address
+      raise Capybara::ExpectationNotMet, "the conversation hasn't arrived" unless page.evaluate_script("window.__arrived")
     end
     wait_for_turbo
   end

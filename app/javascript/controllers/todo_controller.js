@@ -66,10 +66,13 @@ export default class extends Controller {
 
   // The row body is a role="button" div (the row also holds a checkbox and a
   // drag handle), so Enter and Space have to open the item.
+  // On a todo's row: Enter opens it, the space bar ticks it off (or on again)
   openItemKey(event) {
     if (event.key !== "Enter" && event.key !== " ") return
     event.preventDefault()
-    this.openItem(event)
+    if (event.key === "Enter") return this.openItem(event)
+
+    event.currentTarget.closest("[data-sort-id]")?.querySelector("input[type='checkbox']")?.click()
   }
 
   openItem(event) {

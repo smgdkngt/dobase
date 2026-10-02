@@ -318,6 +318,27 @@ class WorkspaceTest < ApplicationSystemTestCase
     within_tile(0) { assert_selector "#board-card-#{cards(:third_task).id}:focus" }
   end
 
+  test "past the edge of a tool the arrows go on to the tile on that side, and back" do
+    launch @files
+    assert_focused 1
+
+    # In the files tile nothing is to the left of the first thing: on to the board
+    type_keys :arrow_right
+    within_tile(1) { assert_selector "[data-arrow-keys-target='item']:focus" }
+    type_keys :arrow_left
+    assert_focused 0
+
+    # In the board the arrows are the board's, until its last column has nothing further right
+    type_keys :arrow_down
+    within_tile(0) { assert_selector "#board-card-#{cards(:first_task).id}:focus" }
+    6.times do
+      type_keys :arrow_right
+      break if focused_index == 1
+      sleep 0.15
+    end
+    assert_focused 1
+  end
+
   test "mail in a tile: the arrows go down the list, into a conversation and back to the list" do
     visit workspace_path(open: tool_mails_path(tools(:my_mail)))
     wait_for_stimulus "workspace"

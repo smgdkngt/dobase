@@ -22,8 +22,10 @@
     <div class="shortcut-list">
       <%= render "shared/shortcut_row", key: "j / ↓", description: "Next message" %>
       <%= render "shared/shortcut_row", key: "k / ↑", description: "Previous message" %>
-      <%= render "shared/shortcut_row", key: "o / →", description: "Open message" %>
-      <%= render "shared/shortcut_row", key: "←", description: "Back to the list, in a narrow window" %>
+      <%= render "shared/shortcut_row", key: "o / →", description: "Open message, then into it: ↑ ↓ read on" %>
+      <%= render "shared/shortcut_row", key: "←", description: "Back to the list" %>
+      <%= render "shared/shortcut_row", key: "Space", description: "Turn the page of the message" %>
+      <%= render "shared/shortcut_row", key: "Home / End", description: "First or last message" %>
       <%= render "shared/shortcut_row", key: "c", description: "Compose" %>
       <%= render "shared/shortcut_row", key: "/", description: "Search" %>
       <%= render "shared/shortcut_row", key: "e", description: "Archive" %>
