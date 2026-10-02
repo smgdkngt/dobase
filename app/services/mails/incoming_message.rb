@@ -71,6 +71,13 @@ module Mails
       attachment_parts = parsed_mail ? attachment_parts_of(parsed_mail) : []
       has_attachments = attachment_parts.any?
 
+      # A draft discarded here is in the server's trash as the mail it would go out as, quote
+      # and all. It stays as it was written, to be a draft again when it's restored. Drafts
+      # written here keep their Message-ID in angle brackets.
+      if folder_name == Account::TRASH && (discarded = @account.messages.find_by(message_id: "<#{message_id}>", folder: folder_name, draft: true))
+        return discarded.update_columns(uid: uid)
+      end
+
       # A message in several folders on the server has a copy here for each of them
       email = @account.messages.find_or_initialize_by(message_id: message_id, folder: folder_name)
       is_new_email = email.new_record?

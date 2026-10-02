@@ -7,9 +7,10 @@ are copied to the server in the background, and sending sends real email.
 If the tool's mail account isn't connected yet, mail endpoints answer `404`
 with `{"error": "Mail account not configured"}`. Connect it in the browser.
 
-Tokens can't move mail to the trash (it goes to the mail server's trash, or is
-deleted right away on a server without one), permanently delete mail, empty the trash, run bulk actions, or connect or
-change the mail account. Those actions answer `403`. Archive instead.
+Tokens can't permanently delete mail, empty the trash, run bulk actions, or
+connect or change the mail account. Those actions answer `403`. Tokens can move
+mail to the trash when the mail server has a trash folder, see
+[Trash](#trash).
 
 ## Conversations
 
@@ -172,6 +173,34 @@ it. That is the name the mail server has for the folder, which for names with
 is `R &- D`. A folder the account doesn't have returns `422` with
 `{"errors": ["Invalid folder name"]}`.
 
+## Trash
+
+| Request | Does |
+|---------|------|
+| `POST /tools/:tool_id/mails/:id/trash` | Move to the trash |
+| `DELETE /tools/:tool_id/mails/:id/trash` | Restore from the trash |
+
+Both return `200` and the message. Trashing moves the mail to the mail
+server's trash folder, whatever the server calls it ("Deleted Messages",
+"Bin", `[Gmail]/Trash`): here that folder is always `Trash`, and it isn't one
+of the folders to move to. Nothing is deleted, and restoring moves the mail
+back to the inbox.
+
+Like archiving, trashing acts on the whole conversation in the folder you're
+looking at: pass that folder as `folder` (default `inbox`). A draft is the
+exception: it goes to the trash by itself, and the conversation it answers
+stays where it is. A draft in the trash keeps `"draft": true` next to
+`"trashed": true`, is left out of `drafts`, and its `url` opens it as mail.
+Restoring makes it a draft again, in Drafts. The same goes for moving: a draft
+moves by itself.
+
+On a mail server without a trash folder, trashing deletes the mail there right
+away. With a token that answers `422` and nothing happens:
+
+```json
+{ "error": "This account's mail server has no trash folder, so trashing would delete the mail there. Archive it instead." }
+```
+
 ## Drafts
 
 `POST /tools/:tool_id/mails/drafts` saves a draft. Nothing is sent:
@@ -185,11 +214,29 @@ is the `message_id` of the message you're replying to, and puts the draft in
 its conversation. `quoted_message_id` is the `id` of the message a reply answers
 or a forward forwards: it's kept out of `body` and added below it as it was
 written (a reply's quote, or a forward's header block) when the mail goes out,
-with the pictures it shows. Returns `201` and the draft, which is copied to the
-server's Drafts folder in the background, quote included.
+with the pictures it shows. `forward_attachment_ids` are the `id`s of
+attachments of other mail in this account, which a forward takes along: they are
+copied onto the draft. Returns `201` and the draft, which is copied to the
+server's Drafts folder in the background, quote and attachments included.
 
 `PATCH /tools/:tool_id/mails/drafts/:id` with any of the same fields changes
-only those and returns the draft. Drafts are deleted in the browser.
+only those and returns the draft. Its attachments, `in_reply_to` and the
+message it quotes stay as they are.
+
+`POST /tools/:tool_id/mails/drafts/:id/attachments` attaches files to a draft:
+a `multipart/form-data` request with one or more `files[]` parts. They are
+added to the attachments the draft has, which can be 25 MB together. Returns
+`201` and the draft, with every attachment listed. No files, or too much,
+answers `422` with `errors`.
+
+```bash
+curl -X POST https://dobase.example.com/tools/8/mails/drafts/12/attachments \
+  -H "Authorization: Bearer $TOKEN" -H "Accept: application/json" \
+  -F "files[]=@offer.pdf" -F "files[]=@terms.pdf"
+```
+
+A draft is discarded by moving it to the [trash](#trash). Drafts are deleted
+for good in the browser.
 
 ## Sending
 
@@ -214,8 +261,9 @@ It returns `201` with the recipients and subject, and a copy goes into Sent:
 { "to": ["rachel@northstarvc.com"], "cc": [], "bcc": [], "subject": "Re: Seed Round Follow-up" }
 ```
 
-To send a saved draft, send its fields with `"draft_id": 12`; the draft is
-deleted once the email is sent. As in the browser, the email is made from the
+To send a saved draft, send its fields with `"draft_id": 12`, and the `id`s of
+its attachments as `forward_attachment_ids` (only the attachments named there
+go out); the draft is deleted once the email is sent. As in the browser, the email is made from the
 fields in the request, not from what the draft holds, so send a reply draft's
 `in_reply_to` too.
 

@@ -3,7 +3,7 @@
 <%
   # Replies answer the last mail that was sent; a draft in the conversation is continued, not answered
   last_message = @conversation_messages.reject(&:draft?).last || @conversation_messages.last
-  reply_draft = @conversation_messages.find { |message| message.draft? && message.in_reply_to == last_message.message_id }
+  reply_draft = @conversation_messages.find { |message| message.draft? && !message.trashed? && message.in_reply_to == last_message.message_id }
   has_multiple_recipients = last_message.to_addresses_list.length > 1 || last_message.cc_addresses_list.any?
 %>
 <div class="mail-detail-header bg-surface border-b border-border-light px-4 py-3 flex items-center justify-between gap-4">

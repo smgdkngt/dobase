@@ -275,17 +275,75 @@ module Tools
       assert_not message.reload.archived
     end
 
-    test "tokens can't trash mail, because trashing deletes it on the mail server" do
+    test "trash moves the conversation to the server's trash, and restore brings it back" do
+      @account.update!(synced_folders: %w[INBOX Sent Trash Receipts].to_json)
       message = mails_messages(:inbox_read)
 
       post tool_mail_trash_path(@tool, message), headers: @headers, as: :json
-      assert_response :forbidden
 
-      delete tool_mail_trash_path(@tool, mails_messages(:trashed_message)), headers: @headers, as: :json
-      assert_response :forbidden
+      assert_response :success
+      assert_equal [ true, "Trash" ], response.parsed_body.values_at("trashed", "folder")
+      assert_enqueued_with job: ImapSyncJob, args: [ @account.id, "move_to_folder", [ 102 ], "INBOX", "Trash" ]
 
+      delete tool_mail_trash_path(@tool, message), headers: @headers, as: :json
+
+      assert_response :success
+      assert_equal [ false, "INBOX" ], response.parsed_body.values_at("trashed", "folder")
+      assert_enqueued_with job: ImapSyncJob, args: [ @account.id, "move_to_folder_by_message_id", nil, "Trash", "INBOX", message.message_id ]
+    end
+
+    test "tokens can't trash mail on a server without a trash folder, where trashing deletes it" do
+      message = mails_messages(:inbox_read)
+
+      post tool_mail_trash_path(@tool, message), headers: @headers, as: :json
+
+      assert_response :unprocessable_entity
+      assert_match "no trash folder", response.parsed_body["error"]
       assert_not message.reload.trashed
-      assert_empty @imap.calls
+      assert_no_enqueued_jobs only: ImapSyncJob
+    end
+
+    test "a discarded draft goes to the trash by itself, and is a draft again when it's restored" do
+      @account.update!(synced_folders: %w[INBOX Sent Drafts Trash].to_json)
+      original = mails_messages(:inbox_unread)
+      draft = mails_messages(:draft_message)
+      draft.update!(uid: 9, in_reply_to: original.message_id, thread_id: original.thread_id)
+
+      post tool_mail_trash_path(@tool, draft), headers: @headers, as: :json
+
+      assert_response :success
+      assert_equal [ true, true, "Trash" ], response.parsed_body.values_at("draft", "trashed", "folder")
+      assert_equal tool_mail_url(@tool, draft), response.parsed_body["url"]
+      assert_enqueued_with job: ImapSyncJob, args: [ @account.id, "move_to_folder", [ 9 ], "Drafts", "Trash" ]
+      assert_enqueued_jobs 1, only: ImapSyncJob
+      # The mail it answers stays in the inbox
+      assert_equal [ "INBOX", false ], [ original.reload.folder, original.trashed? ]
+
+      get tool_mails_path(@tool, folder: "drafts"), headers: @headers
+      assert_empty response.parsed_body["conversations"]
+      get tool_mails_path(@tool, folder: "trash"), headers: @headers
+      assert_includes response.parsed_body["conversations"].map { |conversation| conversation["id"] }, draft.id
+
+      delete tool_mail_trash_path(@tool, draft), headers: @headers, as: :json
+
+      assert_response :success
+      assert_equal [ true, false, "Drafts" ], response.parsed_body.values_at("draft", "trashed", "folder")
+      assert_equal new_tool_mail_url(@tool, draft_id: draft.id), response.parsed_body["url"]
+      assert_enqueued_with job: ImapSyncJob, args: [ @account.id, "move_to_folder_by_message_id", nil, "Trash", "Drafts", draft.message_id ]
+      assert_equal "INBOX", original.reload.folder
+    end
+
+    test "a draft moves by itself, without the conversation it answers" do
+      original = mails_messages(:inbox_unread)
+      draft = mails_messages(:draft_message)
+      draft.update!(uid: 9, in_reply_to: original.message_id, thread_id: original.thread_id)
+
+      post tool_mail_move_path(@tool, draft), params: { folder: "Receipts" }, headers: @headers, as: :json
+
+      assert_response :success
+      assert_equal "Receipts", draft.reload.folder
+      assert_equal "INBOX", original.reload.folder
+      assert_enqueued_jobs 1, only: ImapSyncJob
     end
 
     test "move puts the message in another folder" do
@@ -351,6 +409,69 @@ module Tools
       assert_equal "Thanks!", updated["subject"]
       assert_equal [ [ "friend@example.com", "boss@example.com" ], "<p>Thanks <b>a lot</b></p><p>Fish &amp; chips?</p>" ], updated.values_at("to", "body_html")
       assert_enqueued_jobs 2, only: SyncDraftJob
+    end
+
+    test "files are attached to a draft, next to the ones it has" do
+      draft = mails_messages(:draft_message)
+      upload = -> { fixture_file_upload("sample.png", "image/png") }
+
+      post tool_mail_draft_attachments_path(@tool, draft), params: { files: [ upload.call ] }, headers: @headers
+
+      assert_response :created
+      shown = response.parsed_body["attachments"].sole
+      assert_equal [ "sample.png", "image/png", file_fixture("sample.png").size ], shown.values_at("filename", "content_type", "file_size")
+      assert shown["download_url"].present?
+      assert draft.reload.has_attachments
+      assert_equal file_fixture("sample.png").binread, draft.attachments.sole.file.download
+      assert_enqueued_with job: SyncDraftJob, args: [ draft.id ]
+
+      post tool_mail_draft_attachments_path(@tool, draft), params: { files: [ upload.call, upload.call ] }, headers: @headers
+
+      assert_equal 3, response.parsed_body["attachments"].size
+
+      # Changing its text keeps them
+      patch tool_mail_draft_path(@tool, draft), params: { body: "<p>See attached.</p>" }, headers: @headers, as: :json
+
+      assert_equal 3, response.parsed_body["attachments"].size
+      assert_equal "<p>See attached.</p>", response.parsed_body["body_html"]
+    end
+
+    test "a draft sent with its attachments sends the attached files" do
+      draft = mails_messages(:draft_message)
+      post tool_mail_draft_attachments_path(@tool, draft), params: { files: [ fixture_file_upload("sample.png", "image/png") ] }, headers: @headers
+      attachment = draft.attachments.sole
+      blob = attachment.file.blob
+
+      post tool_mails_path(@tool), headers: @headers, as: :json, params: {
+        to: "recipient@example.com", subject: "Draft email", body: "<p>This is a draft message.</p>", draft_id: draft.id,
+        forward_attachment_ids: [ attachment.id ]
+      }
+
+      assert_response :created
+      assert_equal [ blob ], @smtp.sent.sole[:attachments]
+    end
+
+    test "attachments are refused without files, over 25 MB together, on mail that is no draft and for read-only tokens" do
+      draft = mails_messages(:draft_message)
+
+      post tool_mail_draft_attachments_path(@tool, draft), params: { files: [ "not a file" ] }, headers: @headers
+      assert_response :unprocessable_entity
+      assert_equal [ "No files to attach" ], response.parsed_body["errors"]
+
+      draft.attachments.create!(filename: "big.zip", content_type: "application/zip", file_size: 25.megabytes)
+      post tool_mail_draft_attachments_path(@tool, draft), params: { files: [ fixture_file_upload("sample.png", "image/png") ] }, headers: @headers
+      assert_response :unprocessable_entity
+      assert_equal [ "A draft's attachments can be 25 MB together" ], response.parsed_body["errors"]
+
+      post tool_mail_draft_attachments_path(@tool, mails_messages(:inbox_read)), params: { files: [ fixture_file_upload("sample.png", "image/png") ] }, headers: @headers
+      assert_response :not_found
+
+      post tool_mail_draft_attachments_path(@tool, mails_messages(:draft_message)), params: { files: [ fixture_file_upload("sample.png", "image/png") ] },
+        headers: api_headers(@user, permission: "read")
+      assert_response :forbidden
+
+      assert_equal 1, draft.attachments.count
+      assert_no_enqueued_jobs only: SyncDraftJob
     end
 
     test "draft update only finds drafts" do
@@ -549,6 +670,13 @@ module Tools
       patch tool_mail_draft_path(other, mails_messages(:draft_message)), params: { subject: "Nope" }, headers: @headers, as: :json
       assert_response :not_found
 
+      post tool_mail_draft_attachments_path(other, mails_messages(:draft_message)), params: { files: [ fixture_file_upload("sample.png", "image/png") ] }, headers: @headers
+      assert_response :not_found
+      assert_empty mails_messages(:draft_message).attachments
+
+      post tool_mail_trash_path(other, message), headers: @headers, as: :json
+      assert_response :not_found
+
       # A draft from another tool is left alone (sending still goes through that tool's own account).
       post tool_mails_path(other), params: { to: "friend@example.com", subject: "Hi", body: "<p>Hi</p>", draft_id: mails_messages(:draft_message).id },
         headers: @headers, as: :json
@@ -571,6 +699,10 @@ module Tools
       assert_response :not_found
 
       post tool_mail_drafts_path(unconnected), params: { subject: "Hi" }, headers: @headers, as: :json
+      assert_response :not_found
+      assert_equal "Mail account not configured", response.parsed_body["error"]
+
+      post tool_mail_draft_attachments_path(unconnected, mails_messages(:draft_message)), params: { files: [ fixture_file_upload("sample.png", "image/png") ] }, headers: @headers
       assert_response :not_found
       assert_equal "Mail account not configured", response.parsed_body["error"]
 

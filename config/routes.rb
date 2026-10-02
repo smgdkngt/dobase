@@ -125,7 +125,9 @@ Rails.application.routes.draw do
 
       resources :mails, only: %i[index show new create destroy]
 
-      resources :mail_drafts, only: %i[create update], path: "mails/drafts", controller: "mails/drafts"
+      resources :mail_drafts, only: %i[create update], path: "mails/drafts", controller: "mails/drafts" do
+        resources :attachments, only: :create, controller: "mails/draft_attachments"
+      end
 
       resource :mails_account, only: %i[new create update], path: "mails/account", controller: "mails/accounts"
 

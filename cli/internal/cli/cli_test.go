@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -217,11 +218,14 @@ func TestJSONKeepsTheServersKeyOrderAndDoesNotEscapeHTML(t *testing.T) {
 // fakeAPI answers GETs from a fixed set of paths, records every other request
 // ("DELETE /path"), its body and the paths it sent to or downloaded from, and
 // saves downloads as "data from PATH". A path in errors fails with that error.
+// Uploads are recorded as "PATH: file, file" and answered with a draft that has
+// those files attached.
 type fakeAPI struct {
 	responses api.Value
 	sent      *[]api.Value
 	paths     []string
 	requests  []string
+	uploads   []string
 	errors    map[string]error
 }
 
@@ -240,12 +244,28 @@ func (f *fakeAPI) Request(method api.Method, path string, _ []api.Param, body an
 	*f.sent = append(*f.sent, sent)
 	f.paths = append(f.paths, path)
 	f.requests = append(f.requests, string(method)+" "+path)
+	// A draft has the attachments it forwards
+	attachments := []api.Value{}
+	for _, id := range sent.Get("forward_attachment_ids").Items() {
+		attachments = append(attachments, api.Object("id", id))
+	}
 	return api.Object("id", 400, "subject", sent.Get("subject"), "to", []string{"ann@example.com"}, "cc", []string{},
-		"url", "https://dobase.test/tools/8/mails/new?draft_id=400"), nil
+		"attachments", attachments, "url", "https://dobase.test/tools/8/mails/new?draft_id=400"), nil
 }
 
-func (f *fakeAPI) Upload(string, []api.FilePart, []api.Param) (api.Value, error) {
-	panic("unexpected upload")
+func (f *fakeAPI) Upload(path string, files []api.FilePart, _ []api.Param) (api.Value, error) {
+	if err := f.errors[path]; err != nil {
+		return api.Null, err
+	}
+	names := make([]string, len(files))
+	attachments := make([]api.Value, len(files))
+	for i, file := range files {
+		names[i] = file.Field + "=" + filepath.Base(file.Path)
+		attachments[i] = api.Object("id", 900+i, "filename", filepath.Base(file.Path))
+	}
+	f.uploads = append(f.uploads, path+": "+strings.Join(names, ", "))
+	return api.Object("id", 400, "subject", "Plans", "to", []string{"ann@example.com"}, "cc", []string{},
+		"attachments", attachments, "url", "https://dobase.test/tools/8/mails/new?draft_id=400"), nil
 }
 
 func (f *fakeAPI) Download(path, destination string) (string, error) {

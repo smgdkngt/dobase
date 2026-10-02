@@ -104,14 +104,15 @@ module Mails
       messages
     end
 
-    # Mail in the server's trash goes back to the inbox. Mail deleted on the server before
-    # (it had no trash) can only come back here.
+    # Mail in the server's trash goes back to the inbox, a draft to the drafts. Mail deleted
+    # on the server before (it had no trash) can only come back here.
     def restore(messages)
       messages.select(&:trashed?).each do |message|
         if message.folder == TRASH
+          folder = message.draft? ? "Drafts" : "INBOX"
           # The trash gave it a new UID, so it's found by its Message-ID; the inbox's next sync gives it its UID there
-          ImapSyncJob.perform_later(id, "move_to_folder_by_message_id", nil, TRASH, "INBOX", message.message_id)
-          message.move_to_folder!("INBOX", on_server: false)
+          ImapSyncJob.perform_later(id, "move_to_folder_by_message_id", nil, TRASH, folder, message.message_id)
+          message.move_to_folder!(folder, on_server: false)
         else
           # Its UID went with it on the server: with that UID the folder's next sync would take
           # it for mail gone from the folder, and remove it. A server that still has it gives it its UID again.

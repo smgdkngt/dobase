@@ -406,6 +406,26 @@ module Tools
       assert_select "a[href=?]", new_tool_mail_path(@tool, reply_to: original.id, folder: "inbox"), text: /Continue your reply/
     end
 
+    test "a draft in the trash is out of its conversation, and opens there as mail that isn't written on" do
+      original = mails_messages(:inbox_read)
+      draft = mails_messages(:draft_message)
+      original.update!(thread_id: "lunch-plans")
+      draft.update!(in_reply_to: original.message_id, thread_id: "lunch-plans")
+      draft.move_to_trash!
+
+      get tool_mail_path(@tool, original)
+
+      assert_select ".badge", text: "Draft", count: 0
+      assert_select "a[href=?]", new_tool_mail_path(@tool, reply_to: original.id, folder: "inbox"), text: /Click to reply/
+
+      get tool_mail_path(@tool, draft, folder: "trash")
+
+      assert_response :success
+      assert_select ".badge", text: "Draft"
+      assert_select ".mail-draft-note", count: 0
+      assert_select ".mail-list-item a[href=?]", tool_mail_path(@tool, draft, folder: "trash")
+    end
+
     test "a draft discarded in its conversation leaves the conversation open" do
       original = mails_messages(:inbox_read)
       draft = mails_messages(:draft_message)
