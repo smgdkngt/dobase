@@ -29,9 +29,9 @@
               <%= render "components/icon_button", icon: "rotate-ccw", title: "Restore", type: :submit, name: "action_type", value: "restore", size: :sm %>
             <% else %>
               <% unless @current_folder == "archive" %>
-                <%= render "components/icon_button", icon: "archive", title: "Archive (e)", type: :submit, name: "action_type", value: "archive", size: :sm %>
+                <%= render "components/icon_button", icon: "archive", title: "Archive (e)", type: :submit, name: "action_type", value: "archive", size: :sm, data: { sound: "tuck" } %>
               <% end %>
-              <%= render "components/icon_button", icon: "trash-2", title: "Delete (#)", type: :submit, name: "action_type", value: "trash", size: :sm %>
+              <%= render "components/icon_button", icon: "trash-2", title: "Delete (#)", type: :submit, name: "action_type", value: "trash", size: :sm, data: { sound: "trash" } %>
               <div class="relative">
                 <button type="button"
                         class="icon-btn icon-btn-sm"

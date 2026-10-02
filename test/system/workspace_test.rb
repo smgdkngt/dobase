@@ -3,6 +3,8 @@
 require "application_system_test_case"
 
 class WorkspaceTest < ApplicationSystemTestCase
+  include ActiveJob::TestHelper
+
   # The launcher: the search at the top of the menu, while the menu is in
   MENU_SEARCH = ".sidebar.open [data-controller~='command-palette']"
 
@@ -588,6 +590,37 @@ class WorkspaceTest < ApplicationSystemTestCase
     wait_for_stimulus "workspace"
     within_tile(0) { assert_selector "h1", text: @board.name }
     assert_no_selector ".workspace-float iframe", wait: 2
+  end
+
+  test "a notification about a tool in sight makes no sound of its own, one about a tool elsewhere does" do
+    colleague = users(:two)
+    # (a browser lets a page make sound once it has been touched: a click in a tile counts for the window)
+    within_tile(0) { find("h1", text: @board.name).click }
+    page.execute_script("window.heardSounds = []; document.addEventListener('sound:played', (event) => window.heardSounds.push(event.detail.name))")
+    assert_selector "[data-tool-id='#{@board.id}'] [data-sidebar-tool-link][data-in-sight]", visible: :all
+    unread = find(".workspace-bar [data-notifications-unread-count-value]", visible: :all)["data-notifications-unread-count-value"].to_i
+
+    # About the board, which is right there in a tile
+    perform_enqueued_jobs do
+      CardAssignmentNotifier.with(card: cards(:first_task), assigner: colleague, tool: @board).deliver(users(:one))
+    end
+    assert_selector ".workspace-bar [data-notifications-unread-count-value='#{unread + 1}']", visible: :all
+    assert_empty page.evaluate_script("window.heardSounds")
+
+    # About the todos, which aren't open anywhere
+    perform_enqueued_jobs do
+      TodoAssignmentNotifier.with(item: todo_items(:pending_one), assigner: colleague, tool: @todos).deliver(users(:one))
+    end
+    assert_selector ".workspace-bar [data-notifications-unread-count-value='#{unread + 2}']", visible: :all
+    page.document.synchronize do
+      raise Capybara::ExpectationNotMet, "the notification wasn't heard" unless page.evaluate_script("window.heardSounds") == %w[notify]
+    end
+
+    # On another desktop the board is out of sight: its link says so, and its page knows it isn't seen
+    press "2"
+    assert_no_selector "[data-tool-id='#{@board.id}'] [data-sidebar-tool-link][data-in-sight]", visible: :all
+    board_frame = page.evaluate_script("Array.from(document.querySelectorAll('.workspace-tile iframe')).find((frame) => frame.contentWindow.location.pathname.includes('/tools/#{@board.id}')).contentWindow.innerWidth")
+    assert_equal 0, board_frame
   end
 
   test "backspace outside a field is nobody's key, so it can't be 'back' in whichever tile went somewhere last" do

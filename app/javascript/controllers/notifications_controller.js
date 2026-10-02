@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import consumer from "channels/consumer"
 import { applyTheme, refreshTheme } from "services/theme"
+import { play } from "services/sound"
 
 export default class extends Controller {
   static targets = ["badge", "badgeStatus", "trigger", "popover", "list", "markAllRead", "desktopOffer"]
@@ -43,6 +44,8 @@ export default class extends Controller {
 
     // Unread mail changed: new mail came in, or something was read somewhere
     if (data.type === "unread_mail") {
+      // More than there was: mail came in
+      if (data.count > this.unreadMailCountValue) play("mail", { once: `mail-${data.count}` })
       this.unreadMailCountValue = data.count
       return
     }
@@ -57,6 +60,9 @@ export default class extends Controller {
 
     this.unreadCountValue += 1
     this.updateBadge()
+    // What happens in the tool you are looking at is heard there, if at all (a chat
+    // message has its own sound); anything else is heard here
+    if (document.hidden || !this.lookingAt(data.tool_id)) play("notify", { once: `notification-${data.id}` })
 
     // Show activity dot on sidebar tool item
     if (data.tool_id) {
@@ -72,6 +78,15 @@ export default class extends Controller {
     if (this.hasListTarget) this.reloadList()
 
     this.showOnDesktop(data)
+  }
+
+  // On the tool's own page, or in the workspace with a tile of it in sight (which
+  // workspace_controller.js marks on the tool's link in the menu)
+  lookingAt(toolId) {
+    if (!toolId) return false
+
+    return new RegExp(`^/tools/${toolId}(/|$)`).test(location.pathname) ||
+      Boolean(document.querySelector(`[data-tool-id="${toolId}"] [data-sidebar-tool-link][data-in-sight]`))
   }
 
   reloadList() {

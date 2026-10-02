@@ -1,6 +1,10 @@
 // Configure your import map in config/importmap.rb
 import "@hotwired/turbo-rails"
 import "controllers"
+import { listen as listenForSounds } from "services/sound"
+
+// What is marked data-sound in a view is heard (services/sound.js)
+listenForSounds()
 
 // Track Turbo navigation state for system test reliability
 document.addEventListener("turbo:load", () => {

@@ -30,7 +30,7 @@
       <% cfg = flash_config[type.to_s] %>
       <% next unless cfg %>
       <%# data-turbo-temporary: not kept in the copy of the page Turbo shows on Back, where it would show again %>
-      <div class="flash <%= cfg[:css] %>" data-flash-target="message" data-turbo-temporary <% if dismissable %>data-action="click->flash#dismiss"<% end %> role="alert">
+      <div class="flash <%= cfg[:css] %>" data-flash-target="message" data-flash-kind="<%= cfg[:css].delete_prefix("flash-") %>" data-turbo-temporary <% if dismissable %>data-action="click->flash#dismiss"<% end %> role="alert">
         <%= render "shared/icon", name: cfg[:icon], size: 18 %>
         <span class="flex-1"><%= message %></span>
         <% if dismissable %>

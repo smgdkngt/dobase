@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { play } from "services/sound"
 
 // On a message that is being sent. It's brought into view, at the end of a long
 // conversation, and the page is refreshed until the mail server has taken it or it's a
@@ -18,6 +19,9 @@ export default class extends Controller {
     this.settling.disconnect()
     clearTimeout(this.settled)
     clearInterval(this.timer)
+    // Still on the page, and no longer being sent: the mail server has taken it. (A
+    // mail that was refused is a draft again and gone from here; so is a page that was left.)
+    if (this.element.isConnected) play("sent", { once: `sent-${this.element.id || location.pathname}` })
   }
 
   refresh() {

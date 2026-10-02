@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { showFlash } from "services/flash"
+import { play } from "services/sound"
 
 export default class extends Controller {
   static targets = [
@@ -682,10 +683,12 @@ export default class extends Controller {
   _bindRoomEvents(RoomEvent) {
     this.room
       .on(RoomEvent.ParticipantConnected, (participant) => {
+        play("join")
         this.renderParticipant(participant)
         this.updateParticipantCount()
       })
       .on(RoomEvent.ParticipantDisconnected, (participant) => {
+        play("leave")
         this._hideSpotlight(participant.identity)
         this.removeParticipant(participant.identity)
         this.updateParticipantCount()

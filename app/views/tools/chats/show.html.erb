@@ -160,7 +160,8 @@
                         action: "submit->chat#submit keydown->chat#composerKey arrow-keys:went->chat#focusInput",
                         chat_target: "form",
                         # Down from the newest message is the message box, before anything beside it
-                        arrow_keys_target: "item"
+                        arrow_keys_target: "item",
+                        sound: "send"
                       } do |f| %>
           <input type="hidden" name="message[reply_to_id]" value="" data-chat-target="replyToId">
           <input type="file"

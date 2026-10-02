@@ -722,6 +722,7 @@ export default class extends Controller {
   markMenu() {
     document.querySelectorAll("[data-sidebar-tool-link][data-workspace-desk]").forEach((link) => {
       link.removeAttribute("data-workspace-desk")
+      link.removeAttribute("data-in-sight")
       link.removeAttribute("title")
     })
 
@@ -733,6 +734,9 @@ export default class extends Controller {
       open.add(link)
       link.dataset.workspaceDesk = this.deskNumberOf(id)
       link.title = `Open on desktop ${this.deskNumberOf(id)}`
+      // What you are looking at: a notification about it makes no sound of its own
+      // (notifications_controller.js#lookingAt; the tile makes its own, if any)
+      if (this.inSight(id)) link.dataset.inSight = ""
       if (link.hasAttribute("data-unread") && this.inSight(id)) {
         link.removeAttribute("data-unread")
         this.sawTool(toolIdOf(tile.url))
