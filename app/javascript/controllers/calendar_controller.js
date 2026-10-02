@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { floats } from "services/float"
 
 export default class extends Controller {
   static targets = ["grid", "hours", "today", "eventModal", "eventDetailDialog", "newEventDialog", "newEventModal", "weekInput", "startTimeInput", "endTimeInput"]
@@ -10,6 +11,10 @@ export default class extends Controller {
   connect() {
     this.setupScrollPreservation()
     this.restoreScrollPosition()
+
+    // An event opens by itself with ?event=ID in the address
+    const eventId = new URL(window.location.href).searchParams.get("event")
+    if (eventId) this._openEvent(eventId)
   }
 
   disconnect() {
@@ -123,10 +128,13 @@ export default class extends Controller {
     event.preventDefault()
     event.stopPropagation()
 
-    const eventBlock = event.currentTarget
-    const eventId = eventBlock.dataset.eventId
+    const eventId = event.currentTarget.dataset.eventId
+    if (eventId) this._openEvent(eventId)
+  }
 
-    if (!eventId) return
+  _openEvent(eventId) {
+    // In the workspace an event's details float over all the tiles (services/float.js)
+    if (floats(`/tools/${this.toolIdValue}/calendar?event=${eventId}`, { clear: "event" })) return
 
     // Fetch event details and show in modal
     const url = `/tools/${this.toolIdValue}/calendar/events/${eventId}`
@@ -148,7 +156,8 @@ export default class extends Controller {
       .then(html => {
         if (this.hasEventModalTarget) {
           this.eventModalTarget.innerHTML = html
-          this.eventModalTarget.querySelector("[autofocus], button, a[href]")?.focus()
+          // The keyboard on what closes it, not on Delete, which comes first
+          this.eventModalTarget.querySelector("[autofocus], [data-action~='click->modal#close'], button, a[href]")?.focus()
         }
       })
       .catch(error => {

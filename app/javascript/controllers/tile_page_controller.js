@@ -3,6 +3,7 @@ import { applyTheme } from "services/theme"
 import { workspaceCommand, isLauncherKey, renameWorkspaceKeys } from "services/workspace_keys"
 import { opensAsTile } from "services/tool_frame"
 import { typing } from "services/typing"
+import { floating, floatedAt } from "services/float"
 
 // On a page that is a tile in the workspace (workspace_controller.js is on the page
 // around it). Says where this page is, so it is the one that comes back after a
@@ -59,6 +60,26 @@ export default class extends Controller {
     // address that was asked for while it is being drawn
     document.addEventListener("turbo:load", this._onLoad)
     this.report()
+    if (floating) this.float()
+  }
+
+  // This page floats over the workspace to show one dialog (services/float.js). When
+  // that dialog is closed, or the page went somewhere that has none (the card was
+  // deleted, a link in it was followed), the workspace takes the frame away. A dialog
+  // takes a moment to open after the page arrives, and to be gone after it closes.
+  float() {
+    const gone = () => {
+      if (!document.querySelector("dialog[open]")) this.say("float-closed", { url: location.pathname + location.search })
+    }
+    this._onDialogClosed = () => setTimeout(gone, 0)
+    // (at the address that opens the dialog it is on its way; anywhere else there is none to wait for)
+    this._onFloatLoad = () => {
+      clearTimeout(this._floatCheck)
+      this._floatCheck = setTimeout(gone, location.pathname + location.search === floatedAt ? 1500 : 50)
+    }
+    document.addEventListener("close", this._onDialogClosed, true)
+    document.addEventListener("turbo:load", this._onFloatLoad)
+    this._onFloatLoad()
   }
 
   disconnect() {
@@ -72,6 +93,9 @@ export default class extends Controller {
     document.removeEventListener("click", this._onClick, true)
     document.removeEventListener("turbo:load", this._onLoad)
     document.removeEventListener("keydown", this._onKey, true)
+    document.removeEventListener("close", this._onDialogClosed, true)
+    document.removeEventListener("turbo:load", this._onFloatLoad)
+    clearTimeout(this._floatCheck)
   }
 
   report() {

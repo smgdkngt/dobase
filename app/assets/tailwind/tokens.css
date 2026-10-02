@@ -168,7 +168,8 @@
   /* What the arrow keys go through (arrow_keys_controller.js) mostly lies in something
      that scrolls, which would cut a ring around it off at its edges: the first card
      of a column, the top row of a list. There the ring is drawn inside. */
-  [data-arrow-keys-target~="item"]:focus-visible {
+  [data-arrow-keys-target~="item"]:focus-visible,
+  :is(.popover-menu, [popover], [role="menu"]) :focus-visible {
     outline-offset: -2px;
   }
 

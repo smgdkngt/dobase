@@ -474,11 +474,86 @@ class WorkspaceTest < ApplicationSystemTestCase
     launch @files
     assert_focused 1
 
-    # A card can be dragged, and takes the press for that
-    within_tile(0) { find("#board-card-#{cards(:second_task).id}").click }
-    within_tile(0) { assert_no_selector "dialog#card-detail-modal[open]", wait: 0 } if false
+    # A column can be dragged by its head, and takes the press for that: no keyboard
+    # moves by the click itself
+    within_tile(0) { find(".board-column-expanded", match: :first).click(x: 40, y: 12) }
     assert_focused 0
-    assert page.evaluate_script("document.activeElement === document.querySelectorAll('.workspace-tile iframe')[0]"), "the keyboard is in the tile that was clicked"
+    page.document.synchronize do
+      there = page.evaluate_script("document.activeElement === document.querySelectorAll('.workspace-tile iframe')[0]")
+      raise Capybara::ExpectationNotMet, "the keyboard isn't in the tile that was clicked" unless there
+    end
+  end
+
+  test "a card's details float over all the tiles, and closing them gives the tile back" do
+    launch @files
+    within_tile(0) { find("#board-card-#{cards(:first_task).id}").click }
+
+    assert_selector ".workspace-float:not([hidden]) iframe"
+    assert_selector "#workspace-tiles[inert]"
+    within_float do
+      assert_selector "dialog#card-detail-modal[open] h2", text: "First task"
+      # As wide as the window, not as the tile it came from: the dialog has its two columns
+      assert_operator page.evaluate_script("document.querySelector('dialog[open]').getBoundingClientRect().width"), :>, 700
+    end
+    # The tile itself opened nothing
+    within_tile(0) { assert_no_selector "dialog[open]" }
+
+    type_keys :escape
+    assert_no_selector ".workspace-float iframe"
+    assert_no_selector "#workspace-tiles[inert]"
+    assert_equal 2, tiles.size
+    page.document.synchronize do
+      back = page.evaluate_script("document.activeElement === document.querySelectorAll('.workspace-tile iframe')[0]")
+      raise Capybara::ExpectationNotMet, "the keyboard isn't back in the tile" unless back
+    end
+  end
+
+  test "what is changed in a floating dialog shows in the tile when it closes" do
+    card = cards(:first_task)
+    within_tile(0) { find("#board-card-#{card.id}").click }
+
+    within_float do
+      assert_selector "dialog#card-detail-modal[open] h2", text: "First task"
+      click_on "Archive card"
+    end
+
+    assert_no_selector ".workspace-float iframe"
+    within_tile(0) do
+      assert_selector "h1", text: @board.name
+      assert_no_selector "#board-card-#{card.id}"
+    end
+    assert card.reload.archived?
+  end
+
+  test "a todo's and an event's details float too" do
+    visit workspace_path(open: tool_todo_path(@todos))
+    wait_for_stimulus "workspace"
+    within_tile(1) { find("[aria-label='Open #{todo_items(:pending_one).title}']").click }
+    within_float { assert_selector "dialog#item-detail-modal[open]", text: todo_items(:pending_one).title }
+    type_keys :escape
+    assert_no_selector ".workspace-float iframe"
+
+    calendar = tools(:my_calendar)
+    visit workspace_path(open: tool_calendar_path(calendar))
+    wait_for_stimulus "workspace"
+    within_tile(2) { find("[data-event-id]", match: :first).click }
+    within_float { assert_selector "dialog[open]", text: "Event Details" }
+    type_keys :escape
+    assert_no_selector ".workspace-float iframe"
+  end
+
+  test "an address that opens a card floats it, and the tile doesn't open it again with every reload" do
+    visit workspace_path(open: tool_board_path(@board, card: cards(:second_task).id))
+    wait_for_stimulus "workspace"
+
+    within_float { assert_selector "dialog#card-detail-modal[open] h2", text: "Second task" }
+    type_keys :escape
+    assert_no_selector ".workspace-float iframe"
+
+    visit workspace_path
+    wait_for_stimulus "workspace"
+    within_tile(0) { assert_selector "h1", text: @board.name }
+    assert_no_selector ".workspace-float iframe", wait: 2
   end
 
   test "backspace outside a field is nobody's key, so it can't be 'back' in whichever tile went somewhere last" do
@@ -768,6 +843,11 @@ class WorkspaceTest < ApplicationSystemTestCase
     page.document.synchronize do
       raise Capybara::ExpectationNotMet, "tile #{focused_index.inspect} has the focus, not #{index}" unless focused_index == index
     end
+  end
+
+  # The frame a tile's dialog floats in, over all the tiles
+  def within_float(&block)
+    within_frame(find(".workspace-float iframe"), &block)
   end
 
   def within_tile(index, &block)

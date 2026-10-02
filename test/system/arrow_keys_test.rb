@@ -224,6 +224,19 @@ class ArrowKeysTest < ApplicationSystemTestCase
     press :arrow_left
     assert_selector "##{second} a:focus"
 
+    # Enter presses what has the keyboard, a folder as well as a conversation
+    find("button[popovertarget='mail-folder-menu']").click
+    assert_selector "#mail-folder-menu a:focus"
+    press :arrow_down
+    folder = page.evaluate_script("document.activeElement.getAttribute('href')")
+    press :enter
+    assert_current_path folder
+    wait_for_stimulus "mail-keyboard"
+    visit tool_mails_path(mail)
+    wait_for_stimulus "mail-keyboard"
+    press_and_wait_for_the_conversation :arrow_down
+    first = find(".mail-list-item.selected")[:id]
+
     # End and Home: the last conversation and the first
     press_and_wait_for_the_conversation :end
     assert_selector ".mail-list-item:last-child.selected"

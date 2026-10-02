@@ -110,10 +110,12 @@ document.addEventListener("turbo:load", markAppWindow)
 // the browser says it is a frame when it loads one, and for every page after that
 // Turbo says so here. Tiles are small and many, so everything in one is drawn a size
 // smaller (workspace.css, <html data-in-tile>).
-if (window.self !== window.top && window.name === "workspace-tile") {
+if (window.self !== window.top && (window.name === "workspace-tile" || window.name === "workspace-float")) {
   const root = document.documentElement
   let serverKnows = root.hasAttribute("data-in-tile")
   root.setAttribute("data-in-tile", "")
+  // A frame over all the tiles that shows nothing but a dialog of this page (services/float.js)
+  if (window.name === "workspace-float") root.setAttribute("data-floating", "")
 
   document.addEventListener("turbo:before-fetch-request", (event) => {
     event.detail.fetchOptions.headers["X-Tile"] = "1"

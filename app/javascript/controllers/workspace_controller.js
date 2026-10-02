@@ -41,7 +41,7 @@ const CARD_AFTER_MS = 300
 const CARD_GONE_AFTER_MS = 180
 
 export default class extends Controller {
-  static targets = ["tiles", "tileTemplate", "empty", "desks", "deskCard", "title", "menu", "hint", "status"]
+  static targets = ["tiles", "tileTemplate", "empty", "desks", "deskCard", "title", "menu", "hint", "status", "float"]
   static values = { userId: Number, appName: String, start: String }
 
   connect() {
@@ -904,6 +904,9 @@ export default class extends Controller {
 
     event.preventDefault()
     event.stopPropagation()
+    // (a dialog that floats over the tiles is closed first)
+    if (this.floating) return command.name === "close" ? this.unfloat() : null
+
     this.run(command)
   }
 
@@ -1046,7 +1049,7 @@ export default class extends Controller {
 
     this.menuWasOpen = open
     this.menuTarget.setAttribute("aria-expanded", open)
-    this.tilesTarget.inert = open
+    this.tilesTarget.inert = open || Boolean(this.floating)
     // Its search starts empty, coming and going
     window.dispatchEvent(new CustomEvent("workspace:menu", { detail: { open } }))
     if (open) {
@@ -1090,13 +1093,14 @@ export default class extends Controller {
   }
 
   get calm() {
-    return !document.hidden && !this.menuOpen && !document.querySelector("dialog[open], :popover-open")
+    return !document.hidden && !this.menuOpen && !this.floating && !document.querySelector("dialog[open], :popover-open")
   }
 
   // ── What the pages in the tiles say (tile_page_controller.js) ──
 
   heard(event) {
     if (event.origin !== location.origin) return
+    if (this.floating && event.source === this.floating.frame.contentWindow) return this.heardFromFloat(event.data || {})
 
     const id = Array.from(this.elements.keys()).find((tile) => this.frameOf(tile)?.contentWindow === event.source)
     const message = event.data || {}
@@ -1140,6 +1144,9 @@ export default class extends Controller {
       case "next":
         this.goToNext(message.back ? -1 : 1)
         break
+      case "float":
+        this.float(id, message.url)
+        break
       case "escape":
         // Escape in a tile with nothing left to let go of: the tile itself
         this.close(id)
@@ -1161,6 +1168,70 @@ export default class extends Controller {
         break
       case "gone":
         this.left(id)
+        break
+    }
+  }
+
+  // ── A dialog of a tile, floating over all of them (services/float.js) ──
+
+  // The tool's page once more, in a frame as large as the window, showing only the
+  // dialog that `url` opens. Everything under it is out of reach until it is gone.
+  float(id, url) {
+    const path = pathOf(url)
+    if (!toolIdOf(path) || !this.hasFloatTarget) return
+
+    this.unfloat({ refresh: false })
+    const frame = toolFrame(path)
+    frame.name = "workspace-float"
+    frame.title = `${this.nameOf(id)}: details`
+    this.floatTarget.replaceChildren(frame)
+    this.floatTarget.hidden = false
+    this.floating = { id, frame, path }
+    this.tilesTarget.inert = true
+    frame.focus()
+  }
+
+  // The dialog is closed: the frame goes, the tile it came from is drawn again with
+  // whatever was changed in the dialog, and has the keyboard back
+  unfloat({ refresh = true } = {}) {
+    if (!this.floating) return
+
+    const { id } = this.floating
+    this.floating = null
+    this.floatTarget.replaceChildren()
+    this.floatTarget.hidden = true
+    this.tilesTarget.inert = Boolean(this.menuOpen)
+    if (refresh && this.elements.has(id)) this.refresh(id)
+    this.grabFocus()
+  }
+
+  // A click beside the dialog before it has arrived (afterwards the frame takes it)
+  unfloatByClick(event) {
+    if (event.target === this.floatTarget) this.unfloat()
+  }
+
+  heardFromFloat(message) {
+    switch (message.tile) {
+      case "float-closed": {
+        const { id, path } = this.floating
+        const went = pathOf(message.url)
+        // Closed, or gone to the same page without the dialog (the card was deleted):
+        // the tile is drawn again. Gone somewhere else (a link in the dialog was
+        // followed): that is where the tile goes, or what opens beside it.
+        const elsewhere = toolIdOf(went) && went.split("?")[0] !== path.split("?")[0]
+        this.unfloat({ refresh: !elsewhere })
+        if (elsewhere) toolIdOf(went) === toolIdOf(path) ? this.send(id, went) : this.open(went)
+        break
+      }
+      case "escape":
+        this.unfloat()
+        break
+      case "command":
+        if (message.command?.name === "close") this.unfloat()
+        break
+      case "launcher":
+        this.unfloat()
+        this.launch()
         break
     }
   }
@@ -1199,6 +1270,7 @@ export default class extends Controller {
     for (const id of this.elements.keys()) {
       this.frameOf(id)?.contentWindow.postMessage({ tile: what, ...details }, location.origin)
     }
+    this.floating?.frame.contentWindow?.postMessage({ tile: what, ...details }, location.origin)
   }
 
   frameOf(id) {

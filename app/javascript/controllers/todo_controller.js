@@ -3,6 +3,7 @@ import { api } from "services/api"
 import { showFlash } from "services/flash"
 import { reportPresence } from "services/presence"
 import { pageInUse } from "services/page_in_use"
+import { floats } from "services/float"
 
 export default class extends Controller {
   static targets = ["itemModal", "itemDetailDialog", "addItemForm", "addItemInput", "addItemBtn", "completedSection", "completedToggle", "completedToggleLabel"]
@@ -81,6 +82,9 @@ export default class extends Controller {
   }
 
   #openItemById(itemId) {
+    // In the workspace a todo's details float over all the tiles (services/float.js)
+    if (floats(`/tools/${this.toolIdValue}/todo?item=${itemId}`, { clear: "item" })) return
+
     const url = `/tools/${this.toolIdValue}/todo/items/${itemId}`
     reportPresence(`todo:${itemId}`)
 

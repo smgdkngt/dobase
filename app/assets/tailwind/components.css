@@ -333,8 +333,9 @@
   }
 
   /* Popover menu base */
+  /* As wide as its longest entry, and no narrower than a menu is */
   .popover-menu {
-    @apply w-48 rounded-lg bg-surface border border-border-light shadow-lg py-1 m-0 inset-auto;
+    @apply min-w-48 w-max max-w-[min(22rem,calc(100vw-1rem))] rounded-lg bg-surface border border-border-light shadow-lg py-1 m-0 inset-auto;
   }
 
   /* Entrance/exit only applies to genuine native popovers (the [popover]

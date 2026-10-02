@@ -3,6 +3,7 @@ import { api } from "services/api"
 import { showFlash } from "services/flash"
 import { reportPresence } from "services/presence"
 import { pageInUse } from "services/page_in_use"
+import { floats } from "services/float"
 
 export default class extends Controller {
   static targets = ["cardModal", "cardDetailDialog", "addCardForm", "addCardInput", "addCardBtn", "archivedSection", "archivedToggle", "archivedToggleLabel"]
@@ -78,6 +79,9 @@ export default class extends Controller {
   }
 
   #openCardById(cardId) {
+    // In the workspace a card's details float over all the tiles (services/float.js)
+    if (floats(`/tools/${this.toolIdValue}/board?card=${cardId}`, { clear: "card" })) return
+
     const url = `/tools/${this.toolIdValue}/board/cards/${cardId}`
     reportPresence(`card:${cardId}`)
 
