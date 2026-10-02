@@ -431,6 +431,26 @@ class WorkspaceTest < ApplicationSystemTestCase
     page.driver.browser.manage.delete_cookie("workspace_keys")
   end
 
+  test "backspace outside a field is nobody's key, so it can't be 'back' in whichever tile went somewhere last" do
+    backspace = <<~JS
+      ((on) => {
+        const key = new KeyboardEvent("keydown", { key: "Backspace", bubbles: true, cancelable: true })
+        on.dispatchEvent(key)
+        return key.defaultPrevented
+      })
+    JS
+
+    assert page.evaluate_script("#{backspace}(document.body)"), "on the page around the tiles"
+    within_tile(0) do
+      assert page.evaluate_script("#{backspace}(document.body)"), "in a tile"
+      assert page.evaluate_script("#{backspace}(document.querySelector('.board-card'))"), "on a card in a tile"
+
+      # In a field it is what deletes a letter
+      find("[data-board-target='addCardBtn']", match: :first).click
+      assert_not page.evaluate_script("#{backspace}(document.querySelector(\"textarea[data-board-target='addCardInput']\"))")
+    end
+  end
+
   test "the bell in the bar opens the notifications over the tiles" do
     find(".workspace-bar-btn[aria-label='Notifications']").click
 

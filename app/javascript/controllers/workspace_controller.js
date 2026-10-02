@@ -2,6 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import { pathOf, toolIdOf, toolFrame, frameAddress, sendFrameTo, hasUnfinishedWork, confirmClosing } from "services/tool_frame"
 import { workspaceCommand, renameWorkspaceKeys, workspaceKey } from "services/workspace_keys"
 import { apiPost } from "services/api"
+import { typing } from "services/typing"
 
 // The tiling workspace: every tool you open is a tile, and the tiles arrange
 // themselves, the way a tiling window manager does it.
@@ -882,6 +883,9 @@ export default class extends Controller {
   // On this page; a page inside a tile hands the same keys on (heard, below)
   keyed(event) {
     if (event.key === "Escape" && this.menuOpen) return this.closeMenu()
+    // Backspace outside a field is "back" to some browsers, and back is in whichever
+    // tile went somewhere last (tile_page_controller.js has the same)
+    if (event.key === "Backspace" && !typing(event)) event.preventDefault()
     if (event.key === "F6") {
       event.preventDefault()
       return this.goToNext(event.shiftKey ? -1 : 1)

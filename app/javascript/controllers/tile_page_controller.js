@@ -2,6 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import { applyTheme } from "services/theme"
 import { workspaceCommand, isLauncherKey, renameWorkspaceKeys } from "services/workspace_keys"
 import { opensAsTile } from "services/tool_frame"
+import { typing } from "services/typing"
 
 // On a page that is a tile in the workspace (workspace_controller.js is on the page
 // around it). Says where this page is, so it is the one that comes back after a
@@ -25,6 +26,13 @@ export default class extends Controller {
       queueMicrotask(() => { if (!event.defaultPrevented) this.say("edge", { side: event.detail.side }) })
     }
     window.addEventListener("arrow-keys:edge", this._onEdge)
+    // Backspace outside a field is "back" to some browsers (Vivaldi, Firefox by a
+    // setting). With several tiles the browser's history is all of theirs in one line,
+    // so that goes back in whichever tile went somewhere last: another tool changes
+    // under a key meant for this one. Here it is nobody's key unless a view took it
+    // (a chat message deletes on it), which they have by the time it gets to the window.
+    this._onBackspace = (event) => { if (event.key === "Backspace" && !typing(event)) event.preventDefault() }
+    window.addEventListener("keydown", this._onBackspace)
     // Chosen in this page's own shortcuts dialog: the workspace and the other tiles hear of it
     this._onKeysChosen = (event) => this.say("keys", { chosen: event.detail })
     window.addEventListener("workspace:keys-chosen", this._onKeysChosen)
@@ -44,6 +52,7 @@ export default class extends Controller {
   disconnect() {
     window.removeEventListener("message", this._onMessage)
     window.removeEventListener("arrow-keys:edge", this._onEdge)
+    window.removeEventListener("keydown", this._onBackspace)
     window.removeEventListener("workspace:keys-chosen", this._onKeysChosen)
     window.removeEventListener("focus", this._onFocus)
     document.removeEventListener("pointerdown", this._onFocus, true)
