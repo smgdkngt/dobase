@@ -1,11 +1,12 @@
-// The app's sounds: a few short, quiet notes for the moments worth hearing (a message
+// The app's sounds: a few short, quiet taps for the moments worth hearing (a message
 // sent, one arriving, a todo ticked off, someone joining a call).
 //
 // Nothing is loaded. Every sound is made here with Web Audio out of one or two voices:
-// a note (a sine that dies away like a struck bar, with a little of its octave on top),
-// a glide (a note that slides from one pitch to another) and air (a breath of noise).
-// All pitches are from one scale, D major pentatonic, so any two sounds that meet are
-// in tune with each other. Each is over within a quarter of a second.
+// a knock (a low note struck and gone, like wood), a tap (a soft thump that slides),
+// a click, air (a breath of noise) and, for calls, a round note. They are low and
+// dry on purpose: closer to a key being pressed than to a chime. The pitched ones
+// share one scale, so two sounds that meet are in tune. Each is over within a quarter
+// of a second.
 //
 // Anything that should be heard says so in one of two ways:
 //   - in a view: `data-sound="send"` on a form plays when the form went through, and on
@@ -22,25 +23,24 @@ const ONCE_FOR_MS = 1500
 // Left alone this long, the sound output is given back (a browser keeps it open otherwise)
 const REST_AFTER_MS = 4000
 
-const B3 = 246.94, D4 = 293.66, A4 = 440, B4 = 493.88
-const D5 = 587.33, Fs5 = 739.99, A5 = 880, B5 = 987.77, D6 = 1174.66
+const A3 = 220, D4 = 293.66, Fs4 = 369.99, A4 = 440
 
 // A sound is its voices: [ kind, how ], each starting `at` seconds in and lasting `last`
 export const SOUNDS = {
   // Going out rises, coming in falls
-  send:    [ [ "glide", { from: D5, to: A5, last: 0.11, level: 0.07 } ] ],
-  receive: [ [ "glide", { from: A5, to: D5, last: 0.16, level: 0.08, ring: true } ] ],
-  // Something for you, somewhere you aren't looking
-  notify:  [ [ "note", { pitch: Fs5, last: 0.16, level: 0.08 } ], [ "note", { pitch: B5, at: 0.08, last: 0.22, level: 0.09 } ] ],
-  mail:    [ [ "note", { pitch: B4, last: 0.18, level: 0.09 } ], [ "note", { pitch: Fs5, at: 0.09, last: 0.24, level: 0.08 } ] ],
-  sent:    [ [ "air", { from: 600, to: 3600, last: 0.2, level: 0.03 } ], [ "note", { pitch: A5, at: 0.12, last: 0.2, level: 0.06 } ] ],
-  done:    [ [ "note", { pitch: D5, last: 0.1, level: 0.06 } ], [ "note", { pitch: A5, at: 0.05, last: 0.12, level: 0.07 } ], [ "note", { pitch: D6, at: 0.1, last: 0.18, level: 0.07 } ] ],
-  drop:    [ [ "glide", { from: 330, to: 220, last: 0.08, level: 0.11 } ] ],
-  tuck:    [ [ "glide", { from: A5, to: D5, last: 0.1, level: 0.05 } ], [ "air", { from: 2400, to: 900, last: 0.1, level: 0.02 } ] ],
-  trash:   [ [ "air", { from: 2600, to: 400, last: 0.16, level: 0.035 } ], [ "glide", { from: D4, to: B3 * 0.75, last: 0.14, level: 0.08 } ] ],
-  error:   [ [ "note", { pitch: B3, last: 0.1, level: 0.09, wave: "triangle" } ], [ "note", { pitch: B3, at: 0.12, last: 0.12, level: 0.09, wave: "triangle" } ] ],
-  join:    [ [ "note", { pitch: A4, last: 0.16, level: 0.09, soft: true } ], [ "note", { pitch: D5, at: 0.1, last: 0.22, level: 0.09, soft: true } ] ],
-  leave:   [ [ "note", { pitch: D5, last: 0.16, level: 0.08, soft: true } ], [ "note", { pitch: A4, at: 0.1, last: 0.22, level: 0.08, soft: true } ] ]
+  send:    [ [ "click", { level: 0.03 } ], [ "tap", { from: 250, to: 380, last: 0.07, level: 0.11 } ] ],
+  receive: [ [ "click", { level: 0.025 } ], [ "tap", { from: 380, to: 250, last: 0.09, level: 0.11 } ] ],
+  // Something for you, somewhere you aren't looking: two knocks going up. Mail knocks twice on one pitch.
+  notify:  [ [ "knock", { pitch: D4, last: 0.1, level: 0.11 } ], [ "knock", { pitch: Fs4, at: 0.09, last: 0.12, level: 0.11 } ] ],
+  mail:    [ [ "knock", { pitch: A3, last: 0.09, level: 0.12 } ], [ "knock", { pitch: A3, at: 0.11, last: 0.11, level: 0.12 } ] ],
+  sent:    [ [ "air", { from: 400, to: 2400, last: 0.22, level: 0.22 } ] ],
+  done:    [ [ "knock", { pitch: D4, last: 0.06, level: 0.09 } ], [ "knock", { pitch: A4, at: 0.055, last: 0.1, level: 0.1 } ] ],
+  drop:    [ [ "click", { level: 0.03 } ], [ "tap", { from: 210, to: 130, last: 0.08, level: 0.14 } ] ],
+  tuck:    [ [ "click", { level: 0.03 } ], [ "tap", { from: 300, to: 200, last: 0.06, level: 0.1 } ], [ "click", { at: 0.07, level: 0.02 } ] ],
+  trash:   [ [ "air", { from: 2000, to: 300, last: 0.15, level: 0.12 } ], [ "tap", { from: 170, to: 100, at: 0.07, last: 0.1, level: 0.13 } ] ],
+  error:   [ [ "tap", { from: 200, to: 130, last: 0.12, level: 0.12, wave: "triangle" } ], [ "tap", { from: 180, to: 120, at: 0.13, last: 0.13, level: 0.12, wave: "triangle" } ] ],
+  join:    [ [ "note", { pitch: A3, last: 0.16, level: 0.11 } ], [ "note", { pitch: D4, at: 0.1, last: 0.2, level: 0.11 } ] ],
+  leave:   [ [ "note", { pitch: D4, last: 0.16, level: 0.1 } ], [ "note", { pitch: A3, at: 0.1, last: 0.2, level: 0.1 } ] ]
 }
 
 export function soundsOn() {
@@ -158,16 +158,40 @@ function output() {
 }
 
 const VOICES = {
-  // A struck bar: there at once, then dying away. `soft` comes in gently and has no octave.
-  note(context, out, at, { pitch, last, level, soft = false, wave = "sine" }) {
-    tone(context, out, at, { from: pitch, last, level, attack: soft ? 0.02 : 0.005, wave })
-    if (!soft) tone(context, out, at, { from: pitch * 2, last: last * 0.45, level: level * 0.2, attack: 0.004 })
+  // A knock on wood: a click, then a low note that is there at once and gone at once,
+  // with a little of the bar's own overtone at the start
+  knock(context, out, at, { pitch, last, level }) {
+    VOICES.click(context, out, at, { level: level * 0.25 })
+    tone(context, out, at, { from: pitch * 1.12, to: pitch, bend: 0.02, last, level, attack: 0.003 })
+    tone(context, out, at, { from: pitch * 3.9, last: last * 0.3, level: level * 0.12, attack: 0.002 })
   },
 
-  // A note that slides to another pitch in the first half of its time
-  glide(context, out, at, { from, to, last, level, ring = false }) {
-    tone(context, out, at, { from, to, last, level, attack: 0.006 })
-    if (ring) tone(context, out, at, { from: from * 2, to: to * 2, last: last * 0.5, level: level * 0.15, attack: 0.004 })
+  // A soft thump that slides from one low pitch to another
+  tap(context, out, at, { from, to, last, level, wave = "sine" }) {
+    tone(context, out, at, { from, to, bend: last * 0.6, last, level, attack: 0.003, wave })
+  },
+
+  // A round, quiet note that comes in gently: for people arriving and leaving
+  note(context, out, at, { pitch, last, level }) {
+    tone(context, out, at, { from: pitch, last, level, attack: 0.015 })
+  },
+
+  // The tick at the front of a knock or a tap: a few thousandths of a second of noise
+  click(context, out, at, { level, last = 0.008 }) {
+    const source = context.createBufferSource()
+    const band = context.createBiquadFilter()
+    const loud = context.createGain()
+
+    source.buffer = noise(context)
+    band.type = "bandpass"
+    band.frequency.value = 2200
+    band.Q.value = 0.9
+    loud.gain.setValueAtTime(level, at)
+    loud.gain.exponentialRampToValueAtTime(0.0001, at + last)
+
+    source.connect(band).connect(loud).connect(out)
+    source.start(at)
+    source.stop(at + last + 0.01)
   },
 
   // Noise through a narrow band that moves: a breath, upward or downward
@@ -191,13 +215,13 @@ const VOICES = {
   }
 }
 
-function tone(context, out, at, { from, to, last, level, attack, wave = "sine" }) {
+function tone(context, out, at, { from, to, bend, last, level, attack, wave = "sine" }) {
   const oscillator = context.createOscillator()
   const loud = context.createGain()
 
   oscillator.type = wave
   oscillator.frequency.setValueAtTime(from, at)
-  if (to) oscillator.frequency.exponentialRampToValueAtTime(to, at + last * 0.5)
+  if (to) oscillator.frequency.exponentialRampToValueAtTime(to, at + bend)
   loud.gain.setValueAtTime(0.0001, at)
   loud.gain.linearRampToValueAtTime(level, at + attack)
   loud.gain.exponentialRampToValueAtTime(0.0001, at + last)
