@@ -40,7 +40,7 @@ class ImapSyncService
       folders = mailboxes.map(&:name).reject { |f| f.start_with?("[Gmail]/") && !special.key?(f) }
       normalized = folders.map { |f| special.fetch(f, f) }.uniq
       special.each { |server_name, folder| adopt_special_folder(server_name, folder) }
-      @account.update!(synced_folders: normalized.to_json)
+      @account.update!(synced_folders: normalized.to_json, folder_prefix: folder_prefix(imap, mailboxes))
       adopt_archive_folder(mailboxes)
       normalized
     end
@@ -113,9 +113,17 @@ class ImapSyncService
     end
   end
 
+  # Makes the folder where the server keeps its folders ("Receipts" is "INBOX.Receipts" on
+  # a server that has them inside the inbox), and answers the name it has there
   def create_folder(folder_name)
-    connect { |imap| imap.create(folder_name) }
+    server_name = connect do |imap|
+      prefix = folder_prefix(imap, imap.list("", "*") || [])
+      name = folder_name.start_with?(prefix) ? folder_name : "#{prefix}#{folder_name}"
+      imap.create(name)
+      name
+    end
     sync_folders
+    server_name
   end
 
   def save_draft(message)
@@ -400,6 +408,21 @@ class ImapSyncService
     @account.messages.archived.not_trashed.not_draft.where(folder: "INBOX").where.not(uid: nil).find_each do |message|
       ImapSyncJob.perform_later(@account.id, "move_to_folder", message.uid, "INBOX", archive_folder)
     end
+  end
+
+  # What the server puts in front of every folder of the account's own: "INBOX." where they
+  # live inside the inbox (Dovecot and Courier as many hosts set them up), nothing on most
+  # others. The server says so as its personal namespace (RFC 2342). One that doesn't say
+  # is taken to have its folders inside the inbox when every folder it lists is.
+  def folder_prefix(imap, mailboxes)
+    return imap.namespace.personal.first&.prefix.to_s if imap.capable?("NAMESPACE")
+
+    inside_inbox = "INBOX#{mailboxes.first&.delim}"
+    others = mailboxes.map(&:name).reject { |name| name.casecmp?("INBOX") }
+    others.any? && others.all? { |name| name.start_with?(inside_inbox) } ? inside_inbox : ""
+  # A server that won't answer keeps the prefix it had: the names only show longer without one
+  rescue Net::IMAP::NoResponseError, Net::IMAP::BadResponseError
+    @account.folder_prefix
   end
 
   def find_special_folder(mailboxes, folder)

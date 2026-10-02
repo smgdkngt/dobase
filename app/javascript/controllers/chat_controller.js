@@ -37,8 +37,8 @@ export default class extends Controller {
     this.channel?.unsubscribe()
     this.topObserver?.disconnect()
     this.topObserver = null
-    this.sizeObserver?.disconnect()
-    this.sizeObserver = null
+    this.settling?.disconnect()
+    if (this.hasMessagesTarget) this.messagesTarget.removeEventListener("scroll", this.boundScrolled)
     if (this.typingTimeout) clearTimeout(this.typingTimeout)
   }
 
@@ -217,16 +217,22 @@ export default class extends Controller {
     }
   }
 
-  // The list gets shorter when the box under it grows (the editor arrives after the
-  // page does), and its lines wrap again when the chat gets narrower (beside another
-  // tool, say). Whoever was at the newest message stays there.
+  // The newest message stays in sight while what is around it settles. Scrolling down
+  // once isn't enough: coming from another tool, the message box gets its height after
+  // this has scrolled, and takes that much off the end of the list; a picture gets its
+  // height when it has loaded. So whenever the list or what is in it changes size, a
+  // reader who was at the newest message is put there again. One who scrolled up to
+  // read is left alone.
   stayAtNewestMessage() {
     if (!this.hasMessagesTarget) return
 
-    let following = true
-    this.messagesTarget.addEventListener("scroll", () => { following = this.atNewestMessage }, { passive: true })
-    this.sizeObserver = new ResizeObserver(() => { if (following) this.scrollToBottom() })
-    this.sizeObserver.observe(this.messagesTarget)
+    this.followsNewest = true
+    this.boundScrolled = () => { this.followsNewest = this.atNewestMessage }
+    this.messagesTarget.addEventListener("scroll", this.boundScrolled, { passive: true })
+
+    this.settling = new ResizeObserver(() => { if (this.followsNewest) this.scrollToBottom() })
+    this.settling.observe(this.messagesTarget)
+    Array.from(this.messagesTarget.children).forEach((part) => this.settling.observe(part))
   }
 
   async markAsRead() {
