@@ -138,14 +138,20 @@ class ArrowKeysTest < ApplicationSystemTestCase
     visit tool_mails_path(mail)
     wait_for_stimulus "mail-keyboard"
 
+    list = current_url
     press :arrow_down
     assert_selector ".mail-list-item.selected", count: 1
     first = find(".mail-list-item.selected")[:id]
     assert_selector ".mail-detail-header"
+    wait_for_address_other_than list
 
+    opened = current_url
     press :arrow_down
     assert_no_selector "##{first}.selected"
     assert_selector ".mail-list-item.selected", count: 1
+    # Until the second conversation is the page's address: a conversation that arrives
+    # is a visit, and a visit closes whatever dialog is open (modal_controller.js)
+    wait_for_address_other_than opened
 
     # The keys dialog lies over the mail: the arrows are its own, to scroll with
     second = find(".mail-list-item.selected")[:id]
@@ -178,6 +184,15 @@ class ArrowKeysTest < ApplicationSystemTestCase
     chain.send_keys(keys.last)
     keys[0..-2].reverse_each { |modifier| chain.key_up(modifier) }
     chain.perform
+  end
+
+  # A conversation that opens beside the list becomes the page's address a moment
+  # after it shows
+  def wait_for_address_other_than(address)
+    page.document.synchronize do
+      raise Capybara::ExpectationNotMet, "still at #{address}" if current_url == address
+    end
+    wait_for_turbo
   end
 
   def assert_focused(selector)
