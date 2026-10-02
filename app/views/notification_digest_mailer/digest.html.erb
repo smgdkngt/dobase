@@ -8,19 +8,19 @@
   <%= link_to "Change how often you get these", absolute_url("/profile/edit?tab=notifications") %>
 <% end %>
 
-<h1 class="email-heading" style="margin: 0 0 20px; font-size: 19px; font-weight: 600; color: #1d1d1f;"><%= count_label %></h1>
+<h1 class="email-heading" style="margin: 0 0 20px; font-size: 19px; font-weight: 600; color: <%= mail_color(:text) %>;"><%= count_label %></h1>
 
 <% grouped.each do |tool_name, notifications| %>
   <% if show_groups && tool_name %>
-    <p class="muted-text" style="margin: 20px 0 8px; font-size: 11px; font-weight: 600; color: #86868b; text-transform: uppercase; letter-spacing: 0.5px;">
+    <p class="muted-text" style="margin: 20px 0 8px; font-size: 11px; font-weight: 600; color: <%= mail_color(:muted) %>; text-transform: uppercase; letter-spacing: 0.5px;">
       <%= tool_name %>
     </p>
   <% end %>
   <% notifications.each do |notification| %>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 8px;">
       <tr>
-        <td class="notification-row" style="padding: 14px 16px; background-color: #f5f5f7; border-radius: 10px;">
-          <p style="margin: 0; font-size: 14px; color: #1d1d1f; line-height: 1.45;">
+        <td class="notification-row" style="padding: 14px 16px; background-color: <%= mail_color(:row) %>; border-radius: 10px;">
+          <p style="margin: 0; font-size: 14px; color: <%= mail_color(:text) %>; line-height: 1.45;">
             <%= notification.message %>
           </p>
           <%
@@ -33,9 +33,9 @@
             end
           %>
           <% if preview.present? %>
-            <p class="muted-text" style="margin: 6px 0 0; font-size: 13px; color: #6e6e73; font-style: italic;">&ldquo;<%= preview %>&rdquo;</p>
+            <p class="muted-text" style="margin: 6px 0 0; font-size: 13px; color: <%= mail_color(:quiet) %>; font-style: italic;">&ldquo;<%= preview %>&rdquo;</p>
           <% end %>
-          <a href="<%= absolute_url(notification.url) %>" style="display: inline-block; margin-top: 8px; font-size: 12px; font-weight: 600; color: #0071e3; text-decoration: none;">View &rarr;</a>
+          <a href="<%= absolute_url(notification.url) %>" style="display: inline-block; margin-top: 8px; font-size: 12px; font-weight: 600; color: <%= mail_color(:link) %>; text-decoration: none;">View &rarr;</a>
         </td>
       </tr>
     </table>

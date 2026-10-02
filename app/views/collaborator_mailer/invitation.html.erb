@@ -2,7 +2,7 @@
 <% content_for :preheader, "#{@inviter.name} invited you to collaborate on #{@tool.name} in #{app_name}." %>
 <% content_for :footer_context, @tool.name %>
 
-<h1 class="email-heading" style="margin: 0 0 16px; font-size: 19px; font-weight: 600; color: #1d1d1f;">You're invited to collaborate</h1>
+<h1 class="email-heading" style="margin: 0 0 16px; font-size: 19px; font-weight: 600; color: <%= mail_color(:text) %>;">You're invited to collaborate</h1>
 
 <p style="margin: 0 0 24px;">
   <strong><%= @inviter.name %></strong> invited you to collaborate on
@@ -13,6 +13,6 @@
   <%= render "shared/mailer_button", text: "Accept invitation", url: @accept_url %>
 </p>
 
-<p class="muted-text" style="margin: 0; font-size: 13px; color: #86868b;">
+<p class="muted-text" style="margin: 0; font-size: 13px; color: <%= mail_color(:muted) %>;">
   This invitation expires in 7 days. If you don't have an account yet, you'll be able to create one when you accept.
 </p>
