@@ -55,6 +55,10 @@ export default class extends Controller {
     // Chosen in this page's own shortcuts dialog: the workspace and the other tiles hear of it
     this._onKeysChosen = (event) => this.say("keys", { chosen: event.detail })
     window.addEventListener("workspace:keys-chosen", this._onKeysChosen)
+    // A theme picked while this page is open: the workspace says so here, and the
+    // tile wears it in the same moment (workspace_controller.js#wearAll)
+    this._onTheme = (event) => applyTheme(event.detail, { fade: false })
+    window.addEventListener("workspace:theme", this._onTheme)
     document.addEventListener("click", this._onClick, true)
     window.addEventListener("message", this._onMessage)
     // The keyboard arrives here by Tab or F6, or with a click
@@ -90,6 +94,7 @@ export default class extends Controller {
 
   disconnect() {
     window.removeEventListener("message", this._onMessage)
+    window.removeEventListener("workspace:theme", this._onTheme)
     window.removeEventListener("arrow-keys:edge", this._onEdge)
     window.removeEventListener("keydown", this._onBackspace)
     window.removeEventListener("keydown", this._onEscape)
@@ -111,7 +116,7 @@ export default class extends Controller {
   heard(event) {
     if (event.origin !== location.origin || event.source !== window.parent) return
 
-    // A theme picked while this page is open; only the page around it hears of it
+    // (the theme once more, for a page that was still loading when it was said)
     if (event.data?.tile === "theme") applyTheme(event.data.theme, { fade: false })
     // The workspace's keys go with another modifier: this page names them too
     if (event.data?.tile === "keys") renameWorkspaceKeys(event.data.chosen || {})

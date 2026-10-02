@@ -84,7 +84,10 @@ export function applyTheme(theme, { fade = true } = {}) {
 function wearAtOnce(theme) {
   root.dataset.themeChanging = ""
   wear(theme)
-  requestAnimationFrame(() => requestAnimationFrame(() => delete root.dataset.themeChanging))
+  // The browser works the new colours out here, while nothing may ease; after that
+  // there is nothing left to ease into
+  void root.offsetWidth
+  delete root.dataset.themeChanging
 }
 
 function wear(theme) {

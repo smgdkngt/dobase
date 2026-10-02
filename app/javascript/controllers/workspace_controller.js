@@ -95,7 +95,7 @@ export default class extends Controller {
       this.drawBar()
     })
     this.freshenTimer = setInterval(() => this.freshen(), FRESHEN_EVERY_MS)
-    this.listen(window, "theme:change", (event) => this.tellAll("theme", { theme: event.detail }))
+    this.listen(window, "theme:change", (event) => this.wearAll(event.detail))
     this.listen(this.narrow, "change", () => this.arrange())
 
     this.sizes = new ResizeObserver(() => this.arrange())
@@ -1279,6 +1279,24 @@ export default class extends Controller {
     const next = tiles[(tiles.indexOf(this.desk.focus) + step + tiles.length) % tiles.length]
     if (next) this.focus(next)
     this.grabFocus()
+  }
+
+  // A new theme goes on every tile in the same moment as on this page. It is said to
+  // each tile's window directly, which hears it at once: a message arrives a task
+  // later, and with a frame drawn in between the tiles would change one after the
+  // other. The message goes as well, for a frame that can't be reached yet (it is
+  // still loading); a tile that has the theme already leaves it at that.
+  wearAll(theme) {
+    const frames = [ ...Array.from(this.elements.keys(), (id) => this.frameOf(id)), this.floating?.frame ].filter(Boolean)
+    for (const frame of frames) {
+      try {
+        const page = frame.contentWindow
+        page.dispatchEvent(new page.CustomEvent("workspace:theme", { detail: theme }))
+      } catch {
+        // Not a page of the app's (an error page): the message below is all it gets
+      }
+      frame.contentWindow?.postMessage({ tile: "theme", theme }, location.origin)
+    }
   }
 
   tellAll(what, details = {}) {
