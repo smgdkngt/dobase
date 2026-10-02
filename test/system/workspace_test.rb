@@ -490,6 +490,29 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_no_selector ".sidebar.open"
   end
 
+  test "a tool renamed from the menu is renamed everywhere at once: its tile, the menu, the bar" do
+    launch @files
+    page.execute_script("window.stillTheSamePage = true")
+    within_tile(1) { page.execute_script("window.stillThere = true") }
+
+    find(".workspace-bar-btn[aria-label='Menu']").click
+    find(".sidebar-tool-menu-btn[data-tool-id='#{@board.id}']", visible: :all).click
+    within "dialog#edit-tool-modal[open]" do
+      fill_in "Name", with: "Roadmap"
+      click_on "Save Changes"
+    end
+
+    within_tile(0) { assert_selector "h1", text: "Roadmap" }
+    assert_selector "[data-sidebar-tool-link][data-tool-name='Roadmap']", visible: :all
+    assert_selector ".workspace-desk[aria-label='Desktop 1: Roadmap, #{@files.name}']"
+    assert_no_selector "dialog#edit-tool-modal[open]"
+    # Nothing was loaded again but the tile of the tool that changed, and you stayed where you were
+    assert page.evaluate_script("window.stillTheSamePage")
+    within_tile(1) { assert page.evaluate_script("window.stillThere"), "the other tile was loaded again" }
+    assert_equal 2, tiles.size
+    assert_focused 1
+  end
+
   test "a tool made here opens as a tile, and the menu and the launcher know it at once" do
     find(".workspace-bar-btn[aria-label='Menu']").click
     find(".sidebar-logo-btn", match: :first).click

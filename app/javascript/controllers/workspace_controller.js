@@ -60,7 +60,10 @@ export default class extends Controller {
     // menu when its key is pressed, and to have it away when something was picked
     this.listen(window, "command-palette:show", () => this.showMenu())
     this.listen(window, "command-palette:hide", () => this.closeMenu({ toTheTile: true }))
-    this.listen(document, "turbo:submit-end", () => { this.submittedAt = performance.now() })
+    // When a form on this page was sent, and which tool it was about (its settings), if any
+    this.listen(document, "turbo:submit-end", (event) => {
+      this.submitted = { at: performance.now(), toolId: toolIdOf(pathOf(event.target.action)) }
+    })
     this.listen(document, "turbo:morph", () => this.refreshed())
     this.listen(document, "keydown", (event) => this.keyed(event), true)
     this.listen(window, "message", (event) => this.heard(event))
@@ -139,9 +142,7 @@ export default class extends Controller {
 
     const open = !fresh && Object.keys(this.state.tiles).find((id) => toolIdOf(this.state.tiles[id].url) === toolId)
     if (open) {
-      this.goToDesk(this.deskNumberOf(open))
-      this.focus(open)
-      this.grabFocus()
+      this.goTo(open)
       // A page inside the tool (a card from a notification), not just the tool
       if (path !== `/tools/${toolId}` && path !== this.state.tiles[open].url) this.send(open, path)
       return true
@@ -202,6 +203,19 @@ export default class extends Controller {
     tile.inert = true
     tile.addEventListener("animationend", () => tile.remove(), { once: true })
     setTimeout(() => tile.remove(), 400)
+  }
+
+  // The page in a tile, drawn again where it is: its tool was renamed, or set up
+  // otherwise, from the page around it. A visit to where it is already, which the
+  // page takes as a refresh (a morph: what is open in it and how far it is scrolled
+  // stay), and which it can refuse the way it refuses any other (an unsent mail).
+  refresh(id) {
+    const page = this.frameOf(id)?.contentWindow
+    try {
+      page.Turbo ? page.Turbo.visit(page.location.href, { action: "replace" }) : page.location.reload()
+    } catch {
+      // Not a page of ours to draw again
+    }
   }
 
   // The page in a tile, loaded again
@@ -742,13 +756,31 @@ export default class extends Controller {
     if (address.origin !== location.origin || !toolIdOf(address.pathname)) return
 
     event.preventDefault()
-    this.open(address.href)
+    // A form on this page led here (Turbo follows its redirect right after it ends): a
+    // tool was made, renamed or set up differently, and the menu and the bar still
+    // say how it was. So do the tiles of a tool that was there already: all of them
+    // are drawn again, and nobody has to load the window again to see it.
+    const submitted = this.submitted && performance.now() - this.submitted.at < 1000 ? this.submitted : null
+    const toolId = toolIdOf(address.pathname)
+
+    if (submitted?.toolId === toolId) {
+      // Its settings, not a wish to go there: you stay where you are
+      for (const [ id, tile ] of Object.entries(this.state.tiles)) {
+        if (toolIdOf(tile.url) === toolId && this.elements.has(id)) this.refresh(id)
+      }
+    } else {
+      this.open(address.href)
+    }
     // The keyboard goes to the tile that was asked for, not back to the menu's button
     this.closeMenu({ toTheTile: true })
-    // A form on this page led here (Turbo follows its redirect right after it ends): a
-    // tool was made or renamed, and the menu and the launcher still have the old
-    // list. The page is drawn again around the tiles.
-    if (performance.now() - this.submittedAt < 1000) this.freshen({ evenIfBusy: true })
+    if (submitted) this.freshen({ evenIfBusy: true })
+  }
+
+  // To a tile that is open, on whatever desktop it is
+  goTo(id) {
+    this.goToDesk(this.deskNumberOf(id))
+    this.focus(id)
+    this.grabFocus()
   }
 
   // The server drew this page again (a morph, which leaves the tiles alone): the bar
