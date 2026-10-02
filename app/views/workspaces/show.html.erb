@@ -31,6 +31,10 @@
       </button>
 
       <nav class="workspace-desks" aria-label="Desktops" data-workspace-target="desks"></nav>
+      <%# What is on a desktop by name, while the pointer rests on its button: to go
+          straight to one of its tiles, or close one from here %>
+      <div class="workspace-desk-card" popover="manual" data-workspace-target="deskCard"
+           data-action="pointerenter->workspace#keepDeskCard pointerleave->workspace#hideDeskCardSoon"></div>
     </div>
 
     <p class="workspace-bar-title" data-workspace-target="title"></p>

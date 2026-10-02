@@ -67,6 +67,8 @@ Rails.application.routes.draw do
       end
 
       resource :mute, only: %i[create destroy]
+      # Seen as it is now, by someone who has it open as a tile (workspace_controller.js)
+      resource :visit, only: :create
 
       resource :board, only: :show do
         scope module: :boards do

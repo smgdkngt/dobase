@@ -23,6 +23,13 @@ export function workspaceModifier() {
   return CHOICES.includes(chosen) ? chosen : CHOICES[0]
 }
 
+// How a key is written (ApplicationHelper#workspace_key writes it the same): "Ctrl+Opt+2"
+const WRITTEN = { "alt": "Alt", "ctrl-alt": MAC ? "Ctrl+Opt" : "Ctrl+Alt", "ctrl-meta": "Ctrl+Cmd", "alt-meta": "Opt+Cmd" }
+
+export function workspaceKey(key) {
+  return `${WRITTEN[workspaceModifier()]}+${key}`
+}
+
 export function chooseWorkspaceModifier(modifier) {
   if (CHOICES.includes(modifier)) document.cookie = `workspace_keys=${modifier}; path=/; max-age=31536000; samesite=lax`
 }

@@ -418,6 +418,64 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_no_selector "#sidebar-notifications"
   end
 
+  test "the bar shows what is new on a desktop you aren't on, the menu's button what is new in a tool that isn't open, and a tool you look at is seen" do
+    docs = tools(:my_docs)
+    press "2"
+    launch @todos, on_new_desktop: true
+    press "1"
+    assert_selector ".workspace-desk[aria-current='true']", text: "1"
+    seen = @todos.collaborators.find_by!(user: users(:one))
+    seen.update_column(:last_seen_at, 2.days.ago)
+    sleep 0.5 # the notification channel has to be subscribed before anything is sent on it
+
+    # What a notification about a tool is on the stream (the notifiers send more)
+    ActionCable.server.broadcast("notifications:#{users(:one).id}", { id: 1, message: "A todo is yours", tool_id: @todos.id })
+    ActionCable.server.broadcast("notifications:#{users(:one).id}", { id: 2, message: "A new document", tool_id: docs.id })
+
+    assert_selector ".workspace-desk[data-desk='2'][data-unread] .workspace-desk-tool[data-unread]"
+    assert_selector ".workspace-desk[data-desk='2'][aria-label='Desktop 2: #{@todos.name}. New in #{@todos.name}']"
+    assert_no_selector ".workspace-desk[data-desk='1'][data-unread]"
+    assert_selector ".workspace-bar-btn[aria-label='Menu'][data-unread][title*='#{docs.name}']"
+
+    # The card about the desktop names what is on it; a click goes straight to the tile
+    find(".workspace-desk[data-desk='2']").hover
+    within ".workspace-desk-card" do
+      assert_text "DESKTOP 2"
+      assert_selector ".workspace-desk-card-row[data-unread]", text: @todos.name
+      find(".workspace-desk-card-go", text: @todos.name).click
+    end
+
+    assert_selector ".workspace-desk[aria-current='true']", text: "2"
+    assert_no_selector ".workspace-desk[data-unread]"
+    assert_no_selector "[data-sidebar-tool-link][href='#{tool_path(@todos)}'][data-unread]", visible: :all
+    # And the server knows: the dot doesn't come back with the next page
+    assert_db_change -> { seen.reload.last_seen_at > 1.minute.ago }
+
+    # Something new in a tool you are looking at never gets a dot
+    ActionCable.server.broadcast("notifications:#{users(:one).id}", { id: 3, message: "Another todo", tool_id: @todos.id })
+    sleep 0.5
+    assert_no_selector ".workspace-desk[data-unread]"
+    assert_no_selector "[data-sidebar-tool-link][href='#{tool_path(@todos)}'][data-unread]", visible: :all
+  end
+
+  test "a call that is on in a room shows on its desktop" do
+    room = tools(:my_room)
+    sleep 0.5
+
+    press "2"
+    visit workspace_path(open: tool_path(room))
+    wait_for_stimulus "workspace"
+    press "1"
+    sleep 0.5
+    ActionCable.server.broadcast("notifications:#{users(:one).id}", { type: "room_activity", tool_id: room.id, active: true })
+
+    assert_selector ".workspace-desk[data-desk='2'] .workspace-desk-tool[data-in-call]"
+    assert_selector ".workspace-desk[data-desk='2'][aria-label$='A call is on in #{room.name}']"
+
+    ActionCable.server.broadcast("notifications:#{users(:one).id}", { type: "room_activity", tool_id: room.id, active: false })
+    assert_no_selector ".workspace-desk-tool[data-in-call]"
+  end
+
   test "the desktops in the bar show which tools are on them" do
     launch @files
     assert_selector ".workspace-desk[aria-current='true'] .workspace-desk-icon", count: 2

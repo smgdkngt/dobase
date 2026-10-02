@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { pathOf, toolIdOf, toolFrame, frameAddress, sendFrameTo, hasUnfinishedWork, confirmClosing } from "services/tool_frame"
-import { workspaceCommand, renameWorkspaceKeys } from "services/workspace_keys"
+import { workspaceCommand, renameWorkspaceKeys, workspaceKey } from "services/workspace_keys"
+import { apiPost } from "services/api"
 
 // The tiling workspace: every tool you open is a tile, and the tiles arrange
 // themselves, the way a tiling window manager does it.
@@ -28,9 +29,18 @@ const FRESHEN_EVERY_MS = 3 * 60 * 1000
 // And never sooner after the last time: the menu closes with every tool opened from it
 const FRESHEN_AT_MOST_EVERY_MS = 30 * 1000
 const DESKS = [ 1, 2, 3, 4, 5, 6, 7, 8, 9 ]
+// How many tools a desktop shows in the bar before it says "+2"
+const TOOLS_IN_THE_BAR = 4
+// A tool in sight is said to be seen this long after the last news of it: a busy chat
+// is one message to the server, sent after its last message
+const SEEN_AFTER_MS = 800
+// The card about a desktop comes after the pointer has rested on it this long, and
+// goes this long after it left
+const CARD_AFTER_MS = 300
+const CARD_GONE_AFTER_MS = 180
 
 export default class extends Controller {
-  static targets = ["tiles", "tileTemplate", "empty", "desks", "title", "menu", "hint", "status"]
+  static targets = ["tiles", "tileTemplate", "empty", "desks", "deskCard", "title", "menu", "hint", "status"]
   static values = { userId: Number, appName: String, start: String }
 
   connect() {
@@ -68,7 +78,11 @@ export default class extends Controller {
     this.listen(document, "keydown", (event) => this.keyed(event), true)
     this.listen(window, "message", (event) => this.heard(event))
     this.listen(window, "pagehide", () => this.remember())
-    this.listen(document, "visibilitychange", () => this.freshen())
+    this.listen(document, "visibilitychange", () => {
+      this.freshen()
+      // Back at the window: what is in sight is seen now
+      this.drawBar()
+    })
     this.freshenTimer = setInterval(() => this.freshen(), FRESHEN_EVERY_MS)
     this.listen(window, "theme:change", (event) => this.tellAll("theme", { theme: event.detail }))
     this.listen(this.narrow, "change", () => this.arrange())
@@ -76,6 +90,10 @@ export default class extends Controller {
     this.sizes = new ResizeObserver(() => this.arrange())
     this.sizes.observe(this.tilesTarget)
     this.menuWatch = new MutationObserver(() => this.menuChanged())
+    // What is new in a tool, and a call that is on in a room, are marked in the menu
+    // by whoever hears of them (notifications_controller.js); the bar shows it too
+    this.seenSoon = new Map()
+    this.newsWatch = new MutationObserver(() => this.newsChanged())
     this.watchMenu()
 
     this.draw()
@@ -122,6 +140,8 @@ export default class extends Controller {
     this.listening.abort()
     this.sizes.disconnect()
     this.menuWatch.disconnect()
+    this.newsWatch.disconnect()
+    clearTimeout(this.cardTimer)
     clearInterval(this.freshenTimer)
   }
 
@@ -485,8 +505,11 @@ export default class extends Controller {
   }
 
   // The desktops that have something on them, the one you are on, and the first
-  // free one. Each shows the tools that are on it, by their icons from the menu. The
-  // buttons stay the same ones, so the keyboard can stay on one.
+  // free one. Each shows the tools that are on it by their icons from the menu: the
+  // one you'd land on lit, a dot on one with something new in it that you aren't
+  // looking at, a green one on a room with a call on. The buttons stay the same
+  // ones, so the keyboard can stay on one, and one is only drawn again when what it
+  // shows changed (a dot that just arrived makes a small entrance, once).
   drawBar() {
     const used = Object.keys(this.state.desks).filter((number) => this.state.desks[number].tree).map(Number)
     const free = DESKS.find((number) => !used.includes(number))
@@ -498,22 +521,33 @@ export default class extends Controller {
         button.type = "button"
         button.className = "workspace-desk"
         button.dataset.desk = number
-        button.dataset.action = "click->workspace#deskClicked"
+        button.dataset.action = "click->workspace#deskClicked pointerenter->workspace#showDeskCardSoon pointerleave->workspace#hideDeskCardSoon"
         return button
       }))
     }
 
     Array.from(this.desksTarget.children).forEach((button, index) => {
       const number = DESKS[index]
-      const tiles = leaves(this.state.desks[number]?.tree)
-      const names = tiles.map((id) => this.nameOf(id))
+      const tiles = leaves(this.state.desks[number]?.tree).map((id) => this.about(id))
+      const news = tiles.filter((tile) => tile.unread).map((tile) => tile.name)
+      const calls = tiles.filter((tile) => tile.inCall).map((tile) => tile.name)
 
       button.hidden = !shown.has(number)
       button.setAttribute("aria-current", number === this.state.desk)
       button.toggleAttribute("data-empty", tiles.length === 0)
-      button.title = names.join(", ")
-      button.setAttribute("aria-label", names.length ? `Desktop ${number}: ${names.join(", ")}` : `Desktop ${number}`)
-      button.replaceChildren(String(number), ...tiles.slice(0, 4).map((id) => this.iconOf(id)).filter(Boolean))
+      button.toggleAttribute("data-unread", news.length > 0)
+      button.setAttribute("aria-label", [
+        tiles.length ? `Desktop ${number}: ${tiles.map((tile) => tile.name).join(", ")}` : `Desktop ${number}, nothing open`,
+        news.length ? `New in ${news.join(", ")}` : null,
+        calls.length ? `A call is on in ${calls.join(", ")}` : null
+      ].filter(Boolean).join(". "))
+
+      const drawn = JSON.stringify(tiles.map((tile) => [ tile.id, tile.toolId, tile.unread, tile.inCall, tile.focused ]))
+      if (button.dataset.drawn === drawn) return
+
+      button.dataset.drawn = drawn
+      const more = tiles.length - TOOLS_IN_THE_BAR
+      button.replaceChildren(String(number), ...tiles.slice(0, TOOLS_IN_THE_BAR).map((tile) => this.markOf(tile)), ...(more > 0 ? [ `+${more}` ] : []))
     })
 
     this.markMenu()
@@ -526,8 +560,129 @@ export default class extends Controller {
     document.title = title ? `${title} - ${this.appNameValue}` : this.appNameValue
   }
 
+  // What the bar and the card about a desktop say of a tile
+  about(id) {
+    const tile = this.state.tiles[id]
+    const toolId = toolIdOf(tile.url)
+    const link = this.menuLinkFor(tile.url)
+    const number = Number(this.deskNumberOf(id))
+
+    return {
+      id, toolId, name: this.nameOf(id), tool: link?.dataset.toolName || "",
+      focused: this.state.desks[number]?.focus === id,
+      unread: Boolean(link?.hasAttribute("data-unread")) && !this.inSight(id),
+      inCall: Boolean(link?.closest("[data-tool-id]")?.hasAttribute("data-in-call"))
+    }
+  }
+
+  // Whether you are looking at a tile: on the desktop you are on, not behind another
+  // one that has the room to itself, in a window that is in front
+  inSight(id) {
+    const tile = this.elements.get(id)
+    return Boolean(tile) && !tile.hidden && Number(this.deskNumberOf(id)) === this.state.desk && !document.hidden
+  }
+
+  // A tool's icon in a desktop's button, with what there is to say about it
+  markOf(tile) {
+    const mark = document.createElement("span")
+    mark.className = "workspace-desk-tool"
+    mark.toggleAttribute("data-focused", tile.focused)
+    mark.toggleAttribute("data-unread", tile.unread)
+    mark.toggleAttribute("data-in-call", tile.inCall)
+    const icon = this.iconOf(tile.id)
+    if (icon) mark.append(icon)
+    return mark
+  }
+
+  // ── The card about a desktop: what is on it by name, to go straight to one ──
+
+  showDeskCardSoon(event) {
+    const button = event.currentTarget
+    clearTimeout(this.cardTimer)
+    this.cardTimer = setTimeout(() => this.showDeskCard(button), this.deskCardTarget.matches(":popover-open") ? 0 : CARD_AFTER_MS)
+  }
+
+  hideDeskCardSoon() {
+    clearTimeout(this.cardTimer)
+    this.cardTimer = setTimeout(() => this.hideDeskCard(), CARD_GONE_AFTER_MS)
+  }
+
+  // The pointer went from the button into the card
+  keepDeskCard() {
+    clearTimeout(this.cardTimer)
+  }
+
+  hideDeskCard() {
+    clearTimeout(this.cardTimer)
+    if (this.hasDeskCardTarget && this.deskCardTarget.matches(":popover-open")) this.deskCardTarget.hidePopover()
+  }
+
+  showDeskCard(button) {
+    const number = Number(button.dataset.desk)
+    const tiles = leaves(this.state.desks[number]?.tree).map((id) => this.about(id))
+    const card = this.deskCardTarget
+
+    const heading = document.createElement("p")
+    heading.className = "workspace-desk-card-title"
+    const key = document.createElement("kbd")
+    key.className = "shortcut-key"
+    key.textContent = workspaceKey(number)
+    heading.append(`Desktop ${number}`, key)
+
+    const rows = tiles.map((tile) => {
+      const row = document.createElement("div")
+      row.className = "workspace-desk-card-row"
+      row.toggleAttribute("data-unread", tile.unread)
+
+      const go = document.createElement("button")
+      go.type = "button"
+      go.className = "workspace-desk-card-go"
+      go.dataset.tileId = tile.id
+      go.dataset.action = "click->workspace#goToTileOfCard"
+      const name = document.createElement("span")
+      name.className = "truncate"
+      name.textContent = tile.name
+      const icon = this.iconOf(tile.id)
+      go.append(...(icon ? [ icon ] : []), name)
+      // A page inside a tool has its own name: the tool's goes beside it
+      if (tile.tool && tile.tool !== tile.name) go.append(note(tile.tool))
+      if (tile.inCall) go.append(note("Call is on", "workspace-desk-card-call"))
+      if (tile.unread) go.append(note("New", "workspace-desk-card-new"))
+
+      const close = document.createElement("button")
+      close.type = "button"
+      close.className = "workspace-desk-card-close"
+      close.dataset.tileId = tile.id
+      close.dataset.action = "click->workspace#closeTileOfCard"
+      close.setAttribute("aria-label", `Close ${tile.name}`)
+      close.textContent = "×"
+
+      row.append(go, close)
+      return row
+    })
+    if (rows.length === 0) rows.push(note("Nothing open here yet. Go there and open a tool.", "workspace-desk-card-empty"))
+
+    card.replaceChildren(heading, ...rows)
+    const place = button.getBoundingClientRect()
+    Object.assign(card.style, { left: `${place.left}px`, top: `${place.bottom + 6}px` })
+    if (!card.matches(":popover-open")) card.showPopover()
+  }
+
+  goToTileOfCard(event) {
+    this.hideDeskCard()
+    this.goTo(event.currentTarget.dataset.tileId)
+  }
+
+  async closeTileOfCard(event) {
+    const button = this.desksTarget.children[Number(this.deskNumberOf(event.currentTarget.dataset.tileId)) - 1]
+    await this.close(event.currentTarget.dataset.tileId)
+    // What is left on that desktop, while the pointer is still here
+    if (button && this.deskCardTarget.matches(":popover-open")) this.showDeskCard(button)
+  }
+
   // By the keyboard the keyboard stays on the button, to go on to the next desktop
   deskClicked(event) {
+    this.hideDeskCard()
     this.goToDesk(event.currentTarget.dataset.desk, { keyboardStays: event.detail === 0 })
   }
 
@@ -547,22 +702,51 @@ export default class extends Controller {
     return document.querySelector(`[data-sidebar-tool-link][href="/tools/${toolIdOf(url)}"]`)
   }
 
-  // In the menu, a tool that is open says on which desktop, and needs no dot for
-  // what is new in it: the ones that are loaded are seen
+  // In the menu, a tool that is open says on which desktop. A tool you are looking at
+  // needs no dot for what is new in it: it is taken off, and the server is told you
+  // saw it (a tile gets what is new live, without opening a page, which is how the
+  // server would know). The menu's own button gets the dot for what is new in tools
+  // that aren't open anywhere: with the menu away, nothing else would show it.
   markMenu() {
     document.querySelectorAll("[data-sidebar-tool-link][data-workspace-desk]").forEach((link) => {
       link.removeAttribute("data-workspace-desk")
       link.removeAttribute("title")
     })
 
+    const open = new Set()
     for (const [ id, tile ] of Object.entries(this.state.tiles)) {
       const link = this.menuLinkFor(tile.url)
       if (!link) continue
 
+      open.add(link)
       link.dataset.workspaceDesk = this.deskNumberOf(id)
       link.title = `Open on desktop ${this.deskNumberOf(id)}`
-      if (this.elements.has(id)) link.removeAttribute("data-unread")
+      if (link.hasAttribute("data-unread") && this.inSight(id)) {
+        link.removeAttribute("data-unread")
+        this.sawTool(toolIdOf(tile.url))
+      }
     }
+
+    const elsewhere = Array.from(document.querySelectorAll("[data-sidebar-tool-link][data-unread]")).filter((link) => !open.has(link))
+    this.menuTarget.toggleAttribute("data-unread", elsewhere.length > 0)
+    this.menuTitle ||= this.menuTarget.title
+    this.menuTarget.title = elsewhere.length ? `${this.menuTitle} · New in ${elsewhere.map((link) => link.dataset.toolName).join(", ")}` : this.menuTitle
+  }
+
+  sawTool(toolId) {
+    clearTimeout(this.seenSoon.get(toolId))
+    this.seenSoon.set(toolId, setTimeout(() => apiPost(`/tools/${toolId}/visit`), SEEN_AFTER_MS))
+  }
+
+  // Something new in a tool, or a call that began or ended: the bar is drawn again,
+  // once for however many marks changed
+  newsChanged() {
+    if (this.newsDue) return
+
+    this.newsDue = requestAnimationFrame(() => {
+      this.newsDue = null
+      this.drawBar()
+    })
   }
 
   // ── Moving around ──
@@ -834,7 +1018,11 @@ export default class extends Controller {
   // follows from that hangs on the menu itself
   watchMenu() {
     this.menuWatch.disconnect()
-    if (this.menu) this.menuWatch.observe(this.menu, { attributes: true, attributeFilter: [ "class" ] })
+    this.newsWatch.disconnect()
+    if (!this.menu) return
+
+    this.menuWatch.observe(this.menu, { attributes: true, attributeFilter: [ "class" ] })
+    this.newsWatch.observe(this.menu, { subtree: true, attributes: true, attributeFilter: [ "data-unread", "data-in-call" ] })
   }
 
   // In: its button says so, the tiles under it are out of reach, the keyboard is on
@@ -1090,6 +1278,14 @@ function splitFor(rect) {
   const column = (rect.height - GAP) / 2 >= ROOM_TO_SPLIT.height && rect.width >= ROOM_TO_SPLIT.width
   if (row && column) return rect.height > rect.width ? "column" : "row"
   return row ? "row" : column ? "column" : null
+}
+
+// A few words beside a tile's name in the card about a desktop
+function note(text, className = "workspace-desk-card-note") {
+  const words = document.createElement("span")
+  words.className = className
+  words.textContent = text
+  return words
 }
 
 function px(rect) {
