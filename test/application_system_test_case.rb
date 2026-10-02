@@ -75,6 +75,10 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
     fill_in "Password", with: "password"
     click_on "Sign In"
     assert_selector ".sidebar", wait: 15
+    # What a test before this one left in the browser (the tiles of a workspace, where
+    # the arrow keys were) is not this test's: a page that is left writes it down as
+    # it goes, which can be after the browser was wiped
+    page.execute_script("try { localStorage.clear(); sessionStorage.clear() } catch (error) {}")
   end
 
   # Poll database until condition is met (replaces fragile sleep + assert)

@@ -16,7 +16,9 @@ module Tools
     end
 
     test "docs lists documents with a preview, word count and who edited them" do
-      @document.update!(content: "<p>Agenda: ship the <strong>API</strong> today</p>", updated_by: @other_user)
+      # (edited after everything in the fixtures, whose times are the second they were
+      # loaded in: two of them a second apart put another document first)
+      @document.update!(content: "<p>Agenda: ship the <strong>API</strong> today</p>", updated_by: @other_user, last_edited_at: 1.minute.from_now)
 
       get tool_docs_path(@tool), headers: @headers
 
