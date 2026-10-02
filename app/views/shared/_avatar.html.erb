@@ -16,7 +16,8 @@
 <%
   user = local_assigns[:user] unless local_assigns[:agent]
   initials = local_assigns[:initials]
-  size = local_assigns[:size] || :md
+  # (a size may come as a string: "2xl")
+  size = (local_assigns[:size] || :md).to_sym
   extra_class = local_assigns[:class] || ""
 
   size_classes = {

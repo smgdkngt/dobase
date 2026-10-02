@@ -239,7 +239,7 @@
 
   /* Avatar */
   .avatar {
-    @apply inline-flex items-center justify-center rounded-full bg-background-tertiary text-text-secondary font-medium overflow-hidden;
+    @apply inline-flex shrink-0 items-center justify-center rounded-full bg-background-tertiary text-text-secondary font-medium overflow-hidden;
   }
 
 
