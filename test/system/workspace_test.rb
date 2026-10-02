@@ -616,11 +616,44 @@ class WorkspaceTest < ApplicationSystemTestCase
       raise Capybara::ExpectationNotMet, "the notification wasn't heard" unless page.evaluate_script("window.heardSounds") == %w[notify]
     end
 
-    # On another desktop the board is out of sight: its link says so, and its page knows it isn't seen
+    # On another desktop the board is out of sight, and its link says so
     press "2"
     assert_no_selector "[data-tool-id='#{@board.id}'] [data-sidebar-tool-link][data-in-sight]", visible: :all
-    board_frame = page.evaluate_script("Array.from(document.querySelectorAll('.workspace-tile iframe')).find((frame) => frame.contentWindow.location.pathname.includes('/tools/#{@board.id}')).contentWindow.innerWidth")
-    assert_equal 0, board_frame
+  end
+
+  test "a message in a chat on another desktop is a notification's to announce, not the chat's" do
+    colleague = users(:two)
+    chat_type = ToolType.find_or_create_by!(slug: "chat") { |type| type.name = "Chat"; type.icon = "message-circle"; type.enabled = true }
+    chat = Tool.create!(name: "Team Chat", tool_type: chat_type, owner: users(:one))
+    chat.collaborators.create!(user: colleague, role: "collaborator")
+    visit workspace_path(open: tool_chat_path(chat))
+    wait_for_stimulus "workspace"
+    within_tile(1) do
+      assert_selector "rhino-editor .ProseMirror"
+      find("h1", text: chat.name).click
+      page.execute_script("window.heardSounds = []; document.addEventListener('sound:played', (event) => window.heardSounds.push(event.detail.name))")
+    end
+    page.execute_script("window.heardSounds = []; document.addEventListener('sound:played', (event) => window.heardSounds.push(event.detail.name))")
+
+    # In sight: the chat says so itself, and the notification keeps quiet
+    perform_enqueued_jobs { chat.chat.messages.create!(user: colleague, body: "<p>Here</p>") }
+    within_tile(1) do
+      assert_selector ".chat-message", text: "Here"
+      page.document.synchronize do
+        raise Capybara::ExpectationNotMet, "the message wasn't heard in its chat" unless page.evaluate_script("window.heardSounds") == %w[receive]
+      end
+    end
+    assert_empty page.evaluate_script("window.heardSounds")
+
+    # On another desktop: the other way round
+    press "2"
+    assert_no_selector "[data-tool-id='#{chat.id}'] [data-sidebar-tool-link][data-in-sight]", visible: :all
+    perform_enqueued_jobs { chat.chat.messages.create!(user: colleague, body: "<p>Still there?</p>") }
+    page.document.synchronize do
+      raise Capybara::ExpectationNotMet, "the notification wasn't heard" unless page.evaluate_script("window.heardSounds") == %w[notify]
+    end
+    chat_frame = "Array.from(document.querySelectorAll('.workspace-tile iframe')).find((frame) => frame.contentWindow.location.pathname.includes('/tools/#{chat.id}'))"
+    assert_equal %w[receive], page.evaluate_script("#{chat_frame}.contentWindow.heardSounds")
   end
 
   test "backspace outside a field is nobody's key, so it can't be 'back' in whichever tile went somewhere last" do

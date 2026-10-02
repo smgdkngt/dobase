@@ -43,11 +43,20 @@ export const SOUNDS = {
   leave:   [ [ "note", { pitch: D4, last: 0.16, level: 0.1 } ], [ "note", { pitch: A3, at: 0.1, last: 0.2, level: 0.1 } ] ]
 }
 
-// Whether nobody can see this page: its tab is in the background, or it is a tile on
-// another desktop of the workspace (a frame that isn't drawn has no size). What
-// arrives on a page like that is a notification's to announce, not the page's.
+// Whether nobody can see this page: its tab is in the background, or it is a tile of
+// the workspace on another desktop or behind a tile that has the room to itself (the
+// frame is there, and hidden). What arrives on a page like that is a notification's
+// to announce, not the page's.
 export function unseen() {
-  return document.hidden || window.innerWidth === 0
+  if (document.hidden) return true
+
+  try {
+    const frame = window.frameElement
+    return Boolean(frame) && !frame.checkVisibility({ visibilityProperty: true })
+  } catch {
+    // A frame on someone else's page: nothing to ask
+    return false
+  }
 }
 
 export function soundsOn() {
