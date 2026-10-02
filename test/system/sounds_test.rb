@@ -41,8 +41,9 @@ class SoundsTest < ApplicationSystemTestCase
     listen
 
     find("#todo-item-#{item.id}-completion").click
+    # Heard at the click, before the server has answered
     assert_heard "done"
-    assert item.reload.completed?
+    assert_selector "#todo-item-#{item.id}.todo-item-completed"
 
     find("#todo-item-#{item.id}-completion").click
     assert_no_selector "#todo-item-#{item.id}.todo-item-completed"
