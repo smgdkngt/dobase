@@ -25,6 +25,8 @@ const GLIDE = "transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1)"
 const RESIZE_STEP = 0.05
 // How often the page around the tiles is drawn again while it is in view
 const FRESHEN_EVERY_MS = 3 * 60 * 1000
+// And never sooner after the last time: the menu closes with every tool opened from it
+const FRESHEN_AT_MOST_EVERY_MS = 30 * 1000
 const DESKS = [ 1, 2, 3, 4, 5, 6, 7, 8, 9 ]
 
 export default class extends Controller {
@@ -51,6 +53,10 @@ export default class extends Controller {
     this.listen(document, "turbo:before-visit", (event) => this.visiting(event))
     this.listen(window, "workspace:open", (event) => { if (this.open(event.detail.url, { fresh: event.detail.fresh })) event.preventDefault() })
     this.listen(window, "workspace:command", (event) => this.run(event.detail))
+    // The search at the top of the menu (command_palette_controller.js) asks for the
+    // menu when its key is pressed, and to have it away when something was picked
+    this.listen(window, "command-palette:show", () => this.showMenu())
+    this.listen(window, "command-palette:hide", () => this.closeMenu({ toTheTile: true }))
     this.listen(document, "turbo:submit-end", () => { this.submittedAt = performance.now() })
     this.listen(document, "turbo:morph", () => this.refreshed())
     this.listen(document, "keydown", (event) => this.keyed(event), true)
@@ -717,7 +723,8 @@ export default class extends Controller {
     }
   }
 
-  // The command palette of this page: what it opens becomes a tile (visiting, below)
+  // The menu, with the keyboard in its search: what is picked there becomes a tile
+  // (visiting, below). Through the page's own key for it, which empties the search.
   launch() {
     window.focus()
     document.querySelector("[data-hotkey='Mod+k']")?.click()
@@ -734,8 +741,7 @@ export default class extends Controller {
     event.preventDefault()
     this.open(address.href)
     // The keyboard goes to the tile that was asked for, not back to the menu's button
-    this.menuReturnsToButton = false
-    this.closeMenu()
+    this.closeMenu({ toTheTile: true })
     // A form on this page led here (Turbo follows its redirect right after it ends): a
     // tool was made or renamed, and the menu and the launcher still have the old
     // list. The page is drawn again around the tiles.
@@ -757,8 +763,9 @@ export default class extends Controller {
     this.menuChanged()
   }
 
-  // The sidebar is the menu here: in over the tiles, with the keyboard on its first
-  // tool, and out again with the keyboard back where it came from
+  // The sidebar is the menu here: in over the tiles with the keyboard in its search,
+  // and out again with the keyboard back where it came from. The launcher's key, the
+  // menu's key and the logo all open this one menu.
   get menu() {
     return document.querySelector("[data-mobile-sidebar-target='sidebar']")
   }
@@ -768,10 +775,11 @@ export default class extends Controller {
   }
 
   toggleMenu() {
-    if (this.menuOpen) return this.closeMenu()
+    this.menuOpen ? this.closeMenu() : this.launch()
+  }
 
-    window.focus()
-    this.menuTarget.click()
+  showMenu() {
+    if (!this.menuOpen) this.menuTarget.click()
   }
 
   // The menu's button: pressed with the keyboard on it, the keyboard comes back to it
@@ -779,9 +787,10 @@ export default class extends Controller {
     this.menuReturnsToButton = event.isTrusted && event.detail === 0
   }
 
-  closeMenu() {
+  closeMenu({ toTheTile = false } = {}) {
     if (!this.menuOpen) return
 
+    if (toTheTile) this.menuReturnsToButton = false
     const around = this.element.closest("[data-controller~='mobile-sidebar']")
     this.application.getControllerForElementAndIdentifier(around, "mobile-sidebar")?.close()
   }
@@ -803,8 +812,10 @@ export default class extends Controller {
     this.menuWasOpen = open
     this.menuTarget.setAttribute("aria-expanded", open)
     this.tilesTarget.inert = open
+    // Its search starts empty, coming and going
+    window.dispatchEvent(new CustomEvent("workspace:menu", { detail: { open } }))
     if (open) {
-      this.menu.querySelector("[data-sidebar-tool-link]")?.focus()
+      (this.menu.querySelector("[data-command-palette-target='input']") || this.menu.querySelector("[data-sidebar-tool-link]"))?.focus()
     } else {
       this.menuReturnsToButton ? this.menuTarget.focus() : this.grabFocus()
       this.menuReturnsToButton = false
@@ -823,6 +834,7 @@ export default class extends Controller {
   // page is morphed in (which leaves the tiles alone).
   async freshen({ evenIfBusy = false } = {}) {
     if (this.freshening || !(evenIfBusy || this.calm)) return
+    if (!evenIfBusy && performance.now() - this.freshenedAt < FRESHEN_AT_MOST_EVERY_MS) return
 
     this.freshening = true
     try {
@@ -831,7 +843,10 @@ export default class extends Controller {
 
       const fresh = new DOMParser().parseFromString(await response.text(), "text/html")
       if (!fresh.querySelector("[data-controller~='workspace']") || tracked(fresh) !== tracked(document)) return
-      if (evenIfBusy || this.calm) Turbo.morphBodyElements(document.body, fresh.body)
+      if (!(evenIfBusy || this.calm)) return
+
+      Turbo.morphBodyElements(document.body, fresh.body)
+      this.freshenedAt = performance.now()
     } catch {
       // No network: next time
     } finally {

@@ -23,11 +23,19 @@
      data-workspace-start-value="<%= @start_path %>">
   <header class="workspace-bar">
     <div class="workspace-bar-side">
-      <button type="button" class="workspace-bar-btn" title="Menu (<%= workspace_key("M") %>)"
+      <button type="button" class="workspace-bar-btn" title="Menu (<%= launcher_key %>)"
               aria-label="Menu" aria-expanded="false" aria-controls="sidebar"
               data-workspace-target="menu"
               data-action="click->mobile-sidebar#toggle click->workspace#menuAsked">
         <%= render "shared/logo", class: "w-5 h-5" %>
+      </button>
+
+      <%# The same menu, with the keyboard in its search %>
+      <button type="button" class="workspace-launcher"
+              data-action="click->keyboard-shortcuts#openCommandPalette">
+        <%= render "shared/icon", name: "search", size: 14 %>
+        <span>Open a tool…</span>
+        <kbd class="shortcut-key"><%= launcher_key %></kbd>
       </button>
 
       <nav class="workspace-desks" aria-label="Desktops" data-workspace-target="desks"></nav>
@@ -36,13 +44,6 @@
     <p class="workspace-bar-title" data-workspace-target="title"></p>
 
     <div class="workspace-bar-side justify-end">
-      <button type="button" class="workspace-launcher"
-              data-action="click->keyboard-shortcuts#openCommandPalette">
-        <%= render "shared/icon", name: "search", size: 14 %>
-        <span>Open a tool…</span>
-        <kbd class="shortcut-key"><%= launcher_key %></kbd>
-      </button>
-
       <% unread_count = current_user.notifications.unread.count %>
       <div class="relative flex"
            data-controller="notifications"
@@ -73,7 +74,8 @@
     </div>
 
     <%# What happened to the tiles, for whoever can't see it happen %>
-    <p class="sr-only" role="status" data-workspace-target="status"></p>
+    <%# Left alone when the page around the tiles is drawn again: what it says stays said %>
+    <p class="sr-only" id="workspace-status" role="status" data-turbo-permanent data-workspace-target="status"></p>
   </header>
 
   <%# Shown until it is dismissed, once per browser: what is different here. Before the
@@ -81,7 +83,7 @@
   <aside class="workspace-hint" hidden data-workspace-target="hint" aria-label="About the workspace">
     <p>
       Every tool you open is a tile here, and the tiles share the window.
-      <kbd class="shortcut-key"><%= launcher_key %></kbd> opens a tool, <kbd class="shortcut-key">?</kbd> lists the shortcuts.
+      <kbd class="shortcut-key"><%= launcher_key %></kbd> opens the menu, <kbd class="shortcut-key">?</kbd> lists the shortcuts.
     </p>
     <%= render "components/button", text: "Got it", size: :sm, variant: :secondary, type: :button,
           data: { action: "click->workspace#dismissHint" } %>
@@ -97,8 +99,7 @@
           <%= render "components/empty_state", title: "Nothing open on this desktop", icon: "grid-2x2",
                 description: "Open a tool, and the next one tiles beside it." %>
           <dl class="workspace-keys">
-            <div><dt><kbd class="shortcut-key"><%= launcher_key %></kbd></dt><dd>Open a tool</dd></div>
-            <div><dt><kbd class="shortcut-key"><%= workspace_key("M") %></kbd></dt><dd>Open the menu</dd></div>
+            <div><dt><kbd class="shortcut-key"><%= launcher_key %></kbd></dt><dd>Open the menu: your tools, and search</dd></div>
             <div><dt><kbd class="shortcut-key"><%= workspace_key("1–9") %></kbd></dt><dd>Go to a desktop</dd></div>
             <div><dt><kbd class="shortcut-key">?</kbd></dt><dd>Show all shortcuts</dd></div>
           </dl>

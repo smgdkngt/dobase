@@ -3,7 +3,7 @@
 <div>
   <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Workspace</h3>
   <div class="shortcut-list">
-    <%= render "shared/shortcut_row", key: (mac? ? "⇧↵" : "Shift+Enter"), description: "In the launcher: open in a new tile, even if the tool is open" %>
+    <%= render "shared/shortcut_row", key: (mac? ? "⇧↵" : "Shift+Enter"), description: "In the menu's search: open in a new tile, even if the tool is open" %>
     <%= render "shared/shortcut_row", key: (mac? ? "⌥-click" : "Alt+click"), description: "Open a link in a new tile" %>
     <%= render "shared/shortcut_row", key: (mac? ? "⌘⇧K" : "Ctrl+Shift+K"), description: "Actions for the tool in this tile" %>
     <%= render "shared/shortcut_row", key: workspace_key("← → ↑ ↓"), description: "Go to the tile on that side" %>
@@ -13,9 +13,9 @@
     <%= render "shared/shortcut_row", key: workspace_key("Plus / Minus"), description: "Make the tile bigger or smaller" %>
     <%= render "shared/shortcut_row", key: workspace_key("F"), description: "Show the tile alone, and back" %>
     <%= render "shared/shortcut_row", key: workspace_key("W"), description: "Close the tile" %>
-    <%= render "shared/shortcut_row", key: workspace_key("M"), description: "Open the menu" %>
+    <%= render "shared/shortcut_row", key: workspace_key("M"), description: "Open the menu, as #{launcher_key} does" %>
     <%= render "shared/shortcut_row", key: workspace_key("R"), description: "Reload the tile" %>
     <%= render "shared/shortcut_row", key: "F6", description: "Go to the next tile" %>
   </div>
-  <p class="mt-2 text-xs text-text-tertiary">Every one of these is in the launcher too: type what you want to do.</p>
+  <p class="mt-2 text-xs text-text-tertiary">Every one of these is in the menu too: type what you want to do.</p>
 </div>

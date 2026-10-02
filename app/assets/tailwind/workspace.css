@@ -64,7 +64,7 @@
   }
 
   .workspace-launcher {
-    @apply flex items-center gap-2 h-7 pl-2 pr-1 mr-1 rounded-md text-xs text-text-tertiary
+    @apply flex items-center gap-2 h-7 pl-2 pr-1 mr-1 shrink-0 rounded-md text-xs text-text-tertiary
            bg-surface border border-border-light hover:text-text-primary hover:border-border
            transition-colors cursor-pointer;
   }
@@ -204,6 +204,37 @@
     @apply hidden;
   }
 
+  /* The search at the top of the menu (shared/command_palette with menu: true). With
+     nothing typed it is a field above the tools; typed into, what it finds takes the
+     menu's room (the rules for that are further down, outside this layer). */
+  .menu-search {
+    @apply flex flex-col min-h-0 border-b border-border-light;
+  }
+
+  .menu-search-field {
+    @apply px-2 py-2;
+  }
+
+  .menu-search-results {
+    @apply hidden flex-1 min-h-0 overflow-y-auto pb-2;
+  }
+
+  .menu-search .command-palette-hint {
+    @apply hidden;
+  }
+
+  .menu-search[data-searching] {
+    @apply flex-1 border-b-0;
+  }
+
+  .menu-search[data-searching] .menu-search-results {
+    @apply block;
+  }
+
+  .menu-search[data-searching] .command-palette-hint {
+    @apply flex;
+  }
+
   /* In the menu, a tool that is open says on which desktop: an outlined square, so it
      isn't taken for a count of what is new */
   .sidebar-tool-link[data-workspace-desk]::after {
@@ -270,6 +301,16 @@ body[data-workspace] .main-content {
     transform: none;
     visibility: visible;
     transition-delay: 0s;
+  }
+
+  /* Wider than the sidebar it is elsewhere: what the search finds has to fit */
+  body[data-workspace] .sidebar {
+    width: 20rem;
+  }
+
+  /* While the search has something typed, what it finds is the menu */
+  body[data-workspace] .sidebar:has(.menu-search[data-searching]) [data-sidebar-target="nav"] {
+    display: none;
   }
 
   /* You and your notifications are in the bar at the top, so their menus open from

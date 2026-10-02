@@ -156,7 +156,8 @@
         <%= render "shared/demo_banner" if Demo.enabled? %>
       </div>
       <button data-controller="hotkey" data-hotkey="Mod+k" data-action="click->keyboard-shortcuts#openCommandPalette" hidden>Command palette</button>
-      <%= render "shared/command_palette" %>
+      <%# In the workspace it is the top of the menu (shared/sidebar) %>
+      <%= render "shared/command_palette" unless @workspace %>
       <%= render "shared/keyboard_shortcuts_dialog" %>
     <% else %>
       <main class="min-h-dvh flex items-center justify-center bg-background-secondary" id="main-content" tabindex="-1">

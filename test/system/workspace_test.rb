@@ -3,6 +3,9 @@
 require "application_system_test_case"
 
 class WorkspaceTest < ApplicationSystemTestCase
+  # The launcher: the search at the top of the menu, while the menu is in
+  MENU_SEARCH = ".sidebar.open [data-controller~='command-palette']"
+
   setup do
     @board = tools(:project_board)
     @files = tools(:my_files)
@@ -89,7 +92,7 @@ class WorkspaceTest < ApplicationSystemTestCase
 
     # Keys go to wherever the keyboard is, as they do for a person
     type_keys mac? ? :meta : :control, "k"
-    within "dialog[data-controller~='command-palette'][open]" do
+    within MENU_SEARCH do
       input = find("input[data-command-palette-target='input']")
       input.set(@todos.name)
       assert_selector ".command-palette-item.selected", text: @todos.name
@@ -184,11 +187,11 @@ class WorkspaceTest < ApplicationSystemTestCase
 
     # The tool is open, so the launcher would go to it; with Shift it opens beside it
     find(".workspace-launcher").click
-    within "dialog[data-controller~='command-palette'][open]" do
-      assert_text "In a new tile"
+    within MENU_SEARCH do
       input = find("input[data-command-palette-target='input']")
       input.set(docs.name)
       assert_selector ".command-palette-item.selected", text: docs.name
+      assert_text "In a new tile"
       input.send_keys([ :shift, :enter ])
     end
     assert_selector ".workspace-tile:not([hidden], [data-leaving])", count: 3
@@ -199,18 +202,55 @@ class WorkspaceTest < ApplicationSystemTestCase
     within_tile(2) { assert_selector "h1", text: docs.name }
   end
 
-  test "the menu is gone through with the arrow keys, and a tool opened from it" do
+  test "the menu opens with its search, and down from there the arrow keys go through the tools" do
     press "m"
     assert_selector ".sidebar.open"
-    assert_selector "[data-sidebar-tool-link]:focus"
+    assert_selector "#{MENU_SEARCH} input:focus"
+
+    # Nothing typed: the menu is your tools as you arranged them
+    assert_selector ".sidebar.open [data-sidebar-tool-link]", text: @board.name
 
     type_keys :arrow_down
-    opened = page.evaluate_script("document.activeElement.textContent.trim().split('\\n')[0]")
+    assert_selector "[data-sidebar-tool-link]:focus"
+    type_keys :arrow_up
+    assert_selector "#{MENU_SEARCH} input:focus"
+
+    type_keys :arrow_down
+    type_keys :arrow_down
+    opened = page.evaluate_script("document.activeElement.dataset.toolName")
     type_keys :enter
 
     assert_no_selector ".sidebar.open"
     assert_selector ".workspace-tile:not([hidden], [data-leaving])", count: 2
     within_tile(1) { assert_selector "h1", text: opened }
+  end
+
+  test "the launcher's key, the menu's key and the logo open the same menu, with everything the sidebar has" do
+    type_keys(mac? ? :meta : :control, "k")
+    assert_selector "#{MENU_SEARCH} input:focus"
+    within ".sidebar.open" do
+      assert_selector "[data-sidebar-tool-link]", text: @files.name
+      assert_selector ".sidebar-tool-menu-btn", visible: :all, minimum: 1
+      assert_selector "button[popovertarget='sidebar-add-menu']"
+    end
+
+    # Typing finds, in the place of the list; emptied, the list is back
+    find("#{MENU_SEARCH} input").set(@todos.name)
+    assert_selector "#{MENU_SEARCH} .command-palette-item.selected", text: @todos.name
+    assert_no_selector ".sidebar.open [data-sidebar-tool-link]"
+    find("#{MENU_SEARCH} input").set("")
+    assert_selector ".sidebar.open [data-sidebar-tool-link]", text: @todos.name
+
+    type_keys :escape
+    assert_no_selector ".sidebar.open"
+
+    find(".workspace-bar-btn[aria-label='Menu']").click
+    assert_selector "#{MENU_SEARCH} input:focus"
+
+    # Reordering is where it always was
+    find(".sidebar.open button[popovertarget='sidebar-add-menu']").click
+    click_on "Reorder"
+    assert_selector ".sidebar.open .reorder-mode", minimum: 1
   end
 
   test "the menu's button says it is open, keeps the tiles out of reach, and gets the keyboard back" do
@@ -221,7 +261,7 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_selector ".sidebar.open"
     assert_selector ".workspace-bar-btn[aria-label='Menu'][aria-expanded='true']"
     assert_selector "#workspace-tiles[inert]"
-    assert_selector "[data-sidebar-tool-link]:focus"
+    assert_selector "#{MENU_SEARCH} input:focus"
 
     type_keys :escape
     assert_no_selector ".sidebar.open"
@@ -244,7 +284,7 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_equal 2, tiles.size
 
     find(".workspace-launcher").click
-    within "dialog[data-controller~='command-palette'][open]" do
+    within MENU_SEARCH do
       assert_no_selector ".command-palette-item", text: "Close the tile"
       input = find("input[data-command-palette-target='input']")
       input.set("close the tile")
@@ -312,13 +352,9 @@ class WorkspaceTest < ApplicationSystemTestCase
     within_tile(0) { page.execute_script("window.stillHere = true") }
     Tool.create!(name: "Made elsewhere", tool_type: tool_types(:todos), owner: users(:one))
 
-    page.execute_script("document.dispatchEvent(new Event('visibilitychange'))")
-    assert_selector "[data-sidebar-tool-link]", text: "Made elsewhere", visible: :all
-    within_tile(0) { assert page.evaluate_script("window.stillHere"), "the tile was loaded again" }
-    assert_current_path workspace_path
-
     # No network, or a server in trouble: everything stays as it is
     page.execute_script(<<~JS)
+      window.realFetch = window.fetch
       window.fetch = () => Promise.resolve(new Response("<html><body>Something went wrong</body></html>", { status: 500 }))
       document.dispatchEvent(new Event("visibilitychange"))
       window.fetch = () => Promise.reject(new TypeError("Failed to fetch"))
@@ -327,7 +363,13 @@ class WorkspaceTest < ApplicationSystemTestCase
     sleep 0.5
     assert_selector "[data-controller~='workspace'] .workspace-bar"
     assert_no_text "Something went wrong"
+    assert_no_selector "[data-sidebar-tool-link]", text: "Made elsewhere", visible: :all
     within_tile(0) { assert page.evaluate_script("window.stillHere"), "the tile was loaded again" }
+
+    page.execute_script("window.fetch = window.realFetch; document.dispatchEvent(new Event('visibilitychange'))")
+    assert_selector "[data-sidebar-tool-link]", text: "Made elsewhere", visible: :all
+    within_tile(0) { assert page.evaluate_script("window.stillHere"), "the tile was loaded again" }
+    assert_current_path workspace_path
   end
 
   test "the bell in the bar opens the notifications over the tiles" do
@@ -486,13 +528,13 @@ class WorkspaceTest < ApplicationSystemTestCase
   def launch(tool, new_tile: true, on_new_desktop: false)
     count = on_new_desktop ? 0 : tiles.size
     find(".workspace-launcher").click
-    within "dialog[data-controller~='command-palette'][open]" do
+    within MENU_SEARCH do
       input = find("input[data-command-palette-target='input']")
       input.set(tool.name)
       assert_selector ".command-palette-item.selected", text: tool.name
       input.send_keys(:enter)
     end
-    assert_no_selector "dialog[data-controller~='command-palette'][open]"
+    assert_no_selector ".sidebar.open"
     return unless new_tile
 
     assert_selector ".workspace-tile:not([hidden], [data-leaving])", count: count + 1

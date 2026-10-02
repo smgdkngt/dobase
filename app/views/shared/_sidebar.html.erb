@@ -28,7 +28,10 @@
     </button>
   </div>
 
-  <%# ── Quick jump pill ── %>
+  <%# ── Search: in the workspace right here in the menu, elsewhere a pill that opens it ── %>
+  <% if @workspace %>
+    <%= render "shared/command_palette", menu: true %>
+  <% else %>
   <div class="px-2 py-2 border-b border-border-light">
     <button type="button"
             class="sidebar-jump-pill"
@@ -39,6 +42,7 @@
       <kbd class="shortcut-key sidebar-jump-pill-kbd">⌘K</kbd>
     </button>
   </div>
+  <% end %>
 
   <%# ── Navigation ── %>
   <nav class="flex-1 py-2 overflow-y-auto scrollbar-thin" aria-label="Tools" data-sidebar-target="nav"
