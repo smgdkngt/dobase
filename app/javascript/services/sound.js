@@ -30,13 +30,13 @@ export const SOUNDS = {
   // Going out rises, coming in falls
   send:    [ [ "click", { level: 0.03 } ], [ "tap", { from: 250, to: 380, last: 0.07, level: 0.11 } ] ],
   receive: [ [ "click", { level: 0.025 } ], [ "tap", { from: 380, to: 250, last: 0.09, level: 0.11 } ] ],
-  // Something for you, somewhere you aren't looking: two knocks going up. Mail knocks twice on one pitch.
+  // Something for you, somewhere you aren't looking: two knocks going up. Mail does the same from lower, with a wider step.
   notify:  [ [ "knock", { pitch: D4, last: 0.1, level: 0.11 } ], [ "knock", { pitch: Fs4, at: 0.09, last: 0.12, level: 0.11 } ] ],
-  mail:    [ [ "knock", { pitch: A3, last: 0.09, level: 0.12 } ], [ "knock", { pitch: A3, at: 0.11, last: 0.11, level: 0.12 } ] ],
+  mail:    [ [ "knock", { pitch: A3, last: 0.09, level: 0.11 } ], [ "knock", { pitch: Fs4, at: 0.11, last: 0.13, level: 0.1 } ] ],
   sent:    [ [ "air", { from: 400, to: 2400, last: 0.22, level: 0.22 } ] ],
   done:    [ [ "knock", { pitch: D4, last: 0.06, level: 0.09 } ], [ "knock", { pitch: A4, at: 0.055, last: 0.1, level: 0.1 } ] ],
-  drop:    [ [ "click", { level: 0.03 } ], [ "tap", { from: 210, to: 130, last: 0.08, level: 0.14 } ] ],
-  tuck:    [ [ "click", { level: 0.03 } ], [ "tap", { from: 300, to: 200, last: 0.06, level: 0.1 } ], [ "click", { at: 0.07, level: 0.02 } ] ],
+  drop:    [ [ "click", { level: 0.05 } ], [ "knock", { pitch: A3, last: 0.08, level: 0.115 } ] ],
+  tuck:    [ [ "air", { from: 1400, to: 600, last: 0.11, level: 0.2 } ], [ "click", { at: 0.09, level: 0.035 } ] ],
   trash:   [ [ "air", { from: 2000, to: 300, last: 0.15, level: 0.12 } ], [ "tap", { from: 170, to: 100, at: 0.07, last: 0.1, level: 0.13 } ] ],
   error:   [ [ "tap", { from: 200, to: 130, last: 0.12, level: 0.12, wave: "triangle" } ], [ "tap", { from: 180, to: 120, at: 0.13, last: 0.13, level: 0.12, wave: "triangle" } ] ],
   join:    [ [ "note", { pitch: A3, last: 0.16, level: 0.11 } ], [ "note", { pitch: D4, at: 0.1, last: 0.2, level: 0.11 } ] ],
