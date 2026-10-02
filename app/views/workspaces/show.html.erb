@@ -85,7 +85,8 @@
           data: { action: "click->workspace#dismissHint" } %>
   </aside>
 
-  <div class="workspace-room">
+  <%# (kept out of the arrow keys of this page: a tile's own page has them) %>
+  <div class="workspace-room" data-arrow-keys-skip>
     <div class="workspace-tiles" id="workspace-tiles" data-turbo-permanent data-workspace-target="tiles"></div>
 
     <%# Outside what Turbo leaves alone: someone's first tool changes what it says %>

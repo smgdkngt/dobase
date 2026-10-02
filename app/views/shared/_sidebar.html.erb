@@ -1,4 +1,5 @@
-<aside class="sidebar" id="sidebar" aria-label="Workspace" data-controller="sidebar"
+<%# The arrow keys go through all of it: the tools, their settings, the search, the buttons (arrow_keys_controller.js) %>
+<aside class="sidebar" id="sidebar" aria-label="Workspace" data-controller="sidebar arrow-keys"
        data-action="sortable:move->sidebar#handleToolMove"
        data-mobile-sidebar-target="sidebar">
   <%# ── Logo ── %>
@@ -46,7 +47,7 @@
 
   <%# ── Navigation ── %>
   <nav class="flex-1 py-2 overflow-y-auto scrollbar-thin" aria-label="Tools" data-sidebar-target="nav"
-       <%= tag.attributes(data: { controller: "sidebar-presence arrow-keys", sidebar_presence_user_id_value: current_user.id }) if defined?(current_user) && current_user %>>
+       <%= tag.attributes(data: { controller: "sidebar-presence", sidebar_presence_user_id_value: current_user.id }) if defined?(current_user) && current_user %>>
     <% if defined?(current_user) && current_user %>
       <% unread_tool_ids = Tool.unread_tool_ids_for(current_user) %>
       <%# ── Ungrouped Tools ── %>

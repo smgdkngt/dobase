@@ -12,8 +12,8 @@ class ArrowKeysReachTest < ApplicationSystemTestCase
   WALK = <<~JS
     const done = arguments[arguments.length - 1]
     const TAKES = "a[href], button, input:not([type='hidden']), select, textarea, summary, [role='button'], [tabindex]:not([tabindex='-1']), [contenteditable='true']"
-    const root = document.querySelector("dialog[open]") || document.querySelector("main")
-    const inDialog = root.matches("dialog")
+    const root = document.querySelector(arguments[0] || "dialog[open]") || document.querySelector("main")
+    const inDialog = !root.matches("main")
     const shown = (element) => element.getClientRects().length > 0 && !element.closest("[inert]")
     const pressable = (element) => {
       if (element.disabled || !(element.tabIndex >= 0 || element.isContentEditable) || !shown(element)) return false
@@ -111,13 +111,33 @@ class ArrowKeysReachTest < ApplicationSystemTestCase
     assert_everything_in_reach minimum: 1
   end
 
+  test "the bar of the workspace: the menu, the desktops, the bell, yourself" do
+    page.driver.browser.manage.delete_cookie("workspace")
+    visit workspace_path
+    wait_for_stimulus "workspace"
+    assert_selector ".workspace-tile iframe"
+    find(".workspace-bar-btn[aria-label='Menu']").send_keys(:tab)
+
+    assert_everything_in_reach minimum: 4, within: ".workspace-bar"
+  end
+
+  test "the menu of the workspace: the search, the tools, their settings, the buttons" do
+    page.driver.browser.manage.delete_cookie("workspace")
+    visit workspace_path
+    wait_for_stimulus "workspace"
+    find(".workspace-bar-btn[aria-label='Menu']").click
+    assert_selector ".sidebar.open input:focus"
+
+    assert_everything_in_reach minimum: 10, within: ".sidebar.open"
+  end
+
   private
 
-  def assert_everything_in_reach(minimum:)
+  def assert_everything_in_reach(minimum:, within: nil)
     wait_for_turbo
     wait_for_stimulus "arrow-keys"
     page.driver.browser.manage.timeouts.script_timeout = 60
-    walked = page.driver.browser.execute_async_script(WALK)
+    walked = page.driver.browser.execute_async_script(WALK, within)
 
     assert_operator walked["wanted"], :>=, minimum, "there is less on the page than the test thinks"
     assert_empty walked["missed"], "the arrow keys never got to: #{walked["missed"].join("; ")}"

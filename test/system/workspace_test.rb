@@ -339,6 +339,29 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_focused 1
   end
 
+  test "up from the top of a tile is the bar, and down from the bar is the tile again" do
+    # (the line about the workspace lies under the bar too, until it is dismissed)
+    within(".workspace-hint") { click_on "Got it" }
+    type_keys :arrow_down
+    within_tile(0) { assert_selector "#board-card-#{cards(:first_task).id}:focus" }
+
+    # Up through what the board has above its cards, and past that out of the tile
+    8.times do
+      type_keys :arrow_up
+      break if page.has_selector?(".workspace-desk:focus", wait: 0.3)
+    end
+    assert_selector ".workspace-desk[aria-current='true']:focus"
+
+    type_keys :arrow_left
+    assert_selector ".workspace-bar-btn[aria-label='Menu']:focus"
+
+    type_keys :arrow_down
+    page.document.synchronize do
+      back = page.evaluate_script("document.activeElement === document.querySelector('.workspace-tile iframe')")
+      raise Capybara::ExpectationNotMet, "the keyboard isn't back in the tile" unless back
+    end
+  end
+
   test "mail in a tile: the arrows go down the list, into a conversation and back to the list" do
     visit workspace_path(open: tool_mails_path(tools(:my_mail)))
     wait_for_stimulus "workspace"

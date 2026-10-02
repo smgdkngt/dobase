@@ -100,6 +100,8 @@ export default class extends Controller {
         this.#moveSelection(1)
         break
       case "ArrowUp":
+        // (in the menu with nothing typed, up is on to what lies above the field)
+        if (this.menuValue && !this.inputTarget.value.trim()) return
         event.preventDefault()
         this.#moveSelection(-1)
         break

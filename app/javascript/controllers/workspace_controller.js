@@ -69,6 +69,14 @@ export default class extends Controller {
     this.listen(window, "workspace:keys-chosen", (event) => this.tellAll("keys", { chosen: event.detail }))
     // The search at the top of the menu (command_palette_controller.js) asks for the
     // menu when its key is pressed, and to have it away when something was picked
+    // Down from the bar is back into the tile you were in (arrow_keys_controller.js on
+    // this page says there is nothing further that way)
+    this.listen(window, "arrow-keys:edge", (event) => {
+      if (event.detail.side !== "down" || !this.element.contains(document.activeElement) || this.tilesTarget.contains(document.activeElement)) return
+
+      event.preventDefault()
+      this.grabFocus()
+    })
     this.listen(window, "command-palette:show", () => this.showMenu())
     this.listen(window, "command-palette:hide", () => this.closeMenu({ toTheTile: true }))
     // When a form on this page was sent, and which tool it was about (its settings), if any
@@ -1140,7 +1148,11 @@ export default class extends Controller {
         // The arrow keys ran out of things on that side of the tile you are on: on to
         // the tile that lies there. Not with one tile alone in the room: there the
         // others are behind it, not beside it.
-        if (id === this.desk.focus && !this.desk.alone && !this.narrow.matches) this.goToward(message.side)
+        if (id !== this.desk.focus || this.narrow.matches) break
+        if (!this.desk.alone && this.neighbour(message.side)) this.goToward(message.side)
+        // Nothing above the top row but the bar: the desktop you are on, from where
+        // the arrows go through the bar
+        else if (message.side === "up") this.desksTarget.children[this.state.desk - 1]?.focus()
         break
       case "keys":
         // Chosen in that tile's own shortcuts dialog: here and in the other tiles too
