@@ -38,7 +38,10 @@ class DashboardController < ApplicationController
 
   private
 
+  # Without a pattern that looks for one word after another: a long made-up user
+  # agent would keep such a pattern busy
   def phone?
-    request.user_agent.to_s.match?(/iPhone|iPod|Android.+Mobile|Windows Phone/)
+    agent = request.user_agent.to_s
+    agent.match?(/iPhone|iPod|Windows Phone/) || (agent.include?("Android") && agent.include?("Mobile"))
   end
 end
