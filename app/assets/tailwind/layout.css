@@ -66,6 +66,17 @@
     @apply flex items-center gap-3 flex-1 min-w-0 -my-2 py-2 text-inherit no-underline;
   }
 
+  /* The link starts at its icon, so a ring around it sits against the icon. With the
+     keyboard on the link the ring goes around the whole row, where hovering fills it. */
+  .sidebar-tool-link:focus-visible {
+    outline: none;
+  }
+
+  .sidebar-tool-item:has(> .sidebar-tool-link:focus-visible) {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -2px;
+  }
+
   /* An emoji standing in for a tool's icon takes the icon's 18px box, so names line up */
   .tool-emoji {
     @apply flex items-center justify-center shrink-0 w-4.5 h-4.5 text-[0.9375rem] leading-none;
