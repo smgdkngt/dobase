@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { pathOf, toolIdOf, toolFrame, frameAddress, sendFrameTo, hasUnfinishedWork, confirmClosing } from "services/tool_frame"
 import { workspaceCommand, renameWorkspaceKeys, workspaceKey } from "services/workspace_keys"
-import { apiPost } from "services/api"
+import { apiPost, csrfToken } from "services/api"
 import { typing } from "services/typing"
 
 // The tiling workspace: every tool you open is a tile, and the tiles arrange
@@ -16,7 +16,9 @@ import { typing } from "services/typing"
 // and height: a frame that moves in the page loads its page again, so no tile ever
 // moves in the page. Tiles on another desktop stay loaded, out of sight.
 //
-// Which tiles, where, and on which desktop is kept in this browser, per person.
+// Which tiles, where, and on which desktop is kept per person on the server
+// (WorkspaceLayout), so it is the same in every browser, with a copy in this browser
+// to start from at once.
 const GAP = 6
 // Dragging a split never leaves a tile narrower or lower than this
 const MIN_TILE = 220
@@ -43,10 +45,13 @@ const CARD_GONE_AFTER_MS = 180
 const DESK_NAME_LENGTH = 24
 // How long a floating dialog takes to fade out (workspace.css), after which its frame goes
 const FLOAT_FADE = 180
+// A change is kept on the server this long after the last one: a split being dragged
+// is one arrangement, not thirty
+const KEEP_AFTER_MS = 600
 
 export default class extends Controller {
   static targets = ["tiles", "tileTemplate", "empty", "desks", "deskCard", "title", "menu", "hint", "status", "float"]
-  static values = { userId: Number, appName: String, start: String }
+  static values = { userId: Number, appName: String, start: String, kept: Object, revision: Number }
 
   connect() {
     // Never tiles inside a tile: a frame that ends up on this page (its tool is gone,
@@ -55,6 +60,11 @@ export default class extends Controller {
     this.inert = window.self !== window.top
     if (this.inert) return
 
+    // Which of this person's pages a change came from, so its own are not news to it
+    this.client = Math.random().toString(36).slice(2)
+    // Where the arrangement is kept: this page's address, which the window no longer
+    // has when it leaves for another page
+    this.address = location.pathname
     this.state = this.load()
     this.narrow = window.matchMedia("(max-width: 1023px)")
     this.still = window.matchMedia("(prefers-reduced-motion: reduce)")
@@ -91,7 +101,15 @@ export default class extends Controller {
     this.listen(document, "keydown", (event) => this.keyed(event), true)
     this.listen(window, "message", (event) => this.heard(event))
     this.listen(window, "pagehide", () => this.remember())
+    // Another browser of this person's changed the arrangement (notifications_controller.js
+    // hears it). A window nobody looks at takes it when it is looked at again.
+    this.listen(window, "workspace:kept", (event) => {
+      if (event.detail.by !== this.client && event.detail.revision > this.revision && !document.hidden) this.catchUp()
+    })
+    this.listen(window, "pageshow", (event) => { if (event.persisted) this.catchUp() })
+    this.listen(window, "online", () => this.catchUp())
     this.listen(document, "visibilitychange", () => {
+      if (!document.hidden) this.catchUp()
       this.freshen()
       // Back at the window: what is in sight is seen now
       this.drawBar()
@@ -113,6 +131,7 @@ export default class extends Controller {
     this.arrive()
     this.grabFocus()
     this.hintTarget.hidden = this.seen("hint")
+    if (this.unsent) this.keepSoon()
   }
 
   // Things this browser has been told once
@@ -150,12 +169,15 @@ export default class extends Controller {
   disconnect() {
     if (this.inert) return
 
+    // Leaving for another page of the app with a change still to send
+    if (this.unsent) this.keep({ leaving: true })
     this.listening.abort()
     this.sizes.disconnect()
     this.menuWatch.disconnect()
     this.newsWatch.disconnect()
     clearTimeout(this.cardTimer)
     clearTimeout(this.floatGoing)
+    clearTimeout(this.keeping)
     clearInterval(this.freshenTimer)
   }
 
@@ -182,7 +204,7 @@ export default class extends Controller {
       return true
     }
 
-    const id = `t${this.state.next++}`
+    const id = this.newId()
     this.state.tiles[id] = { url: path }
     const from = this.state.desk
     this.state.desk = this.insert(this.state.desk, id)
@@ -1403,59 +1425,254 @@ export default class extends Controller {
   }
 
   // ── Remembering ──
+  //
+  // The arrangement is this person's, not this browser's: it is kept on the server
+  // (WorkspaceLayout), every browser starts from what is kept there, and a change in
+  // one is taken over by the others. A copy stays in this browser, to start from
+  // without waiting and for a window too narrow for tiles (workspace_gate.js).
+  //
+  // Each arrangement kept has a revision. A change is sent with the revision it was
+  // made from, and refused when another browser changed things since. This one then
+  // takes what is kept and does again on it what was changed here (a tile opened or
+  // closed, a desktop rearranged or named), rather than lay its older arrangement
+  // over the other browser's, or lose what was just done here.
 
   get storageKey() {
     return `dobase:workspace:${this.userIdValue}`
   }
 
+  // A tile's name is its own in every browser this person has open
+  newId() {
+    let id
+    do id = `t${Math.random().toString(36).slice(2, 9)}`
+    while (this.state.tiles[id])
+    return id
+  }
+
+  // What the server keeps, unless this browser's copy was made from just that: then
+  // the copy, which may hold a last change that never got there
   load() {
-    const fresh = { desk: 1, next: 1, desks: {}, tiles: {} }
+    const theirs = this.revisionValue > 0 ? cleaned(this.keptValue) : null
+    this.revision = this.revisionValue
+    this.keptBody = theirs ? JSON.stringify(theirs) : null
 
+    let mine = null
     try {
-      const kept = JSON.parse(localStorage.getItem(this.storageKey))
-      if (!kept?.tiles || !kept?.desks) return fresh
-
-      // Only ever a tool's page, and only tiles the trees still hold
-      const tiles = {}
-      for (const [ id, tile ] of Object.entries(kept.tiles)) {
-        const url = pathOf(tile?.url)
-        if (toolIdOf(url)) tiles[id] = { url, title: String(tile.title || "") }
-      }
-      const desks = {}
-      const placedOnce = new Set()
-      for (const [ number, desk ] of Object.entries(kept.desks)) {
-        if (!/^[1-9]$/.test(number)) continue
-
-        const tree = pruned(desk?.tree, tiles, placedOnce)
-        const held = leaves(tree)
-        desks[number] = { tree, focus: held.includes(desk.focus) ? desk.focus : held[0] || null, alone: Boolean(desk.alone), name: deskName(desk.name) }
-      }
-      const placed = Object.values(desks).flatMap((desk) => leaves(desk.tree))
-      for (const id of Object.keys(tiles)) if (!placed.includes(id)) delete tiles[id]
-
-      const desk = Math.min(9, Math.max(1, Math.floor(Number(kept.desk)) || 1))
-      const next = Math.max(Number(kept.next) || 1, ...Object.keys(tiles).map((id) => Number(id.slice(1)) + 1 || 1))
-      return { desk, next, desks, tiles }
+      const copy = JSON.parse(localStorage.getItem(this.storageKey))
+      if (!theirs || Number(copy?.revision) === this.revision) mine = cleaned(copy)
     } catch {
-      return fresh
+      // No storage, or nothing readable in it
     }
+
+    this.unsent = Boolean(mine) && JSON.stringify(mine) !== this.keptBody
+    return mine || theirs || { desk: 1, desks: {}, tiles: {} }
   }
 
   save() {
+    this.unsent = true
+    this.write()
+    this.keepSoon()
+  }
+
+  write() {
     try {
-      localStorage.setItem(this.storageKey, JSON.stringify(this.state))
+      localStorage.setItem(this.storageKey, JSON.stringify({ ...this.state, revision: this.revision }))
     } catch {
-      // No storage (private browsing, a full disk): the tiles work, and are gone after a reload
+      // No storage (private browsing, a full disk): the server keeps it all the same
     }
   }
 
+  keepSoon() {
+    clearTimeout(this.keeping)
+    this.keeping = setTimeout(() => this.keep(), KEEP_AFTER_MS)
+  }
+
+  // Sends the arrangement to the server, one at a time. `leaving` is the last one of
+  // a page that is going: the browser sends it on after the page is gone.
+  async keep({ leaving = false } = {}) {
+    clearTimeout(this.keeping)
+    if (this.keepingNow) return void (this.keepAgain = true)
+
+    const state = cleaned(this.state)
+    const body = JSON.stringify(state)
+    if (body === this.keptBody) return void (this.unsent = false)
+
+    this.keepingNow = true
+    try {
+      const response = await fetch(this.address, {
+        method: "PATCH",
+        keepalive: leaving,
+        headers: { "Content-Type": "application/json", Accept: "application/json", "X-CSRF-Token": csrfToken() },
+        body: JSON.stringify({ state, revision: this.revision, client: this.client })
+      })
+      if (response.ok) {
+        this.revision = (await response.json()).revision
+        this.keptBody = body
+        this.unsent = JSON.stringify(cleaned(this.state)) !== body
+        this.write()
+      } else if (response.status === 409) {
+        this.adopt(await response.json(), { refused: true })
+      }
+      // Anything else (signed out, a server in trouble): still unsent, and tried
+      // again with the next change or when the window is looked at again
+    } catch {
+      // No network: the same
+    } finally {
+      this.keepingNow = false
+      if (this.keepAgain) {
+        this.keepAgain = false
+        this.keep()
+      }
+    }
+  }
+
+  // Back at this window, or told of a change elsewhere: what is kept now. A change
+  // of its own goes first, and is taken or refused there.
+  async catchUp() {
+    if (this.unsent) await this.keep()
+    if (this.unsent) return
+
+    try {
+      const response = await fetch(this.address, { headers: { Accept: "application/json" } })
+      if (response.ok && !response.redirected) this.adopt(await response.json())
+    } catch {
+      // No network: when it is back
+    }
+  }
+
+  // Takes over the arrangement another browser of this person's made: tiles it closed
+  // go, tiles it opened come, a tile it took to another page goes there, and
+  // everything gets the place it has there. When a change made here was refused
+  // because of it, that change is done again on top. A tile with unfinished work in
+  // it (an unsent mail, a call) stays as it is here, whatever the other browser did
+  // with it.
+  adopt({ revision, state }, { refused = false } = {}) {
+    // Not news, or something changed here while this was on its way: sending that
+    // finds out what to make of the two
+    if (!refused && (revision <= this.revision || this.unsent)) return
+
+    const theirs = cleaned(state)
+    const base = this.keptBody ? JSON.parse(this.keptBody) : { desk: 1, desks: {}, tiles: {} }
+    const mine = cleaned(this.state)
+    this.revision = revision
+    this.keptBody = theirs ? JSON.stringify(theirs) : null
+    // Nothing kept there after all: what is here goes there
+    if (!theirs) return this.keepSoon()
+    if (this.keptBody === JSON.stringify(mine)) {
+      this.unsent = false
+      return this.write()
+    }
+
+    const next = refused ? withChanges(base, mine, theirs) : theirs
+    const keyboardWasHere = this.tilesTarget.contains(document.activeElement) || document.activeElement === document.body
+    // Tiles of both that the tree of their desktop doesn't hold (opened there, on a
+    // desktop that was rearranged here) get a place on it after the rest
+    const placed = new Set(Object.values(next.desks).flatMap((desk) => leaves(desk.tree)))
+    const loose = Object.keys(next.tiles).filter((id) => !placed.has(id))
+    this.state = cleaned(next)
+
+    for (const [ id, tile ] of Array.from(this.elements)) {
+      const frame = tile.querySelector("iframe")
+      const there = this.state.tiles[id]
+      if (!there) {
+        if (hasUnfinishedWork(frame)) {
+          next.tiles[id] = mine.tiles[id]
+          loose.push(id)
+        } else {
+          this.leave(tile)
+          this.elements.delete(id)
+        }
+      } else if (there.url !== mine.tiles[id]?.url && there.url !== frameAddress(frame)) {
+        if (hasUnfinishedWork(frame) || !sendFrameTo(frame, there.url)) Object.assign(there, mine.tiles[id])
+      }
+    }
+    for (const id of loose) {
+      this.state.tiles[id] = next.tiles[id]
+      this.insert(Number(deskOf(theirs, id) || deskOf(mine, id)) || this.state.desk, id)
+    }
+
+    this.unsent = JSON.stringify(cleaned(this.state)) !== this.keptBody
+    this.write()
+    this.draw({ glide: true })
+    for (const id of this.elements.keys()) this.nameTile(id)
+    if (keyboardWasHere && this.calm) this.grabFocus()
+    this.say("Arranged as in your other window")
+    if (this.unsent) this.keepSoon()
+  }
+
+  // A page that is going writes down where every tile is, and sends it on
   remember() {
+    let moved = false
     for (const id of this.elements.keys()) {
       const at = frameAddress(this.frameOf(id))
-      if (at && this.state.tiles[id]) this.state.tiles[id].url = at
+      if (at && this.state.tiles[id] && this.state.tiles[id].url !== at) {
+        this.state.tiles[id].url = at
+        moved = true
+      }
     }
-    this.save()
+    if (moved) this.unsent = true
+    this.write()
+    if (this.unsent) this.keep({ leaving: true })
   }
+}
+
+// An arrangement as it is kept, from whatever a browser or the server had: only ever
+// a tool's page in a tile, only tiles a desktop holds and each of them once, desktops
+// one to nine, and those with nothing on them and no name left out. Written the same
+// way every time, so two of them can be compared as text. Nothing when it isn't one.
+function cleaned(kept) {
+  if (!kept?.tiles || !kept?.desks) return null
+
+  const known = {}
+  for (const [ id, tile ] of Object.entries(kept.tiles)) {
+    const url = pathOf(tile?.url)
+    if (toolIdOf(url)) known[id] = { url, title: String(tile.title || "") }
+  }
+  const desks = {}
+  const placedOnce = new Set()
+  for (const number of DESKS) {
+    const desk = kept.desks[number]
+    if (!desk) continue
+
+    const tree = pruned(desk.tree, known, placedOnce)
+    const held = leaves(tree)
+    const name = deskName(desk.name)
+    if (tree || name) desks[number] = { tree, focus: held.includes(desk.focus) ? desk.focus : held[0] || null, alone: Boolean(desk.alone) && Boolean(tree), name }
+  }
+  const tiles = {}
+  for (const id of Array.from(placedOnce).sort()) tiles[id] = known[id]
+
+  return { desk: Math.min(9, Math.max(1, Math.floor(Number(kept.desk)) || 1)), desks, tiles }
+}
+
+// Their arrangement with what was changed here since `base` done again on it: both
+// were made from base. A tile opened here is in it, one closed here is not, one
+// taken to another page here is on that page; a desktop rearranged, named or moved
+// about on here is as it is here, and any other as it is there. Tiles that end up
+// without a place (opened there, on a desktop rearranged here) are for the caller.
+function withChanges(base, mine, theirs) {
+  const tiles = { ...theirs.tiles }
+  for (const id of Object.keys(base.tiles)) if (!mine.tiles[id]) delete tiles[id]
+  for (const [ id, tile ] of Object.entries(mine.tiles)) {
+    const was = base.tiles[id]
+    if (!was || (tiles[id] && (was.url !== tile.url || was.title !== tile.title))) tiles[id] = tile
+  }
+
+  const changedHere = (here, was) => JSON.stringify(here) !== JSON.stringify(was)
+  const desks = {}
+  for (const number of DESKS) {
+    const [ was, here, there ] = [ base, mine, theirs ].map((state) => state.desks[number])
+    const desk = {}
+    for (const part of [ "tree", "focus", "alone", "name" ]) desk[part] = (changedHere(here?.[part], was?.[part]) ? here : there)?.[part]
+    desks[number] = desk
+  }
+
+  return { desk: mine.desk !== base.desk ? mine.desk : theirs.desk, desks, tiles }
+}
+
+// The desktop an arrangement has a tile on
+function deskOf(state, id) {
+  return Object.keys(state.desks).find((number) => leaves(state.desks[number].tree).includes(id))
 }
 
 // The tiles of a tree, in the order they were split off
@@ -1489,7 +1706,8 @@ function pruned(node, tiles, seen) {
   const second = pruned(node.second, tiles, seen)
   if (!first || !second) return first || second
 
-  const ratio = Math.min(0.9, Math.max(0.1, Number(node.ratio) || 0.5))
+  // To four places: the same number whoever wrote it down
+  const ratio = Math.round(Math.min(0.9, Math.max(0.1, Number(node.ratio) || 0.5)) * 10000) / 10000
   return { split: node.split === "column" ? "column" : "row", ratio, first, second }
 }
 

@@ -4,6 +4,7 @@ class User < ApplicationRecord
   has_secure_password
   has_many :sessions, dependent: :destroy
   has_many :access_tokens, dependent: :destroy
+  has_one :workspace_layout, dependent: :delete
 
   has_many :owned_tools, class_name: "Tool", foreign_key: :owner_id, dependent: :destroy
   # Runs before the dependent: :destroy above, so a tool someone else still owns

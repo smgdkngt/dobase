@@ -5,6 +5,9 @@ require "application_system_test_case"
 class WorkspaceTest < ApplicationSystemTestCase
   include ActiveJob::TestHelper
 
+  # A tile that is in the room (not on another desktop, not on its way out)
+  SHOWING_TILE = ".workspace-tile:not([hidden], [data-leaving])"
+
   # The launcher: the search at the top of the menu, while the menu is in
   MENU_SEARCH = ".sidebar.open [data-controller~='command-palette']"
 
@@ -853,6 +856,128 @@ class WorkspaceTest < ApplicationSystemTestCase
     within_tile(1) { assert_selector "h1", text: @files.name }
   end
 
+  test "the arrangement is this person's, not this browser's: another browser opens with it" do
+    launch @files
+    find(".workspace-desk[data-desk='1']").double_click
+    find(".workspace-desk-card input[aria-label='Name of desktop 1']").send_keys("Launch", :enter)
+    press "3"
+    launch @todos, on_new_desktop: true
+    assert_kept { |state| state["tiles"].size == 3 && state["desk"] == 3 }
+
+    elsewhere do
+      assert_selector ".workspace-desk[data-desk='3'][aria-current='true']"
+      within_tile(0) { assert_selector "h1", text: @todos.name }
+      assert_selector ".workspace-desk[data-desk='1'] .workspace-desk-name", text: "Launch"
+
+      press "1"
+      assert_equal 2, tiles.size
+      # The tiles slide in from the side, and are out of sight for a moment
+      assert_no_selector ".workspace-tile[data-sliding]"
+      within_tile(0) { assert_selector "h1", text: @board.name }
+      within_tile(1) { assert_selector "h1", text: @files.name }
+    end
+  end
+
+  test "what one browser does with the tiles, the other takes over while it is open" do
+    assert_kept { |state| state["tiles"].size == 1 }
+    elsewhere { assert_equal 1, tiles.size }
+
+    launch @files
+    elsewhere do
+      assert_selector SHOWING_TILE, count: 2
+      within_tile(1) { assert_selector "h1", text: @files.name }
+
+      launch @todos
+    end
+
+    assert_selector SHOWING_TILE, count: 3
+    within_tile(2) { assert_selector "h1", text: @todos.name }
+    # Told to whoever can't see it happen
+    assert_selector ".workspace [role='status']", text: "Arranged as in your other window", visible: :all
+
+    # The tile you are on closes here, and there
+    press "w"
+    assert_selector SHOWING_TILE, count: 2
+    elsewhere do
+      assert_selector SHOWING_TILE, count: 2
+      within_tile(1) { assert_selector "h1", text: @files.name }
+    end
+  end
+
+  test "a tile goes along to the page the other browser took it to" do
+    docs = tools(:my_docs)
+    document = docs_documents(:meeting_notes)
+    launch docs
+    elsewhere { within_tile(1) { assert_selector "h1", text: docs.name } }
+
+    within_tile(1) { click_on document.title }
+    within_tile(1) { assert_selector "h1", text: document.title }
+
+    elsewhere { within_tile(1) { assert_selector "h1", text: document.title } }
+  end
+
+  test "a browser nobody looks at takes over what is kept when it is looked at again" do
+    assert_kept { |state| state["tiles"].size == 1 }
+    elsewhere { look_away }
+
+    launch @files
+    assert_kept { |state| state["tiles"].size == 2 }
+
+    elsewhere do
+      assert_selector SHOWING_TILE, count: 1
+      look_again
+      assert_selector SHOWING_TILE, count: 2
+      within_tile(1) { assert_selector "h1", text: @files.name }
+    end
+  end
+
+  test "two browsers that each changed the arrangement both keep what they did" do
+    assert_kept { |state| state["tiles"].size == 1 }
+    # A browser that heard nothing of what happened since (asleep, no network)
+    elsewhere { look_away }
+    launch @files
+    assert_kept { |state| state["tiles"].size == 2 }
+
+    elsewhere do
+      launch @todos, new_tile: false
+
+      # Refused as it was, and done again on what is kept
+      assert_selector ".workspace [role='status']", text: "Arranged as in your other window", visible: :all
+      assert_selector SHOWING_TILE, count: 3
+      within_tile(1) { assert_selector "h1", text: @todos.name }
+      within_tile(2) { assert_selector "h1", text: @files.name }
+    end
+    assert_kept { |state| state["tiles"].size == 3 }
+    assert_selector SHOWING_TILE, count: 3
+    within_tile(2) { assert_selector "h1", text: @todos.name }
+  end
+
+  test "a tile with an unsent mail in it stays when the other browser closes it" do
+    mail = tools(:my_mail)
+    visit workspace_path(open: new_tool_mail_path(mail))
+    wait_for_stimulus "workspace"
+    within_tile(1) do
+      find("rhino-editor [contenteditable]").send_keys("Not sent yet")
+      assert_selector "rhino-editor [contenteditable]", text: "Not sent yet"
+    end
+    assert_kept { |state| state["tiles"].size == 2 }
+
+    elsewhere do
+      # Nothing was written there: it closes without a question
+      assert_selector SHOWING_TILE, count: 2
+      press :arrow_right
+      assert_focused 1
+      press "w"
+      within_tile(0) { assert_selector "h1", text: @board.name }
+      assert_selector SHOWING_TILE, count: 1
+
+      # And is back, because here it couldn't go
+      assert_selector SHOWING_TILE, count: 2
+    end
+    assert_selector SHOWING_TILE, count: 2
+    within_tile(1) { assert_selector "rhino-editor [contenteditable]", text: "Not sent yet" }
+  end
+
   test "a tool picked from the menu opens as a tile" do
     find(".workspace-bar-btn[aria-label='Menu']").click
     find("[data-sidebar-tool-link]", text: @todos.name).click
@@ -956,6 +1081,42 @@ class WorkspaceTest < ApplicationSystemTestCase
   end
 
   def mac? = page.evaluate_script("navigator.platform").match?(/Mac|iP/)
+
+  # The same person at the workspace in another browser, which opens the first time
+  def elsewhere(&block)
+    using_session("elsewhere") do
+      unless @elsewhere
+        page.driver.browser.execute_cdp("Page.addScriptToEvaluateOnNewDocument",
+          source: "navigator.serviceWorker.register = () => Promise.resolve()")
+        sign_in_as users(:one)
+        page.driver.browser.manage.delete_cookie("workspace")
+        visit workspace_path
+        wait_for_stimulus "workspace"
+        @elsewhere = true
+      end
+      block.call
+    end
+  end
+
+  # The arrangement as the server keeps it: a browser sends a change a moment after it was made
+  def assert_kept(&condition)
+    assert_db_change(-> { (layout = WorkspaceLayout.find_by(user: users(:one))) && condition.call(layout.state) })
+  end
+
+  # A window behind another one, a tab that isn't the one in front
+  def look_away
+    page.execute_script(<<~JS)
+      Object.defineProperty(document, "hidden", { configurable: true, get: () => true })
+      document.dispatchEvent(new Event("visibilitychange"))
+    JS
+  end
+
+  def look_again
+    page.execute_script(<<~JS)
+      delete document.hidden
+      document.dispatchEvent(new Event("visibilitychange"))
+    JS
+  end
 
   # The keys that are the workspace's go with Alt, and on a Mac with Control and Option
   # What this page (the workspace, or the tile the test is in) has played, in order.
