@@ -24,6 +24,10 @@
 <div id="<%= dom_id(message) %>"
      class="chat-message group/message flex gap-2.5 sm:gap-3 px-2 sm:px-4 py-1.5 sm:py-2 hover:bg-background-tertiary/50 <%= is_continuation ? '' : 'mt-2 sm:mt-3' %>"
      data-controller="message reactions"
+     role="article"
+     aria-label="Message from <%= poster_name(message) %>"
+     data-arrow-keys-target="item"
+     data-action="keydown->chat#messageKey"
      data-message-user-id-value="<%= message.user_id %>"
      data-reactions-url-value="<%= tool_chat_message_reactions_path(tool, message) %>"
      data-message-id="<%= message.id %>"
@@ -31,7 +35,7 @@
      data-message-content="<%= truncate(message.body.to_plain_text, length: 100) %>">
 
   <!-- Avatar column -->
-  <div class="flex-shrink-0 w-9 sm:w-11">
+  <div class="chat-message-avatar flex-shrink-0 w-9 sm:w-11">
     <% unless is_continuation %>
       <%= render "shared/avatar", user: message.user, agent: message.agent?, size: :md, class: "sm:hidden" %><%= render "shared/avatar", user: message.user, agent: message.agent?, size: :xl, class: "hidden sm:inline-flex" %>
     <% else %>

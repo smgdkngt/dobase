@@ -98,7 +98,43 @@ the system's monospace font; `{ "typeface": null }` goes back to the app's own.
 On an Omarchy desktop the monospace font is the one the desktop is set in
 (`omarchy font set`), so there is nothing to send along.
 
-A request changes what it names: `theme`, `typeface`, or both.
+## One theme for light, one for dark
+
+Someone can have a theme for when their system is light and another for when it
+is dark. Send a theme with the `scheme` it is for:
+
+```json
+{ "theme": "catppuccin-latte", "scheme": "light" }
+```
+
+```json
+{ "theme": "tokyo-night", "scheme": "dark" }
+```
+
+- The dark one is a built-in theme, or `null` for the app's own dark look. A
+  palette of your own is the light one, or the only one.
+- `{ "follow_system": true }` turns the two on without picking either: a dark
+  theme that was the only one becomes the one for dark. `{ "follow_system": false }`
+  goes back to one theme, the light one unless you send `"scheme": "dark"` along.
+- A theme **without** a `scheme` is the one theme for both again. That is what
+  `dobase theme set` and `dobase theme sync` send.
+
+With two themes the answer has both, and `name`, `style` and the rest are of
+the one for the `scheme` you asked with (`GET /appearance?scheme=dark`); without
+one, the light theme:
+
+```json
+{
+  "name": "catppuccin-latte",
+  "follows_system": true,
+  "light": { "name": "catppuccin-latte", "label": "Catppuccin Latte" },
+  "dark": { "name": "tokyo-night", "label": "Tokyo Night" }
+}
+```
+
+`follows_system` is `false`, and `light` and `dark` are left out, with one theme.
+
+A request changes what it names: `theme`, `typeface`, `follow_system`, or several.
 
 ## Following an Omarchy desktop
 

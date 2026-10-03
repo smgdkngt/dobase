@@ -643,6 +643,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_150000) do
     t.string "theme_name"
     t.json "theme_colors"
     t.string "typeface"
+    t.boolean "theme_follows_system", default: false, null: false
+    t.string "dark_theme_name"
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 

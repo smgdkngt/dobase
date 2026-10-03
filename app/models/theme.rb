@@ -61,12 +61,14 @@ class Theme
     end
 
     # What a page needs to put a theme and a typeface on, or to take them off (nil)
-    def payload(theme, typeface = nil)
+    # (follows_system: there is another theme for the other of light and dark)
+    def payload(theme, typeface = nil, follows_system: false)
       typeface = nil unless typeface.in?(TYPEFACES)
 
       {
         version: [ theme&.version || "default", typeface ].compact.join("+"), typeface: typeface,
-        name: theme&.name, mode: theme&.mode, style: theme&.style, chrome_color: theme&.chrome_color
+        name: theme&.name, mode: theme&.mode, style: theme&.style, chrome_color: theme&.chrome_color,
+        follows_system: follows_system || nil
       }.compact
     end
   end

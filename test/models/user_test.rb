@@ -57,4 +57,67 @@ class UserTest < ActiveSupport::TestCase
     assert_not comment.valid?
     assert_includes comment.errors[:user], "can't be blank"
   end
+
+  test "a default avatar looks the same for the same person, in two different label colours" do
+    look = users(:one).avatar_look
+
+    assert_equal look, User.find(users(:one).id).avatar_look
+    assert_includes User::AVATAR_HUES, look[:hue]
+    assert_includes User::AVATAR_HUES, look[:second]
+    assert_not_equal look[:hue], look[:second]
+    assert_includes 1..User::AVATAR_PATTERNS, look[:pattern]
+  end
+
+  test "people get different default avatars" do
+    looks = (1..40).map { |id| User.new(id: id).avatar_look }
+
+    assert_operator looks.uniq.size, :>, 30
+    assert_equal User::AVATAR_HUES.sort, looks.map { |look| look[:hue] }.uniq.sort
+    looks.each { |look| assert_not_equal look[:hue], look[:second] }
+  end
+
+  test "one theme whatever the system says, until there is one for light and one for dark" do
+    user = users(:one)
+    user.choose_theme("nord")
+
+    assert_equal "nord", user.theme("light").name
+    assert_equal "nord", user.theme("dark").name
+
+    user.choose_theme("catppuccin-latte", scheme: "light")
+    user.choose_theme("tokyo-night", scheme: "dark")
+
+    assert user.theme_follows_system?
+    assert_equal "catppuccin-latte", user.theme("light").name
+    assert_equal "tokyo-night", user.theme("dark").name
+    # A client that doesn't say which gets the light one
+    assert_equal "catppuccin-latte", user.theme.name
+
+    # A theme without a scheme is the one theme again
+    user.choose_theme("gruvbox")
+    assert_not user.theme_follows_system?
+    assert_nil user.dark_theme_name
+    assert_equal "gruvbox", user.theme("dark").name
+  end
+
+  test "going to two themes and back keeps what is on in the browser that asked" do
+    user = users(:one)
+    user.choose_theme("tokyo-night")
+
+    # A dark theme becomes the one for dark; light gets the app's own look
+    user.follow_system(true, seen_in: "dark")
+    assert_equal "tokyo-night", user.theme("dark").name
+    assert_nil user.theme("light")
+
+    user.choose_theme("catppuccin-latte", scheme: "light")
+    user.follow_system(false, seen_in: "dark")
+    assert_not user.theme_follows_system?
+    assert_equal "tokyo-night", user.theme.name
+
+    user.choose_theme("catppuccin-latte")
+    user.follow_system(true, seen_in: "light")
+    assert_equal "catppuccin-latte", user.theme("light").name
+    assert_nil user.theme("dark")
+    user.follow_system(false, seen_in: "light")
+    assert_equal "catppuccin-latte", user.theme("dark").name
+  end
 end

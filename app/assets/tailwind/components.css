@@ -239,7 +239,77 @@
 
   /* Avatar */
   .avatar {
-    @apply inline-flex items-center justify-center rounded-full bg-background-tertiary text-text-secondary font-medium overflow-hidden;
+    @apply inline-flex shrink-0 items-center justify-center rounded-full bg-background-tertiary text-text-secondary font-medium overflow-hidden;
+  }
+
+
+  /* A default avatar: two letters in one of the theme's label colours, over a shape
+     in a second one (User#avatar_look picks both, and the shape, per person). The
+     ground is a tint of the colour and the letters a deep shade of it, so they read
+     in a light theme and a dark one. */
+  .avatar[data-avatar-hue] {
+    --avatar-a: var(--color-label-blue);
+    --avatar-b: var(--color-label-purple);
+    --avatar-shape: color-mix(in oklab, var(--avatar-b) 38%, transparent);
+    background:
+      var(--avatar-art, none),
+      color-mix(in oklab, var(--avatar-a) 30%, var(--color-surface));
+    color: color-mix(in oklab, var(--avatar-a) 38%, var(--color-text-primary));
+    font-weight: 600;
+  }
+
+  .avatar[data-avatar-hue="red"] { --avatar-a: var(--color-label-red); }
+  .avatar[data-avatar-hue="orange"] { --avatar-a: var(--color-label-orange); }
+  .avatar[data-avatar-hue="yellow"] { --avatar-a: var(--color-label-yellow); }
+  .avatar[data-avatar-hue="green"] { --avatar-a: var(--color-label-green); }
+  .avatar[data-avatar-hue="cyan"] { --avatar-a: var(--color-label-cyan); }
+  .avatar[data-avatar-hue="blue"] { --avatar-a: var(--color-label-blue); }
+  .avatar[data-avatar-hue="purple"] { --avatar-a: var(--color-label-purple); }
+  .avatar[data-avatar-hue="pink"] { --avatar-a: var(--color-label-pink); }
+
+  .avatar[data-avatar-second="red"] { --avatar-b: var(--color-label-red); }
+  .avatar[data-avatar-second="orange"] { --avatar-b: var(--color-label-orange); }
+  .avatar[data-avatar-second="yellow"] { --avatar-b: var(--color-label-yellow); }
+  .avatar[data-avatar-second="green"] { --avatar-b: var(--color-label-green); }
+  .avatar[data-avatar-second="cyan"] { --avatar-b: var(--color-label-cyan); }
+  .avatar[data-avatar-second="blue"] { --avatar-b: var(--color-label-blue); }
+  .avatar[data-avatar-second="purple"] { --avatar-b: var(--color-label-purple); }
+  .avatar[data-avatar-second="pink"] { --avatar-b: var(--color-label-pink); }
+
+  /* A moon in a corner */
+  .avatar[data-avatar-pattern="1"] {
+    --avatar-art: radial-gradient(circle at 88% 12%, var(--avatar-shape) 0 46%, transparent 47%);
+  }
+
+  /* A sun coming up */
+  .avatar[data-avatar-pattern="2"] {
+    --avatar-art: radial-gradient(circle at 50% 118%, var(--avatar-shape) 0 62%, transparent 63%);
+  }
+
+  /* Cut across */
+  .avatar[data-avatar-pattern="3"] {
+    --avatar-art: linear-gradient(135deg, var(--avatar-shape) 0 50%, transparent 50.5%);
+  }
+
+  /* A ring */
+  .avatar[data-avatar-pattern="4"] {
+    --avatar-art: radial-gradient(circle at 22% 78%, transparent 0 26%, var(--avatar-shape) 27% 44%, transparent 45%);
+  }
+
+  /* Two hills */
+  .avatar[data-avatar-pattern="5"] {
+    --avatar-art:
+      radial-gradient(circle at 12% 104%, var(--avatar-shape) 0 48%, transparent 49%),
+      radial-gradient(circle at 92% 112%, var(--avatar-shape) 0 52%, transparent 53%);
+  }
+
+  /* A slice */
+  .avatar[data-avatar-pattern="6"] {
+    --avatar-art: conic-gradient(from 200deg at 50% 50%, var(--avatar-shape) 0 28%, transparent 28.5%);
+  }
+
+  .avatar-xs {
+    @apply w-5 h-5 text-[0.5625rem];
   }
 
   .avatar-sm {
@@ -263,8 +333,9 @@
   }
 
   /* Popover menu base */
+  /* As wide as its longest entry, and no narrower than a menu is */
   .popover-menu {
-    @apply w-48 rounded-lg bg-surface border border-border-light shadow-lg py-1 m-0 inset-auto;
+    @apply min-w-48 w-max max-w-[min(22rem,calc(100vw-1rem))] rounded-lg bg-surface border border-border-light shadow-lg py-1 m-0 inset-auto;
   }
 
   /* Entrance/exit only applies to genuine native popovers (the [popover]
@@ -731,6 +802,11 @@
     @apply hidden;
   }
 
+  /* What Enter does, under the results */
+  .command-palette-hint {
+    @apply flex items-center justify-end gap-4 px-4 py-2 border-t border-border-light text-xs text-text-tertiary;
+  }
+
   /* ── Reorder Mode (shared across board, todo, sidebar) ── */
   .reorder-mode > [data-sort-id] {
     @apply cursor-grab outline-2 outline-accent outline -outline-offset-2;
@@ -801,6 +877,59 @@
   .theme-option-selected,
   .theme-option-selected:hover {
     @apply border-accent ring-2 ring-accent/25;
+  }
+
+  /* One theme, or one for light and one for dark: two buttons that read as one control */
+  .theme-modes {
+    @apply inline-flex p-0.5 mb-3 rounded-lg bg-background-tertiary;
+  }
+
+  .theme-mode {
+    @apply px-3 py-1 rounded-md text-xs font-medium text-text-secondary cursor-pointer transition-colors;
+  }
+
+  .theme-mode-on {
+    @apply bg-surface text-text-primary shadow-sm;
+  }
+
+  /* The two themes, each saying what it is on; the one the grid picks for is lit */
+  .theme-slots {
+    @apply grid grid-cols-2 gap-3 mb-3;
+  }
+
+  .theme-slots[hidden] {
+    @apply hidden;
+  }
+
+  .theme-slot {
+    @apply flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border-light bg-surface text-left text-text-secondary
+           cursor-pointer transition-all duration-150 hover:border-border;
+  }
+
+  .theme-slot-on,
+  .theme-slot-on:hover {
+    @apply border-accent ring-2 ring-accent/25 text-text-primary;
+  }
+
+  .theme-slot-text {
+    @apply flex flex-col min-w-0;
+  }
+
+  .theme-slot-when {
+    @apply text-xs text-text-tertiary truncate;
+  }
+
+  .theme-slot-theme {
+    @apply text-sm font-medium text-text-primary truncate;
+  }
+
+  /* The mark of the one that is on: in every option, shown in that one */
+  .theme-option-check {
+    @apply hidden text-accent shrink-0;
+  }
+
+  .theme-option-selected .theme-option-check {
+    @apply block;
   }
 
   .theme-option:disabled {

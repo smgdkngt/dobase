@@ -8,13 +8,30 @@ const SEARCH_AFTER_MS = 200
 
 export default class extends Controller {
   static targets = ["input", "results", "item", "sectionHeader", "sectionDivider", "searchFrame"]
+  // In the workspace this is no dialog but the top of the menu (shared/sidebar): the
+  // menu lists your tools itself, and this shows what you type towards
+  static values = { menu: Boolean }
 
   open() {
+    this.reset()
+    this.show()
+    this.inputTarget.focus()
+  }
+
+  // Empty again, as it is when the menu comes in or goes out
+  reset() {
     clearTimeout(this.searchTimer)
     this.inputTarget.value = ""
     this.filter()
-    this.element.showModal()
-    this.inputTarget.focus()
+  }
+
+  // The menu is the workspace's to open and close (workspace_controller.js hears this)
+  show() {
+    this.menuValue ? this.dispatch("show") : this.element.showModal()
+  }
+
+  hide() {
+    this.menuValue ? this.dispatch("hide") : this.element.close()
   }
 
   filter() {
@@ -25,8 +42,9 @@ export default class extends Controller {
       if (item.dataset.searchResult) return
 
       if (!query) {
-        // Themes only show once you type towards them: "theme", "nord"
-        item.classList.toggle("hidden", "whenTyped" in item.dataset)
+        // Themes only show once you type towards them: "theme", "nord". In the menu
+        // nothing shows until you type: the tools are there in the menu itself.
+        item.classList.toggle("hidden", this.menuValue || "whenTyped" in item.dataset)
       } else {
         const name = item.dataset.name
         const type = item.dataset.type
@@ -35,6 +53,7 @@ export default class extends Controller {
       }
     })
 
+    this.element.toggleAttribute("data-searching", Boolean(query))
     this._toggleEmptySections()
     this.#selectFirst()
     this._search(query)
@@ -66,7 +85,7 @@ export default class extends Controller {
   // matches tools leaves a dangling "ACTIONS" label with nothing below it.
   _toggleEmptySections() {
     const visible = (item) => !item.classList.contains("hidden")
-    const sectionOf = (item) => [ "action", "theme" ].includes(item.dataset.type) ? item.dataset.type : "tool"
+    const sectionOf = (item) => item.dataset.section || ([ "action", "theme" ].includes(item.dataset.type) ? item.dataset.type : "tool")
     const shown = new Set(this.itemTargets.filter(item => !item.dataset.searchResult && visible(item)).map(sectionOf))
 
     this.sectionHeaderTargets.forEach(header => header.classList.toggle("hidden", !shown.has(header.dataset.section)))
@@ -76,23 +95,26 @@ export default class extends Controller {
   navigate(event) {
     switch (event.key) {
       case "ArrowDown":
+        if (this.menuValue && !this.inputTarget.value.trim()) return this._intoTheMenu(event)
         event.preventDefault()
         this.#moveSelection(1)
         break
       case "ArrowUp":
+        // (in the menu with nothing typed, up is on to what lies above the field)
+        if (this.menuValue && !this.inputTarget.value.trim()) return
         event.preventDefault()
         this.#moveSelection(-1)
         break
       case "Enter":
         event.preventDefault()
-        this.#activateSelected()
+        this.#activateSelected({ fresh: event.shiftKey })
         break
     }
   }
 
   triggerAction(event) {
     const hotkey = event.currentTarget.dataset.hotkeyTrigger
-    this.element.close()
+    this.hide()
     const target = this._findHotkeyElement(hotkey)
     if (!target) return
 
@@ -107,11 +129,42 @@ export default class extends Controller {
     }
   }
 
+  // Something the workspace does with its tiles (workspaces/_launcher_actions):
+  // workspace_controller.js hears it
+  workspaceCommand(event) {
+    const { command, desk } = event.currentTarget.dataset
+    this.hide()
+    window.dispatchEvent(new CustomEvent("workspace:command", { detail: { name: command, desk: Number(desk) || null, shift: false } }))
+  }
+
   // Puts a theme on, here and on every other page this person has open
   async pickTheme(event) {
-    this.element.close()
+    this.hide()
     const theme = await apiPatch("/appearance", { theme: event.currentTarget.dataset.theme || null })
     if (theme) applyTheme(theme)
+  }
+
+  // Nothing typed: down goes on into the tools of the menu, where the arrow keys are
+  // the menu's own (arrow_keys_controller.js)
+  _intoTheMenu(event) {
+    const links = this._menu?.querySelectorAll("[data-sidebar-tool-link]") || []
+    const first = Array.from(links).find((link) => link.getClientRects().length > 0)
+    if (!first) return
+
+    event.preventDefault()
+    first.focus()
+  }
+
+  // And up from the first tool comes back to the field
+  backToSearch(event) {
+    if (event.detail.side !== "up" || !this._menu?.contains(event.target)) return
+
+    event.preventDefault()
+    this.inputTarget.focus()
+  }
+
+  get _menu() {
+    return this.element.closest("[data-controller~='sidebar']")
   }
 
   // data-hotkey can list several hotkeys, separated by commas: "#,Shift+#".
@@ -150,20 +203,28 @@ export default class extends Controller {
     visible[nextIndex].scrollIntoView({ block: "nearest" })
   }
 
-  #activateSelected() {
+  #activateSelected({ fresh = false } = {}) {
     // Results can arrive a moment before the palette marks the first one, and
     // Enter pressed in that moment means that first one
     const selected = this.#selectedItem || this.#visibleItems[0]
     if (!selected) return
 
-    // Actions click the element their hotkey is on; a theme puts itself on
-    if (selected.dataset.hotkeyTrigger || selected.dataset.type === "theme") {
+    // Actions click the element their hotkey is on; a theme puts itself on, and so
+    // does anything else that is a button
+    if (selected.dataset.hotkeyTrigger || selected.dataset.type === "theme" || selected.matches("button")) {
       selected.click()
       return
     }
 
-    // Tool items have an href — navigate via Turbo
-    this.element.close()
-    if (selected.href) Turbo.visit(selected.href)
+    // Tool items have an href — navigate via Turbo. In the workspace that opens a tile
+    // (workspace_controller.js), and with Shift a tile of its own even when the tool
+    // is open already; where there is no workspace to take it, Shift changes nothing.
+    this.hide()
+    if (!selected.href) return
+
+    const opening = new CustomEvent("workspace:open", { cancelable: true, detail: { url: selected.href, fresh: true } })
+    if (fresh && !window.dispatchEvent(opening)) return
+
+    Turbo.visit(selected.href)
   }
 }

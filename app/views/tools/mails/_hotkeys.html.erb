@@ -2,6 +2,7 @@
   <button data-controller="hotkey" data-hotkey="j" data-action="click->mail-keyboard#selectNext" hidden>Next</button>
   <button data-controller="hotkey" data-hotkey="k" data-action="click->mail-keyboard#selectPrevious" hidden>Previous</button>
   <button data-controller="hotkey" data-hotkey="o" data-action="click->mail-keyboard#openSelected" hidden>Open</button>
-  <button data-controller="hotkey" data-hotkey="Enter" data-action="click->mail-keyboard#openSelected" hidden>Open</button>
-  <button data-controller="hotkey" data-hotkey="Escape" data-action="click->mail-keyboard#deselect" hidden>Deselect</button>
+  <%# (no shortcut on Enter: it presses whatever has the keyboard, a conversation or a folder) %>
+  <%# The arrow keys are mail_keyboard_controller.js's own: through the list, into a
+      conversation and back out of it %>
   <!-- Top Bar -->

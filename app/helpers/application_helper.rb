@@ -22,7 +22,7 @@ module ApplicationHelper
   def current_theme
     return @current_theme if defined?(@current_theme)
 
-    @current_theme = Current.user ? Current.user.theme : Theme.for(remembered_appearance["name"], remembered_appearance["colors"])
+    @current_theme = Current.user ? Current.user.theme(browser_scheme) : Theme.for(remembered_appearance["name"], remembered_appearance["colors"])
   end
 
   # "mono" when the interface is set in the monospace font, by the same rule
@@ -45,10 +45,46 @@ module ApplicationHelper
   # What <html> wears for them; a change later on goes through services/theme.js
   def theme_attributes
     theme = current_theme
-    data = { theme_version: theme_version, typeface: current_typeface }.compact
+    # (follows the system: services/theme.js asks again when that goes light or dark)
+    data = { theme_version: theme_version, typeface: current_typeface, theme_follows_system: Current.user&.theme_follows_system? || nil }.compact
     return { data: data } unless theme
 
     { style: theme.style, data: data.merge(theme: theme.name, theme_mode: theme.mode) }
+  end
+
+  # The keys that move tiles around in the workspace go with Alt, and on a Mac with
+  # Control and Option: Option alone types letters there, and moves by word. A
+  # browser can pick another pair (services/workspace_keys.js keeps it in a cookie).
+  # workspace_key("M") is "Ctrl+Opt+M" or "Alt+M".
+  #
+  # Keys are written in words on a Mac too. The signs for them (⌃ ⌥ ⌘) are on Apple's
+  # own keyboards and on few others, and two of them are easily taken for each other.
+  WORKSPACE_MODIFIERS = {
+    mac: { "ctrl-alt" => [ "Ctrl+Opt", "Control + Option" ], "ctrl-meta" => [ "Ctrl+Cmd", "Control + Command" ], "alt-meta" => [ "Opt+Cmd", "Option + Command" ] },
+    other: { "alt" => [ "Alt", "Alt" ], "ctrl-alt" => [ "Ctrl+Alt", "Ctrl + Alt" ] }
+  }.freeze
+
+  def workspace_modifiers = WORKSPACE_MODIFIERS[mac? ? :mac : :other]
+
+  # The one this browser chose, or the first
+  def workspace_modifier
+    cookies[:workspace_keys].presence_in(workspace_modifiers.keys) || workspace_modifiers.keys.first
+  end
+
+  def workspace_key(key, shift: false)
+    [ workspace_modifiers[workspace_modifier].first, ("Shift" if shift), key ].compact.join("+")
+  end
+
+  # A key that goes with Command on a Mac and with Control elsewhere: mod_key("K")
+  def mod_key(key, shift: false)
+    [ mac? ? "Cmd" : "Ctrl", ("Shift" if shift), key ].compact.join("+")
+  end
+
+  # The launcher's key as this keyboard has it
+  def launcher_key = mod_key("K")
+
+  def mac?
+    request.user_agent.to_s.match?(/Macintosh|Mac OS X/)
   end
 
   def absolute_url(path)
@@ -140,6 +176,14 @@ module ApplicationHelper
         presence_context_value: @presence_context
       }.compact
     }
+  end
+
+  # What <main> carries on every page: the arrow keys go through whatever the page
+  # marks as an item (arrow_keys_controller.js), and on a tool's page people see each
+  # other there.
+  def main_attributes
+    data = @tool&.persisted? ? presence_attributes[:data] : {}
+    { data: data.merge(controller: [ data[:controller], "arrow-keys" ].compact.join(" "), arrow_keys_main_value: true) }
   end
 
   # The colour beside someone's name where several people work in one place: a

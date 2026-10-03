@@ -2,13 +2,14 @@
   comments_count = card.comments.size
   attachments_count = card.attachments.size
 %>
-<div class="bg-surface border border-border-light rounded-md p-3 cursor-grab relative transition-shadow hover:border-border hover:shadow-sm active:cursor-grabbing"
+<div class="board-card bg-surface border border-border-light rounded-md p-3 cursor-grab relative transition-shadow hover:border-border hover:shadow-sm active:cursor-grabbing"
      id="board-card-<%= card.id %>"
      data-sort-id="<%= card.id %>"
      data-card-id="<%= card.id %>"
      data-presence-item="card:<%= card.id %>"
      role="button"
      tabindex="0"
+     data-arrow-keys-target="item"
      data-action="click->board#openCard keydown->board#openCardKey">
   <% if card_color(card) %>
     <div class="h-[3px] rounded-sm mb-2" style="background-color: <%= card_color(card)[:fill] %>;"></div>
@@ -47,10 +48,10 @@
         </span>
       <% end %>
       <% if card.assigned_user.present? %>
-        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-accent-light text-accent text-[0.5625rem] font-semibold ml-auto"
+        <span class="inline-flex ml-auto" role="img"
               title="Assigned to <%= card.assigned_user.name %>"
               aria-label="Assigned to <%= card.assigned_user.name %>">
-          <%= card.assigned_user.name&.chars&.first&.upcase %>
+          <%= render "shared/avatar", user: card.assigned_user, size: :xs %>
         </span>
       <% end %>
     </div>

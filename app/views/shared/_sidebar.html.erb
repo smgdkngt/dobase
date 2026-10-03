@@ -1,4 +1,5 @@
-<aside class="sidebar" aria-label="Workspace" data-controller="sidebar"
+<%# The arrow keys go through all of it: the tools, their settings, the search, the buttons (arrow_keys_controller.js) %>
+<aside class="sidebar" id="sidebar" aria-label="Workspace" data-controller="sidebar arrow-keys"
        data-action="sortable:move->sidebar#handleToolMove"
        data-mobile-sidebar-target="sidebar">
   <%# ── Logo ── %>
@@ -28,17 +29,21 @@
     </button>
   </div>
 
-  <%# ── Quick jump pill ── %>
+  <%# ── Search: in the workspace right here in the menu, elsewhere a pill that opens it ── %>
+  <% if @workspace %>
+    <%= render "shared/command_palette", menu: true %>
+  <% else %>
   <div class="px-2 py-2 border-b border-border-light">
     <button type="button"
             class="sidebar-jump-pill"
             data-action="click->keyboard-shortcuts#openCommandPalette"
-            title="Jump to a tool or action (⌘K)">
+            title="Jump to a tool or action (<%= launcher_key %>)">
       <%= render "shared/icon", name: "search", size: 14, class: "text-text-tertiary flex-shrink-0" %>
       <span class="sidebar-jump-pill-label">Jump to…</span>
-      <kbd class="shortcut-key sidebar-jump-pill-kbd">⌘K</kbd>
+      <kbd class="shortcut-key sidebar-jump-pill-kbd"><%= launcher_key %></kbd>
     </button>
   </div>
+  <% end %>
 
   <%# ── Navigation ── %>
   <nav class="flex-1 py-2 overflow-y-auto scrollbar-thin" aria-label="Tools" data-sidebar-target="nav"
@@ -70,6 +75,7 @@
           <div class="sidebar-group mt-2" data-sort-id="<%= group.id %>">
             <%# Group header %>
             <div class="sidebar-group-header group/header"
+                 data-arrow-keys-target="item"
                  data-action="click->sidebar#toggleGroup"
                  data-group-id="<%= group.id %>">
               <span class="sidebar-group-name flex-1 truncate"
@@ -178,7 +184,10 @@
     </div>
 
     <%# Popovers — outside bottom bar so they work when it's hidden on mobile %>
+    <%# It takes the keyboard when it opens, so the arrow keys go through the list %>
     <div id="sidebar-notifications" popover="auto" class="popover-menu sidebar-notifications-popover w-80"
+         tabindex="-1"
+         data-controller="arrow-keys"
          data-notifications-target="popover">
       <%= turbo_frame_tag "notifications", src: notifications_path, loading: :lazy do %>
         <div class="px-4 py-8 text-center">

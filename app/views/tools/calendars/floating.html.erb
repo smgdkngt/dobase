@@ -1,0 +1,7 @@
+<%# The calendar's page when it floats over the workspace (floating?): one event's
+    details, opened by calendar#connect from the ?event in the address %>
+<% content_for :title, "#{@tool.name} - #{app_name}" %>
+
+<div data-controller="calendar" data-calendar-tool-id-value="<%= @tool.id %>">
+  <%= render "tools/calendars/event_dialog", event: @event %>
+</div>

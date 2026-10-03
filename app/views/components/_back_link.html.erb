@@ -12,7 +12,9 @@
     render "components/back_link", href: tools_path
     render "components/back_link", href: folder_path(@folder), text: "Back to folder"
 %>
-<%= link_to href, class: "inline-flex items-center gap-2 text-text-secondary text-sm hover:text-accent transition-colors" do %>
+<%# The left arrow key goes back too (arrow_keys_controller.js) %>
+<%= link_to href, class: "inline-flex items-center gap-2 text-text-secondary text-sm hover:text-accent transition-colors",
+      data: { arrow_keys_target: "back" } do %>
   <%= render "shared/icon", name: "arrow-left", size: local_assigns.fetch(:icon_size, 20) %>
   <span><%= local_assigns.fetch(:text, "Back") %></span>
 <% end %>

@@ -147,6 +147,32 @@
             <%= render "components/button", text: "Save" %>
           </div>
         <% end %>
+
+        <%# The app's sounds (services/sound.js). Kept by the browser, not the account:
+            a laptop in a quiet office and a phone want different answers. %>
+        <% sounds = {
+             "send" => "Message sent", "receive" => "Message received", "notify" => "Notification",
+             "mail" => "New mail", "sent" => "Mail sent", "done" => "Todo done",
+             "drop" => "Card or todo moved", "tuck" => "Mail archived", "trash" => "Mail deleted",
+             "join" => "Joins a call", "leave" => "Leaves a call", "error" => "Something went wrong"
+           } %>
+        <div class="mt-6 pt-6 border-t border-border-light" data-controller="sounds">
+          <h3 class="text-sm font-semibold text-text-primary mb-1">Sounds</h3>
+          <p class="text-xs text-text-tertiary mb-4">Short, quiet sounds for a message sent or received, a notification, a todo ticked off. A choice for this browser.</p>
+
+          <label class="flex items-center gap-2 text-sm text-text-primary cursor-pointer mb-4">
+            <input type="checkbox" class="w-4 h-4 rounded accent-accent" data-sounds-target="on" data-action="change->sounds#choose">
+            Play sounds
+          </label>
+
+          <p class="text-xs text-text-tertiary mb-2">Hear them:</p>
+          <div class="flex flex-wrap gap-1.5">
+            <% sounds.each do |name, label| %>
+              <%= render "components/button", text: label, icon: "play", variant: :secondary, size: :sm, type: :button,
+                    data: { action: "sounds#hear", sounds_name_param: name } %>
+            <% end %>
+          </div>
+        </div>
       </div>
 
       <%# Security panel %>

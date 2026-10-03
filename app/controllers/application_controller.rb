@@ -13,11 +13,42 @@ class ApplicationController < ActionController::Base
   after_action :track_last_visited_path
   after_action :remember_theme
 
+  helper_method :tile?, :floating?, :workspace_wanted?, :browser_scheme
+
   private
+
+  # The tiling workspace is how a wide window works; a narrow one (a phone) shows one
+  # tool at a time. There is no choosing between them. The cookie is the system
+  # tests' own: they try every tool as a page of its own, in a wide window.
+  def workspace_wanted?
+    !(Rails.env.test? && cookies[:workspace] == "off")
+  end
+
+  # A tile in the workspace (workspace_controller.js) is a tool's page of its own in
+  # a frame, drawn without the sidebar and everything else around a tool. The
+  # browser says so when it loads the frame, Turbo inside it with every request.
+  def tile?
+    request.headers["Sec-Fetch-Dest"] == "iframe" || request.headers["X-Tile"].present?
+  end
+
+  # A page that floats over the workspace to show one dialog (services/float.js): a
+  # card, a todo, an event. The workspace asks for the tool's page with ?float, and
+  # that dialog is all the page draws, with what it shows already in it: no board
+  # around it, and nothing to fetch afterwards.
+  def floating?
+    tile? && params[:float].present?
+  end
 
   def set_time_zone(&block)
     timezone = current_user&.timezone.presence || "UTC"
     Time.use_zone(timezone, &block)
+  end
+
+  # Whether this browser's system is light or dark, as it said last (services/theme.js
+  # keeps a cookie): which of someone's two themes a page is drawn in. Nothing when
+  # it never said.
+  def browser_scheme
+    cookies[:scheme].presence_in(%w[light dark])
   end
 
   # The sign-in page and shared links have nobody to ask for a theme, so the
@@ -25,8 +56,10 @@ class ApplicationController < ActionController::Base
   def remember_theme
     return unless current_user && Current.session && request.format.html?
 
-    if current_user.theme_name.present? || current_user.typeface.present?
-      theme = { name: current_user.theme_name, colors: current_user.theme_colors, typeface: current_user.typeface }.compact.to_json
+    worn = current_user.theme(browser_scheme)
+    if worn || current_user.typeface.present?
+      colors = current_user.theme_colors if worn && worn.name == current_user.theme_name
+      theme = { name: worn&.name, colors: colors, typeface: current_user.typeface }.compact.to_json
     end
     return if cookies.signed[:theme] == theme
 
@@ -72,7 +105,8 @@ class ApplicationController < ActionController::Base
     # dashboard would redirect straight back into the download on every visit.
     return if response.headers["Content-Disposition"].to_s.start_with?("attachment")
 
-    current_user.update_column(:last_visited_path, request.path)
+    # With several tools open as tiles there is no one tool you were last on
+    current_user.update_column(:last_visited_path, request.path) unless tile?
 
     tool_id = request.path.match(%r{/tools/(\d+)})&.[](1)
     if tool_id

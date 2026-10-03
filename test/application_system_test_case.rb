@@ -63,12 +63,22 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   end
 
   # The first sign-in of a run can take a while on a busy machine
+  # Every tool as a page of its own, with the sidebar, in a wide window: nobody gets
+  # that outside these tests (a wide window works in the workspace), and it is what
+  # they are about. The cookie asks for it, in the test environment only
+  # (ApplicationController#workspace_wanted?). The workspace tests go to the
+  # workspace themselves.
   def sign_in_as(user)
     visit new_session_path
+    page.driver.browser.manage.add_cookie(name: "workspace", value: "off")
     fill_in "Email", with: user.email_address
     fill_in "Password", with: "password"
     click_on "Sign In"
     assert_selector ".sidebar", wait: 15
+    # What a test before this one left in the browser (the tiles of a workspace, where
+    # the arrow keys were) is not this test's: a page that is left writes it down as
+    # it goes, which can be after the browser was wiped
+    page.execute_script("try { localStorage.clear(); sessionStorage.clear() } catch (error) {}")
   end
 
   # Poll database until condition is met (replaces fragile sleep + assert)

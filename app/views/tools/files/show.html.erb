@@ -12,6 +12,10 @@
       <%= render "shared/shortcut_row", key: "u", description: "Upload file" %>
       <%= render "shared/shortcut_row", key: "n", description: "New folder" %>
       <%= render "shared/shortcut_row", key: "Esc", description: "Clear selection" %>
+      <%= render "shared/shortcut_row", key: "← → ↑ ↓", description: "Go from file to file" %>
+      <%= render "shared/shortcut_row", key: "Enter", description: "Open the file or folder" %>
+      <%= render "shared/shortcut_row", key: "Space", description: "Pick it, beside what is picked" %>
+      <%= render "shared/shortcut_row", key: "←", description: "Up a folder, from the first file" %>
     </div>
   </div>
 <% end %>
@@ -20,8 +24,7 @@
      data-controller="files file-selection file-context-menu file-upload file-drag gallery"
      data-files-tool-id-value="<%= @tool.id %>"
      data-file-drag-tool-id-value="<%= @tool.id %>"
-     data-action="file-context-menu:action->files#handleContextAction file-selection:changed->file-drag#selectionChanged turbo:morph@document->file-selection#clear">
-  <button data-controller="hotkey" data-hotkey="Escape" data-action="click->file-selection#clear click->file-context-menu#close" hidden>Clear selection</button>
+     data-action="file-context-menu:action->files#handleContextAction file-selection:changed->file-drag#selectionChanged turbo:morph@document->file-selection#clear keydown.esc@document->file-context-menu#escape keydown.esc@document->file-selection#escape">
   <%# Topbar %>
   <div class="tool-topbar">
     <h1 class="tool-topbar-title"><%= @tool.name %></h1>
@@ -94,6 +97,7 @@
       <%= link_to tool_files_path(@tool),
           class: "flex items-center justify-center w-8 h-8 rounded-lg text-text-secondary hover:text-accent hover:bg-background-tertiary transition-all",
           data: { file_drag_target: "dropTarget", item_type: "folder", item_id: "",
+                  arrow_keys_target: (@ancestors.size == 1 ? "back" : nil),
                   action: "dragover->file-drag#dragOverFolder dragenter->file-drag#dragEnterFolder dragleave->file-drag#dragLeaveFolder drop->file-drag#dropOnFolder" } do %>
         <%= render "shared/icon", name: "home", size: 16 %>
       <% end %>
@@ -105,6 +109,7 @@
           <%= link_to ancestor.name, tool_files_path(@tool, folder_id: ancestor.id),
               class: "px-2 py-1 rounded-lg text-text-secondary hover:text-accent hover:bg-background-tertiary transition-all",
               data: { file_drag_target: "dropTarget", item_type: "folder", item_id: ancestor.id,
+                      arrow_keys_target: (ancestor == @ancestors[-2] ? "back" : nil),
                       action: "dragover->file-drag#dragOverFolder dragenter->file-drag#dragEnterFolder dragleave->file-drag#dragLeaveFolder drop->file-drag#dropOnFolder" } %>
         <% end %>
       <% end %>

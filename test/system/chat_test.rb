@@ -254,6 +254,8 @@ class ChatTest < ApplicationSystemTestCase
       late.style.height = "300px"
       document.querySelector("#chat_messages").append(late)
     JS
+    # The chat follows on the browser's next frame, not within the script that added the picture
+    assert_at_newest_message
     assert_operator chat_distance_from_newest, :<, 2
 
     # Someone who scrolled up to read is left where they are

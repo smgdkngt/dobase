@@ -15,6 +15,8 @@ Rails.application.configure do
     policy.worker_src  :self, :blob
     policy.style_src   :self, "'unsafe-inline'"
     policy.frame_src   :self
+    # The app frames itself (a tool beside another one) and nobody else frames it
+    policy.frame_ancestors :self
     # LiveKit signals over WebSockets and asks the same host over HTTP(S) why a connection failed
     livekit = ENV["LIVEKIT_URL"]
     policy.connect_src :self, *[ livekit&.sub(%r{\Ahttp}, "ws"), livekit&.sub(%r{\Aws}, "http") ].compact.uniq

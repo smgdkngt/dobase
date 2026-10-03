@@ -1,21 +1,73 @@
 import { Controller } from "@hotwired/stimulus"
+import { typing } from "services/typing"
 
 // Keyboard shortcuts are handled declaratively via data-hotkey attributes
 // in the view. This controller only provides the behavior methods that
 // those hotkey-triggered buttons call.
 
 export default class extends Controller {
-  static targets = ["list", "item"]
+  static targets = ["list", "item", "reader"]
 
   connect() {
     this._onFrameLoad = this._handleFrameLoad.bind(this)
     const frame = document.getElementById("mail-content")
     if (frame) frame.addEventListener("turbo:frame-load", this._onFrameLoad)
+    this._onKey = (event) => this._keyed(event)
+    document.addEventListener("keydown", this._onKey)
   }
 
   disconnect() {
     const frame = document.getElementById("mail-content")
     if (frame) frame.removeEventListener("turbo:frame-load", this._onFrameLoad)
+    document.removeEventListener("keydown", this._onKey)
+  }
+
+  // The arrow keys go through the conversations as they go through any tool's items
+  // (arrow_keys_controller.js; each conversation's link is one), on to the buttons
+  // above the list and into the message beside it. What is mail's own:
+  //
+  // - With the message beside the list, getting to a conversation opens it, as j and
+  //   k do. In a narrow window (a tile, a phone with a keyboard) the list and the
+  //   message take turns: the arrows move through the list, and Enter or the right
+  //   arrow opens.
+  // - The space bar turns the page of the message, Escape lets go of the conversation.
+  _keyed(event) {
+    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return
+    if (typing(event) || document.querySelector("dialog[open], :popover-open")) return
+
+    if (event.key === "Escape" && (this.selectedItem || !this._listShows)) {
+      event.preventDefault()
+      return this._listShows ? this.deselect() : this.backToList()
+    }
+    if (event.key === " " && this._messageShows && !event.target.matches?.("a[href], button, input, summary, [role='button']")) {
+      event.preventDefault()
+      const scroller = this._scroller
+      scroller?.scrollBy({ top: (event.shiftKey ? -1 : 1) * scroller.clientHeight * 0.85 })
+    }
+  }
+
+  // The arrow keys got to a conversation
+  went(event) {
+    const item = event.target.closest?.("[data-mail-keyboard-target='item']")
+    if (!item || item.classList.contains("selected")) return
+    if (this._messageShows) return this.navigateToItem(item)
+
+    this.items.forEach((other) => other.classList.remove("selected"))
+    item.classList.add("selected")
+  }
+
+  // Nothing further on a side. To the right of the list, where the message doesn't
+  // show beside it: the conversation opens. To the left of a message that has the
+  // window to itself: back to the list.
+  edge(event) {
+    const { side } = event.detail
+    if (side === "right" && this._listShows && !this._messageShows && this.selectedItem) {
+      event.preventDefault()
+      this.openSelected()
+    } else if (side === "left" && !this._listShows) {
+      event.preventDefault()
+      this.backToList()
+    }
   }
 
   get items() {
@@ -46,8 +98,37 @@ export default class extends Controller {
     this.navigateToItem(items[prev])
   }
 
+  // What scrolls the message that shows: the reader, or what it lies in
+  get _scroller() {
+    const reader = this.readerTargets.find((target) => target.getClientRects().length > 0)
+    for (let element = reader; element && element !== this.element.parentElement; element = element.parentElement) {
+      if (element.scrollHeight > element.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(element).overflowY)) return element
+    }
+    return reader || null
+  }
+
+  // Only where the list and the message take turns: side by side there is nothing to
+  // go back to. The keyboard goes back to the conversation it came from.
+  backToList() {
+    if (this._listShows) return
+
+    this.element.classList.remove("mail-detail-open")
+    this.selectedItem?.querySelector("a[href]")?.focus()
+  }
+
+  get _listShows() {
+    return this.hasListTarget && this.listTarget.getClientRects().length > 0
+  }
+
+  get _messageShows() {
+    const frame = document.getElementById("mail-content")
+    return Boolean(frame) && frame.getClientRects().length > 0
+  }
+
   navigateToItem(item) {
     if (!item) return
+    // The keyboard goes along, so the arrow keys go on from here
+    item.querySelector("a[href]")?.focus({ preventScroll: true })
     // Update visual selection immediately
     this.items.forEach(i => i.classList.remove("selected"))
     item.classList.add("selected")
@@ -86,6 +167,9 @@ export default class extends Controller {
   // Toggle mobile detail view when mail-content frame loads
   _handleFrameLoad() {
     this.element.classList.add("mail-detail-open")
+    // Where the message takes the list's place, the keyboard doesn't stay on a
+    // conversation that is out of sight: the arrows read the message from here
+    if (!this._listShows && this.listTarget.contains(document.activeElement)) document.activeElement.blur()
   }
 
   // Remove unread indicators from a conversation item (dot, bold from/subject)

@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { floats, drawnWith } from "services/float"
 
 export default class extends Controller {
   static targets = ["grid", "hours", "today", "eventModal", "eventDetailDialog", "newEventDialog", "newEventModal", "weekInput", "startTimeInput", "endTimeInput"]
@@ -10,6 +11,10 @@ export default class extends Controller {
   connect() {
     this.setupScrollPreservation()
     this.restoreScrollPosition()
+
+    // An event opens by itself with ?event=ID in the address
+    const eventId = new URL(window.location.href).searchParams.get("event")
+    if (eventId) this._openEvent(eventId)
   }
 
   disconnect() {
@@ -123,13 +128,24 @@ export default class extends Controller {
     event.preventDefault()
     event.stopPropagation()
 
-    const eventBlock = event.currentTarget
-    const eventId = eventBlock.dataset.eventId
+    const eventId = event.currentTarget.dataset.eventId
+    if (eventId) this._openEvent(eventId)
+  }
 
-    if (!eventId) return
+  _openEvent(eventId) {
+    // In the workspace an event's details float over all the tiles (services/float.js)
+    if (floats(`/tools/${this.toolIdValue}/calendar?event=${eventId}`, { clear: "event" })) return
 
     // Fetch event details and show in modal
     const url = `/tools/${this.toolIdValue}/calendar/events/${eventId}`
+
+    // The page that floats over the workspace is drawn with the event in its dialog
+    // already: nothing to fetch, and no skeleton to look at
+    if (this.hasEventModalTarget && drawnWith(this.eventModalTarget, eventId)) {
+      this.eventDetailDialogTarget.showModal()
+      this.eventModalTarget.querySelector("[autofocus], [data-action~='click->modal#close'], button, a[href]")?.focus()
+      return
+    }
 
     // Open immediately with a skeleton so the dialog's entrance isn't spent
     // staring at a blank sheet — content swaps in once the fetch resolves.
@@ -148,7 +164,8 @@ export default class extends Controller {
       .then(html => {
         if (this.hasEventModalTarget) {
           this.eventModalTarget.innerHTML = html
-          this.eventModalTarget.querySelector("[autofocus], button, a[href]")?.focus()
+          // The keyboard on what closes it, not on Delete, which comes first
+          this.eventModalTarget.querySelector("[autofocus], [data-action~='click->modal#close'], button, a[href]")?.focus()
         }
       })
       .catch(error => {
@@ -195,6 +212,16 @@ export default class extends Controller {
     if (!event.target.value) return
 
     this.navigateToWeek(this.getMonday(this.parseDate(event.target.value)))
+  }
+
+  // The arrow keys go from event to event (arrow_keys_controller.js); past the first
+  // or the last one of the week they go on to the week before or after
+  pastTheWeek(event) {
+    // The page's own arrow keys, not the menu's or the notifications'
+    if (!event.target.contains(this.element) || ![ "left", "right" ].includes(event.detail.side)) return
+
+    event.preventDefault()
+    event.detail.side === "left" ? this.previousWeek() : this.nextWeek()
   }
 
   previousWeek() {

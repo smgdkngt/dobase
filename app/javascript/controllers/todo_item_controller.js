@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { api } from "services/api"
+import { play } from "services/sound"
 
 export default class extends Controller {
   static values = { itemId: String, toolId: String }
@@ -15,6 +16,7 @@ export default class extends Controller {
 
   async toggleCompletion(event) {
     const checked = event.currentTarget.checked
+    if (checked) play("done")
     const method = checked ? "POST" : "DELETE"
     const url = `/tools/${this.toolIdValue}/todo/items/${this.itemIdValue}/completion`
     await api(url, method)

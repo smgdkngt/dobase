@@ -1,0 +1,9 @@
+<%# The dialog an event's details open in. Empty on the calendar, which fetches the
+    event that is opened (calendar#showEvent). With `event` it is drawn with that event in it. %>
+<% event = local_assigns[:event] %>
+<%= render "shared/modal", id: "event-details-modal", title: "Event Details", size: :lg,
+      data: { calendar_target: "eventDetailDialog" } do %>
+  <%= tag.div data: { calendar_target: "eventModal", drawn: event&.id } do %>
+    <%= render template: "tools/calendars/events/show" if event %>
+  <% end %>
+<% end %>

@@ -21,6 +21,16 @@ export default class extends Controller {
       // Escape, and the card around it stays open
       if (event.defaultPrevented) return
 
+      // In a field on the page it lets go of the field: the keyboard is back with the
+      // page, and the arrow keys go on from there. In a dialog or a menu Escape is
+      // what closes it, as everywhere.
+      const field = event.composedPath()[0] || event.target
+      if (this.isTyping(field) && !field.closest?.("dialog[open], [popover]:popover-open")) {
+        event.preventDefault()
+        event.stopPropagation()
+        return field.blur()
+      }
+
       // The browser closes the dialog on top by itself, and only that one. Closing one
       // here as well closed a second: the card under the command palette. Escape just
       // stops here, so the page's own Escape shortcuts don't fire behind a dialog (and

@@ -4,7 +4,7 @@
   is_completed = item.completed?
   has_description = item.description.present?
 %>
-<div class="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-background-tertiary/50 transition-colors group <%= 'todo-item-completed' if is_completed %>"
+<div class="todo-item flex items-center gap-3 px-2 py-2 rounded-md hover:bg-background-tertiary/50 transition-colors group <%= 'todo-item-completed' if is_completed %>"
      id="todo-item-<%= item.id %>"
      data-sort-id="<%= item.id %>"
      data-item-id="<%= item.id %>"
@@ -14,6 +14,7 @@
   <div class="todo-checkbox-wrapper" data-checkbox-wrapper>
     <input type="checkbox"
            class="todo-checkbox"
+           data-arrow-keys-target="item"
            id="todo-item-<%= item.id %>-completion"
            aria-label="Mark &quot;<%= item.title %>&quot; complete"
            <%= "checked" if is_completed %>
@@ -26,15 +27,16 @@
   <div class="flex-1 min-w-0 cursor-pointer flex items-center gap-2"
        role="button"
        tabindex="0"
+       data-arrow-keys-target="item"
        aria-label="Open <%= item.title %>"
        data-action="click->todo#openItem keydown->todo#openItemKey"
        data-item-id="<%= item.id %>">
     <span class="text-[0.9375rem] text-text-primary leading-normal"><%= item.title %></span>
     <% if item.assigned_user.present? %>
-      <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-accent-light text-accent text-[0.5625rem] font-semibold shrink-0"
+      <span class="inline-flex shrink-0" role="img"
             title="Assigned to <%= item.assigned_user.name %>"
             aria-label="Assigned to <%= item.assigned_user.name %>">
-        <%= item.assigned_user.name&.chars&.first&.upcase %>
+        <%= render "shared/avatar", user: item.assigned_user, size: :xs %>
       </span>
     <% end %>
     <% if has_description || comments_count > 0 || attachments_count > 0 || item.recurring? %>

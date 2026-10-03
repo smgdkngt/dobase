@@ -33,6 +33,15 @@ export default class extends Controller {
     this.dispatch("changed", { detail: { selected: this.selectedItems } })
   }
 
+  // Escape lets go of what is picked, and is only taken when something is: with
+  // nothing to let go of it is somebody else's key (in the workspace it closes the tile)
+  escape(event) {
+    if (event.defaultPrevented || this.selectedItems.size === 0 || document.querySelector("dialog[open]")) return
+
+    event.preventDefault()
+    this.clear()
+  }
+
   clear() {
     this.selectedItems.clear()
     this.itemTargets.forEach(item => this.#deselect(item))

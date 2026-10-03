@@ -1,6 +1,10 @@
 // Configure your import map in config/importmap.rb
 import "@hotwired/turbo-rails"
 import "controllers"
+import { listen as listenForSounds } from "services/sound"
+
+// What is marked data-sound in a view is heard (services/sound.js)
+listenForSounds()
 
 // Track Turbo navigation state for system test reliability
 document.addEventListener("turbo:load", () => {
@@ -104,6 +108,41 @@ function markAppWindow() {
 
 markAppWindow()
 document.addEventListener("turbo:load", markAppWindow)
+
+// A page that is a tile in the workspace (workspace_controller.js) is in a frame with
+// this name. The server draws it without the sidebar (ApplicationController#tile?):
+// the browser says it is a frame when it loads one, and for every page after that
+// Turbo says so here. Tiles are small and many, so everything in one is drawn a size
+// smaller (workspace.css, <html data-in-tile>).
+if (window.self !== window.top && (window.name === "workspace-tile" || window.name === "workspace-float")) {
+  const root = document.documentElement
+  let serverKnows = root.hasAttribute("data-in-tile")
+  root.setAttribute("data-in-tile", "")
+  // A frame over all the tiles that shows nothing but a dialog of this page
+  // (services/float.js). The server says so itself (floating?), so the page is
+  // see-through from its first paint: marked only here, it would lie over all the
+  // tiles as one flat colour until this ran.
+  if (window.name === "workspace-float") root.setAttribute("data-floating", "")
+
+  document.addEventListener("turbo:before-fetch-request", (event) => {
+    event.detail.fetchOptions.headers["X-Tile"] = "1"
+  })
+
+  document.addEventListener("turbo:load", () => {
+    if (document.querySelector("[data-controller~='tile-page']")) return
+
+    if (serverKnows) {
+      // Not a tool's page (signed out: the sign-in page). The workspace deals with it.
+      window.parent.postMessage({ tile: "gone" }, window.location.origin)
+    } else {
+      // The browser didn't say it was loading a frame (plain HTTP, or a service worker
+      // from before there were tiles fetched the page itself): ask again, now that
+      // Turbo says so
+      serverKnows = true
+      Turbo.visit(window.location.href, { action: "replace" })
+    }
+  })
+}
 
 // Register service worker for PWA support
 if ("serviceWorker" in navigator) {

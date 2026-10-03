@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import consumer from "channels/consumer"
 import { recentlyReportedContext } from "services/presence"
+import { wearLook } from "services/avatar"
 
 // Who else is in this tool right now, and what they have open.
 //
@@ -219,6 +220,7 @@ export default class extends Controller {
       const initials = document.createElement("span")
       initials.textContent = person.initials
       face.appendChild(initials)
+      wearLook(face, person.avatar_look)
     }
 
     return face

@@ -29,7 +29,9 @@
 
       <a href="<%= edit_tool_docs_document_path(@tool, @document) %>"
          class="btn btn-sm <%= @locked_by ? 'btn-secondary opacity-50 pointer-events-none' : 'btn-primary' %>"
+         data-controller="hotkey" data-hotkey="e"
          data-document-viewer-target="editButton"
+         data-action="click->document-viewer#edit"
          <% if @locked_by %>
            aria-disabled="true"
            title="<%= @locked_by.name %> is currently editing"
@@ -51,7 +53,7 @@
 
   <%# Always the same element, empty or not: edits arriving over the channel are
       written into it, and an empty document has to have somewhere to put them. %>
-  <div class="tool-scroll-area flex-1 overflow-y-auto">
+  <div class="tool-scroll-area flex-1 overflow-y-auto" data-arrow-keys-target="scroller">
     <article class="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 document-view" data-document-viewer-target="content">
       <% if @document.content.present? %>
         <%= @document.content %>

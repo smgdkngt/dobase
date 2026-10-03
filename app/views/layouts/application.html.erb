@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-turbo-not-loaded <%= tag.attributes(theme_attributes) %>>
+<html data-turbo-not-loaded <%= tag.attributes(theme_attributes) %><%= " data-in-tile" if tile? %><%= " data-floating" if floating? %>>
   <head>
     <title><%= content_for(:title) || app_name %></title>
     <meta name="viewport" content="<%= viewport_content %>">
@@ -19,9 +19,18 @@
     <%# A page whose widgets can't be morphed (the compose form) asks for "replace" %>
     <meta name="turbo-refresh-method" content="<%= content_for(:turbo_refresh_method).presence || "morph" %>">
     <meta name="turbo-refresh-scroll" content="preserve">
-    <meta name="view-transition" content="same-origin">
+    <%# A page that is a tile goes without the cross-fade: Turbo waits for it, three
+        times as long as the page itself takes %>
+    <% unless tile? %><meta name="view-transition" content="same-origin"><% end %>
 
     <%= yield :head %>
+
+    <%# A tool opened by its address (a link in a mail, a bookmark) in a window wide
+        enough for tiles becomes a tile in the workspace, before anything is drawn
+        (workspace_gate.js). Never for a page that is itself in a frame. %>
+    <% if user_signed_in? && workspace_wanted? && !tile? && !@workspace && request.get? && request.path.match?(%r{\A/tools/\d+}) %>
+      <%= javascript_include_tag "workspace_gate", data: { wide: workspace_path(open: request.fullpath) } %>
+    <% end %>
 
     <%# With credentials, so the manifest can carry the colours of this browser's theme %>
     <%= tag.link rel: "manifest", href: pwa_manifest_path(format: :json), crossorigin: "use-credentials" %>
@@ -59,13 +68,31 @@
     <script async defer src="/altcha.min.js" type="module"></script>
   </head>
 
-  <body class="bg-background-secondary text-text-primary" data-controller="keyboard-shortcuts theme"
-        data-theme-version-value="<%= theme_version %>">
+  <%# data-workspace on the body, not on <html>: Turbo brings a new body with every
+      visit and leaves <html> as the first page had it %>
+  <body class="bg-background-secondary text-text-primary" data-controller="keyboard-shortcuts theme arrow-keys" data-arrow-keys-over-value="true"
+        data-theme-version-value="<%= theme_version %>"<%= " data-workspace" if @workspace %>>
     <%# data-turbo="false" so the browser handles the fragment itself and moves
         focus into <main>; a Turbo anchor visit only scrolls. %>
     <a href="#main-content" class="skip-link" data-turbo="false">Skip to main content</a>
     <%= render "shared/turbo_confirm_dialog" %>
-    <% if user_signed_in? %>
+    <% if user_signed_in? && tile? %>
+      <%# A tile in the workspace (workspaces/show): the tool alone. The menu, the
+          notifications and the launcher belong to the page around the tiles. %>
+      <%= render "shared/flash" %>
+      <div data-controller="tile-page">
+        <main class="main-content" id="main-content" tabindex="-1"
+              <%= tag.attributes(main_attributes) %>>
+          <%= yield %>
+        </main>
+        <div id="persistent-room" data-turbo-permanent hidden></div>
+        <button data-controller="hotkey" data-hotkey="b" data-action="click->tile-page#notifications" hidden>Notifications</button>
+      </div>
+      <%# With Shift too: in the workspace Mod+K is the launcher of the page around the tiles %>
+      <button data-controller="hotkey" data-hotkey="Mod+k,Mod+Shift+K" data-action="click->keyboard-shortcuts#openCommandPalette" hidden>Command palette</button>
+      <%= render "shared/command_palette" %>
+      <%= render "shared/keyboard_shortcuts_dialog" %>
+    <% elsif user_signed_in? %>
       <%= render "shared/flash" %>
       <div data-controller="mobile-sidebar standalone-scroll">
         <%# Sidebar overlay %>
@@ -75,7 +102,7 @@
         <%# A tool page tells everyone else on it that you are here, and what you
             have open; see presence_controller.js and PresenceChannel. %>
         <main class="main-content" id="main-content" tabindex="-1"
-              <%= tag.attributes(presence_attributes) if @tool&.persisted? %>>
+              <%= tag.attributes(main_attributes) %>>
           <%= yield %>
         </main>
 
@@ -129,7 +156,8 @@
         <%= render "shared/demo_banner" if Demo.enabled? %>
       </div>
       <button data-controller="hotkey" data-hotkey="Mod+k" data-action="click->keyboard-shortcuts#openCommandPalette" hidden>Command palette</button>
-      <%= render "shared/command_palette" %>
+      <%# In the workspace it is the top of the menu (shared/sidebar) %>
+      <%= render "shared/command_palette" unless @workspace %>
       <%= render "shared/keyboard_shortcuts_dialog" %>
     <% else %>
       <main class="min-h-dvh flex items-center justify-center bg-background-secondary" id="main-content" tabindex="-1">

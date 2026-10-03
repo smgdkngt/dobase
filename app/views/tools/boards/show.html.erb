@@ -10,8 +10,11 @@
   <div>
     <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Board</h3>
     <div class="shortcut-list">
-      <%= render "shared/shortcut_row", key: "c", description: "Add card" %>
+      <%= render "shared/shortcut_row", key: "c", description: "Add card, to the column you are in" %>
       <%= render "shared/shortcut_row", key: "n", description: "Add column" %>
+      <%= render "shared/shortcut_row", key: "← → ↑ ↓", description: "Go from card to card" %>
+      <%= render "shared/shortcut_row", key: "Enter", description: "Open the card" %>
+      <%= render "shared/shortcut_row", key: "Shift+← → ↑ ↓", description: "Move the card" %>
     </div>
   </div>
 <% end %>
@@ -44,17 +47,7 @@
           locals: { tool: @tool, reorder_mode: reorder_mode, assignee_filter: @assignee_filter, collapsed_column_ids: @collapsed_column_ids } %>
   </div>
 
-  <%# Card detail dialog — larger two-column layout %>
-  <dialog id="card-detail-modal"
-          aria-label="Card details"
-          class="modal-dialog"
-          style="max-width: 56rem;"
-          data-controller="modal"
-          data-board-target="cardDetailDialog">
-    <div data-board-target="cardModal">
-      <%# Content loaded dynamically via board#openCard %>
-    </div>
-  </dialog>
+  <%= render "tools/boards/card_dialog" %>
 
   <%# Add column dialog %>
   <%= render "shared/modal", id: "add-column-modal", title: "Add Column", size: :sm do %>

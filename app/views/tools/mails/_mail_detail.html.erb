@@ -36,7 +36,7 @@
     <% else %>
       <%= render "components/icon_button", icon: "archive", title: "Archive (e)",
           href: tool_mail_archive_path(@tool, @selected_message, folder: @current_folder), method: :post,
-          data: { controller: "hotkey", hotkey: "e", turbo_frame: "_top" } %>
+          data: { controller: "hotkey", hotkey: "e", turbo_frame: "_top", sound: "tuck" } %>
     <% end %>
     <div class="relative">
       <button type="button"
@@ -85,12 +85,12 @@
     <% else %>
       <%= render "components/icon_button", icon: "trash-2", title: "Delete (#)",
           href: tool_mail_trash_path(@tool, @selected_message, folder: @current_folder), method: :post,
-          data: { controller: "hotkey", hotkey: "#,Shift+#", turbo_frame: "_top" } %>
+          data: { controller: "hotkey", hotkey: "#,Shift+#", turbo_frame: "_top", sound: "trash" } %>
     <% end %>
   </div>
 </div>
 
-<div class="mail-message-in overflow-y-auto p-4">
+<div class="mail-message-in overflow-y-auto p-4" data-mail-keyboard-target="reader">
   <% @conversation_messages.each_with_index do |msg, index| %>
     <%= render "tools/mails/email_message",
           email_message: msg,

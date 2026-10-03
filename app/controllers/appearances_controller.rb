@@ -13,7 +13,9 @@ class AppearancesController < ApplicationController
     end
   end
 
-  # Changes what the request names: the theme, the typeface, or both
+  # Changes what the request names: the theme, the typeface, whether there is a theme
+  # for light and one for dark, or several of those. A theme with a scheme ("light"
+  # or "dark") is the one for that; without, it is the one theme for both.
   def update
     name = params[:theme].to_s.strip
 
@@ -24,7 +26,10 @@ class AppearancesController < ApplicationController
       end
     end
 
-    current_user.choose_theme(name, colors) if params.key?(:theme)
+    if params.key?(:follow_system)
+      current_user.follow_system(ActiveModel::Type::Boolean.new.cast(params[:follow_system]) || false, seen_in: scheme)
+    end
+    current_user.choose_theme(name, colors, scheme: params[:scheme].to_s.presence_in(%w[light dark])) if params.key?(:theme)
     current_user.choose_typeface(params[:typeface]) if params.key?(:typeface)
 
     respond_to do |format|
@@ -34,6 +39,13 @@ class AppearancesController < ApplicationController
   end
 
   private
+
+  # Light or dark: what the request says, or what this browser said it is. It picks
+  # between someone's two themes; a client that says neither gets the light one.
+  def scheme
+    params[:scheme].to_s.presence_in(%w[light dark]) || browser_scheme
+  end
+  helper_method :scheme
 
   def colors
     params[:colors].permit(:mode, *Theme::COLORS).to_h if params[:colors].respond_to?(:permit)

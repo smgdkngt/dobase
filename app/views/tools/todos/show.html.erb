@@ -12,6 +12,11 @@
     <div class="shortcut-list">
       <%= render "shared/shortcut_row", key: "t", description: "Add todo" %>
       <%= render "shared/shortcut_row", key: "n", description: "Add list" %>
+      <%= render "shared/shortcut_row", key: "↑ ↓", description: "Go from todo to todo" %>
+      <%= render "shared/shortcut_row", key: "Enter", description: "Open the todo" %>
+      <%= render "shared/shortcut_row", key: "Space", description: "Tick the todo off" %>
+      <%= render "shared/shortcut_row", key: "←", description: "Go to its checkbox" %>
+      <%= render "shared/shortcut_row", key: "Shift+↑ ↓", description: "Move the todo" %>
     </div>
   </div>
 <% end %>
@@ -58,17 +63,7 @@
     <% end %>
   </div>
 
-  <%# Item detail dialog %>
-  <dialog id="item-detail-modal"
-          aria-label="Todo details"
-          class="modal-dialog"
-          style="max-width: 56rem;"
-          data-controller="modal"
-          data-todo-target="itemDetailDialog">
-    <div data-todo-target="itemModal">
-      <%# Content loaded dynamically via todo#openItem %>
-    </div>
-  </dialog>
+  <%= render "tools/todos/item_dialog" %>
 
   <%# Add list dialog %>
   <%= render "shared/modal", id: "add-list-modal", title: "Add List", size: :sm do %>

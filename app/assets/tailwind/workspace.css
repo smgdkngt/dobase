@@ -1,0 +1,679 @@
+/* The tiling workspace: workspaces/show, workspace_controller.js */
+
+@layer components {
+  .workspace {
+    @apply relative flex flex-col h-full bg-background-secondary;
+  }
+
+  /* A slim bar along the top: the menu, the desktops, what you are on, and yourself */
+  .workspace-bar {
+    @apply grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-2 shrink-0 h-9;
+  }
+
+  /* Left and right of the title, as wide as each other: the title is in the middle
+     of the window */
+  .workspace-bar-side {
+    @apply flex items-center gap-1 min-w-0;
+  }
+
+  .workspace-bar-btn {
+    @apply flex items-center justify-center w-7 h-7 rounded-md text-text-secondary
+           hover:bg-background-tertiary hover:text-text-primary transition-colors cursor-pointer;
+  }
+
+  .workspace-bar-btn .avatar {
+    @apply w-5 h-5 text-[0.5625rem];
+  }
+
+  .workspace-desks {
+    @apply flex items-center gap-0.5 ml-1;
+  }
+
+  /* A desktop: its number, and the tools on it */
+  .workspace-desk {
+    @apply inline-flex items-center justify-center gap-1.5 min-w-6 h-6 px-1.5 rounded-md text-xs font-medium tabular-nums text-text-secondary
+           hover:bg-background-tertiary hover:text-text-primary transition-colors cursor-pointer;
+  }
+
+  .workspace-desk[hidden] {
+    @apply hidden;
+  }
+
+  .workspace-desk[data-empty] {
+    @apply text-text-tertiary;
+  }
+
+  /* Something new on it: not one to overlook */
+  .workspace-desk[data-unread] {
+    @apply text-text-primary;
+  }
+
+  .workspace-desk[aria-current="true"] {
+    @apply bg-accent-solid text-text-inverse;
+  }
+
+  /* A tool on a desktop, by the icon it has in the menu. The one you would land on is
+     lit, the others stand back. */
+  .workspace-desk-tool {
+    @apply relative inline-flex opacity-55 transition-opacity;
+  }
+
+  .workspace-desk-tool[data-focused],
+  .workspace-desk-tool[data-unread],
+  .workspace-desk-tool[data-in-call] {
+    @apply opacity-100;
+  }
+
+  .workspace-desk-icon {
+    @apply w-3.5 h-3.5 shrink-0 text-[0.6875rem] leading-none;
+  }
+
+  /* Something new in it that you aren't looking at: a dot on its corner, with a ring
+     of what is behind it so it stands clear of the icon. A call that is on: a green
+     one that breathes. */
+  .workspace-desk-tool[data-unread]::after,
+  .workspace-desk-tool[data-in-call]::after {
+    @apply absolute -top-1 -right-1 w-[0.4375rem] h-[0.4375rem] rounded-full;
+    content: "";
+    background: var(--color-accent);
+    box-shadow: 0 0 0 1.5px var(--color-background-secondary);
+    animation: workspace-news-in 320ms var(--ease-out-back) both;
+  }
+
+  .workspace-desk-tool[data-in-call]::after {
+    background: var(--color-success);
+    animation: pulse-call 2s ease-in-out infinite;
+  }
+
+  .workspace-desk[aria-current="true"] .workspace-desk-tool::after {
+    background: var(--color-text-inverse);
+    box-shadow: 0 0 0 1.5px var(--color-accent-solid);
+  }
+
+  /* The menu's button: something new in a tool that isn't open anywhere */
+  .workspace-bar-btn[data-unread] {
+    @apply relative;
+  }
+
+  .workspace-bar-btn[data-unread]::after {
+    @apply absolute top-0.5 right-0.5 w-2 h-2 rounded-full;
+    content: "";
+    background: var(--color-accent);
+    box-shadow: 0 0 0 1.5px var(--color-background-secondary);
+    animation: workspace-news-in 320ms var(--ease-out-back) both;
+  }
+
+  /* The card about a desktop: under its button, while the pointer rests there */
+  .workspace-desk-card {
+    @apply fixed m-0 p-1.5 w-72 rounded-xl bg-surface border border-border-light shadow-lg text-sm text-text-primary;
+    inset: auto;
+  }
+
+  .workspace-desk-card:popover-open {
+    animation: workspace-menu-in 120ms var(--ease-out);
+  }
+
+  .workspace-desk-card-title {
+    @apply flex items-center justify-between gap-2 px-2 pt-1 pb-1.5 text-xs font-semibold uppercase tracking-wider text-text-tertiary;
+  }
+
+  .workspace-desk-card-title kbd {
+    @apply normal-case tracking-normal font-normal;
+  }
+
+  .workspace-desk-card-row {
+    @apply flex items-center rounded-lg hover:bg-background-tertiary;
+  }
+
+  .workspace-desk-card-go {
+    @apply flex flex-1 items-center gap-2 min-w-0 px-2 py-1.5 text-left cursor-pointer;
+  }
+
+  .workspace-desk-card-go .workspace-desk-icon {
+    @apply w-4 h-4 text-sm text-text-secondary;
+  }
+
+  .workspace-desk-card-row[data-unread] .workspace-desk-card-go {
+    @apply font-semibold;
+  }
+
+  .workspace-desk-card-note {
+    @apply shrink max-w-[35%] truncate text-xs font-normal text-text-tertiary;
+  }
+
+  .workspace-desk-card-new {
+    @apply shrink-0 ml-auto px-1.5 rounded-full text-[0.625rem] font-semibold bg-accent-solid text-text-inverse;
+  }
+
+  .workspace-desk-card-call {
+    @apply shrink-0 ml-auto text-xs font-normal text-success;
+  }
+
+  .workspace-desk-card-close {
+    @apply flex items-center justify-center w-6 h-6 mr-1 rounded-md text-base leading-none text-text-tertiary opacity-0
+           hover:bg-surface hover:text-text-primary cursor-pointer;
+  }
+
+  .workspace-desk-card-row:hover .workspace-desk-card-close,
+  .workspace-desk-card-close:focus-visible {
+    @apply opacity-100;
+  }
+
+  .workspace-desk-card-empty {
+    @apply block px-2 py-1.5 text-xs text-text-tertiary;
+  }
+
+  .workspace-bar-title {
+    @apply min-w-0 max-w-[40vw] truncate text-center text-xs text-text-tertiary;
+  }
+
+  /* The room the tiles share. They are placed in it by the controller. */
+  .workspace-room {
+    @apply relative flex-1 min-h-0;
+  }
+
+  .workspace-tiles {
+    @apply absolute inset-0;
+  }
+
+  .workspace-tile {
+    @apply absolute overflow-hidden rounded-lg bg-background border border-border-light;
+    transform-origin: 0 0;
+  }
+
+  .workspace-tile[hidden],
+  .workspace-split[hidden],
+  .workspace-empty[hidden] {
+    @apply hidden;
+  }
+
+  /* The one the keyboard is in, when there is more than one: its edge twice as heavy */
+  .workspace-tile[data-focused] {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 1px var(--color-accent);
+  }
+
+  .workspace-tile {
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+
+  .workspace-tile[data-arriving] {
+    animation: workspace-tile-in 160ms var(--ease-out) both;
+  }
+
+  /* Closed: it fades where it was while the others take its room */
+  .workspace-tile[data-leaving] {
+    @apply z-0 pointer-events-none;
+    animation: workspace-tile-out 140ms ease-in both;
+  }
+
+  /* On arriving at a desktop its tiles come in from the side it lies on */
+  .workspace-tile[data-sliding="right"] {
+    animation: workspace-slide-from-right 180ms var(--ease-out) both;
+  }
+
+  .workspace-tile[data-sliding="left"] {
+    animation: workspace-slide-from-left 180ms var(--ease-out) both;
+  }
+
+  .workspace-tile > iframe {
+    @apply block w-full h-full border-0;
+  }
+
+  /* Close sits in the corner of the tool's own top bar, which keeps room for it (below) */
+  .workspace-tile-controls {
+    @apply absolute top-0 right-0 z-10 flex items-center pr-1.5 opacity-0 transition-opacity duration-150;
+    height: var(--workspace-topbar-height);
+  }
+
+  .workspace-tile:hover .workspace-tile-controls,
+  .workspace-tile-controls:focus-within {
+    @apply opacity-100;
+  }
+
+  /* A finger doesn't hover */
+  @media (hover: none) {
+    .workspace-tile-controls {
+      @apply opacity-100;
+    }
+  }
+
+  /* The gaps between tiles, to drag */
+  .workspace-split {
+    @apply absolute z-10 rounded-full transition-colors duration-150;
+    touch-action: none;
+  }
+
+  /* Easier to get hold of than the gap is wide */
+  .workspace-split::before {
+    @apply absolute content-[''];
+    inset: -3px;
+  }
+
+  .workspace-split[data-split="row"] {
+    @apply cursor-col-resize;
+  }
+
+  .workspace-split[data-split="column"] {
+    @apply cursor-row-resize;
+  }
+
+  .workspace-split:hover,
+  .workspace-tiles[data-resizing] .workspace-split:active {
+    background: var(--color-accent);
+  }
+
+  /* While dragging, the frames would take the pointer */
+  .workspace-tiles[data-resizing] iframe {
+    @apply pointer-events-none;
+  }
+
+  .workspace-empty {
+    @apply absolute inset-0 flex items-center justify-center overflow-y-auto;
+  }
+
+  .workspace-empty-hints {
+    @apply flex flex-col items-center;
+  }
+
+  .workspace-keys {
+    @apply grid grid-cols-[auto_auto] items-center gap-x-3 gap-y-1.5 text-xs text-text-tertiary;
+  }
+
+  .workspace-keys > div {
+    @apply contents;
+  }
+
+  .workspace-keys dt {
+    @apply justify-self-end;
+  }
+
+  /* What is different here, said once: along the bottom, over the tiles */
+  .workspace-hint {
+    @apply absolute left-1/2 bottom-4 z-30 flex items-center gap-4 w-max max-w-[calc(100%-2rem)] -translate-x-1/2
+           px-4 py-2.5 rounded-xl bg-surface border border-border-light shadow-lg text-sm text-text-secondary;
+  }
+
+  .workspace-hint > .btn {
+    @apply shrink-0 whitespace-nowrap;
+  }
+
+  .workspace-hint[hidden] {
+    @apply hidden;
+  }
+
+  /* A tile's dialog, floating over all of them: the dark behind it is here (it is
+     there before the dialog has arrived), the dialog itself is in the frame */
+  .workspace-float {
+    @apply fixed inset-0 z-[60] bg-black/40;
+    animation: workspace-float-in 120ms ease-out;
+    transition: opacity 180ms var(--ease-out);
+  }
+
+  /* The dialog is closed: it fades out with the dark behind it, and the tiles under
+     it can be clicked already (workspace_controller.js#unfloat takes it away after) */
+  .workspace-float[data-closing] {
+    @apply opacity-0 pointer-events-none;
+  }
+
+  .workspace-float[hidden] {
+    @apply hidden;
+  }
+
+  .workspace-float > iframe {
+    @apply block w-full h-full border-0 bg-transparent;
+  }
+
+  /* In the shortcuts dialog: what the workspace's keys go with */
+  .workspace-keys-choice {
+    @apply flex items-center justify-between gap-4 mt-3 pt-3 border-t border-border-light;
+  }
+
+  /* The search at the top of the menu (shared/command_palette with menu: true). With
+     nothing typed it is a field above the tools; typed into, what it finds takes the
+     menu's room (the rules for that are further down, outside this layer). */
+  .menu-search {
+    @apply flex flex-col min-h-0 border-b border-border-light;
+  }
+
+  .menu-search-field {
+    @apply px-2 py-2;
+  }
+
+  .menu-search-results {
+    @apply hidden flex-1 min-h-0 overflow-y-auto pb-2;
+  }
+
+  .menu-search .command-palette-hint {
+    @apply hidden;
+  }
+
+  .menu-search[data-searching] {
+    @apply flex-1 border-b-0;
+  }
+
+  .menu-search[data-searching] .menu-search-results {
+    @apply block;
+  }
+
+  .menu-search[data-searching] .command-palette-hint {
+    @apply flex;
+  }
+
+  /* In the menu, a tool that is open says on which desktop: an outlined square, so it
+     isn't taken for a count of what is new */
+  .sidebar-tool-link[data-workspace-desk]::after {
+    @apply inline-flex items-center justify-center w-4 h-4 shrink-0 rounded-sm text-[0.625rem] font-medium tabular-nums
+           border border-border text-text-tertiary;
+    content: attr(data-workspace-desk) / "";
+  }
+
+  .sidebar-tool-link[data-workspace-desk][data-unread]::after {
+    @apply border-transparent bg-accent-solid text-text-inverse;
+  }
+}
+
+@keyframes workspace-tile-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+@keyframes workspace-float-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes workspace-news-in {
+  from {
+    transform: scale(0);
+  }
+}
+
+@keyframes workspace-menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+@keyframes workspace-tile-out {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+@keyframes workspace-slide-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(2rem);
+  }
+}
+
+@keyframes workspace-slide-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-2rem);
+  }
+}
+
+:root {
+  /* As high as a tool's top bar is inside a tile */
+  --workspace-topbar-height: 40px;
+}
+
+/* ── The page around the tiles: no sidebar until it is asked for ── */
+
+body[data-workspace] .main-content {
+  margin-left: 0;
+}
+
+@media (min-width: 1024px) {
+  body[data-workspace] .demo-banner {
+    left: 0;
+  }
+
+  /* The sidebar is the menu: a panel in the middle of the window, over the tiles, when
+     asked for. As high as what is in it, up to most of the window; its top stays
+     where it is while the list under the search changes. Out of sight it is out of
+     reach of the Tab key too. */
+  body[data-workspace] .sidebar {
+    @apply z-50 shadow-xl rounded-xl border border-border-light overflow-hidden;
+    inset: 12vh 0 auto;
+    margin-inline: auto;
+    width: min(30rem, calc(100vw - 2rem));
+    max-height: min(76vh, 46rem);
+    padding: 0;
+    visibility: hidden;
+  }
+
+  /* It comes in with a short fade and is gone at once. Not faded by its own opacity
+     while away: the account and notification menus live in it, and are opened from
+     the bar while it is. */
+  body[data-workspace] .sidebar.open {
+    visibility: visible;
+    animation: workspace-menu-in 140ms var(--ease-out);
+  }
+
+  body[data-workspace] .sidebar-overlay {
+    transition-duration: 140ms;
+  }
+
+  /* While the search has something typed, what it finds is the menu */
+  body[data-workspace] .sidebar:has(.menu-search[data-searching]) [data-sidebar-target="nav"] {
+    display: none;
+  }
+
+  /* You and your notifications are in the bar at the top, so their menus open from
+     there: they live in the sidebar, and are in sight while it isn't */
+  body[data-workspace] .sidebar-bottom-bar {
+    display: none;
+  }
+
+  body[data-workspace] :is(.sidebar-user-popover, .sidebar-notifications-popover):popover-open {
+    visibility: visible;
+  }
+
+  body[data-workspace] .sidebar-user-popover {
+    position-anchor: --workspace-user-btn;
+    position-area: block-end span-inline-start;
+    margin: 0.25rem 0 0;
+  }
+
+  body[data-workspace] .sidebar-notifications-popover {
+    position-anchor: --workspace-notifications-btn;
+    position-area: block-end span-inline-start;
+    margin: 0.25rem 0 0;
+  }
+}
+
+/* A narrow window has the bottom bar for all of that, and shows one tile */
+@media (max-width: 1023px) {
+  .workspace-bar {
+    display: none;
+  }
+}
+
+/* ── A page that is a tile: the tool alone, a size smaller (there are many of them) ── */
+
+:root[data-in-tile] {
+  --sidebar-width: 0px;
+  /* Type a step down, and the space around it a step further: Tailwind measures every
+     padding, gap and size in --spacing */
+  font-size: 14px;
+  --spacing: 0.22rem;
+}
+
+/* Should the server have drawn them (application.js asks again without) */
+:root[data-in-tile] :is(.sidebar, .sidebar-overlay, .mobile-bottom-bar, .demo-banner) {
+  display: none !important;
+}
+
+/* A tile takes a new theme in one go (services/theme.js): the page around the tiles
+   fades the whole window, and anything easing by itself would trail behind that */
+:root[data-theme-changing] *,
+:root[data-theme-changing] *::before,
+:root[data-theme-changing] *::after {
+  transition: none !important;
+}
+
+/* ── A page that floats over the workspace to show one dialog (services/float.js) ──
+   Nothing of it is seen but the dialog: the tiles show through the rest. The dark
+   behind the dialog is the workspace's. */
+
+:root[data-floating],
+:root[data-floating] body {
+  background: transparent !important;
+}
+
+:root[data-floating] body > * {
+  visibility: hidden;
+}
+
+:root[data-floating] dialog,
+:root[data-floating] [popover] {
+  visibility: visible;
+}
+
+:root[data-floating] dialog::backdrop {
+  background: transparent;
+  backdrop-filter: none;
+}
+
+/* The top bar is lower, and keeps room for the tile's close button, which lies over it */
+:root[data-in-tile] :is(.tool-topbar, .mail-topbar) {
+  min-height: var(--workspace-topbar-height);
+  padding-right: 2.5rem;
+}
+
+@media (max-width: 1023px) {
+  /* There is no bottom bar to stay clear of */
+  :root[data-in-tile] {
+    --mobile-bar-clearance: 0px;
+  }
+
+  :root[data-in-tile] .flash-toast {
+    bottom: 1rem;
+  }
+
+  /* A dialog opens under the tile's close button, not behind it */
+  :root[data-in-tile] .modal-dialog {
+    margin-top: var(--workspace-topbar-height);
+  }
+}
+
+/* An installed app draws a line under its title bar; a tile has its own edge */
+@media (display-mode: standalone) and (min-width: 1024px) {
+  :root[data-in-tile] .main-content {
+    border-top: 0;
+  }
+}
+
+/* ── Denser tools in a tile: the lists, where rows are what there is most of ── */
+
+/* Mail: a conversation is two lines, and one in a tile wide enough for it */
+:root[data-in-tile] .mail-list-item {
+  padding-block: 0.3rem;
+}
+
+:root[data-in-tile] .mail-list-head {
+  margin-bottom: 0;
+}
+
+:root[data-in-tile] .mail-list-subject {
+  margin-bottom: 0;
+}
+
+:root[data-in-tile] .mail-list-preview {
+  display: none;
+}
+
+@media (min-width: 520px) and (max-width: 1023px) {
+  :root[data-in-tile] .mail-list-item {
+    align-items: center;
+  }
+
+  :root[data-in-tile] .mail-list-item > a {
+    display: grid;
+    grid-template-columns: 10rem minmax(0, 1fr) auto;
+    column-gap: 0.75rem;
+    align-items: center;
+  }
+
+  :root[data-in-tile] .mail-list-head {
+    display: contents;
+  }
+
+  :root[data-in-tile] .mail-list-subject {
+    order: 2;
+  }
+
+  :root[data-in-tile] .mail-list-meta {
+    order: 3;
+  }
+}
+
+/* Chat: small faces, and lines that follow each other closely */
+:root[data-in-tile] .chat-message {
+  padding-block: 0.1rem;
+}
+
+/* The ring around the message you are on stays inside its row */
+.chat-message:focus-visible {
+  outline-offset: -2px;
+}
+
+:root[data-in-tile] .chat-message:where(.mt-2) {
+  margin-top: 0.4rem;
+}
+
+:root[data-in-tile] .chat-message-avatar {
+  width: 1.75rem;
+}
+
+:root[data-in-tile] .chat-message-avatar .avatar {
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: 0.625rem;
+}
+
+/* Todos: a row is as high as its line of text */
+:root[data-in-tile] .todo-item {
+  padding-block: 0.2rem;
+}
+
+/* Board: cards closer to their text */
+:root[data-in-tile] .board-card {
+  padding: 0.4rem 0.5rem;
+}
+
+/* The box you write in keeps its toolbar until you are in it */
+:root[data-in-tile] .rich-text-input:not(:focus-within) rhino-editor [role="toolbar"],
+:root[data-in-tile] .rich-text-input:not(:focus-within) rhino-editor::part(toolbar) {
+  display: none;
+}
+
+/* Documents: written to be read across a page, here they are read across a tile */
+:root[data-in-tile] :is(rhino-editor.document-editor .trix-content, .document-view .rich-text-content) {
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+
+:root[data-in-tile] :is(rhino-editor.document-editor .trix-content, .document-view .rich-text-content) h1 {
+  font-size: 1.6rem;
+}
+
+:root[data-in-tile] :is(rhino-editor.document-editor .trix-content, .document-view .rich-text-content) h2 {
+  font-size: 1.35rem;
+}
+
+:root[data-in-tile] :is(rhino-editor.document-editor .trix-content, .document-view .rich-text-content) h3 {
+  font-size: 1.15rem;
+}
+
+:root[data-in-tile] :is(rhino-editor.document-editor .trix-content, .document-view .rich-text-content) h4 {
+  font-size: 1.0625rem;
+}

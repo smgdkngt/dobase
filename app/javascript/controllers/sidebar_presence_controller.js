@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { workspacePresence } from "services/workspace_presence"
+import { wearLook } from "services/avatar"
 
 // Small faces beside a tool in the sidebar for everyone who has it open right
 // now, so you can see where your colleagues are without opening each tool.
@@ -56,6 +57,7 @@ export default class extends Controller {
       face.appendChild(image)
     } else {
       face.textContent = person.initials
+      wearLook(face, person.avatar_look)
     }
 
     return face

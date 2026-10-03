@@ -46,6 +46,9 @@ Rails.application.routes.draw do
   resource :notification_reads, only: :create
   resource :notification_clears, only: :create
 
+  # Every tool you open as a tile, arranged for you (workspace_controller.js)
+  resource :workspace, only: :show
+
   # Sidebar
   resources :sidebar_groups, only: %i[create update destroy] do
     scope module: :sidebar_groups do
@@ -66,6 +69,8 @@ Rails.application.routes.draw do
       end
 
       resource :mute, only: %i[create destroy]
+      # Seen as it is now, by someone who has it open as a tile (workspace_controller.js)
+      resource :visit, only: :create
 
       resource :board, only: :show do
         scope module: :boards do

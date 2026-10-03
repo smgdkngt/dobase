@@ -26,30 +26,77 @@ class User < ApplicationRecord
   def name = "#{first_name} #{last_name}".strip
 
   # The colours this person sees the app in: a palette of their own, a built-in
-  # theme, or nil for the app's own look.
-  def theme = Theme.for(theme_name, theme_colors)
+  # theme, or nil for the app's own look. Someone can have one theme for when their
+  # system is light and one for when it is dark (theme_follows_system); then the
+  # browser's scheme ("light" or "dark") says which, and nobody's is the light one.
+  def theme(scheme = nil)
+    return Theme.find(dark_theme_name) if theme_follows_system? && scheme.to_s == "dark"
+
+    Theme.for(theme_name, theme_colors)
+  end
 
   # Takes a built-in theme's name, or a name with a palette. Anything else (nil, an
   # unknown name, a palette that isn't one) goes back to the app's own look.
-  def choose_theme(name, colors = nil)
+  #
+  # Without a scheme it is the one theme, whatever the system says. With "light" or
+  # "dark" it is the theme for that, and the other keeps its own. The dark one is a
+  # built-in theme or the app's own dark look; a palette of one's own is the light
+  # or the only one.
+  def choose_theme(name, colors = nil, scheme: nil)
     palette = Theme.clean_palette(colors)
     mode = colors.to_h.transform_keys(&:to_s)["mode"] if palette
     name = name.to_s.strip.first(60)
     # A desktop on a stock theme sends the colours the built-in one already has
     palette = nil if palette && Theme.find(name)&.style == Theme.new(name: name, palette: palette, mode: mode).style
 
-    if name.present? && palette
-      update!(theme_name: name, theme_colors: palette.merge("mode" => mode).compact)
-    elsif Theme.find(name)
-      update!(theme_name: name, theme_colors: nil)
+    chosen = if name.present? && palette
+      { theme_name: name, theme_colors: palette.merge("mode" => mode).compact }
     else
-      update!(theme_name: nil, theme_colors: nil)
+      { theme_name: Theme.find(name)&.name, theme_colors: nil }
+    end
+
+    case scheme.to_s
+    when "dark" then update!(dark_theme_name: Theme.find(name)&.name, theme_follows_system: true)
+    when "light" then update!(chosen.merge(theme_follows_system: true))
+    else update!(chosen.merge(theme_follows_system: false, dark_theme_name: nil))
+    end
+    broadcast_theme
+  end
+
+  # One theme for light and one for dark, or one for both again. What the browser
+  # that asks shows at that moment (seen_in: its scheme) stays what it shows: a dark
+  # theme that was the only one becomes the one for dark, and going back to one theme
+  # keeps the one that is on.
+  def follow_system(on, seen_in: nil)
+    return if on == theme_follows_system?
+
+    if on
+      dark = theme if theme_colors.blank? && theme&.mode == "dark"
+      update!(theme_follows_system: true, dark_theme_name: dark&.name, theme_name: (dark ? nil : theme_name))
+    elsif seen_in.to_s == "dark"
+      update!(theme_follows_system: false, theme_name: dark_theme_name, theme_colors: nil, dark_theme_name: nil)
+    else
+      update!(theme_follows_system: false, dark_theme_name: nil)
     end
     broadcast_theme
   end
 
   # What an avatar falls back to, the same two letters the avatar partial draws
   def initials = "#{first_name.to_s.first}#{last_name.to_s.first}".upcase
+
+  # How those two letters are drawn: in one of the theme's label colours, over a
+  # shape in a second one. Always the same for the same person, and spread so that
+  # the people of one team seldom look alike (shared/avatar, components.css).
+  AVATAR_HUES = %w[red orange yellow green cyan blue purple pink].freeze
+  AVATAR_PATTERNS = 6
+
+  def avatar_look
+    seed = Zlib.crc32("avatar-#{id}")
+    hue = seed % AVATAR_HUES.size
+    second = (hue + 1 + (seed / AVATAR_HUES.size) % (AVATAR_HUES.size - 1)) % AVATAR_HUES.size
+
+    { hue: AVATAR_HUES[hue], second: AVATAR_HUES[second], pattern: (seed / 64) % AVATAR_PATTERNS + 1 }
+  end
 
   validates :password, length: { minimum: 8 }, allow_nil: true
   validates :timezone, inclusion: { in: ActiveSupport::TimeZone.all.map(&:name) }, allow_nil: true
@@ -85,8 +132,11 @@ class User < ApplicationRecord
   end
 
   # Every page this person has open takes the new colours and typeface at once
+  # (with a theme for light and one for dark, each page asks for its own: only the
+  # browser knows which of the two it is)
   def broadcast_theme
-    ActionCable.server.broadcast("notifications:#{id}", { type: "theme", theme: Theme.payload(theme, typeface) })
+    payload = Theme.payload(theme, typeface) unless theme_follows_system?
+    ActionCable.server.broadcast("notifications:#{id}", { type: "theme", theme: payload }.compact)
   end
 
   # Unread mail in the inboxes of the user's mail tools, counted like the sidebar counts it

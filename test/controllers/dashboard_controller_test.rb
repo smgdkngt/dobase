@@ -7,6 +7,9 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     @user = users(:one)
     @tool = tools(:my_files)
     sign_in_as @user
+    # The start page for one tool, as a phone gets it: for a wide window it is the
+    # workspace (WorkspaceTest). The cookie is the tests' own way to ask for it.
+    cookies[:workspace] = "off"
   end
 
   test "redirects to a navigational last visited tool path" do

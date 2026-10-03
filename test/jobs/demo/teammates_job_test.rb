@@ -26,7 +26,8 @@ class Demo::TeammatesJobTest < ActiveJob::TestCase
 
     here = broadcasts(PresenceChannel.broadcasting_for(@chat_tool)).map { |message| ActiveSupport::JSON.decode(message) }.last
     assert_equal({ "type" => "here", "context" => nil, "hello" => false, "tool_id" => @chat_tool.id }, here.slice("type", "context", "hello", "tool_id"))
-    assert_equal({ "id" => @marcus.id, "name" => "Marcus Rivera", "initials" => "MR", "avatar_url" => nil }, here["user"])
+    assert_equal({ "id" => @marcus.id, "name" => "Marcus Rivera", "initials" => "MR", "avatar_url" => nil,
+                   "avatar_look" => @marcus.avatar_look.stringify_keys }, here["user"])
   end
 
   test "Marcus welcomes the visitor in the chat, mentioning them" do

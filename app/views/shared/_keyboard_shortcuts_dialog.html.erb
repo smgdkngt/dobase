@@ -12,11 +12,17 @@
       <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Global</h3>
       <div class="shortcut-list">
         <%= render "shared/shortcut_row", key: "?", description: "Show keyboard shortcuts" %>
-        <%= render "shared/shortcut_row", key: "\u2318K", description: "Jump to tool" %>
+        <%= render "shared/shortcut_row", key: launcher_key, description: (@workspace || tile? ? "Open the menu: your tools, and search" : "Jump to tool") %>
         <%= render "shared/shortcut_row", key: "b", description: "Notifications" %>
+        <%= render "shared/shortcut_row", key: "← → ↑ ↓", description: "Go through what is on the page" %>
+        <%= render "shared/shortcut_row", key: "Home / End", description: "As far as it goes, up or down" %>
+        <%= render "shared/shortcut_row", key: "Page Up / Down", description: "About a screen up or down" %>
       </div>
     </div>
 
     <%= content_for(:keyboard_shortcuts) %>
+
+    <%# In a tile: the keys of the workspace around it %>
+    <%= render "workspaces/shortcuts" if tile? %>
   </div>
 </dialog>

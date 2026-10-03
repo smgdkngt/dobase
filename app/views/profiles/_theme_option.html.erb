@@ -10,6 +10,7 @@
   html_options = {
     type: "submit", name: "theme", value: theme&.name.to_s, disabled: custom || nil,
     class: [ "theme-option", ("theme-option-selected" if selected) ],
+    data: { appearance_target: "option" },
     aria: { pressed: selected, label: "#{label} theme" }
   }.compact
 %>
@@ -39,7 +40,7 @@
   <% end %>
   <span class="theme-option-label">
     <span class="truncate"><%= label %></span>
-    <% if selected %><%= render "shared/icon", name: "check", size: 14, class: "text-accent shrink-0" %><% end %>
+    <%= render "shared/icon", name: "check", size: 14, class: "theme-option-check" %>
   </span>
   <span class="theme-option-hint"><%= hint %></span>
 <% end %>

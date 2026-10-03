@@ -12,10 +12,14 @@ export default class extends Controller {
   // ── Open item (double-click) ──
 
   // Tiles open on double-click with a mouse; Enter does it from the keyboard.
+  // On a file or a folder: Enter opens it, the space bar picks it (or lets it go)
+  // beside whatever else is picked, the way a click with Command or Control does
   openItemKey(event) {
-    if (event.key !== "Enter") return
+    if (event.target !== event.currentTarget || (event.key !== "Enter" && event.key !== " ")) return
     event.preventDefault()
-    this.openItem(event)
+    if (event.key === "Enter") return this.openItem(event)
+
+    event.currentTarget.dispatchEvent(new MouseEvent("click", { bubbles: true, ctrlKey: true }))
   }
 
   openItem(event) {

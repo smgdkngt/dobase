@@ -1,0 +1,36 @@
+<%# The keys of the tiling workspace, for the shortcuts dialog of the workspace itself
+    and of every page that is a tile in it %>
+<div>
+  <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Workspace</h3>
+  <div class="shortcut-list">
+    <%= render "shared/shortcut_row", key: "Shift+Enter", description: "In the menu: open in a new tile, even if the tool is open" %>
+    <%= render "shared/shortcut_row", key: (mac? ? "Opt-click" : "Alt-click"), description: "Open a link in a new tile" %>
+    <%= render "shared/shortcut_row", key: mod_key("K", shift: true), description: "Actions for the tool in this tile" %>
+    <%= render "shared/shortcut_row", key: "← → ↑ ↓", description: "Past the edge of a tool: on to the tile on that side" %>
+    <%= render "shared/shortcut_row", key: workspace_key("← → ↑ ↓"), description: "Go to the tile on that side, from anywhere" %>
+    <%= render "shared/shortcut_row", key: workspace_key("← → ↑ ↓", shift: true), description: "Move the tile that way" %>
+    <%= render "shared/shortcut_row", key: workspace_key("1–9"), description: "Go to a desktop" %>
+    <%= render "shared/shortcut_row", key: workspace_key("1–9", shift: true), description: "Take the tile to a desktop" %>
+    <%= render "shared/shortcut_row", key: workspace_key("Plus / Minus"), description: "Make the tile bigger or smaller" %>
+    <%= render "shared/shortcut_row", key: workspace_key("F"), description: "Show the tile alone, and back" %>
+    <%= render "shared/shortcut_row", key: workspace_key("W"), description: "Close the tile" %>
+    <%= render "shared/shortcut_row", key: workspace_key("M"), description: "Open the menu, as #{launcher_key} does" %>
+    <%= render "shared/shortcut_row", key: workspace_key("R"), description: "Reload the tile" %>
+    <%= render "shared/shortcut_row", key: "F6", description: "Go to the next tile" %>
+  </div>
+  <p class="mt-2 text-xs text-text-tertiary">Every one of these is in the menu too: type what you want to do.</p>
+
+  <%# Taken on some machines (a window manager, a screen reader): each browser picks %>
+  <label class="workspace-keys-choice">
+    <span>
+      <span class="block text-sm text-text-primary">These keys go with</span>
+      <span class="block text-xs text-text-tertiary">Pick another when they clash with shortcuts you already have. It is kept in this browser.</span>
+    </span>
+    <%# Each choice with how a key written with it begins ("Ctrl+Opt+", "Alt+"): the keys
+        this page names are rewritten by it (services/workspace_keys.js) %>
+    <%= select_tag :workspace_keys,
+          options_for_select(workspace_modifiers.map { |value, (keys, name)| [ name, value, { data: { prefix: "#{keys}+" } } ] }, workspace_modifier),
+          id: nil, class: "input w-auto", aria: { label: "What the workspace's keys go with" },
+          data: { controller: "workspace-keys", action: "change->workspace-keys#choose" } %>
+  </label>
+</div>

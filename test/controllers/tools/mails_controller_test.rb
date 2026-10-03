@@ -410,6 +410,8 @@ module Tools
       # First in this collaborator's own sidebar, so the dashboard lands on it.
       tool.collaborators.create!(user: users(:two), role: "collaborator").update!(sidebar_position: -1)
       sign_in_as users(:two)
+      # As a phone gets it; for a wide window the dashboard goes to the workspace
+      cookies[:workspace] = "off"
 
       get root_path
       3.times { follow_redirect! if response.redirect? }

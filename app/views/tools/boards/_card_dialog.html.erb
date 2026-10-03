@@ -1,0 +1,13 @@
+<%# The dialog a card's details open in. Empty on the board, which fetches the card
+    that is opened (board#openCard). With `card` it is drawn with that card in it. %>
+<% card = local_assigns[:card] %>
+<dialog id="card-detail-modal"
+        aria-label="Card details"
+        class="modal-dialog"
+        style="max-width: 56rem;"
+        data-controller="modal"
+        data-board-target="cardDetailDialog">
+  <%= tag.div data: { board_target: "cardModal", drawn: card&.id } do %>
+    <%= render template: "tools/boards/cards/show" if card %>
+  <% end %>
+</dialog>

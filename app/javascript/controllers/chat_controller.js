@@ -2,6 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import { formatFileSize } from "services/file_size"
 import { api } from "services/api"
 import consumer from "channels/consumer"
+import { play, unseen } from "services/sound"
 
 export default class extends Controller {
   static targets = ["messages", "typingIndicator", "fileInput", "filePreview", "form", "replyPreview", "replyToId", "replyAuthor", "replyContent", "onlineIndicator", "imagePreviewTemplate", "filePreviewTemplate", "olderMessages", "olderMessagesTrigger", "olderMessagesPlaceholder"]
@@ -186,8 +187,20 @@ export default class extends Controller {
       // Anything else (a message, an edit, a reaction, a removal) keeps a reader who is at
       // the newest message there, and leaves one who scrolled up to read where they are.
       const follow = this.atNewestMessage
+      this.hearNewMessage(streamElement)
       fallback(streamElement)
       if (follow) setTimeout(() => this.scrollToBottom(), 50)
+    }
+  }
+
+  // Someone else's message arriving while you look at the chat. One you aren't looking
+  // at is a notification, which has a sound of its own (notifications_controller.js).
+  hearNewMessage(streamElement) {
+    if (unseen() || streamElement.getAttribute("action") !== "append" || streamElement.getAttribute("target") !== "chat_messages") return
+
+    const message = streamElement.templateContent.querySelector("[data-message-id]")
+    if (message && Number(message.dataset.messageUserIdValue) !== this.userIdValue) {
+      play("receive", { once: `message-${message.dataset.messageId}` })
     }
   }
 
@@ -227,7 +240,16 @@ export default class extends Controller {
     if (!this.hasMessagesTarget) return
 
     this.followsNewest = true
-    this.boundScrolled = () => { this.followsNewest = this.atNewestMessage }
+    this.lastTop = this.messagesTarget.scrollTop
+    // Only a reader going up stops it. A scroll is heard a frame after it happened, and
+    // by then the message box may have taken its height off the end of the list: the
+    // list is no longer at its end, but nobody scrolled away from it.
+    this.boundScrolled = () => {
+      const top = this.messagesTarget.scrollTop
+      if (this.atNewestMessage) this.followsNewest = true
+      else if (top < this.lastTop) this.followsNewest = false
+      this.lastTop = top
+    }
     this.messagesTarget.addEventListener("scroll", this.boundScrolled, { passive: true })
 
     this.settling = new ResizeObserver(() => { if (this.followsNewest) this.scrollToBottom() })
@@ -335,6 +357,45 @@ export default class extends Controller {
 
   focusInput() {
     this.#editor?.commands.focus()
+  }
+
+  // The keyboard in the messages
+  //
+  // The arrow keys go from message to message (arrow_keys_controller.js). Up from an
+  // empty message box gets there, and down past the newest message comes back.
+  composerKey(event) {
+    if (event.key !== "ArrowUp" || !this.#editor?.isEmpty) return
+
+    const messages = this.messagesTarget.querySelectorAll("[data-controller~='message']")
+    const newest = messages[messages.length - 1]
+    if (!newest) return
+
+    event.preventDefault()
+    if (!newest.hasAttribute("tabindex")) newest.tabIndex = -1
+    newest.focus()
+  }
+
+  // On the message itself, not in something inside it: r replies, e edits your own,
+  // Delete deletes what you may delete
+  messageKey(event) {
+    if (event.target !== event.currentTarget || event.metaKey || event.ctrlKey || event.altKey) return
+
+    const message = event.currentTarget
+    const press = (selector) => {
+      const control = message.querySelector(selector)
+      if (!control || control.closest(".hidden")) return
+      event.preventDefault()
+      control.click()
+    }
+
+    if (event.key === "r") {
+      event.preventDefault()
+      this.startReply(event)
+    } else if (event.key === "e") {
+      press("[data-message-edit] a")
+    } else if (event.key === "Delete" || event.key === "Backspace") {
+      press("[data-message-delete] a")
+    }
   }
 
   // Form submission

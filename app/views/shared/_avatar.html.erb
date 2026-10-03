@@ -10,16 +10,18 @@
     user: User object (will use avatar or generate initials from name)
     agent: true for something an agent posted on the user's behalf (a bot, not their face)
     initials: Custom initials (used if no user provided)
-    size: :sm, :md (default), :lg, :xl, :"2xl"
+    size: :xs (on a card or a row), :sm, :md (default), :lg, :xl, :"2xl"
     class: Additional CSS classes
 %>
 <%
   user = local_assigns[:user] unless local_assigns[:agent]
   initials = local_assigns[:initials]
-  size = local_assigns[:size] || :md
+  # (a size may come as a string: "2xl")
+  size = (local_assigns[:size] || :md).to_sym
   extra_class = local_assigns[:class] || ""
 
   size_classes = {
+    xs: "avatar-xs",
     sm: "avatar-sm",
     md: "avatar-md",
     lg: "avatar-lg",
@@ -36,18 +38,21 @@
     else
       has_image = false
       initials = "#{user.first_name[0]}#{user.last_name[0]}".upcase
+      # Their own colours and shape behind the letters (User#avatar_look)
+      look = user.avatar_look
     end
   else
     has_image = false
     initials ||= "?"
   end
 %>
-<div class="avatar <%= size_classes[size] %> <%= extra_class %>">
+<%= tag.div class: [ "avatar", size_classes[size], extra_class.presence ],
+      data: (look ? { avatar_hue: look[:hue], avatar_second: look[:second], avatar_pattern: look[:pattern] } : nil) do %>
   <% if local_assigns[:agent] %>
-    <%= render "shared/icon", name: "bot", size: { sm: 14, md: 18, lg: 22, xl: 24, "2xl": 32 }[size], label: "Agent" %>
+    <%= render "shared/icon", name: "bot", size: { xs: 12, sm: 14, md: 18, lg: 22, xl: 24, "2xl": 32 }[size], label: "Agent" %>
   <% elsif has_image %>
     <%= image_tag image_url, alt: user&.name || "Avatar", class: "w-full h-full object-cover" %>
   <% else %>
     <span><%= initials %></span>
   <% end %>
-</div>
+<% end %>

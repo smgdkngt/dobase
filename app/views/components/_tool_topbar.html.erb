@@ -22,7 +22,8 @@
   <div class="flex items-center gap-2 flex-1 min-w-0">
     <% if local_assigns[:back_path] %>
       <%= link_to back_path, class: "p-1.5 -ml-1.5 text-text-tertiary hover:text-text-primary rounded-lg hover:bg-background-tertiary transition-colors",
-            title: local_assigns[:back_label] || "Back", "aria-label": local_assigns[:back_label] || "Back" do %>
+            title: local_assigns[:back_label] || "Back", "aria-label": local_assigns[:back_label] || "Back",
+            data: { arrow_keys_target: "back" } do %>
         <%= render "shared/icon", name: "arrow-left", size: 18 %>
       <% end %>
     <% end %>

@@ -13,6 +13,12 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "the avatar on the profile form is the big one" do
+    get edit_profile_path
+
+    assert_select ".avatar.avatar-2xl[data-avatar-hue]"
+  end
+
   test "the profile page has a title, the profile dialog needs none" do
     get edit_profile_path
     assert_select "title", "Profile - Dobase"

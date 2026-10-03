@@ -2,6 +2,14 @@
 
 class DashboardController < ApplicationController
   def index
+    # A tile has no "where you were" to go back to: one that ends up here (its tool
+    # was deleted, or isn't yours any more) is dealt with by the workspace
+    return if tile?
+
+    # A wide window works in the tiling workspace. A phone never does, and neither
+    # does a window the workspace itself found too narrow (it says so with ?one).
+    return redirect_to workspace_path if workspace_wanted? && !phone? && params[:one].blank?
+
     # Redirect to last visited tool path if it's a navigational page the user
     # can still reach. Skip download endpoints — a stale one would otherwise
     # bounce the user straight into a file download on every visit.
@@ -26,5 +34,14 @@ class DashboardController < ApplicationController
     end
 
     # No tools — show empty state
+  end
+
+  private
+
+  # Without a pattern that looks for one word after another: a long made-up user
+  # agent would keep such a pattern busy
+  def phone?
+    agent = request.user_agent.to_s
+    agent.match?(/iPhone|iPod|Windows Phone/) || (agent.include?("Android") && agent.include?("Mobile"))
   end
 end

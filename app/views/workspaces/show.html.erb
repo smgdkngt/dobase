@@ -1,0 +1,126 @@
+<% content_for :title, app_name %>
+<%# Not kept by Turbo for the back button: a copy of this page would hold copies of the
+    frames, which load their first page again %>
+<% content_for :head do %>
+  <meta name="turbo-cache-control" content="no-cache">
+  <%# A window too narrow for tiles (a phone, a small tablet) shows one tool the usual
+      way: the one you were on here, before anything is drawn (workspace_gate.js) %>
+  <%= javascript_include_tag "workspace_gate",
+        data: { narrow: root_path(one: 1), storage_key: "dobase:workspace:#{current_user.id}",
+                tools: current_user.accessible_tools.ids.join(" ") } %>
+<% end %>
+
+<% content_for :keyboard_shortcuts do %>
+  <%= render "workspaces/shortcuts" %>
+<% end %>
+
+<%# Every tool you open here is a tile, and the tiles arrange themselves
+    (workspace_controller.js). A tile is the tool's own page in a frame. %>
+<div class="workspace tool-layout"
+     data-controller="workspace"
+     data-workspace-user-id-value="<%= current_user.id %>"
+     data-workspace-app-name-value="<%= app_name %>"
+     data-workspace-start-value="<%= @start_path %>">
+  <header class="workspace-bar">
+    <div class="workspace-bar-side">
+      <button type="button" class="workspace-bar-btn" title="Menu (<%= launcher_key %>)"
+              aria-label="Menu" aria-expanded="false" aria-controls="sidebar"
+              data-workspace-target="menu"
+              data-action="click->mobile-sidebar#toggle click->workspace#menuAsked">
+        <%# As large as a desktop's button beside it, with its corners %>
+        <%= render "shared/logo", class: "w-6 h-6 rounded-md" %>
+      </button>
+
+      <nav class="workspace-desks" aria-label="Desktops" data-workspace-target="desks"></nav>
+      <%# What is on a desktop by name, while the pointer rests on its button: to go
+          straight to one of its tiles, or close one from here %>
+      <div class="workspace-desk-card" popover="manual" data-workspace-target="deskCard"
+           data-action="pointerenter->workspace#keepDeskCard pointerleave->workspace#hideDeskCardSoon"></div>
+    </div>
+
+    <p class="workspace-bar-title" data-workspace-target="title"></p>
+
+    <div class="workspace-bar-side justify-end">
+      <% unread_count = current_user.notifications.unread.count %>
+      <div class="relative flex"
+           data-controller="notifications"
+           data-notifications-user-id-value="<%= current_user.id %>"
+           data-notifications-app-name-value="<%= app_name %>"
+           data-notifications-unread-count-value="<%= unread_count %>"
+           data-notifications-unread-mail-count-value="<%= current_user.unread_mail_count %>">
+        <button type="button" class="workspace-bar-btn relative"
+                aria-label="Notifications"
+                popovertarget="sidebar-notifications"
+                style="anchor-name: --workspace-notifications-btn"
+                data-notifications-target="trigger"
+                data-action="click->notifications#togglePopover">
+          <%= render "shared/icon", name: "bell", size: 16 %>
+          <span class="absolute -top-0.5 -right-0.5 badge badge-sm <%= "hidden" if unread_count.zero? %>"
+                aria-hidden="true"
+                data-notifications-target="badge"><%= unread_count %></span>
+        </button>
+      </div>
+
+      <button type="button" class="workspace-bar-btn"
+              aria-label="Account menu for <%= current_user.name %>"
+              aria-haspopup="menu"
+              popovertarget="sidebar-user-menu"
+              style="anchor-name: --workspace-user-btn">
+        <%= render "shared/avatar", user: current_user, size: :sm %>
+      </button>
+    </div>
+
+    <%# What happened to the tiles, for whoever can't see it happen %>
+    <%# Left alone when the page around the tiles is drawn again: what it says stays said %>
+    <p class="sr-only" id="workspace-status" role="status" data-turbo-permanent data-workspace-target="status"></p>
+  </header>
+
+  <%# Shown until it is dismissed, once per browser: what is different here. Before the
+      tiles, so the Tab key gets to it before it goes through every one of them. %>
+  <aside class="workspace-hint" hidden data-workspace-target="hint" aria-label="About the workspace">
+    <p>
+      Every tool you open is a tile here, and the tiles share the window.
+      <kbd class="shortcut-key"><%= launcher_key %></kbd> opens the menu, <kbd class="shortcut-key">?</kbd> lists the shortcuts.
+    </p>
+    <%= render "components/button", text: "Got it", size: :sm, variant: :secondary, type: :button,
+          data: { action: "click->workspace#dismissHint" } %>
+  </aside>
+
+  <%# (kept out of the arrow keys of this page: a tile's own page has them) %>
+  <div class="workspace-room" data-arrow-keys-skip>
+    <div class="workspace-tiles" id="workspace-tiles" data-turbo-permanent data-workspace-target="tiles"></div>
+
+    <%# Outside what Turbo leaves alone: someone's first tool changes what it says %>
+    <div class="workspace-empty" data-workspace-target="empty" hidden>
+      <% if @start_path %>
+        <div class="workspace-empty-hints">
+          <%= render "components/empty_state", title: "Nothing open on this desktop", icon: "grid-2x2",
+                description: "Open a tool, and the next one tiles beside it." %>
+          <dl class="workspace-keys">
+            <div><dt><kbd class="shortcut-key"><%= launcher_key %></kbd></dt><dd>Open the menu: your tools, and search</dd></div>
+            <div><dt><kbd class="shortcut-key"><%= workspace_key("1–9") %></kbd></dt><dd>Go to a desktop</dd></div>
+            <div><dt><kbd class="shortcut-key">?</kbd></dt><dd>Show all shortcuts</dd></div>
+          </dl>
+        </div>
+      <% else %>
+        <%# Nothing to open yet: the same welcome as without the workspace %>
+        <%= render template: "dashboard/index" %>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Where a tile's dialog floats over all of them (services/float.js): a frame as
+      large as the window that shows only that dialog. Left alone when the page
+      around the tiles is drawn again. %>
+  <div class="workspace-float" id="workspace-float" hidden data-turbo-permanent
+       data-workspace-target="float" data-action="click->workspace#unfloatByClick"></div>
+
+  <template data-workspace-target="tileTemplate">
+    <section class="workspace-tile" aria-label="Tile">
+      <div class="workspace-tile-controls">
+        <%= render "components/icon_button", icon: "x", title: "Close this tile (#{workspace_key("W")})", size: :sm,
+              data: { action: "click->workspace#closeTile" } %>
+      </div>
+    </section>
+  </template>
+</div>
