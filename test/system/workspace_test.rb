@@ -736,6 +736,57 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_no_selector ".workspace-desk-tool[data-in-call]"
   end
 
+  test "a desktop can be given a name, which the bar shows and the browser keeps" do
+    find(".workspace-desk[data-desk='1']").hover
+    within ".workspace-desk-card" do
+      find("button[aria-label='Rename desktop 1']", text: /desktop 1/i).click
+      field = find("input[aria-label='Name of desktop 1']")
+      field.send_keys("Launch", :enter)
+    end
+    assert_selector ".workspace-desk[data-desk='1'] .workspace-desk-name", text: "Launch"
+    assert_selector ".workspace-desk[data-desk='1'][aria-label^='Desktop 1, Launch: ']"
+    assert_no_selector ".workspace-desk-card input", visible: :all
+
+    # Kept for the next time the workspace opens
+    visit workspace_path
+    wait_for_stimulus "workspace"
+    assert_selector ".workspace-desk[data-desk='1'] .workspace-desk-name", text: "Launch"
+
+    # A double click on it in the bar asks too; Escape leaves the name as it was
+    find(".workspace-desk[data-desk='1']").double_click
+    field = find(".workspace-desk-card input[aria-label='Name of desktop 1']")
+    assert_equal "Launch", field.value
+    field.send_keys("ed", :escape)
+    assert_no_selector ".workspace-desk-card input", visible: :all
+    assert_selector ".workspace-desk[data-desk='1'] .workspace-desk-name", text: /\ALaunch\z/
+
+    # From the menu's search, for the desktop you are on. An empty name makes it a number again.
+    find(".workspace-bar-btn[aria-label='Menu']").click
+    within MENU_SEARCH do
+      input = find("input[data-command-palette-target='input']")
+      input.set("rename")
+      assert_selector ".command-palette-item.selected", text: "Rename this desktop"
+      input.send_keys(:enter)
+    end
+    field = find(".workspace-desk-card input[aria-label='Name of desktop 1']")
+    page.document.synchronize do
+      raise Capybara::ExpectationNotMet, "the keyboard isn't in the name" unless page.evaluate_script("document.activeElement.matches(\"input[aria-label='Name of desktop 1']\")")
+    end
+    field.send_keys([ mac? ? :meta : :control, "a" ], :backspace, :enter)
+    assert_no_selector ".workspace-desk-name"
+    assert_selector ".workspace-desk[data-desk='1'][aria-label^='Desktop 1: ']"
+  end
+
+  test "a desktop with a name stays in the bar while nothing is open on it" do
+    press "3"
+    assert_selector ".workspace-desk[data-desk='3'][aria-current='true']"
+    find(".workspace-desk[data-desk='3']").double_click
+    find(".workspace-desk-card input[aria-label='Name of desktop 3']").send_keys("Later", :enter)
+    press "1"
+    assert_selector ".workspace-desk[data-desk='3'] .workspace-desk-name", text: "Later"
+    assert_selector ".workspace-desk[data-desk='3'][aria-label='Desktop 3, Later, nothing open']"
+  end
+
   test "the desktops in the bar show which tools are on them" do
     launch @files
     assert_selector ".workspace-desk[aria-current='true'] .workspace-desk-icon", count: 2

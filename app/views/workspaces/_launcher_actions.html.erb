@@ -11,7 +11,8 @@
     [ "Go to the tile below", "down", "arrow-down", workspace_key("↓") ],
     [ "Make the tile bigger", "grow", "plus", workspace_key("Plus") ],
     [ "Make the tile smaller", "shrink", "minus", workspace_key("Minus") ],
-    [ "Reload the tile", "reload", "refresh-cw", workspace_key("R") ]
+    [ "Reload the tile", "reload", "refresh-cw", workspace_key("R") ],
+    [ "Rename this desktop", "rename", "edit", nil ]
   ]
 %>
 <div class="px-4 py-1.5 hidden" data-command-palette-target="sectionHeader" data-section="workspace">
@@ -29,7 +30,7 @@
           data-command="<%= command %>">
     <%= render "shared/icon", name: icon, size: 18, class: "text-text-secondary" %>
     <span class="flex-1 truncate"><%= description %></span>
-    <kbd class="shortcut-key"><%= key %></kbd>
+    <% if key %><kbd class="shortcut-key"><%= key %></kbd><% end %>
   </button>
 <% end %>
 <% (1..9).each do |desk| %>
