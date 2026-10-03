@@ -240,7 +240,16 @@ export default class extends Controller {
     if (!this.hasMessagesTarget) return
 
     this.followsNewest = true
-    this.boundScrolled = () => { this.followsNewest = this.atNewestMessage }
+    this.lastTop = this.messagesTarget.scrollTop
+    // Only a reader going up stops it. A scroll is heard a frame after it happened, and
+    // by then the message box may have taken its height off the end of the list: the
+    // list is no longer at its end, but nobody scrolled away from it.
+    this.boundScrolled = () => {
+      const top = this.messagesTarget.scrollTop
+      if (this.atNewestMessage) this.followsNewest = true
+      else if (top < this.lastTop) this.followsNewest = false
+      this.lastTop = top
+    }
     this.messagesTarget.addEventListener("scroll", this.boundScrolled, { passive: true })
 
     this.settling = new ResizeObserver(() => { if (this.followsNewest) this.scrollToBottom() })
