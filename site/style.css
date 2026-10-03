@@ -334,28 +334,23 @@ img, svg {
   position: relative;
   width: 100%;
   margin-top: clamp(2.5rem, 5vw, 4rem);
-  aspect-ratio: 1290 / 856;
+  aspect-ratio: 16 / 9;
 }
 
-.hero-screenshot {
+/* The workspace at work, playing by itself */
+.hero-film {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0;
-  transform: scale(1.02);
-  transition: opacity 1s ease, transform 1s ease;
-  will-change: opacity, transform;
-}
-
-.hero-screenshot.active {
-  opacity: 1;
-  transform: scale(1.0);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--screenshot-shadow);
+  background: var(--bg-elevated);
 }
 
 
-/* The app in the theme picked further down, in place of the tour */
+/* The app in the theme picked further down, in place of the film */
 .hero-theme-shot {
   position: absolute;
   inset: 0;
@@ -367,11 +362,11 @@ img, svg {
   box-shadow: var(--screenshot-shadow);
 }
 
-:root[data-theme] .hero-screenshot {
+:root[data-theme] .hero-film {
   display: none;
 }
 
-/* The themed picture is the app's window itself, a little wider than the tour's */
+/* The themed picture is the app's window itself, a little taller than the film */
 :root[data-theme] .hero-screenshots {
   aspect-ratio: 1920 / 1200;
 }
@@ -923,6 +918,23 @@ img, svg {
   height: auto;
   border-radius: var(--radius-lg);
   box-shadow: var(--screenshot-shadow);
+}
+
+/* The film of the workspace, to be started */
+.tiling-film {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--screenshot-shadow);
+  background: var(--bg-elevated);
+}
+
+.tiling-note {
+  margin-top: clamp(1.5rem, 4vh, 2.5rem);
+  font-size: 0.875rem;
+  color: var(--text-tertiary);
 }
 
 .theme-figure figcaption {

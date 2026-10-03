@@ -8,8 +8,8 @@
 
   <!-- Open Graph -->
   <meta property="og:title" content="Dobase — Your workspace, your server">
-  <meta property="og:description" content="Open-source, self-hosted workspace with 8 installable tools. Mail, boards, docs, chat, todos, files, calendar, and video rooms. Deploy with ONCE, Kamal, or Docker.">
-  <meta property="og:image" content="https://dobase.co/screenshots/board-launch.png">
+  <meta property="og:description" content="Open-source, self-hosted workspace with 8 installable tools, tiled side by side in one window. Mail, boards, docs, chat, todos, files, calendar, and video rooms. Deploy with ONCE, Kamal, or Docker.">
+  <meta property="og:image" content="https://dobase.co/screenshots/workspace.png">
   <meta property="og:url" content="https://dobase.co">
   <meta property="og:type" content="website">
 
@@ -17,7 +17,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Dobase — Your workspace, your server">
   <meta name="twitter:description" content="Open-source, self-hosted workspace with 8 installable tools. Deploy with ONCE, Kamal, or Docker.">
-  <meta name="twitter:image" content="https://dobase.co/screenshots/board-launch.png">
+  <meta name="twitter:image" content="https://dobase.co/screenshots/workspace.png">
 
   <link rel="canonical" href="https://dobase.co/">
   <link rel="stylesheet" href="style.css">
@@ -41,7 +41,7 @@
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Linux, Docker",
         "license": "https://opensource.org/licenses/MIT",
-        "image": "https://dobase.co/screenshots/board-launch.png",
+        "image": "https://dobase.co/screenshots/workspace.png",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
         "sameAs": ["https://github.com/smgdkngt/dobase"]
       }
@@ -78,7 +78,7 @@
       <div class="hero-center">
         <h1>One workspace.<br><span class="hero-accent">Your server.</span></h1>
         <p class="hero-subtitle">
-          Open-source app that replaces your scattered SaaS tools with a single self-hosted workspace. Mail, boards, docs, chat, and more &mdash; all under your control.
+          Open-source app that replaces your scattered SaaS tools with a single self-hosted workspace. Mail, boards, docs, chat, and more &mdash; side by side in one window, all under your control.
         </p>
         <div class="hero-actions">
           <a href="https://demo.dobase.co" class="btn btn-primary">Try the demo</a>
@@ -90,23 +90,47 @@
         <p class="hero-note">The demo needs no account. Your workspace is removed after a day.</p>
       </div>
       <div class="hero-screenshots" aria-hidden="true">
-        <img src="screenshots/board-launch.png" alt="Kanban board with cards, due dates, and assignees" class="hero-screenshot" loading="eager">
-        <img src="screenshots/docs-together.png" alt="A document two people are writing at once, with the other person's cursor and name" class="hero-screenshot" loading="lazy">
-        <img src="screenshots/search.png" alt="The command palette searching cards, todos, documents, chat, events and mail at once" class="hero-screenshot" loading="lazy">
-        <img src="screenshots/mail.png" alt="Email client with threaded conversations" class="hero-screenshot" loading="lazy">
-        <img src="screenshots/chat.png" alt="Real-time team chat with file sharing and replies" class="hero-screenshot" loading="lazy">
-        <img src="screenshots/presence.png" alt="A board showing which card a colleague has open" class="hero-screenshot" loading="lazy">
-        <img src="screenshots/calendar.png" alt="Weekly calendar view with events" class="hero-screenshot" loading="lazy">
-        <img src="screenshots/file-markdown.png" alt="A markdown file shown as a formatted document in Files" class="hero-screenshot" loading="lazy">
-        <img src="screenshots/todos.png" alt="Task lists with due dates and assignments" class="hero-screenshot" loading="lazy">
-        <img src="screenshots/card-presence.png" alt="A card that says a colleague has it open and is writing a comment" class="hero-screenshot" loading="lazy">
-        <img src="screenshots/files.png" alt="File storage with folders and selection" class="hero-screenshot" loading="lazy">
-        <img src="screenshots/file-code.png" alt="A code file with syntax highlighting in Files" class="hero-screenshot" loading="lazy">
-        <img src="screenshots/add-tool.png" alt="Add any tool to your workspace" class="hero-screenshot" loading="lazy">
-        <img src="screenshots/collaborators-4.png" alt="Invite collaborators to share tools" class="hero-screenshot" loading="lazy">
-        <!-- With a theme picked below, the app in that theme takes the place of the tour -->
+        <!-- The workspace at work: tools opening as tiles, moved about with the keyboard -->
+        <video class="hero-film" data-hero-film autoplay muted loop playsinline preload="metadata"
+               poster="screenshots/tiling-loop-poster.jpg" width="1600" height="900">
+          <source src="tiling-loop.mp4" type="video/mp4">
+        </video>
+        <!-- With a theme picked below, the app in that theme takes the place of the film -->
         <img data-theme-hero class="hero-theme-shot" alt="" hidden>
       </div>
+    </div>
+  </section>
+
+  <!-- Tiling -->
+  <section id="tiling" class="themes-section tiling-section">
+    <div class="page-width">
+      <div class="themes-intro">
+        <h2>Your tools, tiled.</h2>
+        <p>Your desktop tiles its windows. Dobase does the same with its tools: every one you open is a tile, and the tiles arrange themselves. The chat sits next to the board, the calendar under your mail, and nothing hides behind a tab.</p>
+      </div>
+
+      <figure class="theme-figure">
+        <video class="tiling-film" controls playsinline preload="none" poster="screenshots/tiling-poster.jpg" width="1920" height="1080">
+          <source src="tiling.mp4" type="video/mp4">
+        </video>
+        <figcaption>The workspace in under a minute, with sound</figcaption>
+      </figure>
+
+      <div class="themes-points">
+        <div class="themes-point">
+          <h3>Hands on the keyboard</h3>
+          <p><kbd>Alt</kbd> with the arrows or <kbd>H</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> goes to a tile, with <kbd>Shift</kbd> the tile moves. One key shows a tile alone, another gives it more room. On a Mac they go with Control and Option, or with a pair you pick yourself.</p>
+        </div>
+        <div class="themes-point">
+          <h3>Nine desktops</h3>
+          <p>The launch on one desktop, your mail on another. The bar shows what is open where, with a dot where something is new and one where a call is on.</p>
+        </div>
+        <div class="themes-point">
+          <h3>Arrows in every tool</h3>
+          <p>From card to card, row to row, into dialogs and menus, and on to the tile beside it. A card's or an event's details float over all the tiles, the way a dialog does on a tiled desktop.</p>
+        </div>
+      </div>
+      <p class="tiling-note">In a narrow window and on a phone it is one tool at a time.</p>
     </div>
   </section>
 
@@ -184,7 +208,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="4" height="16" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><rect x="18" y="4" width="4" height="16" rx="1"/></svg>
             <div>
               <h4>Keyboard first</h4>
-              <p>Every tool ships with a full set of shortcuts and a <kbd>?</kbd> overlay that lists them.</p>
+              <p>The arrow keys work in every tool, each has a full set of shortcuts, and a <kbd>?</kbd> overlay lists them.</p>
             </div>
           </div>
 
@@ -193,6 +217,14 @@
             <div>
               <h4>Notifications & @mentions</h4>
               <p>Mention someone and they hear about it. Activity dots show what's new since your last visit, pushed live — and an email digest for when you're away.</p>
+            </div>
+          </div>
+
+          <div class="feature-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></svg>
+            <div>
+              <h4>Sounds</h4>
+              <p>A short, low tap for a message, a notification, new mail, a todo ticked off. Made in the browser, quiet by design, and off with one switch.</p>
             </div>
           </div>
 
@@ -304,9 +336,9 @@
       <figure class="theme-figure">
         <picture>
           <source data-theme-shot-dark srcset="screenshots/themes/dobase-dark.webp" media="(prefers-color-scheme: dark)">
-          <img data-theme-shot src="screenshots/themes/dobase-light.webp" width="1920" height="1200" alt="A board in Dobase, in its own look" loading="lazy">
+          <img data-theme-shot src="screenshots/themes/dobase-light.webp" width="1920" height="1200" alt="The Dobase workspace with four tools open, in its own look" loading="lazy">
         </picture>
-        <figcaption>A board in <span data-theme-name>Dobase</span></figcaption>
+        <figcaption>The workspace in <span data-theme-name>Dobase</span></figcaption>
       </figure>
 
       <div class="themes-points">
@@ -316,7 +348,7 @@
         </div>
         <div class="themes-point">
           <h3>Follows your desktop</h3>
-          <p>On <a href="https://omarchy.org">Omarchy</a>, Dobase switches along when you change the desktop's theme, themes you made yourself included. Pages you have open change colour on the spot.</p>
+          <p>On <a href="https://omarchy.org">Omarchy</a>, Dobase switches along when you change the desktop's theme, themes you made yourself included. Pages you have open change colour on the spot. Anywhere else, pick one theme for light and one for dark, and it follows your system.</p>
           <div class="code-window themes-code">
             <div class="code-body"><span class="prompt">$</span> <span class="cmd">dobase theme follow</span></div>
           </div>
@@ -507,17 +539,14 @@
   </footer>
 
   <script>
-    // Screenshot carousel — gentle scale + fade
+    // The film in the hero plays by itself. Not for whoever asked for less motion:
+    // there it waits, with its controls, to be started.
     (function () {
-      const shots = document.querySelectorAll('.hero-screenshot');
-      if (!shots.length) return;
-      let current = 0;
-      shots[0].classList.add('active');
-      setInterval(function () {
-        shots[current].classList.remove('active');
-        current = (current + 1) % shots.length;
-        shots[current].classList.add('active');
-      }, 5000);
+      var film = document.querySelector('[data-hero-film]');
+      if (!film || !window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      film.removeAttribute('autoplay');
+      film.pause();
+      film.controls = true;
     })();
   </script>
 
