@@ -612,9 +612,7 @@ class WorkspaceTest < ApplicationSystemTestCase
       TodoAssignmentNotifier.with(item: todo_items(:pending_one), assigner: colleague, tool: @todos).deliver(users(:one))
     end
     assert_selector ".workspace-bar [data-notifications-unread-count-value='#{unread + 2}']", visible: :all
-    page.document.synchronize do
-      raise Capybara::ExpectationNotMet, "the notification wasn't heard" unless page.evaluate_script("window.heardSounds") == %w[notify]
-    end
+    assert_heard_here "notify"
 
     # On another desktop the board is out of sight, and its link says so
     press "2"
@@ -639,9 +637,7 @@ class WorkspaceTest < ApplicationSystemTestCase
     perform_enqueued_jobs { chat.chat.messages.create!(user: colleague, body: "<p>Here</p>") }
     within_tile(1) do
       assert_selector ".chat-message", text: "Here"
-      page.document.synchronize do
-        raise Capybara::ExpectationNotMet, "the message wasn't heard in its chat" unless page.evaluate_script("window.heardSounds") == %w[receive]
-      end
+      assert_heard_here "receive"
     end
     assert_empty page.evaluate_script("window.heardSounds")
 
@@ -649,9 +645,7 @@ class WorkspaceTest < ApplicationSystemTestCase
     press "2"
     assert_no_selector "[data-tool-id='#{chat.id}'] [data-sidebar-tool-link][data-in-sight]", visible: :all
     perform_enqueued_jobs { chat.chat.messages.create!(user: colleague, body: "<p>Still there?</p>") }
-    page.document.synchronize do
-      raise Capybara::ExpectationNotMet, "the notification wasn't heard" unless page.evaluate_script("window.heardSounds") == %w[notify]
-    end
+    assert_heard_here "notify"
     chat_frame = "Array.from(document.querySelectorAll('.workspace-tile iframe')).find((frame) => frame.contentWindow.location.pathname.includes('/tools/#{chat.id}'))"
     assert_equal %w[receive], page.evaluate_script("#{chat_frame}.contentWindow.heardSounds")
   end
@@ -910,6 +904,15 @@ class WorkspaceTest < ApplicationSystemTestCase
   def mac? = page.evaluate_script("navigator.platform").match?(/Mac|iP/)
 
   # The keys that are the workspace's go with Alt, and on a Mac with Control and Option
+  # What this page (the workspace, or the tile the test is in) has played, in order.
+  # A job, a broadcast and a browser lie between the cause and the sound.
+  def assert_heard_here(*names)
+    page.document.synchronize(15) do
+      heard = page.evaluate_script("window.heardSounds")
+      raise Capybara::ExpectationNotMet, "expected to hear #{names.inspect}, heard #{heard.inspect}" unless heard == names
+    end
+  end
+
   def press(key, shift: false)
     held = mac? ? %i[control alt] : %i[alt]
     held << :shift if shift
