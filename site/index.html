@@ -98,7 +98,6 @@
               <source src="tiling.mp4" type="video/mp4">
             </video>
             <!-- With a theme picked below, the app in that theme takes the place of the film -->
-            <img data-theme-hero class="hero-theme-shot" alt="" hidden>
           </div>
         </div>
         <p class="film-caption">Recorded in the app itself, keyboard only. 54 seconds.</p>
@@ -583,11 +582,6 @@
           nav.toggleAttribute('data-on-stage', entries[0].isIntersecting);
         }, { rootMargin: '-57px 0px 0px 0px' }).observe(stage);
       }
-      // A theme picked below puts a picture in the film's place: it stops meanwhile
-      new MutationObserver(function () {
-        if (document.documentElement.hasAttribute('data-theme')) film.pause();
-        else if (film.autoplay) film.play();
-      }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     })();
   </script>
 

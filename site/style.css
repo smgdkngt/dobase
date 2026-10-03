@@ -539,28 +539,8 @@ img, svg {
 }
 
 
-/* The app in the theme picked further down, in place of the film */
-.hero-theme-shot {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: top left;
-}
-
-/* (hidden means gone: a picture without a source would draw its outline over the film) */
-.hero-theme-shot[hidden] {
-  display: none;
-}
-
-:root[data-theme] .hero-film,
-:root[data-theme] .film-sound,
-:root[data-theme] .film-caption {
-  display: none;
-}
-
-/* With a theme picked the stage wears it too, and the window shows the app in it */
+/* With a theme picked the stage wears it too. The film stays: the theme's own
+   picture is with the themes further down. */
 :root[data-theme] .hero-stage {
   --stage-text: var(--text);
   --stage-muted: var(--text-secondary);
@@ -611,11 +591,6 @@ img, svg {
 :root:not([data-theme]) .hero-stage .btn-primary:hover {
   background: #6ba1f9;
   box-shadow: 0 0 0 3px rgba(79, 143, 247, 0.25);
-}
-
-/* The themed picture is the app's window itself, a little taller than the film */
-:root[data-theme] .hero-screenshots {
-  aspect-ratio: 1920 / 1200;
 }
 
 
