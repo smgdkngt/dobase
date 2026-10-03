@@ -83,7 +83,7 @@
       shot.src = base + (current || "dobase-light") + suffix
       darkShot.srcset = base + (current || "dobase-dark") + suffix
       var theme = find(current)
-      shot.alt = "A board in Dobase, in " + (theme ? "the " + theme.label + " theme" : "its own look") + (typeface ? " and the monospace font" : "")
+      shot.alt = "The Dobase workspace with four tools open, in " + (theme ? "the " + theme.label + " theme" : "its own look") + (typeface ? " and the monospace font" : "")
       if (caption) caption.textContent = theme ? theme.label : "Dobase"
       // Up in the hero the tour of screenshots is in the app's own look; in a theme
       // the app in that theme stands there instead
