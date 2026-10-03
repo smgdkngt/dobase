@@ -50,7 +50,6 @@
     var shot = document.querySelector("[data-theme-shot]")
     var darkShot = document.querySelector("[data-theme-shot-dark]")
     var caption = document.querySelector("[data-theme-name]")
-    var hero = document.querySelector("[data-theme-hero]")
     var order = [ "" ].concat(themes.map(function (theme) { return theme.name }))
 
     function chip(name, label, swatch) {
@@ -85,12 +84,6 @@
       var theme = find(current)
       shot.alt = "The Dobase workspace with four tools open, in " + (theme ? "the " + theme.label + " theme" : "its own look") + (typeface ? " and the monospace font" : "")
       if (caption) caption.textContent = theme ? theme.label : "Dobase"
-      // Up in the hero the tour of screenshots is in the app's own look; in a theme
-      // the app in that theme stands there instead
-      if (hero) {
-        hero.hidden = !theme
-        if (theme) hero.src = base + current + suffix
-      }
 
       chips.querySelectorAll(".theme-chip").forEach(function (button) {
         var pressed = button.dataset.theme === current
