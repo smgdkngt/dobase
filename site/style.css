@@ -240,14 +240,15 @@ img, svg {
 
 /* --- Hero --- */
 .hero {
-  padding-top: clamp(6rem, 14vh, 9rem);
-  padding-bottom: 0;
+  padding-top: clamp(5rem, 11vh, 7rem);
+  padding-bottom: clamp(3.5rem, 8vh, 5.5rem);
 }
 
+/* Under the film: what it is, and where to get it */
 .hero-center {
   text-align: center;
   max-width: 640px;
-  margin: 0 auto;
+  margin: clamp(2.25rem, 5vh, 3.5rem) auto 0;
 }
 
 .hero h1 {
@@ -330,10 +331,11 @@ img, svg {
 
 
 /* --- Hero Screenshots --- */
+/* The film is the first thing on the page, no taller than leaves the headline in sight */
 .hero-screenshots {
   position: relative;
-  width: 100%;
-  margin-top: clamp(2.5rem, 5vw, 4rem);
+  width: min(100%, calc(62vh * 16 / 9));
+  margin-inline: auto;
   aspect-ratio: 16 / 9;
 }
 
@@ -362,7 +364,51 @@ img, svg {
   box-shadow: var(--screenshot-shadow);
 }
 
-:root[data-theme] .hero-film {
+/* The film's sound is off until it is asked for */
+.hero-sound {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(15, 16, 22, 0.72);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.hero-sound:hover {
+  background: rgba(15, 16, 22, 0.9);
+}
+
+.hero-sound svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.hero-sound[hidden] {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .hero-sound {
+    right: 0.5rem;
+    bottom: 0.5rem;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+  }
+}
+
+:root[data-theme] .hero-film,
+:root[data-theme] .hero-sound {
   display: none;
 }
 
@@ -918,17 +964,6 @@ img, svg {
   height: auto;
   border-radius: var(--radius-lg);
   box-shadow: var(--screenshot-shadow);
-}
-
-/* The film of the workspace, to be started */
-.tiling-film {
-  display: block;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 16 / 9;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--screenshot-shadow);
-  background: var(--bg-elevated);
 }
 
 .tiling-note {

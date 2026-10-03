@@ -75,6 +75,20 @@
   <!-- Hero -->
   <section class="hero">
     <div class="page-width">
+      <div class="hero-screenshots">
+        <!-- The film of the workspace, playing by itself without its sound -->
+        <video class="hero-film" data-hero-film autoplay muted loop playsinline preload="metadata"
+               poster="screenshots/tiling-film-poster.jpg" width="1600" height="900"
+               aria-label="A film of the Dobase workspace: tools open as tiles, are moved and resized with the keyboard, and change theme">
+          <source src="tiling.mp4" type="video/mp4">
+        </video>
+        <button type="button" class="hero-sound" data-hero-sound>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></svg>
+          Play with sound
+        </button>
+        <!-- With a theme picked below, the app in that theme takes the place of the film -->
+        <img data-theme-hero class="hero-theme-shot" alt="" hidden>
+      </div>
       <div class="hero-center">
         <h1>One workspace.<br><span class="hero-accent">Your server.</span></h1>
         <p class="hero-subtitle">
@@ -89,14 +103,6 @@
         </div>
         <p class="hero-note">The demo needs no account. Your workspace is removed after a day.</p>
       </div>
-      <div class="hero-screenshots" aria-hidden="true">
-        <!-- The workspace at work: tools opening as tiles, moved about with the keyboard -->
-        <video class="hero-film" data-hero-film autoplay muted loop playsinline preload="metadata"
-               poster="screenshots/tiling-loop-poster.jpg" width="1600" height="900">
-          <source src="tiling-loop.mp4" type="video/mp4">
-        </video>
-        <!-- With a theme picked below, the app in that theme takes the place of the film -->
-        <img data-theme-hero class="hero-theme-shot" alt="" hidden>
       </div>
     </div>
   </section>
@@ -108,13 +114,6 @@
         <h2>Your tools, tiled.</h2>
         <p>Your desktop tiles its windows. Dobase does the same with its tools: every one you open is a tile, and the tiles arrange themselves. The chat sits next to the board, the calendar under your mail, and nothing hides behind a tab.</p>
       </div>
-
-      <figure class="theme-figure">
-        <video class="tiling-film" controls playsinline preload="none" poster="screenshots/tiling-poster.jpg" width="1920" height="1080">
-          <source src="tiling.mp4" type="video/mp4">
-        </video>
-        <figcaption>The workspace in under a minute, with sound</figcaption>
-      </figure>
 
       <div class="themes-points">
         <div class="themes-point">
@@ -539,14 +538,32 @@
   </footer>
 
   <script>
-    // The film in the hero plays by itself. Not for whoever asked for less motion:
-    // there it waits, with its controls, to be started.
+    // The film at the top plays by itself, without its sound. "Play with sound" starts
+    // it again from the beginning with the sound on and the controls to stop it. For
+    // whoever asked for less motion it waits to be started.
     (function () {
       var film = document.querySelector('[data-hero-film]');
-      if (!film || !window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      film.removeAttribute('autoplay');
-      film.pause();
-      film.controls = true;
+      var sound = document.querySelector('[data-hero-sound]');
+      if (!film) return;
+
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        film.removeAttribute('autoplay');
+        film.pause();
+        film.controls = true;
+      }
+      if (sound) sound.addEventListener('click', function () {
+        film.muted = false;
+        film.loop = false;
+        film.controls = true;
+        film.currentTime = 0;
+        film.play();
+        sound.hidden = true;
+      });
+      // A theme picked below puts a picture in the film's place: it stops meanwhile
+      new MutationObserver(function () {
+        if (document.documentElement.hasAttribute('data-theme')) film.pause();
+        else if (film.muted && film.autoplay) film.play();
+      }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     })();
   </script>
 
