@@ -169,7 +169,7 @@
   }
 
   .workspace-desk-card-row:hover .workspace-desk-card-close,
-  .workspace-desk-card-close:focus-visible {
+  .workspace-desk-card-close:is(:focus-visible, [data-keyboard-focus]) {
     @apply opacity-100;
   }
 
@@ -573,6 +573,13 @@ body[data-workspace] .main-content {
     bottom: 1rem;
   }
 
+  /* Where the toasts are at the top (a chat, a call: the bottom is taken) they stay
+     there. With the rule above they were held at the top and the bottom both: an
+     unseen sheet over the whole tile that took every click, a call's Leave included. */
+  :root[data-in-tile] body:has(.tool-layout-anchored) .flash-toast {
+    bottom: auto;
+  }
+
   /* A dialog opens under the tile's close button, not behind it */
   :root[data-in-tile] .modal-dialog {
     margin-top: var(--workspace-topbar-height);
@@ -636,7 +643,7 @@ body[data-workspace] .main-content {
 }
 
 /* The ring around the message you are on stays inside its row */
-.chat-message:focus-visible {
+.chat-message:is(:focus-visible, [data-keyboard-focus]) {
   outline-offset: -2px;
 }
 

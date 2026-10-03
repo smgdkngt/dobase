@@ -2,7 +2,7 @@
 @layer components {
   /* Button variants */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed active:not-disabled:scale-[0.97];
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed active:not-disabled:scale-[0.97];
   }
 
   .btn-primary {
@@ -31,7 +31,7 @@
 
   /* Icon Button - for toolbar actions */
   .icon-btn {
-    @apply inline-flex items-center justify-center w-8 h-8 rounded-lg text-text-secondary hover:bg-background-tertiary hover:text-text-primary active:bg-background-tertiary active:text-text-primary transition-all duration-150 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2;
+    @apply inline-flex items-center justify-center w-8 h-8 rounded-lg text-text-secondary hover:bg-background-tertiary hover:text-text-primary active:bg-background-tertiary active:text-text-primary transition-all duration-150 active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background;
   }
 
   .icon-btn-sm {
@@ -213,7 +213,7 @@
     @apply bg-background-secondary/60;
   }
 
-  .card-row:has(a:focus-visible) {
+  .card-row:has(a:is(:focus-visible, [data-keyboard-focus])) {
     @apply outline-2 outline-accent -outline-offset-2;
   }
 
@@ -382,7 +382,7 @@
 
   /* The dialog takes focus when it opens; its buttons show the focus ring, not the sheet */
   .modal-dialog:focus,
-  .modal-dialog:focus-visible {
+  .modal-dialog:is(:focus-visible, [data-keyboard-focus]) {
     @apply outline-none;
   }
 
@@ -477,9 +477,14 @@
 
   /* Toasts sit bottom-right; on tools with a composer at the bottom (chat,
      room) they move to the top so they never cover Send */
+  /* The holder lies over the page and is never in the way: only a message in it takes a click */
   .flash-toast {
-    @apply fixed right-6 z-[9999] max-w-sm;
+    @apply fixed right-6 z-[9999] max-w-sm pointer-events-none;
     bottom: calc(1.5rem + var(--demo-banner-height));
+  }
+
+  .flash-toast > * {
+    @apply pointer-events-auto;
   }
 
   body:has(.tool-layout-anchored) .flash-toast {

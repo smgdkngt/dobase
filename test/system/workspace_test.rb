@@ -626,9 +626,12 @@ class WorkspaceTest < ApplicationSystemTestCase
     chat.collaborators.create!(user: colleague, role: "collaborator")
     visit workspace_path(open: tool_chat_path(chat))
     wait_for_stimulus "workspace"
+    # (the hint about tiles lies over the bottom of the window until it is sent away)
+    find(".workspace-hint button", text: "Got it").click
     within_tile(1) do
-      assert_selector "rhino-editor .ProseMirror"
-      find("h1", text: chat.name).click
+      # (a click in the middle of a chat's tile: the holder of the toasts lay over it once, unseen, and took every click)
+      find("rhino-editor .ProseMirror").click
+      assert page.evaluate_script("document.activeElement.closest('rhino-editor') !== null || document.activeElement.tagName === 'RHINO-EDITOR'"), "the click didn't reach the message box"
       page.execute_script("window.heardSounds = []; document.addEventListener('sound:played', (event) => window.heardSounds.push(event.detail.name))")
     end
     page.execute_script("window.heardSounds = []; document.addEventListener('sound:played', (event) => window.heardSounds.push(event.detail.name))")

@@ -7,6 +7,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="application-name" content="<%= app_name %>">
     <meta name="mobile-web-app-capable" content="yes">
+    <%# Before the stylesheet is there the page is the colour the browser gives it: with
+        this, dark where the system is dark, instead of a moment of white (a theme says
+        its own on <html>) %>
+    <% unless current_theme %><meta name="color-scheme" content="light dark"><% end %>
     <%# A theme's own chrome colour goes first, so it wins over the two below %>
     <% if current_theme %><meta name="theme-color" content="<%= current_theme.chrome_color %>" data-theme-chrome><% end %>
     <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">

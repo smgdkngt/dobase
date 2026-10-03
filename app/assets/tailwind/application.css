@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* focus-visible:… also counts the page's own mark for the keyboard (services/keyboard_focus.js):
+   Safari has no :focus-visible on what a script gave the focus */
+@custom-variant focus-visible (&:is(:focus-visible, [data-keyboard-focus]));
+@custom-variant peer-focus-visible (&:is(:where(.peer):is(:focus-visible, [data-keyboard-focus]) ~ *));
+
 /* Design system modules */
 @import "./tokens.css";
 @import "./components.css";

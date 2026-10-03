@@ -10,6 +10,33 @@ class ArrowKeysTest < ApplicationSystemTestCase
     sign_in_as @user
   end
 
+  test "what the keyboard is on is marked for the styles, since Safari draws no focus mark on what a script focused" do
+    board = tools(:project_board)
+    visit tool_board_path(board)
+    wait_for_stimulus "arrow-keys"
+
+    press :arrow_down
+    assert_selector "#board-card-#{cards(:first_task).id}[data-keyboard-focus]"
+    press :arrow_down
+    assert_selector "#board-card-#{cards(:second_task).id}[data-keyboard-focus]"
+    # The mark goes with the keyboard, and a click leaves none
+    assert_no_selector "#board-card-#{cards(:first_task).id}[data-keyboard-focus]"
+    find("h1", text: board.name).click
+    assert_no_selector "[data-keyboard-focus]"
+
+    # A conversation in mail: the row is the mark, with no ring of the link's own inside it
+    mail = tools(:my_mail)
+    visit tool_mails_path(mail)
+    wait_for_stimulus "arrow-keys"
+    press :arrow_down
+    row = "document.activeElement.closest('.mail-list-item')"
+    assert page.evaluate_script("#{row} !== null && document.activeElement.hasAttribute('data-keyboard-focus')")
+    assert_equal "none", page.evaluate_script("getComputedStyle(document.activeElement).boxShadow")
+    assert_equal "none", page.evaluate_script("getComputedStyle(document.activeElement).outlineStyle")
+    selected = page.evaluate_script("getComputedStyle(document.querySelector('.mail-list-item:not(:has(a:focus))')).backgroundColor")
+    assert_not_equal selected, page.evaluate_script("getComputedStyle(#{row}).backgroundColor")
+  end
+
   test "a board: from card to card, into one, and a card moved to the next column" do
     board = tools(:project_board)
     visit tool_board_path(board)

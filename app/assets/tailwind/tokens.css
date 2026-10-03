@@ -159,7 +159,7 @@
      a ring of their own (.btn, .icon-btn) opt out with focus:outline-none and
      draw their own; anything else — links, tiles, list rows, dropdown items,
      custom role="button" elements — gets this outline for free. */
-  :focus-visible {
+  :is(:focus-visible, [data-keyboard-focus]) {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
     border-radius: var(--radius-sm);
@@ -168,8 +168,8 @@
   /* What the arrow keys go through (arrow_keys_controller.js) mostly lies in something
      that scrolls, which would cut a ring around it off at its edges: the first card
      of a column, the top row of a list. There the ring is drawn inside. */
-  [data-arrow-keys-target~="item"]:focus-visible,
-  :is(.popover-menu, [popover], [role="menu"]) :focus-visible {
+  [data-arrow-keys-target~="item"]:is(:focus-visible, [data-keyboard-focus]),
+  :is(.popover-menu, [popover], [role="menu"]) :is(:focus-visible, [data-keyboard-focus]) {
     outline-offset: -2px;
   }
 
