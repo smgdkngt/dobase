@@ -155,7 +155,7 @@
   }
 
   .workspace-desk-card-row:hover .workspace-desk-card-close,
-  .workspace-desk-card-close:focus-visible {
+  .workspace-desk-card-close:is(:focus-visible, [data-keyboard-focus]) {
     @apply opacity-100;
   }
 
@@ -622,7 +622,7 @@ body[data-workspace] .main-content {
 }
 
 /* The ring around the message you are on stays inside its row */
-.chat-message:focus-visible {
+.chat-message:is(:focus-visible, [data-keyboard-focus]) {
   outline-offset: -2px;
 }
 

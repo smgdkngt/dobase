@@ -2,6 +2,7 @@
 import "@hotwired/turbo-rails"
 import "controllers"
 import { listen as listenForSounds } from "services/sound"
+import "services/keyboard_focus"
 
 // What is marked data-sound in a view is heard (services/sound.js)
 listenForSounds()

@@ -68,11 +68,11 @@
 
   /* The link starts at its icon, so a ring around it sits against the icon. With the
      keyboard on the link the ring goes around the whole row, where hovering fills it. */
-  .sidebar-tool-link:focus-visible {
+  .sidebar-tool-link:is(:focus-visible, [data-keyboard-focus]) {
     outline: none;
   }
 
-  .sidebar-tool-item:has(> .sidebar-tool-link:focus-visible) {
+  .sidebar-tool-item:has(> .sidebar-tool-link:is(:focus-visible, [data-keyboard-focus])) {
     outline: 2px solid var(--color-accent);
     outline-offset: -2px;
   }
@@ -552,7 +552,7 @@
     @apply sr-only;
   }
 
-  .skip-link:focus-visible {
+  .skip-link:is(:focus-visible, [data-keyboard-focus]) {
     @apply not-sr-only fixed top-3 left-3 z-[200] rounded-lg bg-surface px-4 py-2 text-sm font-medium text-text-primary shadow-lg ring-2 ring-accent;
   }
 }

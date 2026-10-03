@@ -176,6 +176,14 @@
     background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
   }
 
+  /* The keyboard on a conversation (arrow_keys_controller.js): the row says so, a
+     shade stronger than a selected one. A ring around the link as well was a second
+     mark for the same thing, with a white band in it in a dark theme. */
+  .mail-list-item:has(> a:is(:focus-visible, [data-keyboard-focus])) {
+    @apply border-l-accent;
+    background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface));
+  }
+
 
   /* Reading pane settles in on each message switch instead of hard-cutting */
   .mail-message-in {
