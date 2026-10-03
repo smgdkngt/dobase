@@ -55,7 +55,7 @@
 <body>
 
   <!-- Navigation -->
-  <nav class="site-nav">
+  <nav class="site-nav" data-on-stage>
     <div class="page-width">
       <a href="/" class="nav-logo">
         <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -74,29 +74,50 @@
 
   <!-- Hero -->
   <section class="hero">
-    <div class="page-width">
-      <div class="hero-center">
-        <h1>One workspace.<br><span class="hero-accent">Your server.</span></h1>
-        <p class="hero-subtitle">
-          Open-source app that replaces your scattered SaaS tools with a single self-hosted workspace. Mail, boards, docs, chat, and more &mdash; side by side in one window, all under your control.
-        </p>
-        <div class="hero-actions">
-          <a href="https://demo.dobase.co" class="btn btn-primary">Try the demo</a>
-          <a href="https://github.com/smgdkngt/dobase" class="btn btn-secondary">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.73.083-.73 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.605-.015 2.896-.015 3.286 0 .315.21.694.825.576C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"/></svg>
-            View on GitHub
-          </a>
+    <div class="hero-stage">
+      <div class="page-width">
+        <p class="hero-eyebrow"><span class="hero-eyebrow-tag">New</span> Every tool you open is a tile</p>
+
+        <!-- The film of the workspace in a browser's window, which is where it runs -->
+        <div class="film-window">
+          <div class="film-bar">
+            <span class="film-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="film-address" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              your-server.example/workspace
+            </span>
+            <button type="button" class="film-sound" data-hero-sound aria-pressed="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></svg>
+              <span data-hero-sound-label>Sound on</span>
+            </button>
+          </div>
+          <div class="hero-screenshots">
+            <video class="hero-film" data-hero-film autoplay muted loop playsinline preload="metadata"
+                   poster="screenshots/tiling-film-poster.jpg" width="1600" height="900"
+                   aria-label="A film of the Dobase workspace: tools open as tiles, are moved and resized with the keyboard, and change theme">
+              <source src="tiling.mp4" type="video/mp4">
+            </video>
+            <!-- With a theme picked below, the app in that theme takes the place of the film -->
+            <img data-theme-hero class="hero-theme-shot" alt="" hidden>
+          </div>
         </div>
-        <p class="hero-note">The demo needs no account. Your workspace is removed after a day.</p>
-      </div>
-      <div class="hero-screenshots" aria-hidden="true">
-        <!-- The workspace at work: tools opening as tiles, moved about with the keyboard -->
-        <video class="hero-film" data-hero-film autoplay muted loop playsinline preload="metadata"
-               poster="screenshots/tiling-loop-poster.jpg" width="1600" height="900">
-          <source src="tiling-loop.mp4" type="video/mp4">
-        </video>
-        <!-- With a theme picked below, the app in that theme takes the place of the film -->
-        <img data-theme-hero class="hero-theme-shot" alt="" hidden>
+        <p class="film-caption">Recorded in the app itself, keyboard only. 54 seconds.</p>
+
+        <div class="hero-center">
+          <h1>One workspace.<br><span class="hero-accent">Your server.</span></h1>
+          <p class="hero-subtitle">
+            Open-source app that replaces your scattered SaaS tools with a single self-hosted workspace. Mail, boards, docs, chat, and more &mdash; side by side in one window, all under your control.
+          </p>
+          <div class="hero-actions">
+            <a href="https://demo.dobase.co" class="btn btn-primary">Try the demo</a>
+            <a href="https://github.com/smgdkngt/dobase" class="btn btn-secondary">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.73.083-.73 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.605-.015 2.896-.015 3.286 0 .315.21.694.825.576C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"/></svg>
+              View on GitHub
+            </a>
+          </div>
+          <p class="hero-note">The demo needs no account. Your workspace is removed after a day.</p>
+        </div>
+        </div>
       </div>
     </div>
   </section>
@@ -108,13 +129,6 @@
         <h2>Your tools, tiled.</h2>
         <p>Your desktop tiles its windows. Dobase does the same with its tools: every one you open is a tile, and the tiles arrange themselves. The chat sits next to the board, the calendar under your mail, and nothing hides behind a tab.</p>
       </div>
-
-      <figure class="theme-figure">
-        <video class="tiling-film" controls playsinline preload="none" poster="screenshots/tiling-poster.jpg" width="1920" height="1080">
-          <source src="tiling.mp4" type="video/mp4">
-        </video>
-        <figcaption>The workspace in under a minute, with sound</figcaption>
-      </figure>
 
       <div class="themes-points">
         <div class="themes-point">
@@ -293,23 +307,23 @@
           <h3>Write in the same document</h3>
           <p>Everyone types at once and the text merges as you go. Each person's cursor shows up in their own colour, with their name — no locking, no "Marcus is editing".</p>
         </div>
-        <img src="screenshots/docs-together.png" alt="A document two people are writing at once, with the other person's cursor and name" loading="lazy">
+        <img src="screenshots/docs-together.png" alt="A document two people are writing at once, with the other person's cursor and name" width="1680" height="1050" loading="lazy">
       </div>
 
       <div class="together-row together-row-reverse">
         <div class="together-text">
           <h3>See who's where</h3>
-          <p>Faces beside every tool in the sidebar and at the top of the page show who's in. The card, todo or file someone has open gets a ring — and inside it, you can see them writing a comment before it lands.</p>
+          <p>Faces beside every tool in the menu and at the top of every tile show who's in. The card, todo or file someone has open gets a ring — and inside it, you can see them writing a comment before it lands.</p>
         </div>
-        <img src="screenshots/card-presence.png" alt="A card that says a colleague has it open and is writing a comment" loading="lazy">
+        <img src="screenshots/card-presence.png" alt="A card that says a colleague is writing a comment" width="1680" height="1050" loading="lazy">
       </div>
 
       <div class="together-row">
         <div class="together-text">
           <h3>Find anything, from anywhere</h3>
-          <p>One search box for every tool you share: cards, todos, the text of your documents, files, chat, events and mail. Enter opens it, right where it lives.</p>
+          <p>One search box for every tool you share: cards, todos, the text of your documents, files, chat, events and mail. Enter opens it as a tile, right where it lives.</p>
         </div>
-        <img src="screenshots/search.png" alt="The command palette searching every tool at once" loading="lazy">
+        <img src="screenshots/search.png" alt="The menu's search finding one word in boards, todos, documents, chat, the calendar and mail" width="1680" height="1050" loading="lazy">
       </div>
     </div>
   </section>
@@ -539,14 +553,41 @@
   </footer>
 
   <script>
-    // The film in the hero plays by itself. Not for whoever asked for less motion:
-    // there it waits, with its controls, to be started.
+    // The film at the top plays by itself, without its sound. The button in its
+    // window's bar turns the sound on (from the start of the film, the first time) and
+    // off again. For whoever asked for less motion the film waits to be started.
     (function () {
       var film = document.querySelector('[data-hero-film]');
-      if (!film || !window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-      film.removeAttribute('autoplay');
-      film.pause();
-      film.controls = true;
+      var sound = document.querySelector('[data-hero-sound]');
+      var label = document.querySelector('[data-hero-sound-label]');
+      if (!film) return;
+
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        film.removeAttribute('autoplay');
+        film.pause();
+        film.controls = true;
+      }
+      var heard = false;
+      if (sound) sound.addEventListener('click', function () {
+        film.muted = !film.muted;
+        if (!film.muted && !heard) { heard = true; film.currentTime = 0; }
+        if (!film.muted) film.play();
+        sound.setAttribute('aria-pressed', String(!film.muted));
+        if (label) label.textContent = film.muted ? 'Sound on' : 'Sound off';
+      });
+      // While the stage is behind it the bar at the top is dark, as the stage is
+      var nav = document.querySelector('.site-nav');
+      var stage = document.querySelector('.hero-stage');
+      if (nav && stage && 'IntersectionObserver' in window) {
+        new IntersectionObserver(function (entries) {
+          nav.toggleAttribute('data-on-stage', entries[0].isIntersecting);
+        }, { rootMargin: '-57px 0px 0px 0px' }).observe(stage);
+      }
+      // A theme picked below puts a picture in the film's place: it stops meanwhile
+      new MutationObserver(function () {
+        if (document.documentElement.hasAttribute('data-theme')) film.pause();
+        else if (film.autoplay) film.play();
+      }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     })();
   </script>
 
