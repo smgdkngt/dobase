@@ -39,6 +39,8 @@ const SEEN_AFTER_MS = 800
 // goes this long after it left
 const CARD_AFTER_MS = 300
 const CARD_GONE_AFTER_MS = 180
+// A desktop's name is a word or two beside its number in the bar
+const DESK_NAME_LENGTH = 24
 // How long a floating dialog takes to fade out (workspace.css), after which its frame goes
 const FLOAT_FADE = 180
 
@@ -189,7 +191,7 @@ export default class extends Controller {
     this.save()
     this.draw({ glide: true })
     this.grabFocus()
-    this.say(`${this.nameOf(id)} opened${this.state.desk === from ? "" : ` on desktop ${this.state.desk}`}`)
+    this.say(`${this.nameOf(id)} opened${this.state.desk === from ? "" : ` on ${this.deskSaid(this.state.desk)}`}`)
     return true
   }
 
@@ -277,7 +279,7 @@ export default class extends Controller {
   }
 
   deskAt(number) {
-    return (this.state.desks[number] ||= { tree: null, focus: null, alone: false })
+    return (this.state.desks[number] ||= { tree: null, focus: null, alone: false, name: "" })
   }
 
   deskNumberOf(id) {
@@ -525,7 +527,9 @@ export default class extends Controller {
   drawBar() {
     const used = Object.keys(this.state.desks).filter((number) => this.state.desks[number].tree).map(Number)
     const free = DESKS.find((number) => !used.includes(number))
-    const shown = new Set([ ...used, this.state.desk, free ])
+    // (one that was given a name stays in the bar while it is empty)
+    const named = Object.keys(this.state.desks).filter((number) => this.state.desks[number].name).map(Number)
+    const shown = new Set([ ...used, ...named, this.state.desk, free ])
 
     if (this.desksTarget.children.length !== DESKS.length) {
       this.desksTarget.replaceChildren(...DESKS.map((number) => {
@@ -533,7 +537,7 @@ export default class extends Controller {
         button.type = "button"
         button.className = "workspace-desk"
         button.dataset.desk = number
-        button.dataset.action = "click->workspace#deskClicked pointerenter->workspace#showDeskCardSoon pointerleave->workspace#hideDeskCardSoon"
+        button.dataset.action = "click->workspace#deskClicked dblclick->workspace#renameDesk pointerenter->workspace#showDeskCardSoon pointerleave->workspace#hideDeskCardSoon"
         return button
       }))
     }
@@ -543,23 +547,26 @@ export default class extends Controller {
       const tiles = leaves(this.state.desks[number]?.tree).map((id) => this.about(id))
       const news = tiles.filter((tile) => tile.unread).map((tile) => tile.name)
       const calls = tiles.filter((tile) => tile.inCall).map((tile) => tile.name)
+      const name = this.state.desks[number]?.name || ""
+      const called = name ? `Desktop ${number}, ${name}` : `Desktop ${number}`
 
       button.hidden = !shown.has(number)
       button.setAttribute("aria-current", number === this.state.desk)
       button.toggleAttribute("data-empty", tiles.length === 0)
       button.toggleAttribute("data-unread", news.length > 0)
       button.setAttribute("aria-label", [
-        tiles.length ? `Desktop ${number}: ${tiles.map((tile) => tile.name).join(", ")}` : `Desktop ${number}, nothing open`,
+        tiles.length ? `${called}: ${tiles.map((tile) => tile.name).join(", ")}` : `${called}, nothing open`,
         news.length ? `New in ${news.join(", ")}` : null,
         calls.length ? `A call is on in ${calls.join(", ")}` : null
       ].filter(Boolean).join(". "))
 
-      const drawn = JSON.stringify(tiles.map((tile) => [ tile.id, tile.toolId, tile.unread, tile.inCall, tile.focused ]))
+      const drawn = JSON.stringify([ name, ...tiles.map((tile) => [ tile.id, tile.toolId, tile.unread, tile.inCall, tile.focused ]) ])
       if (button.dataset.drawn === drawn) return
 
       button.dataset.drawn = drawn
       const more = tiles.length - TOOLS_IN_THE_BAR
-      button.replaceChildren(String(number), ...tiles.slice(0, TOOLS_IN_THE_BAR).map((tile) => this.markOf(tile)), ...(more > 0 ? [ `+${more}` ] : []))
+      button.replaceChildren(String(number), ...(name ? [ note(name, "workspace-desk-name") ] : []),
+        ...tiles.slice(0, TOOLS_IN_THE_BAR).map((tile) => this.markOf(tile)), ...(more > 0 ? [ `+${more}` ] : []))
     })
 
     this.markMenu()
@@ -609,12 +616,17 @@ export default class extends Controller {
   // ── The card about a desktop: what is on it by name, to go straight to one ──
 
   showDeskCardSoon(event) {
+    if (this.renamingDesk) return
+
     const button = event.currentTarget
     clearTimeout(this.cardTimer)
     this.cardTimer = setTimeout(() => this.showDeskCard(button), this.deskCardTarget.matches(":popover-open") ? 0 : CARD_AFTER_MS)
   }
 
   hideDeskCardSoon() {
+    // (not from under a name that is being typed)
+    if (this.renamingDesk) return
+
     clearTimeout(this.cardTimer)
     this.cardTimer = setTimeout(() => this.hideDeskCard(), CARD_GONE_AFTER_MS)
   }
@@ -629,17 +641,30 @@ export default class extends Controller {
     if (this.hasDeskCardTarget && this.deskCardTarget.matches(":popover-open")) this.deskCardTarget.hidePopover()
   }
 
-  showDeskCard(button) {
+  showDeskCard(button, { renaming = false } = {}) {
     const number = Number(button.dataset.desk)
     const tiles = leaves(this.state.desks[number]?.tree).map((id) => this.about(id))
     const card = this.deskCardTarget
+    const name = this.state.desks[number]?.name || ""
 
-    const heading = document.createElement("p")
+    const heading = document.createElement("div")
     heading.className = "workspace-desk-card-title"
     const key = document.createElement("kbd")
     key.className = "shortcut-key"
     key.textContent = workspaceKey(number)
-    heading.append(`Desktop ${number}`, key)
+    if (renaming) {
+      heading.append(this.deskNameField(button, name), key)
+    } else {
+      const rename = document.createElement("button")
+      rename.type = "button"
+      rename.className = "workspace-desk-card-rename"
+      rename.dataset.desk = number
+      rename.dataset.action = "click->workspace#renameDesk"
+      rename.title = "Rename this desktop"
+      rename.setAttribute("aria-label", `Rename desktop ${number}`)
+      rename.textContent = name || `Desktop ${number}`
+      heading.append(rename, key)
+    }
 
     const rows = tiles.map((tile) => {
       const row = document.createElement("div")
@@ -678,6 +703,65 @@ export default class extends Controller {
     const place = button.getBoundingClientRect()
     Object.assign(card.style, { left: `${place.left}px`, top: `${place.bottom + 6}px` })
     if (!card.matches(":popover-open")) card.showPopover()
+  }
+
+  // A desktop is a number until it is given a name: "Launch", "Mail". Asked for in
+  // its card (the name there is a button), by a double click on it in the bar, or
+  // from the menu's search ("Rename this desktop"). The card opens with a field.
+  renameDesk(event) {
+    const number = Number(event?.currentTarget?.dataset.desk) || this.state.desk
+    const button = Array.from(this.desksTarget.children).find((desk) => Number(desk.dataset.desk) === number)
+    if (!button) return
+
+    clearTimeout(this.cardTimer)
+    this.showDeskCard(button, { renaming: true })
+  }
+
+  // The field in a desktop's card. Enter and leaving it keep the name, Escape leaves
+  // it as it was, and an empty one makes the desktop a number again.
+  deskNameField(button, name) {
+    const number = Number(button.dataset.desk)
+    const field = document.createElement("input")
+    field.type = "text"
+    field.className = "workspace-desk-card-field"
+    field.value = name
+    field.maxLength = DESK_NAME_LENGTH
+    field.placeholder = `Desktop ${number}`
+    field.setAttribute("aria-label", `Name of desktop ${number}`)
+    field.autocomplete = "off"
+
+    this.renamingDesk = true
+    const done = (keep) => {
+      if (!this.renamingDesk) return
+
+      this.renamingDesk = false
+      if (keep) {
+        this.deskAt(number).name = deskName(field.value)
+        this.save()
+        this.drawBar()
+        this.say(this.deskAt(number).name ? `Desktop ${number} is called ${this.deskAt(number).name}` : `Desktop ${number} has no name`)
+      }
+      this.hideDeskCard()
+      this.deskCardTarget.replaceChildren()
+      this.grabFocus()
+    }
+    field.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== "Escape") return
+
+      event.preventDefault()
+      event.stopPropagation()
+      done(event.key === "Enter")
+    })
+    field.addEventListener("blur", () => done(true))
+    // Once it is in the page (the card is drawn after this returns)
+    requestAnimationFrame(() => { field.focus(); field.select() })
+    return field
+  }
+
+  // "Launch (desktop 2)", or "desktop 2" while it has no name
+  deskSaid(number) {
+    const name = this.state.desks[number]?.name
+    return name ? `${name} (desktop ${number})` : `desktop ${number}`
   }
 
   goToTileOfCard(event) {
@@ -733,7 +817,7 @@ export default class extends Controller {
 
       open.add(link)
       link.dataset.workspaceDesk = this.deskNumberOf(id)
-      link.title = `Open on desktop ${this.deskNumberOf(id)}`
+      link.title = `Open on ${this.deskSaid(this.deskNumberOf(id))}`
       // What you are looking at: a notification about it makes no sound of its own
       // (notifications_controller.js#lookingAt; the tile makes its own, if any)
       if (this.inSight(id)) link.dataset.inSight = ""
@@ -868,7 +952,7 @@ export default class extends Controller {
     this.save()
     this.draw()
     this.grabFocus()
-    this.say(`${this.nameOf(id)} moved to desktop ${this.state.desk}`)
+    this.say(`${this.nameOf(id)} moved to ${this.deskSaid(this.state.desk)}`)
   }
 
   // The tile you are on gets more of the split it is in, or less
@@ -942,6 +1026,10 @@ export default class extends Controller {
         break
       case "reload":
         if (this.desk.focus) this.reload(this.desk.focus)
+        break
+      case "rename":
+        // (after the menu has closed and given the keyboard back)
+        setTimeout(() => this.renameDesk(), 50)
         break
     }
   }
@@ -1340,7 +1428,7 @@ export default class extends Controller {
 
         const tree = pruned(desk?.tree, tiles, placedOnce)
         const held = leaves(tree)
-        desks[number] = { tree, focus: held.includes(desk.focus) ? desk.focus : held[0] || null, alone: Boolean(desk.alone) }
+        desks[number] = { tree, focus: held.includes(desk.focus) ? desk.focus : held[0] || null, alone: Boolean(desk.alone), name: deskName(desk.name) }
       }
       const placed = Object.values(desks).flatMap((desk) => leaves(desk.tree))
       for (const id of Object.keys(tiles)) if (!placed.includes(id)) delete tiles[id]
@@ -1420,6 +1508,11 @@ function splitFor(rect) {
 }
 
 // A few words beside a tile's name in the card about a desktop
+// A name as it is kept: without the space around it, and no longer than fits the bar
+function deskName(value) {
+  return String(value || "").trim().slice(0, DESK_NAME_LENGTH)
+}
+
 function note(text, className = "workspace-desk-card-note") {
   const words = document.createElement("span")
   words.className = className

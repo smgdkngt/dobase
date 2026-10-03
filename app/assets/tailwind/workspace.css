@@ -35,6 +35,11 @@
            hover:bg-background-tertiary hover:text-text-primary transition-colors cursor-pointer;
   }
 
+  /* The name a desktop was given, beside its number */
+  .workspace-desk-name {
+    @apply max-w-28 truncate;
+  }
+
   .workspace-desk[hidden] {
     @apply hidden;
   }
@@ -119,6 +124,15 @@
 
   .workspace-desk-card-title kbd {
     @apply normal-case tracking-normal font-normal;
+  }
+
+  /* The desktop's name in its card is what renames it */
+  .workspace-desk-card-rename {
+    @apply min-w-0 truncate -mx-1 px-1 rounded text-left uppercase tracking-wider font-semibold cursor-text hover:bg-background-tertiary hover:text-text-primary;
+  }
+
+  .workspace-desk-card-field {
+    @apply flex-1 min-w-0 -mx-1 px-1 py-0.5 rounded border border-border bg-background text-sm font-normal normal-case tracking-normal text-text-primary;
   }
 
   .workspace-desk-card-row {
