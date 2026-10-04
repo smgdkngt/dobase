@@ -42,6 +42,13 @@ export default class extends Controller {
       return
     }
 
+    // The tiles were arranged in another browser of this person's: the workspace
+    // takes it over (workspace_controller.js)
+    if (data.type === "workspace") {
+      window.dispatchEvent(new CustomEvent("workspace:kept", { detail: data }))
+      return
+    }
+
     // Unread mail changed: new mail came in, or something was read somewhere
     if (data.type === "unread_mail") {
       // More than there was: mail came in

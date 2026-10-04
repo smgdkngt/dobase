@@ -15,12 +15,15 @@
 <% end %>
 
 <%# Every tool you open here is a tile, and the tiles arrange themselves
-    (workspace_controller.js). A tile is the tool's own page in a frame. %>
+    (workspace_controller.js). A tile is the tool's own page in a frame. The
+    arrangement as it is kept for this person comes along (WorkspaceLayout). %>
 <div class="workspace tool-layout"
      data-controller="workspace"
      data-workspace-user-id-value="<%= current_user.id %>"
      data-workspace-app-name-value="<%= app_name %>"
-     data-workspace-start-value="<%= @start_path %>">
+     data-workspace-start-value="<%= @start_path %>"
+     data-workspace-kept-value="<%= @layout.state.to_json %>"
+     data-workspace-revision-value="<%= @layout.revision %>">
   <header class="workspace-bar">
     <div class="workspace-bar-side">
       <button type="button" class="workspace-bar-btn" title="Menu (<%= launcher_key %>)"

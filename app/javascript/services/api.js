@@ -1,4 +1,4 @@
-const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content
+export const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content
 
 export async function api(path, method = "GET", body = null) {
   const opts = {

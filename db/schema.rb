@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_02_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_03_190000) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -648,6 +648,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_150000) do
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 
+  create_table "workspace_layouts", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.json "state", default: {}, null: false
+    t.integer "revision", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_workspace_layouts_on_user_id", unique: true
+  end
+
   add_foreign_key "access_tokens", "users"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
@@ -721,4 +730,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_150000) do
   add_foreign_key "todo_lists", "users", column: "updated_by_id", on_delete: :nullify
   add_foreign_key "tools", "tool_types"
   add_foreign_key "tools", "users", column: "owner_id"
+  add_foreign_key "workspace_layouts", "users"
 end

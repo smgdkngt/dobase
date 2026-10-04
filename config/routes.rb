@@ -46,8 +46,9 @@ Rails.application.routes.draw do
   resource :notification_reads, only: :create
   resource :notification_clears, only: :create
 
-  # Every tool you open as a tile, arranged for you (workspace_controller.js)
-  resource :workspace, only: :show
+  # Every tool you open as a tile, arranged for you (workspace_controller.js), and
+  # the arrangement kept for your other browsers
+  resource :workspace, only: %i[show update]
 
   # Sidebar
   resources :sidebar_groups, only: %i[create update destroy] do
