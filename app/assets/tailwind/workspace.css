@@ -211,13 +211,18 @@
     transition: border-color 120ms ease, box-shadow 120ms ease;
   }
 
-  /* The keyboard is on the tile itself, not in its tool: the arrows go from tile to
-     tile and Enter goes in (workspace_controller.js). Its edge is another colour than
-     that of a tile whose tool has the keyboard, and heavier; what is in it steps back. */
+  /* The keyboard is at one of two levels (workspace_controller.js). In a tile's tool:
+     the tile's edge is heavier, also when it is the only tile. On the tile itself,
+     where the arrows go from tile to tile and Enter goes in: a thin edge, and what is
+     in the tile steps back. */
+  .workspace-tile:has(> iframe:focus) {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px var(--color-accent);
+  }
+
   .workspace-tile:focus {
-    @apply z-1 outline-none;
-    border-color: var(--color-warning);
-    box-shadow: 0 0 0 2px var(--color-warning), 0 0 0 6px color-mix(in srgb, var(--color-warning) 22%, transparent);
+    @apply z-1 outline-none shadow-none;
+    border-color: var(--color-accent);
   }
 
   .workspace-tile > iframe {
