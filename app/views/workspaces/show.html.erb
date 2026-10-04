@@ -119,7 +119,12 @@
        data-workspace-target="float" data-action="click->workspace#unfloatByClick"></div>
 
   <template data-workspace-target="tileTemplate">
-    <section class="workspace-tile" aria-label="Tile">
+    <%# The tile itself takes the keyboard (tabindex): the level where the arrows go from
+        tile to tile. Its hint shows while it has it. %>
+    <section class="workspace-tile" aria-label="Tile" tabindex="-1">
+      <p class="workspace-tile-hint" aria-hidden="true">
+        <kbd class="shortcut-key">Enter</kbd> goes in <span>·</span> <kbd class="shortcut-key">Esc</kbd> closes
+      </p>
       <div class="workspace-tile-controls">
         <%= render "components/icon_button", icon: "x", title: "Close this tile (#{workspace_key("W")})", size: :sm,
               data: { action: "click->workspace#closeTile" } %>

@@ -211,6 +211,34 @@
     transition: border-color 120ms ease, box-shadow 120ms ease;
   }
 
+  /* The keyboard is on the tile itself, not in its tool: the arrows go from tile to
+     tile and Enter goes in (workspace_controller.js). Its edge is another colour than
+     that of a tile whose tool has the keyboard, and heavier; what is in it steps back. */
+  .workspace-tile:focus {
+    @apply z-1 outline-none;
+    border-color: var(--color-warning);
+    box-shadow: 0 0 0 2px var(--color-warning), 0 0 0 6px color-mix(in srgb, var(--color-warning) 22%, transparent);
+  }
+
+  .workspace-tile > iframe {
+    transition: opacity 120ms ease;
+  }
+
+  .workspace-tile:focus > iframe {
+    @apply opacity-60;
+  }
+
+  /* What the keys do there, said on the tile while the keyboard got to it by a key */
+  .workspace-tile-hint {
+    @apply absolute left-1/2 top-1/2 z-10 hidden items-center gap-1.5 px-3 py-2 rounded-lg whitespace-nowrap
+           border border-border bg-surface text-sm text-text-secondary shadow-lg pointer-events-none;
+    transform: translate(-50%, -50%);
+  }
+
+  .workspace-tile:focus[data-keyboard-focus] > .workspace-tile-hint {
+    @apply flex;
+  }
+
   .workspace-tile[data-arriving] {
     animation: workspace-tile-in 160ms var(--ease-out) both;
   }

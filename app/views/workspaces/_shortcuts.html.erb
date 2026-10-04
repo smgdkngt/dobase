@@ -6,7 +6,9 @@
     <%= render "shared/shortcut_row", key: "Shift+Enter", description: "In the menu: open in a new tile, even if the tool is open" %>
     <%= render "shared/shortcut_row", key: (mac? ? "Opt-click" : "Alt-click"), description: "Open a link in a new tile" %>
     <%= render "shared/shortcut_row", key: mod_key("K", shift: true), description: "Actions for the tool in this tile" %>
-    <%= render "shared/shortcut_row", key: "← → ↑ ↓", description: "Past the edge of a tool: on to the tile on that side" %>
+    <%= render "shared/shortcut_row", key: "Esc", description: "Out of a tool, onto its tile. On a tile: close it" %>
+    <%= render "shared/shortcut_row", key: "← → ↑ ↓", description: "On a tile: to the tile on that side, up to the bar, sideways on to the next desktop" %>
+    <%= render "shared/shortcut_row", key: "Enter", description: "On a tile: into its tool" %>
     <%= render "shared/shortcut_row", key: workspace_key("← → ↑ ↓"), description: "Go to the tile on that side, from anywhere" %>
     <%= render "shared/shortcut_row", key: workspace_key("← → ↑ ↓", shift: true), description: "Move the tile that way" %>
     <%= render "shared/shortcut_row", key: workspace_key("1–9"), description: "Go to a desktop" %>

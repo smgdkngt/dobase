@@ -16,17 +16,6 @@ export default class extends Controller {
     this._onKey = (event) => this.keyed(event)
     this._onFocus = (event) => this.say("focus", { pointer: event.type === "pointerdown" })
     this._onClick = (event) => this.clicked(event)
-    // The arrow keys ran out of things on a side of this page (arrow_keys_controller.js,
-    // mail's own keys): the tile on that side takes over. Not while a key is held down
-    // (an edge is where that stops), not from a dialog or a menu, and only when no
-    // view had a use of its own for it, which they say by preventing the default: so
-    // this looks once everyone has heard.
-    this._onEdge = (event) => {
-      if (event.detail.repeat || !event.target.matches?.("main")) return
-
-      queueMicrotask(() => { if (!event.defaultPrevented) this.say("edge", { side: event.detail.side }) })
-    }
-    window.addEventListener("arrow-keys:edge", this._onEdge)
     // Backspace outside a field is "back" to some browsers (Vivaldi, Firefox by a
     // setting). With several tiles the browser's history is all of theirs in one line,
     // so that goes back in whichever tile went somewhere last: another tool changes
@@ -36,8 +25,9 @@ export default class extends Controller {
     window.addEventListener("keydown", this._onBackspace)
     // Escape lets go of things one at a time: a dialog or a menu closes, a view lets go
     // of what is picked (they take the key, and it doesn't count here), then the
-    // keyboard leaves what it is on, then the page goes up a level. Only at the top of
-    // a tool, with nothing left to let go of, does it close the tile.
+    // keyboard leaves what it is on. With nothing left to let go of it leaves the tool:
+    // the keyboard is on the tile then, where the arrows go from tile to tile
+    // (workspace_controller.js).
     this._onEscape = (event) => {
       if (event.key !== "Escape" || event.defaultPrevented || typing(event)) return
       if (document.querySelector("dialog[open], :popover-open, [aria-modal='true']:not([hidden]):not(dialog)")) return
@@ -46,10 +36,7 @@ export default class extends Controller {
       const on = document.activeElement
       if (on && on !== document.body && on !== document.documentElement) return on.blur()
 
-      // Inside a tool (a document that is open, a folder) it goes up a level, by the
-      // way back the page has. Only at the top of a tool does it close the tile.
-      const back = Array.from(document.querySelectorAll("[data-arrow-keys-target~='back']")).find((way) => way.getClientRects().length > 0)
-      back ? back.click() : this.say("escape")
+      this.say("escape")
     }
     window.addEventListener("keydown", this._onEscape)
     // Chosen in this page's own shortcuts dialog: the workspace and the other tiles hear of it
@@ -95,7 +82,6 @@ export default class extends Controller {
   disconnect() {
     window.removeEventListener("message", this._onMessage)
     window.removeEventListener("workspace:theme", this._onTheme)
-    window.removeEventListener("arrow-keys:edge", this._onEdge)
     window.removeEventListener("keydown", this._onBackspace)
     window.removeEventListener("keydown", this._onEscape)
     window.removeEventListener("workspace:keys-chosen", this._onKeysChosen)
