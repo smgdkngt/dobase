@@ -47,7 +47,9 @@ kamal logs -d dobase       # Tail production logs
 
 The `config/deploy.yml` contains open-source placeholder values. Real production config lives in `config/deploy.dobase.yml` (the Kamal destination file). Always use `-d dobase` when deploying.
 
-Docker images are published to `ghcr.io/smgdkngt/dobase` via `.github/workflows/publish-image.yml` on push to main and CalVer tags (e.g., `2026.04.07`). Compatible with [ONCE](https://once.com) by 37signals.
+Docker images are published to `ghcr.io/smgdkngt/dobase` via `.github/workflows/publish-image.yml` on push to main and CalVer tags (e.g., `2026.04.07`), for amd64 and arm64. Compatible with [ONCE](https://github.com/basecamp/once) by 37signals.
+
+The image is one container that does everything: it sets `SOLID_QUEUE_IN_PUMA=true` itself, so a plain `docker run`, the compose file and ONCE all run background jobs (without them mail never syncs or sends). What ONCE hands an installation is used when Dobase's own variable is unset: `BASE_URL` for the links in mail (`APP_HOST`), `MAILER_FROM_ADDRESS` for the sender (`APP_FROM_EMAIL`), and `SMTP_*`, `SECRET_KEY_BASE` and `DISABLE_SSL` under the same names. A new installation has no users, so its sign-in page goes to sign-up. To try an install method: build the image (`docker build -t dobase-test .`) and run it as the README says; for ONCE push it to a local registry and `once deploy` it with `--disable-tls` under a `*.localhost` hostname.
 
 **Tailwind CSS** must be rebuilt after stylesheet changes:
 ```bash

@@ -4,7 +4,11 @@ services:
     ports:
       - "3000:80"
     environment:
-      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+      # Left empty, the container makes a key on first start and keeps it in the volume
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE:-}
+      # Plain http on port 3000, as it comes. Behind a proxy that does TLS, put
+      # DISABLE_SSL= (empty) in .env: Dobase then insists on https.
+      - DISABLE_SSL=${DISABLE_SSL-true}
       - APP_NAME=${APP_NAME:-Dobase}
       - APP_HOST=${APP_HOST:-localhost:3000}
       - APP_FROM_EMAIL=${APP_FROM_EMAIL:-notifications@dobase.co}

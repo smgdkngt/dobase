@@ -60,8 +60,14 @@ Rails.application.configure do
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
   config.action_mailer.raise_delivery_errors = false
 
-  # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: ENV.fetch("APP_HOST", "localhost"), protocol: "https" }
+  # Where links in mail go: APP_HOST, or the address ONCE gives an installation
+  # (BASE_URL, e.g. "https://dobase.example.com"). Without TLS the links are http.
+  base_url = URI.parse(ENV["BASE_URL"]) if ENV["BASE_URL"].present?
+  base_host = [ base_url.host, (base_url.port unless base_url.port == base_url.default_port) ].compact.join(":") if base_url
+  config.action_mailer.default_url_options = {
+    host: ENV["APP_HOST"].presence || base_host || "localhost",
+    protocol: base_url&.scheme || (ENV["DISABLE_SSL"].present? ? "http" : "https")
+  }
 
   # Outgoing SMTP server. Set SMTP_* environment variables in your deploy secrets.
   config.action_mailer.delivery_method = :smtp
