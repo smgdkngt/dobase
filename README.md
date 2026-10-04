@@ -57,15 +57,25 @@ Dobase runs as a single Docker container. Everything — web server, background 
 
 ### Install with ONCE
 
-The easiest way to self-host Dobase is with [ONCE](https://once.com) by 37signals. ONCE handles installation, updates, backups, and SSL — all from a simple terminal dashboard.
+The easiest way to self-host Dobase is with [ONCE](https://github.com/basecamp/once) by 37signals: an open-source tool that installs a Docker image on a machine of yours and looks after updates, backups and SSL from a terminal dashboard. It runs on Linux and macOS: a cloud VPS, a Raspberry Pi, or your laptop.
 
-Point ONCE at:
+```bash
+curl https://get.once.com | sh
+```
+
+When it asks which application to install, enter the image's path and then a hostname:
 
 ```
 ghcr.io/smgdkngt/dobase:latest
 ```
 
-That's it. ONCE takes care of the rest — including SSL, persistent storage, and automatic backups. Works on any Linux server, cloud VPS, or even a Raspberry Pi.
+Or without the dashboard:
+
+```bash
+once deploy ghcr.io/smgdkngt/dobase:latest --host dobase.example.com
+```
+
+That's it. Dobase uses what ONCE gives it: the hostname for links in mail, and the server and sender from ONCE's email settings screen for the mail it sends. Backups from ONCE hold the whole installation (the database and every uploaded file).
 
 All tools work out of the box except the Room (video) tool, which requires an external [LiveKit](https://livekit.io) server. ONCE runs a single container per app, so LiveKit needs to run separately — either via [LiveKit Cloud](https://livekit.io/cloud) or as a standalone Docker container. See [Video conferencing](#video-conferencing-livekit) for setup.
 
@@ -124,7 +134,7 @@ cd dobase
 docker compose up -d
 ```
 
-A fresh key per `up` would sign everyone out on every restart, so leave `SECRET_KEY_BASE` unset (the container keeps its own) or put a fixed one in an `.env` file next to `docker-compose.yml`.
+It answers on `http://localhost:3000`. A fresh key per `up` would sign everyone out on every restart, so leave `SECRET_KEY_BASE` unset (the container keeps its own) or put a fixed one in an `.env` file next to `docker-compose.yml`. Behind a proxy that does TLS, put `DISABLE_SSL=` (empty) in that `.env`: Dobase then insists on https.
 
 Or create your own `docker-compose.yml`:
 
@@ -135,8 +145,9 @@ services:
     ports:
       - "80:80"
     environment:
-      - SECRET_KEY_BASE=<your-secret>
       - APP_HOST=your-domain.com
+      # With no proxy in front that does TLS, serve plain http:
+      # - DISABLE_SSL=true
     volumes:
       - storage:/rails/storage
     restart: unless-stopped
@@ -151,10 +162,11 @@ volumes:
 |----------|---------|---------|
 | `SECRET_KEY_BASE` | Kept in the storage volume | Signs sessions and encrypts stored mail and calendar passwords. The Docker image makes one on first start if unset; if you set it (`openssl rand -hex 64`), never change it |
 | `APP_NAME` | `Dobase` | App name in UI, emails, page titles |
-| `APP_HOST` | `localhost:3000` | Host for mailer URLs |
+| `APP_HOST` | `localhost` | Host for the links in mail. ONCE's `BASE_URL` is used when this is unset |
 | `APP_LOGO_PATH` | `/icon.svg` | Logo path (sidebar, auth pages) |
-| `APP_FROM_EMAIL` | `notifications@dobase.co` | Sender address for emails |
-| `DISABLE_SSL` | — | Set to `true` for non-TLS deployments (ONCE sets this automatically on localhost) |
+| `APP_FROM_EMAIL` | `notifications@dobase.co` | Sender address for emails. ONCE's `MAILER_FROM_ADDRESS` is used when this is unset |
+| `DISABLE_SSL` | — | Set to `true` for non-TLS deployments (ONCE sets this by itself when an app runs without TLS) |
+| `SOLID_QUEUE_IN_PUMA` | `true` in the Docker image | Background jobs (mail and calendar sync, sending mail, notifications) run inside the web process, so one container does everything. Set to `false` when you run `bin/jobs` in a container of its own |
 | `OPEN_REGISTRATION` | — | Set to `true` to allow public signup (default: invite-only) |
 | `DEMO_MODE` | — | Set to `true` for a public demo: visitors get a throwaway example workspace, and email, mail and calendar servers, public links and invitations are off. See [docs/demo.md](docs/demo.md) |
 | `SENTRY_DSN` | — | Report errors to a Sentry-compatible collector — self-hosted [Bugsink](https://www.bugsink.com) or GlitchTip work. Off when unset; nothing leaves the server |

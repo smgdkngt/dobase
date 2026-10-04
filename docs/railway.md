@@ -19,7 +19,6 @@ Dobase keeps everything, database included, in `/rails/storage` (SQLite). On Rai
 | Variable | Value | Why |
 |----------|-------|-----|
 | `RAILWAY_RUN_UID` | `0` | Railway mounts volumes owned by root; the image runs as a non-root user, which couldn't write to it otherwise |
-| `SOLID_QUEUE_IN_PUMA` | `true` | Runs background jobs (mail sync, notifications) in the web process |
 | `APP_HOST` | `${{RAILWAY_PUBLIC_DOMAIN}}` | Links in emails |
 | `PORT` | `3000` | Where Rails listens behind Thruster |
 | `SECRET_KEY_BASE` | `${{secret(64)}}` | Optional: without it Dobase makes one and keeps it in the volume |

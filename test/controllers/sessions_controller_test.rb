@@ -8,6 +8,16 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "a new installation, with nobody to sign in as, goes to sign-up" do
+    User.define_singleton_method(:none?) { true }
+
+    get new_session_path
+
+    assert_redirected_to signup_path
+  ensure
+    User.singleton_class.remove_method(:none?)
+  end
+
   test "create with valid credentials" do
     post session_path, params: { email_address: @user.email_address, password: "password" }
 
