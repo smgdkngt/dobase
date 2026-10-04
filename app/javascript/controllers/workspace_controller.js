@@ -48,6 +48,7 @@ const FLOAT_FADE = 180
 // A change is kept on the server this long after the last one: a split being dragged
 // is one arrangement, not thirty
 const KEEP_AFTER_MS = 600
+const NOTHING_OPEN = { desk: 1, desks: {}, tiles: {} }
 
 export default class extends Controller {
   static targets = ["tiles", "tileTemplate", "empty", "desks", "deskCard", "title", "menu", "hint", "status", "float"]
@@ -127,11 +128,18 @@ export default class extends Controller {
     this.newsWatch = new MutationObserver(() => this.newsChanged())
     this.watchMenu()
 
+    for (const { id, tile, desk } of this.unplaced) {
+      this.state.tiles[id] = tile
+      this.insert(desk || this.state.desk, id)
+    }
     this.draw()
     this.arrive()
     this.grabFocus()
     this.hintTarget.hidden = this.seen("hint")
-    if (this.unsent) this.keepSoon()
+    if (this.unsent) {
+      this.write()
+      this.keepSoon()
+    }
   }
 
   // Things this browser has been told once
@@ -1449,23 +1457,38 @@ export default class extends Controller {
     return id
   }
 
-  // What the server keeps, unless this browser's copy was made from just that: then
-  // the copy, which may hold a last change that never got there
+  // What the server keeps. This browser's copy says the same, unless it holds a
+  // change that never got there (the page left before it was sent, or while it was
+  // on its way): then that change is done again on what is kept.
   load() {
     const theirs = this.revisionValue > 0 ? cleaned(this.keptValue) : null
     this.revision = this.revisionValue
     this.keptBody = theirs ? JSON.stringify(theirs) : null
+    this.unplaced = []
 
-    let mine = null
+    let state = theirs
     try {
       const copy = JSON.parse(localStorage.getItem(this.storageKey))
-      if (!theirs || Number(copy?.revision) === this.revision) mine = cleaned(copy)
+      const mine = cleaned(copy)
+      if (mine && !theirs) {
+        state = mine
+      } else if (mine && copy.unsent) {
+        if (Number(copy.revision) === this.revision) {
+          state = mine
+        } else {
+          const next = withChanges(cleaned(parsed(copy.base)) || NOTHING_OPEN, mine, theirs)
+          state = cleaned(next)
+          // Tiles the tree of their desktop doesn't hold get a place once there is a room to measure
+          this.unplaced = Object.keys(next.tiles).filter((id) => !state.tiles[id])
+            .map((id) => ({ id, tile: next.tiles[id], desk: Number(deskOf(theirs, id) || deskOf(mine, id)) }))
+        }
+      }
     } catch {
       // No storage, or nothing readable in it
     }
 
-    this.unsent = Boolean(mine) && JSON.stringify(mine) !== this.keptBody
-    return mine || theirs || { desk: 1, desks: {}, tiles: {} }
+    this.unsent = Boolean(state) && (JSON.stringify(state) !== this.keptBody || this.unplaced.length > 0)
+    return state || structuredClone(NOTHING_OPEN)
   }
 
   save() {
@@ -1474,9 +1497,11 @@ export default class extends Controller {
     this.keepSoon()
   }
 
+  // The copy in this browser: the arrangement, the revision and arrangement on the
+  // server it was made from, and whether it holds a change still to send
   write() {
     try {
-      localStorage.setItem(this.storageKey, JSON.stringify({ ...this.state, revision: this.revision }))
+      localStorage.setItem(this.storageKey, JSON.stringify({ ...this.state, revision: this.revision, base: this.keptBody, unsent: this.unsent }))
     } catch {
       // No storage (private browsing, a full disk): the server keeps it all the same
     }
@@ -1495,7 +1520,10 @@ export default class extends Controller {
 
     const state = cleaned(this.state)
     const body = JSON.stringify(state)
-    if (body === this.keptBody) return void (this.unsent = false)
+    if (body === this.keptBody) {
+      this.unsent = false
+      return this.write()
+    }
 
     this.keepingNow = true
     try {
@@ -1552,7 +1580,7 @@ export default class extends Controller {
     if (!refused && (revision <= this.revision || this.unsent)) return
 
     const theirs = cleaned(state)
-    const base = this.keptBody ? JSON.parse(this.keptBody) : { desk: 1, desks: {}, tiles: {} }
+    const base = parsed(this.keptBody) || NOTHING_OPEN
     const mine = cleaned(this.state)
     this.revision = revision
     this.keptBody = theirs ? JSON.stringify(theirs) : null
@@ -1668,6 +1696,14 @@ function withChanges(base, mine, theirs) {
   }
 
   return { desk: mine.desk !== base.desk ? mine.desk : theirs.desk, desks, tiles }
+}
+
+function parsed(text) {
+  try {
+    return text ? JSON.parse(text) : null
+  } catch {
+    return null
+  }
 }
 
 // The desktop an arrangement has a tile on
