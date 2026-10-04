@@ -201,7 +201,8 @@ class ArrowKeysTest < ApplicationSystemTestCase
 
   test "the calendar: from event to event, and past the week to the next one" do
     calendar = tools(:my_calendar)
-    visit tool_calendar_path(calendar)
+    # The week the meeting is in: tomorrow, which on a Sunday is next week
+    visit tool_calendar_path(calendar, week_start: Calendars::Event.find_by!(uid: "meeting-123@dobase").starts_at.to_date.iso8601)
     wait_for_stimulus "arrow-keys"
     week = page.evaluate_script("document.querySelector('[data-calendar-week-start-value]').dataset.calendarWeekStartValue")
 

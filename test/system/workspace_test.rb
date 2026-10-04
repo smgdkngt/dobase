@@ -569,7 +569,9 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_no_selector ".workspace-float iframe"
 
     calendar = tools(:my_calendar)
-    visit workspace_path(open: tool_calendar_path(calendar))
+    # The week the meeting is in: tomorrow, which on a Sunday is next week
+    meeting_day = Calendars::Event.find_by!(uid: "meeting-123@dobase").starts_at.to_date
+    visit workspace_path(open: tool_calendar_path(calendar, week_start: meeting_day.iso8601))
     wait_for_stimulus "workspace"
     within_tile(2) { find("[data-event-id]", match: :first).click }
     within_float do
@@ -950,6 +952,26 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_kept { |state| state["tiles"].size == 3 }
     assert_selector SHOWING_TILE, count: 3
     within_tile(2) { assert_selector "h1", text: @todos.name }
+  end
+
+  test "a change that never reached the server is done again when the workspace opens next" do
+    assert_kept { |state| state["tiles"].size == 1 }
+    # No word gets out of this page any more: a lid closed, a network gone, a page
+    # left while its change was on the way
+    page.execute_script(<<~JS)
+      const real = window.fetch
+      window.fetch = (url, options) => options?.method === "PATCH" ? new Promise(() => {}) : real(url, options)
+    JS
+    launch @files
+    elsewhere { launch @todos }
+    assert_kept { |state| state["tiles"].size == 2 }
+
+    visit workspace_path
+    wait_for_stimulus "workspace"
+
+    assert_selector SHOWING_TILE, count: 3
+    assert_kept { |state| state["tiles"].size == 3 }
+    elsewhere { assert_selector SHOWING_TILE, count: 3 }
   end
 
   test "a tile with an unsent mail in it stays when the other browser closes it" do
