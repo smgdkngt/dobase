@@ -212,12 +212,12 @@
   }
 
   /* The keyboard is on the tile itself, not in its tool: the arrows go from tile to
-     tile and Enter goes in (workspace_controller.js). Its edge is another colour than
-     that of a tile whose tool has the keyboard, and heavier; what is in it steps back. */
+     tile and Enter goes in (workspace_controller.js). Its edge is the accent, as that of a tile whose tool has the
+     keyboard, but heavier and with a glow, and what is in it steps back. */
   .workspace-tile:focus {
     @apply z-1 outline-none;
-    border-color: var(--color-warning);
-    box-shadow: 0 0 0 2px var(--color-warning), 0 0 0 6px color-mix(in srgb, var(--color-warning) 22%, transparent);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px var(--color-accent), 0 0 0 6px color-mix(in srgb, var(--color-accent) 22%, transparent);
   }
 
   .workspace-tile > iframe {
