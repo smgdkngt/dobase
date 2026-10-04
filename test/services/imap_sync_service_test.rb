@@ -833,6 +833,47 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_equal [ "Projects", 4 ], [ moved.reload.folder, moved.uid ]
   end
 
+  test "trashed mail isn't new mail to the folder it left while the server still has it there" do
+    3.times { |n| incoming_message.send(:save_email, fetch_data(7 + n, mail_with_id("trashed-#{7 + n}").to_s), "INBOX") }
+    trashed = @account.messages.where(message_id: %w[trashed-7@example.com trashed-8@example.com])
+    trashed.each(&:move_to_trash!)
+    still_there = FakeImap.new(uids: [ 7, 8, 9 ], messages: [ 7, 8, 9 ].map { |uid| fetch_data(uid, mail_with_id("trashed-#{uid}").to_s) })
+
+    # The inbox syncs before the server has moved them: they stay in the trash, and only there
+    @service.send(:fetch_recent_emails, still_there, "INBOX", 50)
+
+    assert_equal [ [ "INBOX", 9 ], [ "Trash", nil ], [ "Trash", nil ] ],
+      @account.messages.where("message_id LIKE 'trashed-%'").order(:folder, :message_id).pluck(:folder, :uid)
+
+    # The server never moved them after all: the inbox has them again
+    travel Mails::IncomingMessage::AWAITING_MOVE + 1.minute do
+      @service.send(:fetch_recent_emails, still_there, "INBOX", 50)
+    end
+    assert_equal [ 7, 8, 9 ], @account.messages.where(folder: "INBOX").where("message_id LIKE 'trashed-%'").order(:uid).pluck(:uid)
+  end
+
+  test "mail filed in a folder, or restored from the trash, isn't new mail to the folder it left either" do
+    incoming_message.send(:save_email, fetch_data(7, mail_with_id("filed-7").to_s), "INBOX")
+    filed = @account.messages.find_by!(message_id: "filed-7@example.com")
+    filed.move_to_folder!("Projects")
+    @service.send(:fetch_recent_emails, FakeImap.new(uids: [ 7 ], messages: [ fetch_data(7, mail_with_id("filed-7").to_s) ]), "INBOX", 50)
+    assert_equal [ "Projects" ], @account.messages.where(message_id: "filed-7@example.com").pluck(:folder)
+
+    incoming_message.send(:save_email, fetch_data(3, mail_with_id("restored-3").to_s), "Trash")
+    restored = @account.messages.find_by!(message_id: "restored-3@example.com")
+    restored.move_to_folder!("INBOX", on_server: false)
+    @service.send(:fetch_recent_emails, FakeImap.new(uids: [ 3 ], messages: [ fetch_data(3, mail_with_id("restored-3").to_s) ]), "Trash", 50)
+    assert_equal [ "INBOX" ], @account.messages.where(message_id: "restored-3@example.com").pluck(:folder)
+  end
+
+  test "mail sent to yourself from here arrives in the inbox, though its sent copy has no UID yet" do
+    @account.messages.create!(message_id: "self-1@example.com", folder: "Sent", subject: "To myself", from_address: "me@example.com", sent_at: Time.current)
+
+    incoming_message.send(:save_email, fetch_data(5, mail_with_id("self-1").to_s), "INBOX")
+
+    assert_equal [ "INBOX", "Sent" ], @account.messages.where(message_id: "self-1@example.com").order(:folder).pluck(:folder)
+  end
+
   # --- Archived mail ------------------------------------------------------------
   # Mail archived here keeps its place in the folder it was archived from, flagged
   # archived, while the server moves it to the archive folder.

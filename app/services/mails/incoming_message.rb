@@ -9,6 +9,8 @@ module Mails
     REPLACEMENT = "\uFFFD"
     # Charsets that mail with other letters in it names anyway
     UNSPECIFIC_CHARSET = /\A(us-ascii|utf-?8)\z/i
+    # How long the server gets to move mail that was moved here (ImapSyncJob tries for a few minutes)
+    AWAITING_MOVE = 15.minutes
 
     def initialize(account)
       @account = account
@@ -34,6 +36,17 @@ module Mails
     end
 
     private
+
+    # Mail that was trashed, restored or filed here a moment ago is in its new folder
+    # here at once, without a UID, while the server moves it a little later (ImapSyncJob).
+    # A sync in between finds it in the folder it left: that is not new mail, and
+    # saving it would put it back where it was just taken from. When the server never
+    # moves it (the job gave up), the folder gets it back after a while. Sent mail and
+    # drafts have no UID for reasons of their own.
+    def awaiting_its_move?(message_id, folder_name)
+      @account.messages.where(message_id: message_id, uid: nil, updated_at: AWAITING_MOVE.ago..)
+        .where.not(folder: [ folder_name, "Sent", "Drafts" ]).exists?
+    end
 
     def save_email(msg, folder_name)
       envelope = msg.attr["ENVELOPE"]
@@ -81,6 +94,7 @@ module Mails
       # A message in several folders on the server has a copy here for each of them
       email = @account.messages.find_or_initialize_by(message_id: message_id, folder: folder_name)
       is_new_email = email.new_record?
+      return if is_new_email && awaiting_its_move?(message_id, folder_name)
       # Mail archived here keeps its place in its folder, flagged archived, while the server has
       # it in the archive folder. In its folder again under a new UID, another mail program moved it back.
       email.archived = false if email.archived? && @account.archive_folder.present? && email.uid.present? && email.uid != uid
