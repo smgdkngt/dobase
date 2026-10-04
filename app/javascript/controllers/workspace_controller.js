@@ -12,6 +12,12 @@ import { typing } from "services/typing"
 // with two halves, each of them a tile or a split again. A new tile halves the one
 // you are on, side by side when that one is wide and stacked when it is tall.
 //
+// The keyboard is at one of two levels. On a tile (the tile itself has it): the arrows
+// go from tile to tile, up to the bar and sideways on to the next desktop, Enter goes
+// into the tool, Escape closes the tile. In a tool (its frame has it): the keys are
+// the tool's, and Escape comes back out to the tile. The workspace's own keys
+// (services/workspace_keys.js) work at both, and keep the level you are at.
+//
 // The tiles are all children of one element and get their place as left, top, width
 // and height: a frame that moves in the page loads its page again, so no tile ever
 // moves in the page. Tiles on another desktop stay loaded, out of sight.
@@ -73,6 +79,8 @@ export default class extends Controller {
     // Tiles that are in the page already (the element outlives a morph refresh)
     this.elements = new Map()
     this.tilesTarget.querySelectorAll("[data-tile-id]").forEach((tile) => this.elements.set(tile.dataset.tileId, tile))
+    // The keyboard starts on the tile, not in its tool (see the two levels, above)
+    this.held = true
     this.tilesTarget.querySelectorAll("[data-split]").forEach((handle) => handle.remove())
 
     this.listening = new AbortController()
@@ -90,7 +98,7 @@ export default class extends Controller {
       if (event.detail.side !== "down" || !this.element.contains(document.activeElement) || this.tilesTarget.contains(document.activeElement)) return
 
       event.preventDefault()
-      this.grabFocus()
+      this.grabFocus({ into: false })
     })
     this.listen(window, "command-palette:show", () => this.showMenu())
     this.listen(window, "command-palette:hide", () => this.closeMenu({ toTheTile: true }))
@@ -99,6 +107,13 @@ export default class extends Controller {
       this.submitted = { at: performance.now(), toolId: toolIdOf(pathOf(event.target.action)) }
     })
     this.listen(document, "turbo:morph", () => this.refreshed())
+    // The keyboard arrived on a tile itself, however it got there: that is the level it is at
+    this.listen(this.tilesTarget, "focusin", (event) => {
+      if (!event.target.matches("[data-tile-id]")) return
+
+      this.held = true
+      this.focus(event.target.dataset.tileId)
+    })
     this.listen(document, "keydown", (event) => this.keyed(event), true)
     this.listen(window, "message", (event) => this.heard(event))
     this.listen(window, "pagehide", () => this.remember())
@@ -220,7 +235,7 @@ export default class extends Controller {
     this.desk.alone = false
     this.save()
     this.draw({ glide: true })
-    this.grabFocus()
+    this.grabFocus({ into: true })
     this.say(`${this.nameOf(id)} opened${this.state.desk === from ? "" : ` on ${this.deskSaid(this.state.desk)}`}`)
     return true
   }
@@ -890,10 +905,52 @@ export default class extends Controller {
     this.drawBar()
   }
 
-  // The keyboard goes where the focus is
-  grabFocus() {
-    const frame = this.frameOf(this.desk.focus)
-    frame ? frame.focus() : this.element.closest("main")?.focus()
+  // The keyboard goes where the focus is, at the level it was at: into the tool, or
+  // onto the tile itself
+  grabFocus({ into = !this.held } = {}) {
+    const tile = this.elements.get(this.desk.focus)
+    if (!tile) return void this.element.closest("main")?.focus()
+
+    this.held = !into
+    into ? tile.querySelector("iframe").focus() : tile.focus({ preventScroll: true })
+  }
+
+  // The arrows with the keyboard on a tile: to the tile on that side. Where there is
+  // none, up is the bar, and sideways the next desktop that way with something on it.
+  stepToward(direction) {
+    const next = this.desk.alone || this.narrow.matches ? null : this.neighbour(direction)
+    if (next) {
+      this.focus(next)
+      this.grabFocus({ into: false })
+      return this.say(this.nameOf(next))
+    }
+    if (direction === "up") return this.desksTarget.children[this.state.desk - 1]?.focus()
+    if (direction === "down") return
+
+    const step = direction === "left" ? -1 : 1
+    for (let number = this.state.desk + step; number >= 1 && number <= 9; number += step) {
+      if (this.state.desks[number]?.tree) return this.goToDesk(number)
+    }
+  }
+
+  // A key with the keyboard on a tile. True when it was one of the tile's.
+  tileKeyed(event) {
+    const id = event.target.dataset.tileId
+    const direction = { ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down" }[event.key]
+    if (!direction && ![ "Enter", " ", "Escape" ].includes(event.key)) return false
+
+    event.preventDefault()
+    event.stopPropagation()
+    if (direction) {
+      this.stepToward(direction)
+    } else if (event.key === "Escape") {
+      this.close(id)
+    } else {
+      this.focus(id)
+      this.grabFocus({ into: true })
+      this.say(`In ${this.nameOf(id)}. Escape comes back out.`)
+    }
+    return true
   }
 
   goToDesk(number, { keyboardStays = false } = {}) {
@@ -1019,6 +1076,8 @@ export default class extends Controller {
       event.preventDefault()
       return this.goToNext(event.shiftKey ? -1 : 1)
     }
+    const plain = !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey
+    if (plain && event.target.matches?.("[data-tile-id]") && this.tileKeyed(event)) return
 
     const command = workspaceCommand(event)
     if (!command) return
@@ -1104,7 +1163,7 @@ export default class extends Controller {
   goTo(id) {
     this.goToDesk(this.deskNumberOf(id))
     this.focus(id)
-    this.grabFocus()
+    this.grabFocus({ into: true })
   }
 
   // The server drew this page again (a morph, which leaves the tiles alone): the bar
@@ -1247,11 +1306,15 @@ export default class extends Controller {
         // while it is still there: a dialog that closes hands it back to the tile it
         // came from for a moment, and that tile says so after the launcher has
         // already opened another.
-        if (message.pointer || this.frameOf(id) === document.activeElement) this.focus(id)
+        if (message.pointer || this.frameOf(id) === document.activeElement) {
+          this.focus(id)
+          // The keyboard is in the tool now
+          this.held = false
+        }
         // A click that something in the tile kept to itself (a card that can be dragged
         // takes the press for the drag) moves no keyboard: the tile is lit and the keys
         // still go to the one you were in. The keyboard goes along with the click.
-        if (message.pointer && this.frameOf(id) !== document.activeElement && !this.menuOpen && !document.querySelector("dialog[open]")) this.grabFocus()
+        if (message.pointer && this.frameOf(id) !== document.activeElement && !this.menuOpen && !document.querySelector("dialog[open]")) this.grabFocus({ into: true })
         break
       case "command":
         this.run(message.command)
@@ -1273,18 +1336,12 @@ export default class extends Controller {
         this.float(id, message.url)
         break
       case "escape":
-        // Escape in a tile with nothing left to let go of: the tile itself
-        this.close(id)
-        break
-      case "edge":
-        // The arrow keys ran out of things on that side of the tile you are on: on to
-        // the tile that lies there. Not with one tile alone in the room: there the
-        // others are behind it, not beside it.
-        if (id !== this.desk.focus || this.narrow.matches) break
-        if (!this.desk.alone && this.neighbour(message.side)) this.goToward(message.side)
-        // Nothing above the top row but the bar: the desktop you are on, from where
-        // the arrows go through the bar
-        else if (message.side === "up") this.desksTarget.children[this.state.desk - 1]?.focus()
+        // Escape in a tool with nothing left to let go of: out of the tool, onto its tile
+        this.focus(id)
+        this.grabFocus({ into: false })
+        // (the key was pressed in the tile's page, which this page didn't see)
+        this.elements.get(id)?.setAttribute("data-keyboard-focus", "")
+        this.say(`${this.nameOf(id)}: Enter goes in, Escape closes it`)
         break
       case "keys":
         // Chosen in that tile's own shortcuts dialog: here and in the other tiles too

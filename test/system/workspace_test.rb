@@ -323,48 +323,57 @@ class WorkspaceTest < ApplicationSystemTestCase
     within_tile(0) { assert_selector "#board-card-#{cards(:third_task).id}:focus" }
   end
 
-  test "past the edge of a tool the arrows go on to the tile on that side, and back" do
+  test "on a tile the arrows go from tile to tile, Enter goes into its tool, and there the arrows stay in it" do
     launch @files
-    assert_focused 1
+    assert_in_tool 1
 
-    # In the files tile nothing is to the left of the first thing: on to the board
-    type_keys :arrow_right
-    within_tile(1) { assert_selector "[data-arrow-keys-target='item']:focus" }
+    # Out of the tool: the keyboard is on the tile, which says what the keys do there
+    leave_tool
+    assert_on_tile 1
+    assert_selector ".workspace-tile:focus .workspace-tile-hint", text: "goes in"
+    assert_selector ".workspace [role='status']", text: "#{@files.name}: Enter goes in, Escape closes it", visible: :all
+
     type_keys :arrow_left
+    assert_on_tile 0
     assert_focused 0
+    # Nothing lies below: it stays where it is, and nothing in the board got the key
+    type_keys :arrow_down
+    assert_on_tile 0
+    within_tile(0) { assert_no_selector "[data-arrow-keys-target='item']:focus" }
 
-    # In the board the arrows are the board's, until its last column has nothing further right
+    type_keys :enter
+    assert_in_tool 0
     type_keys :arrow_down
     within_tile(0) { assert_selector "#board-card-#{cards(:first_task).id}:focus" }
-    6.times do
-      type_keys :arrow_right
-      break if focused_index == 1
-      sleep 0.15
-    end
-    assert_focused 1
+
+    # In the tool the arrows are the tool's: past its last column they go nowhere
+    8.times { type_keys :arrow_right }
+    assert_in_tool 0
+    assert_focused 0
+    within_tile(0) { assert_selector "[data-arrow-keys-target='item']:focus" }
   end
 
-  test "up from the top of a tile is the bar, and down from the bar is the tile again" do
+  test "up from a tile is the bar and down from the bar the tile again; sideways past the last tile is the next desktop" do
     # (the line about the workspace lies under the bar too, until it is dismissed)
     within(".workspace-hint") { click_on "Got it" }
-    type_keys :arrow_down
-    within_tile(0) { assert_selector "#board-card-#{cards(:first_task).id}:focus" }
+    press "2"
+    launch @files, on_new_desktop: true
+    leave_tool
+    assert_on_tile 0
 
-    # Up through what the board has above its cards, and past that out of the tile
-    8.times do
-      type_keys :arrow_up
-      break if page.has_selector?(".workspace-desk:focus", wait: 0.3)
-    end
-    assert_selector ".workspace-desk[aria-current='true']:focus"
-
+    # Nothing to the left on this desktop: the desktop before it, on its tile
     type_keys :arrow_left
-    assert_selector ".workspace-bar-btn[aria-label='Menu']:focus"
+    assert_selector ".workspace-desk[data-desk='1'][aria-current='true']"
+    assert_on_tile 0
+    within_tile(0) { assert_selector "h1", text: @board.name }
+    type_keys :arrow_right
+    assert_selector ".workspace-desk[data-desk='2'][aria-current='true']"
+    assert_on_tile 0
 
+    type_keys :arrow_up
+    assert_selector ".workspace-desk[aria-current='true']:focus"
     type_keys :arrow_down
-    page.document.synchronize do
-      back = page.evaluate_script("document.activeElement === document.querySelector('.workspace-tile iframe')")
-      raise Capybara::ExpectationNotMet, "the keyboard isn't back in the tile" unless back
-    end
+    assert_on_tile 0
   end
 
   test "mail in a tile: the arrows go down the list, into a conversation and back to the list" do
@@ -466,38 +475,45 @@ class WorkspaceTest < ApplicationSystemTestCase
     page.driver.browser.manage.delete_cookie("workspace_keys")
   end
 
-  test "escape lets go of things one at a time, and with nothing left to let go of it closes the tile" do
+  test "escape lets go of things one at a time, then leaves the tool, and on the tile it closes it" do
     launch @files
     assert_equal 2, tiles.size
 
-    # A field, then the file the arrows were on, then the tile itself
+    # The file the arrows were on, then the tool, then the tile itself
     type_keys :arrow_right
     within_tile(1) { assert_selector "[data-arrow-keys-target='item']:focus" }
     type_keys :escape
     within_tile(1) { assert_no_selector "[data-arrow-keys-target='item']:focus" }
+    assert_in_tool 1
+
+    type_keys :escape
+    assert_on_tile 1
     assert_equal 2, tiles.size
 
     type_keys :escape
-    assert_selector ".workspace-tile:not([hidden], [data-leaving])", count: 1
+    assert_selector SHOWING_TILE, count: 1
     within_tile(0) { assert_selector "h1", text: @board.name }
+    # The keyboard is on the tile that is left, not in its tool
+    assert_on_tile 0
   end
 
-  test "escape inside a tool goes up a level, and only closes the tile at the top of the tool" do
+  test "escape leaves a tool where it is: back on its tile, the document is still open, and Enter goes back in" do
     docs = tools(:my_docs)
     document = docs_documents(:meeting_notes)
     visit workspace_path(open: tool_docs_document_path(docs, document))
     wait_for_stimulus "workspace"
     within_tile(1) { assert_selector "h1", text: document.title }
 
-    # In a document: out of it, to the documents
-    type_keys :escape
+    leave_tool
+    assert_on_tile 1
+    within_tile(1) { assert_selector "h1", text: document.title }
+
+    type_keys :enter
+    assert_in_tool 1
+    # The left arrow is the way back up inside the tool
+    type_keys :arrow_left
     within_tile(1) { assert_selector "h1", text: docs.name }
     assert_equal 2, tiles.size
-
-    # At the top of the tool: the tile
-    type_keys :escape
-    assert_selector ".workspace-tile:not([hidden], [data-leaving])", count: 1
-    within_tile(0) { assert_selector "h1", text: @board.name }
   end
 
   test "a click in a tile takes the keyboard there, also where the click was kept for a drag" do
@@ -1183,6 +1199,33 @@ class WorkspaceTest < ApplicationSystemTestCase
     page.document.synchronize do
       raise Capybara::ExpectationNotMet, "tile #{focused_index.inspect} has the focus, not #{index}" unless focused_index == index
     end
+  end
+
+  # Which of the showing tiles has the keyboard on the tile itself (the level where the
+  # arrows go from tile to tile), and which has it in its tool
+  def assert_on_tile(index)
+    assert_keyboard_at index, "document.activeElement", "on tile"
+  end
+
+  def assert_in_tool(index)
+    assert_keyboard_at index, "document.activeElement?.closest?.('.workspace-tile')", "in the tool of tile", frame: true
+  end
+
+  def assert_keyboard_at(index, tile, where, frame: false)
+    page.document.synchronize do
+      at, in_frame = page.evaluate_script("[ Array.from(document.querySelectorAll(#{SHOWING_TILE.to_json})).indexOf(#{tile}), document.activeElement?.tagName === 'IFRAME' ]")
+      raise Capybara::ExpectationNotMet, "the keyboard isn't #{where} #{index} (tile #{at}, in a frame: #{in_frame})" unless at == index && in_frame == frame
+    end
+  end
+
+  # Escape until the keyboard is out of the tool and on its tile (the first lets go of
+  # what the keyboard was on in there, if anything)
+  def leave_tool
+    3.times do
+      type_keys :escape
+      break if page.has_selector?(".workspace-tile:focus", wait: 0.5)
+    end
+    assert_selector ".workspace-tile:focus"
   end
 
   # The frame a tile's dialog floats in, over all the tiles
