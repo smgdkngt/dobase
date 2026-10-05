@@ -53,22 +53,25 @@
        data-email-frame-full-srcdoc-value="<%= full_srcdoc %>">
     <% if images_trusted %>
       <% if can_trust_sender %>
-        <div class="email-images-note">
-          <%= render "shared/icon", name: "image", size: 14, class: "text-text-tertiary shrink-0" %>
-          <span>Images from <%= message.from_address %> are always shown.</span>
+        <%# Nothing to decide here any more: a quiet line, not a box above every mail of theirs %>
+        <div class="email-images-note email-images-note-quiet" title="Images from <%= message.from_address %> are always shown">
+          <%= render "shared/icon", name: "image", size: 12, class: "shrink-0" %>
+          <span>Images shown for this sender.</span>
           <%= button_to "Stop", tool_mail_trusted_sender_path(message.account.tool, message), method: :delete,
-                class: "email-images-action", form_class: "contents" %>
+                class: "email-images-action", form_class: "contents",
+                aria: { label: "Stop showing images from #{message.from_address}" } %>
         </div>
       <% end %>
     <% elsif has_remote_images %>
       <div class="email-images-note" data-email-frame-target="banner">
         <%= render "shared/icon", name: "image", size: 14, class: "text-text-tertiary shrink-0" %>
-        <span>Images are hidden to protect your privacy.</span>
+        <span title="Images are hidden to protect your privacy">Images are hidden.</span>
         <button type="button" class="email-images-action" data-action="email-frame#showImages">Show images</button>
         <% if can_trust_sender %>
           <span aria-hidden="true">&middot;</span>
-          <%= button_to "Always show from #{message.from_address}", tool_mail_trusted_sender_path(message.account.tool, message),
-                class: "email-images-action", form_class: "contents" %>
+          <%= button_to "Always for this sender", tool_mail_trusted_sender_path(message.account.tool, message),
+                class: "email-images-action", form_class: "contents", title: "Always show images from #{message.from_address}",
+                aria: { label: "Always show images from #{message.from_address}" } %>
         <% end %>
       </div>
     <% end %>

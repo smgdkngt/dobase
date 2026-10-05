@@ -446,21 +446,29 @@
     @apply rounded-lg px-4 py-3 text-sm flex items-center gap-3;
   }
 
+  .flash {
+    background-color: var(--flash-tint);
+  }
+
   .flash-notice {
-    @apply bg-accent-light text-accent border border-accent/20;
+    --flash-tint: var(--color-accent-light);
+    @apply text-accent border border-accent/20;
   }
 
   .flash-success {
-    @apply bg-success-light text-success border border-success/20;
+    --flash-tint: var(--color-success-light);
+    @apply text-success border border-success/20;
   }
 
   .flash-alert,
   .flash-error {
-    @apply bg-error-light text-error border border-error/20;
+    --flash-tint: var(--color-error-light);
+    @apply text-error border border-error/20;
   }
 
   .flash-warning {
-    @apply bg-warning-light text-warning border border-warning/20;
+    --flash-tint: var(--color-warning-light);
+    @apply text-warning border border-warning/20;
   }
 
   .flash {
@@ -485,6 +493,13 @@
 
   .flash-toast > * {
     @apply pointer-events-auto;
+  }
+
+  /* A toast lies over the page. A theme's tints are see-through, so the tint goes over
+     the page's own surface: nothing under the toast shows through it. */
+  .flash-toast > .flash {
+    @apply shadow-lg;
+    background: linear-gradient(var(--flash-tint), var(--flash-tint)), var(--color-surface);
   }
 
   body:has(.tool-layout-anchored) .flash-toast {

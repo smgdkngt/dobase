@@ -17,7 +17,7 @@ module Tools
         get tool_mail_path(@tool, @message)
 
         assert_select "iframe[srcdoc*='data-blocked-src']"
-        assert_select "button", text: "Always show from sender@example.com"
+        assert_select "button[aria-label='Always show images from sender@example.com']", text: "Always for this sender"
       end
 
       test "create trusts the sender, and their mail shows its images" do
@@ -26,7 +26,9 @@ module Tools
         assert @account.shows_images_from?("Sender@Example.com")
         get tool_mail_path(@tool, @message)
         assert_select "iframe[srcdoc*='https://tracker.example.com/logo.png']"
-        assert_select "button", text: "Stop"
+        # Said in passing, not in a box above every mail of theirs
+        assert_select ".email-images-note-quiet", text: /Images shown for this sender/
+        assert_select "button[aria-label='Stop showing images from sender@example.com']", text: "Stop"
       end
 
       test "create twice keeps one trusted sender" do
