@@ -19,8 +19,12 @@ func chat() []*Definition {
 				F("limit", "N", "Number of messages (default 50, max 200)"),
 				F("before", "ID", "Only messages older than this message, to page back"),
 			}, listChat),
-		New("chat post", "Send a message to a chat", []string{"TOOL", "TEXT"},
-			[]Flag{Switch("html", "TEXT is HTML"), F("reply-to", "ID", "Reply to this message")}, postChat),
+		New("chat post", "Send a message to a chat: text, files, or both", []string{"TOOL", "[TEXT]"},
+			[]Flag{
+				Switch("html", "TEXT is HTML"),
+				F("reply-to", "ID", "Reply to this message"),
+				Each("attach", "PATH", "Attach this file; repeat for more (10 files, 50 MB each)"),
+			}, postChat),
 		New("chat edit", "Change the text of one of your messages", []string{"TOOL/MESSAGE", "TEXT"},
 			[]Flag{Switch("html", "TEXT is HTML")}, editChat),
 		New("chat delete", "Delete a message (your own, or anyone's if you own the chat)", []string{"TOOL/MESSAGE"}, nil, deleteChat),
@@ -68,7 +72,10 @@ func listChat(ctx *Ctx, args *Args) error {
 			if message.Get("reply_to").Truthy() {
 				ctx.Sayf("  > %s: %s", message.Get("reply_to", "user_name").S(), message.Get("reply_to", "preview").S())
 			}
-			ctx.Paragraph(message.Get("body").S(), 2)
+			// A message of files alone has no text
+			if body := message.Get("body").S(); !isBlank(body) {
+				ctx.Paragraph(body, 2)
+			}
 			for _, file := range message.Get("files").Items() {
 				ctx.Sayf("  File: %s (%s) %s", file.Get("filename").S(), Bytes(file.Get("byte_size")), file.Get("download_url").S())
 			}
@@ -99,20 +106,51 @@ func postChat(ctx *Ctx, args *Args) error {
 			return err
 		}
 	}
-	body, err := ctx.RichText(args.At(1), args.On("html"))
+	files, err := filesToAttach(args, "message[files][]")
+	if err != nil {
+		return err
+	}
+	if len(args.Positional) < 2 && len(files) == 0 {
+		return api.Usagef("Give the TEXT of the message, a file with --attach, or both.")
+	}
+	body, err := ctx.RichText(args.Get(1), args.On("html"))
 	if err != nil {
 		return err
 	}
 
-	message, err := ctx.Post(fmt.Sprintf("/tools/%s/chat/messages", tool.Get("id").S()),
-		map[string]any{"message": Compact(map[string]any{"body": body, "reply_to_id": replyTo})})
+	path := fmt.Sprintf("/tools/%s/chat/messages", tool.Get("id").S())
+	var message api.Value
+	if len(files) > 0 {
+		message, err = postChatFiles(ctx, path, body, replyTo, files)
+	} else {
+		message, err = ctx.Post(path, map[string]any{"message": Compact(map[string]any{"body": body, "reply_to_id": replyTo})})
+	}
 	if err != nil {
 		return err
 	}
 	return ctx.Output(message, func() error {
-		ctx.Sayf("Posted message %s/%s to %s.", tool.Get("id").S(), message.Get("id").S(), tool.Get("name").S())
+		attached := int64(len(message.Get("files").Items()))
+		ctx.Sayf("Posted message %s/%s to %s%s.", tool.Get("id").S(), message.Get("id").S(), tool.Get("name").S(),
+			If(attached > 0, " with "+Count(attached, "file")))
 		return nil
 	})
+}
+
+// postChatFiles sends a message with files on it, which takes a form instead
+// of JSON: the text, what it replies to and the files go in one request.
+func postChatFiles(ctx *Ctx, path, body string, replyTo any, files []api.FilePart) (api.Value, error) {
+	server, err := ctx.API()
+	if err != nil {
+		return api.Null, err
+	}
+	var fields []api.Param
+	if !isBlank(body) {
+		fields = append(fields, api.Param{Name: "message[body]", Value: body})
+	}
+	if id, ok := replyTo.(string); ok {
+		fields = append(fields, api.Param{Name: "message[reply_to_id]", Value: id})
+	}
+	return server.Upload(path, files, fields)
 }
 
 func editChat(ctx *Ctx, args *Args) error {

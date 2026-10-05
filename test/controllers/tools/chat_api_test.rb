@@ -208,6 +208,44 @@ module Tools
       assert_equal [ "notes.txt" ], response.parsed_body["files"].map { |attachment| attachment["filename"] }
     end
 
+    test "create takes the text, what it answers and several files in one form" do
+      first = @chat.messages.create!(user: @other_user, body: "<p>Photos?</p>")
+      files = %w[front.png back.png].map do |name|
+        Rack::Test::UploadedFile.new(file_fixture("sample.png"), "image/png", original_filename: name)
+      end
+
+      assert_difference -> { @chat.messages.count } => 1, -> { ActiveStorage::Attachment.count } => 2 do
+        post tool_chat_messages_path(@tool),
+          params: { message: { body: "<p>Here they are</p>", reply_to_id: first.id, files: files } }, headers: @headers
+      end
+
+      assert_response :created
+      message = response.parsed_body
+      assert_equal "Here they are", message["body"]
+      assert_equal first.id, message.dig("reply_to", "id")
+      assert_equal %w[front.png back.png], message["files"].map { |file| file["filename"] }
+      assert_equal %w[image/png image/png], message["files"].map { |file| file["content_type"] }
+      assert message.dig("files", 0, "download_url").start_with?("http://www.example.com/rails/active_storage/")
+      assert_equal @user, @chat.messages.find(message["id"]).user
+    end
+
+    test "create with files the chat doesn't take posts nothing and says why" do
+      program = Rack::Test::UploadedFile.new(StringIO.new("MZ"), "application/x-msdownload", original_filename: "setup.exe")
+      many = Array.new(::Chats::Message::MAX_FILES + 1) do |index|
+        Rack::Test::UploadedFile.new(StringIO.new("hello"), "text/plain", original_filename: "notes-#{index}.txt")
+      end
+
+      assert_no_difference -> { @chat.messages.count } do
+        post tool_chat_messages_path(@tool), params: { message: { body: "<p>Run this</p>", files: [ program ] } }, headers: @headers
+        assert_response :unprocessable_entity
+        assert response.parsed_body["errors"].any? { |error| error.include?("unsupported file type") }, response.body
+
+        post tool_chat_messages_path(@tool), params: { message: { files: many } }, headers: @headers
+        assert_response :unprocessable_entity
+        assert_includes response.parsed_body["errors"], "Files cannot exceed 10 files per message"
+      end
+    end
+
     test "the browser form still gets a status and turbo stream errors" do
       sign_in_as @user
       turbo_headers = { "Accept" => "text/vnd.turbo-stream.html, text/html, application/xhtml+xml" }

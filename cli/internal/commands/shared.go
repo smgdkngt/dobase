@@ -90,6 +90,23 @@ func attachFiles(ctx *Ctx, path string, files []string, label string) error {
 	})
 }
 
+// filesToAttach are the files --attach names, as parts of a form under field,
+// checked before anything is saved or sent.
+func filesToAttach(args *Args, field string) ([]api.FilePart, error) {
+	var files []api.FilePart
+	for _, path := range args.All("attach") {
+		info, err := os.Stat(path)
+		if err != nil {
+			return nil, api.PathError(path, err)
+		}
+		if info.IsDir() {
+			return nil, api.Failf("%s is a directory. Attach files one by one.", path)
+		}
+		files = append(files, api.FilePart{Field: field, Path: path})
+	}
+	return files, nil
+}
+
 // findNamed finds a column, list or calendar by id, name, or the start of its
 // name. Without a reference ("") it's the first one.
 func findNamed(items []api.Value, reference, key, what, plural, owner string) (api.Value, error) {
