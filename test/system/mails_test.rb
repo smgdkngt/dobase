@@ -63,12 +63,16 @@ class MailsTest < ApplicationSystemTestCase
     visit tool_mails_path(@tool)
     wait_for_stimulus "standalone-scroll"
     # As in an installed app on a phone: the page itself never scrolls, and is a little higher than the screen
-    page.execute_script(<<~JS)
-      document.documentElement.style.overflow = "hidden"
-      document.body.style.minHeight = "calc(100vh + 60px)"
-      window.scrollTo(0, 60)
+    # (scrolled and looked at in one go: it is put back a moment later)
+    scrolled = page.evaluate_script(<<~JS)
+      (() => {
+        document.documentElement.style.overflow = "hidden"
+        document.body.style.minHeight = "calc(100vh + 60px)"
+        window.scrollTo(0, 60)
+        return window.scrollY
+      })()
     JS
-    assert_operator page.evaluate_script("window.scrollY"), :>, 0
+    assert_operator scrolled, :>, 0
 
     page.document.synchronize do
       raise Capybara::ExpectationNotMet, "the page stayed scrolled" unless page.evaluate_script("window.scrollY").zero?
