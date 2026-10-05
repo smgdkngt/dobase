@@ -207,14 +207,16 @@ class ArrowKeysTest < ApplicationSystemTestCase
     week = page.evaluate_script("document.querySelector('[data-calendar-week-start-value]').dataset.calendarWeekStartValue")
 
     # Until the week changes, and not a press further: those would be the next week's.
-    # A press either moves to another event or, past the last one, brings the next week.
+    # A press moves the keyboard on (to another event, or past the last one on that
+    # side to what can be pressed there), or brings the next week. Where the events
+    # are depends on the day the test runs, so it only asks that the keyboard moved.
     this_week = "[data-calendar-week-start-value='#{week}']"
-    12.times do
-      before = page.evaluate_script("document.activeElement.dataset.eventId || ''")
+    20.times do
+      page.execute_script("window.keyboardWasOn = document.activeElement")
       press :arrow_right
       gone = page.document.synchronize(5) do
         gone = page.has_no_selector?(this_week, wait: 0)
-        raise Capybara::ExpectationNotMet, "the key did nothing yet" unless gone || page.evaluate_script("document.activeElement.dataset.eventId || ''") != before
+        raise Capybara::ExpectationNotMet, "the key did nothing yet" unless gone || page.evaluate_script("document.activeElement !== window.keyboardWasOn")
         gone
       end
       break if gone
