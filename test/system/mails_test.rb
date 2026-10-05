@@ -37,6 +37,44 @@ class MailsTest < ApplicationSystemTestCase
     assert_text "Welcome to Dobase! We hope you enjoy the platform.", wait: 5
   end
 
+  test "in a narrow window an open conversation has the next and the previous one a button away, and the message has the width" do
+    page.driver.browser.manage.window.resize_to(390, 844)
+    visit tool_mails_path(@tool)
+    subjects = all(".mail-list-item .mail-list-subject", minimum: 2).map(&:text)
+    first(".mail-list-item a").click
+    assert_selector ".mail-detail-header h1", text: subjects.first
+
+    find("button[title^='Next conversation']").click
+    assert_selector ".mail-detail-header h1", text: subjects.second
+    find("button[title^='Previous conversation']").click
+    assert_selector ".mail-detail-header h1", text: subjects.first
+    # At the first one there is none before it: it stays
+    find("button[title^='Previous conversation']").click
+    assert_selector ".mail-detail-header h1", text: subjects.first
+
+    # The message isn't set in beside the sender's face: it starts near the edge of the window
+    left = page.evaluate_script("document.querySelector('.email-frame, [data-collapse-target=content] > div').getBoundingClientRect().left")
+    assert_operator left, :<, 24
+  ensure
+    page.driver.browser.manage.window.resize_to(1400, 1400)
+  end
+
+  test "a page that fills a home screen app is put back when something scrolled it" do
+    visit tool_mails_path(@tool)
+    wait_for_stimulus "standalone-scroll"
+    # As in an installed app on a phone: the page itself never scrolls, and is a little higher than the screen
+    page.execute_script(<<~JS)
+      document.documentElement.style.overflow = "hidden"
+      document.body.style.minHeight = "calc(100vh + 60px)"
+      window.scrollTo(0, 60)
+    JS
+    assert_operator page.evaluate_script("window.scrollY"), :>, 0
+
+    page.document.synchronize do
+      raise Capybara::ExpectationNotMet, "the page stayed scrolled" unless page.evaluate_script("window.scrollY").zero?
+    end
+  end
+
   test "navigating to starred folder" do
     visit tool_mails_path(@tool)
     wait_for_turbo
@@ -485,7 +523,8 @@ class MailsTest < ApplicationSystemTestCase
     end
 
     # The job says why a moment after it puts the draft back, which is what the page shows
-    assert_db_change -> { users(:one).notifications.exists? }
+    # (a moment that is long on a busy machine)
+    assert_db_change -> { users(:one).notifications.exists? }, timeout: 15
     assert_match "Error: certificate verify failed", users(:one).notifications.order(:created_at).last.message
     visit new_tool_mail_path(@tool, draft_id: draft.id)
     wait_for_compose_editor

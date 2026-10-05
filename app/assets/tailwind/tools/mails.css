@@ -139,6 +139,11 @@
     @apply flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 mb-2 rounded-md bg-background-secondary text-xs text-text-secondary;
   }
 
+  /* Shown because the sender is trusted: said in passing */
+  .email-images-note-quiet {
+    @apply px-0 py-0 mb-1.5 bg-transparent text-text-tertiary;
+  }
+
   /* A draft in a conversation: not sent, with a way to finish it */
   .mail-draft-avatar {
     @apply w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-warning border border-dashed border-warning;
