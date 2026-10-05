@@ -165,7 +165,7 @@
 
   [data-room-mode-value="full"] {
     @apply fixed z-20;
-    top: 0;
+    top: var(--titlebar-height);
     left: var(--sidebar-width);
     right: 0;
     bottom: var(--demo-banner-height);

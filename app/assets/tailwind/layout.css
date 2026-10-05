@@ -3,7 +3,7 @@
   /* Sidebar */
   .sidebar {
     @apply fixed left-0 top-0 bottom-0 w-[var(--sidebar-width)] bg-sidebar-bg border-r border-border-light flex flex-col;
-    padding-top: env(safe-area-inset-top);
+    padding-top: var(--inset-top);
     padding-left: env(safe-area-inset-left);
     padding-bottom: env(safe-area-inset-bottom);
   }
@@ -224,6 +224,7 @@
   .main-content {
     @apply min-h-dvh bg-background;
     margin-left: var(--sidebar-width);
+    padding-top: var(--titlebar-height);
     padding-right: env(safe-area-inset-right);
     padding-bottom: calc(env(safe-area-inset-bottom) + var(--demo-banner-height));
   }
@@ -231,7 +232,8 @@
   /* Full-height tool layouts */
   .main-content:has(> .tool-layout) {
     @apply overflow-hidden p-0 min-h-0;
-    height: calc(100dvh - var(--demo-banner-height));
+    margin-top: var(--titlebar-height);
+    height: calc(100dvh - var(--demo-banner-height) - var(--titlebar-height));
   }
 
   /* Some tools ask for the whole screen (h-screen); they get the main area */
@@ -333,6 +335,20 @@
   --demo-banner-height: 0px;
 }
 
+/* What the top of the window keeps for itself: a phone's status bar, and in an
+   installed app without a title bar the strip its window buttons are in
+   (--titlebar-height, app_window.css). */
+:root {
+  --titlebar-height: 0px;
+  --inset-top: calc(env(safe-area-inset-top, 0px) + var(--titlebar-height));
+}
+
+/* In the workspace the bar along the top is that strip */
+body[data-workspace] {
+  --titlebar-height: 0px;
+  --inset-top: env(safe-area-inset-top, 0px);
+}
+
 :root:has(.demo-banner) {
   --demo-banner-height: 1.75rem;
 }
@@ -389,21 +405,21 @@
   /* ── Main content ── */
   .main-content {
     @apply ml-0!;
-    padding-top: env(safe-area-inset-top);
+    padding-top: var(--inset-top);
     padding-bottom: var(--mobile-bar-clearance);
   }
 
   /* Default: tools extend full height, content scrolls behind the translucent bar */
   .main-content:has(> .tool-layout) {
-    height: calc(100dvh - env(safe-area-inset-top)) !important;
-    margin-top: env(safe-area-inset-top);
+    height: calc(100dvh - var(--inset-top)) !important;
+    margin-top: var(--inset-top);
     @apply min-h-0! pt-0 pb-0;
   }
 
   /* Anchored tools (chat, room, an open email): reduce height so bottom UI sits above the bar */
   .main-content:has(> .tool-layout-anchored),
   .main-content:has(> .mail-layout.mail-detail-open) {
-    height: calc(100dvh - env(safe-area-inset-top) - var(--mobile-bar-clearance)) !important;
+    height: calc(100dvh - var(--inset-top) - var(--mobile-bar-clearance)) !important;
   }
 
   /* Scroll areas in browsing tools: padding so last items can scroll past the bar */
@@ -419,7 +435,7 @@
 
   body:has(.tool-layout-anchored) .flash-toast {
     @apply bottom-auto;
-    top: calc(4rem + env(safe-area-inset-top));
+    top: calc(4rem + var(--inset-top));
   }
 
   /* ── Re-anchor popovers to mobile bottom bar buttons ── */

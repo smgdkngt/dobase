@@ -127,6 +127,13 @@ class AppearancesControllerTest < ActionDispatch::IntegrationTest
     assert_equal Theme.find("nord").chrome_color, response.parsed_body["background_color"]
   end
 
+  test "the web app manifest asks for a window without a title bar" do
+    get pwa_manifest_path(format: :json)
+
+    assert_equal "standalone", response.parsed_body["display"]
+    assert_equal [ "window-controls-overlay" ], response.parsed_body["display_override"]
+  end
+
   test "the typeface is the app's own, or the monospace font" do
     get edit_profile_path(tab: "appearance")
     assert_select "html:not([data-typeface])"
