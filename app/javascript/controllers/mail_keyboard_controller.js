@@ -98,6 +98,16 @@ export default class extends Controller {
     this.navigateToItem(items[prev])
   }
 
+  // The buttons on an open conversation: the next one in the list, or the one before.
+  // Not round to the other end, as the keys go: at the last one there is no next.
+  stepNext() {
+    this.navigateToItem(this.items[this.selectedIndex + 1])
+  }
+
+  stepPrevious() {
+    if (this.selectedIndex > 0) this.navigateToItem(this.items[this.selectedIndex - 1])
+  }
+
   // What scrolls the message that shows: the reader, or what it lies in
   get _scroller() {
     const reader = this.readerTargets.find((target) => target.getClientRects().length > 0)

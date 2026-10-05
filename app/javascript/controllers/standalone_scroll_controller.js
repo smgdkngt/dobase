@@ -1,16 +1,24 @@
 import { Controller } from "@hotwired/stimulus"
 
-// A tool that fills the screen never scrolls as a page. An iPhone scrolls it anyway
-// to lift a field above the keyboard, and in a home screen app leaves it scrolled
-// when the keyboard goes: the top bar sits under the clock. This puts the page back.
+// A tool that fills the screen never scrolls as a page. An iPhone scrolls it anyway:
+// to lift a field above the keyboard, or to bring into view whatever took the focus
+// or was asked to scroll into view on a new page. In a home screen app it stays
+// scrolled, the height of the status bar: the top bar sits under the clock and a gap
+// opens above the bottom bar. This puts the page back, whenever it has moved.
 export default class extends Controller {
   connect() {
     this._settle = this._settle.bind(this)
     document.addEventListener("focusout", this._settle)
+    document.addEventListener("turbo:load", this._settle)
+    document.addEventListener("turbo:frame-load", this._settle)
+    window.addEventListener("scroll", this._settle, { passive: true })
   }
 
   disconnect() {
     document.removeEventListener("focusout", this._settle)
+    document.removeEventListener("turbo:load", this._settle)
+    document.removeEventListener("turbo:frame-load", this._settle)
+    window.removeEventListener("scroll", this._settle)
     clearTimeout(this._timer)
   }
 
