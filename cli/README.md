@@ -90,6 +90,7 @@ dobase card move 1/21 Done
 dobase todo finish 3/55
 dobase doc show 4/9
 dobase chat post "Team Chat" "Deploy is done"
+dobase chat post "Team Chat" "The mockups" --attach home.png --attach cart.png
 dobase help                                   # everything; `dobase help card` for one noun
 ```
 

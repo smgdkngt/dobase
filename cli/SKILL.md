@@ -109,9 +109,15 @@ don't retry in a loop.
 dobase chat list team --limit 30         # oldest first; --before ID for older pages
 dobase chat post team "The build is green again."
 dobase chat post team "Agreed" --reply-to 88
+dobase chat post team "The mockups" --attach home.png --attach cart.png  # files on the message; TEXT may be left out
 dobase chat react team/88 👍              # or --remove; 👍 ❤️ 😂 🎉 😮 🙏 👀 ✅ only
 dobase chat read team                    # mark the chat read for the user
 ```
+
+`--attach PATH` puts a file on the message, and can be repeated: up to 10 files
+of 50 MB each (images, PDFs, office documents, text, zip, audio, video). They
+go up with the text in one request, so a file the server refuses means nothing
+was posted. An image shows in the chat as a picture.
 
 ## Notifications
 

@@ -38,14 +38,14 @@ func TestHelpListsEveryCommand(t *testing.T) {
 
 func TestNounHelpShowsFlags(t *testing.T) {
 	status, out, _ := run("help", "chat")
-	if status != 0 || !strings.Contains(out, "--reply-to ID") {
+	if status != 0 || !strings.Contains(out, "--reply-to ID") || !strings.Contains(out, "--attach PATH") {
 		t.Fatalf("status %d, out %q", status, out)
 	}
 }
 
 func TestCommandHelpShowsUsage(t *testing.T) {
 	status, out, _ := run("chat", "post", "--help")
-	if status != 0 || !strings.HasPrefix(out, "Usage: dobase chat post TOOL TEXT") {
+	if status != 0 || !strings.HasPrefix(out, "Usage: dobase chat post TOOL [TEXT]") {
 		t.Fatalf("status %d, out %q", status, out)
 	}
 }
@@ -62,7 +62,7 @@ func TestWrongArgumentsExitWithAUsageError(t *testing.T) {
 		args   []string
 		prefix string
 	}{
-		{[]string{"chat", "post", "team"}, "Usage: dobase chat post TOOL TEXT"},
+		{[]string{"chat", "post"}, "Usage: dobase chat post TOOL [TEXT]"},
 		{[]string{"chat", "post", "team", "hi", "--bogus"}, "invalid option: --bogus"},
 		{[]string{"chat", "post", "team", "hi", "--reply-to"}, "missing argument: --reply-to"},
 		{[]string{"chat", "post", "team", "hi", "--html=yes"}, "needless argument: --html=yes"},
@@ -218,14 +218,16 @@ func TestJSONKeepsTheServersKeyOrderAndDoesNotEscapeHTML(t *testing.T) {
 // fakeAPI answers GETs from a fixed set of paths, records every other request
 // ("DELETE /path"), its body and the paths it sent to or downloaded from, and
 // saves downloads as "data from PATH". A path in errors fails with that error.
-// Uploads are recorded as "PATH: file, file" and answered with a draft that has
-// those files attached.
+// Uploads are recorded as "PATH: file, file", the fields that went with them as
+// "name=value", and answered with a draft (or chat message) that has those files
+// attached.
 type fakeAPI struct {
 	responses api.Value
 	sent      *[]api.Value
 	paths     []string
 	requests  []string
 	uploads   []string
+	fields    []string
 	errors    map[string]error
 }
 
@@ -253,7 +255,7 @@ func (f *fakeAPI) Request(method api.Method, path string, _ []api.Param, body an
 		"attachments", attachments, "url", "https://dobase.test/tools/8/mails/new?draft_id=400"), nil
 }
 
-func (f *fakeAPI) Upload(path string, files []api.FilePart, _ []api.Param) (api.Value, error) {
+func (f *fakeAPI) Upload(path string, files []api.FilePart, fields []api.Param) (api.Value, error) {
 	if err := f.errors[path]; err != nil {
 		return api.Null, err
 	}
@@ -264,8 +266,11 @@ func (f *fakeAPI) Upload(path string, files []api.FilePart, _ []api.Param) (api.
 		attachments[i] = api.Object("id", 900+i, "filename", filepath.Base(file.Path))
 	}
 	f.uploads = append(f.uploads, path+": "+strings.Join(names, ", "))
+	for _, field := range fields {
+		f.fields = append(f.fields, field.Name+"="+field.Value)
+	}
 	return api.Object("id", 400, "subject", "Plans", "to", []string{"ann@example.com"}, "cc", []string{},
-		"attachments", attachments, "url", "https://dobase.test/tools/8/mails/new?draft_id=400"), nil
+		"attachments", attachments, "files", attachments, "url", "https://dobase.test/tools/8/mails/new?draft_id=400"), nil
 }
 
 func (f *fakeAPI) Download(path, destination string) (string, error) {
@@ -312,6 +317,110 @@ func TestChatPostsParagraphsAndRepliesToTheMessageGiven(t *testing.T) {
 		t.Errorf("got %v", err)
 	}
 	if !strings.Contains(out.String(), "Posted message 12/400 to Team.") {
+		t.Errorf("out %q", out.String())
+	}
+}
+
+func TestChatPostsFilesWithItsTextInOneForm(t *testing.T) {
+	var sent []api.Value
+	var out bytes.Buffer
+	fake := newFakeAPI(`{"/tools": [{"id": 12, "name": "Team", "type": "chat"}]}`, &sent)
+	ctx := command.NewCtx(&config.Config{}, &out, false, "test")
+	ctx.SetAPI(fake)
+
+	directory := t.TempDir()
+	front, back := filepath.Join(directory, "front.jpg"), filepath.Join(directory, "back.jpg")
+	for _, path := range []string{front, back} {
+		if err := os.WriteFile(path, []byte("jpg"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// The text from stdin, the way a script posts it
+	ctx.Stdin = strings.NewReader("For sale\n\nhttps://example.com/ad\n")
+	if err := invoke(ctx, "chat post", "team", "--attach", front, "--attach="+back, "--reply-to", "12/77", "-"); err != nil {
+		t.Fatal(err)
+	}
+	// Files alone are a message too
+	if err := invoke(ctx, "chat post", "team", "--attach", front); err != nil {
+		t.Fatal(err)
+	}
+	if err := invoke(ctx, "chat post", "team", "", "--attach", back); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(sent) != 0 {
+		t.Errorf("sent as JSON: %v", fake.requests)
+	}
+	if want := []string{
+		"/tools/12/chat/messages: message[files][]=front.jpg, message[files][]=back.jpg",
+		"/tools/12/chat/messages: message[files][]=front.jpg",
+		"/tools/12/chat/messages: message[files][]=back.jpg",
+	}; !slices.Equal(fake.uploads, want) {
+		t.Errorf("uploads %v", fake.uploads)
+	}
+	if want := []string{
+		`message[body]=<p>For sale</p><p><a href="https://example.com/ad">https://example.com/ad</a></p>`,
+		"message[reply_to_id]=77",
+	}; !slices.Equal(fake.fields, want) {
+		t.Errorf("fields %v", fake.fields)
+	}
+	for _, want := range []string{"Posted message 12/400 to Team with 2 files.", "Posted message 12/400 to Team with 1 file."} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("no %q in %q", want, out.String())
+		}
+	}
+}
+
+func TestChatPostSendsNothingWithoutTextOrWithAFileThatIsNotThere(t *testing.T) {
+	var sent []api.Value
+	var out bytes.Buffer
+	fake := newFakeAPI(`{"/tools": [{"id": 12, "name": "Team", "type": "chat"}]}`, &sent)
+	ctx := command.NewCtx(&config.Config{}, &out, false, "test")
+	ctx.SetAPI(fake)
+
+	directory := t.TempDir()
+	photo := filepath.Join(directory, "photo.jpg")
+	if err := os.WriteFile(photo, []byte("jpg"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	missing := filepath.Join(directory, "missing.jpg")
+
+	if err := invoke(ctx, "chat post", "team"); api.KindOf(err) != api.Usage || !strings.Contains(err.Error(), "--attach") {
+		t.Errorf("without text or files: %v", err)
+	}
+	if err := invoke(ctx, "chat post", "team", "Look", "--attach", photo, "--attach", missing); err == nil || !strings.Contains(err.Error(), "missing.jpg: no such file or directory") {
+		t.Errorf("a missing file: %v", err)
+	}
+	if err := invoke(ctx, "chat post", "team", "Look", "--attach", directory); err == nil || !strings.Contains(err.Error(), "is a directory") {
+		t.Errorf("a directory: %v", err)
+	}
+	// What the server refuses (too many files, a type it doesn't take) is the error
+	fake.errors = map[string]error{"/tools/12/chat/messages": api.Failf("Files must be images, documents, archives, audio or video")}
+	if err := invoke(ctx, "chat post", "team", "Look", "--attach", photo); err == nil || !strings.Contains(err.Error(), "Files must be") {
+		t.Errorf("refused by the server: %v", err)
+	}
+	if len(sent) != 0 || len(fake.uploads) != 0 || out.Len() != 0 {
+		t.Errorf("sent %v, uploads %v, out %q", fake.requests, fake.uploads, out.String())
+	}
+}
+
+func TestChatListShowsAMessageOfFilesAloneWithoutAnEmptyLineForItsText(t *testing.T) {
+	var sent []api.Value
+	var out bytes.Buffer
+	ctx := command.NewCtx(&config.Config{}, &out, false, "test")
+	ctx.SetAPI(newFakeAPI(`{
+		"/tools": [{"id": 12, "name": "Team", "type": "chat"}],
+		"/tools/12/chat": {"url": "https://dobase.test/tools/12/chat", "has_more": false, "messages": [
+			{"id": 77, "body": "", "user": {"name": "Ann"}, "created_at": "2026-10-05T07:03:02Z",
+			 "files": [{"filename": "front.jpg", "byte_size": 2048, "download_url": "https://dobase.test/blobs/1"}], "reactions": []}
+		]}
+	}`, &sent))
+
+	if err := invoke(ctx, "chat list", "team"); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "[message 12/77]\n  File: front.jpg (2.0 KB) https://dobase.test/blobs/1\n") {
 		t.Errorf("out %q", out.String())
 	}
 }

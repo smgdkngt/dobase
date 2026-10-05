@@ -372,7 +372,7 @@ func draftMail(ctx *Ctx, args *Args) error {
 	if err := requireMailFlags(args, "to", "subject", "body"); err != nil {
 		return err
 	}
-	files, err := mailFiles(args)
+	files, err := filesToAttach(args, "files[]")
 	if err != nil {
 		return err
 	}
@@ -431,7 +431,7 @@ func updateMailDraft(ctx *Ctx, args *Args) error {
 			return err
 		}
 	}
-	files, err := mailFiles(args)
+	files, err := filesToAttach(args, "files[]")
 	if err != nil {
 		return err
 	}
@@ -467,7 +467,7 @@ func replyMail(ctx *Ctx, args *Args) error {
 	if err := refuseOpenWithSend(args); err != nil {
 		return err
 	}
-	files, err := mailFiles(args)
+	files, err := filesToAttach(args, "files[]")
 	if err != nil {
 		return err
 	}
@@ -550,7 +550,7 @@ func forwardMail(ctx *Ctx, args *Args) error {
 	if err := refuseOpenWithSend(args); err != nil {
 		return err
 	}
-	files, err := mailFiles(args)
+	files, err := filesToAttach(args, "files[]")
 	if err != nil {
 		return err
 	}
@@ -890,22 +890,6 @@ func messageInConversation(ctx *Ctx, tool api.Value, id int64) (api.Value, error
 		return api.Null, api.Failf("%s/%d is not in its conversation.", tool.Get("id").S(), id)
 	}
 	return message, nil
-}
-
-// mailFiles are the files --attach names, checked before anything is saved or sent.
-func mailFiles(args *Args) ([]api.FilePart, error) {
-	var files []api.FilePart
-	for _, path := range args.All("attach") {
-		info, err := os.Stat(path)
-		if err != nil {
-			return nil, api.PathError(path, err)
-		}
-		if info.IsDir() {
-			return nil, api.Failf("%s is a directory. Attach files one by one.", path)
-		}
-		files = append(files, api.FilePart{Field: "files[]", Path: path})
-	}
-	return files, nil
 }
 
 // attachToDraft uploads files onto a saved draft, and is the draft with them on it.
