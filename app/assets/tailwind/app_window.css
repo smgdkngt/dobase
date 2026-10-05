@@ -31,3 +31,70 @@ html[data-app-window] :is(input, textarea, [contenteditable="true"]) {
   -webkit-user-select: text;
   user-select: text;
 }
+
+/* ── A window without a title bar ──
+   The manifest asks for window-controls-overlay: once that is switched on (the
+   arrow beside the window's menu), the title bar is gone and the strip the window
+   buttons are in belongs to the page. The browser says where the buttons leave
+   room: env(titlebar-area-x / -width / -height). A page in a frame (a tile) has no
+   such strip. */
+@media (display-mode: window-controls-overlay) {
+  :root:not([data-in-tile], [data-floating]) {
+    --titlebar-height: env(titlebar-area-height, 0px);
+  }
+
+  /* The strip is what the window is dragged by, in the colour the browser draws
+     the window buttons on (the sidebar's, Theme#chrome_color). Nothing of the page
+     is in it, and it takes no clicks from what scrolls under it. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: var(--titlebar-height);
+    z-index: 35;
+    background: var(--color-sidebar-bg);
+    pointer-events: none;
+    -webkit-app-region: drag;
+    app-region: drag;
+  }
+
+  /* A line under it where the page is another colour; the sidebar runs on into it */
+  .main-content::before {
+    content: "";
+    position: fixed;
+    inset: var(--titlebar-height) 0 auto var(--sidebar-width);
+    height: min(1px, var(--titlebar-height));
+    z-index: 36;
+    background: var(--color-border-light);
+  }
+
+  /* The workspace's bar is the strip: as high, in its colour, and clear of the
+     window buttons on whichever side they are */
+  body[data-workspace] .workspace-bar {
+    background: var(--color-sidebar-bg);
+    height: max(2.25rem, env(titlebar-area-height, 0px));
+    padding-left: max(0.5rem, env(titlebar-area-x, 0px));
+    padding-right: max(0.5rem, calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw)));
+    -webkit-app-region: drag;
+    app-region: drag;
+  }
+
+  /* What can be pressed in it is never a place to drag from, and neither is what
+     lies over it: where the window is dragged goes by where things are, not by
+     what is on top */
+  body[data-workspace] .workspace-bar :is(a, button, input, [role="button"]),
+  dialog[open],
+  [popover]:popover-open,
+  .gallery-overlay,
+  .workspace-float,
+  .flash-toast > * {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
+}
+
+@media (display-mode: window-controls-overlay) and (max-width: 1023px) {
+  .main-content::before {
+    left: 0;
+  }
+}
