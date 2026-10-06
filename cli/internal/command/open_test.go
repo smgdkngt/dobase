@@ -16,9 +16,12 @@ func fakeSystem(t *testing.T, system string, handled ...string) *[]string {
 	t.Helper()
 	home := t.TempDir()
 	started := &[]string{}
-	oldGoos, oldHome, oldRun, oldStart, oldOutput := goos, homeDir, run, start, output
-	t.Cleanup(func() { goos, homeDir, run, start, output = oldGoos, oldHome, oldRun, oldStart, oldOutput })
+	oldGoos, oldHome, oldRun, oldStart, oldOutput, oldRunning := goos, homeDir, run, start, output, appRunning
+	t.Cleanup(func() {
+		goos, homeDir, run, start, output, appRunning = oldGoos, oldHome, oldRun, oldStart, oldOutput, oldRunning
+	})
 	t.Setenv("DOBASE_APP", "")
+	t.Setenv("XDG_DATA_HOME", "")
 
 	goos = system
 	homeDir = func() (string, error) { return home, nil }

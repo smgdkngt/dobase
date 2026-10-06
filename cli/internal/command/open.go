@@ -23,9 +23,11 @@ var (
 	run = func(name string, args ...string) error { return exec.Command(name, args...).Run() }
 	// start starts a program that may keep running, as xdg-open does while the
 	// browser it started is open. It waits a moment, to tell when the program
-	// fails right away, and then lets it be.
+	// fails right away, and then lets it be: the program outlives the terminal
+	// this ran in.
 	start = func(name string, args ...string) error {
 		command := exec.Command(name, args...)
+		detach(command)
 		if err := command.Start(); err != nil {
 			return err
 		}
@@ -48,13 +50,18 @@ var (
 // Open opens link in the installed Dobase app when there is one and link is on
 // the server at base, otherwise in the default browser:
 //
-//  1. DOBASE_APP, or Safari's web app at ~/Applications/Dobase.app (macOS),
+//  1. The app `dobase app install` made gets it from its browser, unless
+//     DOBASE_APP names another app.
+//  2. DOBASE_APP, or Safari's web app at ~/Applications/Dobase.app (macOS),
 //     gets the https link with `open -a`.
-//  2. An installed Chrome, Edge or Vivaldi app gets a web+dobase:// link,
+//  3. An installed Chrome, Edge or Vivaldi app gets a web+dobase:// link,
 //     when one has registered that scheme (they ignore links given to `open -a`).
-//  3. The browser gets the https link.
+//  4. The browser gets the https link.
 func Open(base, link string) error {
 	if path := appPath(base, link); path != "" {
+		if app, found := InstalledApp(base); found && os.Getenv("DOBASE_APP") == "" && app.Show(link) == nil {
+			return nil
+		}
 		if app := macApp(); app != "" && run("open", "-a", app, link) == nil {
 			return nil
 		}

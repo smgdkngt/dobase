@@ -9,6 +9,7 @@ func Definitions() []*command.Definition {
 	var all []*command.Definition
 	for _, noun := range [][]*command.Definition{
 		account(),
+		app(),
 		boards(),
 		calendar(),
 		chat(),
@@ -31,6 +32,7 @@ type Noun struct{ Name, Summary string }
 
 func Nouns() []Noun {
 	return []Noun{
+		{"app", "Dobase as an app of its own on this computer, apart from your browser"},
 		{"card", "Cards on a board (boards tools)"},
 		{"column", "Columns on a board (boards tools)"},
 		{"event", "Events in a calendar (calendar tools)"},
