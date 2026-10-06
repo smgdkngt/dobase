@@ -1,0 +1,14 @@
+{
+  "name": "dobase",
+  "private": true,
+  "type": "module",
+  "description": "Checks for the app's JavaScript. The app itself needs none of this: it has no build step.",
+  "scripts": {
+    "test": "node --import ./test/javascript/support/importmap.mjs --test test/javascript/*.test.mjs",
+    "check": "tsc -p ."
+  },
+  "devDependencies": {
+    "@types/node": "24.19.1",
+    "typescript": "7.0.2"
+  }
+}

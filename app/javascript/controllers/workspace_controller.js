@@ -3,6 +3,10 @@ import { pathOf, toolIdOf, toolFrame, frameAddress, sendFrameTo, hasUnfinishedWo
 import { workspaceCommand, renameWorkspaceKeys, workspaceKey } from "services/workspace_keys"
 import { apiPost, csrfToken } from "services/api"
 import { typing } from "services/typing"
+import {
+  GAP, MIN_TILE, DESKS, DESK_NAME_LENGTH, NOTHING_OPEN,
+  deskAt, insert, remove, place, neighbour, cleaned, withChanges, parsed, deskOf, leaves, find, parentOf, deskName
+} from "services/workspace_layout"
 
 // The tiling workspace: every tool you open is a tile, and the tiles arrange
 // themselves, the way a tiling window manager does it.
@@ -25,11 +29,6 @@ import { typing } from "services/typing"
 // Which tiles, where, and on which desktop is kept per person on the server
 // (WorkspaceLayout), so it is the same in every browser, with a copy in this browser
 // to start from at once.
-const GAP = 6
-// Dragging a split never leaves a tile narrower or lower than this
-const MIN_TILE = 220
-// A new tile only halves one that leaves both halves at least this big
-const ROOM_TO_SPLIT = { width: 340, height: 240 }
 const GLIDE = "transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1)"
 // What the plus and minus keys give a tile, or take from it
 const RESIZE_STEP = 0.05
@@ -37,7 +36,6 @@ const RESIZE_STEP = 0.05
 const FRESHEN_EVERY_MS = 3 * 60 * 1000
 // And never sooner after the last time: the menu closes with every tool opened from it
 const FRESHEN_AT_MOST_EVERY_MS = 30 * 1000
-const DESKS = [ 1, 2, 3, 4, 5, 6, 7, 8, 9 ]
 // How many tools a desktop shows in the bar before it says "+2"
 const TOOLS_IN_THE_BAR = 4
 // A tool in sight is said to be seen this long after the last news of it: a busy chat
@@ -47,14 +45,11 @@ const SEEN_AFTER_MS = 800
 // goes this long after it left
 const CARD_AFTER_MS = 300
 const CARD_GONE_AFTER_MS = 180
-// A desktop's name is a word or two beside its number in the bar
-const DESK_NAME_LENGTH = 24
 // How long a floating dialog takes to fade out (workspace.css), after which its frame goes
 const FLOAT_FADE = 180
 // A change is kept on the server this long after the last one: a split being dragged
 // is one arrangement, not thirty
 const KEEP_AFTER_MS = 600
-const NOTHING_OPEN = { desk: 1, desks: {}, tiles: {} }
 
 export default class extends Controller {
   static targets = ["tiles", "tileTemplate", "empty", "desks", "deskCard", "title", "menu", "hint", "status", "float"]
@@ -324,83 +319,25 @@ export default class extends Controller {
   }
 
   deskAt(number) {
-    return (this.state.desks[number] ||= { tree: null, focus: null, alone: false, name: "" })
+    return deskAt(this.state, number)
   }
 
   deskNumberOf(id) {
     return Object.keys(this.state.desks).find((number) => leaves(this.state.desks[number].tree).includes(id))
   }
 
-  // Finds a new tile its place, and says on which desktop that is. It halves the tile
-  // you are on, side by side when that is wide and stacked when it is tall. When
-  // those halves would be too small it halves the biggest tile that has the room,
-  // and when none has, it takes the next desktop with nothing on it.
+  // Where a new tile goes, what is left when one is gone, and where each one is drawn
+  // are worked out in services/workspace_layout.js, from the room there is here
   insert(number, id) {
-    const desk = this.deskAt(number)
-    if (!desk.tree) {
-      desk.tree = { tile: id }
-      return number
-    }
-
-    const rects = this.place(desk).tiles
-    const tiles = leaves(desk.tree)
-    const candidates = [ desk.focus, ...tiles.sort((a, b) => area(rects.get(b)) - area(rects.get(a))) ]
-    for (const target of candidates) {
-      const split = rects.has(target) && splitFor(rects.get(target))
-      if (!split) continue
-
-      const node = find(desk.tree, target)
-      delete node.tile
-      Object.assign(node, { split, ratio: 0.5, first: { tile: target }, second: { tile: id } })
-      return number
-    }
-
-    const free = [ ...Array(9).keys() ].map((index) => (number + index) % 9 + 1).find((other) => !this.state.desks[other]?.tree)
-    if (free) return this.insert(free, id)
-
-    // Every desktop is in use and nothing has room: halve the one you are on anyway
-    const target = tiles.includes(desk.focus) ? desk.focus : tiles.at(-1)
-    const rect = rects.get(target)
-    const node = find(desk.tree, target)
-    delete node.tile
-    Object.assign(node, { split: rect.height > rect.width ? "column" : "row", ratio: 0.5, first: { tile: target }, second: { tile: id } })
-    return number
+    return insert(this.state, this.room, number, id)
   }
 
-  // The other half takes the room of both. Returns the tile that is nearest now.
   remove(desk, id) {
-    if (desk.tree?.tile === id) return void (desk.tree = null)
-
-    const parent = parentOf(desk.tree, id)
-    if (!parent) return desk.focus
-
-    const other = parent.first.tile === id ? parent.second : parent.first
-    for (const key of Object.keys(parent)) delete parent[key]
-    Object.assign(parent, other)
-    return leaves(parent)[0]
+    return remove(desk, id)
   }
 
-  // Where every tile of a desktop goes, and the gaps between them that can be dragged
   place(desk) {
-    const room = this.room
-    const tiles = new Map()
-    const splits = []
-
-    const put = (node, rect) => {
-      if (node.tile) return tiles.set(node.tile, rect)
-
-      const along = node.split === "row" ? "width" : "height"
-      const from = node.split === "row" ? "x" : "y"
-      const size = rect[along] - GAP
-      const first = Math.round(size * node.ratio)
-
-      put(node.first, { ...rect, [along]: first })
-      put(node.second, { ...rect, [from]: rect[from] + first + GAP, [along]: size - first })
-      splits.push({ node, room: rect, rect: { ...rect, [from]: rect[from] + first, [along]: GAP } })
-    }
-
-    if (desk.tree) put(desk.tree, room)
-    return { tiles, splits }
+    return place(desk, this.room)
   }
 
   get room() {
@@ -983,25 +920,7 @@ export default class extends Controller {
 
   // The tile on that side of the one you are on
   neighbour(direction) {
-    const rects = this.place(this.desk).tiles
-    const from = rects.get(this.desk.focus)
-    if (!from) return null
-
-    const sideways = direction === "left" || direction === "right"
-    const ahead = (rect) => ({
-      left: from.x - (rect.x + rect.width),
-      right: rect.x - (from.x + from.width),
-      up: from.y - (rect.y + rect.height),
-      down: rect.y - (from.y + from.height)
-    })[direction]
-    const shared = (rect) => sideways
-      ? Math.min(from.y + from.height, rect.y + rect.height) - Math.max(from.y, rect.y)
-      : Math.min(from.x + from.width, rect.x + rect.width) - Math.max(from.x, rect.x)
-
-    return Array.from(rects.entries())
-      .filter(([ id, rect ]) => id !== this.desk.focus && ahead(rect) >= 0 && shared(rect) > 0)
-      .sort(([ , a ], [ , b ]) => ahead(a) - ahead(b) || shared(b) - shared(a))
-      .map(([ id ]) => id)[0] || null
+    return neighbour(this.desk, this.room, direction)
   }
 
   goToward(direction) {
@@ -1701,129 +1620,7 @@ export default class extends Controller {
   }
 }
 
-// An arrangement as it is kept, from whatever a browser or the server had: only ever
-// a tool's page in a tile, only tiles a desktop holds and each of them once, desktops
-// one to nine, and those with nothing on them and no name left out. Written the same
-// way every time, so two of them can be compared as text. Nothing when it isn't one.
-function cleaned(kept) {
-  if (!kept?.tiles || !kept?.desks) return null
-
-  const known = {}
-  for (const [ id, tile ] of Object.entries(kept.tiles)) {
-    const url = pathOf(tile?.url)
-    if (toolIdOf(url)) known[id] = { url, title: String(tile.title || "") }
-  }
-  const desks = {}
-  const placedOnce = new Set()
-  for (const number of DESKS) {
-    const desk = kept.desks[number]
-    if (!desk) continue
-
-    const tree = pruned(desk.tree, known, placedOnce)
-    const held = leaves(tree)
-    const name = deskName(desk.name)
-    if (tree || name) desks[number] = { tree, focus: held.includes(desk.focus) ? desk.focus : held[0] || null, alone: Boolean(desk.alone) && Boolean(tree), name }
-  }
-  const tiles = {}
-  for (const id of Array.from(placedOnce).sort()) tiles[id] = known[id]
-
-  return { desk: Math.min(9, Math.max(1, Math.floor(Number(kept.desk)) || 1)), desks, tiles }
-}
-
-// Their arrangement with what was changed here since `base` done again on it: both
-// were made from base. A tile opened here is in it, one closed here is not, one
-// taken to another page here is on that page; a desktop rearranged, named or moved
-// about on here is as it is here, and any other as it is there. Tiles that end up
-// without a place (opened there, on a desktop rearranged here) are for the caller.
-function withChanges(base, mine, theirs) {
-  const tiles = { ...theirs.tiles }
-  for (const id of Object.keys(base.tiles)) if (!mine.tiles[id]) delete tiles[id]
-  for (const [ id, tile ] of Object.entries(mine.tiles)) {
-    const was = base.tiles[id]
-    if (!was || (tiles[id] && (was.url !== tile.url || was.title !== tile.title))) tiles[id] = tile
-  }
-
-  const changedHere = (here, was) => JSON.stringify(here) !== JSON.stringify(was)
-  const desks = {}
-  for (const number of DESKS) {
-    const [ was, here, there ] = [ base, mine, theirs ].map((state) => state.desks[number])
-    const desk = {}
-    for (const part of [ "tree", "focus", "alone", "name" ]) desk[part] = (changedHere(here?.[part], was?.[part]) ? here : there)?.[part]
-    desks[number] = desk
-  }
-
-  return { desk: mine.desk !== base.desk ? mine.desk : theirs.desk, desks, tiles }
-}
-
-function parsed(text) {
-  try {
-    return text ? JSON.parse(text) : null
-  } catch {
-    return null
-  }
-}
-
-// The desktop an arrangement has a tile on
-function deskOf(state, id) {
-  return Object.keys(state.desks).find((number) => leaves(state.desks[number].tree).includes(id))
-}
-
-// The tiles of a tree, in the order they were split off
-function leaves(node) {
-  if (!node) return []
-  return node.tile ? [ node.tile ] : [ ...leaves(node.first), ...leaves(node.second) ]
-}
-
-function find(node, id) {
-  if (!node) return null
-  return node.tile ? (node.tile === id ? node : null) : find(node.first, id) || find(node.second, id)
-}
-
-function parentOf(node, id) {
-  if (!node || node.tile) return null
-  if (node.first.tile === id || node.second.tile === id) return node
-  return parentOf(node.first, id) || parentOf(node.second, id)
-}
-
-// A stored tree with only tiles that still exist, each of them once; a split that
-// lost a half is the other half
-function pruned(node, tiles, seen) {
-  if (!node) return null
-  if (node.tile) {
-    if (!tiles[node.tile] || seen.has(node.tile)) return null
-    seen.add(node.tile)
-    return { tile: node.tile }
-  }
-
-  const first = pruned(node.first, tiles, seen)
-  const second = pruned(node.second, tiles, seen)
-  if (!first || !second) return first || second
-
-  // To four places: the same number whoever wrote it down
-  const ratio = Math.round(Math.min(0.9, Math.max(0.1, Number(node.ratio) || 0.5)) * 10000) / 10000
-  return { split: node.split === "column" ? "column" : "row", ratio, first, second }
-}
-
-function area(rect) {
-  return rect ? rect.width * rect.height : 0
-}
-
-// How a tile of this size is halved for a new one beside it: along its longer side,
-// or along the other when only that leaves two halves worth having. Nothing when
-// neither does.
-function splitFor(rect) {
-  const row = (rect.width - GAP) / 2 >= ROOM_TO_SPLIT.width && rect.height >= ROOM_TO_SPLIT.height
-  const column = (rect.height - GAP) / 2 >= ROOM_TO_SPLIT.height && rect.width >= ROOM_TO_SPLIT.width
-  if (row && column) return rect.height > rect.width ? "column" : "row"
-  return row ? "row" : column ? "column" : null
-}
-
 // A few words beside a tile's name in the card about a desktop
-// A name as it is kept: without the space around it, and no longer than fits the bar
-function deskName(value) {
-  return String(value || "").trim().slice(0, DESK_NAME_LENGTH)
-}
-
 function note(text, className = "workspace-desk-card-note") {
   const words = document.createElement("span")
   words.className = className
