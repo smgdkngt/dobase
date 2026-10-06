@@ -1,0 +1,55 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Pictures of the app before and after a change, and what differs between them.
+#
+#   bin/screenshots take before            # every scene, into tmp/shots/before
+#   (change something)
+#   bin/screenshots take after
+#   bin/screenshots compare before after   # which scenes differ, and where
+#
+#   bin/screenshots take after -i /mail/   # only the scenes with "mail" in their name
+#
+# The scenes are in test/screenshots/scenes.rb. `compare` writes a picture of each
+# scene that differs to tmp/shots/before-after: before, after, and after with every
+# changed pixel marked. It ends with status 1 when anything differs.
+
+require_relative "../config/boot"
+
+ROOT = File.expand_path("..", __dir__)
+SHOTS = File.join(ROOT, "tmp/shots")
+
+def take(name, options)
+  abort "Which pictures are these? bin/screenshots take before" unless name&.match?(/\A[\w-]+\z/)
+
+  into = File.join(SHOTS, name)
+  # A scene left out this time keeps the picture it had; one taken again replaces it
+  env = { "SHOTS" => into, "RAILS_ENV" => "test" }
+  # Chrome for Testing where there is no Google Chrome (bin/system-test)
+  runner = Dir.exist?(File.expand_path("~/.cache/selenium/chrome")) ? "bin/system-test" : "bin/rails"
+
+  # The styles as they are now: a picture of yesterday's build would say nothing changed
+  system(env, "bin/rails", "tailwindcss:build", chdir: ROOT, out: File::NULL) || abort("The stylesheet didn't build: bin/rails tailwindcss:build")
+  system(env, runner, "test", "test/screenshots/scenes.rb", *options, chdir: ROOT)
+  taken = Dir.glob("**/*.png", base: into).size
+  puts "\n#{taken} pictures in tmp/shots/#{name}"
+  exit $?.exitstatus
+end
+
+def compare(before, after)
+  abort "Which two? bin/screenshots compare before after" unless before && after
+
+  require "bundler/setup"
+  require_relative "../test/screenshots/comparison"
+
+  comparison = ScreenshotComparison.new(File.join(SHOTS, before), File.join(SHOTS, after), into: File.join(SHOTS, "#{before}-#{after}"))
+  comparison.run
+  puts comparison.report
+  exit comparison.same? ? 0 : 1
+end
+
+case ARGV.shift
+when "take" then take(ARGV.shift, ARGV)
+when "compare" then compare(*ARGV.first(2))
+else abort File.read(__FILE__)[/^# Pictures.*?(?=^\n)/m].gsub(/^# ?/, "")
+end

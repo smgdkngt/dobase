@@ -25,8 +25,9 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   # and the per-process tab counts start from zero.
   setup do
     ActionCable.server.connections.dup.each(&:close)
-    deadline = Time.current + 2.seconds
-    sleep 0.05 until ActionCable.server.connections.empty? || Time.current > deadline
+    # (not by the clock on the wall: a test can have stopped it)
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 2
+    sleep 0.05 until ActionCable.server.connections.empty? || Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
 
     ChatPresence.reset!
     ToolPresence.reset!

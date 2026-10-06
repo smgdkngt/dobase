@@ -117,6 +117,58 @@ jobs:
           path: ${{ github.workspace }}/tmp/screenshots
           if-no-files-found: ignore
 
+  # What `bin/screenshots` draws (test/screenshots/scenes.rb): every scene still takes
+  # its picture, and the pictures of this commit are kept to look at
+  screenshots:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install packages
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libvips
+
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Take the pictures
+        env:
+          RAILS_ENV: test
+        run: bin/rails db:test:prepare && bin/screenshots take ci
+
+      - name: Keep the pictures
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: pictures-attempt-${{ github.run_attempt }}
+          path: ${{ github.workspace }}/tmp/shots/ci
+          if-no-files-found: ignore
+
+  javascript:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install the checker
+        run: npm ci
+
+      - name: Check types
+        run: npm run check
+
+      - name: Run tests
+        run: npm test
+
   cli:
     runs-on: ubuntu-latest
     defaults:

@@ -35,6 +35,9 @@ bin/rails test test/models/tool_test.rb:42        # Run single test at line
 bin/rubocop                # Lint Ruby (rubocop-rails-omakase)
 bin/brakeman --quiet       # Security static analysis
 bin/ci                     # Full CI pipeline (setup, lint, audit, tests, seeds)
+npm test                   # JavaScript tests (Node's own runner, no browser); `npm ci` once first
+npm run check              # Type checks of the scripts listed in tsconfig.json
+bin/screenshots take before   # A picture of every scene; `compare before after` says what a change did
 ```
 
 ## Deployment
@@ -378,6 +381,15 @@ One rule for the whole app, in `arrow_keys_controller.js`: **the arrows go to th
 - A browser lets a page make sound only once it has been touched, so a sound before the first click or key is lost. The output is given back after a few idle seconds.
 - On by default, switched off per browser (`localStorage`) under Profile, Notifications, where each sound can be tried. A new sound gets a row there (`profiles/edit`).
 - Tests can't hear: the service dispatches `sound:played` for every sound it starts (`test/system/sounds_test.rb`).
+
+### Checking a change to the frontend
+
+The app has no build step and needs no Node. `package.json` only holds what checks it: TypeScript (as a checker of plain JavaScript) and nothing else.
+
+- **Logic that needs no page lives in a service and is tested without a browser.** `services/workspace_layout.js` is the workspace's arrangement (the tree of splits, where a new tile goes, what is kept, a change here done again on a change there); `workspace_controller.js` draws it. Tests are `test/javascript/*.test.mjs`, run by `npm test` with Node's own test runner. `test/javascript/support/importmap.mjs` gives Node the names the browser's import map has, so a test imports `"services/tool_frame"` as the app does. When a controller grows logic of that kind (dates, geometry, merging state), put it in a service and test it there.
+- **Types are JSDoc comments, checked by `npm run check`** (`tsc`, strict). Only the files in `tsconfig.json`'s `include` are checked, with whatever they import: a script goes on the list once its functions say what they take and give. The Stimulus controllers are not on it: their targets and values exist at runtime only, and checking them gave a thousand errors that were none.
+- **`bin/screenshots` lays the app before a change beside the app after it.** `take <name>` draws every scene of `test/screenshots/scenes.rb` into `tmp/shots/<name>`; `compare <a> <b>` says which scenes differ by how many pixels, writes before, after and the difference side by side into `tmp/shots/<a>-<b>`, and ends with status 1 when anything differs. The scenes are the demo's example workspace (`Demo::Workspace`) on a clock that stands still, in the workspace (1400 by 900), on a phone (390 by 844) and signed out, light, dark and themed. Two runs of the same code are the same to the pixel, so use it for any change that should not show (moving CSS, another way to draw the same page): take `before` first, and `compare` must say all scenes are the same. For a change that should show, the pictures in `tmp/shots/<a>-<b>` are what to look at and to show. A new kind of page gets a scene. CI takes the pictures of every pull request (the `screenshots` job keeps them as an artifact).
+- **Every screen has its half of the API** (`test/integration/api_coverage_test.rb`): a page that lists or shows something has a JSON view a token may ask for, and a form posts to an action a token may call. The test lists the screens that go without and why (nobody signed in, an account's own settings, the browser's own window); a new screen that isn't in the API fails it.
 
 ### Component System
 

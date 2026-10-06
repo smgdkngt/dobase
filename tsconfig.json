@@ -1,0 +1,29 @@
+{
+  // Type checks for the app's JavaScript, read from its JSDoc comments: `npm run check`.
+  // Only the files listed are checked, and whatever they import. A script goes on the
+  // list once it says what it takes and gives (the workspace's arrangement first:
+  // browsers and the server pass it around). The Stimulus controllers are not on it:
+  // their targets and values are made at runtime, which a checker can't see.
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": true,
+    "target": "es2023",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": [ "es2023", "dom", "dom.iterable" ],
+    "types": [ "node" ],
+    "paths": {
+      "services/*": [ "./app/javascript/services/*" ],
+      "controllers/*": [ "./app/javascript/controllers/*" ],
+      "channels/*": [ "./app/javascript/channels/*" ]
+    }
+  },
+  "include": [
+    "app/javascript/services/workspace_layout.js",
+    "app/javascript/services/file_size.js",
+    "test/javascript/**/*.mjs",
+    "test/javascript/support/globals.d.ts"
+  ]
+}
