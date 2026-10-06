@@ -56,7 +56,24 @@ class SyncEmailsJobTest < ActiveJob::TestCase
     assert_equal "imap.example.invalid could not be found", @account.sync_error
   end
 
+  test "a server that drops the connection shows as a sync error without failing the job" do
+    @account.mark_syncing!
+
+    connect_to_imap(ImapServerDroppingConnection.new) do
+      assert_nothing_raised { SyncEmailsJob.perform_now(@account.id) }
+    end
+
+    assert @account.reload.sync_error?
+    assert_not @account.authentication_failed?
+  end
+
   private
+    class ImapServerDroppingConnection < FakeImapServer
+      def login(_username, _password)
+        raise Errno::ECONNRESET, "SSL_connect"
+      end
+    end
+
     class ImapServerRejectingLogin < FakeImapServer
       def logins
         @logins || 0
