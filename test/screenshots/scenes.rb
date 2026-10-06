@@ -128,6 +128,29 @@ class ScreenshotScenes < ApplicationSystemTestCase
     floated { assert_selector "dialog[open]" }
   end
 
+  # ── A card's colours: the same in the app's own look and in every theme ──
+
+  { "" => nil, "-dark" => nil, "-lumon" => "lumon", "-rose-pine" => "rose-pine", "-matte-black" => "matte-black" }.each do |look, theme|
+    scheme = look == "-dark" ? "dark" : "light"
+
+    scene "colours/board#{look}", scheme: scheme do
+      six_colours
+      @sophie.choose_theme(theme) if theme
+      workspace "Product Launch"
+    end
+
+    scene "colours/card#{look}", scheme: scheme do
+      six_colours
+      @sophie.choose_theme(theme) if theme
+      workspace page_of("Product Launch", "board?card=#{card("Write press release for launch day").id}")
+      floated do
+        assert_selector "dialog[open]"
+        find("[commandfor='card-color-menu']").click
+        assert_selector "#card-color-menu:popover-open"
+      end
+    end
+  end
+
   # ── One tool at a time: a phone ──
 
   %w[Product\ Launch Team\ Chat Launch\ Tasks Launch\ Docs Team\ Files Mail Calendar Standup\ Room].each do |tool|
@@ -251,6 +274,12 @@ class ScreenshotScenes < ApplicationSystemTestCase
   def page_of(tool_name, page = nil)
     tool = @sophie.owned_tools.find_by!(name: tool_name)
     page ? "/tools/#{tool.id}/#{page}" : tool_path(tool)
+  end
+
+  # Every colour a card can have, on the cards of the launch board
+  def six_colours
+    board = Boards::Board.find_by!(tool: @sophie.owned_tools.find_by!(name: "Product Launch"))
+    board.columns.flat_map(&:cards).zip(BoardsHelper::CARD_COLORS.keys.cycle) { |card, color| card.update_columns(color: color) }
   end
 
   def card(title) = Boards::Card.find_by!(title: title)

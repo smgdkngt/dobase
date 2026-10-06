@@ -34,8 +34,8 @@
   --color-error-solid: #d70015;
   --color-error-light: #ffebea;
 
-  /* Hues for what is told apart by colour: card labels, the tool types. A theme
-     brings its own. */
+  /* Hues for what the app tells apart by colour itself: the tool types, faces without
+     a picture. A theme brings its own. (Not a card's colour: see --color-card-*.) */
   --color-label-red: #ef4444;
   --color-label-orange: #f97316;
   --color-label-yellow: #eab308;
@@ -130,6 +130,49 @@
   --sidebar-collapsed-width: 64px;
   --topbar-height: 52px;
   --mobile-bottom-bar-height: 3.5rem;
+}
+
+/* A card's colours. Someone picks one to know a card by, so they are no theme's to
+   change: Theme sets none of these, and green is green in every theme. The fill is
+   the same everywhere; the colour's name, written on a wash of the fill, has a tint
+   for a light page and one for a dark page (AA on every theme's surfaces). */
+@layer base {
+  :root {
+    --color-card-red: #ef4444;
+    --color-card-orange: #f97316;
+    --color-card-yellow: #eab308;
+    --color-card-green: #22c55e;
+    --color-card-blue: #3b82f6;
+    --color-card-purple: #a855f7;
+
+    --color-card-red-text: #991b1b;
+    --color-card-orange-text: #9a3412;
+    --color-card-yellow-text: #854d0e;
+    --color-card-green-text: #166534;
+    --color-card-blue-text: #1e40af;
+    --color-card-purple-text: #6b21a8;
+  }
+
+  /* Dark: a dark theme whatever the system is, or a dark system without a light theme */
+  :root[data-theme-mode="dark"] {
+    --color-card-red-text: #fca5a5;
+    --color-card-orange-text: #fdba74;
+    --color-card-yellow-text: #fde047;
+    --color-card-green-text: #86efac;
+    --color-card-blue-text: #93c5fd;
+    --color-card-purple-text: #d8b4fe;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme-mode="light"]) {
+      --color-card-red-text: #fca5a5;
+      --color-card-orange-text: #fdba74;
+      --color-card-yellow-text: #fde047;
+      --color-card-green-text: #86efac;
+      --color-card-blue-text: #93c5fd;
+      --color-card-purple-text: #d8b4fe;
+    }
+  }
 }
 
 /* Base styles */
