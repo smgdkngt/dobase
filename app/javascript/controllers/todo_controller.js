@@ -149,7 +149,7 @@ export default class extends Controller {
 
   _itemSkeletonHTML() {
     return `
-      <div class="flex flex-col w-full" style="max-height: 80vh; min-height: 60vh;">
+      <div class="flex flex-col w-full" style="max-height: calc(80vh / var(--tile-zoom, 1)); min-height: calc(60vh / var(--tile-zoom, 1));">
         <div class="flex items-center gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-border-light">
           <div class="skeleton w-5 h-5 rounded-full shrink-0"></div>
           <div class="flex-1 min-w-0">

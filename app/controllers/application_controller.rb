@@ -37,7 +37,7 @@ class ApplicationController < ActionController::Base
 
   # A tile without a document of its own: the tool's page drawn into the workspace's
   # page, in a <turbo-frame> the workspace made for it (services/tool_frame.js). Its
-  # id, which is what the answer has to wear. Still a trial, per browser.
+  # id, which is what the answer has to wear.
   def tile_frame
     request.headers["Turbo-Frame"].to_s[/\Atile-[a-z0-9]+\z/]
   end

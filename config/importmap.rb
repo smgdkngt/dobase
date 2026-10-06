@@ -10,8 +10,6 @@ pin "@github/hotkey", to: "@github--hotkey.js" # @3.1.4
 pin_all_from "app/javascript/controllers", under: "controllers"
 pin_all_from "app/javascript/services", under: "services"
 pin_all_from "app/javascript/channels", under: "channels"
-# Loaded by whoever uses one (a trial: workspace_controller.js#inThisPage)
-pin_all_from "app/javascript/elements", under: "elements", preload: false
 
 pin "@rails/actioncable", to: "actioncable.esm.js"
 

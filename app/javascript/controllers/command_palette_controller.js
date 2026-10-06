@@ -122,11 +122,11 @@ export default class extends Controller {
     // button to click — clicking a text input doesn't focus it the way a
     // real mouse click would, since that focus comes from mousedown, which
     // .click() doesn't dispatch.
-    if (target.matches("input, textarea, [contenteditable]")) {
-      target.focus()
-    } else {
-      target.click()
-    }
+    const act = () => target.matches("input, textarea, [contenteditable]") ? target.focus() : target.click()
+    // In the workspace the tiles take no keyboard while the menu is in, and the menu
+    // is only away a moment after it was asked to go: an action in a tile that is
+    // part of this page (it puts the keyboard in a field, say) waits for that
+    this.menuValue ? requestAnimationFrame(act) : act()
   }
 
   // Something the workspace does with its tiles (workspaces/_launcher_actions):
@@ -169,9 +169,13 @@ export default class extends Controller {
 
   // data-hotkey can list several hotkeys, separated by commas: "#,Shift+#".
   // A comma right after a + is the comma key: "Mod+,".
+  // With tiles that are part of this page, the one you are in comes first: another
+  // tile of the same kind has the same keys.
   _findHotkeyElement(hotkey) {
-    return Array.from(document.querySelectorAll("[data-hotkey]"))
+    const within = (root) => Array.from(root?.querySelectorAll("[data-hotkey]") || [])
       .find(element => element.dataset.hotkey.split(/(?<!\+),/).includes(hotkey))
+
+    return within(document.querySelector(".workspace-tile[data-focused] > .tile-frame")) || within(document)
   }
 
   // Private

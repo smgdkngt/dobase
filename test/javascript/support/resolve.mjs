@@ -1,5 +1,5 @@
 // The folders config/importmap.rb pins as a whole (pin_all_from)
-const PINNED = [ "services", "controllers", "channels", "elements" ]
+const PINNED = [ "services", "controllers", "channels" ]
 const scripts = new URL("../../../app/javascript/", import.meta.url)
 
 /** @type {import("node:module").ResolveHook} */

@@ -17,15 +17,13 @@
     "paths": {
       "services/*": [ "./app/javascript/services/*" ],
       "controllers/*": [ "./app/javascript/controllers/*" ],
-      "channels/*": [ "./app/javascript/channels/*" ],
-      "elements/*": [ "./app/javascript/elements/*" ]
+      "channels/*": [ "./app/javascript/channels/*" ]
     }
   },
   "include": [
     "app/javascript/services/workspace_layout.js",
     "app/javascript/services/file_size.js",
     "app/javascript/services/tile.js",
-    "app/javascript/services/todos_view.js",
     "test/javascript/**/*.mjs",
     "test/javascript/support/globals.d.ts"
   ]

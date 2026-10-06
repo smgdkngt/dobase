@@ -545,18 +545,20 @@ body[data-workspace] .main-content {
   }
 }
 
-/* ── A tile that is part of this page (a trial: workspace_controller.js#inThisPage) ──
+/* ── A tile that is part of this page (workspace_controller.js#inThisPage) ──
    The same size smaller as a tile with a document of its own (below): that one has
    a smaller root to measure by, which a part of a page can't have, so this one is
    drawn at seven eighths. Icons are sized in pixels and keep their size there, so
-   they keep it here. */
+   they keep it here. What is measured by the window (a dialog's height in vh) is
+   divided by --tile-zoom where it is set, or it would come out an eighth smaller. */
 
 .tile-frame {
   overflow: hidden;
 }
 
 .tile-page {
-  zoom: 0.875;
+  --tile-zoom: 0.875;
+  zoom: var(--tile-zoom);
   height: 100%;
   outline: none;
   --spacing: 0.22rem;
@@ -564,7 +566,7 @@ body[data-workspace] .main-content {
 }
 
 .tile-page svg {
-  zoom: calc(1 / 0.875);
+  zoom: calc(1 / var(--tile-zoom));
 }
 
 .tile-page > .tool-layout {
@@ -572,7 +574,7 @@ body[data-workspace] .main-content {
 }
 
 .tile-page :is(.tool-topbar, .mail-topbar) {
-  min-height: calc(var(--workspace-topbar-height) / 0.875);
+  min-height: calc(var(--workspace-topbar-height) / var(--tile-zoom));
   padding-right: 2.5rem;
 }
 

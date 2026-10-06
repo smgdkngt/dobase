@@ -1,5 +1,5 @@
-// The page a view is on is a document of its own, or (a trial) a tile in the
-// workspace's own page: a <turbo-frame> (services/tool_frame.js#pageFrame). A view
+// The page a view is on is a document of its own, or a tile in the workspace's own
+// page: a <turbo-frame> (services/tool_frame.js#pageFrame). A view
 // that draws its page again, or reads its address, asks here, and gets the tile's
 // when it is in one.
 

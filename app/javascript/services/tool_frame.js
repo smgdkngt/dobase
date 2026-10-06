@@ -1,9 +1,9 @@
 // A tool's own page in a frame: a tile in the workspace (workspace_controller.js).
 // What the workspace does with such a frame.
 //
-// The frame is an <iframe>, a document of its own. As a trial, a tool can instead be
-// drawn into the workspace's own page, in a <turbo-frame> (pageFrame): the functions
-// here take either.
+// The frame is an <iframe>, a document of its own, or, for the kinds of tool that
+// have moved over (workspace_controller.js#inThisPage), a <turbo-frame>: the tool's
+// page as part of the workspace's own page (pageFrame). The functions here take either.
 
 /**
  * "/tools/12/board?card=3" from an address on this site; nothing from any other.
@@ -70,22 +70,6 @@ export function pageFrame(id, url) {
  */
 export function inPage(frame) {
   return Boolean(frame) && frame?.localName !== "iframe"
-}
-
-/**
- * A tool as a tile that asks the API for what there is and draws it itself: an
- * element of the app's own (elements/), which loads when the first one is made
- * @param {string} name the element's name: "dobase-todos"
- * @param {string} url
- * @returns {HTMLElement}
- */
-export function drawnFrame(name, url) {
-  import(`elements/${name.replace("-", "_")}`)
-
-  const frame = document.createElement(name)
-  frame.className = "tile-frame"
-  frame.setAttribute("src", url)
-  return frame
 }
 
 /**

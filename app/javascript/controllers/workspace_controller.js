@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { pathOf, toolIdOf, toolFrame, pageFrame, drawnFrame, inPage, frameAddress, sendFrameTo, refreshFrame, reloadFrame, focusFrame, hasUnfinishedWork, confirmClosing } from "services/tool_frame"
+import { pathOf, toolIdOf, toolFrame, pageFrame, inPage, frameAddress, sendFrameTo, refreshFrame, reloadFrame, focusFrame, hasUnfinishedWork, confirmClosing } from "services/tool_frame"
 import { workspaceCommand, renameWorkspaceKeys, workspaceKey } from "services/workspace_keys"
 import { apiPost, csrfToken } from "services/api"
 import { typing } from "services/typing"
@@ -111,7 +111,7 @@ export default class extends Controller {
     })
     this.listen(document, "keydown", (event) => this.keyed(event), true)
     this.listen(window, "message", (event) => this.heard(event))
-    // A tile that is part of this page (a trial: see inThisPage) says the same things
+    // A tile that is part of this page (see inThisPage) says the same things
     // a tile in a frame of its own does, as events
     this.listen(this.tilesTarget, "tile:message", (event) => {
       const id = event.target.closest("[data-tile-id]")?.dataset.tileId
@@ -376,24 +376,18 @@ export default class extends Controller {
     tile.dataset.arriving = ""
     tile.addEventListener("animationend", () => delete tile.dataset.arriving, { once: true })
     const url = this.state.tiles[id].url
-    const how = this.inThisPage(url)
-    tile.append(how === "api" ? drawnFrame(`dobase-${this.kindOf(url)}`, url) : how ? pageFrame(id, url) : toolFrame(url))
+    tile.append(this.inThisPage(url) ? pageFrame(id, url) : toolFrame(url))
     this.tilesTarget.append(tile)
     this.elements.set(id, tile)
     this.nameTile(id)
   }
 
-  // A trial, switched on per browser: tools of these kinds are drawn into this page
-  // instead of into a frame with a document of its own. /workspace?in-page=todos
-  // switches it on for todos, with the server's page in a <turbo-frame> ("frame");
-  // /workspace?in-page=todos:api with an element that draws what the API gives
-  // ("api"); /workspace?in-page= off again.
+  // Tools are moving out of frames with a document of their own (an <iframe>) into
+  // this page (a <turbo-frame>: services/tool_frame.js#pageFrame), one kind at a
+  // time. A kind that isn't over yet is switched on per browser:
+  // /workspace?in-page=todos (or todos,boards), and /workspace?in-page= off again.
   inThisPage(url) {
-    return this.kindsInThisPage.get(this.kindOf(url)) || null
-  }
-
-  kindOf(url) {
-    return this.menuLinkFor(url)?.dataset.toolType
+    return this.kindsInThisPage.has(this.menuLinkFor(url)?.dataset.toolType)
   }
 
   get kindsInThisPage() {
@@ -413,10 +407,7 @@ export default class extends Controller {
     } catch {
       // No storage: frames, as everywhere
     }
-    return (this._kindsInThisPage = new Map(kinds.split(",").filter(Boolean).map((kind) => {
-      const [ name, how = "frame" ] = kind.split(":")
-      return [ name, how ]
-    })))
+    return (this._kindsInThisPage = new Set(kinds.split(",").filter(Boolean)))
   }
 
   // What a tile shows, by the name its page gave it, or its tool's name in the menu

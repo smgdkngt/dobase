@@ -29,6 +29,9 @@
       <%= content_for(:command_palette_actions) %>
       <div class="border-t border-border-light my-1" data-command-palette-target="sectionDivider"></div>
     <% end %>
+    <%# What the tool in the tile you are in can do, when that tile is part of this
+        page (tile_frame_controller.js) %>
+    <div class="contents" data-tile-actions></div>
     <%
       group_lookup = {}
       current_user.sidebar_groups.includes(:tools).each do |group|

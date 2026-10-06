@@ -21,6 +21,9 @@
     </div>
 
     <%= content_for(:keyboard_shortcuts) %>
+    <%# The keys of the tool in the tile you are in, when that tile is part of this
+        page (tile_frame_controller.js) %>
+    <div class="contents" data-tile-shortcuts></div>
 
     <%# In a tile: the keys of the workspace around it %>
     <%= render "workspaces/shortcuts" if tile? %>
