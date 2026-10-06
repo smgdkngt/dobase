@@ -44,6 +44,15 @@ module Mails
       assert_empty @message.listed_attachments
     end
 
+    test "a picture whose file is gone from storage is left out, and the message still shows" do
+      @message.update!(body_html: %(<p>Hello</p><img src="cid:logo@example.com">))
+      logo = @message.attachments.create!(filename: "logo.png", content_type: "image/png", file_size: 3, content_id: "logo@example.com")
+      logo.file.attach(io: StringIO.new("PNG"), filename: "logo.png", content_type: "image/png")
+      logo.file.blob.service.delete(logo.file.blob.key)
+
+      assert_equal %(<p>Hello</p><img src="cid:logo@example.com">), @message.body_html_with_inline_images
+    end
+
     test "reading a message tells its tool's people how much unread mail they have left" do
       user = @message.account.tool.users.first
       unread = user.unread_mail_count

@@ -24,7 +24,8 @@ class SyncEmailsJob < ApplicationJob
   # Every failure is shown on the account, or the mail page says "Syncing..." forever.
   # A rejected login waits for new settings or a sync by hand, a server that can't be reached
   # is tried again on the next scheduled sync. Unexpected failures still fail the job, so they can be looked into.
-  rescue ::ImapSyncService::ConnectionError, ::ImapSyncService::AuthenticationError => e
+  # A connection the server drops, while connecting or halfway, is a server that can't be reached too.
+  rescue ::ImapSyncService::ConnectionError, ::ImapSyncService::AuthenticationError, *::ImapSyncService::UNREACHABLE => e
     Rails.logger.error("Mail sync failed for account #{mail_account_id}: #{e.message}")
     mail_account.mark_sync_error!(e.message)
   rescue StandardError => e
