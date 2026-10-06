@@ -69,9 +69,10 @@ notifications, `]` and `[` hop between tools, and `o` opens whatever you're
 looking at in the browser. `q` quits.
 
 `o` and `--open` (on mail drafts) use Dobase installed as an app when there is
-one: Safari's web app at `~/Applications/Dobase.app` on a Mac, or a Chrome, Edge
-or Vivaldi app, which opens `web+dobase://` links. Otherwise they use your
-browser. Set `DOBASE_APP` to the app to use when yours has another name, e.g.
+one: the app `dobase app install` made (see [As an app](#as-an-app)), Safari's
+web app at `~/Applications/Dobase.app` on a Mac, or a Chrome, Edge or Vivaldi
+app, which opens `web+dobase://` links. Otherwise they use your browser. Set
+`DOBASE_APP` to the app to use when yours has another name, e.g.
 `DOBASE_APP="/Applications/Our Tools.app"`.
 
 Boards, todos, chats and your notifications keep up by themselves while you
@@ -120,6 +121,31 @@ with `dobase theme sync --file PATH --name NAME`.
 
 The full-screen app wears your theme too: its accent, selection, card labels and
 logo take the theme's colours, and it follows a switch within ten seconds.
+
+## As an app
+
+```bash
+dobase app install                            # Dobase as an app of its own, apart from your browser
+dobase app install --browser /usr/bin/brave   # ...kept by the browser you name
+dobase app open
+dobase app remove                             # the app and the sign-in it kept
+```
+
+A browser can install Dobase as an app, but that app then lives in the profile
+you browse with: it shares its windows, its sessions and its restarts.
+`dobase app install` gives the app a profile nothing else uses. It starts a
+Chromium-family browser (Chromium, Chrome, Brave, Edge or Vivaldi, the first one
+it finds, or the one you name) on a profile in `~/.local/share/dobase/app`, out
+of sight, and has it install the Dobase you are logged in to. The browser puts
+the app among your others, with its own icon, and from then on it runs apart
+from the browser you browse with, also when that is the same browser. Sign in
+once in its window.
+
+`o` and `--open` use this app from then on. Links to other sites that you follow
+in the app open in that profile, not in your everyday browser. On a Mac an app
+you installed earlier from the same browser's menu stays beside it, and the new
+one is then called "Dobase 1"; remove the old one first to keep the name. macOS
+and Linux; on Windows, install Dobase from the browser's menu.
 
 ## With Claude Code
 
