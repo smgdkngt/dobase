@@ -61,7 +61,8 @@ class ScreenshotComparisonTest < ActiveSupport::TestCase
   end
 
   test "the same picture written another way is the same" do
-    image("after/board").write_to_file(@shots.join("after/board.png").to_s, compression: 1)
+    # (read in full first: the file is the one written to)
+    image("after/board").copy_memory.write_to_file(@shots.join("after/board.png").to_s, compression: 1)
 
     assert compare.same?
   end
