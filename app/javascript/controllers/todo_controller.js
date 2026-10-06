@@ -5,6 +5,7 @@ import { reportPresence } from "services/presence"
 import { pageInUse } from "services/page_in_use"
 import { floats, floating, drawnWith } from "services/float"
 import { play } from "services/sound"
+import { pageAddress, visitPage, tileOf } from "services/tile"
 
 export default class extends Controller {
   static targets = ["itemModal", "itemDetailDialog", "addItemForm", "addItemInput", "addItemBtn", "completedSection", "completedToggle", "completedToggleLabel"]
@@ -36,17 +37,17 @@ export default class extends Controller {
         // was fading out): the visit would close it. Its own close brings the refresh.
         if (this.itemDetailDialogTarget.open) return
 
-        const url = new URL(window.location.href)
+        const url = pageAddress(this.element)
         url.searchParams.delete("item")
         this._refreshingAfterClose = true
-        Turbo.visit(url.toString(), { action: "replace" })
+        visitPage(this.element, url)
       }
       this.itemDetailDialogTarget.addEventListener("close", this._onModalClose)
       this._onBeforeRender = this._keepWhatWasStarted.bind(this)
       document.addEventListener("turbo:before-render", this._onBeforeRender)
 
       // Auto-open item if ?item=ID is in the URL
-      const itemId = new URL(window.location.href).searchParams.get("item")
+      const itemId = pageAddress(this.element).searchParams.get("item")
       if (itemId) this.#openItemById(itemId)
     }
   }
@@ -173,6 +174,9 @@ export default class extends Controller {
   }
 
   _clearItemParam() {
+    // (a tile in the workspace's page has no address in the window's)
+    if (tileOf(this.element)) return
+
     const url = new URL(window.location.href)
     url.searchParams.delete("item")
     window.history.replaceState(history.state, "", url)
@@ -197,7 +201,7 @@ export default class extends Controller {
 
     const result = await api(url, method)
     if (result) {
-      Turbo.visit(window.location.href, { action: "replace" })
+      visitPage(this.element)
     } else {
       checkbox.checked = !checkbox.checked
     }

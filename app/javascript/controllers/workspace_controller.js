@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { pathOf, toolIdOf, toolFrame, frameAddress, sendFrameTo, hasUnfinishedWork, confirmClosing } from "services/tool_frame"
+import { pathOf, toolIdOf, toolFrame, pageFrame, inPage, frameAddress, sendFrameTo, refreshFrame, reloadFrame, focusFrame, hasUnfinishedWork, confirmClosing } from "services/tool_frame"
 import { workspaceCommand, renameWorkspaceKeys, workspaceKey } from "services/workspace_keys"
 import { apiPost, csrfToken } from "services/api"
 import { typing } from "services/typing"
@@ -111,6 +111,22 @@ export default class extends Controller {
     })
     this.listen(document, "keydown", (event) => this.keyed(event), true)
     this.listen(window, "message", (event) => this.heard(event))
+    // A tile that is part of this page (a trial: see inThisPage) says the same things
+    // a tile in a frame of its own does, as events
+    this.listen(this.tilesTarget, "tile:message", (event) => {
+      const id = event.target.closest("[data-tile-id]")?.dataset.tileId
+      if (id && this.state.tiles[id]) this.told(id, event.detail || {})
+    })
+    this.listen(document, "turbo:before-fetch-request", (event) => {
+      if (event.target.closest?.(".tile-frame")) event.detail.fetchOptions.headers["X-Tile"] = "1"
+    })
+    this.listen(this.tilesTarget, "turbo:frame-missing", (event) => {
+      if (!event.target.matches(".tile-frame")) return
+
+      // The answer isn't that tile's page: signed out, or a page that is gone
+      event.preventDefault()
+      this.left(event.target.closest("[data-tile-id]").dataset.tileId)
+    })
     this.listen(window, "pagehide", () => this.remember())
     // Another browser of this person's changed the arrangement (notifications_controller.js
     // hears it). A window nobody looks at takes it when it is looked at again.
@@ -284,22 +300,12 @@ export default class extends Controller {
   // page takes as a refresh (a morph: what is open in it and how far it is scrolled
   // stay), and which it can refuse the way it refuses any other (an unsent mail).
   refresh(id) {
-    const page = this.frameOf(id)?.contentWindow
-    try {
-      page.Turbo ? page.Turbo.visit(page.location.href, { action: "replace" }) : page.location.reload()
-    } catch {
-      // Not a page of ours to draw again
-    }
+    refreshFrame(this.frameOf(id))
   }
 
   // The page in a tile, loaded again
   reload(id) {
-    const frame = this.frameOf(id)
-    try {
-      frame?.contentWindow.location.reload()
-    } catch {
-      if (frame) frame.src = this.state.tiles[id].url
-    }
+    reloadFrame(this.frameOf(id), this.state.tiles[id].url)
   }
 
   send(id, path) {
@@ -369,10 +375,33 @@ export default class extends Controller {
     tile.dataset.tileId = id
     tile.dataset.arriving = ""
     tile.addEventListener("animationend", () => delete tile.dataset.arriving, { once: true })
-    tile.append(toolFrame(this.state.tiles[id].url))
+    const url = this.state.tiles[id].url
+    tile.append(this.inThisPage(url) ? pageFrame(id, url) : toolFrame(url))
     this.tilesTarget.append(tile)
     this.elements.set(id, tile)
     this.nameTile(id)
+  }
+
+  // A trial, switched on per browser: tools of these kinds are drawn into this page
+  // instead of into a frame with a document of its own. /workspace?in-page=todos
+  // switches it on for todos, /workspace?in-page= off again.
+  inThisPage(url) {
+    return this.kindsInThisPage.has(this.menuLinkFor(url)?.dataset.toolType)
+  }
+
+  get kindsInThisPage() {
+    if (this._kindsInThisPage) return this._kindsInThisPage
+
+    const key = "dobase:workspace:in-page"
+    let kinds = ""
+    try {
+      const asked = new URLSearchParams(location.search).get("in-page")
+      if (asked !== null) asked ? localStorage.setItem(key, asked) : localStorage.removeItem(key)
+      kinds = localStorage.getItem(key) || ""
+    } catch {
+      // No storage: frames, as everywhere
+    }
+    return (this._kindsInThisPage = new Set(kinds.split(",").filter(Boolean)))
   }
 
   // What a tile shows, by the name its page gave it, or its tool's name in the menu
@@ -388,7 +417,8 @@ export default class extends Controller {
 
     const name = this.nameOf(id)
     tile.setAttribute("aria-label", name)
-    tile.querySelector("iframe").title = name
+    const frame = this.frameOf(id)
+    if (frame && !inPage(frame)) frame.title = name
     tile.querySelector("button")?.setAttribute("aria-label", `Close ${name}`)
   }
 
@@ -849,7 +879,7 @@ export default class extends Controller {
     if (!tile) return void this.element.closest("main")?.focus()
 
     this.held = !into
-    into ? tile.querySelector("iframe").focus() : tile.focus({ preventScroll: true })
+    into ? focusFrame(this.frameOf(this.desk.focus)) : tile.focus({ preventScroll: true })
   }
 
   // The arrows with the keyboard on a tile: to the tile on that side. Where there is
@@ -1209,6 +1239,13 @@ export default class extends Controller {
     const message = event.data || {}
     if (!id || !message.tile) return
 
+    this.told(id, message)
+  }
+
+  // What a tile says about itself, and asks of the page around it
+  told(id, message) {
+    const here = (frame) => inPage(frame) ? frame.contains(document.activeElement) : frame === document.activeElement
+
     switch (message.tile) {
       case "location": {
         const path = pathOf(message.url)
@@ -1225,7 +1262,7 @@ export default class extends Controller {
         // while it is still there: a dialog that closes hands it back to the tile it
         // came from for a moment, and that tile says so after the launcher has
         // already opened another.
-        if (message.pointer || this.frameOf(id) === document.activeElement) {
+        if (message.pointer || here(this.frameOf(id))) {
           this.focus(id)
           // The keyboard is in the tool now
           this.held = false
@@ -1233,7 +1270,7 @@ export default class extends Controller {
         // A click that something in the tile kept to itself (a card that can be dragged
         // takes the press for the drag) moves no keyboard: the tile is lit and the keys
         // still go to the one you were in. The keyboard goes along with the click.
-        if (message.pointer && this.frameOf(id) !== document.activeElement && !this.menuOpen && !document.querySelector("dialog[open]")) this.grabFocus({ into: true })
+        if (message.pointer && !here(this.frameOf(id)) && !this.menuOpen && !document.querySelector("dialog[open]")) this.grabFocus({ into: true })
         break
       case "command":
         this.run(message.command)
@@ -1358,7 +1395,7 @@ export default class extends Controller {
     if (tile.strayed) return this.drop(id)
 
     tile.strayed = true
-    this.frameOf(id).src = `/tools/${toolIdOf(tile.url)}`
+    this.frameOf(id).setAttribute("src", `/tools/${toolIdOf(tile.url)}`)
   }
 
   // A tile shows a page that isn't the app's. Signed out (somewhere else, or the
@@ -1385,7 +1422,8 @@ export default class extends Controller {
   // other. The message goes as well, for a frame that can't be reached yet (it is
   // still loading); a tile that has the theme already leaves it at that.
   wearAll(theme) {
-    const frames = [ ...Array.from(this.elements.keys(), (id) => this.frameOf(id)), this.floating?.frame ].filter(Boolean)
+    // (a tile that is part of this page wears what this page wears)
+    const frames = [ ...Array.from(this.elements.keys(), (id) => this.frameOf(id)), this.floating?.frame ].filter((frame) => frame && !inPage(frame))
     for (const frame of frames) {
       try {
         const page = frame.contentWindow
@@ -1399,13 +1437,13 @@ export default class extends Controller {
 
   tellAll(what, details = {}) {
     for (const id of this.elements.keys()) {
-      this.frameOf(id)?.contentWindow.postMessage({ tile: what, ...details }, location.origin)
+      this.frameOf(id)?.contentWindow?.postMessage({ tile: what, ...details }, location.origin)
     }
     this.floating?.frame.contentWindow?.postMessage({ tile: what, ...details }, location.origin)
   }
 
   frameOf(id) {
-    return this.elements.get(id)?.querySelector("iframe")
+    return this.elements.get(id)?.querySelector(":scope > iframe, :scope > turbo-frame")
   }
 
   // ── Remembering ──
@@ -1576,7 +1614,7 @@ export default class extends Controller {
     this.state = cleaned(next)
 
     for (const [ id, tile ] of Array.from(this.elements)) {
-      const frame = tile.querySelector("iframe")
+      const frame = this.frameOf(id)
       const there = this.state.tiles[id]
       if (!there) {
         if (hasUnfinishedWork(frame)) {

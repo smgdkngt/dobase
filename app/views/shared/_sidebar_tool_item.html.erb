@@ -15,6 +15,7 @@
      class="sidebar-tool-link"
      data-sidebar-tool-link
      data-tool-name="<%= instance.display_name %>"
+     data-tool-type="<%= instance.tool_type.slug %>"
      data-arrow-keys-target="item"
      <%= 'data-unread' if has_unread %>
      <%= 'aria-current="page"'.html_safe if is_active %>

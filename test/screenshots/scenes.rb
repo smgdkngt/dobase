@@ -24,6 +24,8 @@ class ScreenshotScenes < ApplicationSystemTestCase
   SAME = 3
   TRIES = 30
 
+  TILE = ".workspace-tile:not([hidden])"
+
   # What says a tool's page is all there, where `main` being there doesn't: a room
   # asks for the camera first, and headless Chrome has none
   THERE = { "Standup Room" => "[data-room-target='preJoinError']:not(.hidden)" }.freeze
@@ -217,8 +219,14 @@ class ScreenshotScenes < ApplicationSystemTestCase
     assert_selector "[data-controller~='workspace']"
     wait_for_stimulus "workspace"
     count = first_visit ? 1 : ids.size
-    assert_selector ".workspace-tile:not([hidden]) iframe", count: count
-    count.times { |index| within_frame(all(".workspace-tile:not([hidden]) iframe")[index]) { assert_selector there[index] || "main" } }
+    assert_selector "#{TILE} > :is(iframe, turbo-frame)", count: count
+    count.times do |index|
+      frame = all("#{TILE} > :is(iframe, turbo-frame)")[index]
+      # A tile is a document of its own, or (the trial) a part of this page
+      next within_frame(frame) { assert_selector there[index] || "main" } if frame.tag_name == "iframe"
+
+      within(frame) { assert_selector ".tile-page" }
+    end
   end
 
   # A page with nothing around it but the bar at the bottom, as a narrow window has it
@@ -230,6 +238,8 @@ class ScreenshotScenes < ApplicationSystemTestCase
 
   # In the frame a tile's big dialog floats in, over all the tiles
   def floated(&block)
+    return yield if has_selector?("#{TILE} > turbo-frame dialog[open]", wait: 2)
+
     within_frame(find("#workspace-float iframe"), &block)
   end
 
@@ -274,6 +284,8 @@ class ScreenshotScenes < ApplicationSystemTestCase
     visit new_session_path
     page.execute_script("localStorage.clear(); sessionStorage.clear()")
     page.execute_script("localStorage.setItem('dobase:workspace:hint', 'seen')") if told_about_tiles
+    # The trial of tiles that are part of the workspace's page: IN_PAGE=todos
+    page.execute_script("localStorage.setItem('dobase:workspace:in-page', arguments[0])", ENV["IN_PAGE"]) if ENV["IN_PAGE"].present?
     fill_in "Email", with: @sophie.email_address
     fill_in "Password", with: "password"
     click_on "Sign In"

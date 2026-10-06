@@ -1,0 +1,10 @@
+<%# A tool's page as a tile in the workspace's own page: no document of its own, so
+    no head, no sidebar and no dialogs of the page around it. The frame is the one
+    the workspace made (workspace_controller.js); what is in it says what the page
+    is called, as a document's title would. %>
+<%= turbo_frame_tag tile_frame do %>
+  <%= tag.div class: "tile-page", tabindex: -1,
+        data: main_attributes[:data].merge(controller: "#{main_attributes[:data][:controller]} tile-frame", tile_frame_title_value: content_for(:title).to_s) do %>
+    <%= yield %>
+  <% end %>
+<% end %>

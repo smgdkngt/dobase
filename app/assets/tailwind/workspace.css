@@ -215,7 +215,8 @@
      the tile's edge is heavier, also when it is the only tile. On the tile itself,
      where the arrows go from tile to tile and Enter goes in: a thin edge, and what is
      in the tile steps back. */
-  .workspace-tile:has(> iframe:focus) {
+  .workspace-tile:has(> iframe:focus),
+  .workspace-tile:has(> .tile-frame:focus-within) {
     border-color: var(--color-accent);
     box-shadow: 0 0 0 2px var(--color-accent);
   }
@@ -225,11 +226,11 @@
     border-color: var(--color-accent);
   }
 
-  .workspace-tile > iframe {
+  .workspace-tile > :is(iframe, .tile-frame) {
     transition: opacity 120ms ease;
   }
 
-  .workspace-tile:focus > iframe {
+  .workspace-tile:focus > :is(iframe, .tile-frame) {
     @apply opacity-60;
   }
 
@@ -263,7 +264,7 @@
     animation: workspace-slide-from-left 180ms var(--ease-out) both;
   }
 
-  .workspace-tile > iframe {
+  .workspace-tile > :is(iframe, .tile-frame) {
     @apply block w-full h-full border-0;
   }
 
@@ -544,6 +545,37 @@ body[data-workspace] .main-content {
   }
 }
 
+/* ── A tile that is part of this page (a trial: workspace_controller.js#inThisPage) ──
+   The same size smaller as a tile with a document of its own (below): that one has
+   a smaller root to measure by, which a part of a page can't have, so this one is
+   drawn at seven eighths. Icons are sized in pixels and keep their size there, so
+   they keep it here. */
+
+.tile-frame {
+  overflow: hidden;
+}
+
+.tile-page {
+  zoom: 0.875;
+  height: 100%;
+  outline: none;
+  --spacing: 0.22rem;
+  --mobile-bar-clearance: 0px;
+}
+
+.tile-page svg {
+  zoom: calc(1 / 0.875);
+}
+
+.tile-page > .tool-layout {
+  height: 100%;
+}
+
+.tile-page :is(.tool-topbar, .mail-topbar) {
+  min-height: calc(var(--workspace-topbar-height) / 0.875);
+  padding-right: 2.5rem;
+}
+
 /* ── A page that is a tile: the tool alone, a size smaller (there are many of them) ── */
 
 :root[data-in-tile] {
@@ -629,49 +661,49 @@ body[data-workspace] .main-content {
 /* ── Denser tools in a tile: the lists, where rows are what there is most of ── */
 
 /* Mail: a conversation is two lines, and one in a tile wide enough for it */
-:root[data-in-tile] .mail-list-item {
+:is(:root[data-in-tile], .tile-page) .mail-list-item {
   padding-block: 0.3rem;
 }
 
-:root[data-in-tile] .mail-list-head {
+:is(:root[data-in-tile], .tile-page) .mail-list-head {
   margin-bottom: 0;
 }
 
-:root[data-in-tile] .mail-list-subject {
+:is(:root[data-in-tile], .tile-page) .mail-list-subject {
   margin-bottom: 0;
 }
 
-:root[data-in-tile] .mail-list-preview {
+:is(:root[data-in-tile], .tile-page) .mail-list-preview {
   display: none;
 }
 
 @media (min-width: 520px) and (max-width: 1023px) {
-  :root[data-in-tile] .mail-list-item {
+  :is(:root[data-in-tile], .tile-page) .mail-list-item {
     align-items: center;
   }
 
-  :root[data-in-tile] .mail-list-item > a {
+  :is(:root[data-in-tile], .tile-page) .mail-list-item > a {
     display: grid;
     grid-template-columns: 10rem minmax(0, 1fr) auto;
     column-gap: 0.75rem;
     align-items: center;
   }
 
-  :root[data-in-tile] .mail-list-head {
+  :is(:root[data-in-tile], .tile-page) .mail-list-head {
     display: contents;
   }
 
-  :root[data-in-tile] .mail-list-subject {
+  :is(:root[data-in-tile], .tile-page) .mail-list-subject {
     order: 2;
   }
 
-  :root[data-in-tile] .mail-list-meta {
+  :is(:root[data-in-tile], .tile-page) .mail-list-meta {
     order: 3;
   }
 }
 
 /* Chat: small faces, and lines that follow each other closely */
-:root[data-in-tile] .chat-message {
+:is(:root[data-in-tile], .tile-page) .chat-message {
   padding-block: 0.1rem;
 }
 
@@ -680,54 +712,54 @@ body[data-workspace] .main-content {
   outline-offset: -2px;
 }
 
-:root[data-in-tile] .chat-message:where(.mt-2) {
+:is(:root[data-in-tile], .tile-page) .chat-message:where(.mt-2) {
   margin-top: 0.4rem;
 }
 
-:root[data-in-tile] .chat-message-avatar {
+:is(:root[data-in-tile], .tile-page) .chat-message-avatar {
   width: 1.75rem;
 }
 
-:root[data-in-tile] .chat-message-avatar .avatar {
+:is(:root[data-in-tile], .tile-page) .chat-message-avatar .avatar {
   width: 1.75rem;
   height: 1.75rem;
   font-size: 0.625rem;
 }
 
 /* Todos: a row is as high as its line of text */
-:root[data-in-tile] .todo-item {
+:is(:root[data-in-tile], .tile-page) .todo-item {
   padding-block: 0.2rem;
 }
 
 /* Board: cards closer to their text */
-:root[data-in-tile] .board-card {
+:is(:root[data-in-tile], .tile-page) .board-card {
   padding: 0.4rem 0.5rem;
 }
 
 /* The box you write in keeps its toolbar until you are in it */
-:root[data-in-tile] .rich-text-input:not(:focus-within) rhino-editor [role="toolbar"],
-:root[data-in-tile] .rich-text-input:not(:focus-within) rhino-editor::part(toolbar) {
+:is(:root[data-in-tile], .tile-page) .rich-text-input:not(:focus-within) rhino-editor [role="toolbar"],
+:is(:root[data-in-tile], .tile-page) .rich-text-input:not(:focus-within) rhino-editor::part(toolbar) {
   display: none;
 }
 
 /* Documents: written to be read across a page, here they are read across a tile */
-:root[data-in-tile] :is(rhino-editor.document-editor .trix-content, .document-view .rich-text-content) {
+:is(:root[data-in-tile], .tile-page) :is(rhino-editor.document-editor .trix-content, .document-view .rich-text-content) {
   font-size: 1.0625rem;
   line-height: 1.55;
 }
 
-:root[data-in-tile] :is(rhino-editor.document-editor .trix-content, .document-view .rich-text-content) h1 {
+:is(:root[data-in-tile], .tile-page) :is(rhino-editor.document-editor .trix-content, .document-view .rich-text-content) h1 {
   font-size: 1.6rem;
 }
 
-:root[data-in-tile] :is(rhino-editor.document-editor .trix-content, .document-view .rich-text-content) h2 {
+:is(:root[data-in-tile], .tile-page) :is(rhino-editor.document-editor .trix-content, .document-view .rich-text-content) h2 {
   font-size: 1.35rem;
 }
 
-:root[data-in-tile] :is(rhino-editor.document-editor .trix-content, .document-view .rich-text-content) h3 {
+:is(:root[data-in-tile], .tile-page) :is(rhino-editor.document-editor .trix-content, .document-view .rich-text-content) h3 {
   font-size: 1.15rem;
 }
 
-:root[data-in-tile] :is(rhino-editor.document-editor .trix-content, .document-view .rich-text-content) h4 {
+:is(:root[data-in-tile], .tile-page) :is(rhino-editor.document-editor .trix-content, .document-view .rich-text-content) h4 {
   font-size: 1.0625rem;
 }
