@@ -13,7 +13,7 @@ export default class extends Controller {
   static values = { title: String }
 
   connect() {
-    this.frame = this.element.closest("turbo-frame")
+    this.frame = this.element.closest(".tile-frame")
     this.listening = new AbortController()
     const options = { signal: this.listening.signal }
     this.element.addEventListener("focusin", () => this.say("focus", { pointer: false }), options)

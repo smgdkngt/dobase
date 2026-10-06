@@ -18,6 +18,7 @@ module Tools
         format.json do
           @lists = @tool.todo_lists.order(:position)
           @items_by_list = listed_items.group_by(&:todo_list_id)
+          @earlier_completed = ::Todos::Item.completed_hidden.where(todo_list_id: @lists.map(&:id)).group(:todo_list_id).count
         end
       end
     end
@@ -38,7 +39,7 @@ module Tools
     # With completed=true, every completed item instead.
     def listed_items
       items = ::Todos::Item.joins(:list).where(todo_lists: { tool_id: @tool.id })
-        .includes({ assigned_user: { avatar_attachment: :blob } }, :comments, :attachments).order(:position)
+        .includes({ assigned_user: { avatar_attachment: :blob } }, :comments, :attachments, :rich_text_description).order(:position)
 
       params[:completed] == "true" ? items.completed : items.pending + items.recently_completed
     end

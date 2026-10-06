@@ -1,1 +1,1 @@
-json.(list, :id, :title, :position)
+json.(list, :id, :title, :description, :position)

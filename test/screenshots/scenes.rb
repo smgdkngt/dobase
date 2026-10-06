@@ -219,9 +219,9 @@ class ScreenshotScenes < ApplicationSystemTestCase
     assert_selector "[data-controller~='workspace']"
     wait_for_stimulus "workspace"
     count = first_visit ? 1 : ids.size
-    assert_selector "#{TILE} > :is(iframe, turbo-frame)", count: count
+    assert_selector "#{TILE} > :is(iframe, .tile-frame)", count: count
     count.times do |index|
-      frame = all("#{TILE} > :is(iframe, turbo-frame)")[index]
+      frame = all("#{TILE} > :is(iframe, .tile-frame)")[index]
       # A tile is a document of its own, or (the trial) a part of this page
       next within_frame(frame) { assert_selector there[index] || "main" } if frame.tag_name == "iframe"
 
@@ -238,7 +238,7 @@ class ScreenshotScenes < ApplicationSystemTestCase
 
   # In the frame a tile's big dialog floats in, over all the tiles
   def floated(&block)
-    return yield if has_selector?("#{TILE} > turbo-frame dialog[open]", wait: 2)
+    return yield if has_selector?("#{TILE} > .tile-frame dialog[open]", wait: 2)
 
     within_frame(find("#workspace-float iframe"), &block)
   end

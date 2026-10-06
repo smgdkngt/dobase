@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { pathOf, toolIdOf, toolFrame, pageFrame, inPage, frameAddress, sendFrameTo, refreshFrame, reloadFrame, focusFrame, hasUnfinishedWork, confirmClosing } from "services/tool_frame"
+import { pathOf, toolIdOf, toolFrame, pageFrame, drawnFrame, inPage, frameAddress, sendFrameTo, refreshFrame, reloadFrame, focusFrame, hasUnfinishedWork, confirmClosing } from "services/tool_frame"
 import { workspaceCommand, renameWorkspaceKeys, workspaceKey } from "services/workspace_keys"
 import { apiPost, csrfToken } from "services/api"
 import { typing } from "services/typing"
@@ -376,7 +376,8 @@ export default class extends Controller {
     tile.dataset.arriving = ""
     tile.addEventListener("animationend", () => delete tile.dataset.arriving, { once: true })
     const url = this.state.tiles[id].url
-    tile.append(this.inThisPage(url) ? pageFrame(id, url) : toolFrame(url))
+    const how = this.inThisPage(url)
+    tile.append(how === "api" ? drawnFrame(`dobase-${this.kindOf(url)}`, url) : how ? pageFrame(id, url) : toolFrame(url))
     this.tilesTarget.append(tile)
     this.elements.set(id, tile)
     this.nameTile(id)
@@ -384,9 +385,15 @@ export default class extends Controller {
 
   // A trial, switched on per browser: tools of these kinds are drawn into this page
   // instead of into a frame with a document of its own. /workspace?in-page=todos
-  // switches it on for todos, /workspace?in-page= off again.
+  // switches it on for todos, with the server's page in a <turbo-frame> ("frame");
+  // /workspace?in-page=todos:api with an element that draws what the API gives
+  // ("api"); /workspace?in-page= off again.
   inThisPage(url) {
-    return this.kindsInThisPage.has(this.menuLinkFor(url)?.dataset.toolType)
+    return this.kindsInThisPage.get(this.kindOf(url)) || null
+  }
+
+  kindOf(url) {
+    return this.menuLinkFor(url)?.dataset.toolType
   }
 
   get kindsInThisPage() {
@@ -395,13 +402,21 @@ export default class extends Controller {
     const key = "dobase:workspace:in-page"
     let kinds = ""
     try {
-      const asked = new URLSearchParams(location.search).get("in-page")
-      if (asked !== null) asked ? localStorage.setItem(key, asked) : localStorage.removeItem(key)
+      const address = new URL(location.href)
+      const asked = address.searchParams.get("in-page")
+      if (asked !== null) {
+        asked ? localStorage.setItem(key, asked) : localStorage.removeItem(key)
+        address.searchParams.delete("in-page")
+        history.replaceState(history.state, "", address)
+      }
       kinds = localStorage.getItem(key) || ""
     } catch {
       // No storage: frames, as everywhere
     }
-    return (this._kindsInThisPage = new Set(kinds.split(",").filter(Boolean)))
+    return (this._kindsInThisPage = new Map(kinds.split(",").filter(Boolean).map((kind) => {
+      const [ name, how = "frame" ] = kind.split(":")
+      return [ name, how ]
+    })))
   }
 
   // What a tile shows, by the name its page gave it, or its tool's name in the menu
@@ -1443,7 +1458,7 @@ export default class extends Controller {
   }
 
   frameOf(id) {
-    return this.elements.get(id)?.querySelector(":scope > iframe, :scope > turbo-frame")
+    return this.elements.get(id)?.querySelector(":scope > iframe, :scope > .tile-frame")
   }
 
   // ── Remembering ──

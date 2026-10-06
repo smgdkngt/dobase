@@ -79,6 +79,38 @@ class WorkspaceInPageTest < ApplicationSystemTestCase
     assert_selector "#{TODOS} .tile-page h1", text: @todos.name
   end
 
+  # ── Drawn from what the API gives, by an element of the app's own ──
+
+  test "the todos are drawn from the API: ticked off, added, and the earlier ones asked for" do
+    visit workspace_path("in-page": "todos:api")
+    wait_for_stimulus "workspace"
+    drawn = "#{TILE} > dobase-todos"
+    assert_selector "#{drawn} .tile-page h1", text: @todos.name
+    assert_equal 0, page.evaluate_script("window.frames.length")
+    item = todo_items(:pending_one)
+
+    within(drawn) do
+      assert_selector ".todo-item", count: 3
+      find("#todo-item-#{item.id}-completion").click
+      assert_selector "#todo-item-#{item.id}.todo-item-completed"
+    end
+    assert item.reload.completed?
+
+    within(drawn) do
+      first("button[data-do='adding']").click
+      find("textarea[aria-label='Todo title']:focus").send_keys("Water the plants", :enter)
+      assert_selector ".todo-item", text: "Water the plants"
+
+      assert_no_text todo_items(:old_completed).title
+      click_on "1 completed"
+      assert_text todo_items(:old_completed).title
+      assert_button "Hide 1 completed"
+    end
+    assert Todos::Item.exists?(title: "Water the plants")
+    assert_current_path workspace_path
+    assert_equal 0, page.evaluate_script("window.frames.length")
+  end
+
   test "the tile is there again after a reload, and closes like any other" do
     visit workspace_path
     wait_for_stimulus "workspace"

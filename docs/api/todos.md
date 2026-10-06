@@ -14,7 +14,9 @@ Add `?completed=true` to get every completed item instead.
     {
       "id": 1,
       "title": "Pre-Launch Checklist",
+      "description": null,
       "position": 0,
+      "earlier_completed_count": 4,
       "items": [
         {
           "id": 16,
@@ -25,7 +27,9 @@ Add `?completed=true` to get every completed item instead.
           "completed": false,
           "completed_at": null,
           "recurrence_rule": "daily",
+          "has_description": true,
           "assignee": { "id": 3, "name": "Priya Patel", "email_address": "priya@moonshot-snacks.com" },
+          "assignee_avatar": { "url": null, "initials": "PP", "look": { "hue": "orange", "second": "pink", "pattern": 2 } },
           "comments_count": 3,
           "attachments_count": 2,
           "url": "https://dobase.example.com/tools/3/todo?item=16",
@@ -42,6 +46,13 @@ A completed item has `"completed": true` and `completed_at` set, e.g.
 `"2026-09-13T15:38:46.459Z"`. `recurrence_rule` is `daily`, `weekly`,
 `monthly` or `null`.
 
+The page lists what is still to do and what was completed in the last day;
+`earlier_completed_count` says how many completed items of a list are left out
+(`?completed=true` gives every completed item instead). `has_description` says
+whether there is more to read in the item. `assignee_avatar` is there when the
+item has an assignee, with what draws their face: the `url` of their picture, or
+without one their `initials` and the colours and shape the app gives them (`look`).
+
 ## Items
 
 ### Show
@@ -54,7 +65,7 @@ A completed item has `"completed": true` and `completed_at` set, e.g.
 {
   "description": "Rooftop or the office?\n\nNeeds room for 50.",
   "description_html": "<p>Rooftop or the office?</p><p>Needs room for 50.</p>",
-  "list": { "id": 1, "title": "Pre-Launch Checklist", "position": 0 },
+  "list": { "id": 1, "title": "Pre-Launch Checklist", "description": null, "position": 0 },
   "creator": { "id": 1, "name": "Sophie Chen", "email_address": "sophie@moonshot-snacks.com" },
   "comments": [
     {

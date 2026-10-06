@@ -28,7 +28,21 @@ module Tools
       assert_equal @list.id, items.first["todo_list_id"]
       assert_equal 1, items.first["comments_count"]
       assert_nil items.first["assignee"]
+      assert_not items.first.key?("assignee_avatar")
+      assert_equal [ @item.description.present?, false ], items.first(2).map { |item| item["has_description"] }
+      # The item completed three days ago is counted, not listed
+      assert_equal [ 1, 0 ], body["lists"].map { |list| list["earlier_completed_count"] }
       assert_equal [], body["lists"].second["items"]
+    end
+
+    test "an assigned item comes with what draws its assignee's face" do
+      @item.update!(assigned_user: @user)
+
+      get tool_todo_path(@tool), headers: @headers
+
+      item = response.parsed_body["lists"].first["items"].first
+      assert_equal @user.id, item.dig("assignee", "id")
+      assert_equal({ "url" => nil, "initials" => "UO", "look" => @user.avatar_look.stringify_keys }, item["assignee_avatar"])
     end
 
     test "todo lists open items before completed ones" do
@@ -67,7 +81,7 @@ module Tools
       assert_equal "Buy groceries", body["title"]
       assert_equal "Milk, eggs", body["description"]
       assert_includes body["description_html"], "<strong>eggs</strong>"
-      assert_equal({ "id" => @list.id, "title" => "To Do", "position" => 0 }, body["list"])
+      assert_equal({ "id" => @list.id, "title" => "To Do", "description" => @list.description, "position" => 0 }, body["list"])
       assert_equal @user.email_address, body.dig("creator", "email_address")
       assert_equal "Got milk", body["comments"].last["body"]
       assert_includes body["comments"].last["body_html"], "<em>milk</em>"

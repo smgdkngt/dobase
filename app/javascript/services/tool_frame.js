@@ -69,7 +69,23 @@ export function pageFrame(id, url) {
  * @returns {boolean}
  */
 export function inPage(frame) {
-  return frame?.localName === "turbo-frame"
+  return Boolean(frame) && frame?.localName !== "iframe"
+}
+
+/**
+ * A tool as a tile that asks the API for what there is and draws it itself: an
+ * element of the app's own (elements/), which loads when the first one is made
+ * @param {string} name the element's name: "dobase-todos"
+ * @param {string} url
+ * @returns {HTMLElement}
+ */
+export function drawnFrame(name, url) {
+  import(`elements/${name.replace("-", "_")}`)
+
+  const frame = document.createElement(name)
+  frame.className = "tile-frame"
+  frame.setAttribute("src", url)
+  return frame
 }
 
 /**
