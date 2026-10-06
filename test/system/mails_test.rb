@@ -635,6 +635,22 @@ class MailsTest < ApplicationSystemTestCase
     assert_includes find("iframe[data-email-frame-target=frame]")["srcdoc"], %(src="https://images.example.invalid/logo.png")
   end
 
+  test "a refresh leaves a long mail where the reader had scrolled it" do
+    message = mails_messages(:inbox_unread)
+    message.update!(body_html: (1..200).map { |line| "<p>Line #{line} of a long mail</p>" }.join)
+    visit tool_mail_path(@tool, message)
+    wait_for_stimulus "email-frame"
+    within_frame(find("iframe[data-email-frame-target=frame]")) { assert_text "Line 200 of a long mail" }
+
+    reader = find("[data-mail-keyboard-target=reader]")
+    reader.execute_script("this.scrollTop = 2000")
+    assert_equal 2000, reader.evaluate_script("this.scrollTop")
+    auto_refresh_mail
+
+    assert @tool.mail_account.reload.syncing?
+    assert_equal 2000, reader.evaluate_script("this.scrollTop"), "the refresh scrolled the mail back up"
+  end
+
   test "a refresh keeps an earlier message of the conversation open" do
     visit tool_mail_path(@tool, mails_messages(:sent_message))
     wait_for_stimulus "collapse"

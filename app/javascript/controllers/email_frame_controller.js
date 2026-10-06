@@ -5,19 +5,17 @@ export default class extends Controller {
   static values = { fullSrcdoc: String }
 
   connect() {
-    this._keepImages = this._keepImages.bind(this)
-    this.element.addEventListener("turbo:before-morph-attribute", this._keepImages)
+    this._keepThroughRefresh = this._keepThroughRefresh.bind(this)
+    this.element.addEventListener("turbo:before-morph-attribute", this._keepThroughRefresh)
   }
 
   disconnect() {
-    this.element.removeEventListener("turbo:before-morph-attribute", this._keepImages)
+    this.element.removeEventListener("turbo:before-morph-attribute", this._keepThroughRefresh)
   }
 
   frameTargetConnected(iframe) {
     this.loadHandler = () => this.resize(iframe)
     iframe.addEventListener("load", this.loadHandler)
-    // A Turbo morph refresh (e.g. after starring) resets the inline height to 0 without reloading the frame
-    iframe.addEventListener("turbo:morph-element", this.loadHandler)
 
     // srcdoc may already be loaded by the time Stimulus connects
     if (iframe.contentDocument && iframe.contentDocument.body) {
@@ -28,7 +26,6 @@ export default class extends Controller {
   frameTargetDisconnected(iframe) {
     if (this.loadHandler) {
       iframe.removeEventListener("load", this.loadHandler)
-      iframe.removeEventListener("turbo:morph-element", this.loadHandler)
     }
     if (this.observer) {
       this.observer.disconnect()
@@ -53,12 +50,18 @@ export default class extends Controller {
     return Boolean(this._shown) && this._shown === this.fullSrcdocValue
   }
 
-  // Images the reader asked for stay through a morph refresh, which would otherwise put
-  // back the frame without them, and the banner
-  _keepImages(event) {
-    const kept = { frame: "srcdoc", banner: "hidden" }[event.target.dataset.emailFrameTarget]
+  // A morph refresh (the mail page's own every minute, or after starring) puts back what
+  // the server drew: a frame without a height on a white card, without the images the
+  // reader asked for and with the banner. The height and the card's colour stay as they
+  // are: a frame that has no height for a moment scrolls a long mail back to its top.
+  _keepThroughRefresh(event) {
+    const target = event.target.dataset.emailFrameTarget
+    const attribute = event.detail.attributeName
 
-    if (kept && kept === event.detail.attributeName && this.showingImages) event.preventDefault()
+    if (attribute === "style" && (target === "frame" || target === "card")) return event.preventDefault()
+
+    const kept = { frame: "srcdoc", banner: "hidden" }[target]
+    if (kept && kept === attribute && this.showingImages) event.preventDefault()
   }
 
   // In dark mode and in a theme the email sits on a white card with a margin. An email
