@@ -29,7 +29,7 @@
     <% else %>
       <%= render "components/button", text: "Edit", size: :sm, variant: :ghost, href: tool_todo_path(@tool, reorder: 1) %>
     <% end %>
-    <%= render "components/button", text: "Add List", icon: "plus", size: :sm, variant: :secondary, type: :button, commandfor: "add-list-modal", command: "show-modal", data: { controller: "hotkey", hotkey: "n" } %>
+    <%= render "components/button", text: "Add List", icon: "plus", size: :sm, variant: :secondary, type: :button, commandfor: "add-list-modal-#{@tool.id}", command: "show-modal", data: { controller: "hotkey", hotkey: "n" } %>
   <% end %>
 
   <div class="tool-scroll-area flex-1 overflow-y-auto p-4 pt-6">
@@ -66,7 +66,7 @@
   <%= render "tools/todos/item_dialog" %>
 
   <%# Add list dialog %>
-  <%= render "shared/modal", id: "add-list-modal", title: "Add List", size: :sm do %>
+  <%= render "shared/modal", id: "add-list-modal-#{@tool.id}", title: "Add List", size: :sm do %>
     <%= form_with url: tool_todo_lists_path(@tool), method: :post, data: { turbo_frame: "_top" } do %>
       <%= render "components/form_field", label: "List title", name: "title", required: true, autofocus: true, placeholder: "e.g. To Do" %>
       <div class="flex justify-end gap-2 mt-4">

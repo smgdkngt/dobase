@@ -13,7 +13,11 @@ class ApplicationController < ActionController::Base
   after_action :track_last_visited_path
   after_action :remember_theme
 
-  helper_method :tile?, :floating?, :workspace_wanted?, :browser_scheme
+  helper_method :tile?, :tile_frame, :floating?, :workspace_wanted?, :browser_scheme
+
+  # A tile that is part of the workspace's own page gets its tool's page without a
+  # document around it (layouts/tile_frame); any other frame, what Turbo gives a frame
+  layout -> { tile_frame ? "tile_frame" : ("turbo_rails/frame" if turbo_frame_request?) }
 
   private
 
@@ -28,7 +32,19 @@ class ApplicationController < ActionController::Base
   # a frame, drawn without the sidebar and everything else around a tool. The
   # browser says so when it loads the frame, Turbo inside it with every request.
   def tile?
-    request.headers["Sec-Fetch-Dest"] == "iframe" || request.headers["X-Tile"].present?
+    request.headers["Sec-Fetch-Dest"] == "iframe" || request.headers["X-Tile"].present? || tile_frame.present?
+  end
+
+  # A tile without a document of its own: the tool's page drawn into the workspace's
+  # page, in a <turbo-frame> the workspace made for it (services/tool_frame.js). Its
+  # id, which is what the answer has to wear.
+  def tile_frame
+    request.headers["Turbo-Frame"].to_s[/\Atile-[a-z0-9]+\z/]
+  end
+
+  # To everything that asks, such a tile's request is for a page, not for a part of one
+  def turbo_frame_request?
+    super && !tile_frame
   end
 
   # A page that floats over the workspace to show one dialog (services/float.js): a

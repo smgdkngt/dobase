@@ -1,0 +1,17 @@
+<%# A tool's page as a tile in the workspace's own page: no document of its own, so
+    no head, no sidebar and no dialogs of the page around it. The frame is the one
+    the workspace made (workspace_controller.js#inThisPage). What a page says to the
+    document around it, it says to the workspace here (tile_frame_controller.js):
+    what it is called, its entries for the shortcuts dialog and the launcher, and
+    what it has to tell after a form. %>
+<%= turbo_frame_tag tile_frame do %>
+  <%= tag.div class: "tile-page", tabindex: -1,
+        data: main_attributes[:data].merge(controller: "#{main_attributes[:data][:controller]} tile-frame", tile_frame_title_value: content_for(:title).to_s) do %>
+    <%= yield %>
+    <template data-tile-frame-target="shortcuts"><%= content_for(:keyboard_shortcuts) %></template>
+    <template data-tile-frame-target="actions"><%= content_for(:command_palette_actions) %></template>
+    <% flash.each do |kind, message| %>
+      <%= tag.template message, data: { tile_frame_target: "flash", kind: kind } %>
+    <% end %>
+  <% end %>
+<% end %>
