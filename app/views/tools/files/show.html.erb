@@ -20,7 +20,9 @@
   </div>
 <% end %>
 
-<div class="tool-layout flex flex-col h-full"
+<%# A container: what a narrow page leaves out goes by the width this page has (a
+    tile's, in the workspace), not by the window's %>
+<div class="tool-layout @container flex flex-col h-full"
      data-controller="files file-selection file-context-menu file-upload file-drag gallery"
      data-files-tool-id-value="<%= @tool.id %>"
      data-file-drag-tool-id-value="<%= @tool.id %>"
@@ -93,7 +95,7 @@
 
   <%# Breadcrumbs %>
   <% if @ancestors.any? %>
-    <nav class="flex items-center gap-2 px-3 sm:px-6 py-3 text-sm border-b border-border-light">
+    <nav class="flex items-center gap-2 px-3 @min-[40rem]:px-6 py-3 text-sm border-b border-border-light">
       <%= link_to tool_files_path(@tool),
           class: "flex items-center justify-center w-8 h-8 rounded-lg text-text-secondary hover:text-accent hover:bg-background-tertiary transition-all",
           data: { file_drag_target: "dropTarget", item_type: "folder", item_id: "",
@@ -117,7 +119,7 @@
   <% end %>
 
   <%# Drop zone %>
-  <div class="tool-scroll-area group/dropzone flex-1 relative overflow-y-auto p-3 sm:p-6"
+  <div class="tool-scroll-area group/dropzone flex-1 relative overflow-y-auto p-3 @min-[40rem]:p-6"
        data-file-upload-target="dropzone"
        data-action="click->file-selection#deselectOutside dragover->file-upload#dragOver dragenter->file-upload#dragEnter dragleave->file-upload#dragLeave drop->file-upload#drop">
     <div class="hidden group-[.drag-active]/dropzone:flex absolute inset-4 flex-col items-center justify-center gap-4 bg-accent-light border-2 border-dashed border-accent rounded-lg text-accent z-10 pointer-events-none">
@@ -126,7 +128,7 @@
     </div>
 
     <%# File grid/list %>
-    <div class="<%= @view_mode == 'grid' ? 'flex flex-wrap gap-2 sm:gap-4 content-start min-h-full' : 'flex flex-col' %>">
+    <div class="<%= @view_mode == 'grid' ? 'flex flex-wrap gap-2 @min-[40rem]:gap-4 content-start min-h-full' : 'flex flex-col' %>">
       <% if @folders.empty? && @files.empty? %>
         <div class="w-full">
           <%= render "components/empty_state",
@@ -180,16 +182,16 @@
   </div>
 
   <%# Rename dialog %>
-  <dialog class="modal-dialog max-w-sm" aria-labelledby="files-rename-title" data-files-target="renameDialog">
+  <dialog class="modal-dialog max-w-sm" aria-labelledby="files-rename-title-<%= @tool.id %>" data-files-target="renameDialog">
     <div class="modal-header">
-      <h2 id="files-rename-title" class="text-lg font-semibold">Rename</h2>
+      <h2 id="files-rename-title-<%= @tool.id %>" class="text-lg font-semibold">Rename</h2>
       <%= render "components/icon_button", icon: "x", title: "Close", size: :sm,
           data: { action: "files#closeRenameDialog" } %>
     </div>
     <form class="modal-body" data-action="submit->files#submitRename">
       <div class="mb-4">
-        <label class="label" for="rename_name">Name</label>
-        <input type="text" id="rename_name" class="input" required autofocus
+        <label class="label" for="rename_name_<%= @tool.id %>">Name</label>
+        <input type="text" id="rename_name_<%= @tool.id %>" class="input" required autofocus
                data-files-target="renameInput">
       </div>
       <div class="flex justify-end gap-2">
@@ -201,9 +203,9 @@
   </dialog>
 
   <%# New folder dialog %>
-  <dialog class="modal-dialog max-w-sm" aria-labelledby="files-folder-title" data-files-target="folderDialog">
+  <dialog class="modal-dialog max-w-sm" aria-labelledby="files-folder-title-<%= @tool.id %>" data-files-target="folderDialog">
     <div class="modal-header">
-      <h2 id="files-folder-title" class="text-lg font-semibold">New Folder</h2>
+      <h2 id="files-folder-title-<%= @tool.id %>" class="text-lg font-semibold">New Folder</h2>
       <%= render "components/icon_button", icon: "x", title: "Close", size: :sm,
           data: { action: "files#closeFolderDialog" } %>
     </div>
@@ -211,8 +213,8 @@
         data: { action: "turbo:submit-end->files#closeFolderDialog" } do %>
       <input type="hidden" name="parent_id" value="<%= @folder&.id %>">
       <div class="mb-4">
-        <label class="label" for="folder_name">Folder name</label>
-        <input type="text" name="name" id="folder_name" class="input" placeholder="My Folder"
+        <label class="label" for="folder_name_<%= @tool.id %>">Folder name</label>
+        <input type="text" name="name" id="folder_name_<%= @tool.id %>" class="input" placeholder="My Folder"
                required autofocus data-files-target="folderNameInput">
       </div>
       <div class="flex justify-end gap-2">
@@ -224,9 +226,9 @@
   </dialog>
 
   <%# Share dialog %>
-  <dialog class="modal-dialog max-w-md" aria-labelledby="files-share-title" data-files-target="shareDialog">
+  <dialog class="modal-dialog max-w-md" aria-labelledby="files-share-title-<%= @tool.id %>" data-files-target="shareDialog">
     <div class="modal-header">
-      <h2 id="files-share-title" class="text-lg font-semibold">Share</h2>
+      <h2 id="files-share-title-<%= @tool.id %>" class="text-lg font-semibold">Share</h2>
       <%= render "components/icon_button", icon: "x", title: "Close", size: :sm,
           data: { action: "files#closeShareDialog" } %>
     </div>

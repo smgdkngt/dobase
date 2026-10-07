@@ -1,8 +1,11 @@
 <% content_for(:title) { "#{@file.name} - #{@tool.name} - #{app_name}" } %>
 
-<div class="tool-layout grid grid-rows-[auto_1fr] grid-cols-1 md:grid-cols-[1fr_280px] h-full overflow-hidden" data-controller="file-preview" data-file-preview-file-id-value="<%= @file.id %>" data-file-preview-tool-id-value="<%= @tool.id %>">
+<%# A container, with the page's grid inside it: where the file's details stand goes by
+    the width this page has, and a container can't ask that of itself %>
+<div class="tool-layout @container h-full" data-controller="file-preview" data-file-preview-file-id-value="<%= @file.id %>" data-file-preview-tool-id-value="<%= @tool.id %>">
+  <div class="grid grid-rows-[auto_1fr] grid-cols-1 @3xl:grid-cols-[1fr_280px] h-full overflow-hidden">
   <%# Header %>
-  <div class="col-span-full flex items-center gap-2 sm:gap-4 px-3 sm:px-6 py-3 border-b border-border-light">
+  <div class="col-span-full flex items-center gap-2 @min-[40rem]:gap-4 px-3 @min-[40rem]:px-6 py-3 border-b border-border-light">
     <%= render "components/back_link", href: tool_files_path(@tool, folder_id: @file.folder_id) %>
 
     <h1 class="flex-1 text-lg font-semibold truncate"><%= @file.name %></h1>
@@ -38,17 +41,17 @@
   <%# Content %>
   <% if @file.text? || @file.pdf? %>
     <%# Something you read takes the whole pane and scrolls inside its own frame %>
-    <div class="grid min-h-0 p-3 sm:p-4 bg-background-secondary overflow-hidden">
+    <div class="grid min-h-0 p-3 @min-[40rem]:p-4 bg-background-secondary overflow-hidden">
       <%= render "components/media_preview", file: @file, fill: true, download_path: tool_files_item_download_path(@tool, @file) %>
     </div>
   <% else %>
-    <div class="flex items-start justify-center p-4 sm:p-8 bg-background-secondary overflow-auto">
+    <div class="flex items-start justify-center p-4 @min-[40rem]:p-8 bg-background-secondary overflow-auto">
       <%= render "components/media_preview", file: @file, download_path: tool_files_item_download_path(@tool, @file) %>
     </div>
   <% end %>
 
   <%# Sidebar %>
-  <div class="p-4 sm:p-6 border-t md:border-t-0 md:border-l border-border-light overflow-y-auto">
+  <div class="p-4 @min-[40rem]:p-6 border-t @3xl:border-t-0 @3xl:border-l border-border-light overflow-y-auto">
     <h2 class="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-4">Details</h2>
     <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
       <dt class="text-text-tertiary">Type</dt>
@@ -108,4 +111,5 @@
       <%= render "tools/files/shares/form", share: @file.share, shareable: @file, share_url: tool_files_item_share_path(@tool, @file) %>
     </div>
   </dialog>
+  </div>
 </div>

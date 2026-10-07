@@ -41,7 +41,7 @@ class FilesTest < ApplicationSystemTestCase
 
     # Fill in and submit using JS to avoid native dialog interaction issues
     page.execute_script(<<~JS)
-      const input = document.querySelector('#folder_name');
+      const input = document.querySelector("[id^='folder_name']");
       const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
       nativeInputValueSetter.call(input, 'Projects');
       input.dispatchEvent(new Event('input', { bubbles: true }));

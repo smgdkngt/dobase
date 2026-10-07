@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { visitPage } from "services/tile"
 import { showFlash } from "services/flash"
 
 // Handles dragging files/folders between folders
@@ -152,7 +153,7 @@ export default class extends Controller {
       document.addEventListener("turbo:load", () => showFlash(refusal), { once: true })
     }
 
-    Turbo.visit(window.location.href, { action: "replace" })
+    visitPage(this.element)
   }
 
   // Why the server wouldn't take the move — a folder dropped into its own

@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { visitPage } from "services/tile"
 import { api } from "services/api"
 
 export default class extends Controller {
@@ -31,7 +32,7 @@ export default class extends Controller {
 
   onShareCreated(event) {
     if (event.detail.success) {
-      Turbo.visit(window.location.href, { action: "replace" })
+      visitPage(this.element)
     }
   }
 
