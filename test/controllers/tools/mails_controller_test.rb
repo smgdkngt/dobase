@@ -241,7 +241,7 @@ module Tools
 
       assert_select ".mail-layout.mail-detail-open[data-mail-refresh-interval-value='0']"
       assert_select ".mail-list-item.selected", text: /#{message.subject}/
-      assert_select "#mail-content form[action='#{tool_mails_path(@tool)}']"
+      assert_select "turbo-frame.mail-content form[action='#{tool_mails_path(@tool)}']"
     end
 
     test "show redirects drafts to the compose form" do

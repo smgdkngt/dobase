@@ -1,6 +1,6 @@
 
   <!-- Email Content (turbo frame — only this panel updates when selecting emails) -->
-  <turbo-frame id="mail-content" class="mail-content" target="_top" data-turbo-action="advance">
+  <turbo-frame id="<%= mail_frame_id %>" class="mail-content" data-mail-frame target="_top" data-turbo-action="advance">
     <% if @composing %>
       <%= render "tools/mails/compose" %>
     <% elsif @selected_message && @conversation_messages %>

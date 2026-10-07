@@ -10,14 +10,14 @@ export default class extends Controller {
 
   connect() {
     this._onFrameLoad = this._handleFrameLoad.bind(this)
-    const frame = document.getElementById("mail-content")
+    const frame = this._frame
     if (frame) frame.addEventListener("turbo:frame-load", this._onFrameLoad)
     this._onKey = (event) => this._keyed(event)
     document.addEventListener("keydown", this._onKey)
   }
 
   disconnect() {
-    const frame = document.getElementById("mail-content")
+    const frame = this._frame
     if (frame) frame.removeEventListener("turbo:frame-load", this._onFrameLoad)
     document.removeEventListener("keydown", this._onKey)
   }
@@ -131,8 +131,14 @@ export default class extends Controller {
   }
 
   get _messageShows() {
-    const frame = document.getElementById("mail-content")
+    const frame = this._frame
     return Boolean(frame) && frame.getClientRects().length > 0
+  }
+
+  // The frame a conversation is read in (MailsHelper#mail_frame_id): this mailbox's,
+  // of however many are on the page
+  get _frame() {
+    return this.element.querySelector("turbo-frame[data-mail-frame]")
   }
 
   navigateToItem(item) {
