@@ -8,7 +8,7 @@
 %>
 <div class="mail-detail-header bg-surface border-b border-border-light px-4 py-3 flex items-center justify-between gap-4">
   <%= link_to tool_mails_path(@tool, folder: @current_folder),
-      class: "hidden max-lg:flex items-center justify-center w-8 h-8 -ml-1 rounded-lg hover:bg-background-tertiary transition-colors shrink-0" do %>
+      class: "hidden narrow:flex items-center justify-center w-8 h-8 -ml-1 rounded-lg hover:bg-background-tertiary transition-colors shrink-0" do %>
     <%= render "shared/icon", name: "arrow-left", size: 18, class: "text-text-secondary" %>
   <% end %>
   <h1 class="text-base font-semibold text-text-primary flex-1 min-w-0"><%= @selected_message.normalized_subject.presence || "(No subject)" %></h1>
@@ -89,7 +89,7 @@
     <% end %>
     <%# Where the list and the conversation take turns (a phone, a tile): on to the one
         after it in the list, or back to the one before, without going by the list %>
-    <span class="hidden max-lg:flex items-center gap-1 ml-auto">
+    <span class="hidden narrow:flex items-center gap-1 ml-auto">
       <%= render "components/icon_button", icon: "chevron-up", title: "Previous conversation (k)",
             data: { action: "click->mail-keyboard#stepPrevious" } %>
       <%= render "components/icon_button", icon: "chevron-down", title: "Next conversation (j)",
@@ -98,7 +98,7 @@
   </div>
 </div>
 
-<div class="mail-message-in overflow-y-auto p-4 max-lg:px-1" data-mail-keyboard-target="reader">
+<div class="mail-message-in overflow-y-auto p-4 narrow:px-1" data-mail-keyboard-target="reader">
   <% @conversation_messages.each_with_index do |msg, index| %>
     <%= render "tools/mails/email_message",
           email_message: msg,

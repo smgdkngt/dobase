@@ -554,6 +554,9 @@ body[data-workspace] .main-content {
 
 .tile-frame {
   overflow: hidden;
+  /* What a narrow window does to a tool, a narrow tile does too: the views ask this
+     frame how wide it is (@variant narrow in application.css) */
+  container: tile / inline-size;
 }
 
 .tile-page {
@@ -701,26 +704,52 @@ body[data-workspace] .main-content {
 }
 
 @media (min-width: 520px) and (max-width: 1023px) {
-  :is(:root[data-in-tile], .tile-page) .mail-list-item {
+  :root[data-in-tile] .mail-list-item {
     align-items: center;
   }
 
-  :is(:root[data-in-tile], .tile-page) .mail-list-item > a {
+  :root[data-in-tile] .mail-list-item > a {
     display: grid;
     grid-template-columns: 10rem minmax(0, 1fr) auto;
     column-gap: 0.75rem;
     align-items: center;
   }
 
-  :is(:root[data-in-tile], .tile-page) .mail-list-head {
+  :root[data-in-tile] .mail-list-head {
     display: contents;
   }
 
-  :is(:root[data-in-tile], .tile-page) .mail-list-subject {
+  :root[data-in-tile] .mail-list-subject {
     order: 2;
   }
 
-  :is(:root[data-in-tile], .tile-page) .mail-list-meta {
+  :root[data-in-tile] .mail-list-meta {
+    order: 3;
+  }
+}
+
+/* (the same for a tile that is part of the page, by its own width) */
+@container tile (min-width: 520px) and (max-width: 1023px) {
+  .tile-page .mail-list-item {
+    align-items: center;
+  }
+
+  .tile-page .mail-list-item > a {
+    display: grid;
+    grid-template-columns: 10rem minmax(0, 1fr) auto;
+    column-gap: 0.75rem;
+    align-items: center;
+  }
+
+  .tile-page .mail-list-head {
+    display: contents;
+  }
+
+  .tile-page .mail-list-subject {
+    order: 2;
+  }
+
+  .tile-page .mail-list-meta {
     order: 3;
   }
 }

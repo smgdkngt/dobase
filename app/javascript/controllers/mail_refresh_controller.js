@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { visitPage } from "services/tile"
 import { pageInUse } from "services/page_in_use"
 
 const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content
@@ -63,7 +64,7 @@ export default class extends Controller {
       if (res.ok) {
         // Use Turbo Drive visit to refresh the page — data-turbo-permanent
         // preserves the persistent room PiP during the visit
-        Turbo.visit(location.href, { action: "replace" })
+        visitPage(this.element)
       }
     } catch (e) {
       console.error("Mail sync failed:", e)

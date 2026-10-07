@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { visitPage } from "services/tile"
 import { play } from "services/sound"
 
 // On a message that is being sent. It's brought into view, at the end of a long
@@ -25,6 +26,6 @@ export default class extends Controller {
   }
 
   refresh() {
-    if (!document.hidden) Turbo.visit(location.href, { action: "replace" })
+    if (!document.hidden) visitPage(this.element)
   }
 }

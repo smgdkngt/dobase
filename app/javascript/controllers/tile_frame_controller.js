@@ -13,7 +13,10 @@ import { showFlash } from "services/flash"
 // - the page's shortcuts (data-hotkey) only work while the keyboard is in this tile;
 // - its entries for the shortcuts dialog and the launcher are put there while it is
 //   the tile you are in;
-// - a link that would put its address in the window's (data-turbo-action) doesn't.
+// - a link that would put its address in the window's (data-turbo-action) doesn't;
+// - a frame inside the page whose address is the page's (a mailbox's open
+//   conversation: data-turbo-action on the frame) makes it the tile's address
+//   instead, so the tile comes back with that conversation and is drawn again with it.
 export default class extends Controller {
   static targets = [ "shortcuts", "actions", "flash" ]
   static values = { title: String }
@@ -28,8 +31,30 @@ export default class extends Controller {
     // too, once the workspace has put the keyboard back in it)
     document.addEventListener("keydown", (event) => this.keyed(event), options)
     this.element.addEventListener("click", (event) => event.target.closest?.("[data-turbo-action]")?.removeAttribute("data-turbo-action"), { ...options, capture: true })
+    this.element.addEventListener("turbo:frame-load", (event) => this.wentOn(event), options)
+    this.frame.addEventListener("turbo:frame-render", () => this.keepAddressesHere(), options)
+    this.keepAddressesHere()
     this.report()
     if (this.frame.closest("[data-focused]")) this.offer()
+  }
+
+  // Frames in the page that would write their address into the window's
+  keepAddressesHere() {
+    for (const inner of this.element.querySelectorAll("turbo-frame[data-turbo-action]")) {
+      inner.removeAttribute("data-turbo-action")
+      inner.dataset.tileAddress = ""
+    }
+  }
+
+  // One of those went somewhere: that is where the tile is now. The tile's frame
+  // takes the address without loading it, so drawing the tile again draws this.
+  wentOn(event) {
+    const inner = event.target
+    if (inner === this.frame || !("tileAddress" in (inner.dataset || {})) || !inner.src) return
+
+    const delegate = this.frame.delegate
+    if (delegate && "sourceURL" in delegate) delegate.sourceURL = inner.src
+    this.report()
   }
 
   disconnect() {
