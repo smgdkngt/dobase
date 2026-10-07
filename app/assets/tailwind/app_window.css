@@ -33,68 +33,69 @@ html[data-app-window] :is(input, textarea, [contenteditable="true"]) {
 }
 
 /* ── A window without a title bar ──
-   The manifest asks for window-controls-overlay: once that is switched on (the
-   arrow beside the window's menu), the title bar is gone and the strip the window
-   buttons are in belongs to the page. The browser says where the buttons leave
-   room: env(titlebar-area-x / -width / -height). A page in a frame (a tile) has no
-   such strip. */
-@media (display-mode: window-controls-overlay) {
-  :root:not([data-in-tile], [data-floating]) {
-    --titlebar-height: env(titlebar-area-height, 0px);
-  }
-
-  /* The strip is what the window is dragged by, in the colour the browser draws
-     the window buttons on (the sidebar's, Theme#chrome_color). Nothing of the page
-     is in it, and it takes no clicks from what scrolls under it. */
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0 0 auto 0;
-    height: var(--titlebar-height);
-    z-index: 35;
-    background: var(--color-sidebar-bg);
-    pointer-events: none;
-    -webkit-app-region: drag;
-    app-region: drag;
-  }
-
-  /* A line under it where the page is another colour; the sidebar runs on into it */
-  .main-content::before {
-    content: "";
-    position: fixed;
-    inset: var(--titlebar-height) 0 auto var(--sidebar-width);
-    height: min(1px, var(--titlebar-height));
-    z-index: 36;
-    background: var(--color-border-light);
-  }
-
-  /* The workspace's bar is the strip: as high, in its colour, and clear of the
-     window buttons on whichever side they are */
-  body[data-workspace] .workspace-bar {
-    background: var(--color-sidebar-bg);
-    height: max(2.25rem, env(titlebar-area-height, 0px));
-    padding-left: max(0.5rem, env(titlebar-area-x, 0px));
-    padding-right: max(0.5rem, calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw)));
-    -webkit-app-region: drag;
-    app-region: drag;
-  }
-
-  /* What can be pressed in it is never a place to drag from, and neither is what
-     lies over it: where the window is dragged goes by where things are, not by
-     what is on top */
-  body[data-workspace] .workspace-bar :is(a, button, input, [role="button"]),
-  dialog[open],
-  [popover]:popover-open,
-  .gallery-overlay,
-  .workspace-float,
-  .flash-toast > * {
-    -webkit-app-region: no-drag;
-    app-region: no-drag;
-  }
+   A window can hand the strip its buttons are in to the page. A browser's installed
+   app does once window-controls-overlay is switched on (the manifest asks for it;
+   the arrow beside the window's menu), and so does the app `dobase app install`
+   makes. The window says where its buttons leave room: env(titlebar-area-x / -width
+   / -height). Any other window says nothing, and every rule here then comes to
+   nothing: a strip no pixels high. That is why none of this asks what kind of
+   window it is in. A page in a frame (a tile) has no such strip. */
+:root:not([data-in-tile], [data-floating]) {
+  --titlebar-height: env(titlebar-area-height, 0px);
 }
 
-@media (display-mode: window-controls-overlay) and (max-width: 1023px) {
+/* The strip is what the window is dragged by, in the colour the window buttons are
+   drawn on (the sidebar's, Theme#chrome_color). Nothing of the page is in it, and
+   it takes no clicks from what scrolls under it. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: var(--titlebar-height);
+  z-index: 35;
+  background: var(--color-sidebar-bg);
+  pointer-events: none;
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+/* A line under it where the page is another colour; the sidebar runs on into it */
+.main-content::before {
+  content: "";
+  position: fixed;
+  inset: var(--titlebar-height) 0 auto var(--sidebar-width);
+  height: min(1px, var(--titlebar-height));
+  z-index: 36;
+  background: var(--color-border-light);
+}
+
+@media (max-width: 1023px) {
   .main-content::before {
     left: 0;
   }
+}
+
+/* The workspace's bar is the strip: as high, in its colour, and clear of the
+   window buttons on whichever side they are. The colour is a picture as high as
+   the strip many times over: all of the bar, or nothing where there is no strip. */
+body[data-workspace] .workspace-bar {
+  background: linear-gradient(var(--color-sidebar-bg) 0 0) top / 100% calc(env(titlebar-area-height, 0px) * 100) no-repeat;
+  height: max(2.25rem, env(titlebar-area-height, 0px));
+  padding-left: max(0.5rem, env(titlebar-area-x, 0px));
+  padding-right: max(0.5rem, calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw)));
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+/* What can be pressed in it is never a place to drag from, and neither is what
+   lies over it: where the window is dragged goes by where things are, not by
+   what is on top */
+body[data-workspace] .workspace-bar :is(a, button, input, [role="button"]),
+dialog[open],
+[popover]:popover-open,
+.gallery-overlay,
+.workspace-float,
+.flash-toast > * {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 }

@@ -32,6 +32,18 @@ class AppWindowTest < ApplicationSystemTestCase
     assert_equal "text", style_of("#probe", "user-select")
   end
 
+  # The strip for a window without a title bar is written in what the window says
+  # about its buttons (app_window.css). This window says nothing.
+  test "a window that keeps its title bar has no strip along the top" do
+    visit tool_board_path(tools(:project_board))
+    wait_for_turbo
+
+    assert_equal "0px", page.evaluate_script("getComputedStyle(document.documentElement).getPropertyValue('--titlebar-height')")
+    assert_equal "0px", page.evaluate_script("getComputedStyle(document.body, '::before').height")
+    assert_equal "0px", page.evaluate_script("getComputedStyle(document.querySelector('.main-content'), '::before').height")
+    assert_equal 0, page.evaluate_script("document.querySelector('.main-content').getBoundingClientRect().top")
+  end
+
   private
 
   def open_as_installed_app
