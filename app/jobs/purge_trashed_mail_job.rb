@@ -9,6 +9,10 @@ class PurgeTrashedMailJob < ApplicationJob
   RETENTION = 30.days
 
   def perform
-    Mails::Message.trashed.where.not(folder: Mails::Account::TRASH).where(trashed_at: ...RETENTION.ago).find_each(&:destroy)
+    old = Mails::Message.trashed.where.not(folder: Mails::Account::TRASH).where(trashed_at: ...RETENTION.ago)
+    emptied = Tool.where(id: Mails::Account.where(id: old.select(:mail_account_id)).select(:tool_id)).to_a
+    old.find_each(&:destroy)
+    # A trash that is open somewhere shows it (Tool#announce_change)
+    emptied.each(&:announce_change)
   end
 end

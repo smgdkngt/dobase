@@ -12,8 +12,9 @@
 # An action whose change is nobody else's to see says so with `announces_no_change`
 # (a tool marked as seen, a chat read), or while it runs with `announce_no_change`
 # (a column folded away for yourself). test/integration/changes_announced_test.rb
-# lists those, each with its reason. What changes a tool without a request (a mail
-# or calendar sync) calls Tool#announce_change itself.
+# lists those, each with its reason. A look that changes something after all (mail
+# is read by opening it) says `announce_a_change`. What changes a tool without a
+# request (a mail or calendar sync) calls Tool#announce_change itself.
 module AnnouncesChanges
   extend ActiveSupport::Concern
 
@@ -37,8 +38,12 @@ module AnnouncesChanges
       @announce_no_change = true
     end
 
+    def announce_a_change
+      @announce_a_change = true
+    end
+
     def announce_change
-      return if request.get? || request.head? || @announce_no_change
+      return if @announce_no_change || ((request.get? || request.head?) && !@announce_a_change)
       return unless self.class.announces_change?(action_name)
       return unless @tool&.persisted? && response.status < 400
 

@@ -3,8 +3,33 @@
 require "test_helper"
 
 class SyncEmailsJobTest < ActiveJob::TestCase
+  include ActionCable::TestHelper
+
   setup do
     @account = mails_accounts(:primary)
+  end
+
+  test "a sync that brought mail says so to the pages that have the mailbox open" do
+    assert_broadcast_on(pages, type: "changed", tool_id: @account.tool.id) do
+      sync_that do
+        fresh = mails_messages(:inbox_read).dup
+        fresh.update!(message_id: "fresh@example.com", uid: 4711, subject: "Fresh")
+      end
+    end
+  end
+
+  test "a sync that found mail read elsewhere says so too" do
+    assert_broadcasts(pages, 1) { sync_that { mails_messages(:inbox_unread).update!(read: true) } }
+  end
+
+  test "a sync that brought nothing says nothing" do
+    assert_no_broadcasts(pages) { sync_that { } }
+  end
+
+  test "a sync that went wrong says so once, for the page to show it" do
+    connect_to_imap(ImapServerRejectingLogin.new) do
+      assert_broadcasts(pages, 1) { SyncEmailsJob.perform_now(@account.id) }
+    end
   end
 
   test "runs one sync per account at a time and drops the extra requests" do
@@ -68,6 +93,23 @@ class SyncEmailsJobTest < ActiveJob::TestCase
   end
 
   private
+
+  def pages
+    PresenceChannel.broadcasting_for(@account.tool)
+  end
+
+  # A sync in which the server has this to say about the inbox, and nothing else
+  def sync_that(&in_the_inbox)
+    service = Object.new
+    service.define_singleton_method(:sync_folders) { }
+    service.define_singleton_method(:sync_inbox) { |**| in_the_inbox.call }
+    service.define_singleton_method(:sync_sent) { |**| }
+    service.define_singleton_method(:sync_folder) { |*, **| }
+    ImapSyncService.singleton_class.define_method(:new) { |*| service }
+    SyncEmailsJob.perform_now(@account.id)
+  ensure
+    ImapSyncService.singleton_class.remove_method(:new)
+  end
     class ImapServerDroppingConnection < FakeImapServer
       def login(_username, _password)
         raise Errno::ECONNRESET, "SSL_connect"

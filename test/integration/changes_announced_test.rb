@@ -174,6 +174,57 @@ class ChangesAnnouncedTest < ActionDispatch::IntegrationTest
     assert_empty writes_of("tools/calendars") - tried, "These change a calendar and aren't tried here"
   end
 
+  test "every way to change a mailbox is heard by the pages that have it open" do
+    tool = tools(:my_mail)
+    message, draft = mails_messages(:inbox_read), mails_messages(:draft_message)
+    upload = -> { { files: [ fixture_file_upload("sample.png", "image/png") ] } }
+    unconnected = Tool.create!(name: "Support", tool_type: tool_types(:mail), owner: @user)
+    account = { email_address: "support@example.com", username: "support@example.com", password: "secret",
+      imap_host: "imap.example.com", smtp_host: "smtp.example.com" }
+
+    tried = [
+      announced(tool) { post tool_mail_read_path(tool, mails_messages(:inbox_unread)) },
+      announced(tool) { delete tool_mail_read_path(tool, message) },
+      announced(tool) { post tool_mail_star_path(tool, message) },
+      announced(tool) { delete tool_mail_star_path(tool, message) },
+      announced(tool) { post tool_mail_archive_path(tool, message) },
+      announced(tool) { delete tool_mail_archive_path(tool, message) },
+      announced(tool) { post tool_mail_trash_path(tool, message) },
+      announced(tool) { delete tool_mail_trash_path(tool, message) },
+      announced(tool) { post tool_mail_move_path(tool, message), params: { folder: "Sent" } },
+      announced(tool) { post tool_mail_trusted_sender_path(tool, message) },
+      announced(tool) { delete tool_mail_trusted_sender_path(tool, message) },
+      announced(tool) { post tool_bulk_path(tool), params: { message_ids: [ mails_messages(:starred_message).id ], action_type: "archive" } },
+      announced(tool) { post tool_mail_drafts_path(tool), params: { to: "friend@example.com", subject: "Plans", body: "<p>Hello</p>" } },
+      announced(tool) { patch tool_mail_draft_path(tool, draft), params: { to: "friend@example.com", subject: "Other plans", body: "<p>Hello</p>" } },
+      announced(tool) { post tool_mail_draft_attachments_path(tool, draft), params: upload.call, headers: { "Accept" => "application/json" } },
+      announced(tool) { post tool_mails_path(tool), params: { to: "friend@example.com", subject: "Hello", body: "<p>Hi</p>" } },
+      announced(tool) { delete tool_mail_path(tool, mails_messages(:trashed_message)) },
+      announced(tool) { delete tool_empty_trash_path(tool) },
+      announced(tool) { connect_to_imap(FakeImapServer.new(folders: [ "INBOX" ])) { post tool_folder_path(tool), params: { folder_name: "Clients" } } },
+      announced(tool) { patch tool_mails_account_path(tool), params: { mails_account: { signature: "Best, Sem" } } },
+      announced(unconnected) { post tool_mails_account_path(unconnected), params: { mails_account: account } }
+    ]
+
+    assert_empty writes_of("tools/mails") - tried, "These change a mailbox and aren't tried here"
+  end
+
+  test "mail that is read by opening it is read in every window, and a second look says nothing" do
+    tool = tools(:my_mail)
+    unread = mails_messages(:inbox_unread)
+
+    assert_broadcasts(stream(tool), 1) { get tool_mail_path(tool, unread) }
+    assert unread.reload.read?
+    assert_no_broadcasts(stream(tool)) { get tool_mail_path(tool, unread) }
+  end
+
+  test "reading mail through the API leaves it unread, and says nothing" do
+    tool = tools(:my_mail)
+
+    assert_no_broadcasts(stream(tool)) { get tool_mail_path(tool, mails_messages(:inbox_unread)), as: :json }
+    assert_not mails_messages(:inbox_unread).reload.read?
+  end
+
   test "a change made with an access token is announced like any other" do
     tool = tools(:project_board)
 

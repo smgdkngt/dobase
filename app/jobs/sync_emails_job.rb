@@ -11,6 +11,7 @@ class SyncEmailsJob < ApplicationJob
     mail_account = Mails::Account.find_by(id: mail_account_id)
     return if mail_account.nil? || mail_account.authentication_failed?
 
+    before = shown(mail_account)
     service = ::ImapSyncService.new(mail_account)
     service.sync_folders
     service.sync_inbox(limit: 50)
@@ -31,5 +32,17 @@ class SyncEmailsJob < ApplicationJob
   rescue StandardError => e
     mail_account&.mark_sync_error!(e.message)
     raise
+  ensure
+    # The pages that have the mailbox open draw it again when the sync brought
+    # something they show (Tool#announce_change), also when it stopped halfway
+    mail_account.tool.announce_change if before && shown(mail_account) != before
   end
+
+  private
+    # What a mailbox's page shows of an account, as far as a sync changes it: its mail,
+    # its folders, and that the last sync went wrong
+    def shown(mail_account)
+      [ mail_account.messages.pick(Arel.sql("COUNT(*)"), Arel.sql("MAX(updated_at)")),
+        mail_account.reload.slice(:synced_folders, :archive_folder, :folder_prefix, :sync_error) ]
+    end
 end

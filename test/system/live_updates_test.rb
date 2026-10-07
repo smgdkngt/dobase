@@ -111,6 +111,72 @@ class LiveUpdatesTest < ApplicationSystemTestCase
     assert_same_page
   end
 
+  test "a mailbox shows mail that was starred or read elsewhere, and mail that a sync brought" do
+    tool = tools(:my_mail)
+    unread, read = mails_messages(:inbox_unread), mails_messages(:inbox_read)
+    open_live tool_mails_path(tool)
+    assert_selector "#conversation-#{unread.id} .font-semibold"
+    assert_no_selector "#conversation-#{read.id} svg.fill-warning"
+
+    through_the_api :post, tool_mail_star_path(tool, read)
+    assert_selector "#conversation-#{read.id} svg.fill-warning"
+
+    through_the_api :post, tool_mail_read_path(tool, unread)
+    assert_no_selector "#conversation-#{unread.id} .font-semibold"
+
+    # What SyncEmailsJob does after a sync that brought something
+    fresh = read.dup
+    fresh.update!(message_id: "fresh@example.com", uid: 4711, thread_id: "thread-fresh", subject: "Fresh from the server", sent_at: Time.current)
+    tool.announce_change
+    assert_selector ".mail-list-item", text: "Fresh from the server"
+
+    assert_same_page
+  end
+
+  test "a mail that is open stays open while the list beside it changes" do
+    tool = tools(:my_mail)
+    read = mails_messages(:inbox_read)
+    open_live tool_mail_path(tool, read)
+    assert_selector "#mail-content", text: read.subject
+
+    through_the_api :post, tool_mail_star_path(tool, mails_messages(:inbox_unread))
+    assert_selector "#conversation-#{mails_messages(:inbox_unread).id} svg.fill-warning"
+
+    assert_selector "#mail-content", text: read.subject
+    assert_current_path tool_mail_path(tool, read)
+    assert_same_page
+  end
+
+  test "mail that is ticked stays ticked, and the list catches up when it is let go" do
+    tool = tools(:my_mail)
+    read = mails_messages(:inbox_read)
+    open_live tool_mails_path(tool)
+
+    tick = find("#conversation-#{read.id} input[type='checkbox']", visible: :all)
+    tick.click
+    assert tick.checked?
+
+    through_the_api :post, tool_mail_star_path(tool, read)
+    assert_waiting
+    assert find("#conversation-#{read.id} input[type='checkbox']", visible: :all).checked?
+    assert_no_selector "#conversation-#{read.id} svg.fill-warning"
+
+    find("#conversation-#{read.id} input[type='checkbox']", visible: :all).click
+    assert_selector "#conversation-#{read.id} svg.fill-warning"
+    assert_same_page
+  end
+
+  test "a mail that is being written is never drawn again under its writer" do
+    tool = tools(:my_mail)
+    visit new_tool_mail_path(tool)
+    wait_for_stimulus "presence", "main"
+    assert_no_selector "main[data-controller~='live']"
+
+    visit new_tool_mail_path(tool, reply_to: mails_messages(:inbox_read).id)
+    wait_for_stimulus "presence", "main"
+    assert_no_selector "main[data-controller~='live']"
+  end
+
   test "a document that is open, and a form, are not such pages" do
     visit tool_docs_document_path(tools(:my_docs), docs_documents(:meeting_notes))
     wait_for_stimulus "presence", "main"
