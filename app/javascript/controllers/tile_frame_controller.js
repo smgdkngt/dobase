@@ -24,7 +24,9 @@ export default class extends Controller {
     const options = { signal: this.listening.signal }
     this.element.addEventListener("focusin", () => this.arrived(false), options)
     this.element.addEventListener("pointerdown", () => this.arrived(true), { ...options, capture: true })
-    this.element.addEventListener("keydown", (event) => this.keyed(event), options)
+    // (on the document: a key pressed while the keyboard was nowhere is this tile's
+    // too, once the workspace has put the keyboard back in it)
+    document.addEventListener("keydown", (event) => this.keyed(event), options)
     this.element.addEventListener("click", (event) => event.target.closest?.("[data-turbo-action]")?.removeAttribute("data-turbo-action"), { ...options, capture: true })
     this.report()
     if (this.frame.closest("[data-focused]")) this.offer()
@@ -83,6 +85,7 @@ export default class extends Controller {
   }
 
   keyed(event) {
+    if (!this.element.contains(document.activeElement)) return
     if (event.defaultPrevented || typing(event)) return
 
     // Escape lets go of one thing at a time. A dialog or a menu closes by itself, and

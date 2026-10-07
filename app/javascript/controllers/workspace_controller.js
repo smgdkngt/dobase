@@ -907,6 +907,22 @@ export default class extends Controller {
   }
 
   // A key with the keyboard on a tile. True when it was one of the tile's.
+  // In a tool, the keyboard stays in that tool. A tile with a document of its own
+  // holds it by itself: whatever had the keyboard there and is gone leaves it with
+  // that document. In a tile that is part of this page it would be left with this
+  // page (a todo ticked off is drawn again, and what was pressed is no longer
+  // there), and the next key would be the page's: the bar's, or another tile's. So
+  // before any key is dealt with, a keyboard that is nowhere goes back into the tool
+  // you are in.
+  keepKeyboardInTheTool() {
+    const active = document.activeElement
+    const nowhere = !active || active === document.body || active === document.documentElement
+    if (!nowhere || this.held || this.menuOpen || this.floating || document.querySelector("dialog[open]")) return
+
+    const frame = this.frameOf(this.desk.focus)
+    if (inPage(frame)) focusFrame(frame)
+  }
+
   tileKeyed(event) {
     const id = event.target.dataset.tileId
     const direction = { ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down" }[event.key]
@@ -1024,6 +1040,7 @@ export default class extends Controller {
   // On this page; a page inside a tile hands the same keys on (heard, below)
   keyed(event) {
     if (event.key === "Escape" && this.menuOpen) return this.closeMenu()
+    this.keepKeyboardInTheTool()
     // Backspace outside a field is "back" to some browsers, and back is in whichever
     // tile went somewhere last (tile_page_controller.js has the same)
     if (event.key === "Backspace" && !typing(event)) event.preventDefault()
