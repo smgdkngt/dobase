@@ -127,8 +127,11 @@ class WorkspaceInPageTest < ApplicationSystemTestCase
 
     find("dialog#item-detail-modal [aria-label='Close']").click
     assert_no_selector "dialog#item-detail-modal[open]"
-    # Closed is closed: the tile isn't on the address that opens it any more
-    assert_no_match(/item=/, find(TODOS)[:src])
+    # Closed is closed: the tile isn't on the address that opens it any more. Once the
+    # dialog has faded out, that is: its "close" comes after that, and the tile goes
+    # to its own address then.
+    assert_selector "#{TODOS}:not([src*='item='])"
+    assert_selector TODOS, count: 1
   end
 
   test "the tile's keys are in the shortcuts dialog and its actions in the launcher" do

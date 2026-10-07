@@ -62,6 +62,30 @@ module Mails
       end
     end
 
+    test "a draft goes out with its quote as it was changed, kept the way mail is shown" do
+      draft = mails_messages(:draft_message)
+      @message.update!(body_html: "<p>Lunch?</p><p>The password is hunter2</p>")
+      draft.update!(quoted_message: @message, quote_html: %(<p>Ann wrote:</p><blockquote type="cite"><p onclick="steal()">Lunch?</p><script>steal()</script></blockquote>))
+
+      assert_equal %(<p>Ann wrote:</p><blockquote type="cite"><p>Lunch?</p></blockquote>), draft.quote_html
+      assert Mails::Quote.of(draft).edited?
+      assert_equal %(#{draft.body_html}<p>Ann wrote:</p><blockquote type="cite"><p>Lunch?</p></blockquote>), draft.outgoing_html
+
+      # Nothing given is the quoted mail as it was written again
+      draft.update!(quote_html: "")
+      assert_nil draft.quote_html
+      assert_not Mails::Quote.of(draft).edited?
+      assert_match "hunter2", draft.outgoing_html
+    end
+
+    test "a quote that was changed is nothing without the mail it quotes" do
+      draft = mails_messages(:draft_message)
+      draft.update!(quote_html: "<p>Lunch?</p>")
+
+      assert_nil Mails::Quote.of(draft)
+      assert_equal draft.body_html, draft.outgoing_html
+    end
+
     test "a draft whose quoted mail was deleted has no quote" do
       draft = mails_messages(:draft_message)
       draft.update!(quoted_message: @message)

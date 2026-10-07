@@ -69,6 +69,7 @@ module Tools
         @in_reply_to = @draft.in_reply_to
         @forward_attachments = @draft.attachments.select { |attachment| attachment.file.attached? }
         @quoted_message = @draft.quoted_message
+        @quote_html = @draft.quote_html
       end
 
       render_compose
@@ -157,6 +158,8 @@ module Tools
           @draft = @mail_account.messages.drafts.find_by(id: params[:draft_id]) if params[:draft_id].present?
           @forward_attachments = @mail_account.attachments.where(id: params[:forward_attachment_ids]).select { |attachment| attachment.file.attached? } if params[:forward_attachment_ids].present?
           @quoted_message = quoted_message_param
+          # What was changed in the quote is still changed
+          @quote_html = @mail_account.messages.new(quote_html: params[:quote_html]).quote_html
           @unsent = true
           render_compose status: :unprocessable_entity
         end
@@ -297,7 +300,9 @@ module Tools
     end
 
     def send_now(to:, cc:, bcc:)
-      message = @mail_account.messages.new(body_html: params[:body], in_reply_to: params[:in_reply_to].presence, quoted_message: quoted_message_param)
+      draft = @mail_account.messages.drafts.find_by(id: params[:draft_id]) if params[:draft_id].present?
+      message = @mail_account.messages.new(body_html: params[:body], in_reply_to: params[:in_reply_to].presence,
+        quoted_message: quoted_message_param, quote_html: quote_html_param(draft))
       quote = ::Mails::Quote.of(message)
       body_html = message.outgoing_html
       attachments = Array(params[:attachments])
@@ -314,7 +319,7 @@ module Tools
         body: ::Mails::PlainText.from_html(body_html), body_html: body_html,
         attachments: attachments.presence, inline_images: quote&.inline_images.presence, in_reply_to: params[:in_reply_to].presence
       )
-      discard_draft(@mail_account.messages.drafts.find_by(id: params[:draft_id])) if params[:draft_id].present?
+      discard_draft(draft)
 
       render json: { to: to, cc: cc.to_a, bcc: bcc.to_a, subject: params[:subject] }, status: :created
     rescue SmtpSendService::SendError => e
@@ -330,7 +335,11 @@ module Tools
         subject: params[:subject], body_html: params[:body], body_plain: ::Mails::PlainText.from_html(params[:body]),
         in_reply_to: params[:in_reply_to].presence, sent_at: Time.current
       )
-      draft.quoted_message = quoted_message_param if params.key?(:quoted_message_id)
+      # The mail it quotes, and that quote as the form has it: changed, or as it was written
+      if params.key?(:quoted_message_id)
+        draft.quoted_message = quoted_message_param
+        draft.quote_html = params[:quote_html]
+      end
       # Forwarded attachments, only from this account's own mail; a saved draft already has its
       # own, and the pictures in a quote's text go along with the quote
       forwarded = @mail_account.attachments.where(id: params[:forward_attachment_ids]).where.not(mail_message_id: draft.id)
@@ -351,6 +360,14 @@ module Tools
     # The mail a reply or forward quotes below its text, only from this account's own mail
     def quoted_message_param
       @mail_account.messages.find_by(id: params[:quoted_message_id]) if params[:quoted_message_id].present?
+    end
+
+    # The quote as it was changed while writing. A client that sends a saved draft without
+    # saying so (an older CLI) sends what was changed in that draft, not the mail as it was.
+    def quote_html_param(draft)
+      return params[:quote_html] if params.key?(:quote_html)
+
+      draft.quote_html if draft && draft.quoted_message_id.to_s == params[:quoted_message_id].to_s
     end
 
     def discard_draft(draft)

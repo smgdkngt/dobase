@@ -81,8 +81,14 @@ module Tools
           attributes[:body_plain] = ::Mails::PlainText.from_html(params[:body])
         end
         attributes[:in_reply_to] = params[:in_reply_to] if params.key?(:in_reply_to)
-        # The mail it answers or forwards, quoted below its text; only this account's own mail
-        attributes[:quoted_message] = @mail_account.messages.find_by(id: params[:quoted_message_id].presence) if params.key?(:quoted_message_id)
+        # The mail it answers or forwards, quoted below its text; only this account's own mail.
+        # Named without quote_html, it's quoted as it was written.
+        if params.key?(:quoted_message_id)
+          attributes[:quoted_message] = @mail_account.messages.find_by(id: params[:quoted_message_id].presence)
+          attributes[:quote_html] = nil
+        end
+        # The quote as it was changed while writing: a part taken out of it
+        attributes[:quote_html] = params[:quote_html] if params.key?(:quote_html)
         attributes
       end
 

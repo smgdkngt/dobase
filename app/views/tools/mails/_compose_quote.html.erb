@@ -1,0 +1,32 @@
+<%# The mail a reply or forward carries below its text, in the compose form. It is kept out
+    of the editor, which would flatten its layout, and is changed where it shows: in a
+    frame that runs no scripts, whose text the page makes editable. What the frame holds
+    is what goes out (compose_controller.js). Locals: quote (Mails::Quote) %>
+<% message = quote.message %>
+<% images = message.account.shows_images_from?(message.from_address) %>
+<% document = mail_frame_document(quote.to_editable_html(remote_images: images), remote_content: images,
+     styles: "body { min-height: 1.5em; outline: none; cursor: text; } body > :first-child { margin-top: 0; } body > :last-child { margin-bottom: 0; }") %>
+<%= hidden_field_tag :quoted_message_id, message.id, data: { compose_target: "quotedMessage" } %>
+<details class="compose-quote" data-compose-target="quote" <%= "open" if quote.edited? %>>
+  <summary class="compose-quote-toggle" title="Show the quoted mail" aria-label="Show the quoted mail">
+    <%= render "shared/icon", name: "more-horizontal", size: 14 %>
+  </summary>
+  <%# Changed before, it comes back as it was left; changed now, the page sends what the frame holds %>
+  <% if quote.edited? %>
+    <%= hidden_field_tag :quote_html, quote.to_html, id: nil %>
+  <% end %>
+  <div class="compose-quote-content" data-controller="email-frame">
+    <div class="email-frame" data-email-frame-target="card">
+      <iframe
+        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+        srcdoc="<%= document %>"
+        title="The quoted mail: change it or take parts out, it goes out as it shows here"
+        data-email-frame-target="frame"
+        data-compose-target="quoteFrame"
+        data-action="load->compose#quoteLoaded"
+        style="width: 100%; border: none; height: 0; overflow: hidden; display: block;"
+      ></iframe>
+    </div>
+  </div>
+  <button type="button" class="compose-quote-remove" data-action="compose#removeQuote">Remove quote</button>
+</details>

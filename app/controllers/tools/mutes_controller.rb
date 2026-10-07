@@ -6,6 +6,7 @@ module Tools
   # silence other people, only themselves.
   class MutesController < ApplicationController
     include ToolScoped
+    announces_no_change :create, :destroy
     before_action :set_collaborator
 
     def create

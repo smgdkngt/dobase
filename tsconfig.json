@@ -25,6 +25,7 @@
     "app/javascript/services/file_size.js",
     "app/javascript/services/tile.js",
     "app/javascript/services/recipients.js",
+    "app/javascript/services/live.js",
     "test/javascript/**/*.mjs",
     "test/javascript/support/globals.d.ts"
   ]

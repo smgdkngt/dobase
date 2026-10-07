@@ -178,6 +178,13 @@ class ScreenshotScenes < ApplicationSystemTestCase
     one_tool page_of("Mail", "mails/new")
   end
 
+  # A reply with the mail it answers opened below the text
+  scene "phone/mail-reply", size: PHONE do
+    one_tool page_of("Mail", "mails/new?reply_to=#{mail("Seed Round Follow-up").id}")
+    find(".compose-quote-toggle").click
+    within_frame(find(".compose-quote iframe")) { assert_selector "body *" }
+  end
+
   scene "phone/card", size: PHONE do
     one_tool page_of("Product Launch", "board?card=#{card("Write press release for launch day").id}")
     assert_selector "dialog[open]"

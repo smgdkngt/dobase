@@ -4,6 +4,10 @@ json.cc message.cc_addresses_list
 if message.draft?
   json.bcc message.bcc_addresses_list
   json.quoted_message_id message.quoted_message_id
+  # What goes out below the body: the quoted mail as it was written, or as it was changed
+  quote = Mails::Quote.of(message)
+  json.quote quote && Mails::PlainText.from_html(quote.to_html)
+  json.quote_html quote&.to_html
 end
 json.(message, :sent_at, :read, :starred, :archived, :trashed, :draft, :sending, :folder, :message_id, :in_reply_to)
 json.body message.plain_text_body

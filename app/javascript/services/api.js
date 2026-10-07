@@ -13,7 +13,9 @@ export async function api(path, method = "GET", body = null) {
     opts.body = JSON.stringify(body)
   }
   try {
-    const res = await fetch(path, opts)
+    // Through Turbo, which gives the request an id and keeps it: a change made here
+    // is announced with that id, and the page knows it for its own (live_controller.js)
+    const res = await Turbo.fetch(path, opts)
     if (!res.ok) {
       console.error(`API error: ${res.status} ${res.statusText}`)
       return null

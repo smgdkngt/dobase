@@ -287,6 +287,7 @@ class SmtpSendService
       sent_at: Time.current,
       # A quote is part of the text by now
       quoted_message: nil,
+      quote_html: nil,
       sending: false
     )
 

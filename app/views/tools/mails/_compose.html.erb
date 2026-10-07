@@ -1,5 +1,6 @@
 <%# The compose form, in the reading pane. Expected instance variables: @heading, @to, @cc, @bcc,
-    @subject, @body, @draft, @in_reply_to, @forward_attachments, @mail_account, @current_folder %>
+    @subject, @body, @draft, @in_reply_to, @quoted_message, @quote_html, @forward_attachments, @mail_account,
+    @current_folder %>
 <% folder_path = tool_mails_path(@tool, folder: @current_folder) %>
 
 <%= form_with url: tool_mails_path(@tool), method: :post, multipart: true, class: "compose",
@@ -8,7 +9,7 @@
         compose_unsent_value: @unsent,
         action: "pointerdown->compose#startEditing:capture keydown->compose#startEditing:capture " \
                 "beforeinput->compose#startEditing:capture dragenter->compose#startEditing:capture " \
-                "turbo:submit-end->compose#submitEnded"
+                "turbo:submit-end->compose#submitEnded formdata->compose#addQuote"
       } do %>
   <%# Where the page goes back to once the mail is on its way %>
   <%= hidden_field_tag :folder, @current_folder %>
@@ -70,19 +71,8 @@
       </rhino-editor>
 
       <% if @quoted_message %>
-        <%# Kept out of the editor, which would flatten its layout: it goes out as it is %>
-        <% quote = Mails::Quote.new(@quoted_message, forward: @in_reply_to != @quoted_message.message_id) %>
-        <%= hidden_field_tag :quoted_message_id, @quoted_message.id, data: { compose_target: "quotedMessage" } %>
-        <details class="compose-quote" data-compose-target="quote">
-          <summary class="compose-quote-toggle" title="Show the quoted mail" aria-label="Show the quoted mail">
-            <%= render "shared/icon", name: "more-horizontal", size: 14 %>
-          </summary>
-          <div class="compose-quote-content">
-            <p class="mb-2"><%= safe_join(quote.header_lines, tag.br) %></p>
-            <%= render "tools/mails/email_body", message: @quoted_message, actions: false %>
-          </div>
-          <button type="button" class="compose-quote-remove" data-action="compose#removeQuote">Remove quote</button>
-        </details>
+        <%= render "tools/mails/compose_quote",
+              quote: Mails::Quote.new(@quoted_message, forward: @in_reply_to != @quoted_message.message_id, html: @quote_html) %>
       <% end %>
     </div>
   </div>
