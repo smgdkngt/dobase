@@ -10,6 +10,7 @@ module Tools
     # which special-cases the `type: "room_activity"` payload.
     class ActivitiesController < ApplicationController
       include ToolScoped
+      announces_no_change :create, :destroy
 
       # POST /tools/:tool_id/room/activity — the current user joined the call
       def create

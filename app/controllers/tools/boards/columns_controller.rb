@@ -28,6 +28,7 @@ module Tools
         if params.key?(:collapsed)
           # Collapsing is personal, so it records the viewer and leaves the
           # column itself — and everyone else's board — alone.
+          announce_no_change
           if ActiveModel::Type::Boolean.new.cast(params[:collapsed])
             @column.collapse_for(current_user)
           else
