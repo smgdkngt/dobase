@@ -59,7 +59,8 @@ export default class extends Controller {
     for (const file of files) formData.append("files[]", file)
 
     try {
-      const response = await fetch(this.formTarget.action, {
+      // (through Turbo: the page knows the change for its own, live_controller.js)
+      const response = await Turbo.fetch(this.formTarget.action, {
         method: "POST",
         body: formData,
         headers: {

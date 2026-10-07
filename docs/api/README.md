@@ -64,8 +64,9 @@ doesn't clear your unread dots. Chat and mail have their own endpoints to mark
 things read.
 
 What you change through the API shows on the pages people have open, without
-their loading them again: a chat and an open document always did, a board and a
-todo list do now, and the other tools are to follow.
+their loading them again: a chat, a board, a todo list, a files tool, the list
+of documents, an open document and the calendar. Mail shows it at its next
+refresh.
 
 ## Requests
 

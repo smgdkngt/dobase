@@ -5,25 +5,11 @@ export default class extends Controller {
   static values = { toolId: Number }
 
   connect() {
-    this.documentCards = new Map()
-    this.cacheCards()
     this.setupChannel()
   }
 
   disconnect() {
-    this.documentCards.clear()
     this.channel?.unsubscribe()
-  }
-
-  cacheCards() {
-    this.element.querySelectorAll("[data-document-id]").forEach(card => {
-      const id = card.dataset.documentId
-      this.documentCards.set(id, {
-        indicator: card.querySelector("[data-editing-indicator]"),
-        userSpan: card.querySelector("[data-editing-user]"),
-        label: card.querySelector("[data-editing-label]")
-      })
-    })
   }
 
   setupChannel() {
@@ -35,11 +21,15 @@ export default class extends Controller {
     )
   }
 
+  // The card is looked up when the word comes: the list is drawn again while it is
+  // open (live_controller.js), so cards come and go
   handleMessage(data) {
-    const elements = this.documentCards.get(String(data.document_id))
-    if (!elements) return
+    const card = this.element.querySelector(`[data-document-id="${Number(data.document_id)}"]`)
+    if (!card) return
 
-    const { indicator, userSpan, label } = elements
+    const indicator = card.querySelector("[data-editing-indicator]")
+    const userSpan = card.querySelector("[data-editing-user]")
+    const label = card.querySelector("[data-editing-label]")
 
     switch (data.type) {
       case "locked":

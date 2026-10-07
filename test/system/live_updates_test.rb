@@ -50,6 +50,77 @@ class LiveUpdatesTest < ApplicationSystemTestCase
     assert_same_page
   end
 
+  test "a files tool shows a folder that was made and a file that was renamed elsewhere" do
+    tool = tools(:my_files)
+    open_live tool_files_path(tool)
+    assert_selector "[data-item-name]", text: "readme.txt"
+
+    through_the_api :post, tool_files_folders_path(tool), name: "From a terminal"
+    assert_selector "[data-item-type='folder'] [data-item-name]", text: "From a terminal"
+
+    through_the_api :patch, tool_files_item_path(tool, file_items(:readme)), file: { name: "read-me.txt" }
+    assert_selector "[data-item-type='file'] [data-item-name]", text: "read-me.txt"
+    assert_no_selector "[data-item-name]", text: "readme.txt"
+
+    assert_same_page
+  end
+
+  test "files that are picked stay picked, and the page catches up when they are let go" do
+    tool = tools(:my_files)
+    open_live tool_files_path(tool)
+
+    find("[data-item-type='file'][data-item-id='#{file_items(:readme).id}']").click
+    assert_text "1 selected"
+
+    through_the_api :post, tool_files_folders_path(tool), name: "Meanwhile"
+    assert_waiting
+    assert_text "1 selected"
+    assert_no_selector "[data-item-name]", text: "Meanwhile"
+
+    send_keys :escape
+    assert_no_text "1 selected"
+    assert_selector "[data-item-name]", text: "Meanwhile"
+    assert_same_page
+  end
+
+  test "a documents list shows a document that was written and one that was renamed elsewhere" do
+    tool = tools(:my_docs)
+    open_live tool_docs_path(tool)
+
+    created = through_the_api :post, tool_docs_documents_path(tool), docs_document: { title: "From a terminal" }
+    assert_selector "[data-document-id='#{created["id"]}']", text: "From a terminal"
+
+    through_the_api :patch, tool_docs_document_path(tool, docs_documents(:meeting_notes)), docs_document: { title: "Minutes of the meeting" }
+    assert_selector "[data-document-id='#{docs_documents(:meeting_notes).id}']", text: "Minutes of the meeting"
+
+    assert_same_page
+  end
+
+  test "a calendar shows an event that was planned elsewhere, and loses one that was called off" do
+    tool = tools(:my_calendar)
+    today = Time.find_zone(@user.timezone.presence || "UTC").today
+    open_live tool_calendar_path(tool)
+
+    created = through_the_api :post, tool_calendar_events_path(tool),
+      calendars_event: { summary: "From a terminal", start_time: "#{today} 14:00", end_time: "#{today} 15:00" }
+    assert_text "From a terminal"
+
+    through_the_api :delete, tool_calendar_event_path(tool, created["id"])
+    assert_no_text "From a terminal"
+
+    assert_same_page
+  end
+
+  test "a document that is open, and a form, are not such pages" do
+    visit tool_docs_document_path(tools(:my_docs), docs_documents(:meeting_notes))
+    wait_for_stimulus "presence", "main"
+    assert_no_selector "main[data-controller~='live']"
+
+    visit new_tool_calendar_event_path(tools(:my_calendar))
+    wait_for_stimulus "presence", "main"
+    assert_no_selector "main[data-controller~='live']"
+  end
+
   test "a page with a card's title half written waits, and shows the change once that is gone" do
     tool = tools(:project_board)
     open_live tool_board_path(tool)

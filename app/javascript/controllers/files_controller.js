@@ -81,7 +81,8 @@ export default class extends Controller {
       ? JSON.stringify({ folder: { name } })
       : JSON.stringify({ file: { name } })
 
-    fetch(url, {
+    // (through Turbo: the page knows the change for its own, live_controller.js)
+    Turbo.fetch(url, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", "X-CSRF-Token": this.#csrfToken, "Accept": "application/json" },
       body

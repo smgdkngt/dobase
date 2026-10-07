@@ -4,7 +4,33 @@ require "test_helper"
 require "webmock/minitest"
 
 class SyncCalendarsJobTest < ActiveJob::TestCase
+  include ActionCable::TestHelper
+
   EMPTY_MULTISTATUS = %(<?xml version="1.0" encoding="UTF-8"?><d:multistatus xmlns:d="DAV:"></d:multistatus>)
+  ONE_EVENT = <<~XML
+    <?xml version="1.0" encoding="UTF-8"?>
+    <d:multistatus xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
+      <d:response>
+        <d:href>/cal/work/standup.ics</d:href>
+        <d:propstat>
+          <d:prop>
+            <d:getetag>"etag-standup"</d:getetag>
+            <c:calendar-data>BEGIN:VCALENDAR
+    VERSION:2.0
+    BEGIN:VEVENT
+    UID:standup@example.com
+    DTSTART:20300108T140000Z
+    DTEND:20300108T150000Z
+    SUMMARY:Standup
+    END:VEVENT
+    END:VCALENDAR
+    </c:calendar-data>
+          </d:prop>
+          <d:status>HTTP/1.1 200 OK</d:status>
+        </d:propstat>
+      </d:response>
+    </d:multistatus>
+  XML
 
   setup do
     WebMock.disable_net_connect!
@@ -86,6 +112,19 @@ class SyncCalendarsJobTest < ActiveJob::TestCase
     SyncCalendarsJob.perform_now(@account.id)
 
     assert_equal "synced", @account.reload.sync_status
+  end
+
+  test "a sync that brings an event says so to the pages that have the calendar open, and one that brings nothing new doesn't" do
+    add_calendar
+    stub_request(:report, "https://caldav.example.com/cal/work/").to_return(status: 207, body: ONE_EVENT)
+    pages = PresenceChannel.broadcasting_for(@account.tool)
+
+    assert_broadcast_on(pages, type: "changed", tool_id: @account.tool.id) do
+      SyncCalendarsJob.perform_now(@account.id)
+    end
+    assert_equal [ "Standup" ], @account.events.pluck(:summary)
+
+    assert_no_broadcasts(pages) { SyncCalendarsJob.perform_now(@account.id) }
   end
 
   test "the scheduled sync skips an account whose password was turned down, until its settings change or someone asks for a sync" do
