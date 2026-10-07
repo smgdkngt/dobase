@@ -14,7 +14,11 @@
 %>
 
 <%# In the event details modal the form stays in its frame, so a failed save shows its errors there %>
-<%= form_with model: event, url: form_url, method: form_method,
+<%# The fields' ids are this form's own: a calendar has the form for a new event on its
+    page always, an open event's beside it, and another calendar can be on the page too
+    (tiles in the workspace's own page) %>
+<% ids = "calendar_#{tool.id}_#{event.persisted? ? event.id : "new"}" %>
+<%= form_with model: event, url: form_url, method: form_method, namespace: ids,
       data: { controller: "recurrence-form", recurrence_form_frequency_value: event.recurrence_frequency || "none",
               recurrence_form_follow_start_value: event.rrule.blank? } do |f| %>
   <%= render "shared/error_flash", object: event %>
@@ -113,7 +117,7 @@
                           <%= checked ? 'bg-accent-solid text-text-inverse border-accent-solid' : 'border-border text-text-secondary hover:border-accent/50' %>">
               <%= check_box_tag "calendars_event[recurrence_days_of_week][]", abbr, checked,
                     class: "sr-only",
-                    id: "recurrence_day_#{abbr}",
+                    id: "#{ids}_recurrence_day_#{abbr}",
                     data: { recurrence_form_target: "day", action: "change->recurrence-form#toggleDayButton" } %>
               <%= letter %>
             </label>

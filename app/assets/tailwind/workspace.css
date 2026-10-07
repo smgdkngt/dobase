@@ -578,6 +578,20 @@ body[data-workspace] .main-content {
   padding-right: 2.5rem;
 }
 
+/* A calendar's days and its column of hours are as wide as they are in a tile with a
+   document of its own, for the same reason as a board's columns below */
+.tile-page .week-header {
+  grid-template-columns: calc(64px / var(--tile-zoom)) repeat(7, minmax(calc(140px / var(--tile-zoom)), 1fr));
+}
+
+.tile-page :is(.all-day-row, .week-body) {
+  grid-template-columns: calc(64px / var(--tile-zoom)) 1fr;
+}
+
+.tile-page :is(.all-day-events-grid, .week-columns) {
+  grid-template-columns: repeat(7, minmax(calc(140px / var(--tile-zoom)), 1fr));
+}
+
 /* A board's columns are as wide as they are in a tile with a document of its own:
    their width is in pixels, which the zoom would take an eighth off */
 .tile-page .board-column:not(.collapsed) {

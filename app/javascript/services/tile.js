@@ -20,6 +20,18 @@ export function pageAddress(element) {
 }
 
 /**
+ * How much smaller an element is drawn than it is laid out: a tile in the
+ * workspace's page is drawn at seven eighths (workspace.css, --tile-zoom). Where an
+ * element is on the screen (getBoundingClientRect) is measured as drawn, how far it
+ * is scrolled as laid out, so the one is divided by this before it becomes the other.
+ * @param {Element} element
+ * @returns {number}
+ */
+export function zoomOf(element) {
+  return /** @type {any} */ (element).currentCSSZoom || 1
+}
+
+/**
  * Loads the page again from nothing: for a page that can't be laid over itself (an
  * editor that has to start again)
  * @param {Element} element

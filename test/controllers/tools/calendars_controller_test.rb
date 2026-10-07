@@ -146,8 +146,8 @@ module Tools
       assert_response :unprocessable_entity
       assert_select ".flash-error li", text: "Title can't be blank"
       assert_select ".flash-error li", text: "End must be after the start"
-      assert_select "label[for='calendars_event_summary']", text: "Title"
-      assert_select "label[for='calendars_event_end_time']", text: "End"
+      assert_select "label[for$='calendars_event_summary']", text: "Title"
+      assert_select "label[for$='calendars_event_end_time']", text: "End"
     end
 
     test "deleting an event redirects to the calendar" do
