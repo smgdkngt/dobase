@@ -8,6 +8,7 @@ module Tools
     # so the response keeps its Turbo Stream type.
     class MessagesController < ApplicationController
       include ToolScoped
+      announces_no_change :create, :update, :destroy
 
       restrict_in_demo only: :create, if: -> { Array(params.dig(:message, :files)).compact_blank.any? }
 

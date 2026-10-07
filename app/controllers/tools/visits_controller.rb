@@ -8,6 +8,7 @@ module Tools
   # (workspace_controller.js), so the dot for what is new doesn't come back.
   class VisitsController < ApplicationController
     include ToolScoped
+    announces_no_change :create
 
     def create
       @tool.collaborators.where(user: current_user).update_all(last_seen_at: Time.current)

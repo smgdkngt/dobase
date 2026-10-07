@@ -7,6 +7,7 @@ module Tools
     # come in a POST body: a few hundred of them don't fit in a URL.
     class DownloadsController < ApplicationController
       include ToolScoped
+      announces_no_change :create
       include FolderArchiveDownload
       before_action :set_selection
 

@@ -4,6 +4,7 @@ module Tools
   module Calendars
     class SyncsController < ApplicationController
       include ToolScoped
+      announces_no_change :create
 
       allow_access_tokens
       restrict_in_demo only: :create
