@@ -7,8 +7,8 @@ import (
 
 func app() []*Definition {
 	return []*Definition{
-		New("app install", "Make Dobase an app of its own here, kept apart from the browser you browse with", nil,
-			[]Flag{F("browser", "PATH", "The browser that keeps it (default: Chromium, Chrome, Brave, Edge or Vivaldi, the first one here)")}, installApp),
+		New("app install", "Make Dobase an app of its own here, or bring that app up to date", nil,
+			[]Flag{F("electron", "PATH", "An Electron of your own to run it in: its zip, or on Linux its program (default: the system's, else the newest release)")}, installApp),
 		New("app open", "Open the app `dobase app install` made", nil, nil, openApp),
 		New("app remove", "Take that app away again, and the sign-in it kept", nil, nil, removeApp),
 	}
@@ -19,19 +19,27 @@ func installApp(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	app, err := InstallApp(server, args.Value("browser"))
+	tell := ctx.Say
+	if ctx.JSON {
+		tell = func(string) {}
+	}
+	_, had := InstalledApp(server)
+	app, err := InstallApp(server, args.Value("electron"), tell)
 	if err != nil {
 		return err
 	}
-	shortcut := app.Shortcut()
 	if err := app.Show(""); err != nil {
 		return api.Failf("%s is installed, but it didn't open: %v", app.Name, err)
 	}
-	return ctx.Output(api.Object("name", app.Name, "url", app.Server, "browser", app.Browser, "profile", app.Profile, "path", shortcut), func() error {
-		ctx.Sayf("%s is an app of its own now, kept by %s in a profile nothing else uses.", app.Name, app.BrowserName())
-		ctx.Say("Sign in once in the window that opens. `--open` and `o` use this app from now on.")
-		ctx.Field("App", shortcut)
-		ctx.Field("Profile", app.Profile)
+	return ctx.Output(api.Object("name", app.Name, "url", app.Server, "path", app.Path, "data", app.Data, "electron", app.Electron), func() error {
+		if had {
+			ctx.Sayf("%s is up to date, and still signed in.", app.Name)
+		} else {
+			ctx.Sayf("%s is an app of its own now, apart from your browser.", app.Name)
+			ctx.Say("Sign in once in the window that opens. `--open` and `o` use this app from now on.")
+		}
+		ctx.Field("App", app.Path)
+		ctx.Field("Electron", app.Electron+If(app.Electron == "", "the system's"))
 		return nil
 	})
 }
@@ -55,7 +63,7 @@ func removeApp(ctx *Ctx, _ *Args) error {
 	if err := app.Remove(); err != nil {
 		return err
 	}
-	ctx.Sayf("The %s app is gone, with the sign-in it kept. %s itself is as it was.", app.Name, app.BrowserName())
+	ctx.Sayf("The %s app is gone, with the sign-in it kept.", app.Name)
 	return nil
 }
 

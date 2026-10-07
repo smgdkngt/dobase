@@ -1,11 +1,11 @@
 package command
 
 import (
-	"bufio"
 	"bytes"
-	"crypto/sha256"
-	"errors"
+	"embed"
 	"fmt"
+	"image"
+	"image/png"
 	"io"
 	"net/http"
 	"net/url"
@@ -19,40 +19,36 @@ import (
 	"github.com/smgdkngt/dobase/cli/internal/api"
 )
 
-// App is Dobase installed as an app of its own: a web app kept by a
-// Chromium-family browser in a profile nothing else uses. Its windows, its
-// sign-in and its links stay apart from the browser you browse with, also when
-// that is the same browser.
+// App is Dobase installed as an app of its own: an Electron that shows the
+// server's pages and nothing else. To the system it is a program apart, with
+// the server's icon and a sign-in of its own, so the browser you browse with
+// has no part in it; links to other sites go to that browser.
 type App struct {
 	Server   string // the server it shows
 	Name     string // what the server calls itself
-	Browser  string // the browser's program
-	Profile  string // the profile only this app uses
-	Manifest string // the app's identity to the browser, from the server's manifest
-	ID       string // the browser's id for it, made from that identity
+	Path     string // the app on this system: the bundle on a Mac, the desktop entry elsewhere
+	Program  string // what runs it: the Electron in the bundle, or the system's own
+	Code     string // the app's scripts, which Electron is started on
+	Data     string // where it keeps its sign-in
+	Electron string // the version of the Electron it came with; "" when the system keeps that
+	// An app of the earlier kind, kept by a browser. It can only be removed.
+	earlier *browserApp
 }
 
-// Browsers that keep web apps, the free one first.
-var (
-	macBrowsers   = []string{"Chromium", "Google Chrome", "Brave Browser", "Microsoft Edge", "Vivaldi"}
-	otherBrowsers = []string{"chromium", "chromium-browser", "google-chrome-stable", "google-chrome", "brave-browser", "brave",
-		"microsoft-edge-stable", "vivaldi-stable", "vivaldi"}
-	// Where a Mac keeps its apps, beside the ones in the home directory.
-	macApplications = "/Applications"
-	lookPath        = exec.LookPath
-)
+// The app's scripts: what Electron is started on.
+//
+//go:embed shell/main.js shell/links.js shell/preload.js
+var shell embed.FS
 
-// How long the browser gets to answer or to start, and to leave once told to.
-const (
-	browserWait = 90 * time.Second
-	leaveWait   = 10 * time.Second
-	pause       = 100 * time.Millisecond
-)
+// What a Mac knows the app by.
+const bundleID = "co.dobase.app"
 
-// appRunning says whether a browser has the profile open: it keeps a lock
-// there, a link that names its machine and its process.
-var appRunning = func(profile string) bool {
-	lock, err := os.Readlink(filepath.Join(profile, "SingletonLock"))
+var lookPath = exec.LookPath
+
+// appRunning says whether the app has its data open: it keeps a lock there, a
+// link that names its machine and its process.
+var appRunning = func(data string) bool {
+	lock, err := os.Readlink(filepath.Join(data, "SingletonLock"))
 	if err != nil {
 		return false
 	}
@@ -60,31 +56,29 @@ var appRunning = func(profile string) bool {
 	return err == nil && alive(pid)
 }
 
-// InstallApp makes the Dobase at server an app, kept by browser (a program, an
-// app bundle or a name; "" is the first browser found here).
-func InstallApp(server, browser string) (App, error) {
+// InstallApp makes the Dobase at server an app here, or brings the one that is
+// here up to date; its sign-in stays. electron is an Electron of your own (its
+// zip, or elsewhere than on a Mac its program); "" is the system's own when
+// there is one, and else the newest release. tell hears what takes a while.
+func InstallApp(server, electron string, tell func(string)) (App, error) {
 	if goos == "windows" {
 		return App{}, api.Failf("`dobase app` works on macOS and Linux. On Windows, install Dobase from the browser's own menu.")
 	}
-	if earlier, found := readApp(); found && earlier.Server != server {
-		return App{}, api.Failf("The app here is the one for %s. Run `dobase app remove` first.", earlier.Server)
-	}
-	program, err := findBrowser(browser)
-	if err != nil {
-		return App{}, err
+	before, had := readApp()
+	switch {
+	case !had:
+	case before.earlier != nil:
+		return App{}, api.Failf("Dobase is an app here the earlier way, kept by %s. `dobase app remove` takes that one away with the sign-in it kept; then install again.", filepath.Base(before.earlier.Browser))
+	case before.Server != server:
+		return App{}, api.Failf("The app here is the one for %s. Run `dobase app remove` first.", before.Server)
+	case appRunning(before.Data):
+		return App{}, api.Failf("%s is open. Quit it and try again.", before.Name)
 	}
 	directory, err := appDirectory()
 	if err != nil {
 		return App{}, err
 	}
-	app := App{Server: server, Browser: program, Profile: filepath.Join(directory, "app")}
 
-	// Where the browser finds the app: a page that links the manifest and is not
-	// a redirect. Nobody is signed in in a new profile, so that is where "/" ends up.
-	_, page, err := fetch(server + "/")
-	if err != nil {
-		return App{}, err
-	}
 	contents, manifestURL, err := fetch(server + "/manifest.json")
 	if err != nil {
 		return App{}, err
@@ -93,26 +87,47 @@ func InstallApp(server, browser string) (App, error) {
 	if err != nil || !manifest.IsObject() {
 		return App{}, api.Failf("%s is not a web app manifest, so %s is not a Dobase to install.", manifestURL, server)
 	}
-	app.Name = manifest.Get("name").Or("Dobase")
-	if app.Manifest, err = manifestIdentity(manifestURL, manifest); err != nil {
-		return App{}, err
-	}
-	app.ID = appID(app.Manifest)
-
-	if err := os.MkdirAll(app.Profile, 0o700); err != nil {
-		return App{}, api.PathError(app.Profile, err)
-	}
-	session, err := app.devtools()
+	icon, picture, err := appIcon(manifestURL, manifest)
 	if err != nil {
 		return App{}, err
 	}
-	defer session.close()
-	if _, err := session.call("PWA.install", map[string]any{"manifestId": app.Manifest, "installUrlOrBundleUrl": page}); err != nil {
-		return App{}, app.refused(err)
+	app := App{Server: server, Name: manifest.Get("name").Or("Dobase"), Data: filepath.Join(directory, "data")}
+	if err := os.MkdirAll(app.Data, 0o700); err != nil {
+		return App{}, api.PathError(app.Data, err)
 	}
-	// Installed this way it would open as a tab of the browser
-	if _, err := session.call("PWA.changeAppUserSettings", map[string]any{"manifestId": app.Manifest, "displayMode": "standalone"}); err != nil {
-		return App{}, app.refused(err)
+
+	// The Electron: yours, the system's, or the newest release
+	archive := ""
+	switch {
+	case strings.HasSuffix(electron, ".zip"):
+		archive = electron
+	case electron != "" && goos == "darwin":
+		return App{}, api.Failf("On a Mac --electron takes Electron's zip, which the app is made from.")
+	case electron != "":
+		if app.Program, err = lookPath(electron); err != nil {
+			return App{}, api.Failf("No Electron at %s.", Quoted(electron))
+		}
+	case goos != "darwin":
+		app.Program, _ = lookPath("electron")
+	}
+	if archive == "" && app.Program == "" {
+		if archive, app.Electron, err = fetchElectron(directory, tell); err != nil {
+			return App{}, err
+		}
+		defer os.Remove(archive)
+	}
+
+	if goos == "darwin" {
+		err = app.makeBundle(archive, picture)
+	} else {
+		err = app.makeDesktopEntry(directory, archive, icon)
+	}
+	if err != nil {
+		return App{}, err
+	}
+	// A server that changed its name leaves no app under the old one
+	if had && before.Path != app.Path && goos == "darwin" && isOurBundle(before.Path) {
+		os.RemoveAll(before.Path)
 	}
 	return app, app.save()
 }
@@ -126,116 +141,263 @@ func InstalledApp(server string) (App, bool) {
 // Show opens the app, on link when there is one; a running app gets another
 // window for it.
 func (a App) Show(link string) error {
-	// On a Mac the app is a program of its own, which starts its browser out of
-	// sight. A browser started from here would sit in the Dock beside it, so the
-	// browser only gets the link once the app has it running.
-	if shortcut := a.Shortcut(); goos == "darwin" && shortcut != "" {
-		if err := run("open", "-a", shortcut); err != nil {
+	if a.earlier != nil {
+		return api.Failf("This app is of the earlier kind, which `dobase` no longer opens. `dobase app remove` and `dobase app install` make it the new one.")
+	}
+	if goos == "darwin" {
+		// The system starts the app, or hands a running one the link
+		args := []string{"-a", a.Path}
+		if path := appPath(a.Server, link); path != "" {
+			args = append(args, "web+dobase://"+path)
+		}
+		if err := run("open", args...); err != nil {
 			return fmt.Errorf("open: %w", err)
 		}
-		if link == "" {
-			return nil
-		}
-		for waited := time.Duration(0); !appRunning(a.Profile) && waited < browserWait; waited += pause {
-			time.Sleep(pause)
-		}
+		return nil
 	}
-
-	args := []string{"--user-data-dir=" + a.Profile, "--app-id=" + a.ID}
+	// A second start hands its link to the first and leaves
+	args := []string{a.Code}
 	if link != "" {
-		// What the browser's own shortcut menus open an app on a page with
-		args = append(args, "--app-launch-url-for-shortcuts-menu-item="+link)
+		args = append(args, link)
 	}
-	if err := start(a.Browser, args...); err != nil {
-		return fmt.Errorf("%s: %w", a.BrowserName(), err)
+	if err := start(a.Program, args...); err != nil {
+		return fmt.Errorf("%s: %w", filepath.Base(a.Program), err)
 	}
 	return nil
 }
 
-// Remove takes the app out of its browser, which removes what the browser put
-// on the system, and then deletes its profile.
+// Remove takes the app off the system, with the sign-in it kept.
 func (a App) Remove() error {
-	// A browser that is gone took its apps along
-	if session, err := openDevtools(a.Browser, a.arguments()...); err == nil {
-		_, err = session.call("PWA.uninstall", map[string]any{"manifestId": a.Manifest})
-		session.close()
-		if err == errBrowserLeft {
-			return a.refused(err)
-		}
-	}
-
 	directory, err := appDirectory()
 	if err != nil {
 		return err
+	}
+	if a.earlier != nil {
+		if err := a.earlier.remove(directory); err != nil {
+			return err
+		}
+	} else {
+		if appRunning(a.Data) {
+			return api.Failf("%s is open. Quit it and try again.", a.Name)
+		}
+		// Only ever what this made
+		gone := []string{filepath.Join(directory, "shell"), filepath.Join(directory, "electron"), filepath.Join(directory, "data")}
+		if goos != "darwin" {
+			gone = append(gone, desktopEntry(directory), desktopIcon(directory))
+		} else if isOurBundle(a.Path) {
+			gone = append(gone, a.Path)
+		}
+		for _, path := range gone {
+			if err := os.RemoveAll(path); err != nil {
+				return api.PathError(path, err)
+			}
+		}
 	}
 	record := filepath.Join(directory, "app.json")
 	if err := os.Remove(record); err != nil && !os.IsNotExist(err) {
 		return api.PathError(record, err)
 	}
-	// Only ever the directory this made
-	if a.Profile == filepath.Join(directory, "app") {
-		if err := os.RemoveAll(a.Profile); err != nil {
-			return api.PathError(a.Profile, err)
+	return nil
+}
+
+// makeBundle makes the app a Mac's own kind of program: Electron's bundle under
+// the app's name, with its icon and its scripts, in ~/Applications.
+func (a *App) makeBundle(archive string, picture image.Image) error {
+	home, err := homeDir()
+	if err != nil {
+		return api.Failf("Could not find your home directory: %v", err)
+	}
+	applications := filepath.Join(home, "Applications")
+	a.Path = filepath.Join(applications, strings.NewReplacer("/", "-", ":", "-").Replace(a.Name)+".app")
+	if _, err := os.Stat(a.Path); err == nil && !isOurBundle(a.Path) {
+		return api.Failf("%s is another app. Move it away, or remove it, and try again.", a.Path)
+	}
+	if err := os.MkdirAll(applications, 0o755); err != nil {
+		return api.PathError(applications, err)
+	}
+	// Made beside where it goes, so it gets there in one move
+	made, err := os.MkdirTemp(applications, ".dobase-")
+	if err != nil {
+		return api.PathError(applications, err)
+	}
+	defer os.RemoveAll(made)
+	if err := unpack(archive, made); err != nil {
+		return err
+	}
+	bundle := filepath.Join(made, "Electron.app")
+	listPath := filepath.Join(bundle, "Contents", "Info.plist")
+	list, err := os.ReadFile(listPath)
+	if err != nil {
+		return api.Failf("%s is not Electron for a Mac: it has no Electron.app.", archive)
+	}
+
+	resources := filepath.Join(bundle, "Contents", "Resources")
+	a.Code = filepath.Join(resources, "app")
+	if err := a.writeCode(); err != nil {
+		return err
+	}
+	drawn, err := icns(picture)
+	if err == nil {
+		err = os.WriteFile(filepath.Join(resources, "app.icns"), drawn, 0o644)
+	}
+	if err != nil {
+		return api.Failf("Could not make the app's icon: %v", err)
+	}
+	// Electron's own app and icon, which the app's replace
+	os.Remove(filepath.Join(resources, "default_app.asar"))
+	os.Remove(filepath.Join(resources, "electron.icns"))
+
+	for key, value := range map[string]string{
+		"CFBundleIdentifier":           bundleID,
+		"CFBundleName":                 a.Name,
+		"CFBundleDisplayName":          a.Name,
+		"CFBundleIconFile":             "app.icns",
+		"LSApplicationCategoryType":    "public.app-category.productivity",
+		"NSCameraUsageDescription":     "For calls in a room.",
+		"NSMicrophoneUsageDescription": "For calls in a room.",
+		// The links `dobase --open` hands over
+		"CFBundleURLTypes": "<array><dict><key>CFBundleURLName</key><string>" + EscapeHTML(a.Name) +
+			"</string><key>CFBundleURLSchemes</key><array><string>web+dobase</string></array></dict></array>",
+	} {
+		list = plistSet(list, key, value)
+	}
+	if version := plistString("CFBundleShortVersionString", list); a.Electron == "" {
+		a.Electron = version
+	}
+	if err := os.WriteFile(listPath, list, 0o644); err != nil {
+		return api.PathError(listPath, err)
+	}
+
+	if err := os.RemoveAll(a.Path); err != nil {
+		return api.PathError(a.Path, err)
+	}
+	if err := os.Rename(bundle, a.Path); err != nil {
+		return api.PathError(a.Path, err)
+	}
+	a.Code = filepath.Join(a.Path, "Contents", "Resources", "app")
+	a.Program = filepath.Join(a.Path, "Contents", "MacOS", "Electron")
+	// Changed, so the signature it came with no longer holds. One made here
+	// is enough for a program that was made here.
+	if err := run("codesign", "--force", "--deep", "--sign", "-", a.Path); err != nil {
+		return api.Failf("Could not sign %s: %v", a.Path, err)
+	}
+	return nil
+}
+
+// makeDesktopEntry makes the app one of a Linux desktop's: its scripts, its icon
+// and an entry that starts Electron on them.
+func (a *App) makeDesktopEntry(directory, archive string, icon []byte) error {
+	// Without an Electron of the system's the app keeps one, and not when it has
+	kept := filepath.Join(directory, "electron")
+	if err := os.RemoveAll(kept); err != nil {
+		return api.PathError(kept, err)
+	}
+	if archive != "" {
+		if err := unpack(archive, kept); err != nil {
+			return err
+		}
+		a.Program = filepath.Join(kept, "electron")
+		if _, err := os.Stat(a.Program); err != nil {
+			return api.Failf("%s is not Electron for Linux: it has no electron in it.", archive)
+		}
+		if version, err := os.ReadFile(filepath.Join(kept, "version")); err == nil && a.Electron == "" {
+			a.Electron = strings.TrimSpace(string(version))
+		}
+	}
+	a.Code = filepath.Join(directory, "shell")
+	if err := a.writeCode(); err != nil {
+		return err
+	}
+
+	a.Path = desktopEntry(directory)
+	// A desktop entry's way of quoting what it starts
+	quoted := func(path string) string {
+		return `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`, "`", "\\`", `$`, `\$`).Replace(path) + `"`
+	}
+	entry := "[Desktop Entry]\nType=Application\nName=" + a.Name + "\n" +
+		"Exec=" + quoted(a.Program) + " " + quoted(a.Code) + " %U\n" +
+		"Icon=dobase\nStartupWMClass=dobase\nCategories=Network;Office;\nMimeType=x-scheme-handler/web+dobase;\n"
+	for path, contents := range map[string][]byte{a.Path: []byte(entry), desktopIcon(directory): icon} {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			return api.PathError(path, err)
+		}
+		if err := os.WriteFile(path, contents, 0o644); err != nil {
+			return api.PathError(path, err)
+		}
+	}
+	// So web+dobase:// links from elsewhere find it; a desktop without these goes without
+	run("update-desktop-database", filepath.Dir(a.Path))
+	run("xdg-mime", "default", filepath.Base(a.Path), "x-scheme-handler/web+dobase")
+	return nil
+}
+
+// writeCode puts the app's scripts where Electron is started on them, with the
+// server they are for.
+func (a App) writeCode() error {
+	if err := os.RemoveAll(a.Code); err != nil {
+		return api.PathError(a.Code, err)
+	}
+	if err := os.MkdirAll(a.Code, 0o755); err != nil {
+		return api.PathError(a.Code, err)
+	}
+	files := map[string][]byte{
+		"package.json": []byte(api.Object("name", "dobase", "productName", a.Name, "version", "1.0.0", "main", "main.js").Pretty() + "\n"),
+		"config.json":  []byte(api.Object("server", a.Server, "name", a.Name, "data", a.Data).Pretty() + "\n"),
+	}
+	scripts, _ := shell.ReadDir("shell")
+	for _, script := range scripts {
+		files[script.Name()], _ = shell.ReadFile("shell/" + script.Name())
+	}
+	for name, contents := range files {
+		if err := os.WriteFile(filepath.Join(a.Code, name), contents, 0o644); err != nil {
+			return api.PathError(filepath.Join(a.Code, name), err)
 		}
 	}
 	return nil
 }
 
-// Shortcut is what the browser put on the system for the app: the app in
-// ~/Applications on a Mac, the desktop entry elsewhere. "" when none is found.
-func (a App) Shortcut() string {
-	home, err := homeDir()
-	if err != nil {
-		return ""
-	}
-	if goos != "darwin" {
-		entries, _ := filepath.Glob(filepath.Join(home, ".local", "share", "applications", "*-"+a.ID+"-*.desktop"))
-		for _, entry := range entries {
-			if contents, err := os.ReadFile(entry); err == nil && bytes.Contains(contents, []byte(a.Profile)) {
-				return entry
-			}
-		}
-		return ""
-	}
-	// The browser keeps the apps of every profile in one folder, named apart
-	// ("Dobase", "Dobase 1"); this one is the one that names this profile.
-	lists, _ := filepath.Glob(filepath.Join(home, "Applications", "*", "*.app", "Contents", "Info.plist"))
-	for _, list := range lists {
-		contents, err := os.ReadFile(list)
-		if err == nil && bytes.Contains(contents, []byte("_crx_"+a.ID)) && bytes.Contains(contents, []byte(a.Profile+"/")) {
-			return filepath.Dir(filepath.Dir(list))
+// appIcon is the server's icon as the manifest has it: its biggest PNG that
+// isn't only there to be cut to a shape.
+func appIcon(manifestURL string, manifest api.Value) ([]byte, image.Image, error) {
+	address, biggest := "", 0
+	for _, icon := range manifest.Get("icons").Items() {
+		size, _ := strconv.Atoi(strings.Split(icon.Get("sizes").S(), "x")[0])
+		if icon.Get("type").S() == "image/png" && icon.Get("purpose").Or("any") != "maskable" && size > biggest {
+			address, biggest = icon.Get("src").S(), size
 		}
 	}
-	return ""
-}
-
-// BrowserName is the browser as people call it: "Vivaldi", "chromium".
-func (a App) BrowserName() string { return filepath.Base(a.Browser) }
-
-// arguments start the browser on the app's profile to be told what to do,
-// without a window of its own.
-func (a App) arguments() []string {
-	return []string{"--user-data-dir=" + a.Profile, "--no-first-run", "--no-default-browser-check", "--no-startup-window"}
-}
-
-func (a App) devtools() (*devtools, error) {
-	session, err := openDevtools(a.Browser, a.arguments()...)
+	base, err := url.Parse(manifestURL)
+	if err == nil && address != "" {
+		base, err = base.Parse(address)
+	}
+	if err != nil || address == "" {
+		return nil, nil, api.Failf("The manifest at %s names no PNG icon to give the app.", manifestURL)
+	}
+	contents, _, err := fetch(base.String())
 	if err != nil {
-		return nil, api.Failf("Could not start %s: %v", a.BrowserName(), err)
+		return nil, nil, err
 	}
-	return session, nil
+	picture, err := png.Decode(bytes.NewReader(contents))
+	if err != nil {
+		return nil, nil, api.Failf("The icon at %s is not a PNG: %v", base, err)
+	}
+	return contents, picture, nil
 }
 
-// refused explains an error from the browser.
-func (a App) refused(err error) error {
-	switch {
-	case err == errBrowserLeft:
-		// A second start on a profile in use hands over to the first one and leaves
-		return api.Failf("%s left before it answered. If Dobase is open as an app, quit it and try again.", a.BrowserName())
-	case strings.Contains(err.Error(), "wasn't found"):
-		return api.Failf("This %s is too old to install an app this way. Update it, or pick another one with --browser.", a.BrowserName())
-	}
-	return api.Failf("%s: %v", a.BrowserName(), err)
+// isOurBundle says whether the app at path is one `dobase app install` made.
+func isOurBundle(path string) bool {
+	list, err := os.ReadFile(filepath.Join(path, "Contents", "Info.plist"))
+	return err == nil && plistString("CFBundleIdentifier", list) == bundleID
+}
+
+// Where a desktop looks for a person's own programs and their icons: beside
+// the app's directory.
+func desktopEntry(directory string) string {
+	return filepath.Join(filepath.Dir(directory), "applications", "dobase.desktop")
+}
+
+func desktopIcon(directory string) string {
+	return filepath.Join(filepath.Dir(directory), "icons", "hicolor", "512x512", "apps", "dobase.png")
 }
 
 func (a App) save() error {
@@ -243,8 +405,8 @@ func (a App) save() error {
 	if err != nil {
 		return err
 	}
-	record := api.Object("server", a.Server, "name", a.Name, "browser", a.Browser, "profile", a.Profile,
-		"manifest", a.Manifest, "id", a.ID).Pretty()
+	record := api.Object("server", a.Server, "name", a.Name, "path", a.Path, "program", a.Program, "code", a.Code,
+		"data", a.Data, "electron", a.Electron).Pretty()
 	path := filepath.Join(directory, "app.json")
 	if err := os.WriteFile(path, []byte(record+"\n"), 0o600); err != nil {
 		return api.PathError(path, err)
@@ -265,12 +427,16 @@ func readApp() (App, bool) {
 	if err != nil {
 		return App{}, false
 	}
-	app := App{Server: record.Get("server").S(), Name: record.Get("name").Or("Dobase"), Browser: record.Get("browser").S(),
-		Profile: record.Get("profile").S(), Manifest: record.Get("manifest").S(), ID: record.Get("id").S()}
-	return app, app.Server != "" && app.Browser != "" && app.Profile != "" && app.ID != ""
+	app := App{Server: record.Get("server").S(), Name: record.Get("name").Or("Dobase"), Path: record.Get("path").S(),
+		Program: record.Get("program").S(), Code: record.Get("code").S(), Data: record.Get("data").S(), Electron: record.Get("electron").S()}
+	if browser := record.Get("browser").S(); browser != "" {
+		app.earlier = &browserApp{Browser: browser, Profile: record.Get("profile").S(), Manifest: record.Get("manifest").S()}
+		return app, app.Server != "" && app.earlier.Profile != ""
+	}
+	return app, app.Server != "" && app.Program != "" && app.Code != "" && app.Data != ""
 }
 
-// appDirectory is where the app's profile and what is known about it are kept.
+// appDirectory is where the app's sign-in and what is known about it are kept.
 func appDirectory() (string, error) {
 	base := os.Getenv("XDG_DATA_HOME")
 	if base == "" {
@@ -281,46 +447,6 @@ func appDirectory() (string, error) {
 		base = filepath.Join(home, ".local", "share")
 	}
 	return filepath.Join(base, "dobase"), nil
-}
-
-// findBrowser is the program of the browser asked for, or of the first one here.
-func findBrowser(asked string) (string, error) {
-	if asked != "" {
-		if strings.HasSuffix(strings.TrimRight(asked, "/"), ".app") {
-			asked = macProgram(strings.TrimRight(asked, "/"))
-		}
-		program, err := lookPath(asked)
-		if err != nil {
-			return "", api.Failf("No browser at %s.", Quoted(asked))
-		}
-		return program, nil
-	}
-
-	if goos == "darwin" {
-		folders := []string{macApplications}
-		if home, err := homeDir(); err == nil {
-			folders = append(folders, filepath.Join(home, "Applications"))
-		}
-		for _, name := range macBrowsers {
-			for _, folder := range folders {
-				if program, err := lookPath(macProgram(filepath.Join(folder, name+".app"))); err == nil {
-					return program, nil
-				}
-			}
-		}
-	} else {
-		for _, name := range otherBrowsers {
-			if program, err := lookPath(name); err == nil {
-				return program, nil
-			}
-		}
-	}
-	return "", api.Failf("No Chromium, Chrome, Brave, Edge or Vivaldi found here. Install one, or point at yours with --browser.")
-}
-
-// macProgram is the program inside an app bundle, which carries the bundle's name.
-func macProgram(bundle string) string {
-	return filepath.Join(bundle, "Contents", "MacOS", strings.TrimSuffix(filepath.Base(bundle), ".app"))
 }
 
 // fetch gets a page the way a browser nobody is signed in to would, and says
@@ -337,132 +463,4 @@ func fetch(address string) ([]byte, string, error) {
 		return nil, "", api.Failf("Could not read %s (%s).", address, response.Status)
 	}
 	return body, response.Request.URL.String(), nil
-}
-
-// manifestIdentity is the id a browser gives the app of a manifest: its start
-// page, or its "id" counted from the top of that page's site.
-func manifestIdentity(manifestURL string, manifest api.Value) (string, error) {
-	identity, err := url.Parse(manifestURL)
-	if err == nil {
-		identity, err = identity.Parse(manifest.Get("start_url").Or("."))
-	}
-	if id := manifest.Get("id").S(); err == nil && id != "" {
-		identity, err = (&url.URL{Scheme: identity.Scheme, Host: identity.Host, Path: "/"}).Parse(id)
-	}
-	if err != nil {
-		return "", api.Failf("The manifest at %s has an address in it that isn't one: %v", manifestURL, err)
-	}
-	identity.Fragment = ""
-	return identity.String(), nil
-}
-
-// appID is Chromium's id for the web app with this identity: the hash of its
-// hash, the first 16 bytes written in the letters a to p.
-func appID(identity string) string {
-	once := sha256.Sum256([]byte(identity))
-	twice := sha256.Sum256(once[:])
-	id := make([]byte, 0, 32)
-	for _, b := range twice[:16] {
-		id = append(id, 'a'+b>>4, 'a'+b&0xf)
-	}
-	return string(id)
-}
-
-// -- The browser's debugging pipe --------------------------------------------------
-
-var errBrowserLeft = errors.New("the browser left")
-
-// devtools is a browser being told what to do over its debugging pipe: JSON
-// messages that end in a zero byte, in on its file 3 and out on its file 4.
-type devtools struct {
-	process *exec.Cmd
-	to      *os.File
-	replies chan api.Value
-	left    chan struct{}
-	calls   int64
-}
-
-func openDevtools(browser string, args ...string) (*devtools, error) {
-	toRead, toWrite, err := os.Pipe()
-	if err != nil {
-		return nil, err
-	}
-	fromRead, fromWrite, err := os.Pipe()
-	if err != nil {
-		return nil, err
-	}
-	process := exec.Command(browser, append(args, "--remote-debugging-pipe")...)
-	process.ExtraFiles = []*os.File{toRead, fromWrite}
-	err = process.Start()
-	toRead.Close()
-	fromWrite.Close()
-	if err != nil {
-		toWrite.Close()
-		fromRead.Close()
-		return nil, err
-	}
-
-	session := &devtools{process: process, to: toWrite, replies: make(chan api.Value), left: make(chan struct{})}
-	go func() {
-		defer close(session.replies)
-		defer fromRead.Close()
-		reader := bufio.NewReader(fromRead)
-		for {
-			message, err := reader.ReadBytes(0)
-			if err != nil {
-				return
-			}
-			if reply, err := api.Parse(message[:len(message)-1]); err == nil && reply.Has("id") {
-				session.replies <- reply
-			}
-		}
-	}()
-	go func() {
-		process.Wait()
-		close(session.left)
-	}()
-	return session, nil
-}
-
-// call asks the browser to do something and waits for what came of it.
-func (d *devtools) call(method string, params map[string]any) (api.Value, error) {
-	d.calls++
-	message := api.Object("id", d.calls, "method", method, "params", params).JSON()
-	if _, err := d.to.WriteString(message + "\x00"); err != nil {
-		return api.Null, errBrowserLeft
-	}
-	timeout := time.After(browserWait)
-	for {
-		select {
-		case reply, open := <-d.replies:
-			switch {
-			case !open:
-				return api.Null, errBrowserLeft
-			case reply.Get("id").Int() != d.calls:
-			case reply.Has("error"):
-				return api.Null, fmt.Errorf("%s", reply.Get("error", "message").Or(method+" failed"))
-			default:
-				return reply.Get("result"), nil
-			}
-		case <-timeout:
-			return api.Null, fmt.Errorf("no answer to %s within %v", method, browserWait)
-		}
-	}
-}
-
-// close tells the browser to leave, and makes it when it doesn't.
-func (d *devtools) close() {
-	d.calls++
-	d.to.WriteString(api.Object("id", d.calls, "method", "Browser.close").JSON() + "\x00")
-	d.to.Close()
-	go func() {
-		for range d.replies {
-		}
-	}()
-	select {
-	case <-d.left:
-	case <-time.After(leaveWait):
-		d.process.Process.Kill()
-		<-d.left
-	}
 }
