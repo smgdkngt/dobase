@@ -13,7 +13,7 @@
 <%= link_to href,
       class: "assignee-filter-item #{'is-selected' if selected}",
       data: { turbo_action: "replace" },
-      commandfor: "assignee-filter-menu", command: "hide-popover" do %>
+      commandfor: "assignee-filter-menu-#{@tool&.id}", command: "hide-popover" do %>
   <span class="assignee-filter-item-leading">
     <% if user %>
       <%= render "shared/avatar", user: user, size: :sm %>

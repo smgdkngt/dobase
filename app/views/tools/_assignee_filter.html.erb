@@ -20,13 +20,16 @@
   end
 
   is_filtered = current_str.present?
+  # One per tool: two tools can be on one page (tiles in the workspace's own page)
+  menu_id = "assignee-filter-menu-#{@tool&.id}"
+  anchor = "--assignee-filter-#{@tool&.id}"
 %>
 <div class="assignee-filter">
   <button type="button"
           class="btn btn-secondary btn-sm <%= 'is-active' if is_filtered %>"
-          commandfor="assignee-filter-menu"
+          commandfor="<%= menu_id %>"
           command="toggle-popover"
-          style="anchor-name: --assignee-filter">
+          style="anchor-name: <%= anchor %>">
     <span class="assignee-filter-trigger-leading">
       <% if trigger_avatar %>
         <%= render "shared/avatar", user: trigger_avatar, size: :sm %>
@@ -38,9 +41,9 @@
     <%= render "shared/icon", name: "chevron-down", size: 12, class: "text-text-tertiary" %>
   </button>
 
-  <div id="assignee-filter-menu" popover="auto"
+  <div id="<%= menu_id %>" popover="auto"
        class="popover-menu max-h-72 overflow-y-auto"
-       style="position-anchor: --assignee-filter; top: anchor(bottom); left: anchor(left); min-width: anchor-size(width);">
+       style="position-anchor: <%= anchor %>; top: anchor(bottom); left: anchor(left); min-width: anchor-size(width);">
     <%= render "tools/assignee_filter_item",
           href: url_for(assignee: nil),
           label: "All assignees",

@@ -3,7 +3,7 @@
      data-board-card-card-id-value="<%= @card.id %>"
      data-board-card-tool-id-value="<%= @tool.id %>"
      class="flex flex-col w-full"
-     style="max-height: 80vh; min-height: 60vh;">
+     style="max-height: calc(80vh / var(--tile-zoom, 1)); min-height: calc(60vh / var(--tile-zoom, 1));">
 
   <%= render "tools/boards/cards/header", card: @card, tool: @tool %>
   <%# ─── Body: two-column layout ────────────────────────────────────── %>
