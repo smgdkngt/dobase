@@ -775,9 +775,13 @@ func TestAMacsIconIsThePictureWithRoomAroundIt(t *testing.T) {
 			t.Errorf("at %v it is %v", point, got)
 		}
 	}
-	// Where the edge falls inside a dot, the dot is that much of the colour
-	if edge := macIcon(picture, 128).RGBAAt(12, 64); edge != (color.RGBA{0, 57, 114, 128}) {
-		t.Errorf("half a dot of it is %v", edge)
+	// Where the edge falls inside a dot, the dot is that much of the colour (give
+	// or take one: chips round a half differently)
+	edge := macIcon(picture, 128).RGBAAt(12, 64)
+	for at, want := range []int{0, 57, 114, 128} {
+		if got := int([]uint8{edge.R, edge.G, edge.B, edge.A}[at]); got < want-1 || got > want+1 {
+			t.Errorf("half a dot of it is %v", edge)
+		}
 	}
 
 	file, err := icns(picture)
