@@ -4,6 +4,7 @@ module Tools
   module Chats
     class ReadsController < ApplicationController
       include ToolScoped
+      announces_no_change :create
 
       allow_access_tokens
 

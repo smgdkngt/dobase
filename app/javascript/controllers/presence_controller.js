@@ -57,7 +57,14 @@ export default class extends Controller {
       { channel: "PresenceChannel", tool_id: this.toolIdValue },
       {
         received: (data) => this.receive(data),
-        connected: () => this.announce({ hello: true })
+        connected: ({ reconnected } = {}) => {
+          this.listening = true
+          this.announce({ hello: true })
+          // Back after the line was down (a laptop that slept): what changed in the
+          // meantime was said to nobody here
+          if (reconnected) this.dispatch("changed")
+        },
+        disconnected: () => { this.listening = false }
       }
     )
   }
@@ -85,6 +92,13 @@ export default class extends Controller {
     // A sidebar somewhere asks who is on this tool; say so, as to a hello
     if (data.type === "roll_call") {
       this.answer()
+      return
+    }
+
+    // Something in the tool changed (Tool#announce_change), which is for whoever
+    // draws the page: live_controller.js
+    if (data.type === "changed") {
+      this.dispatch("changed", { detail: { by: data.by } })
       return
     }
 

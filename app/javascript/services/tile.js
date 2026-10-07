@@ -31,6 +31,8 @@ export function visitPage(element, url = pageAddress(element)) {
 
   const to = new URL(url, window.location.origin)
   const path = to.pathname + to.search
-  // (the same address again loads nothing by itself)
-  tile.getAttribute("src") === path ? /** @type {any} */ (tile).reload() : tile.setAttribute("src", path)
+  const here = pageAddress(element)
+  // (the same address again loads nothing by itself; the frame has it as a path or
+  // in full, and a reload is what lays the new page over the old one)
+  here.pathname + here.search === path ? /** @type {any} */ (tile).reload() : tile.setAttribute("src", path)
 }

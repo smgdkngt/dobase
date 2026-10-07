@@ -11,6 +11,7 @@ module Tools
       # one named in the notification.
       class MentionsController < ApplicationController
         include ToolScoped
+        announces_no_change :create
 
         before_action :set_document
 

@@ -7,6 +7,9 @@
 # quiet, so a browser that was closed mid-sentence disappears on its own. A page
 # that arrives says hello, and everyone already here answers with where they
 # are, which is how the newcomer learns who was already around.
+#
+# The pages of a tool are also who should know that something in it changed, so
+# that is said here too (Tool#announce_change): one line to the server per page.
 class PresenceChannel < ApplicationCable::Channel
   # Enough to draw a card, a document or a todo item in the sentence "Sem is
   # looking at ..." — a type and an id, never free text from the browser.

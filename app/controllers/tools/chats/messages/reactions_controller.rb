@@ -8,6 +8,7 @@ module Tools
       # nothing back; the API gets the message with its reactions.
       class ReactionsController < ApplicationController
         include ToolScoped
+        announces_no_change :create, :destroy
 
         allow_access_tokens
         wrap_parameters false

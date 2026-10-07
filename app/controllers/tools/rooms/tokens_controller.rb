@@ -4,6 +4,7 @@ module Tools
   module Rooms
     class TokensController < ApplicationController
       include ToolScoped
+      announces_no_change :create
 
       def create
         return render_not_configured unless livekit_configured?
