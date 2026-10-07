@@ -18,7 +18,9 @@
   </div>
 <% end %>
 
-<div class="tool-layout flex flex-col h-full"
+<%# A container: how many documents fit beside each other goes by the width this page
+    has (a tile's, in the workspace), not by the window's %>
+<div class="tool-layout @container flex flex-col h-full"
      data-controller="docs-index"
      data-docs-index-tool-id-value="<%= @tool.id %>">
   <%= render "components/tool_topbar", title: @tool.name, tool: @tool do %>
@@ -47,7 +49,7 @@
     </div>
   <% end %>
 
-  <div class="tool-scroll-area flex-1 overflow-y-auto p-3 sm:p-6">
+  <div class="tool-scroll-area flex-1 overflow-y-auto p-3 @min-[40rem]:p-6">
     <% if @documents.empty? %>
       <%= render "components/empty_state",
           icon: "file-text",
@@ -55,7 +57,7 @@
           description: "Press N to create your first document",
           size: :md %>
     <% else %>
-      <div class="<%= @view_mode == 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4' : 'flex flex-col' %>">
+      <div class="<%= @view_mode == 'grid' ? 'grid grid-cols-1 @min-[40rem]:grid-cols-2 @3xl:grid-cols-3 @5xl:grid-cols-4 @7xl:grid-cols-5 gap-3 @min-[40rem]:gap-4' : 'flex flex-col' %>">
         <% @documents.each do |document| %>
           <%= render "tools/docs/document_card", document: document, view_mode: @view_mode %>
         <% end %>

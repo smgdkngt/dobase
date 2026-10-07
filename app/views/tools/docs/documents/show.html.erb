@@ -1,15 +1,16 @@
 <% content_for(:title) { "#{@document.title} - #{app_name}" } %>
 
-<div class="tool-layout flex flex-col h-full"
+<%# A container: what a narrow page leaves out goes by the width this page has %>
+<div class="tool-layout @container flex flex-col h-full"
      data-controller="document-viewer"
      data-document-viewer-document-id-value="<%= @document.id %>">
 
   <% title_html = capture do %>
-    <h1 class="text-base sm:text-lg font-semibold text-text-primary truncate" data-document-viewer-target="title"><%= @document.title %></h1>
+    <h1 class="text-base @min-[40rem]:text-lg font-semibold text-text-primary truncate" data-document-viewer-target="title"><%= @document.title %></h1>
   <% end %>
 
   <%= render "components/tool_topbar", tool: @document.tool, back_path: tool_docs_path(@document.tool), title_html: title_html do %>
-    <div class="flex items-center gap-2 sm:gap-3">
+    <div class="flex items-center gap-2 @min-[40rem]:gap-3">
       <span class="flex items-center gap-1.5 text-sm text-warning <%= 'hidden' unless @locked_by %>"
             data-document-viewer-target="lockStatus"
             role="status"
@@ -19,7 +20,7 @@
       </span>
 
       <% show_edited = @document.updated_by && @document.updated_by != current_user %>
-      <span class="hidden sm:inline text-sm text-text-tertiary <%= 'hidden' if @locked_by || !show_edited %>"
+      <span class="hidden @min-[40rem]:inline text-sm text-text-tertiary <%= 'hidden' if @locked_by || !show_edited %>"
             data-document-viewer-target="editedStatus">
         <% if show_edited %>
           Edited <%= time_ago_in_words(@document.edited_at) %> ago
@@ -54,7 +55,7 @@
   <%# Always the same element, empty or not: edits arriving over the channel are
       written into it, and an empty document has to have somewhere to put them. %>
   <div class="tool-scroll-area flex-1 overflow-y-auto" data-arrow-keys-target="scroller">
-    <article class="max-w-3xl mx-auto px-4 py-6 sm:px-8 sm:py-8 document-view" data-document-viewer-target="content">
+    <article class="max-w-3xl mx-auto px-4 py-6 @min-[40rem]:px-8 @min-[40rem]:py-8 document-view" data-document-viewer-target="content">
       <% if @document.content.present? %>
         <%= @document.content %>
       <% else %>
