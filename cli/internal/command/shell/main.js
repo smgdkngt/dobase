@@ -18,6 +18,10 @@ if (process.platform === "linux") app.setDesktopName("dobase.desktop")
 // What the pages may ask for. The camera and the microphone are for calls.
 const allowed = new Set(["notifications", "media", "display-capture", "fullscreen", "clipboard-read", "clipboard-sanitized-write", "speaker-selection"])
 const kept = path.join(config.data, "window.json")
+// A Mac's window gives the page the strip its buttons are in, as high as the
+// workspace's bar. Until a page turns out not to keep that strip free.
+const stripHeight = 36
+let strip = mac
 let started = false
 let waiting = null // a link that came before the app could show it
 let latest = null // the window last worked in
@@ -82,10 +86,11 @@ function linkIn(argv) {
   return argv.slice(1).find((argument) => page(config.server, argument)) || null
 }
 
-function open(address) {
+function open(address, where = place()) {
   const window = new BrowserWindow({
-    ...place(), minWidth: 360, minHeight: 400, title: config.name,
+    ...where, minWidth: 360, minHeight: 400, title: config.name,
     backgroundColor: nativeTheme.shouldUseDarkColors ? "#1c1c1e" : "#f5f5f7",
+    ...(strip ? { titleBarStyle: "hidden", titleBarOverlay: { height: stripHeight } } : {}),
     webPreferences: { preload: path.join(__dirname, "preload.js"), spellcheck: true },
   })
   // The menu's keys work without its bar, which Alt would otherwise bring out
@@ -139,6 +144,21 @@ function open(address) {
     if (response === 0) contents.loadURL(failed)
     else window.close()
   })
+
+  // The page says how high it keeps the top of the window free (--titlebar-height,
+  // app_window.css). A server from before it knew of this window keeps nothing
+  // free: its page would lie under the window's buttons with nothing to drag the
+  // window by, so the window is made again with its title bar.
+  const keepsStrip = async () => {
+    if (!ours(contents.getURL())) return
+    contents.off("dom-ready", keepsStrip)
+    const free = await contents.executeJavaScript('parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--titlebar-height"))').catch(() => stripHeight)
+    if (free > 0 || !strip || window.isDestroyed()) return
+    strip = false
+    open(contents.getURL(), window.getNormalBounds())
+    window.destroy()
+  }
+  if (strip) contents.on("dom-ready", keepsStrip)
 
   window.loadURL(address || config.server.replace(/\/*$/, "/"))
   return window
