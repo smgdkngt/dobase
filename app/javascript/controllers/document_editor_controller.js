@@ -4,6 +4,7 @@ import { applyPlaceholder } from "services/rhino_placeholder"
 import { DocumentSync } from "services/document_sync"
 import { createMentionSuggestion } from "services/mention_suggestion"
 import { api } from "services/api"
+import { reloadPage, tileOf } from "services/tile"
 
 export default class extends Controller {
   static targets = ["form", "title", "editor", "saveIndicator"]
@@ -157,7 +158,7 @@ export default class extends Controller {
     this.sync?.abandon()
     clearTimeout(this.saveTimeout)
     this.saveTimeout = null
-    Turbo.visit(window.location.href, { action: "replace" })
+    reloadPage(this.element)
   }
 
   setupKeyboardShortcuts() {
@@ -170,6 +171,9 @@ export default class extends Controller {
   }
 
   handleKeydown(event) {
+    // (in a tile that is part of the workspace's page, only while the keyboard is in it)
+    if (tileOf(this.element) && !this.element.contains(document.activeElement)) return
+
     if ((event.metaKey || event.ctrlKey) && event.key === "s") {
       event.preventDefault()
       if (this.saveTimeout) clearTimeout(this.saveTimeout)

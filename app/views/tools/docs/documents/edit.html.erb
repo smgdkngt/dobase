@@ -13,9 +13,9 @@
      data-document-editor-mention-url-value="<%= tool_docs_document_mentions_path(@tool, @document) %>">
 
   <% title_input = capture do %>
-    <label for="document-title" class="sr-only">Document title</label>
+    <label for="document-title-<%= @document.id %>" class="sr-only">Document title</label>
     <input type="text"
-           id="document-title"
+           id="document-title-<%= @document.id %>"
            value="<%= @document.title %>"
            class="text-lg font-semibold bg-transparent border-none focus:outline-none focus:ring-0 text-text-primary placeholder:text-text-tertiary w-full"
            placeholder="Untitled"

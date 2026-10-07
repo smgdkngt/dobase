@@ -20,6 +20,19 @@ export function pageAddress(element) {
 }
 
 /**
+ * Loads the page again from nothing: for a page that can't be laid over itself (an
+ * editor that has to start again)
+ * @param {Element} element
+ */
+export function reloadPage(element) {
+  const tile = /** @type {any} */ (tileOf(element))
+  if (!tile) return void Turbo.visit(window.location.href, { action: "replace" })
+
+  tile.replaceChildren()
+  tile.reload()
+}
+
+/**
  * Goes to another address on the same page (without ?item=12, say), or draws the
  * page again when it is there already
  * @param {Element} element
