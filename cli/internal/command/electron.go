@@ -106,61 +106,69 @@ func fetchElectron(directory string, tell func(string)) (string, string, error) 
 }
 
 // unpack puts what is in a zip into a directory, with its links and with what
-// may be run still marked so.
+// may be run still marked so. Nothing lands outside that directory: every file
+// is made through the directory itself, which follows no link out of it.
 func unpack(archive, into string) error {
 	reader, err := zip.OpenReader(archive)
 	if err != nil {
 		return api.Failf("%s is not a zip: %v", archive, err)
 	}
 	defer reader.Close()
+	if err := os.MkdirAll(into, 0o755); err != nil {
+		return api.PathError(into, err)
+	}
+	root, err := os.OpenRoot(into)
+	if err != nil {
+		return api.PathError(into, err)
+	}
+	defer root.Close()
 
-	inside := func(path string) bool {
-		rel, err := filepath.Rel(into, path)
-		return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+	outside := func(name string) error {
+		return api.Failf("%s has something that would land outside it: %s", archive, name)
 	}
 	for _, packed := range reader.File {
-		target := filepath.Join(into, packed.Name)
-		if !inside(target) {
-			return api.Failf("%s has a file that would land outside it: %s", archive, packed.Name)
+		name := filepath.FromSlash(strings.TrimSuffix(packed.Name, "/"))
+		if !filepath.IsLocal(name) {
+			return outside(packed.Name)
 		}
 		mode := packed.Mode()
 		if mode.IsDir() {
-			if err := os.MkdirAll(target, 0o755); err != nil {
-				return api.PathError(target, err)
-			}
-			continue
+			err = root.MkdirAll(name, 0o755)
+		} else if err = root.MkdirAll(filepath.Dir(name), 0o755); err == nil {
+			err = unpackFile(root, packed, name)
 		}
-		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
-			return api.PathError(target, err)
-		}
-		contents, err := packed.Open()
 		if err != nil {
-			return api.Failf("%s: %v", archive, err)
-		}
-		if mode&os.ModeSymlink != 0 {
-			link, err := io.ReadAll(io.LimitReader(contents, 4096))
-			contents.Close()
-			if err != nil || filepath.IsAbs(string(link)) || !inside(filepath.Join(filepath.Dir(target), string(link))) {
-				return api.Failf("%s has a link that leads outside it: %s", archive, packed.Name)
-			}
-			if err := os.Symlink(string(link), target); err != nil {
-				return api.PathError(target, err)
-			}
-			continue
-		}
-		file, err := os.OpenFile(target, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, mode.Perm()|0o600)
-		if err == nil {
-			_, err = io.Copy(file, contents)
-			if closed := file.Close(); err == nil {
-				err = closed
-			}
-		}
-		contents.Close()
-		if err != nil {
-			return api.PathError(target, err)
+			// What the directory refuses is a path that leads out of it
+			return outside(packed.Name)
 		}
 	}
 	return nil
+}
+
+// unpackFile makes one file or link of a zip in the directory it is unpacked into.
+func unpackFile(root *os.Root, packed *zip.File, name string) error {
+	contents, err := packed.Open()
+	if err != nil {
+		return err
+	}
+	defer contents.Close()
+
+	if packed.Mode()&os.ModeSymlink != 0 {
+		link, err := io.ReadAll(io.LimitReader(contents, 4096))
+		if err != nil || filepath.IsAbs(string(link)) || !filepath.IsLocal(filepath.Join(filepath.Dir(name), string(link))) {
+			return fmt.Errorf("a link that leads away: %s", link)
+		}
+		return root.Symlink(string(link), name)
+	}
+	file, err := root.OpenFile(name, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, packed.Mode().Perm()|0o600)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(file, contents)
+	if closed := file.Close(); err == nil {
+		err = closed
+	}
+	return err
 }
 
 // -- A Mac's app bundle -----------------------------------------------------------

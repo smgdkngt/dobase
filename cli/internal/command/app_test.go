@@ -745,14 +745,18 @@ func TestAnAppOfTheEarlierKindCanOnlyBeRemoved(t *testing.T) {
 }
 
 func TestUnpackRefusesWhatWouldLandOutside(t *testing.T) {
-	for name, file := range map[string]packed{
-		"a file":             {name: "../outside", contents: "x"},
-		"a link out":         {name: "link", link: "../../outside"},
-		"a link to anywhere": {name: "link", link: "/etc/passwd"},
+	for name, files := range map[string][]packed{
+		"a file":              {{name: "../outside", contents: "x"}},
+		"a file from the top": {{name: "/outside", contents: "x"}},
+		"a link out":          {{name: "link", link: "../../outside"}},
+		"a link to anywhere":  {{name: "link", link: "/etc/passwd"}},
+		// Each link stays inside as it is written, and together they lead out
+		"links that add up": {{name: "deep/down/kept", contents: "x"}, {name: "deep/down/up", link: "../.."}, {name: "away", link: "deep/down/up/.."},
+			{name: "away/outside", contents: "x"}},
 	} {
 		directory := t.TempDir()
 		archive := filepath.Join(directory, "electron.zip")
-		os.WriteFile(archive, zipOf(t, packed{name: "kept", contents: "x"}, file), 0o644)
+		os.WriteFile(archive, zipOf(t, append([]packed{{name: "kept", contents: "x"}}, files...)...), 0o644)
 		into := filepath.Join(directory, "into")
 		if err := unpack(archive, into); err == nil || !strings.Contains(err.Error(), "outside it") {
 			t.Errorf("%s: %v", name, err)
