@@ -98,10 +98,10 @@
 
         <%# role="log" announces messages as they arrive without re-reading
             the whole conversation. %>
-        <div id="chat_messages" role="log" aria-live="polite" aria-relevant="additions">
+        <div id="<%= @chat.part_id(:messages) %>" class="chat-messages" role="log" aria-live="polite" aria-relevant="additions">
           <%= render "tools/chats/messages", messages: @messages %>
 
-          <div id="chat-empty-state" class="flex items-center justify-center h-full">
+          <div class="chat-empty-state flex items-center justify-center h-full">
             <%= render "components/empty_state",
                 title: "No messages yet",
                 description: "Start the conversation by sending a message below",
@@ -111,7 +111,7 @@
         </div>
 
         <!-- Typing indicator (outside chat_messages so appended messages don't go after it) -->
-        <div id="typing-indicator"
+        <div
              class="hidden flex gap-3 px-4 py-2"
              data-chat-target="typingIndicator">
           <div class="w-9 sm:w-11 flex-shrink-0"></div>
@@ -129,7 +129,7 @@
       <!-- Message input -->
       <div class="flex flex-col border-t border-border-light bg-surface px-2 sm:px-4 py-2 sm:py-3">
         <!-- Reply preview -->
-        <div id="chat-reply-preview"
+        <div
              class="hidden mb-2"
              data-chat-target="replyPreview">
           <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-background-secondary">
@@ -147,7 +147,7 @@
         </div>
 
         <!-- File preview -->
-        <div id="chat-file-preview"
+        <div
              class="hidden mb-2 flex flex-wrap gap-2"
              data-chat-target="filePreview">
         </div>
@@ -196,7 +196,7 @@
                     type: :submit %>
           <% end %>
         <% end %>
-        <div id="chat-form-errors" class="empty:hidden mt-2"></div>
+        <div id="<%= @chat.part_id(:form_errors) %>" class="empty:hidden mt-2"></div>
       </div>
     </div>
   </div>

@@ -196,7 +196,7 @@ export default class extends Controller {
   // Someone else's message arriving while you look at the chat. One you aren't looking
   // at is a notification, which has a sound of its own (notifications_controller.js).
   hearNewMessage(streamElement) {
-    if (unseen() || streamElement.getAttribute("action") !== "append" || streamElement.getAttribute("target") !== "chat_messages") return
+    if (unseen() || streamElement.getAttribute("action") !== "append" || streamElement.getAttribute("target") !== this.partId("messages")) return
 
     const message = streamElement.templateContent.querySelector("[data-message-id]")
     if (message && Number(message.dataset.messageUserIdValue) !== this.userIdValue) {
@@ -211,9 +211,14 @@ export default class extends Controller {
     const target = streamElement.getAttribute("target")
     const action = streamElement.getAttribute("action")
 
-    if (target === "chat_older_messages") return true
-    if (target === "chat_messages" && action === "prepend") return true
-    return action === "remove" && target?.startsWith("chat_date_")
+    if (target === this.partId("older_messages")) return true
+    if (target === this.partId("messages") && action === "prepend") return true
+    return action === "remove" && target?.startsWith(this.partId("date"))
+  }
+
+  // The id of a part of this chat's page (Chats::Chat#part_id)
+  partId(part) {
+    return `chat_${this.chatIdValue}_${part}`
   }
 
   // Scrolling & Read receipts
@@ -259,6 +264,9 @@ export default class extends Controller {
 
   async markAsRead() {
     if (!this.hasReadUrlValue || this.markAsReadPending) return
+    // A tile in the workspace's page that is on another desktop is not being read,
+    // whatever the window it is in hears
+    if (this.element.closest(".workspace-tile")?.hidden) return
     this.markAsReadPending = true
     try {
       await api(this.readUrlValue, "POST")

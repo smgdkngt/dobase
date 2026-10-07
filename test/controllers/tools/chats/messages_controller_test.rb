@@ -24,7 +24,7 @@ class Tools::Chats::MessagesControllerTest < ActionDispatch::IntegrationTest
     # "replace": shared/error_flash renders no element with this id itself,
     # so a replace would remove the slot from the page entirely, leaving
     # nothing for a later failed send to target.
-    assert_select "turbo-stream[action=update][target=chat-form-errors]"
+    assert_select "turbo-stream[action=update][target=?]", @tool.chat.part_id(:form_errors)
     assert_not_includes response.body, "can&#39;t be blank"
   end
 
@@ -37,7 +37,7 @@ class Tools::Chats::MessagesControllerTest < ActionDispatch::IntegrationTest
 
     post tool_chat_messages_path(@tool), params: { message: { body: "" } }
     assert_response :unprocessable_entity
-    assert_select "turbo-stream[action=update][target=chat-form-errors]"
+    assert_select "turbo-stream[action=update][target=?]", @tool.chat.part_id(:form_errors)
     assert_includes response.body, "can&#39;t be blank"
   end
 
@@ -47,7 +47,7 @@ class Tools::Chats::MessagesControllerTest < ActionDispatch::IntegrationTest
     get tool_chat_path(@tool)
 
     assert_response :success
-    assert_select "#chat_older_messages a[href=?]", tool_chat_messages_path(@tool, before: messages[5].id)
+    assert_select "##{@tool.chat.part_id(:older_messages)} a[href=?]", tool_chat_messages_path(@tool, before: messages[5].id)
     assert_no_match(/Message 0\b/, response.body)
     assert_match(/Message 5\b/, response.body)
   end
@@ -58,7 +58,7 @@ class Tools::Chats::MessagesControllerTest < ActionDispatch::IntegrationTest
     get tool_chat_path(@tool)
 
     assert_response :success
-    assert_select "#chat_older_messages a", false
+    assert_select "##{@tool.chat.part_id(:older_messages)} a", false
   end
 
   test "older messages are prepended above the ones already on the page" do
@@ -67,12 +67,12 @@ class Tools::Chats::MessagesControllerTest < ActionDispatch::IntegrationTest
     get tool_chat_messages_path(@tool, before: messages[5].id), headers: { "Accept" => "text/vnd.turbo-stream.html" }
 
     assert_response :success
-    assert_select "turbo-stream[action=prepend][target=chat_messages]" do
+    assert_select "turbo-stream[action=prepend][target=?]", @tool.chat.part_id(:messages) do
       assert_select "template", html: /Message 0\b/
       # The page already has this one; it comes back only to join its group
       assert_select "template", html: /Message 5\b/, count: 0
     end
-    assert_select "turbo-stream[action=replace][target=chat_older_messages]"
+    assert_select "turbo-stream[action=replace][target=?]", @tool.chat.part_id(:older_messages)
   end
 
   test "the day's separator moves up with the messages that now open it" do
@@ -84,7 +84,7 @@ class Tools::Chats::MessagesControllerTest < ActionDispatch::IntegrationTest
     # Both pages hold messages from the same day, so the separator the page
     # already shows has to go — the prepended page brings its own, above the
     # older messages where it belongs.
-    assert_select "turbo-stream[action=remove][target=?]", "chat_date_#{messages[1].created_at.to_date}"
+    assert_select "turbo-stream[action=remove][target=?]", @tool.chat.part_id(:date, messages[1].created_at.to_date)
   end
 
   test "a group that straddles the page boundary stops repeating its author" do

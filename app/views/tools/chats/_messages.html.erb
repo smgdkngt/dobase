@@ -19,7 +19,7 @@
         end
     %>
     <%# The id lets a page of older messages take over a day it now opens. %>
-    <div id="chat_date_<%= message_date %>"
+    <div id="<%= message.chat.part_id(:date, message_date) %>"
          class="flex items-center gap-3 my-4 sm:my-6 px-2 sm:px-4"
          role="separator"
          aria-label="Messages from <%= date_label %>">

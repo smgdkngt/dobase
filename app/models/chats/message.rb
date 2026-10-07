@@ -164,7 +164,7 @@ module Chats
     # without its author's name again when it continues the one above.
     after_create_commit -> {
       broadcast_append_to chat,
-        target: "chat_messages",
+        target: chat.part_id(:messages),
         partial: "tools/chats/message",
         locals: { message: self, is_continuation: continuation? }
     }
