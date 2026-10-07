@@ -425,6 +425,64 @@ module Tools
       assert_enqueued_jobs 2, only: SyncDraftJob
     end
 
+    test "a reply draft says what it quotes, and the quote can be changed or left out" do
+      original = mails_messages(:inbox_read)
+      original.update!(body_html: "<p>Lunch?</p><p>The password is hunter2</p>")
+      reply = { to: "reports@example.com", subject: "Re: Lunch", body: "<p>Sure</p>", in_reply_to: original.message_id, quoted_message_id: original.id }
+
+      post tool_mail_drafts_path(@tool), headers: @headers, as: :json, params: reply
+
+      assert_response :created
+      draft = response.parsed_body
+      assert_equal "<p>Sure</p>", draft["body_html"]
+      assert_match %r{\A<p>On .* wrote:</p><blockquote type="cite"><p>Lunch\?</p><p>The password is hunter2</p></blockquote>\z}, draft["quote_html"]
+      assert_match(/\AOn .* wrote:\n\n> Lunch\?\n>\n> The password is hunter2\z/, draft["quote"])
+
+      patch tool_mail_draft_path(@tool, draft["id"]), headers: @headers, as: :json,
+        params: { quote_html: draft["quote_html"].sub("<p>The password is hunter2</p>", "") }
+
+      assert_response :success
+      assert_no_match "hunter2", response.parsed_body["quote_html"]
+      assert_match(/\AOn .* wrote:\n\n> Lunch\?\z/, response.parsed_body["quote"])
+
+      # Changing something else leaves the quote as it was changed
+      patch tool_mail_draft_path(@tool, draft["id"]), headers: @headers, as: :json, params: { subject: "Re: Lunch on Friday" }
+      assert_no_match "hunter2", response.parsed_body["quote_html"]
+
+      patch tool_mail_draft_path(@tool, draft["id"]), headers: @headers, as: :json, params: { quoted_message_id: nil }
+      assert_equal [ nil, nil, nil ], response.parsed_body.values_at("quoted_message_id", "quote", "quote_html")
+
+      # A draft that quotes nothing says so, and so does mail that isn't a draft
+      get tool_mail_path(@tool, original), headers: @headers, as: :json
+      assert_not response.parsed_body["messages"].first.key?("quote_html")
+    end
+
+    test "send quotes the mail as it was changed, also for a client that only names the draft" do
+      original = mails_messages(:inbox_read)
+      original.update!(body_html: "<p>Lunch?</p><p>The password is hunter2</p>")
+      reply = { to: "reports@example.com", subject: "Re: Lunch", body: "<p>Sure</p>", in_reply_to: original.message_id, quoted_message_id: original.id }
+      changed = %(<p>Ann wrote:</p><blockquote type="cite"><p>Lunch?</p></blockquote>)
+
+      post tool_mails_path(@tool), headers: @headers, as: :json, params: reply.merge(quote_html: changed)
+
+      assert_response :created
+      assert_equal "<p>Sure</p>#{changed}", @smtp.sent.last[:body_html]
+      assert_equal "Sure\n\nAnn wrote:\n\n> Lunch?", @smtp.sent.last[:body]
+
+      # A draft whose quote was changed in the browser, sent by a client from before quotes could be changed
+      draft = @account.new_draft(subject: "Re: Lunch", body_html: "<p>Sure</p>", in_reply_to: original.message_id, quoted_message: original, quote_html: changed)
+      draft.save!
+      post tool_mails_path(@tool), headers: @headers, as: :json, params: reply.merge(draft_id: draft.id)
+
+      assert_response :created
+      assert_equal "<p>Sure</p>#{changed}", @smtp.sent.last[:body_html]
+
+      # Without a quote
+      post tool_mails_path(@tool), headers: @headers, as: :json, params: reply.except(:quoted_message_id)
+      assert_equal "<p>Sure</p>", @smtp.sent.last[:body_html]
+      assert_no_match "hunter2", @smtp.sent.map { |email| email[:body_html] }.join
+    end
+
     test "files are attached to a draft, next to the ones it has" do
       draft = mails_messages(:draft_message)
       upload = -> { fixture_file_upload("sample.png", "image/png") }

@@ -213,19 +213,30 @@ away. With a token that answers `422` and nothing happens:
 { "to": "rachel@northstarvc.com", "subject": "Re: Seed Round Follow-up", "body": "<p>Thursday at 2pm works. See you then!</p>", "in_reply_to": "<004@moonshot-snacks.com>" }
 ```
 
-`to`, `cc` and `bcc` are comma-separated addresses, and `body` is HTML. `in_reply_to`
+`to`, `cc` and `bcc` are comma-separated addresses, and `body` is HTML. An address
+may come with a name (`Ann Lee <ann@example.com>`): a draft and the copy in Sent
+keep the addresses, and the mail goes out to each person under the name the
+account knows them by, the one given here when it had none. `in_reply_to`
 is the `message_id` of the message you're replying to, and puts the draft in
 its conversation. `quoted_message_id` is the `id` of the message a reply answers
 or a forward forwards: it's kept out of `body` and added below it as it was
 written (a reply's quote, or a forward's header block) when the mail goes out,
-with the pictures it shows. `forward_attachment_ids` are the `id`s of
+with the pictures it shows. `quote_html` is that quote as it should go out
+instead: the whole of it, header line included, with a part taken out or
+changed. It is kept the way mail is shown (no scripts), and a picture of the
+quoted mail goes along while its `cid:` address is still in it. A draft answers
+with `quote` (text) and `quote_html`: what it goes out with below `body`, as
+written or as changed. `forward_attachment_ids` are the `id`s of
 attachments of other mail in this account, which a forward takes along: they are
 copied onto the draft. Returns `201` and the draft, which is copied to the
 server's Drafts folder in the background, quote and attachments included.
 
 `PATCH /tools/:tool_id/mails/drafts/:id` with any of the same fields changes
 only those and returns the draft. Its attachments, `in_reply_to` and the
-message it quotes stay as they are.
+message it quotes stay as they are, and so does what was changed in the quote.
+`"quote_html": null` quotes the mail as it was written again, and so does
+naming `quoted_message_id` without `quote_html`; `"quoted_message_id": null`
+quotes nothing.
 
 `POST /tools/:tool_id/mails/drafts/:id/attachments` attaches files to a draft:
 a `multipart/form-data` request with one or more `files[]` parts. They are
@@ -256,7 +267,7 @@ A reply sends `in_reply_to`, the `message_id` of the message it answers: the
 email gets `In-Reply-To` and `References` headers, so mail programs keep it in
 that conversation, and its copy in Sent joins the conversation in Dobase. With
 `quoted_message_id` the answered (or forwarded) message is quoted below `body`,
-as for drafts.
+as for drafts, and `quote_html` is that quote as it should go out instead.
 The API sends right away and says whether it went (the compose page sends in the
 background instead, and keeps mail that couldn't be sent as a draft).
 It returns `201` with the recipients and subject, and a copy goes into Sent:
@@ -269,7 +280,9 @@ To send a saved draft, send its fields with `"draft_id": 12`, and the `id`s of
 its attachments as `forward_attachment_ids` (only the attachments named there
 go out); the draft is deleted once the email is sent. As in the browser, the email is made from the
 fields in the request, not from what the draft holds, so send a reply draft's
-`in_reply_to` too.
+`in_reply_to` too. The one exception is a quote that was changed: a request
+that names the draft's `quoted_message_id` without `quote_html` sends the quote
+as the draft has it, never the mail as it was written.
 
 An invalid address returns `422` without sending anything. A mail server that
 refuses the email or can't be reached returns `422` too:
@@ -297,9 +310,12 @@ connection settings change, or after a `POST /tools/:tool_id/sync`.
 
 ## Contacts
 
-`GET /tools/:tool_id/mails_contacts?q=ra` returns up to 10 people you have
-mailed or received mail from whose name or address contains `q` (2 characters
-or more):
+`GET /tools/:tool_id/mails_contacts?q=ra` returns up to 8 people you have
+mailed or received mail from whose name or address contains `q`. The people
+you write to come first, those written to lately and often before the others
+(mail in Sent counts, whichever mail program sent it), then the people who
+only wrote to you. What begins a name or an address comes before what is
+somewhere inside one:
 
 ```json
 [

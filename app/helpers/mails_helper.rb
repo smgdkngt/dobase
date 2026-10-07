@@ -3,6 +3,42 @@
 require "net/imap"
 
 module MailsHelper
+  # Emails are designed for a light page, so they keep one in dark mode too (like other
+  # mail clients); the host page frames them on a light surface instead of recoloring them.
+  MAIL_FRAME_STYLES = <<~CSS
+    :root { color-scheme: light; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #1d1d1f;
+      background: #fff;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
+    a { color: #0071e3; }
+    img { max-width: 100%; height: auto; }
+    table { max-width: 100%; }
+    pre { white-space: pre-wrap; overflow-x: auto; }
+    blockquote {
+      margin: 0.5em 0;
+      padding-left: 1em;
+      border-left: 3px solid #d2d2d7;
+      color: #6e6e73;
+    }
+  CSS
+
+  # Until the reader asks for images, nothing loads from outside the email. CSS url()s in
+  # <style> survive sanitizing and would otherwise still work as tracking pixels.
+  MAIL_FRAME_POLICY = %(<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: cid:; style-src 'unsafe-inline'; font-src data:">)
+
+  # The page a mail is in its frame (srcdoc), which runs no scripts
+  def mail_frame_document(body, remote_content: false, styles: nil)
+    "<!DOCTYPE html><html><head><meta charset=\"utf-8\">#{MAIL_FRAME_POLICY unless remote_content}<base target=\"_blank\"><style>#{MAIL_FRAME_STYLES}#{styles}</style></head><body>#{body}</body></html>"
+  end
+
   # The built-in folders to switch between, with the counts that show as a badge
   def mail_folders(inbox_unread:, drafts_count:, trash_count:)
     [
@@ -41,5 +77,19 @@ module MailsHelper
       end
     end
     branch.(nil, 0)
+  end
+
+  # What a screen reader hears after a recipient's name
+  def recipient_more(recipient)
+    return ", not a valid address" unless recipient.valid?
+
+    recipient.name.present? ? ", #{recipient.address}" : ""
+  end
+
+  # Two letters for someone who is only a name and an address
+  def recipient_initials(suggestion)
+    words = suggestion.name.to_s.scan(/[[:alnum:]]+/)
+    words = [ suggestion.address ] if words.empty?
+    (words.size > 1 ? words.first[0] + words.last[0] : words.first[0]).upcase
   end
 end

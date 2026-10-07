@@ -94,5 +94,21 @@ module Mails
       end
       assert_equal [ "INBOX", true ], [ message.reload.folder, message.trashed? ]
     end
+
+    test "people are known by the name they were written to with, else the one they sign with" do
+      @account.record_contact("sender@example.com", "Sandy")
+      @account.record_contact("reports@example.com")
+
+      assert_equal({ "sender@example.com" => "Sandy", "reports@example.com" => "Reports Bot" },
+        @account.names_for([ "Sender@example.com", "reports@example.com", "stranger@example.com" ]))
+    end
+
+    test "a name someone is written to with is remembered, and who has one keeps it" do
+      @account.record_contact("ann@example.com", "Ann Lee")
+
+      @account.remember_names(::Mails::Recipient.parse("Annie <ann@example.com>, Joe Bloggs <joe@example.com>, kim@example.com, Nobody <nobody>"))
+
+      assert_equal({ "ann@example.com" => "Ann Lee", "joe@example.com" => "Joe Bloggs" }, @account.contacts.pluck(:email_address, :name).to_h)
+    end
   end
 end

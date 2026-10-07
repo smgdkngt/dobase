@@ -1,4 +1,4 @@
-<%# Locals: message, actions (false inside a form, like the compose page's quote: no buttons that are forms themselves) %>
+<%# Locals: message %>
 <% if message.body_html.present? %>
   <%
     # Only the attributes Mails::ReadableHtml allows are left: no event handlers
@@ -9,45 +9,10 @@
       sanitized.match?(/\bbackground\s*=\s*["']?\s*https?:/i)
     images_stripped = sanitized.gsub(/(<img\b[^>]*?)\bsrc\s*=\s*["']https?:\/\/[^"']*["']/i, '\1data-blocked-src=""')
 
-    # Emails are designed for a light page, so they keep one in dark mode too (like other
-    # mail clients); the host page frames them on a light surface instead of recoloring them.
-    base_styles = <<~CSS
-      :root { color-scheme: light; }
-      body {
-        margin: 0;
-        padding: 0;
-        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        font-size: 14px;
-        line-height: 1.5;
-        color: #1d1d1f;
-        background: #fff;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-      }
-      a { color: #0071e3; }
-      img { max-width: 100%; height: auto; }
-      table { max-width: 100%; }
-      pre { white-space: pre-wrap; overflow-x: auto; }
-      blockquote {
-        margin: 0.5em 0;
-        padding-left: 1em;
-        border-left: 3px solid #d2d2d7;
-        color: #6e6e73;
-      }
-    CSS
-
-    # Until the reader asks for images, nothing loads from outside the email. CSS url()s in
-    # <style> survive sanitizing and would otherwise still work as tracking pixels.
-    remote_content_policy = %(<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: cid:; style-src 'unsafe-inline'; font-src data:">)
-
-    srcdoc_for = ->(body, policy: nil) {
-      "<!DOCTYPE html><html><head><meta charset=\"utf-8\">#{policy}<base target=\"_blank\"><style>#{base_styles}</style></head><body>#{body}</body></html>"
-    }
-
-    safe_srcdoc = srcdoc_for.call(images_stripped, policy: remote_content_policy)
-    full_srcdoc = srcdoc_for.call(sanitized)
+    safe_srcdoc = mail_frame_document(images_stripped)
+    full_srcdoc = mail_frame_document(sanitized, remote_content: true)
     images_trusted = has_remote_images && message.account.shows_images_from?(message.from_address)
-    can_trust_sender = local_assigns.fetch(:actions, true) && message.from_address.present? && !message.from_address.casecmp?(message.account.email_address)
+    can_trust_sender = message.from_address.present? && !message.from_address.casecmp?(message.account.email_address)
   %>
   <div data-controller="email-frame"
        data-email-frame-full-srcdoc-value="<%= full_srcdoc %>">

@@ -4,7 +4,7 @@ import { formatFileSize } from "services/file_size"
 const FILE_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>'
 
 export default class extends Controller {
-  static targets = ["to", "ccField", "bccField", "fileInput", "attachmentsList", "quote", "quotedMessage"]
+  static targets = ["to", "ccField", "bccField", "fileInput", "attachmentsList", "quote", "quotedMessage", "quoteFrame"]
   static values = { unsent: Boolean }
 
   connect() {
@@ -66,7 +66,7 @@ export default class extends Controller {
 
   _formSnapshot() {
     const form = new FormData(this.element)
-    const fields = ["to", "cc", "bcc", "subject", "body", "quoted_message_id"].map(name => form.get(name))
+    const fields = ["to", "cc", "bcc", "subject", "body", "quoted_message_id", "quote_html"].map(name => form.get(name))
     const files = form.getAll("attachments[]").map(file => file.name)
     return JSON.stringify([...fields, ...files])
   }
@@ -79,6 +79,75 @@ export default class extends Controller {
   removeQuote() {
     this.quotedMessageTarget.value = ""
     this.quoteTarget.remove()
+  }
+
+  // The quoted mail is changed where it shows: in its frame, which runs no scripts of its
+  // own. A frame that was there before this controller has its page already.
+  quoteFrameTargetConnected(frame) {
+    this._makeQuoteEditable(frame)
+  }
+
+  quoteLoaded({ currentTarget }) {
+    this._makeQuoteEditable(currentTarget)
+  }
+
+  // What the frame holds is what goes out. The form takes it from the frame the moment the
+  // form is read (sent, saved, or looked at for changes), so there is no copy of it that can
+  // fall behind what shows. A quote nobody touched isn't sent at all: the server quotes the
+  // mail as it was written, as it always did.
+  addQuote({ formData }) {
+    if (!this.hasQuoteFrameTarget || !formData.get("quoted_message_id")) return
+
+    const html = this._quoteHtml()
+    if (html === null || html === this._quoteAsLoaded) return
+
+    if (this._quoteIsEmpty()) {
+      // Everything taken out of it: there is no quote
+      formData.set("quoted_message_id", "")
+      formData.delete("quote_html")
+    } else {
+      formData.set("quote_html", html)
+    }
+  }
+
+  _makeQuoteEditable(frame) {
+    const page = frame.contentDocument
+    if (!page?.body) return
+
+    page.body.contentEditable = "true"
+    this._quoteAsLoaded = this._quoteHtml()
+    // Reaching for the quote is reaching for the form (startEditing), and what happens in a
+    // frame isn't heard outside it. Neither is where the keyboard is: a frame doesn't
+    // match :focus for what is in it, so the frame says it has the keyboard (mails.css).
+    if (!page.compose) {
+      for (const type of ["pointerdown", "keydown", "beforeinput"]) {
+        page.addEventListener(type, () => page.compose.startEditing(), true)
+      }
+      page.addEventListener("focusin", () => frame.toggleAttribute("data-has-keyboard", true))
+      page.addEventListener("focusout", () => frame.toggleAttribute("data-has-keyboard", false))
+      // Escape lets go of it, as of any field: the keyboard is the page's again
+      page.addEventListener("keydown", (event) => { if (event.key === "Escape") frame.blur() })
+    }
+    page.compose = this
+  }
+
+  // The quote as it goes out: a picture by the address it is sent with (data-src,
+  // Mails::Quote#to_editable_html), not by the one it shows with here
+  _quoteHtml() {
+    const body = this.hasQuoteFrameTarget && this.quoteFrameTarget.contentDocument?.body
+    if (!body) return null
+
+    const copy = body.cloneNode(true)
+    for (const picture of copy.querySelectorAll("img[data-src]")) {
+      picture.setAttribute("src", picture.dataset.src)
+      picture.removeAttribute("data-src")
+    }
+    return copy.innerHTML
+  }
+
+  _quoteIsEmpty() {
+    const body = this.quoteFrameTarget.contentDocument.body
+    return !body.textContent.trim() && !body.querySelector("img, table, hr")
   }
 
   // Cc and Bcc wait behind their buttons in the To field until they're wanted

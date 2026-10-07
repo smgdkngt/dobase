@@ -51,6 +51,7 @@ export default class extends Controller {
     if (!this.hasMenuTarget) return
     this.menuTarget.classList.add("hidden")
     this.menuTarget.classList.remove("block")
+    this.menuTarget.removeAttribute("data-live-busy")
   }
 
   // Actions delegate to parent controller via events
@@ -84,6 +85,8 @@ export default class extends Controller {
     menu.style.top = "0"
     menu.classList.remove("hidden")
     menu.classList.add("block")
+    // Open by a class the server doesn't know of: the page isn't drawn again under it
+    menu.setAttribute("data-live-busy", "")
 
     const rect = menu.getBoundingClientRect()
     if (x + rect.width > window.innerWidth) x = window.innerWidth - rect.width - 10

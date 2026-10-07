@@ -24,7 +24,9 @@ const (
 	mailBody = "Message (plain text, or HTML with --html)"
 	mailOpen = "Open the saved draft in the Dobase app or your browser, ready to edit and send"
 	// The server takes this much per draft
-	mailAttach = "Attach this file; repeat for more (25 MB together)"
+	mailAttach  = "Attach this file; repeat for more (25 MB together)"
+	mailQuote   = "The quoted mail as it should go out, not as it was written: HTML with its header line, as a draft's quote_html in `mail show --json` (- reads stdin)"
+	mailNoQuote = "Quote nothing below your text"
 )
 
 func mail() []*Definition {
@@ -73,6 +75,8 @@ func mail() []*Definition {
 				F("subject", "TEXT", "Subject"),
 				F("body", "TEXT", mailBody),
 				Switch("html", "The body is HTML"),
+				F("quote", "HTML", mailQuote),
+				Switch("no-quote", mailNoQuote),
 				Each("attach", "PATH", mailAttach),
 				Switch("open", mailOpen),
 			}, updateMailDraft),
@@ -81,6 +85,8 @@ func mail() []*Definition {
 				F("body", "TEXT", "Your reply (plain text, or HTML with --html)"),
 				Switch("all", "Reply to all: cc everyone else on the message"),
 				Switch("html", "The body is HTML"),
+				F("quote", "HTML", mailQuote),
+				Switch("no-quote", "Leave the original out of the reply"),
 				Each("attach", "PATH", mailAttach),
 				Switch("send", "Send it now through the mail server instead of saving a draft"),
 				Switch("open", mailOpen),
@@ -92,6 +98,8 @@ func mail() []*Definition {
 				F("cc", "ADDRS", mailCc),
 				F("body", "TEXT", "A note above the forwarded message (plain text, or HTML with --html)"),
 				Switch("html", "The body is HTML"),
+				F("quote", "HTML", mailQuote),
+				Switch("no-quote", "Leave the original's text out: only your note and the attachments go"),
 				Each("attach", "PATH", "Attach this file too, next to the original's; repeat for more (25 MB together)"),
 				Switch("send", "Send it now through the mail server instead of saving a draft"),
 				Switch("open", mailOpen),
@@ -232,6 +240,16 @@ func showMail(ctx *Ctx, args *Args) error {
 				ctx.Sayf("  (no %s)", kind)
 			} else {
 				ctx.Paragraph(body, 2)
+			}
+			// What a draft goes out with below its text: as written, or as it was changed
+			quote := message.Get("quote").S()
+			if html {
+				quote = message.Get("quote_html").S()
+			}
+			if !isBlank(quote) {
+				ctx.Blank()
+				ctx.Say("  Quoted below it:")
+				ctx.Paragraph(quote, 4)
 			}
 
 			attachments := message.Get("attachments").Items()
@@ -431,6 +449,13 @@ func updateMailDraft(ctx *Ctx, args *Args) error {
 			return err
 		}
 	}
+	quote, err := mailQuoteFields(ctx, args)
+	if err != nil {
+		return err
+	}
+	for name, value := range quote {
+		fields[name] = value
+	}
 	files, err := filesToAttach(args, "files[]")
 	if err != nil {
 		return err
@@ -505,6 +530,13 @@ func replyMail(ctx *Ctx, args *Args) error {
 		// The server quotes it below the text as it was written, like the compose page does
 		"quoted_message_id", original.Get("id"),
 	)
+	quote, err := mailQuoteFields(ctx, args)
+	if err != nil {
+		return err
+	}
+	for name, value := range quote {
+		reply = reply.With(name, value)
+	}
 	if args.On("send") && len(files) == 0 {
 		sent, err := ctx.Post(fmt.Sprintf("/tools/%s/mails", tool.Get("id").S()), reply)
 		if err != nil {
@@ -588,6 +620,13 @@ func forwardMail(ctx *Ctx, args *Args) error {
 		"quoted_message_id", original.Get("id"),
 		"forward_attachment_ids", attachmentIDs,
 	)
+	quote, err := mailQuoteFields(ctx, args)
+	if err != nil {
+		return err
+	}
+	for name, value := range quote {
+		email = email.With(name, value)
+	}
 	attached := Count(int64(len(attachmentIDs)+len(files)), "attachment")
 	if args.On("send") && len(files) == 0 {
 		sent, err := ctx.Post(fmt.Sprintf("/tools/%s/mails", tool.Get("id").S()), email)
@@ -988,6 +1027,32 @@ func requireMailFlags(args *Args, names ...string) error {
 		return api.Usagef("Missing %s. See `dobase help mail`.", strings.Join(missing, ", "))
 	}
 	return nil
+}
+
+// mailQuoteFields is what --quote and --no-quote say about the mail quoted below the text:
+// the quote as given, no quote at all, or nothing (the server quotes the mail as it was written).
+func mailQuoteFields(ctx *Ctx, args *Args) (map[string]any, error) {
+	quote, changed := args.Flag("quote")
+	if !changed {
+		if args.On("no-quote") {
+			return map[string]any{"quoted_message_id": api.Null}, nil
+		}
+		return nil, nil
+	}
+	if args.On("no-quote") {
+		return nil, api.Usagef("--quote changes the quoted mail and --no-quote leaves it out; pass one of them.")
+	}
+	if quote == "-" && args.Value("body") == "-" {
+		return nil, api.Usagef("Only one of --body and --quote can be read from stdin.")
+	}
+	html, err := ctx.Text(quote)
+	if err != nil {
+		return nil, err
+	}
+	if isBlank(html) {
+		return nil, api.Usagef("--quote is empty. To quote nothing, pass --no-quote.")
+	}
+	return map[string]any{"quote_html": html}, nil
 }
 
 // optionalMailFlag is the flag's value, or null when it wasn't given.

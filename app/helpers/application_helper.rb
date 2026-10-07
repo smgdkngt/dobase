@@ -178,17 +178,18 @@ module ApplicationHelper
     }
   end
 
-  # The tools whose pages draw themselves again when something in the tool changes
-  # (live_controller.js). The others show what is new in their own way (chat, a
-  # document that is open) or don't yet.
-  LIVE_TOOL_TYPES = %w[boards todos].freeze
+  # The pages that draw themselves again when something in their tool changes
+  # (live_controller.js): the ones that show what is in a tool. The others show what
+  # is new in their own way (chat, a document that is open), are a form, or don't yet
+  # (mail).
+  LIVE_PAGES = %w[tools/boards#show tools/todos#show tools/files#show tools/docs#show tools/calendars#show].freeze
 
   # What <main> carries on every page: the arrow keys go through whatever the page
   # marks as an item (arrow_keys_controller.js), and on a tool's page people see each
   # other there, and what any of them changes.
   def main_attributes
     data = @tool&.persisted? ? presence_attributes[:data] : {}
-    live = "live" if data.any? && @tool.tool_type.slug.in?(LIVE_TOOL_TYPES)
+    live = "live" if data.any? && "#{controller_path}##{action_name}".in?(LIVE_PAGES)
     { data: data.merge(controller: [ data[:controller], live, "arrow-keys" ].compact.join(" "), arrow_keys_main_value: true) }
   end
 
