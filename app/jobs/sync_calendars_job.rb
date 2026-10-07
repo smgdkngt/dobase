@@ -11,6 +11,7 @@ class SyncCalendarsJob < ApplicationJob
     account = Calendars::Account.find_by(id: calendar_account_id)
     return unless account
 
+    before = shown(account)
     account.mark_syncing!
 
     service = CaldavSyncService.new(account)
@@ -30,5 +31,15 @@ class SyncCalendarsJob < ApplicationJob
   rescue StandardError => e
     Rails.logger.error("Calendar sync unexpected error for account #{calendar_account_id}: #{e.message}")
     account.mark_sync_error!("Unexpected error: #{e.message}")
+  ensure
+    # The pages that have the calendar open draw it again when the sync brought
+    # something they show (Tool#announce_change), also when it stopped halfway
+    account.tool.announce_change if before && shown(account) != before
   end
+
+  private
+    # What a calendar's page shows of an account: its calendars and their events
+    def shown(account)
+      [ account.calendars.order(:id).pluck(:id, :name, :color, :enabled), account.events.count, account.events.maximum(:updated_at) ]
+    end
 end

@@ -1,8 +1,9 @@
 // Whether a refresh of the page would take something away from the person using it: a
-// dialog or a menu is open, or the cursor is in a field. A morph refresh closes the first
-// two and puts back what the server knows of the third.
+// dialog, a menu or a viewer that lies over the page (the gallery) is open, or the
+// cursor is in a field. A morph refresh closes the first three and puts back what the
+// server knows of the last.
 export function pageInUse() {
-  if (document.querySelector("dialog[open], [popover]:popover-open")) return true
+  if (document.querySelector("dialog[open], [popover]:popover-open, [aria-modal='true']:not(dialog, [hidden])")) return true
 
   let field = document.activeElement
   while (field?.shadowRoot?.activeElement) field = field.shadowRoot.activeElement

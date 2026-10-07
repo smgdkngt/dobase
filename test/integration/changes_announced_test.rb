@@ -8,8 +8,8 @@ require "test_helper"
 # don't, each for a reason. A new action that should keep quiet fails this test until
 # it is listed here.
 #
-# For the tools whose pages listen (ApplicationHelper::LIVE_TOOL_TYPES) every way to
-# change them is tried as well: an action that writes and isn't tried fails too.
+# For the tools whose pages listen (ApplicationHelper::LIVE_PAGES) every way to change
+# them is tried as well: an action that writes and isn't tried fails too.
 class ChangesAnnouncedTest < ActionDispatch::IntegrationTest
   include ActionCable::TestHelper
 
@@ -117,6 +117,63 @@ class ChangesAnnouncedTest < ActionDispatch::IntegrationTest
     assert_empty writes_of("tools/todos", "todo_lists") - tried, "These change a todo list and aren't tried here"
   end
 
+  test "every way to change what is in a files tool is heard by the pages that have it open" do
+    tool = tools(:my_files)
+    folder, file = file_folders(:photos), file_items(:readme)
+    upload = -> { { file: fixture_file_upload("sample.png", "image/png") } }
+
+    tried = [
+      announced(tool) { post tool_files_folders_path(tool), params: { name: "New" }, as: :json },
+      announced(tool) { patch tool_files_folder_path(tool, folder), params: { folder: { name: "Pictures" } }, as: :json },
+      announced(tool) { post tool_files_folder_share_path(tool, folder) },
+      announced(tool) { delete tool_files_folder_share_path(tool, folder) },
+      announced(tool) { post tool_files_uploads_path(tool), params: upload.call, headers: { "Accept" => "application/json" } },
+      announced(tool) { patch tool_files_item_path(tool, file), params: { file: { name: "read-me.md" } }, as: :json },
+      announced(tool) { post tool_files_item_share_path(tool, file) },
+      announced(tool) { delete tool_files_item_share_path(tool, file) },
+      announced(tool) { post tool_files_deletion_path(tool), params: { file_ids: [ file_items(:report).id ] } },
+      announced(tool) { delete tool_files_item_path(tool, file), as: :json },
+      announced(tool) { delete tool_files_folder_path(tool, folder), as: :json }
+    ]
+
+    assert_empty writes_of("tools/files") - tried, "These change what is in a files tool and aren't tried here"
+  end
+
+  test "every way to change a documents list is heard by the pages that have it open" do
+    tool = tools(:my_docs)
+    document = docs_documents(:meeting_notes)
+
+    tried = [
+      announced(tool) { post tool_docs_documents_path(tool), params: { docs_document: { title: "New" } }, as: :json },
+      announced(tool) { patch tool_docs_document_path(tool, document), params: { docs_document: { title: "Minutes" } }, as: :json },
+      announced(tool) { delete tool_docs_document_path(tool, document), as: :json }
+    ]
+
+    assert_empty writes_of("tools/docs") - tried, "These change a documents list and aren't tried here"
+  end
+
+  test "every way to change a calendar is heard by the pages that have it open" do
+    tool = tools(:my_calendar)
+    event = calendars_events(:meeting)
+    invite = ->(summary) do
+      mails_messages(:inbox_unread).calendar_invites.create!(uid: "#{SecureRandom.uuid}@example.com", summary: summary,
+        starts_at: 2.days.from_now, ends_at: 2.days.from_now + 1.hour, status: "pending")
+    end
+    unconnected = Tool.create!(name: "Team Calendar", tool_type: tool_types(:calendar), owner: @user)
+
+    tried = [
+      announced(tool) { post tool_calendar_events_path(tool), params: { calendars_event: { summary: "New", start_time: "2030-01-08T14:00", end_time: "2030-01-08T15:00" } }, as: :json },
+      announced(tool) { patch tool_calendar_event_path(tool, event), params: { calendars_event: { summary: "Renamed" } }, as: :json },
+      announced(tool) { delete tool_calendar_event_path(tool, event), as: :json },
+      announced(tool) { post tool_calendar_invites_path(tool), params: { invite_id: invite.call("Planning").id, calendar_id: calendars_calendars(:personal).id } },
+      announced(tool) { delete tool_calendar_invite_path(tool, invite.call("Board meeting")) },
+      announced(tool) { patch tool_calendar_account_path(tool), params: { calendars_account: { calendars_attributes: [ { id: calendars_calendars(:work).id, enabled: "0" } ] } } },
+      announced(unconnected) { post tool_calendar_account_path(unconnected), params: { calendars_account: { provider: "local" } } }
+    ]
+
+    assert_empty writes_of("tools/calendars") - tried, "These change a calendar and aren't tried here"
+  end
+
   test "a change made with an access token is announced like any other" do
     tool = tools(:project_board)
 
@@ -209,8 +266,10 @@ class ChangesAnnouncedTest < ActionDispatch::IntegrationTest
       end.uniq
     end
 
+    # The actions under these namespaces that write and announce it
     def writes_of(*namespaces)
-      writes.map { |controller, action| "#{controller.controller_path}##{action}" }
+      writes.select { |controller, action| controller.announces_change?(action) }
+        .map { |controller, action| "#{controller.controller_path}##{action}" }
         .select { |name| namespaces.any? { |namespace| name.start_with?("#{namespace}/") } }
     end
 end

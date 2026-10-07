@@ -126,7 +126,8 @@ export default class extends Controller {
     const folderId = targetFolderId === "" ? null : targetFolderId
 
     files.forEach(id => {
-      promises.push(fetch(`/tools/${this.toolIdValue}/files/items/${id}`, {
+      // (through Turbo: the page knows the change for its own, live_controller.js)
+      promises.push(Turbo.fetch(`/tools/${this.toolIdValue}/files/items/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "X-CSRF-Token": this.#csrfToken, "Accept": "application/json" },
         body: JSON.stringify({ file: { folder_id: folderId } })
@@ -135,7 +136,7 @@ export default class extends Controller {
 
     folders.forEach(id => {
       if (id === targetFolderId) return
-      promises.push(fetch(`/tools/${this.toolIdValue}/files/folders/${id}`, {
+      promises.push(Turbo.fetch(`/tools/${this.toolIdValue}/files/folders/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "X-CSRF-Token": this.#csrfToken, "Accept": "application/json" },
         body: JSON.stringify({ folder: { parent_id: folderId } })

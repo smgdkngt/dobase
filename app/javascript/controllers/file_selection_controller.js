@@ -166,6 +166,10 @@ export default class extends Controller {
   #updateToolbar() {
     if (!this.hasBulkToolbarTarget) return
 
+    // What is picked is only known here, and gone when the page is drawn again: it
+    // waits with that while something is (live_controller.js)
+    this.bulkToolbarTarget.toggleAttribute("data-live-busy", this.selectedItems.size > 0)
+
     if (this.selectedItems.size > 0) {
       this.bulkToolbarTarget.classList.remove("hidden")
       this.bulkToolbarTarget.classList.add("flex")

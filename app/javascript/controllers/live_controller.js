@@ -13,7 +13,8 @@ import { pageAddress, tileOf, visitPage } from "services/tile"
 // When it does that, and when it waits, is services/live.js. Waiting is for whoever
 // is at work in the page: nothing is drawn while a dialog or a menu is open, the
 // cursor is in a field, a field holds text that wasn't sent, or something is held
-// with the pointer.
+// with the pointer. What a page keeps in the browser only, and drawing would lose
+// (the files that are picked), it marks with data-live-busy while it is there.
 //
 // On <main> of the tools that have it (main_attributes), and so on a tile in the
 // workspace's own page too (layouts/tile_frame).
@@ -70,7 +71,8 @@ export default class extends Controller {
   }
 
   get busy() {
-    return document.hidden || this.held || this.dragging || pageInUse() || unsentText(this.element)
+    return document.hidden || this.held || this.dragging || pageInUse() || unsentText(this.element) ||
+      Boolean(this.element.querySelector("[data-live-busy]"))
   }
 
   draw() {
