@@ -50,8 +50,8 @@ var (
 // Open opens link in the installed Dobase app when there is one and link is on
 // the server at base, otherwise in the default browser:
 //
-//  1. The app `dobase app install` made gets it from its browser, unless
-//     DOBASE_APP names another app.
+//  1. The app `dobase app install` made is handed it, unless DOBASE_APP names
+//     another app.
 //  2. DOBASE_APP, or Safari's web app at ~/Applications/Dobase.app (macOS),
 //     gets the https link with `open -a`.
 //  3. An installed Chrome, Edge or Vivaldi app gets a web+dobase:// link,

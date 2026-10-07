@@ -126,26 +126,36 @@ logo take the theme's colours, and it follows a switch within ten seconds.
 
 ```bash
 dobase app install                            # Dobase as an app of its own, apart from your browser
-dobase app install --browser /usr/bin/brave   # ...kept by the browser you name
+dobase app install --electron ~/electron.zip  # ...in an Electron you got yourself
 dobase app open
 dobase app remove                             # the app and the sign-in it kept
 ```
 
-A browser can install Dobase as an app, but that app then lives in the profile
-you browse with: it shares its windows, its sessions and its restarts.
-`dobase app install` gives the app a profile nothing else uses. It starts a
-Chromium-family browser (Chromium, Chrome, Brave, Edge or Vivaldi, the first one
-it finds, or the one you name) on a profile in `~/.local/share/dobase/app`, out
-of sight, and has it install the Dobase you are logged in to. The browser puts
-the app among your others, with its own icon, and from then on it runs apart
-from the browser you browse with, also when that is the same browser. Sign in
-once in its window.
+A browser can install Dobase as an app, but that app is still the browser: it
+shares its windows, its sessions and its restarts, and on a Mac the system takes
+the two for one program. `dobase app install` makes an app that is nobody's
+browser. It runs in [Electron](https://www.electronjs.org), a Chromium that only
+shows the Dobase you are logged in to, under the server's own name and icon and
+with a sign-in of its own in `~/.local/share/dobase/data`. Sign in once in its
+window.
 
-`o` and `--open` use this app from then on. Links to other sites that you follow
-in the app open in that profile, not in your everyday browser. On a Mac an app
-you installed earlier from the same browser's menu stays beside it, and the new
-one is then called "Dobase 1"; remove the old one first to keep the name. macOS
-and Linux; on Windows, install Dobase from the browser's menu.
+- **On a Mac** the newest Electron is downloaded from its releases on GitHub
+  (about 130 MB, checked against the release's checksums) and becomes
+  `~/Applications/Dobase.app`, signed on your own machine.
+- **On Linux** the app runs in the system's `electron` when there is one (on
+  Arch: `pacman -S electron`), which your package manager then keeps up to date.
+  Without one it downloads Electron into `~/.local/share/dobase/electron`. The
+  app is a desktop entry, `~/.local/share/applications/dobase.desktop`.
+
+Links to other sites that you follow in the app open in your own browser. `o`
+and `--open` use this app from then on. The pages may notify you, and use the
+camera, the microphone and the screen for calls; macOS asks about each once.
+
+Run `dobase app install` again to bring the app up to date: it gets the newest
+Electron and keeps the sign-in. Do that every month or two when the app keeps
+its own Electron, since that is a browser engine with security fixes of its own.
+`--electron` takes an Electron you got yourself: its zip, or on Linux its
+program. macOS and Linux; on Windows, install Dobase from the browser's menu.
 
 ## With Claude Code
 
