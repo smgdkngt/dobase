@@ -112,6 +112,27 @@ class CalendarsTest < ApplicationSystemTestCase
     assert page.document.synchronize { evaluate_script(opened_at) || raise(Capybara::ExpectationNotMet) }
   end
 
+  test "an event changed from its dialog shows on the calendar, and the dialog is gone" do
+    event = calendars_calendars(:personal).events.create!(uid: "dentist@dobase", summary: "Dentist",
+      starts_at: Time.utc(2030, 1, 8, 14), ends_at: Time.utc(2030, 1, 8, 15))
+    visit tool_calendar_path(@tool, week_start: "2030-01-07")
+    wait_for_turbo
+    wait_for_stimulus "calendar"
+
+    find("[data-event-id='#{event.id}']").click
+    within("dialog#event-details-modal[open]") do
+      click_on "Edit"
+      fill_in "calendars_event[summary]", with: "Dentist, moved"
+      click_on "Save Changes"
+    end
+
+    # The answer is the calendar's page, which has no such form: that page it is
+    assert_selector "[data-event-id='#{event.id}']", text: "Dentist, moved"
+    assert_no_selector "dialog#event-details-modal[open]"
+    assert_no_text "Content missing"
+    assert_text "Event updated successfully."
+  end
+
   test "a failed save shows its errors in the event dialog, and Cancel closes it" do
     event = calendars_calendars(:personal).events.create!(uid: "dentist@dobase", summary: "Dentist",
       starts_at: Time.utc(2030, 1, 8, 14), ends_at: Time.utc(2030, 1, 8, 15))

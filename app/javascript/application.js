@@ -30,6 +30,18 @@ import "rhino-editor"
 
 // Close open dialogs and popovers before Turbo morphs them
 // (morph preserves top-layer state, so they'd stay stuck open)
+// A form in a frame (an event's, in its dialog) that was saved is answered with the
+// page it belongs to, which has no such frame. Turbo would write "Content missing"
+// where the form was; the page that came back is what was meant, so it is gone to.
+// A view that has another use for it prevents the default first (the workspace,
+// for a tile that is part of its page).
+document.addEventListener("turbo:frame-missing", (event) => {
+  if (event.defaultPrevented) return
+
+  event.preventDefault()
+  event.detail.visit(event.detail.response)
+})
+
 document.addEventListener("turbo:before-morph-element", (event) => {
   if (event.target instanceof HTMLDialogElement && event.target.open) {
     event.target.close()

@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { eventToHotkeyString } from "@github/hotkey"
+import { eventToHotkeyString, normalizeHotkey } from "@github/hotkey"
 import { typing } from "services/typing"
 import { showFlash } from "services/flash"
 
@@ -100,7 +100,7 @@ export default class extends Controller {
     }
 
     const pressed = eventToHotkeyString(event)
-    const shortcut = Array.from(this.element.querySelectorAll("[data-hotkey]")).find((element) => element.dataset.hotkey.split(",").includes(pressed))
+    const shortcut = Array.from(this.element.querySelectorAll("[data-hotkey]")).find((element) => element.dataset.hotkey.split(/(?<!\+),/).some((key) => normalizeHotkey(key) === pressed))
     if (!shortcut) return
 
     event.preventDefault()

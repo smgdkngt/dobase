@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { floats, drawnWith } from "services/float"
+import { pageAddress, visitPage, tileOf, zoomOf } from "services/tile"
 
 export default class extends Controller {
   static targets = ["grid", "hours", "today", "eventModal", "eventDetailDialog", "newEventDialog", "newEventModal", "weekInput", "startTimeInput", "endTimeInput"]
@@ -13,7 +14,7 @@ export default class extends Controller {
     this.restoreScrollPosition()
 
     // An event opens by itself with ?event=ID in the address
-    const eventId = new URL(window.location.href).searchParams.get("event")
+    const eventId = pageAddress(this.element).searchParams.get("event")
     if (eventId) this._openEvent(eventId)
   }
 
@@ -21,13 +22,16 @@ export default class extends Controller {
     this.teardownScrollPreservation()
   }
 
+  // Before the page is drawn again: the window's page, or the tile's when the
+  // calendar is a tile in the workspace's own page
   setupScrollPreservation() {
     this.beforeRenderHandler = this.saveScrollPosition.bind(this)
-    document.addEventListener("turbo:before-render", this.beforeRenderHandler)
+    this.drawnIn = tileOf(this.element)
+    ;(this.drawnIn || document).addEventListener(this.drawnIn ? "turbo:before-frame-render" : "turbo:before-render", this.beforeRenderHandler)
   }
 
   teardownScrollPreservation() {
-    document.removeEventListener("turbo:before-render", this.beforeRenderHandler)
+    (this.drawnIn || document).removeEventListener(this.drawnIn ? "turbo:before-frame-render" : "turbo:before-render", this.beforeRenderHandler)
   }
 
   saveScrollPosition() {
@@ -60,8 +64,9 @@ export default class extends Controller {
     if (!this.hasGridTarget || !this.hasTodayTarget || !this.hasHoursTarget) return
 
     requestAnimationFrame(() => {
-      const afterHours = this.gridTarget.getBoundingClientRect().left + this.hoursTarget.offsetWidth
-      this.gridTarget.scrollLeft += this.todayTarget.getBoundingClientRect().left - afterHours
+      const zoom = zoomOf(this.gridTarget)
+      const afterHours = this.gridTarget.getBoundingClientRect().left / zoom + this.hoursTarget.offsetWidth
+      this.gridTarget.scrollLeft += this.todayTarget.getBoundingClientRect().left / zoom - afterHours
     })
   }
 
@@ -76,7 +81,7 @@ export default class extends Controller {
       const slot = body?.querySelector(`[data-hour="${body.dataset.scrollHour}"]`)
       if (!slot) return
 
-      this.gridTarget.scrollTop = slot.getBoundingClientRect().top - body.getBoundingClientRect().top
+      this.gridTarget.scrollTop = (slot.getBoundingClientRect().top - body.getBoundingClientRect().top) / zoomOf(this.gridTarget)
     })
   }
 
@@ -246,7 +251,8 @@ export default class extends Controller {
   // going on in the corner (the browser asks "Leave site?" first)
   navigateToWeek(date) {
     const weekStart = this.formatDate(date)
-    Turbo.visit(`/tools/${this.toolIdValue}/calendar?week_start=${weekStart}`)
+    const week = `/tools/${this.toolIdValue}/calendar?week_start=${weekStart}`
+    tileOf(this.element) ? visitPage(this.element, week) : Turbo.visit(week)
   }
 
   getMonday(date) {
