@@ -3,8 +3,19 @@
 require "test_helper"
 
 class PurgeTrashedMailJobTest < ActiveJob::TestCase
+  include ActionCable::TestHelper
+
   setup do
     @account = mails_accounts(:primary)
+  end
+
+  test "a trash that was emptied of old mail says so to the pages that have the mailbox open, and only then" do
+    pages = PresenceChannel.broadcasting_for(@account.tool)
+    trash(mails_messages(:inbox_read), 29.days.ago)
+    assert_no_broadcasts(pages) { PurgeTrashedMailJob.perform_now }
+
+    trash(mails_messages(:inbox_unread), 31.days.ago)
+    assert_broadcasts(pages, 1) { PurgeTrashedMailJob.perform_now }
   end
 
   test "removes mail that has been in the trash for more than 30 days" do

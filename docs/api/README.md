@@ -65,8 +65,7 @@ things read.
 
 What you change through the API shows on the pages people have open, without
 their loading them again: a chat, a board, a todo list, a files tool, the list
-of documents, an open document and the calendar. Mail shows it at its next
-refresh.
+of documents, an open document, the calendar and a mailbox.
 
 ## Requests
 

@@ -20,6 +20,9 @@ export default class extends Controller {
   updateActions() {
     const anyChecked = this.checkboxTargets.some(cb => cb.checked)
     this.actionsTarget.classList.toggle("hidden", !anyChecked)
+    // What is ticked is only known here, and gone when the page is drawn again: it
+    // waits with that while something is (live_controller.js)
+    this.actionsTarget.toggleAttribute("data-live-busy", anyChecked)
   }
 
   moveToFolder(event) {

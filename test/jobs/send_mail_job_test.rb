@@ -3,9 +3,30 @@
 require "test_helper"
 
 class SendMailJobTest < ActiveJob::TestCase
+  include ActionCable::TestHelper
+
   setup do
     @draft = mails_messages(:draft_message)
     @sender = users(:one)
+  end
+
+  test "every window that shows the mailbox hears that the mail has gone out" do
+    assert_broadcast_on(PresenceChannel.broadcasting_for(@draft.account.tool), type: "changed", tool_id: @draft.account.tool.id) do
+      with_mail_server(-> { false }) do
+        perform_enqueued_jobs(only: SendMailJob) { SendMailJob.perform_later(@draft, @sender) }
+      end
+    end
+    assert_equal [ "Sent", false, false ], @draft.reload.values_at(:folder, :draft, :sending)
+  end
+
+  test "and that it is a draft again when the mail server turned it down" do
+    smtp = SmtpTestHelper::FakeSmtp.new
+    smtp.define_singleton_method(:send_message) { |*| raise Net::SMTPFatalError, "550 No such user" }
+
+    assert_broadcasts(PresenceChannel.broadcasting_for(@draft.account.tool), 1) do
+      with_smtp(smtp) { perform_enqueued_jobs(only: SendMailJob) { SendMailJob.perform_later(@draft, @sender) } }
+    end
+    assert_equal [ "Drafts", true, false ], @draft.reload.values_at(:folder, :draft, :sending)
   end
 
   test "mail is tried again while the mail server can't be reached, and sent when it can" do

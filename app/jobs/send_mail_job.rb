@@ -38,12 +38,15 @@ class SendMailJob < ApplicationJob
 
     # It has gone out, whatever became of filing it
     Mails::Message.where(id: message.id).update_all(sending: false)
+    # No longer "Sending…" in any window that shows the mailbox (Tool#announce_change)
+    message.account.tool.announce_change
   end
 
   private
 
   def not_sent(message, sender, reason)
     message.back_to_drafts!
+    message.account.tool.announce_change
     # Saved to the server's Drafts folder too, like any draft
     SyncDraftJob.perform_later(message.id)
     MailNotSentNotifier.with(draft: message, error: reason, tool: message.account.tool).deliver(sender)
