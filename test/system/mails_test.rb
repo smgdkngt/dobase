@@ -237,13 +237,13 @@ class MailsTest < ApplicationSystemTestCase
 
   test "sending to a contact picked from the suggestions" do
     visit new_tool_mail_path(@tool)
-    wait_for_stimulus "email-autocomplete"
+    wait_for_stimulus "recipients"
 
     deliveries = capture_smtp_deliveries do
       find("input[data-compose-target='to']").set("Friendly")
-      find("button[data-email='sender@example.com']").click
-      assert_selector "[data-controller='email-autocomplete']", text: "Friendly Sender"
-      assert_equal "sender@example.com", find("input[name='to']", visible: :hidden).value
+      find("[role=option][data-address='sender@example.com']").click
+      assert_selector "#{recipients_of("to")} li", text: "Friendly Sender"
+      assert_equal "Friendly Sender <sender@example.com>", find("input[name='to']", visible: :hidden).value
 
       find("input[name='subject']").set("Hello")
       perform_enqueued_jobs(only: SendMailJob) do
@@ -255,9 +255,184 @@ class MailsTest < ApplicationSystemTestCase
     assert_equal [ "sender@example.com" ], deliveries.sole[:recipients]
   end
 
+  test "a pasted list of people becomes a token each, and what is no address is marked" do
+    visit new_tool_mail_path(@tool)
+    wait_for_stimulus "recipients"
+
+    paste_into "to", "Ann Lee <ann@example.com>, joe@example.com; \"Kim, Lou\" <kim@example.com>\nnobody"
+
+    assert_equal [ "ann@example.com", "joe@example.com", "kim@example.com", "nobody" ], addresses_in("to")
+    assert_selector "li[data-address='ann@example.com']:not([data-invalid]) button[title='ann@example.com']", text: "Ann Lee"
+    assert_selector "li[data-address='kim@example.com']", text: "Kim, Lou"
+    assert_selector "li[data-address='nobody'][data-invalid]", text: "not a valid address"
+    assert_equal 'Ann Lee <ann@example.com>, joe@example.com, "Kim, Lou" <kim@example.com>, nobody', find("input[name='to']", visible: :hidden).value
+    assert_selector "#{recipients_of("to")} [role=status]", text: "4 addresses added to To", visible: :all
+
+    # The same person twice is once
+    paste_into "to", "JOE@example.com"
+    assert_equal 4, addresses_in("to").size
+  end
+
+  test "a comma, a semicolon and Tab each end an address" do
+    visit new_tool_mail_path(@tool)
+    wait_for_stimulus "recipients"
+
+    input = find("input[data-compose-target='to']")
+    input.send_keys("ann@example.com,", "joe@example.com;", "kim@example.com", :tab)
+
+    assert_equal [ "ann@example.com", "joe@example.com", "kim@example.com" ], addresses_in("to")
+    assert_equal "", input.value
+    # Tab went on from the field
+    assert_equal "Cc", evaluate_script("document.activeElement.textContent.trim()")
+  end
+
+  test "the keyboard picks from the list of people, the most written to first" do
+    account = @tool.mail_account
+    account.record_contact("frida@example.com", "Frida Olsen")
+    3.times { account.record_contact("fritz@example.com", "Fritz Hahn") }
+    visit new_tool_mail_path(@tool)
+    wait_for_stimulus "recipients"
+
+    input = find("input[data-compose-target='to']")
+    input.send_keys("fri")
+    assert_selector "[role=option]", count: 3
+    assert_equal [ "fritz@example.com", "frida@example.com", "sender@example.com" ], all("[role=option]").map { |option| option["data-address"] }
+    assert_equal "true", input["aria-expanded"]
+    assert_selector "[role=option][aria-selected=true]", text: "Fritz Hahn"
+    assert_equal find("[role=option][aria-selected=true]")["id"], input["aria-activedescendant"]
+
+    input.send_keys(:down, :enter)
+    assert_equal [ "frida@example.com" ], addresses_in("to")
+    assert_no_selector "[role=option]"
+    assert_equal "false", input["aria-expanded"]
+    assert_selector "#{recipients_of("to")} [role=status]", text: "Frida Olsen added to To", visible: :all
+
+    # Who is in the field already isn't offered again; Escape shuts the list and keeps the field
+    input.send_keys("fri")
+    assert_selector "[role=option]", count: 2
+    input.send_keys(:escape)
+    assert_no_selector "[role=option]"
+    assert_equal "fri", input.value
+    assert_equal "compose_to", evaluate_script("document.activeElement.id")
+  end
+
+  test "a whole address that was typed is taken as it is, whoever the list offers" do
+    @tool.mail_account.record_contact("ann@example.com.au", "Ann Abroad")
+    visit new_tool_mail_path(@tool)
+    wait_for_stimulus "recipients"
+
+    input = find("input[data-compose-target='to']")
+    input.send_keys("ann@example.com")
+    assert_selector "[role=option]", text: "Ann Abroad"
+    assert_no_selector "[role=option][aria-selected=true]"
+    input.send_keys(:enter)
+
+    assert_equal [ "ann@example.com" ], addresses_in("to")
+  end
+
+  test "Backspace goes onto the last token and then takes it away, the arrows go along the tokens" do
+    visit new_tool_mail_path(@tool, to: "ann@example.com, joe@example.com, kim@example.com")
+    wait_for_stimulus "recipients"
+
+    input = find("input[data-compose-target='to']")
+    input.send_keys(:backspace)
+    assert_equal "kim@example.com", token_with_keyboard
+    assert_equal 3, addresses_in("to").size
+
+    send_keys(:backspace)
+    assert_equal [ "ann@example.com", "joe@example.com" ], addresses_in("to")
+    assert_equal "joe@example.com", token_with_keyboard
+
+    send_keys(:left)
+    assert_equal "ann@example.com", token_with_keyboard
+    send_keys(:right, :right)
+    assert_equal "compose_to", evaluate_script("document.activeElement.id")
+    assert_equal "ann@example.com, joe@example.com", find("input[name='to']", visible: :hidden).value
+  end
+
+  test "Shift and the arrows move a token along its field and to the field below" do
+    visit new_tool_mail_path(@tool, to: "ann@example.com, joe@example.com, kim@example.com")
+    wait_for_stimulus "recipients"
+
+    find("input[data-compose-target='to']").send_keys(:backspace)
+    send_keys([ :shift, :left ])
+    assert_equal [ "ann@example.com", "kim@example.com", "joe@example.com" ], addresses_in("to")
+    assert_equal "kim@example.com", token_with_keyboard
+    assert_selector "#{recipients_of("to")} [role=status]", text: "kim@example.com, 2 of 3 in To", visible: :all
+
+    assert_no_selector recipients_of("cc")
+    send_keys([ :shift, :down ])
+    assert_equal [ "ann@example.com", "joe@example.com" ], addresses_in("to")
+    assert_equal [ "kim@example.com" ], addresses_in("cc")
+    assert_equal "kim@example.com", token_with_keyboard
+    assert_equal "kim@example.com", find("input[name='cc']", visible: :hidden).value
+    assert_selector "#{recipients_of("cc")} [role=status]", text: "kim@example.com moved to Cc", visible: :all
+
+    send_keys([ :shift, :down ], [ :shift, :up ], [ :shift, :up ])
+    assert_equal [ "ann@example.com", "joe@example.com", "kim@example.com" ], addresses_in("to")
+    assert_empty addresses_in("bcc")
+  end
+
+  test "a token's menu shows its address and moves it, changes it or takes it away" do
+    @tool.mail_account.record_contact("ann@example.com", "Ann Lee")
+    visit new_tool_mail_path(@tool, to: "ann@example.com, joe@example.com, kim@example.com")
+    wait_for_stimulus "recipients"
+
+    token("ann@example.com").click
+    within("#{recipients_of("to")} [popover]") do
+      assert_text "Ann Lee <ann@example.com>"
+      assert_no_button "Move to To"
+      click_on "Move to Bcc"
+    end
+    assert_equal [ "ann@example.com" ], addresses_in("bcc")
+    assert_equal "Ann Lee <ann@example.com>", find("input[name='bcc']", visible: :hidden).value
+    assert_equal "joe@example.com, kim@example.com", find("input[name='to']", visible: :hidden).value
+
+    # In its new field it opens that field's menu
+    token("ann@example.com").click
+    within("#{recipients_of("bcc")} [popover]") { click_on "Move to To" }
+    assert_equal [ "joe@example.com", "kim@example.com", "ann@example.com" ], addresses_in("to")
+
+    token("joe@example.com").click
+    within("#{recipients_of("to")} [popover]") { click_on "Remove" }
+    assert_equal [ "kim@example.com", "ann@example.com" ], addresses_in("to")
+
+    token("kim@example.com").click
+    within("#{recipients_of("to")} [popover]") { click_on "Edit address" }
+    input = find("input[data-compose-target='to']")
+    assert_equal "kim@example.com", input.value
+    input.send_keys(:backspace, :backspace, :backspace, "org", :enter)
+    assert_equal [ "ann@example.com", "kim@example.org" ], addresses_in("to")
+  end
+
+  test "a token is dragged to another place in its field and to another field" do
+    visit new_tool_mail_path(@tool, to: "ann@example.com, joe@example.com, kim@example.com")
+    wait_for_stimulus "recipients"
+
+    hold_token "kim@example.com"
+    drop_on token("ann@example.com")
+    assert_equal [ "kim@example.com", "ann@example.com", "joe@example.com" ], addresses_in("to")
+    assert_equal "kim@example.com, ann@example.com, joe@example.com", find("input[name='to']", visible: :hidden).value
+
+    # Cc waits behind its button until a token is in the hand
+    assert_no_selector recipients_of("cc")
+    hold_token "joe@example.com"
+    assert_selector recipients_of("cc")
+    assert_selector recipients_of("bcc")
+    drop_on find("#{recipients_of("cc")} ul")
+
+    assert_equal [ "joe@example.com" ], addresses_in("cc")
+    assert_equal [ "kim@example.com", "ann@example.com" ], addresses_in("to")
+    assert_equal "joe@example.com", find("input[name='cc']", visible: :hidden).value
+    # The field it was dropped in stays; the other one is behind its button again
+    assert_selector recipients_of("cc")
+    assert_no_selector recipients_of("bcc")
+    assert_no_selector "#{recipients_of("cc")} [popover]:popover-open"
+  end
+
   test "an address typed and sent at once goes out with the mail" do
     visit new_tool_mail_path(@tool)
-    wait_for_stimulus "email-autocomplete"
+    wait_for_stimulus "recipients"
 
     deliveries = capture_smtp_deliveries do
       add_recipient "friend@example.com"
@@ -274,7 +449,7 @@ class MailsTest < ApplicationSystemTestCase
 
   test "an address typed and saved at once is in the draft" do
     visit new_tool_mail_path(@tool)
-    wait_for_stimulus "email-autocomplete"
+    wait_for_stimulus "recipients"
 
     find("input[name='subject']").set("Plans")
     find("input[data-compose-target='to']").set("ann@example.com")
@@ -286,16 +461,16 @@ class MailsTest < ApplicationSystemTestCase
 
   test "coming back to a message being written shows each recipient once" do
     visit new_tool_mail_path(@tool, to: "friend@example.com, ann@example.com")
-    wait_for_stimulus "email-autocomplete"
+    wait_for_stimulus "recipients"
     wait_for_turbo
-    assert_selector "[data-email-autocomplete-target='tags'] > span", count: 2
+    assert_selector "#{recipients_of("to")} li[data-address]", count: 2
 
     click_on "Project Board"
     assert_current_path tool_board_path(tools(:project_board)), wait: 10
     page.go_back
 
-    assert_selector "[data-email-autocomplete-target='tags'] > span", text: "friend@example.com"
-    assert_selector "[data-email-autocomplete-target='tags'] > span", count: 2
+    assert_selector "#{recipients_of("to")} li[data-address]", text: "friend@example.com"
+    assert_selector "#{recipients_of("to")} li[data-address]", count: 2
     assert_equal "friend@example.com, ann@example.com", find("input[name='to']", visible: :hidden).value
   end
 
@@ -624,7 +799,7 @@ class MailsTest < ApplicationSystemTestCase
     assert_match "Error: certificate verify failed", users(:one).notifications.order(:created_at).last.message
     visit new_tool_mail_path(@tool, draft_id: draft.id)
     wait_for_compose_editor
-    assert_selector "[data-email-autocomplete-target=tags]", text: "recipient@example.com"
+    assert_selector "#{recipients_of("to")} li[data-address]", text: "recipient@example.com"
     assert_selector "rhino-editor [contenteditable]", text: "Hello there"
     assert_selector "input[name=draft_id][value='#{draft.id}']", visible: :hidden
   ensure
@@ -793,6 +968,43 @@ class MailsTest < ApplicationSystemTestCase
       raise Capybara::ExpectationNotMet, "The editor hasn't started" unless evaluate_script("document.querySelector('rhino-editor').hasInitialized")
     end
     page.evaluate_async_script("requestAnimationFrame(() => requestAnimationFrame(arguments[0]))")
+  end
+
+  # --- The address fields ---
+
+  def recipients_of(field)
+    "[data-recipients-field-value='#{field}']"
+  end
+
+  def addresses_in(field)
+    all("#{recipients_of(field)} li[data-address]").map { |token| token["data-address"] }
+  end
+
+  def token(address)
+    find("li[data-address='#{address}'] button")
+  end
+
+  # The keyboard is on a token: the last one, by Backspace from the place to type
+  def token_with_keyboard
+    evaluate_script("document.activeElement.closest('li[data-address]')?.dataset.address")
+  end
+
+  # A drag by the mouse, in steps: the page looks where the token is every moment or so
+  def hold_token(address)
+    page.driver.browser.action.click_and_hold(token(address).native).move_by(0, 6).pause(duration: 0.1).move_by(0, 6).pause(duration: 0.1).perform
+  end
+
+  def drop_on(element)
+    page.driver.browser.action.move_to(element.native).pause(duration: 0.2).move_by(2, 0).pause(duration: 0.2).release.perform
+  end
+
+  def paste_into(field, text)
+    execute_script(<<~JS, find("#{recipients_of(field)} input[type=text]"), text)
+      const clipboard = new DataTransfer()
+      clipboard.setData("text/plain", arguments[1])
+      arguments[0].focus()
+      arguments[0].dispatchEvent(new ClipboardEvent("paste", { clipboardData: clipboard, bubbles: true, cancelable: true }))
+    JS
   end
 
   # The paragraph of the quoted mail with this text, selected the way a pointer would and deleted

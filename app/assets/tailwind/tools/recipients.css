@@ -1,0 +1,149 @@
+/* The To, Cc and Bcc fields of a mail being written (tools/mails/_recipient_field,
+   recipients_controller.js): every address a token, a list of people under what is typed */
+@layer components {
+  .recipients {
+    @apply items-start;
+  }
+
+  .recipients > .compose-field-label,
+  .recipients > .compose-field-toggle {
+    @apply leading-8;
+  }
+
+  /* Tokens and the place to type run on together and wrap */
+  .recipient-list {
+    @apply flex flex-1 flex-wrap items-center gap-x-1.5 gap-y-1 min-w-0 min-h-8 m-0 p-0 list-none cursor-text;
+  }
+
+  .recipient {
+    @apply flex min-w-0 max-w-full;
+  }
+
+  /* Wherever a dragged token is let go, what is typed comes after the tokens */
+  .recipient-entry {
+    @apply flex flex-1 min-w-12 order-1;
+  }
+
+  /* Room to type in; a field nobody types in doesn't take a line for it */
+  .recipient-entry:focus-within {
+    @apply min-w-24;
+  }
+
+  .recipient-input {
+    @apply w-full min-w-0 h-7 bg-transparent outline-none text-sm text-text-primary;
+  }
+
+  .recipient-token {
+    @apply flex items-center gap-1 min-w-0 max-w-64 h-7 pl-2.5 pr-1.5 rounded-md text-sm text-text-primary cursor-default select-none outline-none;
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    transition: background-color 120ms var(--ease-out);
+  }
+
+  .recipient-token:hover {
+    background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  }
+
+  .recipient-name {
+    @apply truncate;
+  }
+
+  .recipient-chevron {
+    @apply shrink-0 opacity-40;
+  }
+
+  .recipient-token:hover .recipient-chevron {
+    @apply opacity-80;
+  }
+
+  /* The token the keyboard is on, or whose menu is open: the one Backspace takes away */
+  .recipient-token:is(:focus, [data-menu-open]) {
+    @apply bg-accent-solid text-text-inverse;
+  }
+
+  .recipient-token:is(:focus, [data-menu-open]) .recipient-chevron {
+    @apply opacity-90;
+  }
+
+  /* Not an address: said by a sign as well as by the colour */
+  .recipient-warning {
+    @apply hidden shrink-0;
+  }
+
+  .recipient[data-invalid] .recipient-warning {
+    @apply flex;
+  }
+
+  .recipient[data-invalid] .recipient-token {
+    @apply text-error;
+    background: color-mix(in srgb, var(--color-error) 12%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-error) 45%, transparent);
+  }
+
+  .recipient[data-invalid] .recipient-token:is(:focus, [data-menu-open]) {
+    @apply bg-error-solid text-text-inverse;
+  }
+
+  /* A token on its way to another place: where it would land, and the one in the hand */
+  .recipient-landing .recipient-token {
+    @apply opacity-40;
+  }
+
+  .recipient-dragged .recipient-token {
+    @apply shadow-lg cursor-grabbing;
+    background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface));
+  }
+
+  /* While a token is dragged Cc and Bcc are there to drop it in (the ! is for
+     Tailwind's own `hidden`, which no layer of ours comes after) */
+  .compose[data-dragging-recipient] .recipients.hidden {
+    display: flex !important;
+  }
+
+  .compose[data-dragging-recipient] .compose-field-toggle {
+    @apply invisible;
+  }
+
+  .recipient-options {
+    @apply absolute left-12 right-0 top-full z-50 mt-1 max-w-md max-h-72 overflow-y-auto p-1 rounded-lg bg-surface border border-border-light shadow-lg;
+  }
+
+  .recipient-options[hidden] {
+    @apply hidden;
+  }
+
+  .recipient-option {
+    @apply flex items-center gap-2.5 min-w-0 px-2 py-1.5 rounded-md text-sm cursor-default;
+  }
+
+  .recipient-option .avatar {
+    @apply shrink-0;
+  }
+
+  .recipient-option-name {
+    @apply shrink-0 max-w-[60%] truncate text-text-primary;
+  }
+
+  .recipient-option-address {
+    @apply min-w-0 truncate text-text-tertiary;
+  }
+
+  .recipient-option b {
+    @apply font-semibold text-text-primary;
+  }
+
+  .recipient-option:hover {
+    @apply bg-background-secondary;
+  }
+
+  .recipient-option[aria-selected="true"] {
+    @apply bg-accent-solid;
+  }
+
+  .recipient-option[aria-selected="true"] :is(.recipient-option-name, .recipient-option-address, b) {
+    @apply text-text-inverse;
+  }
+
+  .recipient-menu-address {
+    @apply max-w-72 px-4 pt-1.5 pb-2 mb-1 border-b border-border-light text-xs text-text-tertiary break-all select-text;
+  }
+}

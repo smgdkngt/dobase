@@ -179,6 +179,25 @@ module Mails
       contact
     end
 
+    # The names its people are known by here, by address: the one they were written to
+    # with, else the one they sign their own mail with
+    def names_for(addresses)
+      addresses = addresses.map { |address| address.to_s.downcase }.uniq
+      return {} if addresses.empty?
+
+      signed = messages.where("LOWER(from_address) IN (?)", addresses).where.not(from_name: [ nil, "" ])
+        .order(:sent_at).pluck(Arel.sql("LOWER(from_address)"), :from_name).to_h
+      signed.merge(contacts.where(email_address: addresses).where.not(name: [ nil, "" ]).pluck(:email_address, :name).to_h)
+    end
+
+    # A name someone is written to with is kept for the next time; who has one keeps it
+    def remember_names(recipients)
+      recipients.select { |recipient| recipient.name.present? && recipient.valid? }.each do |recipient|
+        contact = contacts.find_or_initialize_by(email_address: recipient.address.downcase)
+        contact.update!(name: recipient.name) if contact.name.blank?
+      end
+    end
+
     private
 
     def uids_by_folder(messages)

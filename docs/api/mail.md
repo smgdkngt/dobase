@@ -213,7 +213,10 @@ away. With a token that answers `422` and nothing happens:
 { "to": "rachel@northstarvc.com", "subject": "Re: Seed Round Follow-up", "body": "<p>Thursday at 2pm works. See you then!</p>", "in_reply_to": "<004@moonshot-snacks.com>" }
 ```
 
-`to`, `cc` and `bcc` are comma-separated addresses, and `body` is HTML. `in_reply_to`
+`to`, `cc` and `bcc` are comma-separated addresses, and `body` is HTML. An address
+may come with a name (`Ann Lee <ann@example.com>`): a draft and the copy in Sent
+keep the addresses, and the mail goes out to each person under the name the
+account knows them by, the one given here when it had none. `in_reply_to`
 is the `message_id` of the message you're replying to, and puts the draft in
 its conversation. `quoted_message_id` is the `id` of the message a reply answers
 or a forward forwards: it's kept out of `body` and added below it as it was
@@ -307,9 +310,12 @@ connection settings change, or after a `POST /tools/:tool_id/sync`.
 
 ## Contacts
 
-`GET /tools/:tool_id/mails_contacts?q=ra` returns up to 10 people you have
-mailed or received mail from whose name or address contains `q` (2 characters
-or more):
+`GET /tools/:tool_id/mails_contacts?q=ra` returns up to 8 people you have
+mailed or received mail from whose name or address contains `q`. The people
+you write to come first, those written to lately and often before the others
+(mail in Sent counts, whichever mail program sent it), then the people who
+only wrote to you. What begins a name or an address comes before what is
+somewhere inside one:
 
 ```json
 [

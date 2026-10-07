@@ -78,4 +78,18 @@ module MailsHelper
     end
     branch.(nil, 0)
   end
+
+  # What a screen reader hears after a recipient's name
+  def recipient_more(recipient)
+    return ", not a valid address" unless recipient.valid?
+
+    recipient.name.present? ? ", #{recipient.address}" : ""
+  end
+
+  # Two letters for someone who is only a name and an address
+  def recipient_initials(suggestion)
+    words = suggestion.name.to_s.scan(/[[:alnum:]]+/)
+    words = [ suggestion.address ] if words.empty?
+    (words.size > 1 ? words.first[0] + words.last[0] : words.first[0]).upcase
+  end
 end

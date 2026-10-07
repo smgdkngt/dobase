@@ -10,6 +10,7 @@
     user: User object (will use avatar or generate initials from name)
     agent: true for something an agent posted on the user's behalf (a bot, not their face)
     initials: Custom initials (used if no user provided)
+    look: with initials, the colours and shape behind them (User.look_for)
     size: :xs (on a card or a row), :sm, :md (default), :lg, :xl, :"2xl"
     class: Additional CSS classes
 %>
@@ -44,6 +45,8 @@
   else
     has_image = false
     initials ||= "?"
+    # Someone who is no user here (an address in mail) with colours of their own
+    look = local_assigns[:look]
   end
 %>
 <%= tag.div class: [ "avatar", size_classes[size], extra_class.presence ],

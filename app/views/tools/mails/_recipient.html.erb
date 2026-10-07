@@ -1,0 +1,10 @@
+<%# One address in a To, Cc or Bcc field. Locals: recipient (Mails::Recipient), field, menu (the id of the field's menu) %>
+<%= tag.li class: "recipient", data: { recipients_target: "token", address: recipient.address, name: recipient.name, invalid: !recipient.valid? || nil } do %>
+  <%= tag.button type: "button", class: "recipient-token", tabindex: -1, title: recipient.address, popovertarget: menu,
+        data: { action: "click->recipients#menuFor dblclick->recipients#edit keydown->recipients#tokenKey" } do %>
+    <span class="recipient-warning"><%= render "shared/icon", name: "alert-circle", size: 12 %></span>
+    <span class="recipient-name" data-recipient-part="name"><%= recipient.name.presence || recipient.address %></span>
+    <span class="sr-only" data-recipient-part="more"><%= recipient_more(recipient) %></span>
+    <%= render "shared/icon", name: "chevron-down", size: 12, class: "recipient-chevron" %>
+  <% end %>
+<% end %>
