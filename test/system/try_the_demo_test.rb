@@ -92,11 +92,11 @@ class TryTheDemoTest < ApplicationSystemTestCase
 
       fill_in_editor "Hello from the other window"
       find("form.chat-form button[type=submit], button[type=submit][title='Send message']", match: :first).click
-      assert_selector "#chat_messages", text: "Hello from the other window"
+      assert_selector ".chat-messages", text: "Hello from the other window"
     end
 
     assert_selector ".presence-face[aria-label='Marcus Rivera is here']"
-    assert_selector "#chat_messages", text: "Hello from the other window"
+    assert_selector ".chat-messages", text: "Hello from the other window"
   end
 
   private

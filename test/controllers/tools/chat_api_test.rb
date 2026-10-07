@@ -255,12 +255,12 @@ module Tools
       # Clears the error slot (a stream that updates it to nothing) rather
       # than a bare empty body, so a previous failed attempt's error doesn't
       # linger once a send succeeds.
-      assert_includes response.body, "chat-form-errors"
+      assert_includes response.body, @tool.chat.part_id(:form_errors)
 
       post tool_chat_messages_path(@tool), params: { message: { body: "" } }, headers: turbo_headers
       assert_response :unprocessable_entity
       assert_equal "text/vnd.turbo-stream.html", response.media_type
-      assert_includes response.body, "chat-form-errors"
+      assert_includes response.body, @tool.chat.part_id(:form_errors)
 
       delete tool_chat_message_path(@tool, @chat.messages.last), headers: turbo_headers
       assert_response :ok

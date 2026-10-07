@@ -4,6 +4,13 @@ module Chats
   class Chat < ApplicationRecord
     self.table_name = "chats"
 
+    # The id of a part of this chat's page: its messages, the link to older ones, a
+    # day's separator. Per chat, because two chats can be on one page (tiles in the
+    # workspace's own page) and what is sent to a chat's page finds its part by id.
+    def part_id(part, on = nil)
+      [ "chat", id, part, on ].compact.join("_")
+    end
+
     MESSAGES_PER_PAGE = 50
     MAX_MESSAGES_PER_PAGE = 200
 

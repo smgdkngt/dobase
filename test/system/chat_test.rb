@@ -22,7 +22,7 @@ class ChatTest < ApplicationSystemTestCase
     page.execute_script(<<~JS, rendered)
       const template = document.createElement("template")
       template.innerHTML = arguments[0].replace('id="', 'id="broadcast_')
-      document.getElementById("chat_messages").append(template.content)
+      document.querySelector(".chat-messages").append(template.content)
     JS
 
     within("[id^='broadcast_']") { assert_selector "time", text: sent_at.in_time_zone("Tokyo").strftime("%-I:%M %p") }
@@ -66,7 +66,7 @@ class ChatTest < ApplicationSystemTestCase
     editable.send_keys(:enter)
     editable.send_keys(:enter)
 
-    assert_selector "#chat_messages", text: "Are you there?"
+    assert_selector ".chat-messages", text: "Are you there?"
     wait_for_turbo
     sleep 1
     assert_equal 1, @tool.chat.messages.count
@@ -132,7 +132,7 @@ class ChatTest < ApplicationSystemTestCase
     wait_for_stimulus "chat"
 
     submit_blank_body
-    assert_selector "#chat-form-errors", text: "can't be blank", wait: 5
+    assert_selector "[id$='_form_errors']", text: "can't be blank", wait: 5
 
     fill_in_editor("Hello there")
     click_send
@@ -140,7 +140,7 @@ class ChatTest < ApplicationSystemTestCase
     assert_text "Hello there"
 
     submit_blank_body
-    assert_selector "#chat-form-errors", text: "can't be blank", wait: 5
+    assert_selector "[id$='_form_errors']", text: "can't be blank", wait: 5
   end
 
   test "an owner is offered someone else's message to delete" do
@@ -252,7 +252,7 @@ class ChatTest < ApplicationSystemTestCase
     page.execute_script(<<~JS)
       const late = document.createElement("div")
       late.style.height = "300px"
-      document.querySelector("#chat_messages").append(late)
+      document.querySelector(".chat-messages").append(late)
     JS
     # The chat follows on the browser's next frame, not within the script that added the picture
     assert_at_newest_message
@@ -260,7 +260,7 @@ class ChatTest < ApplicationSystemTestCase
 
     # Someone who scrolled up to read is left where they are
     scroll_chat_to(0)
-    page.execute_script("document.querySelector('#chat_messages').lastElementChild.style.height = '600px'")
+    page.execute_script("document.querySelector('.chat-messages').lastElementChild.style.height = '600px'")
     sleep 0.2
     assert_equal 0, chat_scroll_top
   end

@@ -32,9 +32,9 @@ module Tools
           # place, so the old one goes first — removing it afterwards would take
           # the new one instead, since they share an id.
           remove_boundary_date_separator,
-          turbo_stream.prepend("chat_messages", partial: "tools/chats/messages", locals: { messages: @messages }),
+          turbo_stream.prepend(@chat.part_id(:messages), partial: "tools/chats/messages", locals: { messages: @messages }),
           fold_boundary_message_into_its_group,
-          turbo_stream.replace("chat_older_messages", partial: "tools/chats/older_messages",
+          turbo_stream.replace(@chat.part_id(:older_messages), partial: "tools/chats/older_messages",
             locals: { tool: @tool, messages: @messages, has_more: @has_more })
         ].compact
       end
@@ -105,7 +105,7 @@ module Tools
 
       def remove_boundary_date_separator
         date = @messages.last&.created_at&.to_date
-        turbo_stream.remove("chat_date_#{date}") if date
+        turbo_stream.remove(@chat.part_id(:date, date)) if date
       end
 
       def set_message
@@ -145,12 +145,12 @@ module Tools
       # none on success, which is what clears a previous failed attempt's
       # message instead of leaving it stuck once the next send goes through.
       # turbo_stream.update (not replace): shared/error_flash renders no
-      # element with the "chat-form-errors" id itself (just a bare .flash
+      # element with the error slot's id itself (just a bare .flash
       # div, or nothing), so a replace would remove the slot from the page —
       # leaving nothing for a later failed send to target.
       def render_message_errors(status: :ok, extra: nil)
         errors = turbo_stream.update(
-          "chat-form-errors",
+          @tool.chat.part_id(:form_errors),
           partial: "shared/error_flash",
           locals: { object: @message }
         )

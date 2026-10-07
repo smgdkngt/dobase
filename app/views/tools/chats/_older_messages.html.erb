@@ -8,7 +8,7 @@
     messages: the page of messages below this, oldest first
     has_more: whether there are older messages still
 %>
-<div id="chat_older_messages" class="px-2 sm:px-4" data-chat-target="olderMessages">
+<div id="<%= tool.chat.part_id(:older_messages) %>" class="px-2 sm:px-4" data-chat-target="olderMessages">
   <% if has_more && messages.first %>
     <%= link_to tool_chat_messages_path(tool, before: messages.first.id),
           class: "chat-load-older",
