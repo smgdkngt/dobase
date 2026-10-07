@@ -166,6 +166,75 @@ class WorkspaceInPageTest < ApplicationSystemTestCase
     assert_selector "#{TILE}:focus"
   end
 
+  test "the arrows never leave the tool, whichever way they are pressed" do
+    open_beside @files
+    find(TODOS).click
+    find("#{TODOS} .tile-page").send_keys(:arrow_down)
+
+    %i[arrow_up arrow_left arrow_right arrow_down].each do |arrow|
+      12.times do
+        page.send_keys(arrow)
+        assert in_the_todos?, "#{arrow} took the keyboard out of the tool, to #{where_the_keyboard_is}"
+      end
+    end
+  end
+
+  test "a todo ticked off by the keyboard leaves the keyboard in the tool" do
+    open_beside @files
+    find(TODOS).click
+    box = find("#{TODOS} #todo-item-#{todo_items(:pending_one).id}-completion")
+    box.send_keys(:space)
+    assert_selector "#{TODOS} #todo-item-#{todo_items(:pending_one).id}.todo-item-completed"
+
+    # Whatever the drawing again did to what had the keyboard: the next keys are the tool's
+    4.times do
+      page.send_keys(:arrow_down)
+      assert in_the_todos?, "The keyboard went to #{where_the_keyboard_is}"
+    end
+    page.send_keys("t")
+    assert_selector "#{TODOS} textarea[aria-label='Todo title']:focus"
+  end
+
+  test "after a todo is added the keyboard is still the tool's" do
+    open_beside @files
+    find(TODOS).click
+    find("#{TODOS} .tile-page").send_keys("t")
+    find("#{TODOS} textarea[aria-label='Todo title']:focus").send_keys("Water the plants", :enter)
+    assert_selector "#{TODOS} .todo-item", text: "Water the plants"
+
+    # The form went with the page that was drawn again, and the keyboard with it
+    6.times do |press|
+      page.send_keys(press < 3 ? :arrow_down : :arrow_up)
+      assert in_the_todos?, "The keyboard went to #{where_the_keyboard_is}"
+    end
+  end
+
+  test "the arrows reach the tile's own buttons and go through its dialog" do
+    find(TODOS).click
+    find("#{TODOS} .tile-page").send_keys(:arrow_down)
+    reached = 6.times.map { page.send_keys(:arrow_up); where_the_keyboard_is }
+    assert reached.any? { |where| where.include?("btn") }, "Up from the first todo never got to the top bar's buttons: #{reached.uniq}"
+
+    within(TODOS) { find("[aria-label='Open #{todo_items(:pending_one).title}']").click }
+    assert_selector "dialog#item-detail-modal[open] [aria-label='Close']:focus"
+    in_dialog = 8.times.map do
+      page.send_keys(:arrow_down)
+      page.evaluate_script("Boolean(document.activeElement.closest('dialog#item-detail-modal'))") && where_the_keyboard_is
+    end
+    assert in_dialog.all?, "The arrows left the dialog"
+    assert_operator in_dialog.uniq.size, :>, 2, "The arrows stayed on #{in_dialog.uniq}"
+  end
+
+  test "down from the bar is onto the tile, not into what is in it" do
+    # (the line about tiles a first visit gets lies under the bar too)
+    within(".workspace-hint") { click_on "Got it" }
+    page.execute_script("document.querySelector(\".workspace-bar-btn[aria-label='Menu']\").focus()")
+    page.send_keys(:arrow_down)
+
+    assert_selector "#{TILE}:focus", wait: 2
+    assert_not in_the_todos?
+  end
+
   test "what a form has to say is said by the page around the tiles" do
     within(TODOS) do
       first("button", text: "Add item").click
@@ -213,6 +282,19 @@ class WorkspaceInPageTest < ApplicationSystemTestCase
   end
 
   private
+
+  def open_beside(tool)
+    page.execute_script("window.dispatchEvent(new CustomEvent('workspace:open', { detail: { url: arguments[0] } }))", tool_path(tool))
+    assert_selector "#{TILE} > iframe"
+  end
+
+  def in_the_todos?
+    page.evaluate_script("Boolean(document.activeElement.closest('turbo-frame.tile-frame'))")
+  end
+
+  def where_the_keyboard_is
+    page.evaluate_script("(document.activeElement.getAttribute('aria-label') || document.activeElement.className || document.activeElement.tagName).toString().slice(0, 80)")
+  end
 
   # The app's own confirmation dialog (shared/turbo_confirm_dialog)
   def accept_confirm_dialog

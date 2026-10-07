@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { typing } from "services/typing"
+import { pageAddress } from "services/tile"
 
 // The arrow keys go through everything on a page that takes the keyboard. First what
 // the page is made of, which a view marks as items (data-arrow-keys-target="item"):
@@ -335,7 +336,7 @@ export default class extends Controller {
     if (!this.mainValue) return
 
     try {
-      sessionStorage.setItem(`${KEPT}:${location.pathname}${location.search}`, this.nameOf(item))
+      sessionStorage.setItem(this.keptAs, this.nameOf(item))
     } catch {
       // No storage: the first arrow starts at the top again
     }
@@ -345,7 +346,7 @@ export default class extends Controller {
     if (!this.mainValue) return null
 
     try {
-      const name = sessionStorage.getItem(`${KEPT}:${location.pathname}${location.search}`)
+      const name = sessionStorage.getItem(this.keptAs)
       return (name && items.find((item) => this.nameOf(item) === name)) || null
     } catch {
       return null
@@ -354,6 +355,13 @@ export default class extends Controller {
 
   nameOf(item) {
     return item.id ? `#${item.id}` : item.getAttribute("href") || `at ${this.itemTargets.indexOf(item)}`
+  }
+
+  // By the page's address: the window's, or its own when it is a tile in the
+  // workspace's page
+  get keptAs() {
+    const address = pageAddress(this.element)
+    return `${KEPT}:${address.pathname}${address.search}`
   }
 
   // ── What there is ──
@@ -366,11 +374,17 @@ export default class extends Controller {
 
   // Whatever else takes the keyboard there: not one of the items or something in one
   // (a file's own buttons belong to the file), and not what a view keeps out
-  // (data-arrow-keys-skip: a list that has keys of its own)
+  // (data-arrow-keys-skip: a list that has keys of its own). What is kept out is kept
+  // out of the view that says so: the workspace keeps its tiles out of its own
+  // arrows, and a tile that is part of its page still has its own within itself.
   get others() {
     const items = this.itemTargets
+    const keptOut = (element) => {
+      const skipped = element.closest("[data-arrow-keys-skip]")
+      return Boolean(skipped) && this.element.contains(skipped)
+    }
     return Array.from(this.reach.querySelectorAll(TAKES_KEYS)).filter((element) => {
-      return pressable(element) && !element.closest("[data-arrow-keys-skip]") && !items.some((item) => item.contains(element))
+      return pressable(element) && !keptOut(element) && !items.some((item) => item.contains(element))
     })
   }
 
@@ -441,7 +455,9 @@ export default class extends Controller {
     const active = document.activeElement
     const nowhere = !active || active === document.body || active === document.documentElement
 
-    if (nowhere) return this.mainValue && !document.querySelector("dialog[open]")
+    // (a tile in the workspace's page is not the page: the workspace says whose the
+    // keyboard is then, workspace_controller.js#keyed)
+    if (nowhere) return this.mainValue && !this.element.closest(".tile-frame") && !document.querySelector("dialog[open]")
     return this.element.contains(active) && active.closest("[data-controller~='arrow-keys']") === this.element
   }
 
