@@ -50,6 +50,15 @@ class Tool < ApplicationRecord
     Noticed::Event.where("json_extract(noticed_events.params, '$.tool._aj_globalid') = ?", to_global_id.to_s)
   end
 
+  # Something in this tool changed. Every page that has the tool open hears it on the
+  # stream it already listens to for who is here (PresenceChannel), and draws itself
+  # again (live_controller.js). Only that it changed is said, never what: the page
+  # asks for itself, and gets what its reader may see. `by` is the request that did
+  # it, which the page that sent it knows as its own.
+  def announce_change(by: nil)
+    PresenceChannel.broadcast_to(self, { type: "changed", tool_id: id, by: by }.compact)
+  end
+
   # Matches emoji at the start of the name (including compound emoji with ZWJ, skin tones, variation selectors)
   LEADING_EMOJI_REGEX = /\A(\p{Extended_Pictographic}[\u{FE0F}\u{200D}\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Emoji_Component}]*)\s*/
 

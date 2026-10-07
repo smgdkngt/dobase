@@ -3,6 +3,7 @@
 class ApplicationController < ActionController::Base
   include Authentication
   include DemoRestricted
+  include AnnouncesChanges
 
   # Requires Popover API, CSS Anchor Positioning, and Invoker Commands (commandfor)
   allow_browser versions: { safari: 26.2, chrome: 135, firefox: 144, opera: 117, ie: false }
