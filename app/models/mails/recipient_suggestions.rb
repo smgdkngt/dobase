@@ -11,6 +11,12 @@ module Mails
     RECENT = 30.days
     LATELY = 6.months
     CANDIDATES = 50
+    # The people of a mail in Sent, a row each (a list that isn't one, from long ago, would stop the whole query)
+    PEOPLE = [
+      "JOIN json_each(CASE WHEN json_valid(mail_messages.to_addresses) THEN mail_messages.to_addresses ELSE '[]' END) AS recipient",
+      "JOIN json_each(CASE WHEN json_valid(mail_messages.cc_addresses) THEN mail_messages.cc_addresses ELSE '[]' END) AS recipient",
+      "JOIN json_each(CASE WHEN json_valid(mail_messages.bcc_addresses) THEN mail_messages.bcc_addresses ELSE '[]' END) AS recipient"
+    ].freeze
 
     def initialize(account)
       @account = account
@@ -53,10 +59,8 @@ module Mails
     # How much was sent to each address and when last, by address: [ score, time ]
     def written_to(condition, value)
       now = Time.current
-      %w[to_addresses cc_addresses bcc_addresses].each_with_object({}) do |column, found|
-        # (a list that isn't one, from long ago, would stop the whole query)
-        list = "CASE WHEN json_valid(mail_messages.#{column}) THEN mail_messages.#{column} ELSE '[]' END"
-        @account.messages.sent.joins("JOIN json_each(#{list}) AS recipient").where(condition, value)
+      PEOPLE.each_with_object({}) do |people, found|
+        @account.messages.sent.joins(people).where(condition, value)
           .group("LOWER(recipient.value)")
           .pluck(
             Arel.sql("LOWER(recipient.value)"),
