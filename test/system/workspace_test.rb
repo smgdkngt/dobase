@@ -654,6 +654,9 @@ class WorkspaceTest < ApplicationSystemTestCase
       find("rhino-editor .ProseMirror").click
       assert page.evaluate_script("document.activeElement.closest('rhino-editor') !== null || document.activeElement.tagName === 'RHINO-EDITOR'"), "the click didn't reach the message box"
       page.execute_script("window.heardSounds = []; document.addEventListener('sound:played', (event) => window.heardSounds.push(event.detail.name))")
+      # The chat is listening before anything is said: a message sent before a page
+      # listens is not sent again, and on a busy machine the test got there first
+      assert_selector "turbo-cable-stream-source[connected]", visible: :all
     end
     page.execute_script("window.heardSounds = []; document.addEventListener('sound:played', (event) => window.heardSounds.push(event.detail.name))")
 
