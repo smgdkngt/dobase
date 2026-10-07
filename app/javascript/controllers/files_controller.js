@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { visitPage, openPage } from "services/tile"
 
 // Main coordinator for file manager - delegates to focused controllers
 export default class extends Controller {
@@ -25,7 +26,7 @@ export default class extends Controller {
   openItem(event) {
     const item = event.currentTarget.closest("[data-item-url]")
     if (item?.dataset.itemUrl) {
-      Turbo.visit(item.dataset.itemUrl)
+      openPage(this.element, item.dataset.itemUrl)
     }
   }
 
@@ -37,7 +38,7 @@ export default class extends Controller {
 
     switch (action) {
       case "open":
-        if (item.dataset.itemUrl) Turbo.visit(item.dataset.itemUrl)
+        if (item.dataset.itemUrl) openPage(this.element, item.dataset.itemUrl)
         break
       case "download":
         this.#downloadItem(item)
@@ -86,7 +87,7 @@ export default class extends Controller {
       method: "PATCH",
       headers: { "Content-Type": "application/json", "X-CSRF-Token": this.#csrfToken, "Accept": "application/json" },
       body
-    }).then(r => r.ok && Turbo.visit(window.location.href, { action: "replace" }))
+    }).then(r => r.ok && visitPage(this.element))
 
     this.renameDialogTarget.close()
   }

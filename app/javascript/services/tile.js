@@ -20,6 +20,20 @@ export function pageAddress(element) {
 }
 
 /**
+ * Goes on to another page of the same tool (a folder, a file): in the tile when the
+ * view is one, as a visit of the window otherwise
+ * @param {Element} element
+ * @param {string} url
+ */
+export function openPage(element, url) {
+  const tile = tileOf(element)
+  if (!tile) return void Turbo.visit(url)
+
+  const to = new URL(url, window.location.origin)
+  tile.setAttribute("src", to.pathname + to.search)
+}
+
+/**
  * How much smaller an element is drawn than it is laid out: a tile in the
  * workspace's page is drawn at seven eighths (workspace.css, --tile-zoom). Where an
  * element is on the screen (getBoundingClientRect) is measured as drawn, how far it

@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { visitPage } from "services/tile"
 
 // Handles file uploads via form and drag-drop
 export default class extends Controller {
@@ -70,7 +71,7 @@ export default class extends Controller {
       })
 
       if (response.ok) {
-        Turbo.visit(window.location.href, { action: "replace" })
+        visitPage(this.element)
       } else {
         const data = await response.json()
         alert(data.errors?.join(", ") || "Upload failed")

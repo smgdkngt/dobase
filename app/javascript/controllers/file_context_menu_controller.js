@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { zoomOf } from "services/tile"
 
 // Handles context menu display and positioning
 export default class extends Controller {
@@ -92,8 +93,11 @@ export default class extends Controller {
     if (x + rect.width > window.innerWidth) x = window.innerWidth - rect.width - 10
     if (y + rect.height > window.innerHeight) y = window.innerHeight - rect.height - 10
 
-    menu.style.left = `${x}px`
-    menu.style.top = `${y}px`
+    // (where the pointer is on the screen is measured as drawn, where the menu is put
+    // as laid out: a tile in the workspace's page is drawn smaller than that)
+    const zoom = zoomOf(menu)
+    menu.style.left = `${x / zoom}px`
+    menu.style.top = `${y / zoom}px`
   }
 
   #closeOnClickOutside(event) {

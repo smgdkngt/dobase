@@ -1,12 +1,12 @@
 <%# locals: (folder:, tool:, view_mode:) %>
 <%
   base_classes = "group relative cursor-pointer select-none transition-colors duration-150"
-  grid_classes = "w-[110px] sm:w-[140px] p-3 sm:p-4 rounded-lg flex flex-col items-center gap-2 hover:bg-background-tertiary"
+  grid_classes = "w-[calc(110px/var(--tile-zoom,1))] @min-[40rem]:w-[calc(140px/var(--tile-zoom,1))] p-3 @min-[40rem]:p-4 rounded-lg flex flex-col items-center gap-2 hover:bg-background-tertiary"
   list_classes = "flex items-center gap-3 px-4 py-3 border-b border-border-light hover:bg-background-tertiary"
   item_classes = view_mode == "grid" ? "#{base_classes} #{grid_classes}" : "#{base_classes} #{list_classes}"
 
   icon_base = "flex items-center justify-center shrink-0 rounded-xl folder-icon transition-transform duration-150 group-hover:scale-105"
-  icon_size = view_mode == "grid" ? "w-12 h-12 sm:w-16 sm:h-16" : "w-7 h-7 rounded-md"
+  icon_size = view_mode == "grid" ? "w-12 h-12 @min-[40rem]:w-16 @min-[40rem]:h-16" : "w-7 h-7 rounded-md"
 %>
 <div class="<%= item_classes %>"
      data-file-selection-target="item"
@@ -26,15 +26,15 @@
   <% if view_mode == "grid" %>
     <span data-item-name class=" text-sm text-center line-clamp-2 break-words"><%= folder.name %></span>
   <% else %>
-    <div class="flex items-center gap-4 sm:gap-8 flex-1 min-w-0">
-      <span data-item-name class=" flex-1 min-w-0 truncate text-sm sm:text-base"><%= folder.name %></span>
-      <span class="w-5 shrink-0 text-center hidden sm:block">
+    <div class="flex items-center gap-4 @min-[40rem]:gap-8 flex-1 min-w-0">
+      <span data-item-name class=" flex-1 min-w-0 truncate text-sm @min-[40rem]:text-base"><%= folder.name %></span>
+      <span class="w-5 shrink-0 text-center hidden @min-[40rem]:block">
         <% if folder.share %>
           <span class="text-accent"><%= render "shared/icon", name: "link", size: 14, label: "Shared" %></span>
         <% end %>
       </span>
-      <span class="text-sm text-text-secondary w-[100px] text-right shrink-0 hidden md:block">Folder</span>
-      <span class="text-sm text-text-secondary w-[100px] text-right shrink-0 hidden lg:block"><%= format_date(folder.created_at) %></span>
+      <span class="text-sm text-text-secondary w-[100px] text-right shrink-0 hidden @3xl:block">Folder</span>
+      <span class="text-sm text-text-secondary w-[100px] text-right shrink-0 hidden @5xl:block"><%= format_date(folder.created_at) %></span>
     </div>
   <% end %>
   <div class="<%= view_mode == 'grid' ? 'absolute top-2 right-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity' : '' %> flex items-center gap-2">
