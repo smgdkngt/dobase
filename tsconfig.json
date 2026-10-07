@@ -24,6 +24,7 @@
     "app/javascript/services/workspace_layout.js",
     "app/javascript/services/file_size.js",
     "app/javascript/services/tile.js",
+    "app/javascript/services/recipients.js",
     "test/javascript/**/*.mjs",
     "test/javascript/support/globals.d.ts"
   ]

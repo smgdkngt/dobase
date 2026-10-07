@@ -8,39 +8,15 @@ module Tools
       allow_access_tokens
       before_action :require_mail_account
 
+      # Who an address field offers for what is typed in it: the rows of its list for the
+      # compose page, the same people as JSON for the API
       def index
-        query = params[:q].to_s.strip
-        results = []
+        suggestions = ::Mails::RecipientSuggestions.new(@mail_account).search(params[:q])
 
-        if query.length >= 2
-          # Search saved contacts (people you've emailed)
-          contacts = @mail_account.contacts
-            .search(query)
-            .most_contacted
-            .limit(5)
-            .select(:email_address, :name)
-
-          results = contacts.map { |c| { email_address: c.email_address, name: c.name } }
-
-          # Also search message senders (people who've emailed you)
-          seen = results.map { |r| r[:email_address].downcase }.to_set
-          senders = @mail_account.messages
-            .where("from_address LIKE :q OR from_name LIKE :q", q: "%#{query}%")
-            .where.not(from_address: [ nil, "" ])
-            .select(:from_address, :from_name)
-            .distinct
-            .limit(10)
-
-          senders.each do |msg|
-            email = msg.from_address.downcase
-            next if seen.include?(email)
-            seen.add(email)
-            results << { email_address: msg.from_address, name: msg.from_name }
-            break if results.size >= 10
-          end
+        respond_to do |format|
+          format.html { render partial: "tools/mails/recipient_suggestions", locals: { suggestions: suggestions, query: params[:q].to_s.strip } }
+          format.json { render json: suggestions.map { |suggestion| { email_address: suggestion.address, name: suggestion.name } } }
         end
-
-        render json: results
       end
 
       private

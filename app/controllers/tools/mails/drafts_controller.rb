@@ -86,8 +86,11 @@ module Tools
         attributes
       end
 
+      # The addresses; a name one was written with is the account's to remember
       def address_list(value)
-        value.to_s.split(/,\s*/).reject(&:blank?)
+        recipients = ::Mails::Recipient.parse(value)
+        @mail_account.remember_names(recipients)
+        recipients.map(&:address)
       end
     end
   end

@@ -140,9 +140,10 @@ class SmtpSendService
 
     # The name is quoted where it has to be: "Acme, Inc." is one sender, not two
     mail.from = @account.display_name.present? ? Mail::Address.new(@account.email_address).tap { |address| address.display_name = @account.display_name }.to_s : @account.email_address
-    mail.to = Array(to).join(", ")
-    mail.cc = Array(cc).join(", ") if cc.present?
-    mail.bcc = Array(bcc).join(", ") if bcc.present?
+    names = @account.names_for([ *to, *cc, *bcc ].map { |recipient| Mails::Recipient.from(recipient).address })
+    mail.to = with_names(to, names)
+    mail.cc = with_names(cc, names) if cc.present?
+    mail.bcc = with_names(bcc, names) if bcc.present?
     mail.subject = subject
     mail.date = Time.current
     mail.message_id = "<#{message_id || "#{SecureRandom.uuid}@#{@account.smtp_host}"}>"
@@ -167,6 +168,14 @@ class SmtpSendService
     Mails::Quote.add_inline_images(mail, inline_images) if body_html.present?
 
     mail
+  end
+
+  # People get their mail under their name, as the account knows them: "Ann Lee <ann@example.com>"
+  def with_names(recipients, names)
+    Array(recipients).map do |recipient|
+      recipient = Mails::Recipient.from(recipient)
+      recipient.with(name: recipient.name || names[recipient.address.downcase]).to_s
+    end.join(", ")
   end
 
   def add_text_and_html(message, text, html)

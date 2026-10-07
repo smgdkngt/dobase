@@ -92,7 +92,12 @@ class User < ApplicationRecord
   AVATAR_PATTERNS = 6
 
   def avatar_look
-    seed = Zlib.crc32("avatar-#{id}")
+    self.class.look_for("avatar-#{id}")
+  end
+
+  # The same colours and shape for the same key every time: a person, or an address in mail
+  def self.look_for(key)
+    seed = Zlib.crc32(key.to_s)
     hue = seed % AVATAR_HUES.size
     second = (hue + 1 + (seed / AVATAR_HUES.size) % (AVATAR_HUES.size - 1)) % AVATAR_HUES.size
 

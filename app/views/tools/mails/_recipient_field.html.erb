@@ -1,22 +1,65 @@
 <%# Locals: label, name, value, hidden (false), field_target (nil), input_target (nil), toggles ([]) %>
-<% toggles = local_assigns.fetch(:toggles, []) %>
-<div class="compose-field <%= 'hidden' if local_assigns[:hidden] %>"
-     <%= tag.attributes(data: { compose_target: local_assigns[:field_target] }.compact) %>
-     data-controller="email-autocomplete"
-     data-email-autocomplete-url-value="<%= tool_mails_contacts_path(@tool) %>">
+<%
+  toggles = local_assigns.fetch(:toggles, [])
+  recipients = Mails::Recipient.parse(value)
+  names = @mail_account.names_for(recipients.map(&:address))
+  recipients = recipients.map { |recipient| recipient.with(name: recipient.name || names[recipient.address.downcase]) }
+  # (ids carry the tool's: two mail tools can be in one document)
+  menu_id = "recipient-menu-#{@tool.id}-#{name}"
+  options_id = "recipient-options-#{@tool.id}-#{name}"
+  fields = { "to" => "To", "cc" => "Cc", "bcc" => "Bcc" }
+%>
+<%= tag.div class: [ "compose-field recipients", ("hidden" if local_assigns[:hidden]) ],
+      data: { compose_target: local_assigns[:field_target], controller: "recipients",
+              recipients_url_value: tool_mails_contacts_path(@tool), recipients_field_value: name, recipients_label_value: label,
+              action: "recipients:take->recipients#receive" }.compact do %>
   <label class="compose-field-label" for="compose_<%= name %>"><%= label %></label>
-  <div class="flex-1 flex flex-wrap items-center gap-1.5 min-w-0">
-    <span data-email-autocomplete-target="tags" class="contents"></span>
-    <input type="hidden" name="<%= name %>" value="<%= value %>" data-email-autocomplete-target="hidden">
-    <%= tag.input type: "text", id: "compose_#{name}",
-          class: "flex-1 min-w-24 text-sm text-text-primary bg-transparent outline-none",
-          autocomplete: "off",
-          data: { email_autocomplete_target: "input", compose_target: local_assigns[:input_target] }.compact %>
-  </div>
+  <input type="hidden" name="<%= name %>" value="<%= recipients.join(", ") %>" data-recipients-target="hidden">
+
+  <ul class="recipient-list" data-recipients-target="list" data-action="click->recipients#focusInput">
+    <% recipients.each do |recipient| %>
+      <%= render "tools/mails/recipient", recipient: recipient, field: name, menu: menu_id %>
+    <% end %>
+    <li class="recipient-entry" role="none" data-recipients-target="entry">
+      <%= tag.input type: "text", id: "compose_#{name}", class: "recipient-input",
+            role: "combobox", autocomplete: "off", autocapitalize: "off", autocorrect: "off", spellcheck: "false", inputmode: "email",
+            aria: { autocomplete: "list", expanded: "false", controls: options_id },
+            data: { recipients_target: "input", compose_target: local_assigns[:input_target],
+                    action: "input->recipients#typed keydown->recipients#inputKey paste->recipients#pasted blur->recipients#left" }.compact %>
+    </li>
+  </ul>
+
   <% toggles.each do |field, text| %>
     <button type="button" class="compose-field-toggle"
             data-action="compose#showField" data-compose-field-param="<%= field %>"><%= text %></button>
   <% end %>
-  <div class="hidden absolute left-12 top-full mt-1 w-72 bg-surface border border-border-light rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto"
-       data-email-autocomplete-target="results"></div>
-</div>
+
+  <%# Who the account knows for what is typed (Tools::Mails::ContactsController) %>
+  <%= turbo_frame_tag options_id, class: "recipient-options", role: "listbox", hidden: true, aria: { label: "Suggestions for #{label}" },
+        data: { recipients_target: "options", action: "turbo:frame-load->recipients#offered" } %>
+
+  <%= tag.div id: menu_id, popover: "auto", class: "popover-menu recipient-menu",
+        style: "position-anchor: --#{menu_id}; position-area: block-end span-inline-end",
+        data: { recipients_target: "menu" } do %>
+    <p class="recipient-menu-address" data-recipients-target="menuAddress"></p>
+    <button type="button" class="dropdown-item flex items-center gap-2" data-action="recipients#copy">
+      <%= render "shared/icon", name: "copy", size: 16 %><span>Copy address</span>
+    </button>
+    <button type="button" class="dropdown-item flex items-center gap-2" data-action="recipients#edit">
+      <%= render "shared/icon", name: "edit", size: 16 %><span>Edit address</span>
+    </button>
+    <% fields.except(name).each do |field, text| %>
+      <button type="button" class="dropdown-item flex items-center gap-2" data-action="recipients#moveTo" data-recipients-field-param="<%= field %>">
+        <%= render "shared/icon", name: "arrow-right", size: 16 %><span>Move to <%= text %></span>
+      </button>
+    <% end %>
+    <button type="button" class="dropdown-item flex items-center gap-2" data-action="recipients#remove">
+      <%= render "shared/icon", name: "x", size: 16 %><span>Remove</span>
+    </button>
+  <% end %>
+
+  <span class="sr-only" role="status" data-recipients-target="status"></span>
+  <template data-recipients-target="template">
+    <%= render "tools/mails/recipient", recipient: Mails::Recipient.new("", nil), field: name, menu: menu_id %>
+  </template>
+<% end %>

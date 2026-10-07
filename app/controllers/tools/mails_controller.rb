@@ -77,16 +77,19 @@ module Tools
     def create
       @mail_account = @tool.mail_account
 
-      to = params[:to].to_s.split(/,\s*/).reject(&:blank?)
-      cc = params[:cc].presence&.split(/,\s*/)&.reject(&:blank?)
-      bcc = params[:bcc].presence&.split(/,\s*/)&.reject(&:blank?)
-
-      invalid = [ *to, *cc, *bcc ].reject { |recipient| valid_recipient?(recipient) }
+      recipients = %i[to cc bcc].index_with { |field| ::Mails::Recipient.parse(params[field]) }
+      invalid = recipients.values.flatten.reject(&:valid?)
 
       if invalid.any?
-        render_send_error "Invalid email address: #{invalid.first}"
+        render_send_error "Invalid email address: #{invalid.first.address}"
         return
       end
+
+      # The mail is kept by its addresses; the names go out with it from what the account knows
+      @mail_account.remember_names(recipients.values.flatten)
+      to = recipients[:to].map(&:address)
+      cc = recipients[:cc].map(&:address).presence
+      bcc = recipients[:bcc].map(&:address).presence
 
       # From the compose page the mail goes out in the background, so the page doesn't wait
       # for the mail server: it opens the conversation, with the mail in it. The API sends it
@@ -143,13 +146,6 @@ module Tools
 
     def render_mail_account_not_configured
       render json: { error: "Mail account not configured" }, status: :not_found
-    end
-
-    # An address, or a name with an address: "Ann Lee <ann@example.com>"
-    def valid_recipient?(recipient)
-      Mail::Address.new(recipient).address.to_s.match?(URI::MailTo::EMAIL_REGEXP)
-    rescue Mail::Field::ParseError
-      false
     end
 
     def render_send_error(message)

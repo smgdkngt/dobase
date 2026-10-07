@@ -693,8 +693,62 @@ module Tools
 
       get new_tool_mail_path(@tool, reply_to: original.id, reply_all: true)
 
-      assert_select "input[name=to][value=?]", "reports@example.com"
+      # (with the name the account knows them by, which the field shows)
+      assert_select "input[name=to][value=?]", "Reports Bot <reports@example.com>"
       assert_select "input[name=cc][value=?]", "bob@example.com"
+    end
+
+    test "the people of a mail being written are tokens under the names the account knows" do
+      @account.record_contact("ann@example.com", "Lee, Ann")
+
+      get new_tool_mail_path(@tool, to: "ann@example.com, sender@example.com, stranger@example.com, nobody")
+
+      assert_select "[data-recipients-field-value=to] ul li[data-address]", 4
+      assert_select "li[data-address='ann@example.com'][data-name='Lee, Ann'] button[title='ann@example.com']", text: /Lee, Ann/
+      assert_select "li[data-address='sender@example.com'][data-name='Friendly Sender']"
+      assert_select "li[data-address='stranger@example.com']:not([data-invalid])", text: /stranger@example.com/
+      assert_select "li[data-address='nobody'][data-invalid]", text: /not a valid address/
+      assert_select "input[name=to][value=?]", '"Lee, Ann" <ann@example.com>, Friendly Sender <sender@example.com>, stranger@example.com, nobody'
+    end
+
+    test "a mail is kept by its addresses, and a name it was written with is remembered" do
+      post tool_mail_drafts_path(@tool), params: { to: '"Lee, Ann" <ann@example.com>; joe@example.com', cc: "Friendly <sender@example.com>", subject: "Names" }
+
+      draft = @account.messages.drafts.find_by!(subject: "Names")
+      assert_equal [ "ann@example.com", "joe@example.com" ], draft.to_addresses_list
+      assert_equal [ "sender@example.com" ], draft.cc_addresses_list
+      assert_equal "Lee, Ann", @account.contacts.find_by!(email_address: "ann@example.com").name
+      assert_equal 0, @account.contacts.find_by!(email_address: "ann@example.com").times_contacted
+    end
+
+    test "mail goes out to people under their names" do
+      @account.record_contact("ann@example.com", "Ann Lee")
+
+      deliveries = capture_smtp_deliveries do
+        perform_enqueued_jobs(only: SendMailJob) do
+          post tool_mails_path(@tool), params: { to: "ann@example.com, Joe Bloggs <joe@example.com>", cc: "sender@example.com", subject: "Named", body: "<p>Hi</p>" }
+        end
+      end
+
+      mail = Mail.new(deliveries.sole[:message])
+      assert_equal "Ann Lee <ann@example.com>, Joe Bloggs <joe@example.com>", mail[:to].decoded
+      assert_equal "Friendly Sender <sender@example.com>", mail[:cc].decoded
+      assert_equal [ "ann@example.com", "joe@example.com", "sender@example.com" ], deliveries.sole[:recipients]
+      assert_equal [ "ann@example.com", "joe@example.com" ], @account.messages.sent.find_by!(subject: "Named").to_addresses_list
+    end
+
+    test "the list of an address field has the people written to most and latest first" do
+      write_to "anders@example.com", times: 3, days_ago: 300
+      write_to "ann@example.com", times: 2, days_ago: 2
+      @account.record_contact("ann@example.com", "Ann Lee")
+      @account.contacts.create!(email_address: "joanna@example.com", name: "Joanna Park")
+
+      get tool_mails_contacts_path(@tool, q: "an"), headers: { "Turbo-Frame" => "recipient-options-1-to" }
+
+      assert_response :success
+      assert_select "turbo-frame#recipient-options-1-to [role=option]", 3
+      assert_equal [ "ann@example.com", "anders@example.com", "joanna@example.com" ], css_select("[role=option]").map { |option| option["data-address"] }
+      assert_select "[role=option][data-address='ann@example.com'][data-name='Ann Lee'] b", text: "An"
     end
 
     test "mail that can't be sent stays a draft, with its attachments, and the sender hears why" do
@@ -734,6 +788,14 @@ module Tools
     end
 
     private
+
+    # Mail in Sent, as another mail program would have left it there
+    def write_to(address, times:, days_ago:)
+      times.times do |time|
+        @account.messages.create!(message_id: "<to-#{address}-#{time}@example.com>", folder: "Sent", subject: "Note", read: true,
+          from_address: @account.email_address, to_addresses: [ address ].to_json, sent_at: (days_ago + time).days.ago, thread_id: "to-#{address}-#{time}")
+      end
+    end
 
     def attachment_on(message, filename)
       message.attachments.create!(filename: filename, content_type: "application/pdf", file_size: 6).tap do |attachment|

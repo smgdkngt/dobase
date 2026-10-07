@@ -1,0 +1,14 @@
+<%# The rows of an address field's list. Locals: suggestions (Mails::RecipientSuggestions), query %>
+<%= turbo_frame_tag turbo_frame_request_id || "recipient-options" do %>
+  <% suggestions.each do |suggestion| %>
+    <%= tag.div class: "recipient-option", role: "option", aria: { selected: "false" },
+          data: { recipients_target: "option", address: suggestion.address, name: suggestion.name,
+                  action: "mousedown->recipients#keepFocus click->recipients#choose" } do %>
+      <%= render "shared/avatar", initials: recipient_initials(suggestion), look: User.look_for(suggestion.address), size: :sm %>
+      <span class="recipient-option-name"><%= highlight(suggestion.name || suggestion.address, query, highlighter: '<b>\1</b>') %></span>
+      <% if suggestion.name %>
+        <span class="recipient-option-address"><%= highlight(suggestion.address, query, highlighter: '<b>\1</b>') %></span>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
