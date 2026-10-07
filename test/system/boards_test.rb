@@ -38,9 +38,9 @@ class BoardsTest < ApplicationSystemTestCase
     visit tool_board_path(@tool)
 
     click_on "Add Column"
-    assert_selector "dialog#add-column-modal[open]", wait: 5
+    assert_selector "dialog[id^='add-column-modal'][open]", wait: 5
 
-    within "dialog#add-column-modal" do
+    within "dialog[id^='add-column-modal']" do
       fill_in "Column name", with: "New Column Name"
       click_on "Add Column"
     end

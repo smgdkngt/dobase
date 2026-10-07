@@ -4,6 +4,7 @@ import { showFlash } from "services/flash"
 import { reportPresence } from "services/presence"
 import { pageInUse } from "services/page_in_use"
 import { floats, floating, drawnWith } from "services/float"
+import { pageAddress, visitPage, tileOf } from "services/tile"
 
 export default class extends Controller {
   static targets = ["cardModal", "cardDetailDialog", "addCardForm", "addCardInput", "addCardBtn", "archivedSection", "archivedToggle", "archivedToggleLabel"]
@@ -35,17 +36,17 @@ export default class extends Controller {
         // was fading out): the visit would close it. Its own close brings the refresh.
         if (this.cardDetailDialogTarget.open) return
 
-        const url = new URL(window.location.href)
+        const url = pageAddress(this.element)
         url.searchParams.delete("card")
         this._refreshingAfterClose = true
-        Turbo.visit(url.toString(), { action: "replace" })
+        visitPage(this.element, url)
       }
       this.cardDetailDialogTarget.addEventListener("close", this._onModalClose)
       this._onBeforeRender = this._keepWhatWasStarted.bind(this)
       document.addEventListener("turbo:before-render", this._onBeforeRender)
 
       // Auto-open card if ?card=ID is in the URL
-      const cardId = new URL(window.location.href).searchParams.get("card")
+      const cardId = pageAddress(this.element).searchParams.get("card")
       if (cardId) this.#openCardById(cardId)
     }
   }
@@ -144,7 +145,7 @@ export default class extends Controller {
 
   _cardSkeletonHTML() {
     return `
-      <div class="flex flex-col w-full" style="max-height: 80vh; min-height: 60vh;">
+      <div class="flex flex-col w-full" style="max-height: calc(80vh / var(--tile-zoom, 1)); min-height: calc(60vh / var(--tile-zoom, 1));">
         <div class="flex items-start gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-border-light">
           <div class="flex-1 min-w-0 flex flex-col gap-2">
             <div class="skeleton h-4 w-24"></div>
@@ -169,6 +170,9 @@ export default class extends Controller {
   }
 
   _clearCardParam() {
+    // (a tile in the workspace's page has no address in the window's)
+    if (tileOf(this.element)) return
+
     const url = new URL(window.location.href)
     url.searchParams.delete("card")
     window.history.replaceState(history.state, "", url)

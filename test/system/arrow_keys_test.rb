@@ -327,7 +327,7 @@ class ArrowKeysTest < ApplicationSystemTestCase
     wait_for_stimulus "arrow-keys"
 
     press "n"
-    within "dialog#add-column-modal[open]" do
+    within "dialog[id^='add-column-modal'][open]" do
       field = find("input[type='text']", match: :first)
       field.send_keys("Later")
       press :arrow_down

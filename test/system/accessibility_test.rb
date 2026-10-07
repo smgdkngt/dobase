@@ -41,10 +41,10 @@ class AccessibilityTest < ApplicationSystemTestCase
     wait_for_stimulus("board")
 
     find("button", text: "Add Column").click
-    assert_selector "#add-column-modal[open]"
+    assert_selector "[id^='add-column-modal'][open]"
 
-    find("#add-column-modal button[aria-label='Close']").click
-    assert_no_selector "#add-column-modal[open]"
+    find("[id^='add-column-modal'] button[aria-label='Close']").click
+    assert_no_selector "[id^='add-column-modal'][open]"
 
     assert_match(/add column/i, focused_text)
   end

@@ -578,6 +578,13 @@ body[data-workspace] .main-content {
   padding-right: 2.5rem;
 }
 
+/* A board's columns are as wide as they are in a tile with a document of its own:
+   their width is in pixels, which the zoom would take an eighth off */
+.tile-page .board-column:not(.collapsed) {
+  min-width: calc(300px / var(--tile-zoom));
+  max-width: calc(300px / var(--tile-zoom));
+}
+
 /* ── A page that is a tile: the tool alone, a size smaller (there are many of them) ── */
 
 :root[data-in-tile] {

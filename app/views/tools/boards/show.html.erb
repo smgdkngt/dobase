@@ -27,7 +27,7 @@
     <% else %>
       <%= render "components/button", text: "Edit", size: :sm, variant: :ghost, href: tool_board_path(@tool, reorder: 1) %>
     <% end %>
-    <%= render "components/button", text: "Add Column", icon: "plus", size: :sm, variant: :secondary, type: :button, commandfor: "add-column-modal", command: "show-modal", data: { controller: "hotkey", hotkey: "n" } %>
+    <%= render "components/button", text: "Add Column", icon: "plus", size: :sm, variant: :secondary, type: :button, commandfor: "add-column-modal-#{@tool.id}", command: "show-modal", data: { controller: "hotkey", hotkey: "n" } %>
   <% end %>
 
   <% unless reorder_mode %>
@@ -50,7 +50,7 @@
   <%= render "tools/boards/card_dialog" %>
 
   <%# Add column dialog %>
-  <%= render "shared/modal", id: "add-column-modal", title: "Add Column", size: :sm do %>
+  <%= render "shared/modal", id: "add-column-modal-#{@tool.id}", title: "Add Column", size: :sm do %>
     <%= form_with url: tool_board_columns_path(@tool), method: :post, data: { turbo_frame: "_top" } do %>
       <%= render "components/form_field", label: "Column name", name: "name", required: true, autofocus: true, placeholder: "e.g. To Do" %>
       <div class="flex justify-end gap-2 mt-4">
