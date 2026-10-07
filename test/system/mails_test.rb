@@ -339,8 +339,10 @@ class MailsTest < ApplicationSystemTestCase
 
     assert_no_text "Lunch on Friday?"
     find(".compose-quote-toggle").click
-    assert_text "wrote:"
-    within_frame(find(".compose-quote iframe")) { assert_text "Lunch on Friday?" }
+    within_frame(find(".compose-quote iframe")) do
+      assert_text "wrote:"
+      assert_text "Lunch on Friday?"
+    end
 
     click_on "Remove quote"
     assert_no_selector ".compose-quote"
@@ -352,6 +354,96 @@ class MailsTest < ApplicationSystemTestCase
     end
 
     assert_no_match "Lunch on Friday?", deliveries.sole[:message]
+  end
+
+  test "a part taken out of the quote of a reply doesn't go out with it" do
+    original = mails_messages(:inbox_read)
+    original.update!(body_html: "<p>Lunch on Friday?</p><p>The door code is 4711</p><table><tr><td>Ann</td></tr></table>")
+    visit new_tool_mail_path(@tool, reply_to: original.id, folder: "inbox")
+    wait_for_compose_editor
+    find("rhino-editor [contenteditable]").send_keys("Yes, see you there")
+
+    find(".compose-quote-toggle").click
+    take_out_of_quote "The door code is 4711"
+    type_in_quote " [code removed]"
+
+    deliveries = capture_smtp_deliveries do
+      perform_enqueued_jobs(only: SendMailJob) do
+        click_on "Send"
+        assert_selector ".mail-detail-header"
+      end
+    end
+
+    sent = Mail.new(deliveries.sole[:message])
+    assert_no_match "4711", deliveries.sole[:message]
+    assert_no_match "4711", @tool.mail_account.messages.sent.find_by!(subject: "Re: Your weekly report").body_html
+    # The rest is there as it was written, layout and all, with what was typed into it
+    assert_match %r{Yes, see you there</p><p[^>]*>On .* wrote:</p><blockquote[^>]*><p[^>]*>Lunch on Friday\?</p>.*\[code removed\].*<table><tbody><tr><td>Ann</td></tr></tbody></table></blockquote>}m,
+      sent.html_part.decoded
+    assert_match "> Lunch on Friday?", sent.text_part.decoded
+  end
+
+  test "a quote that was changed stays changed in a saved draft, and a refresh asks before it draws the form again" do
+    original = mails_messages(:inbox_read)
+    original.update!(body_html: "<p>Lunch on Friday?</p><p>The door code is 4711</p>")
+    visit new_tool_mail_path(@tool, reply_to: original.id)
+    wait_for_compose_editor
+
+    find(".compose-quote-toggle").click
+    take_out_of_quote "The door code is 4711"
+    # A refresh would draw the form again as it was: with only the quote changed, it asks first
+    dismiss_confirm("You have an unsent message. Discard it?") { page.execute_script("Turbo.session.refresh(location.href)") }
+    within_frame(find("details.compose-quote[open] iframe")) do
+      assert_text "Lunch on Friday?"
+      assert_no_text "4711"
+    end
+
+    click_on "Save Draft"
+    assert_text "Draft saved."
+    draft = @tool.mail_account.messages.drafts.find_by!(subject: "Re: Your weekly report")
+    assert_match "Lunch on Friday?", draft.quote_html
+    assert_no_match "4711", draft.outgoing_html
+
+    # The draft opens with the quote as it was left, in sight, and goes out so
+    wait_for_compose_editor
+    within_frame(find("details.compose-quote[open] iframe")) do
+      assert_text "Lunch on Friday?"
+      assert_no_text "4711"
+    end
+    deliveries = capture_smtp_deliveries do
+      perform_enqueued_jobs(only: SendMailJob) do
+        click_on "Send"
+        assert_selector ".mail-detail-header"
+      end
+    end
+
+    assert_match "Lunch on Friday?", deliveries.sole[:message]
+    assert_no_match "4711", deliveries.sole[:message]
+  end
+
+  test "a quote with everything taken out of it is no quote, and leaving a changed quote asks first" do
+    original = mails_messages(:inbox_read)
+    original.update!(body_html: "<p>Lunch on Friday?</p>")
+    visit new_tool_mail_path(@tool, reply_to: original.id)
+    wait_for_compose_editor
+
+    find(".compose-quote-toggle").click
+    within_frame(find(".compose-quote iframe")) { find("p", text: "Lunch on Friday?").click }
+    page.execute_script("document.querySelector('.compose-quote iframe').contentDocument.execCommand('selectAll')")
+    page.driver.browser.action.send_keys(:backspace).perform
+    within_frame(find(".compose-quote iframe")) { assert_no_text "wrote:" }
+    wait_for_turbo
+
+    dismiss_confirm("You have an unsent message. Discard it?") { click_on "Project Board" }
+
+    deliveries = capture_smtp_deliveries do
+      perform_enqueued_jobs(only: SendMailJob) do
+        click_on "Send"
+        assert_selector ".mail-detail-header"
+      end
+    end
+
+    assert_no_match(/Lunch on Friday|wrote:|blockquote/, deliveries.sole[:message])
   end
 
   test "attachments go out with the email, however many times files are picked" do
@@ -701,6 +793,24 @@ class MailsTest < ApplicationSystemTestCase
       raise Capybara::ExpectationNotMet, "The editor hasn't started" unless evaluate_script("document.querySelector('rhino-editor').hasInitialized")
     end
     page.evaluate_async_script("requestAnimationFrame(() => requestAnimationFrame(arguments[0]))")
+  end
+
+  # The paragraph of the quoted mail with this text, selected the way a pointer would and deleted
+  def take_out_of_quote(text)
+    within_frame(find(".compose-quote iframe")) { find("p", text: text).click }
+    page.execute_script(<<~JS, text)
+      const quote = document.querySelector(".compose-quote iframe").contentDocument
+      const paragraph = [...quote.querySelectorAll("p")].find(paragraph => paragraph.textContent.includes(arguments[0]))
+      quote.getSelection().selectAllChildren(paragraph)
+    JS
+    page.driver.browser.action.send_keys(:backspace).perform
+    within_frame(find(".compose-quote iframe")) { assert_no_text text }
+  end
+
+  # Typed where the keyboard is in the quote
+  def type_in_quote(text)
+    page.driver.browser.action.send_keys(text).perform
+    within_frame(find(".compose-quote iframe")) { assert_text text.strip }
   end
 
   def add_recipient(address)
