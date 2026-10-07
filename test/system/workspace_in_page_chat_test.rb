@@ -51,6 +51,7 @@ class WorkspaceInPageChatTest < ApplicationSystemTestCase
   end
 
   test "someone else's message arrives while you look" do
+    assert_selector "#{CHAT} turbo-cable-stream-source[connected]", visible: :all
     @tool.chat.messages.create!(user: @colleague, body: "Bring the samples")
 
     assert_selector "#{CHAT} .chat-messages", text: "Bring the samples"
@@ -63,6 +64,9 @@ class WorkspaceInPageChatTest < ApplicationSystemTestCase
     side = "##{@other.chat.part_id(:messages)}"
     team = "##{@tool.chat.part_id(:messages)}"
     assert_selector side, text: "Nothing here yet"
+    # Both chats are listening before anything is said (a message sent before a
+    # page listens is not sent again)
+    assert_selector "#{CHAT} turbo-cable-stream-source[connected]", count: 2, visible: :all
 
     @tool.chat.messages.create!(user: @colleague, body: "For the team")
     @other.chat.messages.create!(user: @user, body: "For the side")
