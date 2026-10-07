@@ -6,8 +6,8 @@ import { Script } from "node:vm"
 // The app `dobase app install` makes is Electron started on these scripts, which
 // are of the older kind there (require, module.exports) and so are read as that
 const shell = new URL("../../cli/internal/command/shell/", import.meta.url)
-const script = (name) => new Script(`(function (require, module, exports, __dirname) {${readFileSync(new URL(name, shell), "utf8")}\n})`, { filename: name })
-const links = { exports: {} }
+const script = (/** @type {string} */ name) => new Script(`(function (require, module, exports, __dirname) {${readFileSync(new URL(name, shell), "utf8")}\n})`, { filename: name })
+const links = { exports: /** @type {Record<string, (...given: any[]) => any>} */ ({}) }
 script("links.js").runInThisContext()(null, links, links.exports, "")
 const { inside, page, outward } = links.exports
 
