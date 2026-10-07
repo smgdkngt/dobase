@@ -139,6 +139,8 @@ dobase mail move 8/310 Receipts          # INBOX, Sent or a custom folder
 dobase mail trash 8/310                  # to the server's trash, with its conversation in the inbox; restore brings it back
 dobase mail reply 8/310 --body "Thanks, I'll take a look."  # a DRAFT with the original quoted below; --all to reply all
 dobase mail forward 8/310 --to bob@example.com --body "FYI"  # a DRAFT with the original quoted and its attachments
+dobase mail reply 8/310 --body "Thanks." --no-quote         # nothing quoted below the reply
+dobase mail update 8/312 --quote - < quote.html             # the quote as it should go out; --no-quote drops it
 dobase mail attachments 8/310            # list them; --save DIR downloads all, --name FILE just one
 dobase mail draft 8 --to a@example.com --subject "Invoice" --body - <<'TXT'
 Hi Anna,
@@ -156,6 +158,16 @@ dobase mail sync 8
 
 A plain-text `--body` becomes paragraphs at its blank lines. With `--html`, write
 separate `<p>`, `<ul>` and `<ol>` blocks; don't add empty `<p><br></p>` for spacing.
+
+A reply or forward quotes the original below your text as it was written: the
+whole mail, and with it everything quoted further down in it. Read what a draft
+will go out with in `mail show` ("Quoted below it"). When something in there
+shouldn't go to these recipients (a password, another customer's details, a
+long thread nobody needs), take it out: get the draft's `quote_html` from
+`mail show 8/312 --json`, remove the part, and pass the rest to
+`mail update 8/312 --quote -`. `--no-quote` (on `reply`, `forward` and `update`)
+quotes nothing. A quote someone changed in the compose page stays as they left
+it, also when you send that draft.
 
 `--open` on `draft`, `update`, `reply` and `forward` opens the saved draft in the
 installed Dobase app or the browser, ready to edit and send. Only when someone

@@ -157,6 +157,87 @@ func TestRepliesLeaveTheQuoteToTheServer(t *testing.T) {
 	}
 }
 
+func TestAQuoteIsChangedOrLeftOutWhereFlagsSay(t *testing.T) {
+	var sent []api.Value
+	var opened []string
+	var out bytes.Buffer
+	fake := newFakeAPI(mailWithAttachments, &sent)
+	ctx := mailCtx(&out, false, fake, &opened)
+	changed := `<p>Ann wrote:</p><blockquote type="cite"><p>Plan A</p></blockquote>`
+
+	if err := invoke(ctx, "mail reply", "8/310", "--body", "Sure", "--quote", changed); err != nil {
+		t.Fatal(err)
+	}
+	if err := invoke(ctx, "mail reply", "8/310", "--body", "Sure", "--no-quote", "--send"); err != nil {
+		t.Fatal(err)
+	}
+	if err := invoke(ctx, "mail forward", "8/310", "--to", "bob@example.com", "--quote", changed); err != nil {
+		t.Fatal(err)
+	}
+	if err := invoke(ctx, "mail update", "8/312", "--quote", changed); err != nil {
+		t.Fatal(err)
+	}
+	if err := invoke(ctx, "mail update", "8/312", "--no-quote"); err != nil {
+		t.Fatal(err)
+	}
+
+	if want := []string{"POST /tools/8/mails/drafts", "POST /tools/8/mails", "POST /tools/8/mails/drafts",
+		"PATCH /tools/8/mails/drafts/312", "PATCH /tools/8/mails/drafts/312"}; !slices.Equal(fake.requests, want) {
+		t.Errorf("requests %v", fake.requests)
+	}
+	// The quote as given, of the mail it still answers
+	for _, index := range []int{0, 2} {
+		if got := sent[index].Get("quoted_message_id").JSON() + " " + sent[index].Get("quote_html").S(); got != "310 "+changed {
+			t.Errorf("request %d: %s", index, got)
+		}
+	}
+	// Nothing is quoted, and the reply still has what a reply has
+	if got := sent[1].Get("quoted_message_id").JSON() + " " + sent[1].Get("subject").S(); got != "null Re: Plans" || sent[1].Has("quote_html") {
+		t.Errorf("reply without a quote: %s", sent[1].JSON())
+	}
+	if got := sent[3].JSON(); got != `{"quote_html":"<p>Ann wrote:</p><blockquote type=\"cite\"><p>Plan A</p></blockquote>"}` {
+		t.Errorf("update: %s", got)
+	}
+	if got := sent[4].JSON(); got != `{"quoted_message_id":null}` {
+		t.Errorf("update: %s", got)
+	}
+
+	for _, flags := range [][]string{{"--quote", changed, "--no-quote"}, {"--quote", "-", "--body", "-"}, {"--quote", " "}} {
+		if err := invoke(ctx, "mail update", append([]string{"8/312"}, flags...)...); api.KindOf(err) != api.Usage {
+			t.Errorf("%v: got %v", flags, err)
+		}
+	}
+	if len(sent) != 5 {
+		t.Errorf("%d requests", len(sent))
+	}
+}
+
+func TestADraftShowsWhatItQuotes(t *testing.T) {
+	var out bytes.Buffer
+	ctx := mailCtx(&out, false, newFakeAPI(`{
+		"/tools": [{ "id": 8, "name": "Inbox", "type": "mail" }],
+		"/tools/8/mails/312": { "subject": "Re: Plans", "messages": [
+			{ "id": 312, "draft": true, "to": ["ann@example.com"], "cc": [], "subject": "Re: Plans", "body": "Sure", "body_html": "<p>Sure</p>",
+			  "quote": "Ann wrote:\n\n> Plan A", "quote_html": "<p>Ann wrote:</p><blockquote><p>Plan A</p></blockquote>", "attachments": [] }
+		] }
+	}`, nil), nil)
+
+	if err := invoke(ctx, "mail show", "8/312"); err != nil {
+		t.Fatal(err)
+	}
+	if want := "  Sure\n\n  Quoted below it:\n    Ann wrote:\n\n    > Plan A\n"; !strings.Contains(out.String(), want) {
+		t.Errorf("out %q", out.String())
+	}
+
+	out.Reset()
+	if err := invoke(ctx, "mail show", "8/312", "--html"); err != nil {
+		t.Fatal(err)
+	}
+	if want := "    <p>Ann wrote:</p><blockquote><p>Plan A</p></blockquote>"; !strings.Contains(out.String(), want) {
+		t.Errorf("out %q", out.String())
+	}
+}
+
 func TestOpenIsOnlyForDrafts(t *testing.T) {
 	for _, args := range [][]string{
 		{"mail", "forward", "8/310", "--to", "a@example.com", "--send", "--open"},

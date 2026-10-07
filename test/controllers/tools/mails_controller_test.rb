@@ -524,7 +524,107 @@ module Tools
 
       assert_equal "", css_select("input[type=hidden][name=body]").first["value"]
       assert_select "input[type=hidden][name=quoted_message_id][value=?]", original.id.to_s
-      assert_select ".compose-quote", text: /Ann <Lee> <#{original.from_address}> wrote:/
+      assert_includes quote_frame, "<p>On #{original.sent_at.strftime('%a, %b %-d, %Y at %-I:%M %p')}, Ann &lt;Lee&gt; &lt;#{original.from_address}&gt; wrote:</p>" +
+        %(<blockquote type="cite"><p>Lunch?</p></blockquote>)
+      # Nobody changed the quote: the mail goes along as it was written
+      assert_select "input[name=quote_html]", count: 0
+      assert_select "details.compose-quote:not([open])"
+    end
+
+    test "the quote of a reply shows its pictures, and says what each goes out as" do
+      original = mails_messages(:inbox_read)
+      original.update!(body_html: %(<p>Lunch?</p><img src="cid:logo@example.com"><img src="https://example.com/pixel.png" alt="Pixel">))
+      logo = original.attachments.create!(filename: "logo.png", content_type: "image/png", file_size: 3, content_id: "logo@example.com")
+      logo.file.attach(io: StringIO.new("PNG"), filename: "logo.png", content_type: "image/png")
+
+      get new_tool_mail_path(@tool, reply_to: original.id)
+
+      assert_includes quote_frame, %(<img src="data:image/png;base64,#{Base64.strict_encode64('PNG')}" data-src="cid:quote-#{logo.id}@dobase">)
+      # Nothing is loaded from outside the mail until its sender's images are wanted
+      assert_includes quote_frame, %(<img alt="Pixel" data-src="https://example.com/pixel.png">)
+      assert_includes quote_frame, "Content-Security-Policy"
+
+      @account.trusted_senders.create!(email_address: original.from_address)
+      get new_tool_mail_path(@tool, reply_to: original.id)
+
+      assert_includes quote_frame, %(<img src="https://example.com/pixel.png" alt="Pixel">)
+      assert_not_includes quote_frame, "Content-Security-Policy"
+    end
+
+    test "a reply goes out with its quote as it was changed, and only the pictures left in it" do
+      original = mails_messages(:inbox_read)
+      original.update!(body_html: %(<p>Lunch?</p><p>The password is hunter2</p><img src="cid:logo@example.com"><img src="cid:chart@example.com">))
+      logo, chart = %w[logo chart].map do |name|
+        original.attachments.create!(filename: "#{name}.png", content_type: "image/png", file_size: 3, content_id: "#{name}@example.com").tap do |picture|
+          picture.file.attach(io: StringIO.new("PNG"), filename: "#{name}.png", content_type: "image/png")
+        end
+      end
+
+      deliveries = capture_smtp_deliveries_in_the_background do
+        post tool_mails_path(@tool), params: {
+          to: "reports@example.com", subject: "Re: Lunch", body: "<p>Sure</p>", in_reply_to: original.message_id, quoted_message_id: original.id,
+          quote_html: %(<p>Ann wrote:</p><blockquote type="cite"><p onclick="alert(1)">Lunch?</p><script>alert(2)</script><img src="cid:quote-#{logo.id}@dobase"></blockquote>)
+        }
+      end
+
+      sent = Mail.new(deliveries.sole[:message])
+      assert_match %r{<p[^>]*>Sure</p><p[^>]*>Ann wrote:</p><blockquote[^>]*><p[^>]*>Lunch\?</p><img src="cid:quote-#{logo.id}@dobase"></blockquote>\z}, sent.html_part.decoded
+      assert_no_match(/hunter2|alert|quote-#{chart.id}/, deliveries.sole[:message])
+      assert_equal [ "<quote-#{logo.id}@dobase>" ], sent.attachments.map(&:content_id)
+      assert_equal "Sure\n\nAnn wrote:\n\n> Lunch?", sent.text_part.decoded
+
+      copy = @account.messages.sent.find_by!(subject: "Re: Lunch")
+      assert_no_match "hunter2", copy.body_html
+      assert_equal [ nil, nil ], copy.values_at(:quoted_message_id, :quote_html)
+    end
+
+    test "a draft keeps its quote as it was changed, and the compose page opens with it" do
+      original = mails_messages(:inbox_read)
+      original.update!(body_html: "<p>Lunch?</p><p>The password is hunter2</p>")
+      server = FakeImapServer.new(folders: [ "INBOX", "Drafts" ])
+
+      connect_to_imap(server) do
+        perform_enqueued_jobs(only: SyncDraftJob) do
+          post tool_mail_drafts_path(@tool), params: {
+            to: "reports@example.com", subject: "Re: Lunch", body: "<p>Sure</p>", in_reply_to: original.message_id, quoted_message_id: original.id,
+            quote_html: %(<p>Ann wrote:</p><blockquote type="cite"><p>Lunch?</p></blockquote>)
+          }
+        end
+      end
+
+      draft = @account.messages.drafts.find_by!(subject: "Re: Lunch")
+      assert_equal %(<p>Ann wrote:</p><blockquote type="cite"><p>Lunch?</p></blockquote>), draft.quote_html
+      # Other mail programs show the draft as it will go out
+      assert_no_match "hunter2", server.appended_messages.sole[:message]
+      assert_match "Ann wrote:", server.appended_messages.sole[:message]
+
+      get new_tool_mail_path(@tool, draft_id: draft.id)
+      assert_includes quote_frame, %(<body><p>Ann wrote:</p><blockquote type="cite"><p>Lunch?</p></blockquote></body>)
+      assert_select "details.compose-quote[open] input[type=hidden][name=quote_html][value=?]", draft.quote_html
+
+      # Saved again as the form has it, and sent from there
+      patch tool_mail_draft_path(@tool, draft), params: { subject: "Re: Lunch", body: "<p>Sure!</p>", quoted_message_id: original.id, quote_html: draft.quote_html }
+      assert_equal %(<p>Sure!</p><p>Ann wrote:</p><blockquote type="cite"><p>Lunch?</p></blockquote>), draft.reload.outgoing_html
+
+      # Quoted anew, the mail is there as it was written
+      patch tool_mail_draft_path(@tool, draft), params: { quoted_message_id: original.id }
+      assert_nil draft.reload.quote_html
+      assert_match "hunter2", draft.outgoing_html
+    end
+
+    test "a send that is refused comes back with the quote as it was changed" do
+      original = mails_messages(:inbox_read)
+      original.update!(body_html: "<p>Lunch?</p><p>The password is hunter2</p>")
+
+      post tool_mails_path(@tool), params: {
+        to: "not an address", subject: "Re: Lunch", body: "<p>Sure</p>", in_reply_to: original.message_id, quoted_message_id: original.id,
+        quote_html: %(<p>Ann wrote:</p><blockquote type="cite"><p>Lunch?</p></blockquote>)
+      }
+
+      assert_response :unprocessable_entity
+      assert_includes quote_frame, %(<body><p>Ann wrote:</p><blockquote type="cite"><p>Lunch?</p></blockquote></body>)
+      assert_select "input[type=hidden][name=quote_html][value=?]", %(<p>Ann wrote:</p><blockquote type="cite"><p>Lunch?</p></blockquote>)
+      assert_no_match "hunter2", response.body
     end
 
     test "a reply goes out with the mail it answers quoted as it is, and its pictures" do
@@ -561,7 +661,7 @@ module Tools
       original.update!(sent_at: Time.utc(2026, 9, 29, 8, 23))
 
       get new_tool_mail_path(@tool, reply_to: original.id)
-      assert_select ".compose-quote", text: /On Tue, Sep 29, 2026 at 10:23 AM, Reports Bot/
+      assert_includes quote_frame, "On Tue, Sep 29, 2026 at 10:23 AM, Reports Bot"
 
       deliveries = capture_smtp_deliveries_in_the_background do
         post tool_mails_path(@tool), params: {
@@ -742,6 +842,11 @@ module Tools
     end
 
     # The compose page sends mail with SendMailJob
+    # The page the compose form shows the quoted mail as, in its frame
+    def quote_frame
+      css_select(".compose-quote iframe").sole["srcdoc"]
+    end
+
     def capture_smtp_deliveries_in_the_background(&block)
       capture_smtp_deliveries { perform_enqueued_jobs(only: SendMailJob, &block) }
     end

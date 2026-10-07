@@ -112,7 +112,8 @@
     @apply order-1 sticky bottom-2 z-10 self-start max-w-[calc(100%-2rem)] overflow-x-auto mx-4 mb-2 px-1 py-0.5 rounded-xl border border-border-light bg-background-secondary;
   }
 
-  /* The mail a reply or forward quotes: sent along as it is, so it's shown, not edited */
+  /* The mail a reply or forward quotes, changed where it shows: a field of its own under
+     the text, with the accent around it while the keyboard is in it */
   .compose-quote {
     @apply mx-4 mb-4;
   }
@@ -124,7 +125,15 @@
     display: none;
   }
   .compose-quote-content {
-    @apply mt-3 pl-3 border-l-3 border-border text-sm text-text-secondary;
+    @apply mt-3;
+  }
+  /* The card the mail is on is the field: one edge, also where the card is white on a dark page */
+  .compose-quote .email-frame {
+    @apply p-3 border border-border-light;
+  }
+  .compose-quote .email-frame:has([data-has-keyboard]) {
+    @apply border-accent;
+    box-shadow: 0 0 0 1px var(--color-accent);
   }
   .compose-quote-remove {
     @apply mt-2 text-xs text-text-tertiary hover:text-error hover:underline;
