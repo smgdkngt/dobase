@@ -14,14 +14,10 @@ class WorkspaceInPageDocsTest < ApplicationSystemTestCase
     @document = docs_documents(:meeting_notes)
     sign_in_as users(:one)
     page.driver.browser.manage.delete_cookie("workspace")
-    visit workspace_path("in-page": "todos,boards,chat,docs", open: tool_path(@tool))
+    visit workspace_path(open: tool_path(@tool))
     wait_for_stimulus "workspace"
     assert_selector "#{DOCS} .tile-page h1", text: @tool.name
     within(".workspace-hint") { click_on "Got it" }
-  end
-
-  teardown do
-    page.execute_script("try { localStorage.removeItem('dobase:workspace:in-page') } catch (error) {}")
   end
 
   test "a document opens in the tile, and the arrow back is the list again" do
@@ -98,7 +94,7 @@ class WorkspaceInPageDocsTest < ApplicationSystemTestCase
     wait_for_stimulus "workspace"
     assert_selector "#{DOCS} [data-document-id]", minimum: 6
     wide = columns_of_documents
-    page.execute_script("window.dispatchEvent(new CustomEvent('workspace:open', { detail: { url: arguments[0] } }))", tool_path(tools(:my_files)))
+    page.execute_script("window.dispatchEvent(new CustomEvent('workspace:open', { detail: { url: arguments[0] } }))", tool_path(tools(:my_room)))
     assert_selector "#{TILE} > iframe"
 
     assert_operator columns_of_documents, :<, wide

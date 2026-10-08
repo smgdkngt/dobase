@@ -14,15 +14,11 @@ class WorkspaceInPageFilesTest < ApplicationSystemTestCase
     @tool = tools(:my_files)
     sign_in_as users(:one)
     page.driver.browser.manage.delete_cookie("workspace")
-    visit workspace_path("in-page": "todos,boards,chat,docs,calendar,files", open: tool_path(@tool))
+    visit workspace_path(open: tool_path(@tool))
     wait_for_stimulus "workspace"
     assert_selector "#{FILES} .tile-page h1", text: @tool.name
     wait_for_stimulus "files"
     within(".workspace-hint") { click_on "Got it" }
-  end
-
-  teardown do
-    page.execute_script("try { localStorage.removeItem('dobase:workspace:in-page') } catch (error) {}")
   end
 
   test "a folder is gone into in the tile, and its path leads back" do

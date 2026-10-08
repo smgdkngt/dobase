@@ -40,7 +40,7 @@ html[data-app-window] :is(input, textarea, [contenteditable="true"]) {
    / -height). Any other window says nothing, and every rule here then comes to
    nothing: a strip no pixels high. That is why none of this asks what kind of
    window it is in. A page in a frame (a tile) has no such strip. */
-:root:not([data-in-tile], [data-floating]) {
+:root:not([data-in-tile]) {
   --titlebar-height: env(titlebar-area-height, 0px);
 }
 
@@ -94,7 +94,6 @@ body[data-workspace] .workspace-bar :is(a, button, input, [role="button"]),
 dialog[open],
 [popover]:popover-open,
 .gallery-overlay,
-.workspace-float,
 .flash-toast > * {
   -webkit-app-region: no-drag;
   app-region: no-drag;

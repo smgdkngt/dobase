@@ -45,8 +45,6 @@ const SEEN_AFTER_MS = 800
 // goes this long after it left
 const CARD_AFTER_MS = 300
 const CARD_GONE_AFTER_MS = 180
-// How long a floating dialog takes to fade out (workspace.css), after which its frame goes
-const FLOAT_FADE = 180
 // A change is kept on the server this long after the last one: a split being dragged
 // is one arrangement, not thirty
 const KEEP_AFTER_MS = 600
@@ -55,7 +53,7 @@ const KEEP_AFTER_MS = 600
 const IN_THIS_PAGE = [ "todos", "boards", "chat", "docs", "calendar", "files", "mail" ]
 
 export default class extends Controller {
-  static targets = ["tiles", "tileTemplate", "empty", "desks", "deskCard", "title", "menu", "hint", "status", "float"]
+  static targets = ["tiles", "tileTemplate", "empty", "desks", "deskCard", "title", "menu", "hint", "status"]
   static values = { userId: Number, appName: String, start: String, kept: Object, revision: Number }
 
   connect() {
@@ -215,7 +213,6 @@ export default class extends Controller {
     this.menuWatch.disconnect()
     this.newsWatch.disconnect()
     clearTimeout(this.cardTimer)
-    clearTimeout(this.floatGoing)
     clearTimeout(this.keeping)
     clearInterval(this.freshenTimer)
   }
@@ -389,32 +386,9 @@ export default class extends Controller {
 
   // Every kind of tool but a room is drawn into this page (a <turbo-frame>:
   // services/tool_frame.js#pageFrame), not into a frame with a document of its own
-  // (an <iframe>). A browser can ask otherwise, for as long as both ways are there:
-  // /workspace?in-page= has every tool as a frame of its own again,
-  // /workspace?in-page=todos,boards only those in the page, and
-  // /workspace?in-page=default is back to this.
+  // (an <iframe>), which a room has
   inThisPage(url) {
-    return this.kindsInThisPage.has(this.menuLinkFor(url)?.dataset.toolType)
-  }
-
-  get kindsInThisPage() {
-    if (this._kindsInThisPage) return this._kindsInThisPage
-
-    const key = "dobase:workspace:in-page"
-    let kinds = IN_THIS_PAGE.join(",")
-    try {
-      const address = new URL(location.href)
-      const asked = address.searchParams.get("in-page")
-      if (asked !== null) {
-        asked === "default" ? localStorage.removeItem(key) : localStorage.setItem(key, asked || "none")
-        address.searchParams.delete("in-page")
-        history.replaceState(history.state, "", address)
-      }
-      kinds = localStorage.getItem(key) ?? kinds
-    } catch {
-      // No storage: what everyone has
-    }
-    return (this._kindsInThisPage = new Set(kinds.split(",").filter((kind) => kind && kind !== "none")))
+    return IN_THIS_PAGE.includes(this.menuLinkFor(url)?.dataset.toolType)
   }
 
   // What a tile shows, by the name its page gave it, or its tool's name in the menu
@@ -924,7 +898,7 @@ export default class extends Controller {
   keepKeyboardInTheTool() {
     const active = document.activeElement
     const nowhere = !active || active === document.body || active === document.documentElement
-    if (!nowhere || this.held || this.menuOpen || this.floating || document.querySelector("dialog[open]")) return
+    if (!nowhere || this.held || this.menuOpen || document.querySelector("dialog[open]")) return
 
     const frame = this.frameOf(this.desk.focus)
     if (inPage(frame)) focusFrame(frame)
@@ -1063,9 +1037,6 @@ export default class extends Controller {
 
     event.preventDefault()
     event.stopPropagation()
-    // (a dialog that floats over the tiles is closed first)
-    if (this.floating) return command.name === "close" ? this.unfloat() : null
-
     this.run(command)
   }
 
@@ -1219,7 +1190,7 @@ export default class extends Controller {
 
     this.menuWasOpen = open
     this.menuTarget.setAttribute("aria-expanded", open)
-    this.tilesTarget.inert = open || Boolean(this.floating)
+    this.tilesTarget.inert = open
     // Its search starts empty, coming and going
     window.dispatchEvent(new CustomEvent("workspace:menu", { detail: { open } }))
     if (open) {
@@ -1263,14 +1234,13 @@ export default class extends Controller {
   }
 
   get calm() {
-    return !document.hidden && !this.menuOpen && !this.floating && !document.querySelector("dialog[open], :popover-open")
+    return !document.hidden && !this.menuOpen && !document.querySelector("dialog[open], :popover-open")
   }
 
   // ── What the pages in the tiles say (tile_page_controller.js) ──
 
   heard(event) {
     if (event.origin !== location.origin) return
-    if (this.floating && event.source === this.floating.frame.contentWindow) return this.heardFromFloat(event.data || {})
 
     const id = Array.from(this.elements.keys()).find((tile) => this.frameOf(tile)?.contentWindow === event.source)
     const message = event.data || {}
@@ -1325,9 +1295,6 @@ export default class extends Controller {
       case "next":
         this.goToNext(message.back ? -1 : 1)
         break
-      case "float":
-        this.float(id, message.url)
-        break
       case "escape":
         // Escape in a tool with nothing left to let go of: out of the tool, onto its tile
         this.focus(id)
@@ -1343,82 +1310,6 @@ export default class extends Controller {
         break
       case "gone":
         this.left(id)
-        break
-    }
-  }
-
-  // ── A dialog of a tile, floating over all of them (services/float.js) ──
-
-  // The tool's page once more, in a frame as large as the window, showing only the
-  // dialog that `url` opens. Everything under it is out of reach until it is gone.
-  float(id, url) {
-    const path = pathOf(url)
-    if (!toolIdOf(path) || !this.hasFloatTarget) return
-
-    this.unfloat({ refresh: false })
-    this.clearFloat()
-    // With ?float the server draws the dialog and nothing else (floating?)
-    const asked = new URL(path, location.origin)
-    asked.searchParams.set("float", "1")
-    const frame = toolFrame(asked.pathname + asked.search)
-    frame.name = "workspace-float"
-    frame.title = `${this.nameOf(id)}: details`
-    this.floatTarget.replaceChildren(frame)
-    this.floatTarget.hidden = false
-    this.floating = { id, frame, path }
-    this.tilesTarget.inert = true
-    frame.focus()
-  }
-
-  // The dialog is closed: the tile it came from is drawn again with whatever was
-  // changed in the dialog, and has the keyboard back. The frame fades out with the
-  // dark behind it, as a dialog does anywhere, and then goes.
-  unfloat({ refresh = true } = {}) {
-    if (!this.floating) return
-
-    const { id } = this.floating
-    this.floating = null
-    this.floatTarget.dataset.closing = ""
-    this.floatGoing = setTimeout(() => this.clearFloat(), FLOAT_FADE)
-    this.tilesTarget.inert = Boolean(this.menuOpen)
-    if (refresh && this.elements.has(id)) this.refresh(id)
-    this.grabFocus()
-  }
-
-  clearFloat() {
-    clearTimeout(this.floatGoing)
-    this.floatTarget.replaceChildren()
-    this.floatTarget.hidden = true
-    delete this.floatTarget.dataset.closing
-  }
-
-  // A click beside the dialog before it has arrived (afterwards the frame takes it)
-  unfloatByClick(event) {
-    if (event.target === this.floatTarget) this.unfloat()
-  }
-
-  heardFromFloat(message) {
-    switch (message.tile) {
-      case "float-closed": {
-        const { id, path } = this.floating
-        const went = pathOf(message.url)
-        // Closed, or gone to the same page without the dialog (the card was deleted):
-        // the tile is drawn again. Gone somewhere else (a link in the dialog was
-        // followed): that is where the tile goes, or what opens beside it.
-        const elsewhere = toolIdOf(went) && went.split("?")[0] !== path.split("?")[0]
-        this.unfloat({ refresh: !elsewhere })
-        if (elsewhere) toolIdOf(went) === toolIdOf(path) ? this.send(id, went) : this.open(went)
-        break
-      }
-      case "escape":
-        this.unfloat()
-        break
-      case "command":
-        if (message.command?.name === "close") this.unfloat()
-        break
-      case "launcher":
-        this.unfloat()
-        this.launch()
         break
     }
   }
@@ -1460,7 +1351,7 @@ export default class extends Controller {
   // still loading); a tile that has the theme already leaves it at that.
   wearAll(theme) {
     // (a tile that is part of this page wears what this page wears)
-    const frames = [ ...Array.from(this.elements.keys(), (id) => this.frameOf(id)), this.floating?.frame ].filter((frame) => frame && !inPage(frame))
+    const frames = Array.from(this.elements.keys(), (id) => this.frameOf(id)).filter((frame) => frame && !inPage(frame))
     for (const frame of frames) {
       try {
         const page = frame.contentWindow
@@ -1476,7 +1367,6 @@ export default class extends Controller {
     for (const id of this.elements.keys()) {
       this.frameOf(id)?.contentWindow?.postMessage({ tile: what, ...details }, location.origin)
     }
-    this.floating?.frame.contentWindow?.postMessage({ tile: what, ...details }, location.origin)
   }
 
   frameOf(id) {

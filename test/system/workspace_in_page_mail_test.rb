@@ -18,15 +18,11 @@ class WorkspaceInPageMailTest < ApplicationSystemTestCase
     @message = mails_messages(:inbox_unread)
     sign_in_as users(:one)
     page.driver.browser.manage.delete_cookie("workspace")
-    visit workspace_path("in-page": "todos,boards,chat,docs,calendar,files,mail", open: tool_path(@tool))
+    visit workspace_path(open: tool_path(@tool))
     wait_for_stimulus "workspace"
     assert_selector "#{MAIL} .mail-list-item", text: "Welcome to Dobase"
     wait_for_stimulus "mail-keyboard"
     within(".workspace-hint") { click_on "Got it" }
-  end
-
-  teardown do
-    page.execute_script("try { localStorage.removeItem('dobase:workspace:in-page') } catch (error) {}")
   end
 
   test "a conversation is read beside its list, and the tile is where it is" do

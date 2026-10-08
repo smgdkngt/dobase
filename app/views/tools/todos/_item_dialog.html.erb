@@ -1,13 +1,10 @@
-<%# The dialog a todo's details open in. Empty on the lists' page, which fetches the
-    todo that is opened (todo#openItem). With `item` it is drawn with that todo in it. %>
-<% item = local_assigns[:item] %>
+<%# The dialog a todo's details open in. Empty until the page fetches the todo that
+    is opened (todo#openItem). %>
 <dialog id="item-detail-modal"
         aria-label="Todo details"
         class="modal-dialog"
         style="max-width: 56rem;"
         data-controller="modal"
         data-todo-target="itemDetailDialog">
-  <%= tag.div data: { todo_target: "itemModal", drawn: item&.id } do %>
-    <%= render template: "tools/todos/items/show" if item %>
-  <% end %>
+  <div data-todo-target="itemModal"></div>
 </dialog>

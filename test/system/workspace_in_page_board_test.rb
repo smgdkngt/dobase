@@ -2,25 +2,21 @@
 
 require "application_system_test_case"
 
-# A board as a tile in the workspace's own page (workspace_controller.js#inThisPage):
-# the second kind of tool to move out of its frame. What every such tile does is in
-# workspace_in_page_test.rb; this is what a board has of its own.
+# A board as a tile in the workspace's own page (workspace_controller.js#inThisPage).
+# What every such tile does is in workspace_in_page_test.rb; this is what a board has
+# of its own.
 class WorkspaceInPageBoardTest < ApplicationSystemTestCase
   TILE = ".workspace-tile:not([hidden], [data-leaving])"
   BOARD = "#{TILE} > turbo-frame.tile-frame"
 
   setup do
     @board = tools(:project_board)
-    @files = tools(:my_files)
+    @room = tools(:my_room)
     sign_in_as users(:one)
     page.driver.browser.manage.delete_cookie("workspace")
-    visit workspace_path("in-page": "todos,boards", open: tool_path(@board))
+    visit workspace_path(open: tool_path(@board))
     wait_for_stimulus "workspace"
     assert_selector "#{BOARD} .tile-page h1", text: @board.name
-  end
-
-  teardown do
-    page.execute_script("try { localStorage.removeItem('dobase:workspace:in-page') } catch (error) {}")
   end
 
   test "the board is part of the workspace's page, with its columns and cards" do
@@ -51,12 +47,11 @@ class WorkspaceInPageBoardTest < ApplicationSystemTestCase
 
   test "a card's details open over the whole window, and closing leaves the board as it was" do
     card = cards(:first_task)
-    open_beside @files
+    open_beside @room
 
     within(BOARD) { find("[data-card-id='#{card.id}']").click }
 
     assert_selector "dialog#card-detail-modal[open]", text: card.title
-    assert_no_selector ".workspace-float iframe"
     width = page.evaluate_script("document.querySelector('dialog#card-detail-modal').getBoundingClientRect().width")
     tile = page.evaluate_script("document.querySelector(#{BOARD.to_json}).getBoundingClientRect().width")
     assert_operator width, :>, tile, "The dialog is held inside its tile"
@@ -142,7 +137,7 @@ class WorkspaceInPageBoardTest < ApplicationSystemTestCase
   end
 
   test "the arrows go from card to card and column to column, and never out of the board" do
-    open_beside @files
+    open_beside @room
     find(BOARD).click
     find("#{BOARD} .tile-page").send_keys(:arrow_down)
 

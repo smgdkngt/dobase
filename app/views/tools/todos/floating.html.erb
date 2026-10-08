@@ -1,7 +1,0 @@
-<%# The todo lists' page when it floats over the workspace (floating?): one todo's
-    details, opened by todo#connect from the ?item in the address %>
-<% content_for(:title) { "#{@tool.name} - #{app_name}" } %>
-
-<div data-controller="todo" data-todo-tool-id-value="<%= @tool.id %>">
-  <%= render "tools/todos/item_dialog", item: @item %>
-</div>

@@ -17,7 +17,7 @@ module Tools
       @calendars = @calendar_account.calendars.enabled.by_position
 
       respond_to do |format|
-        format.html { float_event || load_week }
+        format.html { load_week }
         # A form on the calendar page comes back here after its redirect and gets a stream
         # that refreshes the page where it is. A redirect that names a week wants that week
         # shown, so it gets the page itself, which Turbo visits.
@@ -38,15 +38,6 @@ module Tools
       else
         render "tools/account_not_connected"
       end
-    end
-
-    # Floating over the workspace (floating?): the event the address names, and nothing
-    # of the week. An event that is gone gets the week.
-    def float_event
-      return unless floating? && (@event = @calendar_account.events.find_by(id: params[:event]))
-
-      @calendar = @event.calendar
-      render :floating
     end
 
     def load_week

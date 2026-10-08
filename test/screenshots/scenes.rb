@@ -120,12 +120,12 @@ class ScreenshotScenes < ApplicationSystemTestCase
 
   scene "workspace/card" do
     workspace page_of("Product Launch", "board?card=#{card("Write press release for launch day").id}")
-    floated { assert_selector "dialog[open]" }
+    assert_selector "#{TILE} > .tile-frame dialog[open]"
   end
 
   scene "workspace/todo" do
     workspace page_of("Launch Tasks", "todo?item=#{todo("Write launch email newsletter").id}")
-    floated { assert_selector "dialog[open]" }
+    assert_selector "#{TILE} > .tile-frame dialog[open]"
   end
 
   # ── A card's colours: the same in the app's own look and in every theme ──
@@ -143,11 +143,9 @@ class ScreenshotScenes < ApplicationSystemTestCase
       six_colours
       @sophie.choose_theme(theme) if theme
       workspace page_of("Product Launch", "board?card=#{card("Write press release for launch day").id}")
-      floated do
-        assert_selector "dialog[open]"
-        find("[commandfor='card-color-menu']").click
-        assert_selector "#card-color-menu:popover-open"
-      end
+      assert_selector "#{TILE} > .tile-frame dialog[open]"
+      find("[commandfor='card-color-menu']").click
+      assert_selector "#card-color-menu:popover-open"
     end
   end
 
@@ -266,13 +264,6 @@ class ScreenshotScenes < ApplicationSystemTestCase
     assert_selector "main"
   end
 
-  # In the frame a tile's big dialog floats in, over all the tiles
-  def floated(&block)
-    return yield if has_selector?("#{TILE} > .tile-frame dialog[open]", wait: 2)
-
-    within_frame(find("#workspace-float iframe"), &block)
-  end
-
   def split(direction, first, second)
     leaf = ->(tree) { tree.is_a?(String) ? { tile: tree } : tree }
     { split: direction, ratio: 0.5, first: leaf.(first), second: leaf.(second) }
@@ -320,9 +311,6 @@ class ScreenshotScenes < ApplicationSystemTestCase
     visit new_session_path
     page.execute_script("localStorage.clear(); sessionStorage.clear()")
     page.execute_script("localStorage.setItem('dobase:workspace:hint', 'seen')") if told_about_tiles
-    # Tiles as everyone has them, unless asked otherwise: IN_PAGE=none has every tool in a
-    # frame of its own, IN_PAGE=todos,boards only those as a part of the page
-    page.execute_script("localStorage.setItem('dobase:workspace:in-page', arguments[0])", ENV["IN_PAGE"]) if ENV["IN_PAGE"].present?
     fill_in "Email", with: @sophie.email_address
     fill_in "Password", with: "password"
     click_on "Sign In"

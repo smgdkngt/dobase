@@ -3,28 +3,24 @@
 require "application_system_test_case"
 
 # A tile without a document of its own: a tool's page drawn into the workspace's
-# page, in a <turbo-frame> (workspace_controller.js#inThisPage). Tools move over one
-# kind at a time; todos are the first, switched on per browser.
+# page, in a <turbo-frame> (workspace_controller.js#inThisPage). Every kind of tool
+# but a room is one; what they all do is tried here, on todos.
 class WorkspaceInPageTest < ApplicationSystemTestCase
   TILE = ".workspace-tile:not([hidden], [data-leaving])"
   TODOS = "#{TILE} > turbo-frame.tile-frame"
 
   setup do
     @todos = tools(:my_todos)
-    @files = tools(:my_files)
+    @room = tools(:my_room)
     sign_in_as users(:one)
     page.driver.browser.manage.delete_cookie("workspace")
-    visit workspace_path("in-page": "todos", open: tool_path(@todos))
+    visit workspace_path(open: tool_path(@todos))
     wait_for_stimulus "workspace"
     assert_selector "#{TODOS} .tile-page h1", text: @todos.name
   end
 
-  teardown do
-    page.execute_script("try { localStorage.removeItem('dobase:workspace:in-page') } catch (error) {}")
-  end
-
-  test "todos are part of the workspace's page, and any other tool is a frame of its own" do
-    page.execute_script("window.dispatchEvent(new CustomEvent('workspace:open', { detail: { url: arguments[0] } }))", tool_path(@files))
+  test "todos are part of the workspace's page, and a room is a frame of its own" do
+    page.execute_script("window.dispatchEvent(new CustomEvent('workspace:open', { detail: { url: arguments[0] } }))", tool_path(@room))
 
     assert_selector "#{TILE} > iframe", count: 1
     assert_selector TODOS, count: 1
@@ -32,7 +28,7 @@ class WorkspaceInPageTest < ApplicationSystemTestCase
       assert_no_selector ".sidebar", visible: :all
       assert_text todo_items(:pending_one).title
     end
-    # One document for the files, none for the todos
+    # One document for the room, none for the todos
     assert_equal 1, page.evaluate_script("window.frames.length")
   end
 
@@ -60,16 +56,15 @@ class WorkspaceInPageTest < ApplicationSystemTestCase
     assert_current_path workspace_path
   end
 
-  test "a todo's details open over the whole window, without a page that floats" do
+  test "a todo's details open over the whole window" do
     item = todo_items(:pending_one)
     # Beside another tile, so the todos have half the window
-    page.execute_script("window.dispatchEvent(new CustomEvent('workspace:open', { detail: { url: arguments[0] } }))", tool_path(@files))
+    page.execute_script("window.dispatchEvent(new CustomEvent('workspace:open', { detail: { url: arguments[0] } }))", tool_path(@room))
     assert_selector "#{TILE} > iframe"
 
     within(TODOS) { find("[aria-label='Open #{item.title}']").click }
 
     assert_selector "dialog#item-detail-modal[open]", text: item.title
-    assert_no_selector ".workspace-float iframe"
     width = page.evaluate_script("document.querySelector('dialog#item-detail-modal').getBoundingClientRect().width")
     tile = page.evaluate_script("document.querySelector(#{TODOS.to_json}).getBoundingClientRect().width")
     assert_operator width, :>, tile, "The dialog is held inside its tile"
@@ -167,7 +162,7 @@ class WorkspaceInPageTest < ApplicationSystemTestCase
   end
 
   test "the arrows never leave the tool, whichever way they are pressed" do
-    open_beside @files
+    open_beside @room
     find(TODOS).click
     find("#{TODOS} .tile-page").send_keys(:arrow_down)
 
@@ -180,7 +175,7 @@ class WorkspaceInPageTest < ApplicationSystemTestCase
   end
 
   test "a todo ticked off by the keyboard leaves the keyboard in the tool" do
-    open_beside @files
+    open_beside @room
     find(TODOS).click
     box = find("#{TODOS} #todo-item-#{todo_items(:pending_one).id}-completion")
     box.send_keys(:space)
@@ -196,7 +191,7 @@ class WorkspaceInPageTest < ApplicationSystemTestCase
   end
 
   test "after a todo is added the keyboard is still the tool's" do
-    open_beside @files
+    open_beside @room
     find(TODOS).click
     find("#{TODOS} .tile-page").send_keys("t")
     find("#{TODOS} textarea[aria-label='Todo title']:focus").send_keys("Water the plants", :enter)

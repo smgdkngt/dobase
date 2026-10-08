@@ -425,8 +425,11 @@ class WorkspaceTest < ApplicationSystemTestCase
   end
 
   test "a theme picked in the profile dialog is put on without leaving it, or the workspace" do
+    # A room beside the board: the one tile with a document of its own, which has to be
+    # told (a tile that is part of this page wears what this page wears)
+    launch_room
     # (a tile that fades into a theme by itself comes in after the window around it)
-    within_tile(0) do
+    within_tile(1) do
       page.execute_script("document.startViewTransition = (change) => { window.fadedByItself = true; change(); return {} }")
     end
     find(".workspace-bar-btn[popovertarget='sidebar-user-menu']").click
@@ -442,12 +445,9 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_selector "html[data-theme='nord']"
     assert_selector "dialog#profile-modal[open]"
     assert_current_path workspace_path
-    # (a tile that is part of this page wears what this page wears: a frame of its own is told)
-    if tile_in_a_frame?(0)
-      within_tile(0) do
-        assert_selector "html[data-theme='nord']"
-        assert_not page.evaluate_script("window.fadedByItself === true"), "the tile faded into the theme by itself"
-      end
+    within_tile(1) do
+      assert_selector "html[data-theme='nord']"
+      assert_not page.evaluate_script("window.fadedByItself === true"), "the tile faded into the theme by itself"
     end
   end
 
@@ -535,93 +535,6 @@ class WorkspaceTest < ApplicationSystemTestCase
     end
   end
 
-  test "a card's details float over all the tiles, and closing them gives the tile back" do
-    with_frames_of_their_own
-    launch @files
-    within_tile(0) { find("#board-card-#{cards(:first_task).id}").click }
-
-    assert_selector ".workspace-float:not([hidden]) iframe"
-    assert_selector "#workspace-tiles[inert]"
-    within_float do
-      assert_selector "dialog#card-detail-modal[open] h2", text: "First task"
-      # The page that floats is drawn as the card alone: no board to draw around it
-      assert_no_selector ".board-column", visible: :all
-      # As wide as the window, not as the tile it came from: the dialog has its two columns
-      assert_operator page.evaluate_script("document.querySelector('dialog[open]').getBoundingClientRect().width"), :>, 700
-    end
-    # The tile itself opened nothing
-    within_tile(0) { assert_no_selector "dialog[open]" }
-
-    type_keys :escape
-    assert_no_selector ".workspace-float iframe"
-    assert_no_selector "#workspace-tiles[inert]"
-    assert_equal 2, tiles.size
-    page.document.synchronize do
-      back = page.evaluate_script("document.activeElement === document.querySelectorAll('.workspace-tile iframe')[0]")
-      raise Capybara::ExpectationNotMet, "the keyboard isn't back in the tile" unless back
-    end
-  end
-
-  test "what is changed in a floating dialog shows in the tile when it closes" do
-    with_frames_of_their_own
-    card = cards(:first_task)
-    within_tile(0) { find("#board-card-#{card.id}").click }
-
-    within_float do
-      assert_selector "dialog#card-detail-modal[open] h2", text: "First task"
-      click_on "Archive card"
-    end
-
-    assert_no_selector ".workspace-float iframe"
-    within_tile(0) do
-      assert_selector "h1", text: @board.name
-      assert_no_selector "#board-card-#{card.id}"
-    end
-    assert card.reload.archived?
-  end
-
-  test "a todo's and an event's details float too" do
-    with_frames_of_their_own
-    visit workspace_path(open: tool_todo_path(@todos))
-    wait_for_stimulus "workspace"
-    within_tile(1) { find("[aria-label='Open #{todo_items(:pending_one).title}']").click }
-    within_float do
-      assert_selector "dialog#item-detail-modal[open]", text: todo_items(:pending_one).title
-      assert_no_selector ".todo-list-items", visible: :all
-    end
-    type_keys :escape
-    assert_no_selector ".workspace-float iframe"
-
-    calendar = tools(:my_calendar)
-    # The week the meeting is in: tomorrow, which on a Sunday is next week
-    meeting_day = Calendars::Event.find_by!(uid: "meeting-123@dobase").starts_at.to_date
-    visit workspace_path(open: tool_calendar_path(calendar, week_start: meeting_day.iso8601))
-    wait_for_stimulus "workspace"
-    within_tile(2) { find("[data-event-id]", match: :first).click }
-    within_float do
-      assert_selector "dialog[open]", text: "Event Details"
-      assert_selector "dialog[open] button", text: "Close"
-      assert_no_selector "#calendar-week-container", visible: :all
-    end
-    type_keys :escape
-    assert_no_selector ".workspace-float iframe"
-  end
-
-  test "an address that opens a card floats it, and the tile doesn't open it again with every reload" do
-    with_frames_of_their_own
-    visit workspace_path(open: tool_board_path(@board, card: cards(:second_task).id))
-    wait_for_stimulus "workspace"
-
-    within_float { assert_selector "dialog#card-detail-modal[open] h2", text: "Second task" }
-    type_keys :escape
-    assert_no_selector ".workspace-float iframe"
-
-    visit workspace_path
-    wait_for_stimulus "workspace"
-    within_tile(0) { assert_selector "h1", text: @board.name }
-    assert_no_selector ".workspace-float iframe", wait: 2
-  end
-
   test "a notification about a tool in sight makes no sound of its own, one about a tool elsewhere does" do
     colleague = users(:two)
     # (a browser lets a page make sound once it has been touched: a click in a tile counts for the window)
@@ -649,48 +562,8 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_no_selector "[data-tool-id='#{@board.id}'] [data-sidebar-tool-link][data-in-sight]", visible: :all
   end
 
-  test "a message in a chat on another desktop is a notification's to announce, not the chat's" do
-    # (two documents, each hearing its own: a chat in a frame of its own. The same of a
-    # chat that is part of the page is in workspace_in_page_chat_test.rb)
-    with_frames_of_their_own
-    colleague = users(:two)
-    chat_type = ToolType.find_or_create_by!(slug: "chat") { |type| type.name = "Chat"; type.icon = "message-circle"; type.enabled = true }
-    chat = Tool.create!(name: "Team Chat", tool_type: chat_type, owner: users(:one))
-    chat.collaborators.create!(user: colleague, role: "collaborator")
-    visit workspace_path(open: tool_chat_path(chat))
-    wait_for_stimulus "workspace"
-    # (the hint about tiles lies over the bottom of the window until it is sent away)
-    find(".workspace-hint button", text: "Got it").click
-    within_tile(1) do
-      # (a click in the middle of a chat's tile: the holder of the toasts lay over it once, unseen, and took every click)
-      find("rhino-editor .ProseMirror").click
-      assert page.evaluate_script("document.activeElement.closest('rhino-editor') !== null || document.activeElement.tagName === 'RHINO-EDITOR'"), "the click didn't reach the message box"
-      page.execute_script("window.heardSounds = []; document.addEventListener('sound:played', (event) => window.heardSounds.push(event.detail.name))")
-      # The chat is listening before anything is said: a message sent before a page
-      # listens is not sent again, and on a busy machine the test got there first
-      assert_selector "turbo-cable-stream-source[connected]", visible: :all
-    end
-    page.execute_script("window.heardSounds = []; document.addEventListener('sound:played', (event) => window.heardSounds.push(event.detail.name))")
-
-    # In sight: the chat says so itself, and the notification keeps quiet
-    perform_enqueued_jobs { chat.chat.messages.create!(user: colleague, body: "<p>Here</p>") }
-    within_tile(1) do
-      assert_selector ".chat-message", text: "Here"
-      assert_heard_here "receive"
-    end
-    assert_empty page.evaluate_script("window.heardSounds")
-
-    # On another desktop: the other way round
-    press "2"
-    assert_no_selector "[data-tool-id='#{chat.id}'] [data-sidebar-tool-link][data-in-sight]", visible: :all
-    perform_enqueued_jobs { chat.chat.messages.create!(user: colleague, body: "<p>Still there?</p>") }
-    assert_heard_here "notify"
-    chat_frame = "Array.from(document.querySelectorAll('.workspace-tile iframe')).find((frame) => frame.contentWindow.location.pathname.includes('/tools/#{chat.id}'))"
-    assert_equal %w[receive], page.evaluate_script("#{chat_frame}.contentWindow.heardSounds")
-  end
-
   test "backspace outside a field is nobody's key, so it can't be 'back' in whichever tile went somewhere last" do
-    with_frames_of_their_own
+    launch_room
     backspace = <<~JS
       ((on) => {
         const key = new KeyboardEvent("keydown", { key: "Backspace", bubbles: true, cancelable: true })
@@ -708,6 +581,8 @@ class WorkspaceTest < ApplicationSystemTestCase
       find("[data-board-target='addCardBtn']", match: :first).click
       assert_not page.evaluate_script("#{backspace}(document.querySelector(\"textarea[data-board-target='addCardInput']\"))")
     end
+    # (a room's tile is a document of its own, with a history of its own to go back in)
+    within_tile(1) { assert page.evaluate_script("#{backspace}(document.body)"), "in a room's tile" }
   end
 
   test "the bell in the bar opens the notifications over the tiles" do
@@ -1239,10 +1114,6 @@ class WorkspaceTest < ApplicationSystemTestCase
     end
   end
 
-  def tile_in_a_frame?(index)
-    all("#{SHOWING_TILE} > :is(iframe, .tile-frame)", minimum: index + 1)[index].tag_name == "iframe"
-  end
-
   # Escape until the keyboard is out of the tool and on its tile (the first lets go of
   # what the keyboard was on in there, if anything)
   def leave_tool
@@ -1253,13 +1124,7 @@ class WorkspaceTest < ApplicationSystemTestCase
     assert_selector ".workspace-tile:focus"
   end
 
-  # The frame a tile's dialog floats in, over all the tiles
-  def within_float(&block)
-    within_frame(find(".workspace-float iframe"), &block)
-  end
-
-  # What is in a tile: a part of this page, or a frame of its own (a room, and any
-  # tool when the browser asked for frames)
+  # What is in a tile: a part of this page, or for a room a frame of its own
   def within_tile(index, &block)
     frame = all("#{SHOWING_TILE} > :is(iframe, .tile-frame)", minimum: index + 1)[index]
     return within_frame(frame, &block) if frame.tag_name == "iframe"
@@ -1270,13 +1135,11 @@ class WorkspaceTest < ApplicationSystemTestCase
     @in_a_part_of_the_page = false
   end
 
-  # Every tool in a frame with a document of its own, as it was for all of them and
-  # still is for a room: what only such a tile does (a dialog that floats over the
-  # others, keys handed on from one document to another) is tried this way
-  def with_frames_of_their_own
-    visit workspace_path("in-page": "")
-    wait_for_stimulus "workspace"
+  # A room beside the board: the one kind of tile that is a frame with a document of
+  # its own, for what only such a tile does (told of a theme, keys handed on)
+  def launch_room
+    launch tools(:my_room)
     assert_selector "#{SHOWING_TILE} > iframe"
-    within_tile(0) { assert_selector "h1", text: @board.name }
+    within_tile(1) { assert_selector "[data-controller~='tile-page']", visible: :all }
   end
 end
