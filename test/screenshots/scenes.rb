@@ -252,7 +252,7 @@ class ScreenshotScenes < ApplicationSystemTestCase
     assert_selector "#{TILE} > :is(iframe, .tile-frame)", count: count
     count.times do |index|
       frame = all("#{TILE} > :is(iframe, .tile-frame)")[index]
-      # A tile is a document of its own, or (the trial) a part of this page
+      # A tile is a part of this page, or (a room) a document of its own
       next within_frame(frame) { assert_selector there[index] || "main" } if frame.tag_name == "iframe"
 
       within(frame) { assert_selector ".tile-page" }
@@ -320,7 +320,8 @@ class ScreenshotScenes < ApplicationSystemTestCase
     visit new_session_path
     page.execute_script("localStorage.clear(); sessionStorage.clear()")
     page.execute_script("localStorage.setItem('dobase:workspace:hint', 'seen')") if told_about_tiles
-    # The trial of tiles that are part of the workspace's page: IN_PAGE=todos
+    # Tiles as everyone has them, unless asked otherwise: IN_PAGE=none has every tool in a
+    # frame of its own, IN_PAGE=todos,boards only those as a part of the page
     page.execute_script("localStorage.setItem('dobase:workspace:in-page', arguments[0])", ENV["IN_PAGE"]) if ENV["IN_PAGE"].present?
     fill_in "Email", with: @sophie.email_address
     fill_in "Password", with: "password"

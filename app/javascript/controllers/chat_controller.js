@@ -196,7 +196,7 @@ export default class extends Controller {
   // Someone else's message arriving while you look at the chat. One you aren't looking
   // at is a notification, which has a sound of its own (notifications_controller.js).
   hearNewMessage(streamElement) {
-    if (unseen() || streamElement.getAttribute("action") !== "append" || streamElement.getAttribute("target") !== this.partId("messages")) return
+    if (unseen(this.element) || streamElement.getAttribute("action") !== "append" || streamElement.getAttribute("target") !== this.partId("messages")) return
 
     const message = streamElement.templateContent.querySelector("[data-message-id]")
     if (message && Number(message.dataset.messageUserIdValue) !== this.userIdValue) {

@@ -6,6 +6,8 @@ require "application_system_test_case"
 # What every such tile does is in workspace_in_page_test.rb; this is what a chat has
 # of its own: what is sent to it arrives in it, and in no other chat on the page.
 class WorkspaceInPageChatTest < ApplicationSystemTestCase
+  include ActiveJob::TestHelper
+
   TILE = ".workspace-tile:not([hidden], [data-leaving])"
   CHAT = "#{TILE} > turbo-frame.tile-frame"
 
@@ -77,6 +79,24 @@ class WorkspaceInPageChatTest < ApplicationSystemTestCase
     assert_no_selector team, text: "For the side"
   end
 
+  test "a message in a chat on another desktop is a notification's to announce, not the chat's" do
+    page.execute_script("window.heardSounds = []; document.addEventListener('sound:played', (event) => window.heardSounds.push(event.detail.name))")
+    assert_selector "#{CHAT} turbo-cable-stream-source[connected]", visible: :all
+    find("#{CHAT} form rhino-editor .ProseMirror").click
+
+    # In sight: the chat says so itself, and the notification keeps quiet
+    perform_enqueued_jobs { @tool.chat.messages.create!(user: @colleague, body: "<p>Here</p>") }
+    assert_selector "#{CHAT} .chat-messages", text: "Here"
+    assert_heard "receive"
+
+    # On another desktop: the other way round
+    page.driver.browser.action.key_down(:control).key_down(:alt).send_keys("2").key_up(:alt).key_up(:control).perform if mac?
+    page.driver.browser.action.key_down(:alt).send_keys("2").key_up(:alt).perform unless mac?
+    assert_no_selector CHAT, visible: true
+    perform_enqueued_jobs { @tool.chat.messages.create!(user: @colleague, body: "<p>Still there?</p>") }
+    assert_heard "receive", "notify"
+  end
+
   test "the slash goes to the message box, and Escape comes back out" do
     find(CHAT).click
     find("#{CHAT} .tile-page").send_keys(:escape)
@@ -120,6 +140,19 @@ class WorkspaceInPageChatTest < ApplicationSystemTestCase
       page.send_keys(arrow)
       inside = page.evaluate_script("Boolean(document.activeElement.closest('turbo-frame.tile-frame'))")
       assert inside, "#{arrow} took the keyboard out of the chat"
+    end
+  end
+
+  private
+
+  def mac? = page.evaluate_script("navigator.platform").match?(/Mac|iP/)
+
+  # What the page has played, in order. A job, a broadcast and a browser lie between
+  # the cause and the sound.
+  def assert_heard(*names)
+    page.document.synchronize(15) do
+      heard = page.evaluate_script("window.heardSounds")
+      raise Capybara::ExpectationNotMet, "expected to hear #{names.inspect}, heard #{heard.inspect}" unless heard == names
     end
   end
 end

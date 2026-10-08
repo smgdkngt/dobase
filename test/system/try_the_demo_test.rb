@@ -18,7 +18,7 @@ class TryTheDemoTest < ApplicationSystemTestCase
 
     # In the workspace, with the first tool open as a tile and a line about what that is
     assert_selector "[data-controller~='workspace']", wait: 15
-    within_frame(find(".workspace-tile iframe")) do
+    within(".workspace-tile > .tile-frame") do
       assert_text "Product Launch"
       assert_text "Write press release for launch day"
     end

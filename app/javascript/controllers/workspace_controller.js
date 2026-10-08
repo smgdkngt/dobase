@@ -50,6 +50,9 @@ const FLOAT_FADE = 180
 // A change is kept on the server this long after the last one: a split being dragged
 // is one arrangement, not thirty
 const KEEP_AFTER_MS = 600
+// The kinds of tool that are part of this page. A room is a frame of its own: a call
+// is better off in a document that nothing else draws in.
+const IN_THIS_PAGE = [ "todos", "boards", "chat", "docs", "calendar", "files", "mail" ]
 
 export default class extends Controller {
   static targets = ["tiles", "tileTemplate", "empty", "desks", "deskCard", "title", "menu", "hint", "status", "float"]
@@ -384,10 +387,12 @@ export default class extends Controller {
     this.nameTile(id)
   }
 
-  // Tools are moving out of frames with a document of their own (an <iframe>) into
-  // this page (a <turbo-frame>: services/tool_frame.js#pageFrame), one kind at a
-  // time. A kind that isn't over yet is switched on per browser:
-  // /workspace?in-page=todos (or todos,boards), and /workspace?in-page= off again.
+  // Every kind of tool but a room is drawn into this page (a <turbo-frame>:
+  // services/tool_frame.js#pageFrame), not into a frame with a document of its own
+  // (an <iframe>). A browser can ask otherwise, for as long as both ways are there:
+  // /workspace?in-page= has every tool as a frame of its own again,
+  // /workspace?in-page=todos,boards only those in the page, and
+  // /workspace?in-page=default is back to this.
   inThisPage(url) {
     return this.kindsInThisPage.has(this.menuLinkFor(url)?.dataset.toolType)
   }
@@ -396,20 +401,20 @@ export default class extends Controller {
     if (this._kindsInThisPage) return this._kindsInThisPage
 
     const key = "dobase:workspace:in-page"
-    let kinds = ""
+    let kinds = IN_THIS_PAGE.join(",")
     try {
       const address = new URL(location.href)
       const asked = address.searchParams.get("in-page")
       if (asked !== null) {
-        asked ? localStorage.setItem(key, asked) : localStorage.removeItem(key)
+        asked === "default" ? localStorage.removeItem(key) : localStorage.setItem(key, asked || "none")
         address.searchParams.delete("in-page")
         history.replaceState(history.state, "", address)
       }
-      kinds = localStorage.getItem(key) || ""
+      kinds = localStorage.getItem(key) ?? kinds
     } catch {
-      // No storage: frames, as everywhere
+      // No storage: what everyone has
     }
-    return (this._kindsInThisPage = new Set(kinds.split(",").filter(Boolean)))
+    return (this._kindsInThisPage = new Set(kinds.split(",").filter((kind) => kind && kind !== "none")))
   }
 
   // What a tile shows, by the name its page gave it, or its tool's name in the menu

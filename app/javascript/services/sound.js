@@ -47,8 +47,11 @@ export const SOUNDS = {
 // the workspace on another desktop or behind a tile that has the room to itself (the
 // frame is there, and hidden). What arrives on a page like that is a notification's
 // to announce, not the page's.
-export function unseen() {
+export function unseen(view = null) {
   if (document.hidden) return true
+  // (a tile that is part of the workspace's own page is asked itself)
+  const tile = view?.closest?.(".workspace-tile")
+  if (tile) return !tile.checkVisibility({ visibilityProperty: true })
 
   try {
     const frame = window.frameElement

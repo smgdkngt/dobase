@@ -60,6 +60,8 @@ export function pageFrame(id, url) {
   frame.id = `tile-${id}`
   frame.className = "tile-frame"
   frame.setAttribute("refresh", "morph")
+  // (it can hold the keyboard for its page until that is there: focusFrame)
+  frame.tabIndex = -1
   frame.setAttribute("src", url)
   return frame
 }
@@ -83,7 +85,8 @@ export function opensAsTile(link) {
   if (link.hasAttribute("download") || link.dataset.turboMethod || link.dataset.turbo === "false") return false
   if (link.target && link.target !== "_self") return false
 
-  const around = link.closest("turbo-frame")
+  // (a tile that is part of the workspace's page is a frame too, and the page's own)
+  const around = link.closest("turbo-frame:not(.tile-frame)")
   const frame = link.dataset.turboFrame || around?.getAttribute("target") || (around ? "frame" : "_top")
   return frame === "_top"
 }
@@ -207,7 +210,9 @@ export function reloadFrame(frame, url = "") {
  * @param {HTMLElement | null | undefined} frame
  */
 export function focusFrame(frame) {
-  const into = inPage(frame) ? frame?.querySelector(".tile-page") : frame
+  // (a page that is still on its way: its frame holds the keyboard for it, and hands
+  // it on when the page is there, tile_frame_controller.js)
+  const into = inPage(frame) ? frame?.querySelector(".tile-page") || frame : frame
   if (into instanceof HTMLElement) into.focus({ preventScroll: true })
 }
 

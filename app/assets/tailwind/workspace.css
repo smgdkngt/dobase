@@ -554,6 +554,7 @@ body[data-workspace] .main-content {
 
 .tile-frame {
   overflow: hidden;
+  outline: none;
   /* What a narrow window does to a tool, a narrow tile does too: the views ask this
      frame how wide it is (@variant narrow in application.css) */
   container: tile / inline-size;
