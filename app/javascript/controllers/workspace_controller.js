@@ -99,7 +99,9 @@ export default class extends Controller {
     this.listen(window, "command-palette:hide", () => this.closeMenu({ toTheTile: true }))
     // When a form on this page was sent, and which tool it was about (its settings), if any
     this.listen(document, "turbo:submit-end", (event) => {
-      this.submitted = { at: performance.now(), toolId: toolIdOf(pathOf(event.target.action)) }
+      // (and from which tile, when the form was in one that is part of this page)
+      const tile = event.target.closest?.(".tile-frame")?.closest("[data-tile-id]")?.dataset.tileId
+      this.submitted = { at: performance.now(), toolId: toolIdOf(pathOf(event.target.action)), tile }
     })
     this.listen(document, "turbo:morph", () => this.refreshed())
     // The keyboard arrived on a tile itself, however it got there: that is the level it is at
@@ -1118,7 +1120,14 @@ export default class extends Controller {
     const submitted = this.submitted && performance.now() - this.submitted.at < 1000 ? this.submitted : null
     const toolId = toolIdOf(address.pathname)
 
-    if (submitted?.toolId === toolId) {
+    const from = submitted?.tile && this.state.tiles[submitted.tile] ? submitted.tile : null
+    if (from && toolIdOf(this.state.tiles[from].url) === toolId) {
+      // A form in a tile of this page was sent, and this is where it leads (a mail sent
+      // leads to its conversation): that tile goes there, or is drawn again when it
+      // is there already
+      const path = address.pathname + address.search
+      frameAddress(this.frameOf(from)) === path ? this.refresh(from) : this.send(from, path)
+    } else if (submitted?.toolId === toolId) {
       // Its settings, not a wish to go there: you stay where you are
       for (const [ id, tile ] of Object.entries(this.state.tiles)) {
         if (toolIdOf(tile.url) === toolId && this.elements.has(id)) this.refresh(id)

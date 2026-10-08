@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { formatFileSize } from "services/file_size"
+import { tileOf } from "services/tile"
 
 const FILE_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>'
 
@@ -17,7 +18,11 @@ export default class extends Controller {
         e.returnValue = ""
       }
     }
+    // In a tile that is part of the workspace's page, a visit of the window is not
+    // this form's leaving: the tile is asked instead (tile:leaving, below)
+    this._tile = tileOf(this.element)
     this._beforeVisit = (e) => {
+      if (this._tile) return
       if (this._hasChanges() && !this._submitting) {
         if (!confirm("You have an unsent message. Discard it?")) {
           e.preventDefault()
@@ -26,13 +31,20 @@ export default class extends Controller {
     }
     // A conversation picked from the list opens in the pane this form is in, without a visit
     this._frameClick = (e) => {
-      const link = e.target.closest?.("a[data-turbo-frame]:not([data-turbo-frame='_top'])")
+      // (in such a tile every link in it goes somewhere in the tile, unless it says _top:
+      // those the workspace asks about)
+      const link = this._tile?.contains(e.target)
+        ? e.target.closest?.("a[href]:not([data-turbo-frame='_top'], [target='_blank'], [download])")
+        : e.target.closest?.("a[data-turbo-frame]:not([data-turbo-frame='_top'])")
       if (!link || this.element.contains(link)) return
       if (this._hasChanges() && !this._submitting && !confirm("You have an unsent message. Discard it?")) {
         e.preventDefault()
         e.stopImmediatePropagation()
       }
     }
+    // What the workspace asks a tile before it closes it or sends it elsewhere
+    this._tileLeaving = (e) => { if (this._hasChanges() && !this._submitting) e.preventDefault() }
+    this._tile?.addEventListener("tile:leaving", this._tileLeaving)
     window.addEventListener("beforeunload", this._beforeUnload)
     document.addEventListener("turbo:before-visit", this._beforeVisit)
     document.addEventListener("click", this._frameClick, true)
@@ -41,6 +53,7 @@ export default class extends Controller {
   }
 
   disconnect() {
+    this._tile?.removeEventListener("tile:leaving", this._tileLeaving)
     window.removeEventListener("beforeunload", this._beforeUnload)
     document.removeEventListener("turbo:before-visit", this._beforeVisit)
     document.removeEventListener("click", this._frameClick, true)

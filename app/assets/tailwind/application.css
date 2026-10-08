@@ -6,6 +6,30 @@
 @custom-variant focus-visible (&:is(:focus-visible, [data-keyboard-focus]));
 @custom-variant peer-focus-visible (&:is(:where(.peer):is(:focus-visible, [data-keyboard-focus]) ~ *));
 
+/* A page is narrow in a narrow window (a phone), and in a narrow tile of the
+   workspace's own page, which is not a window: there the tile's frame is asked
+   (workspace.css, .tile-frame). narrow: is both, in a stylesheet (@variant narrow) and
+   on an element (narrow:hidden), for a view that can be either. wide-enough-for-folders
+   is mail's third column, from 1440px. */
+@custom-variant narrow {
+  @media (max-width: 1023px) {
+    @slot;
+  }
+  @container tile (max-width: 1023px) {
+    @slot;
+  }
+}
+@custom-variant folders-beside {
+  @media (min-width: 1440px) {
+    &:not(.tile-frame *) {
+      @slot;
+    }
+  }
+  @container tile (min-width: 1440px) {
+    @slot;
+  }
+}
+
 /* Design system modules */
 @import "./tokens.css";
 @import "./components.css";

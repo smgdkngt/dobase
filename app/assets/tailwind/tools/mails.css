@@ -251,101 +251,141 @@ rhino-editor.compose-editor .trix-content {
 }
 
 /* Wide screens: the folders get their own column instead of the menu */
-@media (min-width: 1440px) {
-  .mail-layout {
+.mail-layout {
+  @variant folders-beside {
     grid-template-columns: 200px 320px 1fr;
   }
+}
 
-  .mail-folder-rail {
+.mail-folder-rail {
+  @variant folders-beside {
     @apply flex;
   }
+}
 
-  .mail-topbar > .mail-folder-picker {
+.mail-topbar > .mail-folder-picker {
+  @variant folders-beside {
     @apply hidden;
   }
 }
 
-/* Responsive: Mobile */
-@media (max-width: 1023px) {
-  /* Single column layout on mobile */
-  .mail-layout {
+/* Narrow: a phone, or a narrow tile in the workspace's own page (@variant narrow) */
+
+/* Single column layout on mobile */
+.mail-layout {
+  @variant narrow {
     grid-template-columns: 1fr;
   }
+}
 
-  /* Default: show list, hide content */
-  .mail-layout > .mail-content {
+/* Default: show list, hide content */
+.mail-layout > .mail-content {
+  @variant narrow {
     @apply hidden;
   }
+}
 
-  /* When detail is open: hide list, show content */
-  .mail-layout.mail-detail-open > .mail-list-panel {
+/* When detail is open: hide list, show content */
+.mail-layout.mail-detail-open > .mail-list-panel {
+  @variant narrow {
     @apply hidden;
   }
+}
 
-  .mail-layout.mail-detail-open > .mail-content {
+.mail-layout.mail-detail-open > .mail-content {
+  @variant narrow {
     @apply grid;
   }
+}
 
-  /* Fill the main area; an open email is anchored above the bottom bar (layout.css) */
-  .mail-layout {
+/* Fill the main area; an open email is anchored above the bottom bar (layout.css) */
+.mail-layout {
+  @variant narrow {
     @apply h-full;
   }
+}
 
-  /* Topbar in two rows: title + actions, then search + folder picker */
-  .mail-topbar {
+/* Topbar in two rows: title + actions, then search + folder picker */
+.mail-topbar {
+  @variant narrow {
     @apply flex-wrap gap-y-2 py-2;
   }
+}
 
-  .mail-topbar-title {
+.mail-topbar-title {
+  @variant narrow {
     @apply flex-auto min-w-0 truncate border-r-0 pr-0 mr-0;
   }
+}
 
-  .mail-topbar > .mail-topbar-actions {
+.mail-topbar > .mail-topbar-actions {
+  @variant narrow {
     @apply order-1 ml-auto;
   }
+}
 
-  .mail-topbar > .search-form {
+.mail-topbar > .search-form {
+  @variant narrow {
     @apply order-2 min-w-0;
     flex: 1 1 50%;
   }
+}
 
-  .mail-topbar > .search-form .search-form-input {
+.mail-topbar > .search-form .search-form-input {
+  @variant narrow {
     @apply w-full;
   }
+}
 
-  .mail-topbar > .mail-folder-picker {
+.mail-topbar > .mail-folder-picker {
+  @variant narrow {
     @apply order-3;
   }
+}
 
-  /* Hide sync indicator text, keep dot + button */
-  .mail-topbar .mail-sync-text {
-    @apply hidden;
-  }
-
-  /* Detail header: actions on second row */
-  .mail-detail-header {
-    @apply flex-wrap gap-2 py-2;
-  }
-
-  .mail-detail-header > h1 {
-    @apply w-full order-1;
-  }
-
-  .mail-detail-header > a:first-child {
-    @apply order-0;
-  }
-
-  .mail-detail-header > div:last-child {
-    @apply w-full order-2 flex-wrap;
-  }
-
-  /* The toast above the bottom bar of an open mail, as on wide screens */
-  body:has(.mail-layout) .flash-toast {
-    bottom: calc(anchor(--mail-bottom-bar top, calc(var(--mobile-bar-clearance) - 0.75rem)) + 0.75rem);
-  }
-
-  /* Hide "select a message" empty state on mobile */
-  .mail-layout:not(.mail-detail-open) > .mail-content {
+/* Hide sync indicator text, keep dot + button */
+.mail-topbar .mail-sync-text {
+  @variant narrow {
     @apply hidden;
   }
 }
+
+/* Detail header: actions on second row */
+.mail-detail-header {
+  @variant narrow {
+    @apply flex-wrap gap-2 py-2;
+  }
+}
+
+.mail-detail-header > h1 {
+  @variant narrow {
+    @apply w-full order-1;
+  }
+}
+
+.mail-detail-header > a:first-child {
+  @variant narrow {
+    @apply order-0;
+  }
+}
+
+.mail-detail-header > div:last-child {
+  @variant narrow {
+    @apply w-full order-2 flex-wrap;
+  }
+}
+
+/* The toast above the bottom bar of an open mail, as on wide screens */
+body:has(.mail-layout) .flash-toast {
+  @variant narrow {
+    bottom: calc(anchor(--mail-bottom-bar top, calc(var(--mobile-bar-clearance) - 0.75rem)) + 0.75rem);
+  }
+}
+
+/* Hide "select a message" empty state on mobile */
+.mail-layout:not(.mail-detail-open) > .mail-content {
+  @variant narrow {
+    @apply hidden;
+  }
+}
+

@@ -43,7 +43,7 @@
   </button>
   <div data-collapse-target="content" class="<%= is_last ? '' : 'hidden' %>">
     <%# Beside the sender's face in a wide window; in a narrow one (a phone, a tile) the width is the message's %>
-    <div class="px-4 pb-4 pl-[4.25rem] max-lg:px-2 max-lg:pl-2">
+    <div class="px-4 pb-4 pl-[4.25rem] narrow:px-2 narrow:pl-2">
       <% if email_message.draft? && !email_message.trashed? %>
         <div class="mail-draft-note">
           <span class="flex-1">Not sent yet.</span>

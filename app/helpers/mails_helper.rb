@@ -51,6 +51,12 @@ module MailsHelper
     ]
   end
 
+  # The frame a conversation is read in, beside its list. One per mailbox: two can
+  # be on a page (tiles in the workspace's own page), and a link finds its frame by id.
+  def mail_frame_id(tool = @tool)
+    "mail-content-#{tool.id}"
+  end
+
   # A folder's name as it was given. The server has it in modified UTF-7 (RFC 3501, 5.1.3),
   # where "Büro" is "B&APw-ro" and "&" is "&-", and some servers have it inside the inbox,
   # as "INBOX.Büro". That stays the folder's name for the server and in links; this is the

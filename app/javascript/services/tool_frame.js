@@ -117,7 +117,8 @@ export function frameAddress(frame) {
  */
 export function sendFrameTo(frame, path) {
   if (inPage(frame)) {
-    if (hasUnfinishedWork(frame)) return false
+    // (a page of its own asks this itself, as the visit below reaches it)
+    if (hasUnfinishedWork(frame) && !window.confirm("This tile has unfinished work, such as an unsent mail. Leave it?")) return false
 
     pathOf(frame.getAttribute("src")) === path ? reloadFrame(frame) : frame.setAttribute("src", path)
     return true

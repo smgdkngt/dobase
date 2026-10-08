@@ -137,12 +137,12 @@ class LiveUpdatesTest < ApplicationSystemTestCase
     tool = tools(:my_mail)
     read = mails_messages(:inbox_read)
     open_live tool_mail_path(tool, read)
-    assert_selector "#mail-content", text: read.subject
+    assert_selector "turbo-frame.mail-content", text: read.subject
 
     through_the_api :post, tool_mail_star_path(tool, mails_messages(:inbox_unread))
     assert_selector "#conversation-#{mails_messages(:inbox_unread).id} svg.fill-warning"
 
-    assert_selector "#mail-content", text: read.subject
+    assert_selector "turbo-frame.mail-content", text: read.subject
     assert_current_path tool_mail_path(tool, read)
     assert_same_page
   end

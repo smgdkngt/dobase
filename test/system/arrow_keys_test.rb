@@ -250,7 +250,7 @@ class ArrowKeysTest < ApplicationSystemTestCase
 
     # To the right of the list is the message: its buttons are gone through like anything else
     press :arrow_right
-    assert page.evaluate_script("document.getElementById('mail-content').contains(document.activeElement)"), "the keyboard went into the message"
+    assert page.evaluate_script("document.querySelector('turbo-frame.mail-content').contains(document.activeElement)"), "the keyboard went into the message"
     press :arrow_left
     assert_selector "##{second} a:focus"
 
