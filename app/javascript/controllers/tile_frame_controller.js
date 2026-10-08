@@ -2,6 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import { eventToHotkeyString, normalizeHotkey } from "@github/hotkey"
 import { typing } from "services/typing"
 import { showFlash } from "services/flash"
+import { opensAsTile } from "services/tool_frame"
 
 // On a tool's page that is a tile in the workspace's own page (layouts/tile_frame,
 // workspace_controller.js#inThisPage). What tile_page_controller.js does for a tile
@@ -30,12 +31,27 @@ export default class extends Controller {
     // (on the document: a key pressed while the keyboard was nowhere is this tile's
     // too, once the workspace has put the keyboard back in it)
     document.addEventListener("keydown", (event) => this.keyed(event), options)
-    this.element.addEventListener("click", (event) => event.target.closest?.("[data-turbo-action]")?.removeAttribute("data-turbo-action"), { ...options, capture: true })
+    this.element.addEventListener("click", (event) => this.clicked(event), { ...options, capture: true })
     this.element.addEventListener("turbo:frame-load", (event) => this.wentOn(event), options)
     this.frame.addEventListener("turbo:frame-render", () => this.keepAddressesHere(), options)
     this.keepAddressesHere()
+    // The keyboard was put in this tile before its page was there
+    if (document.activeElement === this.frame) this.element.focus({ preventScroll: true })
     this.report()
     if (this.frame.closest("[data-focused]")) this.offer()
+  }
+
+  clicked(event) {
+    event.target.closest?.("[data-turbo-action]")?.removeAttribute("data-turbo-action")
+    // Alt and a click on a link to a page of a tool: that page in a tile of its own
+    if (!event.altKey || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return
+
+    const link = event.target.closest?.("a[href]")
+    if (!link || !opensAsTile(link)) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    this.say("open", { url: link.href })
   }
 
   // Frames in the page that would write their address into the window's

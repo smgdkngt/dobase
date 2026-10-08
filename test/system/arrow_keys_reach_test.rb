@@ -115,7 +115,7 @@ class ArrowKeysReachTest < ApplicationSystemTestCase
     page.driver.browser.manage.delete_cookie("workspace")
     visit workspace_path
     wait_for_stimulus "workspace"
-    assert_selector ".workspace-tile iframe"
+    assert_selector ".workspace-tile > :is(iframe, .tile-frame)"
     find(".workspace-bar-btn[aria-label='Menu']").send_keys(:tab)
 
     assert_everything_in_reach minimum: 4, within: ".workspace-bar"

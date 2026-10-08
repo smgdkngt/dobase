@@ -261,10 +261,11 @@ class LiveUpdatesTest < ApplicationSystemTestCase
     assert_equal [ false, true ], page.evaluate_script("window.heard")
   end
 
-  test "a tile in the workspace shows it as well" do
+  test "a tile in a frame of its own shows it as well" do
     tool = tools(:project_board)
     page.driver.browser.manage.delete_cookie("workspace")
-    visit workspace_path(open: tool_path(tool))
+    # (as a room still is, and any tool in a browser that asked for frames)
+    visit workspace_path("in-page": "", open: tool_path(tool))
     wait_for_stimulus "workspace"
 
     created = nil
