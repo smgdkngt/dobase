@@ -42,7 +42,9 @@ module Tools
               ImapSyncJob.perform_later(@mail_account.id, "mark_as_read", message.uid, message.folder || "INBOX")
             end
           end
+          archived = messages.to_a
           count = messages.update_all(archived: true)
+          archived.each { |message| message.record_event(:archived) }
           "#{count} email(s) archived."
         when "mark_read", "mark_unread"
           read = action == "mark_read"
@@ -56,7 +58,11 @@ module Tools
           target_folder = @mail_account.folder_to_move_to(params[:target_folder])
           if target_folder
             messages = conversations_of(messages, folder)
-            moved = messages.to_a.each { |message| message.move_to_folder!(target_folder) }
+            moved = messages.to_a.each do |message|
+              was_in = message.folder
+              message.move_to_folder!(target_folder)
+              message.record_event(:moved, moved_from: was_in)
+            end
             "#{moved.size} email(s) moved to #{helpers.mail_folder_name(target_folder)}."
           else
             "Invalid folder name."

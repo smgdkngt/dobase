@@ -17,6 +17,7 @@ module Tools
         with_their_conversations([ @message ], folder: folder).reject { |message| message.archived? || account.in_archive_folder?(message) }.each do |message|
           message.update!(archived: true)
           sync_archive_to_imap(message)
+          message.record_event(:archived)
         end
 
         respond_to do |format|
@@ -33,6 +34,7 @@ module Tools
         archived_here.each do |message|
           message.update!(archived: false)
           sync_unarchive_to_imap(message)
+          message.record_event(:unarchived)
         end
         # Mail another mail program archived is only known as mail in the archive folder, and goes
         # to the inbox. Mail archived here is in that folder too once it has synced: that copy
@@ -42,7 +44,9 @@ module Tools
             message.destroy
             @message = unarchived if @message == message
           else
+            was_in = message.folder
             message.move_to_folder!("INBOX")
+            message.record_event(:unarchived, moved_from: was_in)
           end
         end
 

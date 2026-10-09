@@ -109,6 +109,7 @@ module Mails
     # there too. A server without a trash deletes it, and it's only kept here for 30 days.
     def trash(messages)
       messages = messages.reject(&:trashed?)
+      was_in = messages.to_h { |message| [ message.id, message.folder ] }
       on_server = uids_by_folder(messages)
       archived = messages.select { |message| archived_on_server?(message) }
 
@@ -121,6 +122,7 @@ module Mails
         on_server.each { |folder, uids| ImapSyncJob.perform_later(id, "delete_message", uids, folder) }
         archived.each { |message| ImapSyncJob.perform_later(id, "delete_message_by_message_id", nil, archive_folder, message.message_id) }
       end
+      messages.each { |message| message.record_event(:deleted, moved_from: was_in[message.id]) }
       messages
     end
 
@@ -138,6 +140,7 @@ module Mails
           # it for mail gone from the folder, and remove it. A server that still has it gives it its UID again.
           message.update!(trashed: false, uid: nil)
         end
+        message.record_event(:moved, moved_from: TRASH)
       end
     end
 

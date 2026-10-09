@@ -72,6 +72,12 @@ class ImapSyncService
     end
   end
 
+  # What this run saw happen to mail on the server, written down as events
+  # (Mails::SyncEvents). `complete` when it got through every folder.
+  def record_events(complete:)
+    sync_events.record(complete: complete)
+  end
+
   def sync_folder(folder_name, limit: 50)
     connect do |imap|
       imap.select(folder_name)
@@ -225,7 +231,11 @@ class ImapSyncService
   private
 
   def incoming_message
-    @incoming_message ||= ::Mails::IncomingMessage.new(@account)
+    @incoming_message ||= ::Mails::IncomingMessage.new(@account, events: sync_events)
+  end
+
+  def sync_events
+    @sync_events ||= ::Mails::SyncEvents.new(@account)
   end
 
   # Connects for a change the server should get. A server that can't be reached raises
@@ -288,6 +298,7 @@ class ImapSyncService
   # recent ones refreshed, so read and starred changes made in other clients show up.
   def fetch_recent_emails(imap, folder_name, limit)
     server_uids = (imap.uid_search([ "ALL" ]) || []).sort
+    sync_events.syncing(folder_name)
     reconcile_local_messages(folder_name, server_uids)
 
     existing_uids = @account.messages.where(folder: folder_name).where.not(uid: nil).pluck(:uid)
@@ -325,7 +336,7 @@ class ImapSyncService
     # Mail in the server's trash is trashed here too, discarded drafts with it, and leaves when the server empties it
     scope = scope.where(trashed: false, draft: false) unless folder_name == Mails::Account::TRASH
     stale_uids = scope.pluck(:uid) - server_uids
-    scope.where(uid: stale_uids).destroy_all if stale_uids.any?
+    scope.where(uid: stale_uids).destroy_all.each { |message| sync_events.left(message) } if stale_uids.any?
   end
 
   # The email is already saved; a broken invite must not stop the rest of the batch from syncing.
