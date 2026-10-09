@@ -133,6 +133,28 @@ class EventsApiTest < ActionDispatch::IntegrationTest
 
     get events_path, params: { since: "yesterday-ish" }, headers: @headers
     assert_response :unprocessable_entity
+
+    get events_path, params: { since: "2026-13-45T99:00:00Z" }, headers: @headers
+    assert_response :unprocessable_entity
+
+    get events_path, params: { after: 0, tool: { a: "b" } }, headers: @headers
+    assert_response :success
+    assert_equal [], response.parsed_body["events"]
+  end
+
+  test "names are one line too: a tool, a person and a token are called what somebody typed" do
+    @board.update!(name: "Projects\u009B31m\u202E")
+    writer = @user.access_tokens.create!(name: "Claude\e[2J", permission: "write")
+    Current.access_token = writer
+    Event.record("card.created", tool: @board)
+    Current.reset
+
+    get events_path, params: { after: 0 }, headers: @headers
+
+    event = response.parsed_body["events"].last
+    assert_equal "Projects 31m", event.dig("tool", "name")
+    assert_equal "Claude [2J", event.dig("by", "via")
+    assert_no_match(/[\u0080-\u009F\u202E\e]/, response.body)
   end
 
   test "more than a page comes in pages, each ending where the next begins" do

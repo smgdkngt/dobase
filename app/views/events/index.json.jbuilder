@@ -8,7 +8,8 @@ json.events @events do |event|
   json.at event.created_at.utc.iso8601
   json.tool do
     json.id event.tool_id
-    json.name tool&.name
+    # Names are somebody's text too: one line, like what an event carries
+    json.name tool && Event.line(tool.name)
     json.type tool&.tool_type&.slug
   end
   # How the CLI names the thing: `dobase card show 110/44`
@@ -17,8 +18,8 @@ json.events @events do |event|
   if event.user_id
     json.by do
       json.id event.user_id
-      json.name event.user&.name
-      json.via event.via
+      json.name event.user && Event.line(event.user.name)
+      json.via event.via && Event.line(event.via)
       json.agent event.agent
     end
   else

@@ -20,6 +20,7 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/smgdkngt/dobase/cli/internal/api"
@@ -210,10 +211,28 @@ func (l *Listener) ask() (api.Value, error) {
 // print writes one event as one line. A line is all of it or none of it, and
 // what other people wrote can't break out of it: JSON has no raw newlines.
 func (l *Listener) print(event api.Value) error {
-	if _, err := fmt.Fprintln(l.Out, event.JSON()); err != nil {
+	if _, err := fmt.Fprintln(l.Out, plain(event.JSON())); err != nil {
 		return &Gone{fmt.Sprintf("Nobody reads the events any more: %v", err)}
 	}
 	return nil
+}
+
+// plain writes the characters that do something to a terminal, or turn the
+// direction of writing around, the way JSON spells them out. The server takes
+// them out of what it sends; a line is safe to show whatever server sent it.
+// Outside a string JSON has none of these, so the line stays the same JSON.
+func plain(line string) string {
+	var out strings.Builder
+	for _, char := range line {
+		hidden := (char >= 0x7f && char <= 0x9f) || char == 0x061c || char == 0x200e || char == 0x200f ||
+			(char >= 0x202a && char <= 0x202e) || (char >= 0x2066 && char <= 0x2069) || char == 0xfeff
+		if hidden {
+			fmt.Fprintf(&out, `\u%04x`, char)
+		} else {
+			out.WriteRune(char)
+		}
+	}
+	return out.String()
 }
 
 func (l *Listener) log(format string, args ...any) {

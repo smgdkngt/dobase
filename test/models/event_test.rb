@@ -33,7 +33,7 @@ class EventTest < ActiveSupport::TestCase
 
   test "what an event carries of somebody else's text is one short line" do
     event = Event.record("card.created", tool: @board, record: @card,
-      title: "Line one\nLine two\u0000\e[31m ‮evil", column: "x" * 300, nothing: nil, count: 3)
+      title: "Line one\nLine two\u0000\e[31m \u202Eevil", column: "x" * 300, nothing: nil, count: 3)
 
     assert_equal "Line one Line two [31m evil", event.data["title"]
     assert_equal 200, event.data["column"].length

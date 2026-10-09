@@ -28,7 +28,7 @@ class Event < ApplicationRecord
   EXCERPT = 140
   # What would let text pretend to be something else where it is printed: control
   # characters, and the marks that turn the direction of writing around
-  UNPRINTABLE = /[\p{Cc}‪-‮⁦-⁩]/
+  UNPRINTABLE = /[\p{Cc}\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/
 
   belongs_to :tool, optional: true
   belongs_to :user, optional: true
@@ -109,5 +109,8 @@ class Event < ApplicationRecord
       Collaborator.where(tool_id: tool_id).pluck(:user_id).each do |user_id|
         ActionCable.server.broadcast(EventsChannel.stream_name(user_id), { id: id })
       end
+    # A signal that isn't given costs a listener time, not the event: it asks by itself too
+    rescue StandardError => error
+      Rails.error.report(error, handled: true, context: { event_id: id })
     end
 end

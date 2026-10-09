@@ -17,7 +17,7 @@ class EventsController < ApplicationController
     # Read first: what is written while this request runs is the next one's
     newest = Event.maximum(:id).to_i
     after = Integer(params[:after], exception: false) if params[:after].present?
-    since = Time.zone.parse(params[:since].to_s) if params[:since].present?
+    since = time_of(params[:since]) if params[:since].present?
     return render_error("since isn't a time") if params[:since].present? && since.nil?
     return render_error("after isn't a number") if params[:after].present? && (after.nil? || after.negative?)
 
@@ -40,10 +40,16 @@ class EventsController < ApplicationController
       events = Event.visible_to(Current.user).where(id: ..newest).includes(:user)
       events = events.where(id: (after + 1)..) if after
       events = events.where(created_at: since..) if since
-      events = events.where(tool_id: Array(params[:tool]).map(&:to_i)) if params[:tool].present?
+      events = events.where(tool_id: Array.wrap(params[:tool]).grep(String).map(&:to_i)) if params[:tool].present?
       events = events.of_kinds(kinds) if kinds.any?
       events = events.not_made_with(Current.access_token) if skip_own?
       events.order(:id).limit(PAGE + 1).to_a
+    end
+
+    def time_of(value)
+      Time.zone.parse(value.to_s)
+    rescue ArgumentError
+      nil
     end
 
     def skip_own?

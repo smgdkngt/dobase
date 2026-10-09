@@ -386,6 +386,17 @@ func TestEachEventIsOneLineWhateverItsTextSays(t *testing.T) {
 	}
 }
 
+func TestWhatWouldDoSomethingToATerminalIsSpelledOut(t *testing.T) {
+	line := plain("{\"title\":\"a\u009b31mb\u202ec\u007fd é 🎉\"}")
+
+	if want := `{"title":"a\u009b31mb\u202ec\u007fd é 🎉"}`; line != want {
+		t.Fatalf("printed %q", line)
+	}
+	if value, err := api.Parse([]byte(line)); err != nil || value.Get("title").S() != "a\u009b31mb\u202ec\u007fd é 🎉" {
+		t.Fatalf("no longer the same JSON: %v", err)
+	}
+}
+
 func TestTheNumberMovesOnPastWhatIsNotForThisListener(t *testing.T) {
 	state(t)
 	s := newServer(t)

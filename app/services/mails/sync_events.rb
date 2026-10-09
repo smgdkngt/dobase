@@ -17,6 +17,10 @@ module Mails
   #   is deleted, when the run got through every folder.
   # - A copy is nothing. Mail archived here keeps its row and gets a second one in
   #   the server's archive folder; some servers show one message in several folders.
+  #
+  # Mail is told apart by its Message-ID, which its sender wrote. Mail that comes
+  # in under the Message-ID of mail the account already has reads as a copy of
+  # it, and gives no event. It is in the mailbox like any other.
   class SyncEvents
     # The servers' clocks and this one's needn't agree
     CLOCK_SLACK = 1.hour
@@ -58,7 +62,7 @@ module Mails
         message = arrival.message
         if (departure = departures.delete(message.message_id)&.first)
           record_move(message, departure.message.folder)
-        elsif !copy?(message) && new_mail?(arrival)
+        elsif new_mail?(arrival) && !copy?(message)
           message.record_event(:received)
         end
       end
