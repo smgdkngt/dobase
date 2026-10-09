@@ -80,6 +80,7 @@
         focus into <main>; a Turbo anchor visit only scrolls. %>
     <a href="#main-content" class="skip-link" data-turbo="false">Skip to main content</a>
     <%= render "shared/turbo_confirm_dialog" %>
+    <%= render "shared/file_viewer" if user_signed_in? %>
     <% if user_signed_in? && tile? %>
       <%# A tile in the workspace (workspaces/show): the tool alone. The menu, the
           notifications and the launcher belong to the page around the tiles. %>

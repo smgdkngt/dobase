@@ -17,6 +17,7 @@ json.files message.files do |file|
   json.filename file.filename.to_s
   json.(file, :content_type, :byte_size)
   json.download_url rails_blob_url(file, disposition: "attachment")
+  json.preview_url file_preview_url(@tool, file, format: :json)
 end
 json.reactions message.reaction_groups do |emoji, users|
   json.emoji emoji

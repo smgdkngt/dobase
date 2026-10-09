@@ -986,7 +986,7 @@ module Tools
 
       assert_response :success
       assert_select "input[type=hidden][name='forward_attachment_ids[]'][value=?]", attachment.id.to_s
-      assert_select ".compose-attachment-item", text: /report\.pdf/
+      assert_select ".mail-attachment", text: /report\.pdf/
     end
 
     private

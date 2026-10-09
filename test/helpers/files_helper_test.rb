@@ -57,6 +57,16 @@ class FilesHelperTest < ActionView::TestCase
     end
   end
 
+  test "a markdown picture is a link to it, never loaded" do
+    fragment = Nokogiri::HTML5.fragment(markdown_preview("Hi ![a chart](https://tracker.example/open.png?who=sem) and ![](https://tracker.example/b.png) ![local](pictures/c.png)"))
+
+    assert_empty fragment.css("img")
+    assert_not_includes fragment.to_html, "src="
+    assert_equal [ [ "a chart", "https://tracker.example/open.png?who=sem" ], [ "https://tracker.example/b.png", "https://tracker.example/b.png" ] ],
+      fragment.css("a").map { |link| [ link.text, link["href"] ] }
+    assert_includes fragment.text, "local"
+  end
+
   test "a markdown table keeps its table tags" do
     html = markdown_preview("| a | b |\n| --- | --- |\n| 1 | 2 |")
 

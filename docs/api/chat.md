@@ -62,7 +62,8 @@ scroll up):
 - `reactions` are the emoji on the message, in the order they were first
   used, each with the people who put it there.
 - `edited_at` is set once a message has been edited.
-- `download_url` is a signed link that needs no token and works for a day.
+- `download_url` is a signed link that needs no token and works for a day; a file's
+  `preview_url` gives what can be read out of it (see [Files](files.md#what-is-in-a-file)).
 
 Reading the chat doesn't mark it read. [Mark it read](#mark-as-read) when you
 have dealt with the messages.

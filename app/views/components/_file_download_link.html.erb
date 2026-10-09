@@ -1,0 +1,16 @@
+<%#
+  File download link component - the small arrow beside a file's name. The name opens
+  the file in the viewer (link_to_file_preview); this downloads it.
+
+  Required:
+    file: an attached file (`attachment.file`, or one of a message's `files`)
+
+  Options:
+    name: the file's name, for the label (default: the file's own)
+    size: icon size (default: 14)
+%>
+<% name = local_assigns[:name] || file.filename.to_s %>
+<%= link_to rails_blob_path(file, disposition: "attachment"), class: "file-download-link",
+      title: "Download", "aria-label": "Download #{name}", download: name, data: { turbo: false } do %>
+  <%= render "shared/icon", name: "download", size: local_assigns.fetch(:size, 14) %>
+<% end %>

@@ -93,6 +93,43 @@ When a file is refused, because it is too large or a blocked type such as
 `GET /tools/:tool_id/files/items/:item_id/download` sends the file itself, as
 an attachment with its name. This is the `download_url` of a file.
 
+### What is in a file
+
+`GET /tools/:tool_id/file_previews/:id` gives what Dobase can read out of a
+file without downloading it. It is the `preview_url` of a file here, and of an
+attachment of a mail, a card or a todo and of a file in a chat: the same
+address in every tool, with that tool's id.
+
+```json
+{
+  "id": 41,
+  "name": "budget.xlsx",
+  "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "byte_size": 6700,
+  "kind": "table",
+  "download_url": "...",
+  "sheets": [
+    { "name": "Budget", "rows": [["Date", "Item", "Amount"], ["2026-10-09", "Paper", "12.5"]], "more": false }
+  ]
+}
+```
+
+- `kind` says what follows. `table` (a csv, tsv or xlsx) has `sheets`: every
+  cell as text, a formula as its last result, a date as `2026-10-09`, a
+  percentage as `25%`, the first 1,000 rows and 50 columns, and `more` when the
+  file has more. Every row is as wide as the widest, and a sheet that the
+  workbook hides is left out. `document` (a docx) has `blocks`:
+  `{"kind": "heading", "text": "...", "level": 1}`, `paragraph` and `list_item`
+  with `text`, and `table` with `rows`; and `more` when the document goes on
+  past what is given (3,000 blocks, 500,000 characters). `text` (plain text,
+  markdown, code, up to 512 KB) has `text`.
+- `image`, `pdf`, `audio` and `video` have nothing more: download the file.
+  `kind` is `null` for a file Dobase can't read (a presentation, a zip, an
+  older Office file), an xlsx or docx over 20 MB or one that unpacks to more
+  than is read, or a file that isn't what its name says. A csv of any size is
+  read from its start.
+- An `id` that is not a file of this tool is `404`.
+
 ### Rename and move
 
 `PATCH /tools/:tool_id/files/items/:id` with `{"name": "contacts.txt"}` renames

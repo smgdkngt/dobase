@@ -2,7 +2,7 @@
   Media Preview component - renders file previews (image, video, audio, PDF, or generic)
 
   Required:
-    file: File object with .file attachment and helper methods
+    file: a Files::Item or a FilePreview (any attachment): what it is and what to show of it
 
   Options:
     max_height: Max height for media (default: "max-h-full" or "max-h-[70vh]" for public)
@@ -54,6 +54,49 @@
           class: "mt-4 w-full max-w-[400px]" do %>
       <%= tag.source src: url_for(file.file), type: file.content_type %>
     <% end %>
+  </div>
+<% elsif file.table? && (sheets = file.sheets) %>
+  <%# A csv or a spreadsheet: its cells as text, nothing of how it was laid out %>
+  <div class="file-text-preview <%= radius_class %> <%= "file-text-preview-fill" if fill %>">
+    <% sheets.each do |sheet| %>
+      <section class="sheet-preview">
+        <% if sheet.name.present? && sheets.many? %>
+          <h3 class="sheet-preview-name"><%= sheet.name %></h3>
+        <% end %>
+        <% if sheet.rows.any? %>
+          <%= render "components/cell_table", rows: sheet.rows %>
+        <% else %>
+          <p class="file-preview-note">This sheet is empty.</p>
+        <% end %>
+        <% if sheet.more %>
+          <p class="file-preview-note">Only the first <%= number_with_delimiter(FilePreview::MAX_ROWS) %> rows and <%= FilePreview::MAX_COLUMNS %> columns are shown here. Download the file for all of it.</p>
+        <% end %>
+      </section>
+    <% end %>
+  </div>
+<% elsif file.document? && (document = file.document) %>
+  <%# A word processor's document: its text in order, without its layout or pictures %>
+  <div class="file-text-preview <%= radius_class %> <%= "file-text-preview-fill" if fill %>">
+    <div class="markdown-preview document-preview">
+      <p class="file-preview-note">The text of this document. Download the file for its layout and pictures.</p>
+      <% document.blocks.chunk_while { |a, b| a.kind == :list_item && b.kind == :list_item }.each do |group| %>
+        <% if group.first.kind == :list_item %>
+          <ul><% group.each do |item| %><li><%= item.text %></li><% end %></ul>
+        <% else %>
+          <% block = group.first %>
+          <% if block.kind == :heading %>
+            <%= content_tag "h#{block.level}", block.text %>
+          <% elsif block.kind == :table %>
+            <%= render "components/cell_table", rows: block.rows %>
+          <% else %>
+            <p><%= block.text %></p>
+          <% end %>
+        <% end %>
+      <% end %>
+      <% if document.more %>
+        <p class="file-preview-note">Only the first part of this document is shown here. Download the file for all of it.</p>
+      <% end %>
+    </div>
   </div>
 <% elsif file.text? && (preview = file.preview_text) %>
   <div class="file-text-preview <%= radius_class %> <%= "file-text-preview-fill" if fill %>">
