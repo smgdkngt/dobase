@@ -10,12 +10,15 @@ export default class extends Controller {
   connect() {
     this.opening = this.opening.bind(this)
     this.emptied = this.emptied.bind(this)
+    this.drawing = this.drawing.bind(this)
     this.frameTarget.addEventListener("turbo:before-fetch-request", this.opening)
+    this.frameTarget.addEventListener("turbo:before-frame-render", this.drawing)
     this.element.addEventListener("close", this.emptied)
   }
 
   disconnect() {
     this.frameTarget.removeEventListener("turbo:before-fetch-request", this.opening)
+    this.frameTarget.removeEventListener("turbo:before-frame-render", this.drawing)
     this.element.removeEventListener("close", this.emptied)
   }
 
@@ -26,6 +29,17 @@ export default class extends Controller {
 
     this.frameTarget.replaceChildren()
     this.element.showModal()
+  }
+
+  // A file that has arrived is drawn a moment later, and stopping what is loading doesn't
+  // stop that. So it is asked as the file is drawn whether the dialog is still open:
+  // closed, it stays empty.
+  drawing(event) {
+    const draw = event.detail.render
+
+    event.detail.render = (frame, arrived) => {
+      if (this.element.open) draw(frame, arrived)
+    }
   }
 
   close() {
