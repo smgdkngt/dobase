@@ -153,6 +153,75 @@
     @apply px-0 py-0 mb-1.5 bg-transparent text-text-tertiary;
   }
 
+  /* A message in a conversation: the sender's face, beside the line that opens and closes
+     it and, once it is open, everyone it went to. Those are text to read and to copy, so
+     they lie under that line and are no part of it. */
+  .mail-message-head {
+    @apply grid;
+    grid-template-columns: 4.25rem minmax(0, 1fr);
+    container: mail-message / inline-size;
+  }
+
+  .mail-message-head:has(> :is(.mail-message-face, .mail-message-toggle):hover) {
+    @apply bg-background-tertiary;
+  }
+
+  /* (the room around the face is the face's, so the line opens and closes from its very start) */
+  .mail-message-face {
+    @apply row-span-2 self-start py-4 pl-4 pr-3;
+  }
+
+  .mail-message-toggle {
+    @apply row-span-2 flex items-start gap-3 py-4 pr-4 bg-transparent border-none cursor-pointer text-left;
+  }
+
+  /* The keyboard on that line: the ring is around all it opens and closes, drawn inside
+     since the conversation scrolls */
+  .mail-message-toggle:is(:focus-visible, [data-keyboard-focus]) {
+    outline: none;
+  }
+
+  .mail-message-head:has(> .mail-message-toggle:is(:focus-visible, [data-keyboard-focus])) {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Open, the people follow the sender as closely as the one line did while it was closed */
+  .mail-message-head:has(> .mail-recipients:not(.hidden)) > .mail-message-toggle {
+    @apply row-span-1 pb-0.5;
+  }
+
+  .mail-recipients {
+    @apply col-start-2 grid gap-x-2 gap-y-1 pr-4 pb-4 text-xs text-text-tertiary;
+    grid-template-columns: 1.75rem minmax(0, 1fr);
+  }
+
+  /* Someone stays in one piece where the line has the room, and breaks where it hasn't */
+  .mail-recipient {
+    @apply inline-block max-w-full mr-1;
+    overflow-wrap: anywhere;
+  }
+
+  /* A name carries the weight and its address steps back; an address alone is as dark as a name */
+  .mail-recipient-name {
+    @apply font-medium text-text-secondary;
+  }
+
+  /* Where a message is as narrow as a phone, the people have its width: under the
+     sender's face, not beside it, and in line with the text of the mail. Asked of the
+     message itself, which is that narrow in a small tile too and not in every window
+     the rest of mail calls narrow. */
+  @container mail-message (max-width: 28rem) {
+    .mail-message-head:has(> .mail-recipients:not(.hidden)) > .mail-message-face {
+      @apply row-span-1 pb-2;
+    }
+
+    .mail-recipients {
+      @apply col-span-full pl-2;
+    }
+  }
+
   /* A draft in a conversation: not sent, with a way to finish it */
   .mail-draft-avatar {
     @apply w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-warning border border-dashed border-warning;

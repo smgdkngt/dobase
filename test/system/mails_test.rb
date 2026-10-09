@@ -933,6 +933,55 @@ class MailsTest < ApplicationSystemTestCase
     assert_selector "[data-collapse-target=content]", text: "Thanks for the report."
   end
 
+  test "an open message says everyone it went to under its sender, a closed one in a line" do
+    mails_messages(:inbox_read).update!(cc_addresses: [ "boss@example.com" ].to_json)
+    visit tool_mail_path(@tool, mails_messages(:sent_message))
+    wait_for_stimulus "collapse"
+
+    # The last message is open, the one it answers closed
+    assert_selector ".mail-recipients", text: /To\s+Reports Bot reports@example\.com/
+    assert_selector "[data-collapse-target=preview]", text: "To: Test User · Cc: boss@example.com"
+    assert_no_selector ".mail-recipients", text: "boss@example.com"
+
+    find("button[data-action='click->collapse#toggle']", text: "Reports Bot").click
+    assert_selector ".mail-recipients", text: /To\s+Test User testuser@example\.com\s+Cc\s+boss@example\.com/
+    assert_no_selector "[data-collapse-target=preview]", text: "boss@example.com"
+
+    # They are text to read and to copy, not the button: a click on one leaves the message open,
+    # and they stand under the sender's name, beside the face
+    find(".mail-recipient", text: "boss@example.com").click
+    assert_selector ".mail-recipients", text: "boss@example.com"
+    name, people = [ ".mail-message-toggle", ".mail-recipients" ].map { |part| first(part).evaluate_script("this.getBoundingClientRect().left") }
+    assert_in_delta name, people, 1
+
+    find("button[data-action='click->collapse#toggle']", text: "Reports Bot").click
+    assert_no_selector ".mail-recipients", text: "boss@example.com"
+    assert_selector "[data-collapse-target=preview]", text: "To: Test User · Cc: boss@example.com"
+  end
+
+  test "at a phone's width everyone an open message went to has the width, and a long address breaks" do
+    long = "partnerships-and-sponsoring-europe@a-rather-long-company-name-international.example"
+    mails_messages(:sent_message).update!(to_addresses: [ "reports@example.com", long, *(1..9).map { |number| "guest#{number}@example.com" } ].to_json)
+    # (a window of Chrome's own goes no narrower than 500px, where the people still stand beside the face)
+    page.driver.browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: 390, height: 844, deviceScaleFactor: 1, mobile: false)
+    visit tool_mail_path(@tool, mails_messages(:sent_message))
+    wait_for_stimulus "collapse"
+
+    assert_equal 390, page.evaluate_script("window.innerWidth")
+    assert_selector ".mail-recipients .mail-recipient", count: 11
+    face, people, reader = [ ".mail-message-face", ".mail-recipients", "[data-mail-keyboard-target=reader]" ].map do |part|
+      all(part).last.evaluate_script("(({ left, right, top, bottom }) => ({ left, right, top, bottom }))(this.getBoundingClientRect())")
+    end
+    assert_in_delta face["left"], people["left"], 1, "the people stand beside the face, not under it"
+    assert_operator people["top"], :>=, face["bottom"] - 1
+    assert_operator people["right"], :<=, reader["right"], "the people run out of the window"
+    assert all(".mail-recipient").all? { |person| person.evaluate_script("this.getBoundingClientRect().right") <= people["right"] }, "an address runs out of the window"
+    # The closed message keeps to one line
+    assert_in_delta 16, find("[data-collapse-target=preview]").evaluate_script("this.getBoundingClientRect().height"), 2
+  ensure
+    page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")
+  end
+
   test "mail settings that can't be saved show what to fix" do
     open_mail_settings
     within "dialog#edit-tool-modal[open]" do

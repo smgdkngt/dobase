@@ -135,6 +135,71 @@ module Tools
       assert msg.reload.read
     end
 
+    test "an open message says everyone it went to, by name and address, and a closed one in a line" do
+      @account.record_contact("ann@example.com", "Ann Lee")
+      many = (1..9).map { |number| "guest#{number}@example.com" }
+      received = mails_messages(:inbox_read)
+      received.update!(to_addresses: [ "testuser@example.com", "ann@example.com", *many ].to_json, cc_addresses: [ "boss@example.com" ].to_json)
+      answer = mails_messages(:sent_message)
+      answer.update!(to_addresses: [ "reports@example.com" ].to_json, cc_addresses: [ "ann@example.com" ].to_json, bcc_addresses: [ "boss@example.com" ].to_json)
+
+      get tool_mail_path(@tool, answer)
+
+      # The answer is the last of the conversation, so it is the open one
+      assert_select ".mail-recipients:not(.hidden)", count: 1 do
+        assert_select "dt", count: 3
+        assert_select "dt:nth-of-type(1)", "To"
+        assert_select "dd:nth-of-type(1) .mail-recipient", text: /\AReports Bot\s+reports@example\.com\z/
+        assert_select "dt:nth-of-type(2)", "Cc"
+        assert_select "dd:nth-of-type(2) .mail-recipient", text: /\AAnn Lee\s+ann@example\.com\z/
+        assert_select "dt:nth-of-type(3)", "Bcc"
+        assert_select "dd:nth-of-type(3) .mail-recipient", text: "boss@example.com"
+      end
+
+      # The mail it answers is closed: a line of names, and all eleven people ready for when it is opened
+      assert_select "[data-collapse-target=preview]:not(.hidden)", count: 1, text: /\ATo: Test User, Ann Lee, guest1@example\.com, .*guest9@example\.com · Cc: boss@example\.com\z/
+      assert_select ".mail-recipients.hidden[data-collapse-target=content]", count: 1 do
+        assert_select "dd:nth-of-type(1) .mail-recipient", count: 11
+        assert_select "dd:nth-of-type(1) .mail-recipient", text: /\ATest User\s+testuser@example\.com,\z/
+        assert_select "dd:nth-of-type(1) .mail-recipient", text: "guest9@example.com"
+        assert_select "dd:nth-of-type(2) .mail-recipient", text: "boss@example.com"
+        assert_select "dt", text: "Bcc", count: 0
+      end
+    end
+
+    test "a draft and mail that is on its way say who they go to, Bcc included" do
+      original = mails_messages(:inbox_read)
+      original.update!(thread_id: "lunch-plans")
+      draft = mails_messages(:draft_message)
+      draft.update!(in_reply_to: original.message_id, thread_id: "lunch-plans", bcc_addresses: [ "boss@example.com" ].to_json)
+
+      get tool_mail_path(@tool, original)
+
+      assert_select ".mail-recipients:not(.hidden)" do
+        assert_select "dd:nth-of-type(1) .mail-recipient", text: "recipient@example.com"
+        assert_select "dt:nth-of-type(2)", "Bcc"
+        assert_select "dd:nth-of-type(2) .mail-recipient", text: "boss@example.com"
+      end
+
+      draft.start_sending!
+      get tool_mail_path(@tool, draft)
+
+      assert_select "[data-controller~='mail-sending'] .mail-recipients:not(.hidden)" do
+        assert_select "dd:nth-of-type(1) .mail-recipient", text: "recipient@example.com"
+        assert_select "dd:nth-of-type(2) .mail-recipient", text: "boss@example.com"
+      end
+    end
+
+    test "a message that names nobody it went to shows no line for them" do
+      message = mails_messages(:inbox_unread)
+      message.update!(to_addresses: nil)
+
+      get tool_mail_path(@tool, message)
+
+      assert_select ".mail-message-head", count: 1
+      assert_select ".mail-recipients", count: 0
+    end
+
     test "show keeps remote content out of an email until the reader asks for it" do
       msg = mails_messages(:inbox_unread)
       msg.update!(body_html: %(<style>body { background: url(https://tracker.example/open.gif) }</style><p>Hi</p><img src="https://tracker.example/pixel.gif">))

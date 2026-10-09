@@ -1,0 +1,13 @@
+<%# Everyone an open message went to, in full. Locals: recipients (mail_recipients), hidden %>
+<%= tag.dl class: [ "mail-recipients", ("hidden" if hidden) ], data: { collapse_target: "content" } do %>
+  <% recipients.each do |header, people| %>
+    <dt><%= header %></dt>
+    <dd>
+      <%# Someone is a name and an address, or an address alone; the comma stands against them %>
+      <% people.each_with_index do |person, index| %>
+        <% named = person.name.present? && !person.name.casecmp?(person.address) %>
+        <span class="mail-recipient"><% if named %><span class="mail-recipient-name"><%= person.name %></span> <%= person.address %><% else %><span class="text-text-secondary"><%= person.address %></span><% end %><%= "," unless index == people.size - 1 %></span>
+      <% end %>
+    </dd>
+  <% end %>
+<% end %>

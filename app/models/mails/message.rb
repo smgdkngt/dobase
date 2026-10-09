@@ -65,12 +65,17 @@ module Mails
       self.cc_addresses = list.to_json
     end
 
-    # Only drafts have a Bcc: mail that came in doesn't show one
+    # A draft has a Bcc and keeps it when the compose page sends it: mail that came in doesn't show one
     def bcc_addresses_list
       return [] if bcc_addresses.blank?
       JSON.parse(bcc_addresses)
     rescue JSON::ParserError
       []
+    end
+
+    # Everyone it went to
+    def recipient_addresses
+      to_addresses_list + cc_addresses_list + bcc_addresses_list
     end
 
     # Attachments of other mail, like the one a draft forwards. The copies share the
