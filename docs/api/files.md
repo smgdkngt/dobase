@@ -115,14 +115,19 @@ address in every tool, with that tool's id.
 ```
 
 - `kind` says what follows. `table` (a csv, tsv or xlsx) has `sheets`: every
-  cell as text, a formula as its last result, the first 1,000 rows and 50
-  columns, and `more` when the file has more. `document` (a docx) has `blocks`:
+  cell as text, a formula as its last result, a date as `2026-10-09`, a
+  percentage as `25%`, the first 1,000 rows and 50 columns, and `more` when the
+  file has more. Every row is as wide as the widest, and a sheet that the
+  workbook hides is left out. `document` (a docx) has `blocks`:
   `{"kind": "heading", "text": "...", "level": 1}`, `paragraph` and `list_item`
-  with `text`, and `table` with `rows`. `text` (plain text, markdown, code, up
-  to 512 KB) has `text`.
+  with `text`, and `table` with `rows`; and `more` when the document goes on
+  past what is given (3,000 blocks, 500,000 characters). `text` (plain text,
+  markdown, code, up to 512 KB) has `text`.
 - `image`, `pdf`, `audio` and `video` have nothing more: download the file.
   `kind` is `null` for a file Dobase can't read (a presentation, a zip, an
-  older Office file), one over 20 MB, or one that isn't what its name says.
+  older Office file), an xlsx or docx over 20 MB or one that unpacks to more
+  than is read, or a file that isn't what its name says. A csv of any size is
+  read from its start.
 - An `id` that is not a file of this tool is `404`.
 
 ### Rename and move

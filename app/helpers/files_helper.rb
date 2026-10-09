@@ -7,7 +7,7 @@ module FilesHelper
   MARKDOWN_ATTRIBUTES = (ActionView::Base.sanitized_allowed_attributes.to_a +
     %w[align colspan rowspan type checked disabled]).freeze
 
-  # Markdown from an uploaded file, as HTML that is safe to put on the page: raw HTML in
+  # Markdown from a file someone sent, as HTML that is safe to put on the page: raw HTML in
   # the file is escaped rather than rendered, and the result goes through the sanitizer
   # too. Links open in a new tab, since a preview sits inside the app.
   def markdown_preview(text)
@@ -17,7 +17,26 @@ module FilesHelper
     })
 
     safe = sanitize(html, tags: MARKDOWN_TAGS, attributes: MARKDOWN_ATTRIBUTES)
-    externalize_links(safe, rel: "noopener noreferrer")
+    externalize_links(pictures_as_links(safe), rel: "noopener noreferrer")
+  end
+
+  # A picture in a markdown file is at an address outside the app, and loading it tells
+  # whoever sent the file that it was opened, when and from where: what mail keeps
+  # pictures from outside back for. So a preview loads none; a picture is a link to it.
+  def pictures_as_links(html)
+    fragment = Nokogiri::HTML5.fragment(html.to_s)
+    fragment.css("img").each do |picture|
+      address = picture["src"].to_s
+      text = picture["alt"].presence || address
+      if address.match?(%r{\Ahttps?://}i)
+        link = fragment.document.create_element("a", href: address)
+        link.content = text
+        picture.replace(link)
+      else
+        picture.replace(fragment.document.create_text_node(text))
+      end
+    end
+    fragment.to_html
   end
 
   # Where a file is shown in the app (Tools::FilePreviewsController): `file` is what a

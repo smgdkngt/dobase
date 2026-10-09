@@ -17,6 +17,18 @@ module Tools
         assert_includes response.body, @file.name
       end
 
+      test "a shared spreadsheet is shown as a table, its cells as text" do
+        item = tools(:my_files).file_items.create!(name: "list.csv", file: { io: StringIO.new("Name,Note\nAnn,<script>alert(1)</script>\n"), filename: "list.csv", content_type: "text/csv" })
+        share = item.create_share!(created_by: users(:one))
+
+        get share_path(share.token)
+
+        assert_response :success
+        assert_select "table.cell-table td", "Ann"
+        assert_select "table.cell-table td", "<script>alert(1)</script>"
+        assert_select "table.cell-table script", 0
+      end
+
       test "an unknown link is not found" do
         get share_path("no-such-token")
 

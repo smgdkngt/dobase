@@ -3,6 +3,8 @@
 require "test_helper"
 
 class Tools::FilePreviewsControllerTest < ActionDispatch::IntegrationTest
+  include OfficeFilesHelper
+
   setup do
     @user = users(:one)
     sign_in_as @user
@@ -59,6 +61,70 @@ class Tools::FilePreviewsControllerTest < ActionDispatch::IntegrationTest
     assert_select "table.cell-table td", "<script>alert(1)</script>"
     assert_select "table.cell-table script", 0
     assert_select "table.cell-table img", 0
+  end
+
+  test "what a document, a sheet's name and a file's name hold is text too" do
+    markup = "&lt;img src=x onerror=alert(1)&gt;"
+    styled = ->(style) { %(<w:p><w:pPr><w:pStyle w:val="#{style}"/></w:pPr><w:r><w:t>#{markup} #{style}</w:t></w:r></w:p>) }
+    text = docx(styled.call("Heading1") + styled.call("ListParagraph") + styled.call("Normal") + "<w:tbl><w:tr><w:tc>#{styled.call("Normal")}</w:tc></w:tr></w:tbl>")
+    # A file's name is cleaned when it is stored; the name it is given in the Files tool is not
+    document = tools(:my_files).file_items.create!(name: "<b>report</b>.docx", file: { io: StringIO.new(text), filename: "report.docx" }).file.attachment
+    workbook = mail_attachment(mails_messages(:inbox_unread), "sums.xlsx", xlsx(markup => "<row><c><v>1</v></c></row>", "Second" => "<row><c><v>2</v></c></row>"))
+
+    get tool_file_preview_path(tools(:my_files), document)
+
+    assert_response :success
+    assert_select "img, b", 0
+    assert_select "#file-viewer-title", "<b>report</b>.docx"
+    assert_select ".document-preview h1", "<img src=x onerror=alert(1)> Heading1"
+    assert_select ".document-preview li", "<img src=x onerror=alert(1)> ListParagraph"
+    assert_select ".document-preview > p", "<img src=x onerror=alert(1)> Normal"
+    assert_select ".document-preview td", "<img src=x onerror=alert(1)> Normal"
+
+    get tool_file_preview_path(tools(:my_mail), workbook)
+
+    assert_response :success
+    assert_select "img", 0
+    assert_select ".sheet-preview-name", "<img src=x onerror=alert(1)>"
+  end
+
+  test "a markdown attachment loads no picture from outside" do
+    attachment = mail_attachment(mails_messages(:inbox_unread), "readme.md", "# Hello\n\n![a chart](https://tracker.example/open.png?who=sem)\n", content_type: "text/markdown")
+
+    get tool_file_preview_path(tools(:my_mail), attachment)
+
+    assert_response :success
+    assert_select ".markdown-preview h1", "Hello"
+    assert_select "img", 0
+    assert_select ".markdown-preview a[target=_blank]", "a chart"
+    assert_equal "https://tracker.example/open.png?who=sem", css_select(".markdown-preview p a").first["href"]
+    assert_not_includes response.body, "src=\"https://tracker.example"
+  end
+
+  test "a long document is shown in part, and says so" do
+    attachment = mail_attachment(mails_messages(:inbox_unread), "long.docx", docx(paragraph("w" * 300_000) * 2))
+
+    get tool_file_preview_path(tools(:my_mail), attachment), headers: viewer
+
+    assert_response :success
+    assert_select ".file-preview-note", /Only the first part of this document/
+    assert_operator response.body.bytesize, :<, FilePreview::MAX_DOCUMENT_LENGTH + 100.kilobytes
+
+    get tool_file_preview_path(tools(:my_mail), attachment), headers: api_headers(@user, permission: "read")
+
+    assert response.parsed_body["more"]
+    assert_equal FilePreview::MAX_DOCUMENT_LENGTH, response.parsed_body["blocks"].sum { |block| block["text"].length }
+  end
+
+  test "a file that unpacks to more than is read is offered as a download" do
+    attachment = mail_attachment(mails_messages(:inbox_unread), "bomb.xlsx",
+      xlsx("Padded" => sheet_xml("<row><c><v>1</v></c></row>", before: padding(FilePreview::MAX_PART_BYTES))))
+
+    get tool_file_preview_path(tools(:my_mail), attachment)
+
+    assert_response :success
+    assert_select "table.cell-table", 0
+    assert_select ".file-viewer-body a", text: /Download/
   end
 
   test "an HTML attachment is shown as its source, not as a page" do

@@ -54,8 +54,8 @@ gem "rubyzip", "~> 3.5"
 # Markdown, for previewing .md files in the Files tool
 gem "commonmarker", "~> 2.0"
 
-# Reads a spreadsheet's cells, for showing an .xlsx as a table (FilePreview)
-gem "roo", "~> 3.0", require: false
+# Reads a csv file's rows, for showing it as a table (FilePreview)
+gem "csv", "~> 3.3", require: false
 
 # Syntax highlighting, for previewing code files in the Files tool
 gem "rouge", "~> 5.1"

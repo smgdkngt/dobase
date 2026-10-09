@@ -59,11 +59,14 @@ module Files
     # What a page shows of the file without downloading it: FilePreview reads it, for
     # this file as for an attachment anywhere else
     def preview
-      FilePreview.new(file.blob, name: name) if file.attached?
+      return unless file.attached?
+
+      @preview = FilePreview.new(file.blob, name: name) unless @preview&.blob == file.blob && @preview.name == name
+      @preview
     end
 
     delegate :text?, :markdown?, :preview_too_large?, :preview_text,
-      :table?, :sheets, :document?, :document_blocks, :read?, to: :preview, allow_nil: true
+      :table?, :sheets, :document?, :document, :read?, to: :preview, allow_nil: true
 
     def pdf?
       content_type == "application/pdf"

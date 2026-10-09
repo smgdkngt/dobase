@@ -74,12 +74,12 @@
       </section>
     <% end %>
   </div>
-<% elsif file.document? && (blocks = file.document_blocks) %>
+<% elsif file.document? && (document = file.document) %>
   <%# A word processor's document: its text in order, without its layout or pictures %>
   <div class="file-text-preview <%= radius_class %> <%= "file-text-preview-fill" if fill %>">
     <div class="markdown-preview document-preview">
       <p class="file-preview-note">The text of this document. Download the file for its layout and pictures.</p>
-      <% blocks.chunk_while { |a, b| a.kind == :list_item && b.kind == :list_item }.each do |group| %>
+      <% document.blocks.chunk_while { |a, b| a.kind == :list_item && b.kind == :list_item }.each do |group| %>
         <% if group.first.kind == :list_item %>
           <ul><% group.each do |item| %><li><%= item.text %></li><% end %></ul>
         <% else %>
@@ -92,6 +92,9 @@
             <p><%= block.text %></p>
           <% end %>
         <% end %>
+      <% end %>
+      <% if document.more %>
+        <p class="file-preview-note">Only the first part of this document is shown here. Download the file for all of it.</p>
       <% end %>
     </div>
   </div>

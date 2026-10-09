@@ -6,6 +6,7 @@ require_relative "test_helpers/api_test_helper"
 require_relative "test_helpers/demo_test_helper"
 require_relative "test_helpers/fake_imap_server"
 require_relative "test_helpers/mail_thread_helper"
+require_relative "test_helpers/office_files_helper"
 require_relative "test_helpers/query_count_test_helper"
 require_relative "test_helpers/smtp_test_helper"
 

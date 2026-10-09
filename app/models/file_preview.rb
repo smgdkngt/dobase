@@ -19,14 +19,21 @@ class FilePreview
   MARKDOWN_EXTENSIONS = %w[md markdown].freeze
   MAX_TEXT_BYTES = 512.kilobytes
 
-  # A spreadsheet or a document is read up to this size, and unpacked (an .xlsx and a
-  # .docx are zip files, and a small zip can hold gigabytes) up to that one
+  # A spreadsheet or a document is read up to this size. Both are zip files, and a small
+  # zip can hold gigabytes whatever it says of itself, so what comes out is counted while
+  # it is unpacked (FilePreview::Package): so much per part, so much for the file, and for
+  # no longer than a page should wait. Reading happens in the request, which these keep short.
   MAX_BYTES = 20.megabytes
-  MAX_UNPACKED_BYTES = 100.megabytes
-  # How much of a table a page shows
+  MAX_PART_BYTES = 32.megabytes
+  MAX_UNPACKED_BYTES = 64.megabytes
+  MAX_SECONDS = 2
+  # A csv is read from its start, however long it is
+  MAX_SEPARATED_BYTES = 2.megabytes
+  # How much of a table a page shows, and of a document's text
   MAX_ROWS = 1000
   MAX_COLUMNS = 50
   MAX_CELL_LENGTH = 500
+  MAX_DOCUMENT_LENGTH = 500_000
 
   SEPARATED_EXTENSIONS = %w[csv tsv].freeze
   SEPARATED_CONTENT_TYPES = %w[text/csv text/tab-separated-values].freeze
@@ -89,7 +96,7 @@ class FilePreview
     elsif audio? then "audio"
     elsif pdf? then "pdf"
     elsif table? && sheets then "table"
-    elsif document? && document_blocks then "document"
+    elsif document? && document then "document"
     elsif text? && preview_text then "text"
     end
   end
@@ -152,9 +159,10 @@ class FilePreview
   def sheets
     return @sheets if defined?(@sheets)
 
-    @sheets = if byte_size.to_i > MAX_BYTES then nil
-    elsif workbook? then blob.open { |file| Workbook.read(file.path) }
-    elsif separated? then Separated.read(blob.download, tabs: extension == "tsv" || content_type == "text/tab-separated-values")
+    @sheets = if workbook? then (blob.open { |file| Workbook.read(file.path) } unless byte_size.to_i > MAX_BYTES)
+    elsif separated?
+      Separated.read(blob.download_chunk(0...MAX_SEPARATED_BYTES), cut: byte_size.to_i > MAX_SEPARATED_BYTES,
+        tabs: extension == "tsv" || content_type == "text/tab-separated-values")
     end
   rescue ActiveStorage::FileNotFoundError, ActiveStorage::IntegrityError
     @sheets = nil
@@ -165,24 +173,19 @@ class FilePreview
     extension.in?(DOCUMENT_EXTENSIONS) || content_type.in?(DOCUMENT_CONTENT_TYPES)
   end
 
-  # The document's text in order (FilePreview::WordDocument::Block), or nil when it can't be read
-  def document_blocks
-    return @document_blocks if defined?(@document_blocks)
+  # The document's text in order (FilePreview::WordDocument::Contents: its blocks, and
+  # whether there was more), or nil when it can't be read
+  def document
+    return @document if defined?(@document)
 
-    @document_blocks = (blob.open { |file| WordDocument.read(file.path) } unless byte_size.to_i > MAX_BYTES)
+    @document = (blob.open { |file| WordDocument.read(file.path) } unless byte_size.to_i > MAX_BYTES)
   rescue ActiveStorage::FileNotFoundError, ActiveStorage::IntegrityError
-    @document_blocks = nil
+    @document = nil
   end
 
   # Something that is read rather than looked at: it gets the whole pane and scrolls in it
   def read?
     text? || pdf? || table? || document?
-  end
-
-  # Whether a zip file unpacks to no more than a page should be made to read. What an
-  # entry says of its own size is held to when it is read (rubyzip stops at it).
-  def self.unpacks_small?(zip)
-    zip.sum(&:size) <= MAX_UNPACKED_BYTES
   end
 
   private

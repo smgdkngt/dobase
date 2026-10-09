@@ -15,7 +15,8 @@ when "table"
     json.(sheet, :name, :rows, :more)
   end
 when "document"
-  json.blocks @preview.document_blocks do |block|
+  json.more @preview.document.more
+  json.blocks @preview.document.blocks do |block|
     json.kind block.kind
     json.text block.text if block.text
     json.level block.level if block.level
