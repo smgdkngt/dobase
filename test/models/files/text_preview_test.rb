@@ -46,7 +46,7 @@ module Files
 
     test "a file too large to show says so instead of loading it" do
       item = upload("big.log", "x")
-      item.update_column(:file_size, Files::Item::MAX_PREVIEW_BYTES + 1)
+      item.file.blob.update_column(:byte_size, FilePreview::MAX_TEXT_BYTES + 1)
 
       assert item.preview_too_large?
       assert_nil item.preview_text

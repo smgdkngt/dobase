@@ -10,17 +10,6 @@ module Files
 
     MAX_FILE_SIZE = 200.megabytes
 
-    # Files worth showing as text, and how much of one to read into a page
-    TEXT_CONTENT_TYPES = %w[application/json application/xml application/x-yaml application/yaml application/toml].freeze
-    TEXT_EXTENSIONS = %w[
-      txt md markdown csv tsv log conf ini env
-      json yml yaml toml xml
-      rb erb rake py rs go java kt swift c h cpp hpp cs php pl lua ex exs
-      mjs cjs ts jsx tsx vue svelte sql css scss sass less graphql
-    ].freeze
-    MARKDOWN_EXTENSIONS = %w[md markdown].freeze
-    MAX_PREVIEW_BYTES = 512.kilobytes
-
     belongs_to :tool
     belongs_to :folder, class_name: "Files::Folder", optional: true
     has_one :share, as: :shareable, class_name: "Files::Share", dependent: :destroy
@@ -67,34 +56,14 @@ module Files
       content_type&.start_with?("audio/")
     end
 
-    def text?
-      return false unless file.attached?
-
-      content_type.to_s.start_with?("text/") || content_type.in?(TEXT_CONTENT_TYPES) ||
-        # By name only when the content isn't media: a .ts is TypeScript, or a video
-        (extension.in?(TEXT_EXTENSIONS) && !content_type.to_s.start_with?("video/", "audio/", "image/"))
+    # What a page shows of the file without downloading it: FilePreview reads it, for
+    # this file as for an attachment anywhere else
+    def preview
+      FilePreview.new(file.blob, name: name) if file.attached?
     end
 
-    def markdown?
-      extension.in?(MARKDOWN_EXTENSIONS) || content_type == "text/markdown"
-    end
-
-    def preview_too_large?
-      file_size.to_i > MAX_PREVIEW_BYTES
-    end
-
-    # The file's text, as far as a page should show it. Nil when it turns out not to be text
-    # after all: the name and the type both only claim it is.
-    def preview_text
-      return if preview_too_large?
-
-      text = file.download.force_encoding(Encoding::UTF_8)
-      return unless text.valid_encoding?
-
-      text
-    rescue ActiveStorage::FileNotFoundError
-      nil
-    end
+    delegate :text?, :markdown?, :preview_too_large?, :preview_text,
+      :table?, :sheets, :document?, :document_blocks, :read?, to: :preview, allow_nil: true
 
     def pdf?
       content_type == "application/pdf"
