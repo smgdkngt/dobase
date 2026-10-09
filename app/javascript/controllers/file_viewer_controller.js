@@ -19,15 +19,24 @@ export default class extends Controller {
     this.element.removeEventListener("close", this.emptied)
   }
 
+  // A dialog says "close" a moment after it closed. A file asked for within that moment
+  // has the dialog open again by then, so what was left of the last one goes here.
   opening() {
-    if (!this.element.open) this.element.showModal()
+    if (this.element.open) return
+
+    this.frameTarget.replaceChildren()
+    this.element.showModal()
   }
 
   close() {
     this.element.close()
   }
 
+  // Not when the dialog is open again: taking the address away stops what is loading,
+  // and the dialog would wait for a file that never comes.
   emptied() {
+    if (this.element.open) return
+
     this.frameTarget.removeAttribute("src")
     this.frameTarget.replaceChildren()
   }

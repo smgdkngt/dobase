@@ -17,6 +17,13 @@ class FileViewerTest < ApplicationSystemTestCase
     attachment
   end
 
+  def close_and_ask_for(name)
+    execute_script(<<~JS, name)
+      document.getElementById("file-viewer").close()
+      document.querySelector(`a[data-turbo-frame="file_viewer"][title="${arguments[0]}"]`).click()
+    JS
+  end
+
   test "a spreadsheet attached to a mail opens over the page, closes, and opens again" do
     message = mails_messages(:inbox_unread)
     attach(message, "budget.xlsx", file_fixture("sample.xlsx").binread)
@@ -35,6 +42,32 @@ class FileViewerTest < ApplicationSystemTestCase
     click_link "budget.xlsx"
 
     assert_selector "dialog#file-viewer[open] td", text: "42.5"
+  end
+
+  # A dialog's "close" event comes a moment after it closed. Closing and clicking in one
+  # go puts the click before that event every time, which a person only manages now and then.
+  test "a file asked for again the moment the viewer closes is shown" do
+    message = mails_messages(:inbox_unread)
+    attach(message, "budget.xlsx", file_fixture("sample.xlsx").binread)
+    attach(message, "figures.csv", "Month;Total\nOctober;42\n")
+
+    visit tool_mail_path(@tool, message)
+    click_link "budget.xlsx"
+    assert_selector "dialog#file-viewer[open] td", text: "42.5"
+
+    close_and_ask_for "budget.xlsx"
+    assert_selector "dialog#file-viewer[open] td", text: "42.5"
+
+    # Another file, also while the one before it is still being read
+    close_and_ask_for "figures.csv"
+    close_and_ask_for "budget.xlsx"
+    close_and_ask_for "figures.csv"
+    assert_selector "dialog#file-viewer[open] td", text: "October"
+    assert_no_selector "dialog#file-viewer[open] td", text: "42.5"
+
+    send_keys :escape
+    assert_no_selector "dialog#file-viewer[open]"
+    assert_no_selector "#file_viewer *", visible: :all
   end
 
   test "a draft's attachment can be looked at while the mail is being written" do
