@@ -77,7 +77,7 @@ GEM
       uri (>= 0.13.1)
     addressable (2.9.0)
       public_suffix (>= 2.0.2, < 8.0)
-    altcha (2.0.1)
+    altcha (3.0.0)
       base64
     ast (2.4.3)
     base64 (0.3.0)
@@ -558,7 +558,7 @@ CHECKSUMS
   activestorage (8.1.4) sha256=f4956f3ec9ee63e5e0b332b57c877cb627f82b56f4cc902279310d2aa285c7a8
   activesupport (8.1.4) sha256=891dd3fe43c4fc8391934b237b1189bb1f661c932a84a840043db9d46a4e80df
   addressable (2.9.0) sha256=7fdf6ac3660f7f4e867a0838be3f6cf722ace541dd97767fa42bc6cfa980c7af
-  altcha (2.0.1) sha256=96ba11e14914f133a27148a5516605871e2f432aaba4491c40fb4348bcaf646f
+  altcha (3.0.0) sha256=09d85a201e9ae0fcceb7fa5d9c969b7808f656e87a951d8903c79ae3cb4f6544
   ast (2.4.3) sha256=954615157c1d6a382bc27d690d973195e79db7f55e9765ac7c481c60bdb4d383
   base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
   bcrypt (3.1.22) sha256=1f0072e88c2d705d94aff7f2c5cb02eb3f1ec4b8368671e19112527489f29032
