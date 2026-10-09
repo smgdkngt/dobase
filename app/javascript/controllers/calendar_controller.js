@@ -1,5 +1,4 @@
 import { Controller } from "@hotwired/stimulus"
-import { floats, drawnWith } from "services/float"
 import { pageAddress, visitPage, tileOf, zoomOf } from "services/tile"
 
 export default class extends Controller {
@@ -138,19 +137,8 @@ export default class extends Controller {
   }
 
   _openEvent(eventId) {
-    // In the workspace an event's details float over all the tiles (services/float.js)
-    if (floats(`/tools/${this.toolIdValue}/calendar?event=${eventId}`, { clear: "event" })) return
-
     // Fetch event details and show in modal
     const url = `/tools/${this.toolIdValue}/calendar/events/${eventId}`
-
-    // The page that floats over the workspace is drawn with the event in its dialog
-    // already: nothing to fetch, and no skeleton to look at
-    if (this.hasEventModalTarget && drawnWith(this.eventModalTarget, eventId)) {
-      this.eventDetailDialogTarget.showModal()
-      this.eventModalTarget.querySelector("[autofocus], [data-action~='click->modal#close'], button, a[href]")?.focus()
-      return
-    }
 
     // Open immediately with a skeleton so the dialog's entrance isn't spent
     // staring at a blank sheet — content swaps in once the fetch resolves.

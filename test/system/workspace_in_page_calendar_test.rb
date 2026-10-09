@@ -15,15 +15,11 @@ class WorkspaceInPageCalendarTest < ApplicationSystemTestCase
       starts_at: Time.utc(2030, 1, 8, 14), ends_at: Time.utc(2030, 1, 8, 15))
     sign_in_as users(:one)
     page.driver.browser.manage.delete_cookie("workspace")
-    visit workspace_path("in-page": "todos,boards,chat,docs,calendar", open: tool_calendar_path(@tool, week_start: "2030-01-07"))
+    visit workspace_path(open: tool_calendar_path(@tool, week_start: "2030-01-07"))
     wait_for_stimulus "workspace"
     assert_selector "#{CALENDAR} [data-event-id='#{@event.id}']", text: "Dentist"
     wait_for_stimulus "calendar"
     within(".workspace-hint") { click_on "Got it" }
-  end
-
-  teardown do
-    page.execute_script("try { localStorage.removeItem('dobase:workspace:in-page') } catch (error) {}")
   end
 
   test "the weeks are gone through in the tile, by button and by key" do
@@ -42,7 +38,6 @@ class WorkspaceInPageCalendarTest < ApplicationSystemTestCase
   test "an event's details open over the window, and it is changed from there" do
     within(CALENDAR) { find("[data-event-id='#{@event.id}']").click }
 
-    assert_no_selector ".workspace-float iframe"
     within("dialog#event-details-modal[open]") do
       assert_text "Dentist"
       click_on "Edit"

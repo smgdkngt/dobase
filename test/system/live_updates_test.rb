@@ -261,27 +261,11 @@ class LiveUpdatesTest < ApplicationSystemTestCase
     assert_equal [ false, true ], page.evaluate_script("window.heard")
   end
 
-  test "a tile in a frame of its own shows it as well" do
-    tool = tools(:project_board)
-    page.driver.browser.manage.delete_cookie("workspace")
-    # (as a room still is, and any tool in a browser that asked for frames)
-    visit workspace_path("in-page": "", open: tool_path(tool))
-    wait_for_stimulus "workspace"
-
-    created = nil
-    within_frame(find(".workspace-tile iframe")) do
-      assert_selector "h1", text: tool.name
-      wait_until_listening
-      created = through_the_api :post, column_cards_path(columns(:todo)), card: { title: "From a terminal" }
-      assert_selector "#board-card-#{created["id"]}", text: "From a terminal"
-    end
-  end
-
   test "a tile in the workspace's own page shows it, and nothing but that tile is drawn again" do
     tool = tools(:my_todos)
     tile = ".workspace-tile turbo-frame.tile-frame"
     page.driver.browser.manage.delete_cookie("workspace")
-    visit workspace_path("in-page": "todos", open: tool_path(tool))
+    visit workspace_path(open: tool_path(tool))
     wait_for_stimulus "workspace"
     assert_selector "#{tile} .tile-page h1", text: tool.name
     wait_until_listening "#{tile} .tile-page"
@@ -304,8 +288,6 @@ class LiveUpdatesTest < ApplicationSystemTestCase
       raise Capybara::ExpectationNotMet, "The tile wasn't told of the change" if page.evaluate_script("window.heard.length").zero?
     end
     assert_equal [ false ], page.evaluate_script("window.heard")
-  ensure
-    page.execute_script("try { localStorage.removeItem('dobase:workspace:in-page') } catch (error) {}")
   end
 
   test "someone who can't open the tool hears nothing of it" do

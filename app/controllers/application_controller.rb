@@ -14,7 +14,7 @@ class ApplicationController < ActionController::Base
   after_action :track_last_visited_path
   after_action :remember_theme
 
-  helper_method :tile?, :tile_frame, :floating?, :workspace_wanted?, :browser_scheme
+  helper_method :tile?, :tile_frame, :workspace_wanted?, :browser_scheme
 
   # A tile that is part of the workspace's own page gets its tool's page without a
   # document around it (layouts/tile_frame); any other frame, what Turbo gives a frame
@@ -46,14 +46,6 @@ class ApplicationController < ActionController::Base
   # To everything that asks, such a tile's request is for a page, not for a part of one
   def turbo_frame_request?
     super && !tile_frame
-  end
-
-  # A page that floats over the workspace to show one dialog (services/float.js): a
-  # card, a todo, an event. The workspace asks for the tool's page with ?float, and
-  # that dialog is all the page draws, with what it shows already in it: no board
-  # around it, and nothing to fetch afterwards.
-  def floating?
-    tile? && params[:float].present?
   end
 
   def set_time_zone(&block)

@@ -3,7 +3,6 @@ import { api } from "services/api"
 import { showFlash } from "services/flash"
 import { reportPresence } from "services/presence"
 import { pageInUse } from "services/page_in_use"
-import { floats, floating, drawnWith } from "services/float"
 import { play } from "services/sound"
 import { pageAddress, visitPage, tileOf } from "services/tile"
 
@@ -17,9 +16,6 @@ export default class extends Controller {
     if (this.hasItemDetailDialogTarget) {
       this._onModalClose = () => {
         reportPresence(null)
-        // Floating over the workspace, the page goes with its dialog: the tile it came
-        // from is the one that is drawn again
-        if (floating) return
         // Closed because the page is going elsewhere: that visit stands
         if ("closedForNavigation" in this.itemDetailDialogTarget.dataset) {
           delete this.itemDetailDialogTarget.dataset.closedForNavigation
@@ -87,19 +83,8 @@ export default class extends Controller {
   }
 
   #openItemById(itemId) {
-    // In the workspace a todo's details float over all the tiles (services/float.js)
-    if (floats(`/tools/${this.toolIdValue}/todo?item=${itemId}`, { clear: "item" })) return
-
     const url = `/tools/${this.toolIdValue}/todo/items/${itemId}`
     reportPresence(`todo:${itemId}`)
-
-    // The page that floats over the workspace is drawn with the todo in its dialog
-    // already: nothing to fetch, and no skeleton to look at
-    if (this.hasItemModalTarget && drawnWith(this.itemModalTarget, itemId)) {
-      this.itemDetailDialogTarget.showModal()
-      this.itemModalTarget.querySelector("[autofocus], button, a[href]")?.focus()
-      return
-    }
 
     // Open immediately with a skeleton so the dialog's entrance isn't spent
     // staring at a blank sheet — content swaps in once the fetch resolves.

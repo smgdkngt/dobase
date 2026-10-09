@@ -112,12 +112,6 @@
     </div>
   </div>
 
-  <%# Where a tile's dialog floats over all of them (services/float.js): a frame as
-      large as the window that shows only that dialog. Left alone when the page
-      around the tiles is drawn again. %>
-  <div class="workspace-float" id="workspace-float" hidden data-turbo-permanent
-       data-workspace-target="float" data-action="click->workspace#unfloatByClick"></div>
-
   <template data-workspace-target="tileTemplate">
     <%# The tile itself takes the keyboard (tabindex): the level where the arrows go from
         tile to tile. Its hint shows while it has it. %>

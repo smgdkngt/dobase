@@ -13,9 +13,9 @@ module CalendarsHelper
   end
 
   # The calendar fetches event details into its dialog, and loads the form into the
-  # dialog's frame. Floating over the workspace, the page is drawn with them in it.
+  # dialog's frame.
   def in_event_dialog?
-    request.xhr? || turbo_frame_request? || floating?
+    request.xhr? || turbo_frame_request?
   end
 
   # The shortest an event is drawn in the week grid, in minutes (an hour is 60px)

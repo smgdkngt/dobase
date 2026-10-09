@@ -22,16 +22,12 @@ class WorkspaceInPageChatTest < ApplicationSystemTestCase
 
     sign_in_as @user
     page.driver.browser.manage.delete_cookie("workspace")
-    visit workspace_path("in-page": "todos,boards,chat", open: tool_path(@tool))
+    visit workspace_path(open: tool_path(@tool))
     wait_for_stimulus "workspace"
     assert_selector "#{CHAT} .tile-page h1", text: @tool.name
     wait_for_stimulus "chat"
     # (the line about tiles a first visit gets lies over the message box)
     within(".workspace-hint") { click_on "Got it" }
-  end
-
-  teardown do
-    page.execute_script("try { localStorage.removeItem('dobase:workspace:in-page') } catch (error) {}")
   end
 
   test "the chat is part of the workspace's page, and opening it reads it" do

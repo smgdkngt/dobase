@@ -350,28 +350,6 @@
     @apply hidden;
   }
 
-  /* A tile's dialog, floating over all of them: the dark behind it is here (it is
-     there before the dialog has arrived), the dialog itself is in the frame */
-  .workspace-float {
-    @apply fixed inset-0 z-[60] bg-black/40;
-    animation: workspace-float-in 120ms ease-out;
-    transition: opacity 180ms var(--ease-out);
-  }
-
-  /* The dialog is closed: it fades out with the dark behind it, and the tiles under
-     it can be clicked already (workspace_controller.js#unfloat takes it away after) */
-  .workspace-float[data-closing] {
-    @apply opacity-0 pointer-events-none;
-  }
-
-  .workspace-float[hidden] {
-    @apply hidden;
-  }
-
-  .workspace-float > iframe {
-    @apply block w-full h-full border-0 bg-transparent;
-  }
-
   /* In the shortcuts dialog: what the workspace's keys go with */
   .workspace-keys-choice {
     @apply flex items-center justify-between gap-4 mt-3 pt-3 border-t border-border-light;
@@ -425,12 +403,6 @@
   from {
     opacity: 0;
     transform: scale(0.97);
-  }
-}
-
-@keyframes workspace-float-in {
-  from {
-    opacity: 0;
   }
 }
 
@@ -624,29 +596,6 @@ body[data-workspace] .main-content {
 :root[data-theme-changing] *::before,
 :root[data-theme-changing] *::after {
   transition: none !important;
-}
-
-/* ── A page that floats over the workspace to show one dialog (services/float.js) ──
-   Nothing of it is seen but the dialog: the tiles show through the rest. The dark
-   behind the dialog is the workspace's. */
-
-:root[data-floating],
-:root[data-floating] body {
-  background: transparent !important;
-}
-
-:root[data-floating] body > * {
-  visibility: hidden;
-}
-
-:root[data-floating] dialog,
-:root[data-floating] [popover] {
-  visibility: visible;
-}
-
-:root[data-floating] dialog::backdrop {
-  background: transparent;
-  backdrop-filter: none;
 }
 
 /* The top bar is lower, and keeps room for the tile's close button, which lies over it */
