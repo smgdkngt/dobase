@@ -20,6 +20,14 @@ RemoteHost.resolver = ->(host) do
   end
 end
 
+# A connection knows its user and, when it was made with one, its access token.
+# The channels' tests name the user; without a token is what a page's connection is.
+class ActionCable::Channel::TestCase
+  def stub_connection(identifiers = {})
+    super({ access_token: nil }.merge(identifiers))
+  end
+end
+
 module ActiveSupport
   class TestCase
     # Run tests in parallel with specified workers
