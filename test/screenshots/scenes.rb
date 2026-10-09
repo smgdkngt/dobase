@@ -30,6 +30,19 @@ class ScreenshotScenes < ApplicationSystemTestCase
   # asks for the camera first, and headless Chrome has none
   THERE = { "Standup Room" => "[data-room-target='preJoinError']:not(.hidden)" }.freeze
 
+  # A room's page waits until the tiles beside it are drawn. A room is a document of
+  # its own, set at seven eighths, and the tiles are parts of the page, drawn at seven
+  # eighths: the same size of letter by two ways, which the system's typeface spaces
+  # a little differently, and a browser keeps the first of the two it meets for both
+  # (see the teardown). Which page is first would be a matter of milliseconds.
+  ROOMS = Concurrent::Event.new
+  Tools::RoomsController.prepend(Module.new do
+    def show
+      ScreenshotScenes::ROOMS.wait(20)
+      super
+    end
+  end)
+
   # Drawn by the processor, which draws the same thing the same way every time; the
   # graphics card rounds the edge of a letter one way now and another way then
   driven_by :selenium, using: :headless_chrome, screen_size: WIDE do |options|
@@ -65,6 +78,20 @@ class ScreenshotScenes < ApplicationSystemTestCase
     # page hears of it, which is sooner or later than the picture. So they are read.
     @sophie.notifications.joins(:event).where(noticed_events: { type: "ChatMessageNotifier" }).update_all(read_at: NOW, seen_at: NOW)
   end
+
+  # Every scene in a browser of its own. A browser keeps, for as long as it runs, the
+  # first shape it made of a typeface at a size, and a tile's letters (drawn at seven
+  # eighths) and a room's (set at seven eighths) come to the same size by two ways
+  # that give the system's typeface a slightly different spacing. Whichever a browser
+  # met first is what it draws both with from then on, so in a browser that goes on
+  # from scene to scene a heading sits a fraction of a pixel further by what the scenes
+  # before it happened to be.
+  teardown do
+    page.driver.quit
+  end
+
+  # (a room's page is held back only by a scene with other tiles beside it: `workspace`)
+  setup { ROOMS.set }
 
   # ── The workspace: a wide window ──
 
@@ -243,18 +270,18 @@ class ScreenshotScenes < ApplicationSystemTestCase
     state = { desk: 1, desks: { "1" => desk }, tiles: ids.zip(paths).to_h { |id, path| [ id, { url: path, title: "" } ] } }
     @sophie.create_workspace_layout!(state: state, revision: 1) unless first_visit
 
+    ROOMS.reset if pages.many?
     sign_in(told_about_tiles: !first_visit)
     assert_selector "[data-controller~='workspace']"
     wait_for_stimulus "workspace"
     count = first_visit ? 1 : ids.size
     assert_selector "#{TILE} > :is(iframe, .tile-frame)", count: count
-    count.times do |index|
-      frame = all("#{TILE} > :is(iframe, .tile-frame)")[index]
-      # A tile is a part of this page, or (a room) a document of its own
-      next within_frame(frame) { assert_selector there[index] || "main" } if frame.tag_name == "iframe"
-
-      within(frame) { assert_selector ".tile-page" }
-    end
+    # A tile is a part of this page, or (a room) a document of its own. The parts of
+    # the page first, and a room's page only once they are drawn (ROOMS)
+    frames = all("#{TILE} > :is(iframe, .tile-frame)").first(count).each_with_index.partition { |frame, _| frame.tag_name != "iframe" }
+    frames.first.each { |frame, _| within(frame) { assert_selector ".tile-page" } }
+    ROOMS.set
+    frames.last.each { |frame, index| within_frame(frame) { assert_selector there[index] || "main" } }
   end
 
   # A page with nothing around it but the bar at the bottom, as a narrow window has it
@@ -293,7 +320,7 @@ class ScreenshotScenes < ApplicationSystemTestCase
     browser.execute_cdp("Emulation.setDeviceMetricsOverride", width: width, height: height, deviceScaleFactor: 1, mobile: false)
     browser.execute_cdp("Emulation.setEmulatedMedia", features: [ { name: "prefers-color-scheme", value: scheme } ])
     browser.execute_cdp("Emulation.setTimezoneOverride", timezoneId: "UTC")
-    @@clock ||= browser.execute_cdp("Page.addScriptToEvaluateOnNewDocument", source: <<~JS)
+    browser.execute_cdp("Page.addScriptToEvaluateOnNewDocument", source: <<~JS)
       (() => {
         const ahead = #{(NOW.to_f * 1000).to_i} - Date.now()
         const Real = Date
