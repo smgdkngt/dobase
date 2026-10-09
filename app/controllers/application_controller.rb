@@ -48,6 +48,31 @@ class ApplicationController < ActionController::Base
     super && !tile_frame
   end
 
+  # Back to the page a form was sent from. A tile that is part of the workspace's
+  # page sends its forms from the workspace's address, which is no page of its tool
+  # (and sends a tile on to the start page). Such a tile goes back to where it is,
+  # which the workspace says with every request of a tile's (workspace_controller.js),
+  # and to the fallback when nothing usable was said.
+  def redirect_back_or_to(fallback_location, **options)
+    return super unless tile? && sent_from_the_workspace?
+
+    redirect_to tile_address || fallback_location, **options.except(:allow_other_host)
+  end
+
+  def sent_from_the_workspace?
+    referer = URI.parse(request.referer.to_s)
+    referer.path == workspace_path && (referer.host.nil? || referer.host == request.host)
+  rescue URI::InvalidURIError
+    false
+  end
+
+  # A page of the tool the request is about, on this site, and nothing else
+  def tile_address
+    address = request.headers["X-Tile-Address"].to_s
+    tool_id = address[%r{\A/tools/(\d+)(?:[/?#]|\z)}, 1]
+    address if tool_id && tool_id == params[:tool_id].to_s
+  end
+
   def set_time_zone(&block)
     timezone = current_user&.timezone.presence || "UTC"
     Time.use_zone(timezone, &block)

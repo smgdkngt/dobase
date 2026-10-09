@@ -120,8 +120,17 @@ export default class extends Controller {
       const id = event.target.closest("[data-tile-id]")?.dataset.tileId
       if (id && this.state.tiles[id]) this.told(id, event.detail || {})
     })
+    // A request from a tile that is part of this page is a tile's, and says where
+    // that tile is: a form answered with "back where you came from" would be sent
+    // to this page's address otherwise (ApplicationController#redirect_back_or_to)
     this.listen(document, "turbo:before-fetch-request", (event) => {
-      if (event.target.closest?.(".tile-frame")) event.detail.fetchOptions.headers["X-Tile"] = "1"
+      const frame = event.target.closest?.(".tile-frame")
+      if (!frame) return
+
+      const { headers } = event.detail.fetchOptions
+      headers["X-Tile"] = "1"
+      const address = frameAddress(frame)
+      if (address) headers["X-Tile-Address"] = address
     })
     this.listen(this.tilesTarget, "turbo:frame-missing", (event) => {
       if (!event.target.matches(".tile-frame")) return
