@@ -16,17 +16,18 @@ module Columns
       # Only the cards the request lists move to this column. A card that isn't listed was
       # hidden by a filter, or has just been dragged to another column while this request
       # was on its way: claiming it back would drag it out of the column it went to.
-      column_order(card_ids).each_with_index do |id, index|
-        changes = { position: index }
-        changes[:column_id] = @column.id if card_ids.include?(id)
-        Boards::Card.where(id: id).update_all(changes)
+      Boards::Card.transaction do
+        column_order(card_ids).each_with_index do |id, index|
+          if (card = moved_cards.find { |moved| moved.id == id })
+            # A card that changes columns is saved as a card, which is what writes its event
+            card.update!(column: @column, position: index)
+          else
+            Boards::Card.where(id: id).update_all(position: index)
+          end
+        end
       end
 
       notify_card_moves(moved_cards)
-      # Within its column a card only changes places, which is no event
-      moved_cards.each do |card|
-        Event.record("card.moved", tool: @tool, record: card, title: card.title, column: @column.name, moved_from: card.column.name)
-      end
       render json: { success: true }
     end
 

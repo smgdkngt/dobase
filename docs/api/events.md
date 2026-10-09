@@ -90,7 +90,12 @@ per message. Drafts give no events, and neither does reading or starring.
 
 What another mail program does shows at the next sync: mail it moved, archived
 or threw away is one event, and mail that is gone from the server altogether is
-`mail.deleted`.
+`mail.deleted`. A sync reads up to 500 new messages per folder. Of more than
+that moved at once elsewhere, the first 500 are events; the rest gives none,
+and no mail is called deleted in a sync that left mail unread.
+
+Text in an event (a title, a subject, a name) is one line without control
+characters or characters that can't be seen.
 
 A read token is enough.
 

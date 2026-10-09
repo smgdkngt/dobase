@@ -18,10 +18,7 @@ module Tools
           previous_column = @card.column
 
           @card.move_to(column, position: params[:position], by: current_user)
-          if column != previous_column
-            notify_card_moved
-            @card.record_event(:moved, moved_from: previous_column.name)
-          end
+          notify_card_moved if column != previous_column
 
           respond_to do |format|
             # From the card's own column picker, inside its dialog: the card again

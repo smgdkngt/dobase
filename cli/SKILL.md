@@ -156,7 +156,8 @@ commented on, archived or deleted, chat messages. Each line is one event:
   `chat.message`. `--kind mail` is every mail event.
 - A listener remembers the last event it printed under its `--name` (`default`
   without one), so after a restart or a network that went away it goes on where
-  it was: nothing is missed and nothing comes twice. Give every listener a name
+  it was: nothing is missed. (Killed between printing a line and noting it, it
+  prints that one line again.) Give every listener a name
   of its own; a second one under the same name is refused. A new name starts at
   now, not in the past.
 - A line with `"kind":"stream.gap"` means the listener was away for longer than

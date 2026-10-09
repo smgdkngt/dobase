@@ -3,8 +3,11 @@
 require "test_helper"
 
 # What is done in a tool is written down as an event (Event), for whoever listens
-# from outside the browser. Each action here is done the way the app, the API or
-# the CLI does it, and the events it leaves are read back.
+# from outside the browser: by the models, not by the controllers. Here it is done
+# the way the app, the API or the CLI does it, for what a request adds (who did
+# it, with which token) and for mail, whose events Mails::Account's methods write.
+# What a card, a comment and a chat message write by themselves is in
+# test/models/events_written_test.rb.
 class EventsRecordedTest < ActionDispatch::IntegrationTest
   setup do
     @user = users(:one)
@@ -17,7 +20,13 @@ class EventsRecordedTest < ActionDispatch::IntegrationTest
 
   # --- Cards ---
 
-  test "a card made" do
+  test "no controller writes an event: a model does, however it is reached" do
+    writing = Rails.root.glob("app/controllers/**/*.rb").select { |file| file.read.match?(/record_event|(?<![:\w])Event\.(record|create|new)/) }
+
+    assert_empty writing.map { |file| file.relative_path_from(Rails.root).to_s }
+  end
+
+  test "a card made says who made it, and with which token" do
     events = events_of { post column_cards_path(columns(:todo)), params: { card: { title: "Harvest" } }, headers: @headers, as: :json }
 
     card = Boards::Card.find_by!(title: "Harvest")
@@ -29,87 +38,16 @@ class EventsRecordedTest < ActionDispatch::IntegrationTest
     assert_empty events_of { post column_cards_path(columns(:todo)), params: { card: { title: "" } }, headers: @headers, as: :json }
   end
 
-  test "a card changed says what changed" do
-    events = events_of do
-      patch tool_board_card_path(@board, @card), params: { card: { title: "Renamed", description: "<p>More to it</p>" } }, headers: @headers, as: :json
-    end
-
-    assert_equal [ [ "card.updated", @card.id, { "title" => "Renamed", "column" => "To Do", "changed" => %w[title description] } ] ], summary(events)
-  end
-
-  test "a card given to someone names them" do
-    tools(:project_board).collaborators.create!(user: users(:two))
-
-    events = events_of { patch tool_board_card_path(@board, @card), params: { card: { assigned_user_id: users(:two).id } }, headers: @headers, as: :json }
-
-    assert_equal %w[assignee], events.sole.data["changed"]
-    assert_equal users(:two).name, events.sole.data["assignee"]
-  end
-
-  test "a card saved as it was is no event" do
-    assert_empty events_of { patch tool_board_card_path(@board, @card), params: { card: { title: @card.title } }, headers: @headers, as: :json }
-  end
-
-  test "a card moved to another column, not one that changes places in its own" do
-    events = events_of { patch tool_board_card_position_path(@board, @card), params: { column_id: columns(:done).id }, headers: @headers, as: :json }
-    assert_equal [ [ "card.moved", @card.id, { "title" => "First task", "column" => "Done", "moved_from" => "To Do" } ] ], summary(events)
-
-    assert_empty events_of { patch tool_board_card_position_path(@board, cards(:second_task)), params: { position: 0 }, headers: @headers, as: :json }
-  end
-
-  test "a card dragged to another column in the browser" do
+  test "a card dragged to another column in the browser, not the cards that make room for it" do
     sign_in_as @user
     staying = cards(:completed_task)
 
     events = events_of { patch column_positions_path(columns(:done)), params: { card_ids: [ @card.id, staying.id ] }, as: :json }
 
     assert_equal [ [ "card.moved", @card.id, { "title" => "First task", "column" => "Done", "moved_from" => "To Do" } ] ], summary(events)
+    assert_equal [ [ columns(:done).id, 0 ], [ columns(:done).id, 1 ] ], [ @card, staying ].map { |card| card.reload.values_at(:column_id, :position) }
     assert_nil events.sole.via
     assert_equal @user.id, events.sole.user_id
-  end
-
-  test "a card archived and brought back" do
-    events = events_of do
-      post tool_board_card_archive_path(@board, @card), headers: @headers, as: :json
-      delete tool_board_card_archive_path(@board, @card), headers: @headers, as: :json
-    end
-
-    assert_equal %w[card.archived card.unarchived], events.map(&:kind)
-    assert_equal [ @card.id ], events.map(&:record_id).uniq
-  end
-
-  test "a comment on a card, with its first words" do
-    events = events_of { post tool_board_card_comments_path(@board, @card), params: { body: "<p>On it, <strong>today</strong></p>" }, headers: @headers, as: :json }
-
-    event = events.sole
-    assert_equal [ "card.commented", @card.id ], event.values_at(:kind, :record_id)
-    assert_equal({ "title" => "First task", "column" => "To Do", "comment_id" => @card.comments.last.id, "excerpt" => "On it, today" }, event.data)
-  end
-
-  test "a card deleted, and the cards that go with a deleted column" do
-    events = events_of { delete tool_board_card_path(@board, @card), headers: @headers, as: :json }
-    assert_equal [ [ "card.deleted", @card.id, { "title" => "First task", "column" => "To Do" } ] ], summary(events)
-
-    left = columns(:todo).cards.pluck(:id)
-    assert_not_empty left
-    events = events_of { delete tool_board_column_path(@board, columns(:todo)), headers: @headers, as: :json }
-    assert_equal [ "card.deleted" ], events.map(&:kind).uniq
-    assert_equal left.sort, events.map(&:record_id).sort
-  end
-
-  # --- Chat ---
-
-  test "a chat message, with its first words" do
-    chat_type = ToolType.find_or_create_by!(slug: "chat") { |tool_type| tool_type.assign_attributes(name: "Chat", icon: "messages-square") }
-    chat = Tool.create!(name: "Team", tool_type: chat_type, owner: @user)
-
-    events = events_of { post tool_chat_messages_path(chat), params: { message: { body: "<p>#{"Lunch is ready. " * 20}</p>" } }, headers: @headers, as: :json }
-
-    event = events.sole
-    assert_response :created
-    assert_equal [ "chat.message", chat.id, chat.chat.messages.last.id ], event.values_at(:kind, :tool_id, :record_id)
-    assert_equal 140, event.data["excerpt"].length
-    assert event.data["excerpt"].start_with?("Lunch is ready. Lunch")
   end
 
   # --- Mail, done here ---

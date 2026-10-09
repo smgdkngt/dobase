@@ -43,10 +43,7 @@ module Tools
       end
 
       def destroy
-        cards = @column.cards.to_a
         @column.destroy!
-        # Its cards went with it
-        cards.each { |card| Event.record("card.deleted", tool: @tool, record: card, title: card.title, column: @column.name) }
 
         respond_to do |format|
           format.html { redirect_to tool_board_path(@tool) }

@@ -105,6 +105,54 @@ module Mails
       archive_folder.present? && message.archived? && message.folder != archive_folder
     end
 
+    # What is done to mail here is done in these methods, each of which also says so
+    # to whoever listens (Mails::Message#record_event): no controller writes an event.
+
+    # Archived mail leaves its folder's list. A server with an archive folder gets it
+    # there; mail that is in that folder is archived already.
+    def archive(messages)
+      messages.reject { |message| message.archived? || in_archive_folder?(message) }.each do |message|
+        message.update!(archived: true)
+        if message.uid.present? && archive_folder.present?
+          ImapSyncJob.perform_later(id, "move_to_folder", message.uid, message.folder || "INBOX", archive_folder)
+        elsif message.uid.present?
+          ImapSyncJob.perform_later(id, "mark_as_read", message.uid, message.folder || "INBOX")
+        end
+        message.record_event(:archived)
+      end
+    end
+
+    # Mail archived here goes back to the folder it was archived from. Mail another mail
+    # program archived is only known as mail in the archive folder, and goes to the inbox.
+    # Mail archived here is in that folder too once it has synced: that copy leaves with
+    # the mail itself.
+    def unarchive(messages)
+      in_archive_folder, archived_here = messages.partition { |message| in_archive_folder?(message) }
+      archived_here = archived_here.select(&:archived?)
+      archived_here.each do |message|
+        message.update!(archived: false)
+        unarchive_on_server(message)
+        message.record_event(:unarchived)
+      end
+      in_archive_folder.each do |message|
+        if archived_here.any? { |other| other.message_id == message.message_id }
+          message.destroy
+        else
+          was_in = message.folder
+          message.move_to_folder!("INBOX")
+          message.record_event(:unarchived, moved_from: was_in)
+        end
+      end
+    end
+
+    def move(messages, target_folder)
+      messages.each do |message|
+        was_in = message.folder
+        message.move_to_folder!(target_folder)
+        message.record_event(:moved, moved_from: was_in)
+      end
+    end
+
     # Trashed mail goes to the server's trash, as in other mail programs, so it can be restored
     # there too. A server without a trash deletes it, and it's only kept here for 30 days.
     def trash(messages)
@@ -214,6 +262,20 @@ module Mails
     end
 
     private
+
+    def unarchive_on_server(message)
+      return unless message.uid.present?
+
+      if archive_folder.present?
+        # Archiving moved the message, which gave it a new UID in the archive folder. The UID we
+        # have can be another message's there, so it's moved back to the folder it was archived
+        # from by its Message-ID, and the next sync gives it its new UID there.
+        ImapSyncJob.perform_later(id, "move_to_folder_by_message_id", nil, archive_folder, message.folder || "INBOX", message.message_id)
+        message.update!(uid: nil)
+      else
+        ImapSyncJob.perform_later(id, "mark_as_unread", message.uid, message.folder || "INBOX")
+      end
+    end
 
     def uids_by_folder(messages)
       messages.select { |message| message.uid.present? }.group_by { |message| message.folder || "INBOX" }.transform_values { |in_folder| in_folder.map(&:uid) }

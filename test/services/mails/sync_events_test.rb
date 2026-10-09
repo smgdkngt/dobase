@@ -8,6 +8,7 @@ module Mails
   # now, synced in the order SyncEmailsJob syncs them.
   class SyncEventsTest < ActiveSupport::TestCase
     include ActiveJob::TestHelper
+    include ActionCable::TestHelper
 
     setup do
       @account = mails_accounts(:primary)
@@ -119,6 +120,55 @@ module Mails
 
     test "mail gone from a run that didn't get through every folder may be in one it didn't read" do
       assert_empty run_of("INBOX" => @inbox.except(102), complete: false)
+    end
+
+    # A run fetches so much new mail per folder (ImapSyncService::BACKFILL_BATCH): the rest
+    # of what was moved there is on the server, where this run didn't look
+    test "more mail moved by another program than one run reads is not deleted mail" do
+      stub_const(ImapSyncService, :BACKFILL_BATCH, 1) do
+        events = run_of("INBOX" => {}, "Receipts" => { 7 => "msg-001", 8 => "msg-002", 9 => "msg-003" })
+
+        assert_equal [ [ "mail.moved", "msg-003", "Receipts", "INBOX" ] ],
+          events.map { |event| [ event.kind, event.data["subject"], event.data["folder"], event.data["moved_from"] ] }
+
+        moved = { 7 => [ "msg-001", 2.days.ago ], 8 => [ "msg-002", 2.days.ago ], 9 => [ "msg-003", 2.days.ago ] }
+        assert_empty run_of("INBOX" => {}, "Receipts" => moved)
+        assert_empty run_of("INBOX" => {}, "Receipts" => moved)
+        assert_equal 3, @account.messages.where(folder: "Receipts").count
+      end
+    end
+
+    test "a folder whose old mail is still coming into view doesn't keep deleted mail from being said" do
+      stub_const(ImapSyncService, :BACKFILL_BATCH, 1) do
+        filling = { 1 => [ "old-1", 2.years.ago ], 2 => [ "old-2", 2.years.ago ], 50 => [ "old-50", 2.years.ago ] }
+        assert_empty run_of("INBOX" => @inbox, "Receipts" => filling)
+
+        gone = mails_messages(:inbox_read).id
+
+        events = run_of("INBOX" => @inbox.except(102), "Receipts" => filling)
+
+        assert_equal [ [ "mail.deleted", gone ] ], events.map { |event| [ event.kind, event.record_id ] }
+      end
+    end
+
+    test "a run keeps of the mail it saw who it is from and what it is called, not what it says" do
+      service = ImapSyncService.new(@account)
+      service.send(:fetch_recent_emails, FakeImap.new([ fetch_data(204, "fresh", 1.minute.ago) ]), "INBOX", 50)
+      service.send(:fetch_recent_emails, FakeImap.new([]), "Receipts", 50)
+
+      seen = service.send(:sync_events)
+      kept = seen.instance_variable_get(:@arrived).map(&:message) + seen.instance_variable_get(:@left)
+      assert_equal 4, kept.size
+      kept.each { |message| assert_equal Mails::SyncEvents::KEPT.sort, message.attributes.keys.sort }
+    end
+
+    test "a run that saw a lot says so once" do
+      signals = capture_broadcasts(EventsChannel.stream_name(users(:one).id)) do
+        run_of("INBOX" => @inbox.merge(204 => "one", 205 => "two", 206 => "three"))
+      end
+
+      assert_equal [ Event.maximum(:id) ], signals.map { |signal| signal["id"] }
+      assert_equal 3, Event.where(kind: "mail.received").count
     end
 
     test "mail that came in is said even when the run stopped halfway" do

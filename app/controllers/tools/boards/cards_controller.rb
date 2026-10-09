@@ -22,7 +22,6 @@ module Tools
       def update
         if @card.update(card_params.merge(updated_by: current_user))
           @card.notify_assignee(current_user) if @card.assigned_user_id_previously_changed?
-          record_update
           respond_to do |format|
             format.html do
               if request.headers["Turbo-Frame"] == "card-detail-content"
@@ -46,7 +45,6 @@ module Tools
 
       def destroy
         if @card.destroy
-          @card.record_event(:deleted)
           respond_to do |format|
             format.html { redirect_to tool_board_path(@tool) }
             format.json { head :no_content }
@@ -63,13 +61,6 @@ module Tools
 
       def set_card
         @card = @tool.board.cards.find(params[:id])
-      end
-
-      def record_update
-        changed = @card.changed_for_event
-        return if changed.empty?
-
-        @card.record_event(:updated, changed: changed, assignee: (@card.assigned_user&.name if changed.include?("assignee")))
       end
 
       def card_params

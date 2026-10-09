@@ -118,7 +118,8 @@ dobase events --since 2h --tool "Product Launch"
 
 It remembers the last event it printed, per `--name`, in
 `~/.local/state/dobase/events/`. Stopped, restarted or cut off from the
-network, it goes on where it was: nothing is missed and nothing comes twice.
+network, it goes on where it was: nothing is missed. (Killed between printing
+a line and noting it, it prints that one line again.)
 The server keeps events for seven days; a listener that was away for longer
 gets a line of kind `stream.gap` first. Between events it holds a WebSocket to
 the server open, over which the server only says that there is something new,

@@ -12,14 +12,12 @@ module Tools
         # POST /tools/:tool_id/board/cards/:card_id/archive
         def create
           @card.update!(archived_at: Time.current)
-          @card.record_event(:archived)
           respond_with_card
         end
 
         # DELETE /tools/:tool_id/board/cards/:card_id/archive
         def destroy
           @card.update!(archived_at: nil)
-          @card.record_event(:unarchived)
           respond_with_card
         end
 

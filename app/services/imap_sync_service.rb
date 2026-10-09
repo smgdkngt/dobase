@@ -302,11 +302,12 @@ class ImapSyncService
     reconcile_local_messages(folder_name, server_uids)
 
     existing_uids = @account.messages.where(folder: folder_name).where.not(uid: nil).pluck(:uid)
-    new_uids = server_uids - existing_uids
+    new_uids = all_new = server_uids - existing_uids
     if server_uids.size > FULL_SYNC_MAX && !folder_name.in?(%w[INBOX Sent])
       new_uids &= imap.uid_search([ "SINCE", 3.months.ago.strftime("%d-%b-%Y") ]) || []
     end
     new_uids = new_uids.last(BACKFILL_BATCH)
+    sync_events.unread(folder_name, all_new - new_uids)
     recent_existing = (server_uids & existing_uids).last(limit)
     uids = (new_uids + recent_existing).uniq.sort
     return if uids.empty?

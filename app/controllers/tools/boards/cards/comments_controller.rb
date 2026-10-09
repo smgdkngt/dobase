@@ -15,7 +15,6 @@ module Tools
 
           respond_to do |format|
             if @comment.save
-              @card.record_event(:commented, comment_id: @comment.id, excerpt: Event.excerpt(@comment.body.to_plain_text))
               format.html { redirect_to tool_board_card_path(@tool, @card) }
               format.json { render :show, status: :created }
             else

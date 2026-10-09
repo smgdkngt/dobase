@@ -13,9 +13,11 @@
 # number it saw misses nothing and sees nothing twice. Rows are kept for a week
 # (PurgeEventsJob); a listener that was away for longer is told there is a gap.
 #
-# Written where the intent is known, by the controllers and the mail sync, not in
-# the models' callbacks: a card is moved with update_all, mail is copied and
-# removed again while it syncs, and the demo makes its example workspace directly.
+# Written by the models, so that no way of changing something can forget it: a card
+# when it is saved or removed, a comment and a chat message when they are made
+# (their callbacks), and mail in the methods of Mails::Account that do something
+# to it and at the end of a sync (Mails::SyncEvents). Mail has no callback: a sync
+# copies and removes rows that are no news. No controller writes an event.
 class Event < ApplicationRecord
   KINDS = %w[
     mail.received mail.moved mail.archived mail.unarchived mail.deleted
@@ -27,8 +29,13 @@ class Event < ApplicationRecord
   TEXT_LIMIT = 200
   EXCERPT = 140
   # What would let text pretend to be something else where it is printed: control
-  # characters, and the marks that turn the direction of writing around
-  UNPRINTABLE = /[\p{Cc}\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/
+  # characters, which become a space, and what can't be seen at all, which goes.
+  # That is every formatting mark (the ones that turn the direction of writing
+  # around, the ones without a width) and the tag characters and variation
+  # selectors after U+E0000, which a person doesn't see and a language model
+  # reads: whoever listens to this is one.
+  CONTROL = /\p{Cc}/
+  UNSEEN = /[\p{Cf}\u{E0000}-\u{E0FFF}]/
 
   belongs_to :tool, optional: true
   belongs_to :user, optional: true
@@ -49,6 +56,8 @@ class Event < ApplicationRecord
   scope :not_made_with, ->(access_token) {
     where(access_token_id: nil).or(where.not(access_token_id: access_token.id))
   }
+
+  thread_mattr_accessor :held_signals, instance_accessor: false
 
   after_create_commit :signal
 
@@ -72,8 +81,10 @@ class Event < ApplicationRecord
       line(text, limit: EXCERPT)
     end
 
+    # Bytes that are no text become a space too: they would raise here, and the
+    # event would be lost
     def line(text, limit: TEXT_LIMIT)
-      text.to_s.gsub(UNPRINTABLE, " ").squish.truncate(limit)
+      text.to_s.dup.force_encoding(Encoding::UTF_8).scrub(" ").gsub(CONTROL, " ").gsub(UNSEEN, "").squish.truncate(limit)
     end
 
     def kind?(name)
@@ -91,6 +102,16 @@ class Event < ApplicationRecord
       where(created_at: ...KEPT_FOR.ago).where.not(id: maximum(:id)).delete_all
     end
 
+    # One signal per tool for all that is written in the block, not one for each:
+    # whoever hears it asks for everything there is (a sync that saw a lot)
+    def signal_once
+      held = self.held_signals = {}
+      yield
+    ensure
+      self.held_signals = nil
+      held.each_value(&:signal)
+    end
+
     private
       def tidy(data)
         data.compact.transform_values { |value| value.is_a?(String) ? line(value) : value }
@@ -102,15 +123,16 @@ class Event < ApplicationRecord
     access_token.present? && access_token_id == access_token.id
   end
 
-  private
-    # Only that there is something, and its number: every listener asks for the
-    # events itself and is given what it may see (EventsChannel)
-    def signal
-      Collaborator.where(tool_id: tool_id).pluck(:user_id).each do |user_id|
-        ActionCable.server.broadcast(EventsChannel.stream_name(user_id), { id: id })
-      end
-    # A signal that isn't given costs a listener time, not the event: it asks by itself too
-    rescue StandardError => error
-      Rails.error.report(error, handled: true, context: { event_id: id })
+  # Only that there is something, and its number: every listener asks for the
+  # events itself and is given what it may see (EventsChannel)
+  def signal
+    return self.class.held_signals[tool_id] = self if self.class.held_signals
+
+    Collaborator.where(tool_id: tool_id).pluck(:user_id).each do |user_id|
+      ActionCable.server.broadcast(EventsChannel.stream_name(user_id), { id: id })
     end
+  # A signal that isn't given costs a listener time, not the event: it asks by itself too
+  rescue StandardError => error
+    Rails.error.report(error, handled: true, context: { event_id: id })
+  end
 end

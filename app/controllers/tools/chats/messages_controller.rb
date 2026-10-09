@@ -54,7 +54,6 @@ module Tools
 
         respond_to do |format|
           if @message.save
-            record_event
             format.any { render_message_errors }
             format.json { render :show, status: :created }
           else
@@ -128,11 +127,6 @@ module Tools
           format.any { head :forbidden }
           format.json { render json: { error: message }, status: :forbidden }
         end
-      end
-
-      def record_event
-        Event.record("chat.message", tool: @tool, record: @message, excerpt: Event.excerpt(@message.body.to_plain_text),
-          files: @message.files.count.nonzero?, reply_to: @message.reply_to_id)
       end
 
       def message_params
