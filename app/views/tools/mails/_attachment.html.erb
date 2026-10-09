@@ -1,0 +1,15 @@
+<%#
+  A mail's attachment, in a message and under a mail that is being written: its name
+  opens it in the viewer, the arrow downloads it.
+
+  Required:
+    attachment: a Mails::Attachment with its file
+%>
+<span class="mail-attachment">
+  <%= link_to_file_preview @tool, attachment.file, class: "mail-attachment-name", title: attachment.filename do %>
+    <%= render "shared/icon", name: FilePreview.icon_name(content_type: attachment.content_type, extension: File.extname(attachment.filename).delete(".").downcase), size: 14 %>
+    <span><%= attachment.filename.truncate(25) %></span>
+    <span class="text-xs text-text-tertiary"><%= attachment.human_readable_size %></span>
+  <% end %>
+  <%= render "components/file_download_link", file: attachment.file, name: attachment.filename %>
+</span>

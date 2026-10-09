@@ -6,7 +6,7 @@
   <header class="file-viewer-header">
     <h2 id="file-viewer-title" class="file-viewer-name"><%= @preview.name %></h2>
     <span class="file-viewer-size"><%= @preview.human_file_size %></span>
-    <%= link_to download_path, class: "btn btn-sm btn-primary", data: { turbo: false } do %>
+    <%= link_to download_path, class: "btn btn-sm btn-primary", download: @preview.name, data: { turbo: false } do %>
       <%= render "shared/icon", name: "download", size: 16 %>
       <span>Download</span>
     <% end %>

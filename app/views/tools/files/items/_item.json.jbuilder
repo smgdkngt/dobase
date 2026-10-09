@@ -3,4 +3,5 @@ json.partial! "users/optional_user", key: "creator", user: file.created_by
 json.shared file.share.present?
 json.url tool_files_item_url(tool, file)
 json.download_url tool_files_item_download_url(tool, file)
+json.preview_url file.file.attached? ? file_preview_url(tool, file.file, format: :json) : nil
 json.(file, :created_at, :updated_at)

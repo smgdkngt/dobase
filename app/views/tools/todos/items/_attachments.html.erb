@@ -23,12 +23,12 @@
                   <div class="w-6 h-6 rounded bg-background-tertiary flex items-center justify-center flex-shrink-0">
                     <%= render "shared/icon", name: "paperclip", size: 12, class: "text-text-tertiary" %>
                   </div>
-                  <a href="<%= rails_blob_path(attachment.file) %>"
-                     target="_blank"
-                     class="text-sm text-text-primary hover:text-accent truncate flex-1 min-w-0 transition-colors">
+                  <%= link_to_file_preview tool, attachment.file,
+                        class: "text-sm text-text-primary hover:text-accent truncate flex-1 min-w-0 transition-colors" do %>
                     <%= attachment.file.filename %>
-                  </a>
+                  <% end %>
                   <span class="text-xs text-text-tertiary shrink-0"><%= human_file_size(attachment.file.byte_size) %></span>
+                  <%= render "components/file_download_link", file: attachment.file %>
                   <%= link_to tool_todo_item_attachment_path(tool, item, attachment),
                       class: "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 p-0.5 rounded hover:text-error text-text-tertiary transition-all",
                       data: { turbo_method: :delete, turbo_confirm: "Delete this attachment?", turbo_confirm_button: "Delete", turbo_frame: "item-detail-content" } do %>

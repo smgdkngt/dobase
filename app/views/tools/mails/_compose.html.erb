@@ -81,15 +81,17 @@
   </div>
 
   <div class="compose-footer">
-    <div class="compose-attachments" data-compose-target="attachmentsList">
-      <% @forward_attachments&.each do |att| %>
-        <div class="compose-attachment-item">
-          <%= render "shared/icon", name: "paperclip", size: 14 %>
-          <span><%= att.filename %></span>
-          <span class="compose-attachment-size"><%= att.human_file_size %></span>
-        </div>
-      <% end %>
-    </div>
+    <%# What the mail already carries (a draft's files, the ones it forwards): each opens
+        in the viewer, to look at before it goes out. Apart from the files picked just
+        now, which the script draws and draws again. %>
+    <% if @forward_attachments.present? %>
+      <div class="compose-attachments">
+        <% @forward_attachments.each do |attachment| %>
+          <%= render "tools/mails/attachment", attachment: attachment %>
+        <% end %>
+      </div>
+    <% end %>
+    <div class="compose-attachments" data-compose-target="attachmentsList"></div>
 
     <div class="compose-actions">
       <%= render "components/button", text: "Send", icon: "send", type: :submit %>

@@ -16,6 +16,7 @@ json.body_html message.body_html
 json.attachments message.attachments do |attachment|
   json.(attachment, :id, :filename, :content_type, :file_size)
   json.download_url attachment.file.attached? ? rails_blob_url(attachment.file, disposition: "attachment") : nil
+  json.preview_url attachment.file.attached? ? file_preview_url(tool, attachment.file, format: :json) : nil
 end
 
 json.calendar_invites message.calendar_invites do |invite|

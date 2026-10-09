@@ -80,21 +80,19 @@
             <%= render "shared/icon", name: "paperclip", size: 12, class: "inline mr-1" %>
             <%= pluralize(attachments.size, "attachment") %>
           </div>
-          <% attachments.each do |attachment| %>
-            <% if attachment.file.attached? %>
-              <%= link_to rails_blob_path(attachment.file, disposition: "attachment"), class: "inline-flex items-center gap-2 px-3 py-2 bg-background-secondary rounded-md text-sm text-text-primary no-underline mr-2 mb-2 hover:bg-background-tertiary" do %>
-                <%= render "shared/icon", name: "file", size: 14 %>
-                <span><%= attachment.filename.truncate(25) %></span>
-                <span class="text-xs text-text-tertiary"><%= attachment.human_readable_size %></span>
+          <div class="flex flex-wrap gap-2">
+            <% attachments.each do |attachment| %>
+              <% if attachment.file.attached? %>
+                <%= render "tools/mails/attachment", attachment: attachment %>
+              <% else %>
+                <span class="inline-flex items-center gap-2 px-3 py-2 bg-background-secondary rounded-md text-sm text-text-primary opacity-50">
+                  <%= render "shared/icon", name: "file", size: 14 %>
+                  <span><%= attachment.filename.truncate(25) %></span>
+                  <span class="text-xs text-text-tertiary"><%= attachment.human_readable_size %></span>
+                </span>
               <% end %>
-            <% else %>
-              <span class="inline-flex items-center gap-2 px-3 py-2 bg-background-secondary rounded-md text-sm text-text-primary no-underline mr-2 mb-2 hover:bg-background-tertiary opacity-50">
-                <%= render "shared/icon", name: "file", size: 14 %>
-                <span><%= attachment.filename.truncate(25) %></span>
-                <span class="text-xs text-text-tertiary"><%= attachment.human_readable_size %></span>
-              </span>
             <% end %>
-          <% end %>
+          </div>
         </div>
       <% end %>
     </div>

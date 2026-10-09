@@ -69,7 +69,7 @@
     <% if image_files.any? %>
       <div class="flex flex-wrap gap-2 mt-2">
         <% image_files.each do |file| %>
-          <%= link_to rails_blob_path(file, disposition: "inline"), target: "_blank", class: "block" do %>
+          <%= link_to_file_preview tool, file, class: "block", title: file.filename.to_s do %>
             <%= image_tag rails_blob_path(file, disposition: "inline"),
                   alt: file.filename.to_s,
                   class: "w-[100px] h-[100px] rounded object-cover hover:opacity-90 transition-opacity",
@@ -82,14 +82,14 @@
     <% if other_files.any? %>
       <div class="flex flex-wrap gap-2 mt-2">
         <% other_files.each do |file| %>
-          <%= link_to url_for(file),
-                target: "_blank",
-                class: "inline-flex items-center gap-2 px-3 py-1.5 rounded border border-border-light hover:bg-background-tertiary transition-colors",
-                download: file.filename.to_s do %>
-            <%= render "shared/icon", name: "file", size: 16, class: "text-text-tertiary" %>
-            <span class="text-sm text-text-primary"><%= file.filename.to_s %></span>
-            <span class="text-xs text-text-tertiary"><%= human_file_size(file.byte_size) %></span>
-          <% end %>
+          <span class="inline-flex items-center gap-1 pr-1.5 rounded border border-border-light hover:bg-background-tertiary transition-colors">
+            <%= link_to_file_preview tool, file, class: "inline-flex items-center gap-2 pl-3 py-1.5" do %>
+              <%= render "shared/icon", name: "file", size: 16, class: "text-text-tertiary" %>
+              <span class="text-sm text-text-primary"><%= file.filename.to_s %></span>
+              <span class="text-xs text-text-tertiary"><%= human_file_size(file.byte_size) %></span>
+            <% end %>
+            <%= render "components/file_download_link", file: file %>
+          </span>
         <% end %>
       </div>
     <% end %>

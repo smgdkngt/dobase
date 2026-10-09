@@ -32,10 +32,10 @@ export default class extends Controller {
     // A conversation picked from the list opens in the pane this form is in, without a visit
     this._frameClick = (e) => {
       // (in such a tile every link in it goes somewhere in the tile, unless it says _top:
-      // those the workspace asks about)
+      // those the workspace asks about). A file opened in the viewer goes nowhere.
       const link = this._tile?.contains(e.target)
-        ? e.target.closest?.("a[href]:not([data-turbo-frame='_top'], [target='_blank'], [download])")
-        : e.target.closest?.("a[data-turbo-frame]:not([data-turbo-frame='_top'])")
+        ? e.target.closest?.("a[href]:not([data-turbo-frame='_top'], [data-turbo-frame='file_viewer'], [target='_blank'], [download])")
+        : e.target.closest?.("a[data-turbo-frame]:not([data-turbo-frame='_top'], [data-turbo-frame='file_viewer'])")
       if (!link || this.element.contains(link)) return
       if (this._hasChanges() && !this._submitting && !confirm("You have an unsent message. Discard it?")) {
         e.preventDefault()
