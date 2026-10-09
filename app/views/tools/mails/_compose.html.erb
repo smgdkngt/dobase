@@ -73,6 +73,9 @@
       <% if @quoted_message %>
         <%= render "tools/mails/compose_quote",
               quote: Mails::Quote.new(@quoted_message, forward: @in_reply_to != @quoted_message.message_id, html: @quote_html) %>
+      <% elsif (answered = mail_answered(@in_reply_to)) %>
+        <%# A reply that quotes nothing still says what it answers %>
+        <%= render "tools/mails/compose_answered", message: answered %>
       <% end %>
     </div>
   </div>

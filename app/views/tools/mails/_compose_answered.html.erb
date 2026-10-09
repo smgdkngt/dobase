@@ -1,0 +1,12 @@
+<%# The mail a reply answers, where the reply doesn't quote it: to read while writing. It is
+    no part of what is sent: nothing in here is a field of the form. Locals: message %>
+<details class="compose-answered">
+  <summary class="compose-answered-toggle" title="Read the mail you are answering. It is not quoted, so it isn't sent along.">
+    <%= render "shared/icon", name: "chevron-right", size: 14, class: "compose-answered-chevron" %>
+    <span class="min-w-0 truncate">In reply to <%= message.display_from %>, <%= format_datetime(message.sent_at) %></span>
+    <%= render "components/badge", text: "Not sent along", variant: :muted, size: :sm %>
+  </summary>
+  <div class="compose-answered-content">
+    <%= render "tools/mails/email_body", message: message, trust_actions: false %>
+  </div>
+</details>

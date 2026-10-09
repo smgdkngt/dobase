@@ -790,6 +790,43 @@ module Tools
       assert_equal "<p>Sure</p>", draft.outgoing_html
     end
 
+    test "a reply that quotes nothing shows the mail it answers, to read and not to send" do
+      original = mails_messages(:inbox_unread)
+      original.update!(body_html: %(<p>The door code is 4711.</p><img src="https://tracker.example/pixel.png">))
+      post tool_mail_drafts_path(@tool), params: { to: "sender@example.com", subject: "Re: Welcome", body: "<p>Thanks</p>", in_reply_to: original.message_id }
+      draft = @account.messages.drafts.find_by!(subject: "Re: Welcome")
+      assert_nil draft.quoted_message
+
+      get new_tool_mail_path(@tool, draft_id: draft.id)
+
+      assert_select "form.compose details.compose-answered:not([open])", count: 1 do
+        assert_select "summary", text: /In reply to Friendly Sender/
+        assert_select "summary .badge", text: "Not sent along"
+        assert_select "iframe[srcdoc*=?]", "The door code is 4711."
+        # Its pictures stay out until asked for, and nothing in it is a field or a form of its own
+        assert_select "iframe[srcdoc*=?]", "tracker.example", count: 0
+        assert_select "button[type=button]", text: "Show images"
+        assert_select "input, textarea, select, form", count: 0
+      end
+      assert_select "input[name=quoted_message_id]", count: 0
+      assert_select ".compose-quote", count: 0
+
+      post tool_mails_path(@tool), params: { draft_id: draft.id, to: "sender@example.com", subject: "Re: Welcome", body: "<p>Thanks</p>", in_reply_to: original.message_id }
+      deliveries = capture_smtp_deliveries { perform_enqueued_jobs(only: SendMailJob) }
+
+      assert_match "In-Reply-To: <msg-001@example.com>", deliveries.sole[:message]
+      assert_no_match "door code", deliveries.sole[:message]
+    end
+
+    test "a reply that quotes the mail it answers shows the quote, and a new message neither" do
+      get new_tool_mail_path(@tool, reply_to: mails_messages(:inbox_unread).id)
+      assert_select ".compose-quote", count: 1
+      assert_select ".compose-answered", count: 0
+
+      get new_tool_mail_path(@tool)
+      assert_select ".compose-quote, .compose-answered", count: 0
+    end
+
     test "mail sent off has left Drafts and opens as sent mail, marked until it has gone out in the background" do
       draft = mails_messages(:draft_message)
       draft.update!(uid: 9)

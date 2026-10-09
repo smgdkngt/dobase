@@ -85,6 +85,12 @@ module MailsHelper
     branch.(nil, 0)
   end
 
+  # The mail a reply answers, by the Message-ID the reply names: this account's own mail
+  # only, and not a draft
+  def mail_answered(message_id, account: @mail_account)
+    account.messages.not_draft.find_by(message_id: message_id) if message_id.present?
+  end
+
   # Who a message went to, by the header they are in, each with the name they are known by
   # (names: Mails::Account#names_in, once for a conversation). A header nobody is in is left out.
   def mail_recipients(message, names)

@@ -98,8 +98,9 @@
   rhino-editor.compose-editor {
     @apply flex flex-col grow shrink-0;
   }
-  /* With a quote below it, the text takes the room it needs, so the quote shows under it */
-  .compose-message:has(.compose-quote) rhino-editor.compose-editor {
+  /* With a quote below it, or the mail it answers, the text takes the room it needs, so
+     that shows under it */
+  .compose-message:has(:is(.compose-quote, .compose-answered)) rhino-editor.compose-editor {
     @apply grow-0;
   }
   rhino-editor.compose-editor::part(editor-wrapper) {
@@ -138,6 +139,31 @@
   .compose-quote-remove {
     @apply mt-2 text-xs text-text-tertiary hover:text-error hover:underline;
   }
+  /* The mail a reply answers, where the reply doesn't quote it: a line that says so and
+     that it isn't sent along, opened to read it. Nothing in it can be changed. */
+  .compose-answered {
+    @apply mx-4 mb-4;
+  }
+  .compose-answered-toggle {
+    @apply flex items-center gap-2 w-fit max-w-full py-1 text-xs text-text-tertiary cursor-pointer list-none rounded-sm
+           hover:text-text-secondary;
+  }
+  .compose-answered-toggle::-webkit-details-marker {
+    display: none;
+  }
+  .compose-answered-chevron {
+    @apply shrink-0 transition-transform;
+  }
+  .compose-answered[open] .compose-answered-chevron {
+    @apply rotate-90;
+  }
+  .compose-answered-content {
+    @apply mt-2;
+  }
+  .compose-answered .email-frame {
+    @apply p-3 border border-border-light;
+  }
+
   /* Attachments go with the mail (the paperclip next to Send), not into its text */
   rhino-editor.compose-editor::part(toolbar__button--attach-files) {
     @apply hidden;
