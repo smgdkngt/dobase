@@ -65,6 +65,31 @@ class WorkspaceInPageMailTest < ApplicationSystemTestCase
     assert_current_path workspace_path
   end
 
+  # The form is answered with "back where you came from", which for a tile in this page
+  # was the workspace's own address: the window became the start page without a tool
+  test "a sender is trusted with images from an open mail, and the mail stays open in its tile" do
+    @message.update!(body_html: %(<p>Hello</p><img src="https://tracker.example.com/logo.png">))
+    find("#{MAIL} .mail-list-item", text: "Welcome to Dobase").click
+    assert_selector "#{MAIL} .mail-detail-header h1", text: "Welcome to Dobase"
+
+    find("#{MAIL} button[aria-label='Always show images from sender@example.com']").click
+
+    assert_selector "#{MAIL} .email-images-note-quiet", text: "Images shown for this sender"
+    assert @tool.mail_account.shows_images_from?("sender@example.com")
+    assert_selector "#{MAIL} .mail-detail-header h1", text: "Welcome to Dobase"
+    assert_selector "#{MAIL} .mail-list-item", text: "Your weekly report"
+    assert_no_text "Create your first tool"
+    assert_selector MAIL, count: 1
+    assert_current_path workspace_path
+
+    find("#{MAIL} button[aria-label='Stop showing images from sender@example.com']").click
+
+    assert_selector "#{MAIL} button", text: "Always for this sender"
+    assert_selector "#{MAIL} .mail-detail-header h1", text: "Welcome to Dobase"
+    assert_selector MAIL, count: 1
+    assert_current_path workspace_path
+  end
+
   test "j and k go through the conversations, and the tile's own keys stay its own" do
     find("#{MAIL} .tile-page").execute_script("this.focus()")
     page.send_keys("j")
