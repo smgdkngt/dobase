@@ -102,7 +102,9 @@ class WorkspaceInPageCalendarTest < ApplicationSystemTestCase
       JS
       measured.nil? ? raise(Capybara::ExpectationNotMet, "The calendar hasn't scrolled yet") : measured
     end
-    assert_operator off, :<, 3, "The calendar is scrolled #{off}px away from the hour it opens at"
+    # To the pixel: a page that was there while its tile was still coming in (a little
+    # smaller than it ends up) measured the week as drawn then, and came out two short
+    assert_operator off, :<, 1, "The calendar is scrolled #{off}px away from the hour it opens at"
   end
 
   private

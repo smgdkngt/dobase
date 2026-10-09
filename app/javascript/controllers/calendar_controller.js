@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { pageAddress, visitPage, tileOf, zoomOf } from "services/tile"
+import { pageAddress, visitPage, tileOf, drawnScale, onWholePixel } from "services/tile"
 
 export default class extends Controller {
   static targets = ["grid", "hours", "today", "eventModal", "eventDetailDialog", "newEventDialog", "newEventModal", "weekInput", "startTimeInput", "endTimeInput"]
@@ -63,9 +63,9 @@ export default class extends Controller {
     if (!this.hasGridTarget || !this.hasTodayTarget || !this.hasHoursTarget) return
 
     requestAnimationFrame(() => {
-      const zoom = zoomOf(this.gridTarget)
-      const afterHours = this.gridTarget.getBoundingClientRect().left / zoom + this.hoursTarget.offsetWidth
-      this.gridTarget.scrollLeft += this.todayTarget.getBoundingClientRect().left / zoom - afterHours
+      const drawn = drawnScale(this.gridTarget)
+      const afterHours = this.gridTarget.getBoundingClientRect().left / drawn + this.hoursTarget.offsetWidth
+      this.gridTarget.scrollLeft += this.todayTarget.getBoundingClientRect().left / drawn - afterHours
     })
   }
 
@@ -80,7 +80,8 @@ export default class extends Controller {
       const slot = body?.querySelector(`[data-hour="${body.dataset.scrollHour}"]`)
       if (!slot) return
 
-      this.gridTarget.scrollTop = (slot.getBoundingClientRect().top - body.getBoundingClientRect().top) / zoomOf(this.gridTarget)
+      const down = (slot.getBoundingClientRect().top - body.getBoundingClientRect().top) / drawnScale(this.gridTarget)
+      this.gridTarget.scrollTop = onWholePixel(down, this.gridTarget)
     })
   }
 
