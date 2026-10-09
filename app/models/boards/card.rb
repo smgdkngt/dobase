@@ -43,6 +43,19 @@ module Boards
       end
     end
 
+    # What happened to the card, for whoever listens from outside the browser (Event)
+    def record_event(kind, **data)
+      Event.record("card.#{kind}", tool: column.board.tool, record: self, title: title, column: column.name, **data)
+    end
+
+    # What an update changed, as an event names it. The description is rich text,
+    # which the card's own changes don't show.
+    def changed_for_event
+      changed = saved_changes.keys & %w[title color due_date assigned_user_id]
+      changed << "description" if rich_text_description&.saved_change_to_body?
+      changed.map { |name| name == "assigned_user_id" ? "assignee" : name }
+    end
+
     # Lets the assignee know, unless they assigned themselves, muted the tool or
     # aren't on it at all.
     def notify_assignee(assigner)

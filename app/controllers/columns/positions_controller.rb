@@ -23,6 +23,10 @@ module Columns
       end
 
       notify_card_moves(moved_cards)
+      # Within its column a card only changes places, which is no event
+      moved_cards.each do |card|
+        Event.record("card.moved", tool: @tool, record: card, title: card.title, column: @column.name, moved_from: card.column.name)
+      end
       render json: { success: true }
     end
 

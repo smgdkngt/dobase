@@ -17,6 +17,7 @@ module Columns
       respond_to do |format|
         if @card.save
           @card.notify_assignee(current_user)
+          @card.record_event(:created)
           format.html { redirect_to tool_board_path(@tool) }
           format.json { render "tools/boards/cards/show", status: :created }
         else
