@@ -76,6 +76,7 @@ func Run(argv []string, out, errOut io.Writer) int {
 	args, err := definition.Parse(rest)
 	if err == nil {
 		ctx := command.NewCtx(&config.Config{}, out, json, userAgent())
+		ctx.Err = errOut
 		err = definition.Run(ctx, args)
 	}
 	if err == nil {

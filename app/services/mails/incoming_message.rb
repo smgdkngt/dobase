@@ -12,8 +12,10 @@ module Mails
     # How long the server gets to move mail that was moved here (ImapSyncJob tries for a few minutes)
     AWAITING_MOVE = 15.minutes
 
-    def initialize(account)
+    # `events`: who is told which mail is new here (Mails::SyncEvents, during a sync)
+    def initialize(account, events: nil)
       @account = account
+      @events = events
     end
 
     # The message as fetched with ENVELOPE, FLAGS, INTERNALDATE and BODY[]
@@ -120,6 +122,7 @@ module Mails
       # Mail in the server's trash shows in the trash here
       email.trashed = true if folder_name == Account::TRASH
       email.save!
+      @events&.arrived(email, msg.attr["INTERNALDATE"]) if is_new_email
 
       # Save attachments for new emails, or existing ones missing attachments
       if has_attachments && (is_new_email || email.attachments.empty?)

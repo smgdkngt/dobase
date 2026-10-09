@@ -27,7 +27,7 @@ module Tools
 
         # A draft moves by itself: the conversation it answers stays where it is
         moving = @message.draft? ? [ @message ] : with_their_conversations([ @message ], folder: current_folder)
-        moving.each { |message| message.move_to_folder!(target_folder) }
+        @tool.mail_account.move(moving, target_folder)
 
         respond_to do |format|
           format.html { redirect_to_next_mail_or_fallback(next_msg, folder: current_folder, notice: "Moved to #{helpers.mail_folder_name(target_folder)}.") }

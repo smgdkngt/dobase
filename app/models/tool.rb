@@ -3,6 +3,9 @@
 class Tool < ApplicationRecord
   belongs_to :tool_type
   belongs_to :owner, class_name: "User"
+  # A tool that goes takes its cards along without an event each: nobody is on it
+  # any more to hear. Before the associations, whose removal this is around.
+  around_destroy { |_tool, removal| Event.suppress(&removal) }
   has_many :collaborators, dependent: :destroy
   has_many :users, through: :collaborators
   has_many :invitations, dependent: :destroy
