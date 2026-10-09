@@ -46,6 +46,33 @@ export function zoomOf(element) {
 }
 
 /**
+ * How much smaller than laid out an element is drawn at this moment: its zoom, and
+ * whatever it is scaled by on top of that. A tile comes in a little smaller than it
+ * ends up (workspace.css, workspace-tile-in), and a page that is there quickly
+ * measures while it does: by the zoom alone it would scroll a pixel or two short.
+ * @param {Element} element a block, which has a width of its own
+ * @returns {number}
+ */
+export function drawnScale(element) {
+  const laidOut = parseFloat(getComputedStyle(element).width)
+  return laidOut ? element.getBoundingClientRect().width / laidOut : zoomOf(element)
+}
+
+/**
+ * A distance to scroll by, brought to a whole pixel of the screen. In a tile nine
+ * hours of a week are 472 and a half of them, and the browser draws that on the
+ * pixel before or the one after by what was left over in the arithmetic.
+ * @param {number} distance as laid out
+ * @param {Element} element what is scrolled
+ * @returns {number}
+ */
+export function onWholePixel(distance, element) {
+  const zoom = zoomOf(element)
+  // (to a sixty-fourth first, which is what a page is laid out in: the rest is noise)
+  return Math.floor((Math.round(distance * 64) / 64) * zoom) / zoom
+}
+
+/**
  * Loads the page again from nothing: for a page that can't be laid over itself (an
  * editor that has to start again)
  * @param {Element} element
