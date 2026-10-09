@@ -1,0 +1,26 @@
+<% content_for(:title) { "#{@preview.name} - #{@tool.name} - #{app_name}" } %>
+<% download_path = rails_blob_path(@preview.blob, disposition: "attachment") %>
+
+<%# What the viewer over the page shows (shared/file_viewer): the frame is its whole contents %>
+<%= turbo_frame_tag "file_viewer", class: "file-viewer-frame" do %>
+  <header class="file-viewer-header">
+    <h2 id="file-viewer-title" class="file-viewer-name"><%= @preview.name %></h2>
+    <span class="file-viewer-size"><%= @preview.human_file_size %></span>
+    <%= link_to download_path, class: "btn btn-sm btn-primary", data: { turbo: false } do %>
+      <%= render "shared/icon", name: "download", size: 16 %>
+      <span>Download</span>
+    <% end %>
+    <%= render "components/icon_button", icon: "x", title: "Close", size: :sm, data: { action: "file-viewer#close" } %>
+  </header>
+
+  <% if @preview.read? %>
+    <%# Something you read takes the whole viewer and scrolls inside its own frame %>
+    <div class="file-viewer-body file-viewer-body-read">
+      <%= render "components/media_preview", file: @preview, fill: true, download_path: download_path %>
+    </div>
+  <% else %>
+    <div class="file-viewer-body">
+      <%= render "components/media_preview", file: @preview, max_height: "max-h-[75vh]", download_path: download_path %>
+    </div>
+  <% end %>
+<% end %>

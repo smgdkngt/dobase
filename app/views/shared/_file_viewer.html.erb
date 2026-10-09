@@ -1,0 +1,9 @@
+<%#
+  File viewer - the dialog a file is shown in, over whatever page asked for it. One per
+  document. A link made with `link_to_file_preview` loads Tools::FilePreviewsController's
+  page into the frame, and the dialog opens as it starts loading (file_viewer_controller.js).
+%>
+<dialog id="file-viewer" class="modal-dialog file-viewer" aria-labelledby="file-viewer-title"
+        data-controller="modal file-viewer">
+  <turbo-frame id="file_viewer" class="file-viewer-frame" data-file-viewer-target="frame"></turbo-frame>
+</dialog>

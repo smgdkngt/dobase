@@ -39,7 +39,7 @@
   </div>
 
   <%# Content %>
-  <% if @file.text? || @file.pdf? %>
+  <% if @file.read? %>
     <%# Something you read takes the whole pane and scrolls inside its own frame %>
     <div class="grid min-h-0 p-3 @min-[40rem]:p-4 bg-background-secondary overflow-hidden">
       <%= render "components/media_preview", file: @file, fill: true, download_path: tool_files_item_download_path(@tool, @file) %>

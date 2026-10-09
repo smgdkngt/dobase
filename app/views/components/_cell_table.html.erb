@@ -1,0 +1,16 @@
+<%#
+  Cell table component - rows of cells read from a file (a sheet, a table in a document),
+  every cell as plain text
+
+  Required:
+    rows: an array of arrays of strings
+%>
+<table class="cell-table">
+  <tbody>
+    <% rows.each do |row| %>
+      <tr>
+        <% row.each do |cell| %><td><%= cell %></td><% end %>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

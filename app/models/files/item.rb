@@ -74,23 +74,7 @@ module Files
     end
 
     def icon_name
-      case
-      when image? then "image"
-      when video? then "video"
-      when audio? then "music"
-      when pdf? then "file-text"
-      when content_type&.include?("spreadsheet") || %w[xls xlsx csv].include?(extension)
-        "table"
-      # Before documents: PowerPoint's type, ...officedocument.presentationml.presentation, says "document" too
-      when content_type&.include?("presentation") || content_type&.include?("powerpoint") || %w[ppt pptx key odp].include?(extension)
-        "presentation"
-      when content_type&.include?("document") || content_type == "application/msword" || %w[doc docx].include?(extension)
-        "file-text"
-      when %w[zip rar 7z tar gz].include?(extension)
-        "archive"
-      else
-        "file"
-      end
+      FilePreview.icon_name(content_type: content_type, extension: extension)
     end
 
     private

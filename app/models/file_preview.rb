@@ -56,6 +56,32 @@ class FilePreview
     File.extname(name).delete(".").downcase
   end
 
+  # The icon for a kind of file, where the file itself isn't shown
+  def self.icon_name(content_type:, extension:)
+    type = content_type.to_s
+    case
+    when type.start_with?("image/") then "image"
+    when type.start_with?("video/") then "video"
+    when type.start_with?("audio/") then "music"
+    when type == "application/pdf" then "file-text"
+    when type.include?("spreadsheet") || %w[xls xlsx csv].include?(extension)
+      "table"
+    # Before documents: PowerPoint's type, ...officedocument.presentationml.presentation, says "document" too
+    when type.include?("presentation") || type.include?("powerpoint") || %w[ppt pptx key odp].include?(extension)
+      "presentation"
+    when type.include?("document") || type == "application/msword" || %w[doc docx].include?(extension)
+      "file-text"
+    when %w[zip rar 7z tar gz].include?(extension)
+      "archive"
+    else
+      "file"
+    end
+  end
+
+  def icon_name
+    self.class.icon_name(content_type: content_type, extension: extension)
+  end
+
   # In one word, for the API
   def kind
     if image? then "image"

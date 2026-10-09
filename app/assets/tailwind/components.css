@@ -614,6 +614,86 @@
     @apply p-5 sm:p-6 text-sm font-mono leading-relaxed whitespace-pre-wrap break-words;
   }
 
+  /* The dialog a file is shown in: most of the window, the file's name and Download
+     over what is shown of it */
+  .file-viewer {
+    @apply max-w-6xl h-[90vh];
+  }
+
+  .file-viewer-frame {
+    @apply flex flex-col flex-1 min-h-0;
+  }
+
+  .file-viewer-frame:empty::after {
+    content: "Opening…";
+    @apply m-auto text-sm text-text-tertiary;
+  }
+
+  .file-viewer-header {
+    @apply flex items-center gap-3 px-4 py-3 border-b border-border-light;
+  }
+
+  .file-viewer-name {
+    @apply flex-1 min-w-0 truncate text-base font-semibold text-text-primary;
+  }
+
+  .file-viewer-size {
+    @apply shrink-0 text-xs text-text-tertiary;
+  }
+
+  .file-viewer-body {
+    @apply flex flex-1 min-h-0 items-start justify-center p-4 bg-background-secondary overflow-auto;
+  }
+
+  .file-viewer-body-read {
+    @apply grid overflow-hidden;
+  }
+
+  /* A file anywhere but in the Files tool: its name opens it, the arrow beside it downloads it */
+  .file-download-link {
+    @apply inline-flex shrink-0 items-center justify-center p-1 rounded text-text-tertiary transition-colors;
+  }
+
+  .file-download-link:hover {
+    @apply text-text-primary bg-background-tertiary;
+  }
+
+  /* A sheet of a csv or a spreadsheet, and a table in a document: cells as text */
+  .sheet-preview {
+    @apply p-4 sm:p-5;
+  }
+
+  .sheet-preview + .sheet-preview {
+    @apply border-t border-border-light;
+  }
+
+  .sheet-preview-name {
+    @apply mb-3 text-sm font-semibold text-text-primary;
+  }
+
+  .cell-table {
+    @apply border-collapse text-sm;
+
+    td {
+      @apply px-2.5 py-1.5 border border-border-light align-top whitespace-pre-wrap max-w-[32rem] wrap-anywhere;
+    }
+
+    tr:first-child td {
+      @apply font-medium bg-background-secondary;
+    }
+  }
+
+  .file-preview-note {
+    @apply my-3 text-xs text-text-tertiary;
+  }
+
+  .document-preview {
+    @apply max-w-3xl mx-auto;
+
+    p, li { @apply whitespace-pre-wrap; }
+    .cell-table { @apply my-4; }
+  }
+
   /* Who else is in this tool right now: overlapping faces in the topbar */
   .presence-facepile {
     @apply flex items-center pl-1;

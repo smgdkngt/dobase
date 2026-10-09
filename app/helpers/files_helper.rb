@@ -20,6 +20,23 @@ module FilesHelper
     externalize_links(safe, rel: "noopener noreferrer")
   end
 
+  # Where a file is shown in the app (Tools::FilePreviewsController): `file` is what a
+  # record has attached, `attachment.file` or one of a message's `files`
+  def file_preview_path(tool, file, **options)
+    tool_file_preview_path(tool, file.respond_to?(:attachment) ? file.attachment : file, **options)
+  end
+
+  def file_preview_url(tool, file, **options)
+    tool_file_preview_url(tool, file.respond_to?(:attachment) ? file.attachment : file, **options)
+  end
+
+  # A link that opens a file in the viewer over the page (shared/file_viewer) instead of
+  # going anywhere
+  def link_to_file_preview(tool, file, **options, &block)
+    options[:data] = (options[:data] || {}).merge(turbo_frame: "file_viewer")
+    link_to(file_preview_path(tool, file), **options, &block)
+  end
+
   # The lexer for a file's name, or nil when Rouge doesn't know the language —
   # plain text, a log, a csv. Rouge guesses from the text as well, which lands
   # on something for anything, so only the name is trusted here.
