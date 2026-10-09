@@ -933,6 +933,26 @@ class MailsTest < ApplicationSystemTestCase
     assert_selector "[data-collapse-target=content]", text: "Thanks for the report."
   end
 
+  test "a reply that quotes nothing has the mail it answers a click away, marked as not sent along" do
+    original = mails_messages(:inbox_unread)
+    draft = @tool.mail_account.new_draft(to_addresses: [ "sender@example.com" ].to_json, subject: "Re: Welcome to Dobase",
+      body_html: "<p>Thanks!</p>", in_reply_to: original.message_id)
+    draft.save!
+    visit new_tool_mail_path(@tool, draft_id: draft.id)
+
+    assert_selector "details.compose-answered:not([open]) summary", text: "In reply to Friendly Sender"
+    assert_selector "details.compose-answered summary .badge", text: "Not sent along"
+    assert_no_selector ".compose-quote"
+
+    find("details.compose-answered summary").click
+    within_frame(find("details.compose-answered[open] iframe")) { assert_text "Welcome to Dobase! We hope you enjoy the platform." }
+    # The frame is as high as the mail in it, once it shows
+    assert_operator find("details.compose-answered iframe").evaluate_script("this.getBoundingClientRect().height"), :>, 20
+
+    find("details.compose-answered summary").click
+    assert_selector "details.compose-answered:not([open])"
+  end
+
   test "an open message says everyone it went to under its sender, a closed one in a line" do
     mails_messages(:inbox_read).update!(cc_addresses: [ "boss@example.com" ].to_json)
     visit tool_mail_path(@tool, mails_messages(:sent_message))

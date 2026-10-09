@@ -1,4 +1,5 @@
-<%# Locals: message %>
+<%# Locals: message, trust_actions (true: the buttons that trust a sender with images are forms
+    of their own, so a page that shows a mail inside a form says false) %>
 <% if message.body_html.present? %>
   <%
     # Only the attributes Mails::ReadableHtml allows are left: no event handlers
@@ -12,7 +13,7 @@
     safe_srcdoc = mail_frame_document(images_stripped)
     full_srcdoc = mail_frame_document(sanitized, remote_content: true)
     images_trusted = has_remote_images && message.account.shows_images_from?(message.from_address)
-    can_trust_sender = message.from_address.present? && !message.from_address.casecmp?(message.account.email_address)
+    can_trust_sender = local_assigns.fetch(:trust_actions, true) && message.from_address.present? && !message.from_address.casecmp?(message.account.email_address)
   %>
   <div data-controller="email-frame"
        data-email-frame-full-srcdoc-value="<%= full_srcdoc %>">
