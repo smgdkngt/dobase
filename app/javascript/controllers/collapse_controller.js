@@ -29,9 +29,11 @@ export default class extends Controller {
     this.render()
   }
 
+  // What shows while it is open can be in several places (a mail's text, and above it
+  // everyone it went to); the preview stands in for it while it is closed
   render() {
-    this.contentTarget.classList.toggle("hidden", !this.openValue)
+    this.contentTargets.forEach(content => content.classList.toggle("hidden", !this.openValue))
     if (this.hasPreviewTarget) this.previewTarget.classList.toggle("hidden", this.openValue)
-    if (this.hasIconTarget) this.iconTarget.classList.toggle("rotated", this.openValue)
+    if (this.hasIconTarget) this.iconTarget.classList.toggle("rotate-180", this.openValue)
   }
 }

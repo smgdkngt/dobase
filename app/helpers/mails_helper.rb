@@ -85,6 +85,23 @@ module MailsHelper
     branch.(nil, 0)
   end
 
+  # Who a message went to, by the header they are in, each with the name they are known by
+  # (names: Mails::Account#names_in, once for a conversation). A header nobody is in is left out.
+  def mail_recipients(message, names)
+    { "To" => message.to_addresses_list, "Cc" => message.cc_addresses_list, "Bcc" => message.bcc_addresses_list }.filter_map do |header, addresses|
+      people = addresses.map do |address|
+        recipient = Mails::Recipient.from(address.to_s)
+        recipient.with(name: recipient.name || names[recipient.address.downcase])
+      end
+      [ header, people ] if people.any?
+    end.to_h
+  end
+
+  # The same in one line, by name: what a closed message says
+  def mail_recipients_line(recipients)
+    recipients.map { |header, people| "#{header}: #{people.map { |person| person.name.presence || person.address }.join(', ')}" }.join(" · ")
+  end
+
   # What a screen reader hears after a recipient's name
   def recipient_more(recipient)
     return ", not a valid address" unless recipient.valid?

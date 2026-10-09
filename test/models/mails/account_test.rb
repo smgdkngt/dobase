@@ -103,6 +103,15 @@ module Mails
         @account.names_for([ "Sender@example.com", "reports@example.com", "stranger@example.com" ]))
     end
 
+    test "the people of a conversation are known by what is at hand: a contact's name, else how they sign in it, and the account's own" do
+      @account.record_contact("reports@example.com", "Weekly Reports")
+      conversation = [ mails_messages(:inbox_read), mails_messages(:inbox_unread), mails_messages(:sent_message) ]
+      mails_messages(:sent_message).update!(from_name: nil, cc_addresses: [ "Reports@example.com", "stranger@example.com" ].to_json)
+
+      assert_equal({ "testuser@example.com" => "Test User", "sender@example.com" => "Friendly Sender", "reports@example.com" => "Weekly Reports" },
+        @account.names_in(conversation))
+    end
+
     test "a name someone is written to with is remembered, and who has one keeps it" do
       @account.record_contact("ann@example.com", "Ann Lee")
 

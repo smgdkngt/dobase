@@ -5,6 +5,7 @@
   last_message = @conversation_messages.reject(&:draft?).last || @conversation_messages.last
   reply_draft = @conversation_messages.find { |message| message.draft? && !message.trashed? && message.in_reply_to == last_message.message_id }
   has_multiple_recipients = last_message.to_addresses_list.length > 1 || last_message.cc_addresses_list.any?
+  recipient_names = @tool.mail_account.names_in(@conversation_messages)
 %>
 <div class="mail-detail-header bg-surface border-b border-border-light px-4 py-3 flex items-center justify-between gap-4">
   <%= link_to tool_mails_path(@tool, folder: @current_folder),
@@ -102,7 +103,8 @@
   <% @conversation_messages.each_with_index do |msg, index| %>
     <%= render "tools/mails/email_message",
           email_message: msg,
-          is_last: index == @conversation_messages.length - 1 %>
+          is_last: index == @conversation_messages.length - 1,
+          names: recipient_names %>
   <% end %>
 </div>
 

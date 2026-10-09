@@ -190,6 +190,18 @@ module Mails
       signed.merge(contacts.where(email_address: addresses).where.not(name: [ nil, "" ]).pluck(:email_address, :name).to_h)
     end
 
+    # The same for a conversation that is being read, from what is at hand. names_for reads
+    # all of the account's mail for how people sign, which opening a mail can't wait for
+    # (a tenth of a second on 25,000 messages): here that is how they sign in the
+    # conversation itself, last of all, and the account's own name.
+    def names_in(conversation)
+      signed = conversation.select { |message| message.from_name.present? }
+        .to_h { |message| [ message.from_address.to_s.downcase, message.from_name ] }
+      addresses = conversation.flat_map(&:recipient_addresses).map { |address| address.to_s.downcase }.uniq
+      { email_address.downcase => display_name }.compact_blank.merge(signed)
+        .merge(contacts.where(email_address: addresses).where.not(name: [ nil, "" ]).pluck(:email_address, :name).to_h)
+    end
+
     # A name someone is written to with is kept for the next time; who has one keeps it
     def remember_names(recipients)
       recipients.select { |recipient| recipient.name.present? && recipient.valid? }.each do |recipient|
