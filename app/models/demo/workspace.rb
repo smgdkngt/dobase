@@ -38,24 +38,27 @@ module Demo
     end
 
     def build
-      ApplicationRecord.transaction do
-        @marcus, @priya, @jake = @teammates || self.class.teammates
+      # An example workspace is made, not worked in: none of it is an event
+      Event.suppress do
+        ApplicationRecord.transaction do
+          @marcus, @priya, @jake = @teammates || self.class.teammates
 
-        launch_board = build_launch_board
-        team_chat = build_team_chat
-        launch_tasks = build_launch_tasks
-        launch_docs = build_launch_docs
-        team_files = build_team_files
-        standup_room = create_tool("Standup Room", "room", shared_with: [ marcus, priya, jake ])
-        build_snack_ideas
-        build_mail
-        build_calendar
-        build_personal_notes
-        build_recipes
-        build_dev_notes
+          launch_board = build_launch_board
+          team_chat = build_team_chat
+          launch_tasks = build_launch_tasks
+          launch_docs = build_launch_docs
+          team_files = build_team_files
+          standup_room = create_tool("Standup Room", "room", shared_with: [ marcus, priya, jake ])
+          build_snack_ideas
+          build_mail
+          build_calendar
+          build_personal_notes
+          build_recipes
+          build_dev_notes
 
-        group_in_sidebar "Launch", launch_board, launch_docs, launch_tasks
-        group_in_sidebar "Team", team_chat, team_files, standup_room
+          group_in_sidebar "Launch", launch_board, launch_docs, launch_tasks
+          group_in_sidebar "Team", team_chat, team_files, standup_room
+        end
       end
     end
 

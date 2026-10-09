@@ -13,11 +13,7 @@ module Tools
       def create
         folder = params[:folder] || "inbox"
         next_msg = find_next_message(@message, folder)
-        # Mail in the server's archive folder is archived already
-        with_their_conversations([ @message ], folder: folder).reject { |message| message.archived? || account.in_archive_folder?(message) }.each do |message|
-          message.update!(archived: true)
-          sync_archive_to_imap(message)
-        end
+        account.archive(with_their_conversations([ @message ], folder: folder))
 
         respond_to do |format|
           format.html { redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Email archived.") }
@@ -28,23 +24,10 @@ module Tools
       # DELETE /tools/:tool_id/mails/:mail_id/archive
       def destroy
         next_msg = find_next_message(@message, "archive")
-        in_archive_folder, archived_here = with_their_conversations([ @message ], folder: "archive").partition { |message| account.in_archive_folder?(message) }
-        archived_here = archived_here.select(&:archived?)
-        archived_here.each do |message|
-          message.update!(archived: false)
-          sync_unarchive_to_imap(message)
-        end
-        # Mail another mail program archived is only known as mail in the archive folder, and goes
-        # to the inbox. Mail archived here is in that folder too once it has synced: that copy
-        # leaves with the mail itself, which goes back to the folder it was archived from.
-        in_archive_folder.each do |message|
-          if (unarchived = archived_here.find { |other| other.message_id == message.message_id })
-            message.destroy
-            @message = unarchived if @message == message
-          else
-            message.move_to_folder!("INBOX")
-          end
-        end
+        conversation = with_their_conversations([ @message ], folder: "archive")
+        account.unarchive(conversation)
+        # The copy in the server's archive folder left with the mail itself, which is shown
+        @message = conversation.find { |message| message.persisted? && message.message_id == @message.message_id } if @message.destroyed?
 
         respond_to do |format|
           format.html { redirect_to_next_mail_or_fallback(next_msg, folder: "archive", notice: "Email unarchived.") }
@@ -60,30 +43,6 @@ module Tools
 
       def account
         @tool.mail_account
-      end
-
-      def sync_archive_to_imap(message)
-        return unless message.uid.present?
-        archive_folder = account.archive_folder.presence
-        if archive_folder
-          ImapSyncJob.perform_later(account.id, "move_to_folder", message.uid, message.folder || "INBOX", archive_folder)
-        else
-          ImapSyncJob.perform_later(account.id, "mark_as_read", message.uid, message.folder || "INBOX")
-        end
-      end
-
-      def sync_unarchive_to_imap(message)
-        return unless message.uid.present?
-        archive_folder = account.archive_folder.presence
-        if archive_folder
-          # Archiving moved the message, which gave it a new UID in the archive folder. The UID we
-          # have can be another message's there, so it's moved back to the folder it was archived
-          # from by its Message-ID, and the next sync gives it its new UID there.
-          ImapSyncJob.perform_later(account.id, "move_to_folder_by_message_id", nil, archive_folder, message.folder || "INBOX", message.message_id)
-          message.update!(uid: nil)
-        else
-          ImapSyncJob.perform_later(account.id, "mark_as_unread", message.uid, message.folder || "INBOX")
-        end
       end
     end
   end

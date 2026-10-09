@@ -17,6 +17,7 @@ module Boards
     validates :body, presence: true
 
     after_create_commit :notify_collaborators
+    after_create_commit { card.record_event(:commented, comment_id: id, excerpt: Event.excerpt(body.to_plain_text)) }
 
     private
 

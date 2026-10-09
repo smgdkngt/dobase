@@ -14,8 +14,10 @@ import (
 
 // Ctx is what a command runs in.
 type Ctx struct {
-	Config    *config.Config
-	Out       io.Writer
+	Config *config.Config
+	Out    io.Writer
+	// Err is for what isn't the command's answer: what a listener says about its connection.
+	Err       io.Writer
 	JSON      bool
 	UserAgent string
 	// Browser opens a URL; Open on the configured server unless a test swaps it.
@@ -29,7 +31,7 @@ type Ctx struct {
 }
 
 func NewCtx(cfg *config.Config, out io.Writer, json bool, userAgent string) *Ctx {
-	ctx := &Ctx{Config: cfg, Out: out, JSON: json, UserAgent: userAgent, Stdin: os.Stdin}
+	ctx := &Ctx{Config: cfg, Out: out, Err: os.Stderr, JSON: json, UserAgent: userAgent, Stdin: os.Stdin}
 	ctx.Browser = func(url string) error { return Open(cfg.URL(), url) }
 	return ctx
 }

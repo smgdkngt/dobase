@@ -20,6 +20,12 @@ class Demo::WorkspaceTest < ActiveSupport::TestCase
     assert_equal [ "Launch", "Team" ], @owner.sidebar_groups.pluck(:name)
   end
 
+  test "what is made for a visitor is no event for anyone" do
+    assert_no_difference -> { Event.count } do
+      Demo::Workspace.new(@owner).build
+    end
+  end
+
   test "shares the team tools with the teammates" do
     Demo::Workspace.new(@owner).build
 

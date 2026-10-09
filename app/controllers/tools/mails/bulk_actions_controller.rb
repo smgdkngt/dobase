@@ -31,18 +31,7 @@ module Tools
           count = @mail_account.restore(conversations_of(messages, "trash").to_a).size
           "#{count} email(s) restored."
         when "archive"
-          archive_folder = @mail_account.archive_folder.presence
-          messages = conversations_of(messages, folder).where(archived: false)
-          # Mail in the server's archive folder is archived already
-          messages = messages.where(folder: nil).or(messages.where.not(folder: archive_folder)) if archive_folder
-          messages.where.not(uid: nil).find_each do |message|
-            if archive_folder
-              ImapSyncJob.perform_later(@mail_account.id, "move_to_folder", message.uid, message.folder || "INBOX", archive_folder)
-            else
-              ImapSyncJob.perform_later(@mail_account.id, "mark_as_read", message.uid, message.folder || "INBOX")
-            end
-          end
-          count = messages.update_all(archived: true)
+          count = @mail_account.archive(conversations_of(messages, folder).to_a).size
           "#{count} email(s) archived."
         when "mark_read", "mark_unread"
           read = action == "mark_read"
@@ -55,8 +44,7 @@ module Tools
         when "move_to_folder"
           target_folder = @mail_account.folder_to_move_to(params[:target_folder])
           if target_folder
-            messages = conversations_of(messages, folder)
-            moved = messages.to_a.each { |message| message.move_to_folder!(target_folder) }
+            moved = @mail_account.move(conversations_of(messages, folder).to_a, target_folder)
             "#{moved.size} email(s) moved to #{helpers.mail_folder_name(target_folder)}."
           else
             "Invalid folder name."

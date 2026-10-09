@@ -22,6 +22,7 @@ class SyncEmailsJob < ApplicationJob
     end
 
     mail_account.broadcast_unread_mail
+    synced = true
   # Every failure is shown on the account, or the mail page says "Syncing..." forever.
   # A rejected login waits for new settings or a sync by hand, a server that can't be reached
   # is tried again on the next scheduled sync. Unexpected failures still fail the job, so they can be looked into.
@@ -33,12 +34,23 @@ class SyncEmailsJob < ApplicationJob
     mail_account&.mark_sync_error!(e.message)
     raise
   ensure
+    # Mail that came in, and what another mail program did (Mails::SyncEvents)
+    record_events(service, complete: synced.present?)
     # The pages that have the mailbox open draw it again when the sync brought
     # something they show (Tool#announce_change), also when it stopped halfway
     mail_account.tool.announce_change if before && shown(mail_account) != before
   end
 
   private
+    # Writing down what the run saw never hides how the run itself went
+    def record_events(service, complete:)
+      service&.record_events(complete: complete)
+    rescue StandardError => error
+      raise if Rails.env.local?
+
+      Rails.error.report(error, handled: true)
+    end
+
     # What a mailbox's page shows of an account, as far as a sync changes it: its mail,
     # its folders, and that the last sync went wrong
     def shown(mail_account)

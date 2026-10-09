@@ -14,6 +14,7 @@ func Definitions() []*command.Definition {
 		calendar(),
 		chat(),
 		docs(),
+		eventStream(),
 		files(),
 		mail(),
 		notifications(),

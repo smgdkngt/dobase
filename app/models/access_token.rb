@@ -16,6 +16,8 @@ class AccessToken < ApplicationRecord
   validates :permission, inclusion: { in: PERMISSIONS }
 
   before_validation :generate_token, on: :create
+  # A revoked token stops listening at once (EventsChannel is all it could open)
+  after_destroy_commit :close_connections
 
   scope :newest_first, -> { order(created_at: :desc) }
 
@@ -41,6 +43,10 @@ class AccessToken < ApplicationRecord
   end
 
   private
+
+  def close_connections
+    ActionCable.server.remote_connections.where(current_user: user, access_token: self).disconnect(reconnect: false)
+  end
 
   def generate_token
     @token = "#{PREFIX}#{SecureRandom.base58(32)}"

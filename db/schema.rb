@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_07_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_09_100000) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -317,6 +317,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_07_100000) do
     t.index ["tool_id", "updated_at"], name: "index_documents_on_tool_id_and_updated_at"
     t.index ["tool_id"], name: "index_documents_on_tool_id"
     t.index ["updated_by_id"], name: "index_documents_on_updated_by_id"
+  end
+
+  create_table "events", force: :cascade do |t|
+    t.bigint "tool_id", null: false
+    t.string "kind", null: false
+    t.bigint "record_id"
+    t.bigint "user_id"
+    t.bigint "access_token_id"
+    t.string "via"
+    t.boolean "agent", default: false, null: false
+    t.json "data", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.index ["created_at"], name: "index_events_on_created_at"
+    t.index ["tool_id", "id"], name: "index_events_on_tool_id_and_id"
   end
 
   create_table "file_folders", force: :cascade do |t|

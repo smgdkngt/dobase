@@ -233,6 +233,16 @@ module Mails
       update!(folder: Account::TRASH, trashed: true, archived: false, uid: nil)
     end
 
+    # What happened to the mail, for whoever listens from outside the browser (Event):
+    # who it is from, what it is called and where it is, never what it says. A draft
+    # is nobody's news.
+    def record_event(kind, **data)
+      return if draft?
+
+      Event.record("mail.#{kind}", tool: account.tool, record: self, from: from_address, from_name: from_name.presence,
+        subject: subject, folder: folder, **data)
+    end
+
     def conversation_count
       conversation.count
     end

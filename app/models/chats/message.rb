@@ -174,5 +174,9 @@ module Chats
         locals: { message: self, is_continuation: continuation? }
     }
     after_destroy_commit -> { broadcast_remove_to chat }
+    after_create_commit -> {
+      Event.record("chat.message", tool: chat.tool, record: self, excerpt: Event.excerpt(body.to_plain_text),
+        files: files.count.nonzero?, reply_to: reply_to_id)
+    }
   end
 end

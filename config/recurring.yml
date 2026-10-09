@@ -28,6 +28,9 @@ production:
   purge_notification_events:
     class: PurgeNotificationEventsJob
     schedule: every day at 4:15am
+  purge_events:
+    class: PurgeEventsJob
+    schedule: every day at 4:30am
   demo_cleanup:
     class: Demo::CleanupJob
     schedule: every hour at minute 30

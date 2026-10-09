@@ -105,6 +105,7 @@ class SyncEmailsJobTest < ActiveJob::TestCase
     service.define_singleton_method(:sync_inbox) { |**| in_the_inbox.call }
     service.define_singleton_method(:sync_sent) { |**| }
     service.define_singleton_method(:sync_folder) { |*, **| }
+    service.define_singleton_method(:record_events) { |**| }
     ImapSyncService.singleton_class.define_method(:new) { |*| service }
     SyncEmailsJob.perform_now(@account.id)
   ensure

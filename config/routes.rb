@@ -62,6 +62,8 @@ Rails.application.routes.draw do
   # Tools
   # Everything you share, searched at once: the command palette asks this as you type
   resource :search, only: :show
+  # What happened in them, by number, for a listener outside the browser (`dobase events`)
+  resources :events, only: :index
 
   resources :tools do
     scope module: :tools do

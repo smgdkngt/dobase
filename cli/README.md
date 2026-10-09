@@ -101,6 +101,31 @@ dobase help                                   # everything; `dobase help card` f
 - `--html` sends formatted text as HTML.
 - `--json` prints the raw API response.
 
+## Events
+
+`dobase events --follow` prints what happens in your tools as it happens, one
+line of JSON per event: mail that comes in, cards that are made, moved or
+commented on, chat messages. It is made for a program that should be told
+instead of having to look, such as an AI assistant running it in the
+background.
+
+```bash
+dobase events --follow                        # keep listening
+dobase events --follow --kind mail --skip-own --name laptop
+dobase events                                 # what happened since last time, then stop
+dobase events --since 2h --tool "Product Launch"
+```
+
+It remembers the last event it printed, per `--name`, in
+`~/.local/state/dobase/events/`. Stopped, restarted or cut off from the
+network, it goes on where it was: nothing is missed. (Killed between printing
+a line and noting it, it prints that one line again.)
+The server keeps events for seven days; a listener that was away for longer
+gets a line of kind `stream.gap` first. Between events it holds a WebSocket to
+the server open, over which the server only says that there is something new,
+and it asks every five minutes besides. The [API's page on
+events](../docs/api/events.md) describes what a line holds.
+
 ## Themes
 
 ```bash
