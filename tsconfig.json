@@ -26,6 +26,7 @@
     "app/javascript/services/tile.js",
     "app/javascript/services/recipients.js",
     "app/javascript/services/live.js",
+    "app/javascript/services/zoom.js",
     "test/javascript/**/*.mjs",
     "test/javascript/support/globals.d.ts"
   ]

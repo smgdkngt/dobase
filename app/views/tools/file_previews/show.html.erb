@@ -13,14 +13,18 @@
     <%= render "components/icon_button", icon: "x", title: "Close", size: :sm, data: { action: "file-viewer#close" } %>
   </header>
 
-  <% if @preview.read? %>
-    <%# Something you read takes the whole viewer and scrolls inside its own frame %>
-    <div class="file-viewer-body file-viewer-body-read">
-      <%= render "components/media_preview", file: @preview, fill: true, download_path: download_path %>
-    </div>
-  <% else %>
-    <div class="file-viewer-body">
-      <%= render "components/media_preview", file: @preview, max_height: "max-h-[75vh]", download_path: download_path %>
-    </div>
-  <% end %>
+  <%# Zoomed in on with the buttons at its foot, the wheel or two fingers (zoom_controller.js) %>
+  <div class="zoom-stage" data-controller="zoom">
+    <% if @preview.read? %>
+      <%# Something you read takes the whole viewer and scrolls inside its own frame %>
+      <div class="file-viewer-body file-viewer-body-read">
+        <%= render "components/media_preview", file: @preview, fill: true, download_path: download_path %>
+      </div>
+    <% else %>
+      <%= tag.div class: "file-viewer-body", data: { zoom_target: ("scroller" if @preview.image?) } do %>
+        <%= render "components/media_preview", file: @preview, max_height: "max-h-[75vh]", download_path: download_path %>
+      <% end %>
+    <% end %>
+    <%= render "components/zoom_controls" %>
+  </div>
 <% end %>

@@ -39,16 +39,23 @@
   </div>
 
   <%# Content %>
-  <% if @file.read? %>
-    <%# Something you read takes the whole pane and scrolls inside its own frame %>
-    <div class="grid min-h-0 p-3 @min-[40rem]:p-4 bg-background-secondary overflow-hidden">
-      <%= render "components/media_preview", file: @file, fill: true, download_path: tool_files_item_download_path(@tool, @file) %>
-    </div>
-  <% else %>
-    <div class="flex items-start justify-center p-4 @min-[40rem]:p-8 bg-background-secondary overflow-auto">
-      <%= render "components/media_preview", file: @file, download_path: tool_files_item_download_path(@tool, @file) %>
-    </div>
-  <% end %>
+  <%# Zoomed in on with the buttons at its foot, the wheel or two fingers (zoom_controller.js) %>
+  <div class="zoom-stage" data-controller="zoom">
+    <% if @file.read? %>
+      <%# Something you read takes the whole pane and scrolls inside its own frame %>
+      <div class="grid min-h-0 p-3 @min-[40rem]:p-4 bg-background-secondary overflow-hidden">
+        <%= render "components/media_preview", file: @file, fill: true, download_path: tool_files_item_download_path(@tool, @file) %>
+      </div>
+    <% else %>
+      <%# In the middle by its margins: what is zoomed past the pane's width then starts at
+          the pane's edge, where centring it would put its left half out of reach %>
+      <%= tag.div class: "flex items-start *:mx-auto p-4 @min-[40rem]:p-8 bg-background-secondary overflow-auto",
+            data: { zoom_target: ("scroller" if @file.image?) } do %>
+        <%= render "components/media_preview", file: @file, download_path: tool_files_item_download_path(@tool, @file) %>
+      <% end %>
+    <% end %>
+    <%= render "components/zoom_controls" %>
+  </div>
 
   <%# Sidebar %>
   <div class="p-4 @min-[40rem]:p-6 border-t @3xl:border-t-0 @3xl:border-l border-border-light overflow-y-auto">
