@@ -10,6 +10,20 @@ module Tools
         @tool = tools(:my_files)
       end
 
+      test "a file's page lets it be zoomed in on, as the viewer does" do
+        picture = @tool.file_items.create!(name: "sample.png", file: { io: file_fixture("sample.png").open, filename: "sample.png", content_type: "image/png" })
+        notes = @tool.file_items.create!(name: "notes.txt", file: { io: StringIO.new("Remember the milk"), filename: "notes.txt", content_type: "text/plain" })
+
+        get tool_files_item_path(@tool, picture)
+        assert_response :success
+        assert_select ".zoom-stage[data-controller='zoom'] [data-zoom-target='scroller'] img[data-zoom-target='picture']"
+        assert_select ".zoom-stage .zoom-controls button", 3
+
+        get tool_files_item_path(@tool, notes)
+        assert_select ".zoom-stage .file-text-preview[data-zoom-target='scroller'] pre", "Remember the milk"
+        assert_select "[data-zoom-target='scroller']", 1
+      end
+
       test "update moves a file into a folder of the same tool" do
         file = file_items(:readme)
 

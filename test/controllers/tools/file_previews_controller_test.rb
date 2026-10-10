@@ -181,6 +181,52 @@ class Tools::FilePreviewsControllerTest < ActionDispatch::IntegrationTest
     assert_select ".file-viewer-body img[alt='sample.png']"
   end
 
+  # What the zoom takes hold of (zoom_controller.js) differs by what the file is
+  test "a picture can be zoomed in on: it, and what it scrolls in" do
+    tool = chat_tool
+    message = tool.chat.messages.create!(user: @user, body: "<p>Look</p>",
+      files: [ { io: file_fixture("sample.png").open, filename: "sample.png", content_type: "image/png" } ])
+
+    get tool_file_preview_path(tool, message.files.first)
+
+    assert_select ".zoom-stage[data-controller='zoom']" do
+      assert_select ".file-viewer-body[data-zoom-target='scroller'] img[data-zoom-target='picture']"
+      assert_select ".zoom-controls[data-zoom-target='controls'] button", 3
+      assert_select "button[data-zoom-target='out'][data-action='zoom#zoomOut'][aria-label='Zoom out (-)']"
+      assert_select "button[data-zoom-target='level'][data-action='zoom#fit']", "100%"
+      assert_select "button[data-zoom-target='in'][data-action='zoom#zoomIn'][aria-label='Zoom in (+)']"
+    end
+  end
+
+  test "a table and a text are zoomed inside what scrolls them, a pdf inside its frame" do
+    message = mails_messages(:inbox_unread)
+    sheet = mail_attachment(message, "budget.xlsx", file_fixture("sample.xlsx").binread)
+    notes = mail_attachment(message, "notes.txt", "Remember the milk", content_type: "text/plain")
+    letter = mail_attachment(message, "letter.pdf", "%PDF", content_type: "application/pdf")
+
+    get tool_file_preview_path(tools(:my_mail), sheet)
+    assert_select ".zoom-stage .file-text-preview[data-zoom-target='scroller'] table.cell-table"
+    assert_select "[data-zoom-target='scroller']", 1
+
+    get tool_file_preview_path(tools(:my_mail), notes)
+    assert_select ".zoom-stage .file-text-preview[data-zoom-target='scroller'] pre", "Remember the milk"
+
+    get tool_file_preview_path(tools(:my_mail), letter)
+    assert_select ".zoom-stage iframe[data-zoom-target='frame']"
+    assert_select "[data-zoom-target='scroller']", 0
+  end
+
+  test "a file that is only downloaded has nothing to zoom in on" do
+    attachment = mail_attachment(mails_messages(:inbox_unread), "slides.pptx", "PK", content_type: "application/vnd.openxmlformats-officedocument.presentationml.presentation")
+
+    get tool_file_preview_path(tools(:my_mail), attachment)
+
+    assert_select ".zoom-stage a", text: /Download/
+    assert_select "[data-zoom-target='picture'], [data-zoom-target='scroller'], [data-zoom-target='frame']", 0
+    # The buttons are there for the controller to show, and it doesn't
+    assert_select ".zoom-controls[hidden]"
+  end
+
   test "a file in the Files tool goes by the name it has there" do
     item = tools(:my_files).file_items.create!(name: "renamed.csv", file: { io: StringIO.new("a,b\n"), filename: "upload.bin", content_type: "application/octet-stream" })
 

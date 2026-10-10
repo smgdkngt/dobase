@@ -11,10 +11,29 @@ class FileViewerTest < ApplicationSystemTestCase
     sign_in_as(@user)
   end
 
-  def attach(message, name, content)
-    attachment = message.attachments.create!(filename: name, content_type: "application/octet-stream", file_size: content.bytesize)
-    attachment.file.attach(io: StringIO.new(content), filename: name, content_type: "application/octet-stream", identify: false)
+  def attach(message, name, content, content_type: "application/octet-stream")
+    attachment = message.attachments.create!(filename: name, content_type: content_type, file_size: content.bytesize)
+    attachment.file.attach(io: StringIO.new(content), filename: name, content_type: content_type, identify: false)
     attachment
+  end
+
+  PICTURE = "dialog#file-viewer[open] img[alt='sample.png']"
+  LEVEL = "dialog#file-viewer[open] [data-zoom-target='level']"
+
+  # The picture is 8 by 8 and fits as it is, so its width says how far it is zoomed
+  def assert_picture_wide(pixels)
+    assert_selector(PICTURE) { |picture| picture.evaluate_script("this.offsetWidth") == pixels }
+  end
+
+  def open_picture
+    message = mails_messages(:inbox_unread)
+    attach(message, "sample.png", file_fixture("sample.png").binread, content_type: "image/png")
+    attach(message, "figures.csv", "Month;Total\nOctober;42\n")
+
+    visit tool_mail_path(@tool, message)
+    click_link "sample.png"
+    assert_selector(PICTURE) { |picture| picture.evaluate_script("this.complete && this.naturalWidth > 0") }
+    assert_selector LEVEL, text: "100%"
   end
 
   def close_and_ask_for(name)
@@ -108,5 +127,99 @@ class FileViewerTest < ApplicationSystemTestCase
     assert_no_selector "dialog#file-viewer[open]"
     # Still writing the same mail
     assert_selector "form [data-compose-target='attachmentsList']", visible: :all
+  end
+
+  test "a picture is zoomed in on with the buttons and the keys, and back to fit" do
+    open_picture
+    assert_picture_wide 8
+
+    click_button "Zoom in (+)"
+    assert_selector LEVEL, text: "125%"
+    assert_picture_wide 10
+    assert_selector "dialog#file-viewer .zoom-stage[data-zoomed]"
+
+    # The keyboard is on the button that was pressed, which is in the viewer
+    send_keys "+"
+    assert_selector LEVEL, text: "150%"
+    assert_picture_wide 12
+
+    send_keys "-"
+    assert_selector LEVEL, text: "125%"
+
+    send_keys "0"
+    assert_selector LEVEL, text: "100%"
+    assert_picture_wide 8
+    assert_no_selector "dialog#file-viewer .zoom-stage[data-zoomed]"
+
+    # A picture goes no smaller than it fits, and eight times is the most
+    assert_selector "dialog#file-viewer [data-zoom-target='out'][aria-disabled='true']"
+    7.times { click_button "Zoom in (+)" }
+    assert_selector LEVEL, text: "800%"
+    assert_picture_wide 64
+    assert_selector "dialog#file-viewer [data-zoom-target='in'][aria-disabled='true']"
+
+    find(LEVEL).click
+    assert_selector LEVEL, text: "100%"
+    assert_picture_wide 8
+  end
+
+  test "the wheel with Ctrl zooms in on a picture, and without it is left alone" do
+    open_picture
+
+    execute_script(<<~JS, find(PICTURE))
+      const turn = (more) => arguments[0].dispatchEvent(new WheelEvent("wheel", { deltaY: -100, bubbles: true, cancelable: true, ...more }))
+      document.body.dataset.wheelLeft = turn({})
+      document.body.dataset.wheelTaken = !turn({ ctrlKey: true })
+    JS
+
+    # A notch of a mouse's wheel is about a third
+    assert_selector LEVEL, text: "135%"
+    assert_selector "body[data-wheel-left='true'][data-wheel-taken='true']"
+
+    # And a double click goes back to fit, and in from there
+    find(PICTURE).double_click
+    assert_selector LEVEL, text: "100%"
+    find(PICTURE).double_click
+    assert_selector LEVEL, text: "200%"
+    assert_picture_wide 16
+  end
+
+  test "two fingers moved apart zoom in on a picture" do
+    open_picture
+
+    execute_script(<<~JS, find(PICTURE))
+      const picture = arguments[0]
+      const fingers = (type, apart) => {
+        const touches = [ -apart / 2, apart / 2 ].map((x, identifier) =>
+          new Touch({ identifier, target: picture, clientX: 300 + x, clientY: 300 }))
+        picture.dispatchEvent(new TouchEvent(type, { touches, targetTouches: touches, changedTouches: touches, bubbles: true, cancelable: true }))
+      }
+      fingers("touchstart", 100)
+      fingers("touchmove", 150)
+      fingers("touchmove", 300)
+    JS
+
+    assert_selector LEVEL, text: "300%"
+    assert_picture_wide 24
+  end
+
+  test "the next file fits again, and a table is zoomed out as well as in" do
+    open_picture
+    click_button "Zoom in (+)"
+    assert_selector LEVEL, text: "125%"
+
+    within("dialog#file-viewer[open]") { click_button "Close" }
+    click_link "figures.csv"
+
+    assert_selector "dialog#file-viewer[open] td", text: "October"
+    assert_selector LEVEL, text: "100%"
+
+    click_button "Zoom out (-)"
+    assert_selector LEVEL, text: "80%"
+    assert_selector("dialog#file-viewer[open] .sheet-preview") { |sheet| sheet.evaluate_script("getComputedStyle(this).zoom") == "0.8" }
+
+    send_keys "0"
+    assert_selector LEVEL, text: "100%"
+    assert_selector("dialog#file-viewer[open] .sheet-preview") { |sheet| sheet.evaluate_script("getComputedStyle(this).zoom") == "1" }
   end
 end

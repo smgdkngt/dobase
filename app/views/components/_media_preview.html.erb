@@ -12,6 +12,10 @@
     autoplay: Autoplay video/audio (default: false)
     fill: Let text and PDF previews fill their container instead of capping at 70vh (default: false)
 
+  Inside an element with data-controller="zoom" the file can be zoomed in on: the picture,
+  what scrolls of a text or table, and a pdf's frame are that controller's targets
+  (zoom_controller.js). Anywhere else those attributes say nothing.
+
   Examples:
     render "components/media_preview", file: @file
     render "components/media_preview", file: @file, max_height: "max-h-[70vh]", rounded: :xl
@@ -35,7 +39,8 @@
 %>
 <% if file.image? %>
   <div class="flex justify-center">
-    <%= image_tag url_for(file.display_copy), alt: file.name, class: "media-fade-in max-w-full #{max_height} object-contain #{radius_class} #{shadow_class}" %>
+    <%= image_tag url_for(file.display_copy), alt: file.name, class: "media-fade-in max-w-full #{max_height} object-contain #{radius_class} #{shadow_class}",
+          data: { zoom_target: "picture" } %>
   </div>
 <% elsif file.video? %>
   <div class="flex justify-center">
@@ -57,7 +62,7 @@
   </div>
 <% elsif file.table? && (sheets = file.sheets) %>
   <%# A csv or a spreadsheet: its cells as text, nothing of how it was laid out %>
-  <div class="file-text-preview <%= radius_class %> <%= "file-text-preview-fill" if fill %>">
+  <div class="file-text-preview <%= radius_class %> <%= "file-text-preview-fill" if fill %>" data-zoom-target="scroller">
     <% sheets.each do |sheet| %>
       <section class="sheet-preview">
         <% if sheet.name.present? && sheets.many? %>
@@ -76,7 +81,7 @@
   </div>
 <% elsif file.document? && (document = file.document) %>
   <%# A word processor's document: its text in order, without its layout or pictures %>
-  <div class="file-text-preview <%= radius_class %> <%= "file-text-preview-fill" if fill %>">
+  <div class="file-text-preview <%= radius_class %> <%= "file-text-preview-fill" if fill %>" data-zoom-target="scroller">
     <div class="markdown-preview document-preview">
       <p class="file-preview-note">The text of this document. Download the file for its layout and pictures.</p>
       <% document.blocks.chunk_while { |a, b| a.kind == :list_item && b.kind == :list_item }.each do |group| %>
@@ -99,7 +104,7 @@
     </div>
   </div>
 <% elsif file.text? && (preview = file.preview_text) %>
-  <div class="file-text-preview <%= radius_class %> <%= "file-text-preview-fill" if fill %>">
+  <div class="file-text-preview <%= radius_class %> <%= "file-text-preview-fill" if fill %>" data-zoom-target="scroller">
     <% if file.markdown? %>
       <div class="markdown-preview"><%= markdown_preview(preview) %></div>
     <% elsif (lexer = code_lexer(file.name)) %>
@@ -122,7 +127,7 @@
   </div>
 <% elsif file.pdf? %>
   <div class="w-full h-full <%= "min-h-[70vh]" unless fill %>">
-    <iframe src="<%= url_for(file.file) %>" type="application/pdf" class="w-full h-full border-none <%= radius_class %>"></iframe>
+    <iframe src="<%= url_for(file.file) %>" type="application/pdf" class="w-full h-full border-none <%= radius_class %>" data-zoom-target="frame"></iframe>
   </div>
 <% else %>
   <div class="flex flex-col items-center p-16 bg-background-secondary <%= radius_class %> text-text-tertiary">

@@ -642,11 +642,68 @@
   }
 
   .file-viewer-body {
-    @apply flex flex-1 min-h-0 items-start justify-center p-4 bg-background-secondary overflow-auto;
+    @apply flex flex-1 min-h-0 items-start p-4 bg-background-secondary overflow-auto;
+  }
+
+  /* In the middle by its margins: a picture zoomed past the viewer's width then starts
+     at the viewer's edge, where centring it would put its left half out of reach */
+  .file-viewer-body:not(.file-viewer-body-read) > * {
+    @apply mx-auto;
   }
 
   .file-viewer-body-read {
     @apply grid overflow-hidden;
+  }
+
+  /* Where a file can be zoomed in on (zoom_controller.js): the file, and the buttons
+     for it over its foot. Two fingers and a double tap are the controller's here, not
+     the browser's, which would zoom the whole page. */
+  .zoom-stage {
+    @apply relative grid flex-1 min-w-0 min-h-0;
+    grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+    touch-action: pan-x pan-y;
+  }
+
+  .zoom-controls {
+    @apply absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-0.5 p-1
+           rounded-full bg-surface border border-border-light shadow-md;
+  }
+
+  .zoom-controls .icon-btn {
+    @apply rounded-full;
+  }
+
+  .zoom-level {
+    @apply h-7 min-w-12 px-1.5 rounded-full text-xs font-medium tabular-nums text-text-secondary
+           transition-colors hover:bg-background-tertiary hover:text-text-primary
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-accent;
+  }
+
+  /* Not `disabled`: a button that is switched off under the keyboard would lose it */
+  .zoom-controls [aria-disabled="true"] {
+    @apply opacity-40 pointer-events-none;
+  }
+
+  .zoom-stage [data-zoom-target~="picture"] {
+    cursor: zoom-in;
+  }
+
+  .zoom-stage[data-zoomed] [data-zoom-target~="picture"] {
+    cursor: grab;
+  }
+
+  .zoom-stage[data-zoom-dragging] [data-zoom-target~="picture"] {
+    cursor: grabbing;
+  }
+
+  /* Text and tables are drawn larger or smaller inside what scrolls them, and their
+     last lines can be scrolled out from under the buttons */
+  .zoom-stage .file-text-preview {
+    @apply pb-12;
+  }
+
+  .file-text-preview > * {
+    zoom: var(--file-zoom, 1);
   }
 
   /* A file anywhere but in the Files tool: its name opens it, the arrow beside it downloads it */

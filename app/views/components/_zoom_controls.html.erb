@@ -1,0 +1,18 @@
+<%#
+  Zoom controls component - out, how far it is zoomed (pressed: back to fit) and in, for
+  the file shown beside it (components/media_preview). They float over the foot of an
+  element with class "zoom-stage" and data-controller="zoom" (zoom_controller.js), which
+  hides them when the file is one that can only be downloaded.
+
+  Example (inside a div with class "zoom-stage" and data-controller="zoom", after the file):
+    render "components/zoom_controls"
+%>
+<div class="zoom-controls" role="group" aria-label="Zoom" data-zoom-target="controls" hidden>
+  <%= render "components/icon_button", icon: "minus", title: "Zoom out (-)", size: :sm,
+        data: { zoom_target: "out", action: "zoom#zoomOut" } %>
+  <%= tag.button "100%", type: "button", class: "zoom-level", title: "Back to fit (0)",
+        aria: { label: "Zoom 100%, back to fit" },
+        data: { zoom_target: "level", action: "zoom#fit" } %>
+  <%= render "components/icon_button", icon: "plus", title: "Zoom in (+)", size: :sm,
+        data: { zoom_target: "in", action: "zoom#zoomIn" } %>
+</div>
