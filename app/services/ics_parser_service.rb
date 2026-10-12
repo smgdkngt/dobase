@@ -406,13 +406,7 @@ class IcsParserService
   end
 
   def extract_rrule_param(rrule, param)
-    if rrule.respond_to?(param)
-      rrule.send(param)
-    elsif rrule.respond_to?(:[])
-      rrule[param] || rrule[param.to_s.upcase]
-    else
-      nil
-    end
+    rrule.send(param) if rrule.respond_to?(param)
   end
 
   def day_symbol(day_str)
