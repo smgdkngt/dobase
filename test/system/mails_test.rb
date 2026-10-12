@@ -918,6 +918,38 @@ class MailsTest < ApplicationSystemTestCase
     assert_equal 2000, reader.evaluate_script("this.scrollTop"), "the refresh scrolled the mail back up"
   end
 
+  # A frame that got a scrollbar down its side was that much narrower, wrapped the mail
+  # anew and measured again: in a tile, a mail that wrapped a line more that way went on
+  # changing between two heights for as long as it was open
+  test "a mail wider than its frame scrolls sideways only, at a height that stays" do
+    message = mails_messages(:inbox_unread)
+    # (scrollbars that take room, as on Linux and Windows, also where the system's float)
+    message.update!(body_html: <<~HTML)
+      <style>::-webkit-scrollbar { width: 15px; height: 15px; }</style>
+      <table style="width: 3000px"><tr><td>A table wider than any frame</td></tr></table>
+      #{(1..20).map { |line| "<p>Line #{line} of a mail that is read under a wide table, long enough to wrap where the frame is narrow</p>" }.join}
+    HTML
+    visit tool_mail_path(@tool, message)
+    wait_for_stimulus "email-frame"
+    within_frame(find("iframe[data-email-frame-target=frame]")) { assert_text "Line 20 of a mail" }
+
+    measure = <<~JS
+      (() => {
+        const page = this.contentDocument.documentElement, view = this.contentWindow
+        return { height: this.offsetHeight, under: view.innerHeight - page.clientHeight,
+                 beside: view.innerWidth - page.clientWidth, hidden: page.scrollHeight - page.clientHeight }
+      })()
+    JS
+    frame = find("iframe[data-email-frame-target=frame]")
+    assert_selector("iframe[data-email-frame-target=frame]") { |element| element.evaluate_script("this.offsetHeight") > 100 }
+    skip "this browser's scrollbars take no room, so there is nothing to see here" if frame.evaluate_script(measure)["under"].zero?
+
+    seen = 10.times.map { sleep 0.05; frame.evaluate_script(measure) }
+    assert_equal 1, seen.uniq.size, "the frame went on changing: #{seen.uniq.inspect}"
+    assert_equal 0, seen.last["beside"], "the frame has a scrollbar down its side"
+    assert_operator seen.last["hidden"], :<=, 0, "the end of the mail lies under the scrollbar"
+  end
+
   test "a refresh keeps an earlier message of the conversation open" do
     visit tool_mail_path(@tool, mails_messages(:sent_message))
     wait_for_stimulus "collapse"
