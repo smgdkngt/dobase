@@ -936,16 +936,18 @@ class MailsTest < ApplicationSystemTestCase
     measure = <<~JS
       (() => {
         const page = this.contentDocument.documentElement, view = this.contentWindow
-        return { height: this.offsetHeight, under: view.innerHeight - page.clientHeight,
+        return { height: this.offsetHeight, down: view.getComputedStyle(page).overflowY,
                  beside: view.innerWidth - page.clientWidth, hidden: page.scrollHeight - page.clientHeight }
       })()
     JS
     frame = find("iframe[data-email-frame-target=frame]")
     assert_selector("iframe[data-email-frame-target=frame]") { |element| element.evaluate_script("this.offsetHeight") > 100 }
-    skip "this browser's scrollbars take no room, so there is nothing to see here" if frame.evaluate_script(measure)["under"].zero?
 
+    # A headless browser hides its scrollbars, and then none of this can go wrong: what
+    # holds there too is that the mail's page is not one that scrolls down
     seen = 10.times.map { sleep 0.05; frame.evaluate_script(measure) }
     assert_equal 1, seen.uniq.size, "the frame went on changing: #{seen.uniq.inspect}"
+    assert_equal "hidden", seen.last["down"], "the mail scrolls down in its frame"
     assert_equal 0, seen.last["beside"], "the frame has a scrollbar down its side"
     assert_operator seen.last["hidden"], :<=, 0, "the end of the mail lies under the scrollbar"
   end
