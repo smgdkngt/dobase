@@ -98,8 +98,18 @@ export default class extends Controller {
       const doc = iframe.contentDocument
       if (!doc || !doc.body) return
 
+      // The frame is as high as its mail, so the mail never scrolls down in it: the page
+      // around it does. Left to itself the frame would get a scrollbar down its side now
+      // and then, which takes width, which wraps the mail anew, which changes its height.
+      doc.documentElement.style.overflowY = "hidden"
+
+      // A mail wider than the frame gets a scrollbar under it, which lies over the mail's
+      // last lines unless the frame is that much higher (nothing where scrollbars float
+      // over the page). Without it a mail that wraps a line more when it is a scrollbar
+      // narrower went on changing between two heights for as long as it was open.
       const update = () => {
-        const height = doc.documentElement.scrollHeight
+        const scrollbar = doc.defaultView.innerHeight - doc.documentElement.clientHeight
+        const height = doc.documentElement.scrollHeight + Math.max(scrollbar, 0)
         if (height > 0) {
           iframe.style.height = `${height}px`
         }
