@@ -181,6 +181,7 @@ class ChangesAnnouncedTest < ActionDispatch::IntegrationTest
     unconnected = Tool.create!(name: "Support", tool_type: tool_types(:mail), owner: @user)
     account = { email_address: "support@example.com", username: "support@example.com", password: "secret",
       imap_host: "imap.example.com", smtp_host: "smtp.example.com" }
+    mails_accounts(:primary).update!(synced_folders: %w[INBOX Sent Archive Receipts Junk].to_json)
 
     tried = [
       announced(tool) { post tool_mail_read_path(tool, mails_messages(:inbox_unread)) },
@@ -191,6 +192,8 @@ class ChangesAnnouncedTest < ActionDispatch::IntegrationTest
       announced(tool) { delete tool_mail_archive_path(tool, message) },
       announced(tool) { post tool_mail_trash_path(tool, message) },
       announced(tool) { delete tool_mail_trash_path(tool, message) },
+      announced(tool) { post tool_mail_junk_path(tool, message) },
+      announced(tool) { delete tool_mail_junk_path(tool, message) },
       announced(tool) { post tool_mail_move_path(tool, message), params: { folder: "Sent" } },
       announced(tool) { post tool_mail_trusted_sender_path(tool, message) },
       announced(tool) { delete tool_mail_trusted_sender_path(tool, message) },

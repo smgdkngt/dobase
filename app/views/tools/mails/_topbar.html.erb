@@ -11,7 +11,7 @@
         input_data: { "controller": "hotkey", "hotkey": "/", "mail-keyboard-target": "search" } %>
 
     <%
-      folders = mail_folders(inbox_unread: @inbox_unread, drafts_count: @drafts_count, trash_count: @trash_count)
+      folders = mail_folders(inbox_unread: @inbox_unread, drafts_count: @drafts_count, trash_count: @trash_count, junk_unread: @junk_unread)
       current_meta = folders.find { |folder| folder[:key] == @current_folder } || { label: mail_folder_name(@current_folder), icon: "folder" }
     %>
     <div class="relative mail-folder-picker">

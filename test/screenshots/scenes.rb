@@ -145,6 +145,11 @@ class ScreenshotScenes < ApplicationSystemTestCase
     workspace page_of("Mail", "mails/#{mail("Seed Round Follow-up").id}")
   end
 
+  # Mail the server took for junk, opened there: Not junk takes it to the inbox
+  scene "workspace/mail-junk" do
+    workspace page_of("Mail", "mails/#{mail("Tasting night at The Corner Pantry: you're invited").id}?folder=junk")
+  end
+
   scene "workspace/card" do
     workspace page_of("Product Launch", "board?card=#{card("Write press release for launch day").id}")
     assert_selector "#{TILE} > .tile-frame dialog[open]"
@@ -197,6 +202,21 @@ class ScreenshotScenes < ApplicationSystemTestCase
 
   scene "phone/mail-conversation", size: PHONE do
     one_tool page_of("Mail", "mails/#{mail("Seed Round Follow-up").id}")
+  end
+
+  scene "phone/mail-junk", size: PHONE do
+    one_tool page_of("Mail", "mails?folder=junk")
+  end
+
+  # Junk in the folders, beside the trash
+  scene "workspace/mail-folders" do
+    workspace page_of("Mail", "mails?folder=junk")
+    find("#{TILE} .mail-folder-picker button").click
+    assert_selector "#{TILE} .mail-folder-picker [popover]:popover-open"
+  end
+
+  scene "phone/mail-junk-open", size: PHONE do
+    one_tool page_of("Mail", "mails/#{mail("Tasting night at The Corner Pantry: you're invited").id}?folder=junk")
   end
 
   scene "phone/mail-compose", size: PHONE do

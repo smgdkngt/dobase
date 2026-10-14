@@ -39,16 +39,18 @@ module MailsHelper
     "<!DOCTYPE html><html><head><meta charset=\"utf-8\">#{MAIL_FRAME_POLICY unless remote_content}<base target=\"_blank\"><style>#{MAIL_FRAME_STYLES}#{styles}</style></head><body>#{body}</body></html>"
   end
 
-  # The built-in folders to switch between, with the counts that show as a badge
-  def mail_folders(inbox_unread:, drafts_count:, trash_count:)
+  # The built-in folders to switch between, with the counts that show as a badge. Junk
+  # only for an account whose server has a junk folder (junk_unread is nil without one).
+  def mail_folders(inbox_unread:, drafts_count:, trash_count:, junk_unread: nil)
     [
       { key: "inbox",   label: "Inbox",   icon: "inbox",    badge: inbox_unread },
       { key: "drafts",  label: "Drafts",  icon: "file-pen", badge: drafts_count },
       { key: "starred", label: "Starred", icon: "star" },
       { key: "sent",    label: "Sent",    icon: "send" },
       { key: "archive", label: "Archive", icon: "archive" },
+      ({ key: "junk",   label: "Junk",    icon: "shield-alert", badge: junk_unread } if junk_unread),
       { key: "trash",   label: "Trash",   icon: "trash-2",  badge: trash_count }
-    ]
+    ].compact
   end
 
   # The frame a conversation is read in, beside its list. One per mailbox: two can

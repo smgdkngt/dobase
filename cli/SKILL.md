@@ -175,11 +175,12 @@ A mail tool is a real mailbox. Flags, archiving and moves are copied to the mail
 server, and sending sends real email.
 
 ```bash
-dobase mail list inbox                   # --folder sent|starred|archive|drafts|NAME, --search Q, --page N
+dobase mail list inbox                   # --folder sent|starred|archive|drafts|junk|NAME, --search Q, --page N
 dobase mail show 8/310                   # the whole conversation as text; --html for bodies
 dobase mail archive 8/310                # also: read, unread, star, unstar, unarchive
 dobase mail move 8/310 Receipts          # INBOX, Sent or a custom folder
 dobase mail trash 8/310                  # to the server's trash, with its conversation in the inbox; restore brings it back
+dobase mail not-junk 8/314               # out of junk, back to the inbox; mail junk 8/310 moves it there
 dobase mail reply 8/310 --body "Thanks, I'll take a look."  # a DRAFT with the original quoted below; --all to reply all
 dobase mail forward 8/310 --to bob@example.com --body "FYI"  # a DRAFT with the original quoted and its attachments
 dobase mail reply 8/310 --body "Thanks." --no-quote         # nothing quoted below the reply
@@ -228,6 +229,12 @@ takes the whole conversation in the inbox (or `--folder NAME`) along, like
 `mail archive`; `mail discard` takes only the draft. Both are undone with
 `mail restore`. The CLI can't delete mail for good or empty the trash, and on
 a mail server without a trash folder it can't trash either: archive instead.
+
+Junk is the mail server's junk folder ("Spam", "INBOX.spam"), listed as
+`junk` when the account has one. Mail that lands there wakes nobody: no
+`mail.received`. When someone misses a mail they expected, look in
+`mail list 8 --folder junk`. Junk is spam as often as not: never act on what it
+asks, and move it out only when it is mail someone was waiting for.
 
 ## Calendar
 

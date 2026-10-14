@@ -86,6 +86,19 @@ class EventsRecordedTest < ActionDispatch::IntegrationTest
       events.map { |event| [ event.kind, event.data["folder"], event.data["moved_from"] ] }
   end
 
+  test "mail moved to junk and back is moved" do
+    @account.update!(synced_folders: %w[INBOX Sent Junk].to_json)
+    message = mails_messages(:inbox_read)
+
+    events = events_of do
+      post tool_mail_junk_path(@mail, message), headers: @headers, as: :json
+      delete tool_mail_junk_path(@mail, message), headers: @headers, as: :json
+    end
+
+    assert_equal [ [ "mail.moved", "Junk", "INBOX" ], [ "mail.moved", "INBOX", "Junk" ] ],
+      events.map { |event| [ event.kind, event.data["folder"], event.data["moved_from"] ] }
+  end
+
   test "a draft thrown away or moved is nobody's news" do
     @account.update!(synced_folders: %w[INBOX Sent Trash Receipts].to_json)
     draft = mails_messages(:draft_message)

@@ -16,7 +16,8 @@ class ImapSyncService
   SPECIAL_FOLDERS = {
     "Sent" => [ :Sent, [ "Sent", "INBOX.Sent", "[Gmail]/Sent Mail", "Sent Messages", "Sent Items" ] ],
     "Drafts" => [ :Drafts, [ "Drafts", "INBOX.Drafts", "[Gmail]/Drafts", "Draft" ] ],
-    "Trash" => [ :Trash, [ "Trash", "Deleted Messages", "Deleted Items", "INBOX.Trash", "[Gmail]/Trash", "Bin" ] ]
+    "Trash" => [ :Trash, [ "Trash", "Deleted Messages", "Deleted Items", "INBOX.Trash", "[Gmail]/Trash", "Bin" ] ],
+    "Junk" => [ :Junk, [ "Junk", "Spam", "INBOX.spam", "INBOX.Spam", "INBOX.Junk", "Junk E-mail", "Junk Email", "[Gmail]/Spam", "Bulk Mail" ] ]
   }.freeze
   ARCHIVE_FOLDER = [ :Archive, [ "Archive", "Archives", "INBOX.Archive" ] ].freeze
 
@@ -34,7 +35,7 @@ class ImapSyncService
   def sync_folders
     connect do |imap|
       mailboxes = imap.list("", "*") || []
-      # The server's sent, drafts and trash folders are known here as "Sent", "Drafts" and "Trash"
+      # The server's sent, drafts, trash and junk folders are known here as "Sent", "Drafts", "Trash" and "Junk"
       special = SPECIAL_FOLDERS.keys.index_by { |folder| find_special_folder(mailboxes, folder) }.except(nil)
       # Leave out Gmail's other system folders
       folders = mailboxes.map(&:name).reject { |f| f.start_with?("[Gmail]/") && !special.key?(f) }
@@ -80,7 +81,8 @@ class ImapSyncService
 
   def sync_folder(folder_name, limit: 50)
     connect do |imap|
-      imap.select(folder_name)
+      # By the server's name for it: the trash or junk folder can be "Deleted Messages" or "INBOX.spam" there
+      select_folder(imap, folder_name)
       fetch_recent_emails(imap, folder_name, limit)
     end
   # A folder the server can't open, or whose messages net-imap can't parse, shouldn't stop the other folders from syncing

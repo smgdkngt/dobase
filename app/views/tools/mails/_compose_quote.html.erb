@@ -3,7 +3,7 @@
     frame that runs no scripts, whose text the page makes editable. What the frame holds
     is what goes out (compose_controller.js). Locals: quote (Mails::Quote) %>
 <% message = quote.message %>
-<% images = message.account.shows_images_from?(message.from_address) %>
+<% images = message.shows_images? %>
 <% document = mail_frame_document(quote.to_editable_html(remote_images: images), remote_content: images,
      styles: "body { min-height: 1.5em; outline: none; cursor: text; } body > :first-child { margin-top: 0; } body > :last-child { margin-bottom: 0; }") %>
 <%= hidden_field_tag :quoted_message_id, message.id, data: { compose_target: "quotedMessage" } %>

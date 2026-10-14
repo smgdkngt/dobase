@@ -186,6 +186,7 @@ module Tools
     def load_index_data
       @inbox_unread = @mail_account.messages.inbox.not_archived.unread.count
       @trash_count = @mail_account.messages.trashed.count
+      @junk_unread = @mail_account.messages.junk.unread.count if @mail_account.junk_folder?
       @drafts_count = @mail_account.messages.drafts.count
       @custom_folders = @mail_account.custom_folders
 
@@ -193,6 +194,7 @@ module Tools
       when "sent"    then @mail_account.messages.sent.not_archived
       when "starred" then @mail_account.messages.starred
       when "trash"   then @mail_account.messages.trashed
+      when "junk"    then @mail_account.messages.junk
       when "drafts"  then @mail_account.messages.drafts
       when "archive" then @mail_account.archived_messages
       when "inbox"   then @mail_account.messages.inbox.not_archived

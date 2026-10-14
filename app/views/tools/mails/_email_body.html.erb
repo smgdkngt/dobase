@@ -12,8 +12,9 @@
 
     safe_srcdoc = mail_frame_document(images_stripped)
     full_srcdoc = mail_frame_document(sanitized, remote_content: true)
-    images_trusted = has_remote_images && message.account.shows_images_from?(message.from_address)
-    can_trust_sender = local_assigns.fetch(:trust_actions, true) && message.from_address.present? && !message.from_address.casecmp?(message.account.email_address)
+    images_trusted = has_remote_images && message.shows_images?
+    # Junk can say it's from anyone: images from its sender are shown one mail at a time
+    can_trust_sender = local_assigns.fetch(:trust_actions, true) && !message.junk? && message.from_address.present? && !message.from_address.casecmp?(message.account.email_address)
   %>
   <div data-controller="email-frame"
        data-email-frame-full-srcdoc-value="<%= full_srcdoc %>">

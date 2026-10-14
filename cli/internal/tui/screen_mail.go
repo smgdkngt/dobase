@@ -4,6 +4,7 @@ package tui
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/smgdkngt/dobase/cli/internal/api"
@@ -14,28 +15,44 @@ var mailHints = []hint{{"↑↓", "choose"}, {"enter", "read"}, {"f", "folder"},
 var mailHelp = []hint{
 	{"↑ ↓ / j k", "Choose a conversation"},
 	{"enter", "Read it (this doesn't mark it read)"},
-	{"f", "Next folder: inbox, starred, sent, archive, drafts"},
+	{"f", "Next folder: inbox, starred, sent, archive, drafts, junk"},
 	{"o", "Open it in your browser to reply"},
 	{"r", "Reload"},
 	{"esc", "Back home"},
 }
 
-var mailFolders = [5]string{"inbox", "starred", "sent", "archive", "drafts"}
+// Junk is a folder only for an account whose mail server has one (the mailbox's "folders").
+var mailFolders = []string{"inbox", "starred", "sent", "archive", "drafts", "junk"}
 
 type Mail struct {
 	notLive
 	tool     api.Value
 	mailbox  api.Value
-	folder   int
+	folder   string
 	selected int
 }
 
-func loadMail(app *App, tool api.Value, folder int) (*Mail, error) {
-	mailbox, err := app.get(toolPath(tool)+"/mails", api.Param{Name: "folder", Value: mailFolders[folder]})
+func loadMail(app *App, tool api.Value, folder string) (*Mail, error) {
+	mailbox, err := app.get(toolPath(tool)+"/mails", api.Param{Name: "folder", Value: folder})
 	if err != nil {
 		return nil, err
 	}
 	return &Mail{tool: tool, mailbox: mailbox, folder: folder}, nil
+}
+
+// folders are the folders this account's mailbox has, in the order f goes through them.
+func (s *Mail) folders() []string {
+	has := map[string]bool{}
+	for _, folder := range s.mailbox.Get("folders").Items() {
+		has[folder.S()] = true
+	}
+	var folders []string
+	for _, folder := range mailFolders {
+		if folder != "junk" || has[folder] {
+			folders = append(folders, folder)
+		}
+	}
+	return folders
 }
 
 func (s *Mail) Tool() (api.Value, bool)    { return s.tool, true }
@@ -61,8 +78,9 @@ func (s *Mail) Key(key Key, view *View, fx *Fx) bool {
 	conversations := s.conversations()
 	switch {
 	case key.Is('f'):
-		next, toolValue := (s.folder+1)%len(mailFolders), s.tool
-		fx.job("Opening "+mailFolders[next], func(app *App) error {
+		folders := s.folders()
+		next, toolValue := folders[(slices.Index(folders, s.folder)+1)%len(folders)], s.tool
+		fx.job("Opening "+next, func(app *App) error {
 			fresh, err := loadMail(app, toolValue, next)
 			if err != nil {
 				return err
@@ -96,9 +114,9 @@ func (s *Mail) Key(key Key, view *View, fx *Fx) bool {
 
 func (s *Mail) Draw(b *Buffer, area Rect, view *View) {
 	var tabs []Span
-	for index, folder := range mailFolders {
+	for _, folder := range s.folders() {
 		style := dim()
-		if index == s.folder {
+		if folder == s.folder {
 			style = Style{}.Fg(accent()).With(Bold | Underlined)
 		}
 		tabs = append(tabs, Styled(folder, style), Raw("  "))
@@ -115,7 +133,7 @@ func (s *Mail) Draw(b *Buffer, area Rect, view *View) {
 	conversations := s.conversations()
 	if len(conversations) == 0 {
 		message := "Nothing in here."
-		if s.folder == 0 {
+		if s.folder == "inbox" {
 			message = "Inbox zero. Go outside 🌳"
 		}
 		Paragraph{Lines: []Line{RawLine(message)}, Style: dim(), Block: block}.Render(b, area)

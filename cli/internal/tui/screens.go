@@ -51,7 +51,7 @@ func openScreen(app *App, tool api.Value) (Screen, error) {
 	case "files":
 		return loadFiles(app, tool, 0)
 	case "mail":
-		return loadMail(app, tool, 0)
+		return loadMail(app, tool, "inbox")
 	}
 	return &Room{tool: tool}, nil
 }

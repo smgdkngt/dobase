@@ -14,8 +14,9 @@ json.counts do
   json.inbox_unread @inbox_unread
   json.drafts @drafts_count
   json.trash @trash_count
+  json.junk_unread @junk_unread if @junk_unread
 end
-json.folders Mails::Account::VIEWS
+json.folders @mail_account.views
 json.custom_folders @custom_folders
 
 json.conversations @conversations do |conversation|

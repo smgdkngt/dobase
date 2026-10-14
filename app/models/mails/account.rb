@@ -26,11 +26,19 @@ module Mails
     # Changing these is worth another try after the server turned the login down
     CONNECTION_SETTINGS = %w[imap_host imap_port imap_ssl username encrypted_password].freeze
 
-    BUILT_IN_FOLDERS = %w[INBOX Sent Drafts Trash Spam INBOX.spam INBOX.Spam Junk].freeze
+    # The folders the mail page has views of. A second spam folder beside the server's junk
+    # folder (Roundcube's "INBOX.Junk" beside a filter's "INBOX.spam") is one of the account's own.
+    BUILT_IN_FOLDERS = %w[INBOX Sent Drafts Trash Junk].freeze
     # The server's trash, whatever the server calls it ("Deleted Messages", "[Gmail]/Trash", ...)
     TRASH = "Trash"
-    # What the mail page lists itself, before the account's own folders
-    VIEWS = %w[inbox drafts starred sent archive trash].freeze
+    # The server's folder for junk mail, whatever the server calls it ("Spam", "INBOX.spam", "[Gmail]/Spam", ...)
+    JUNK = "Junk"
+    # What the mail page lists itself, before the account's own folders. Junk only for an account whose server has it (#views).
+    VIEWS = %w[inbox drafts starred sent archive junk trash].freeze
+
+    def views
+      junk_folder? ? VIEWS : VIEWS - [ "junk" ]
+    end
 
     # Images load straight away in mail from a trusted sender, and in your own
     def shows_images_from?(address)
@@ -71,10 +79,11 @@ module Mails
       custom_folders.find { |folder| folder != name && folder_without_prefix(folder) == name } if name.present?
     end
 
-    # The folders synced besides the inbox and sent mail: the account's own, and the archive
-    # and trash, where other mail programs archive and delete to as well
+    # The folders synced besides the inbox and sent mail: the account's own, the archive
+    # and trash, where other mail programs archive and delete to as well, and junk, where
+    # the server puts mail it takes for spam (which can be mail someone was waiting for)
     def other_folders_to_sync
-      [ *custom_folders, archive_folder.presence, TRASH ].compact.uniq.select { |folder| folder.in?(server_folders) }
+      [ *custom_folders, archive_folder.presence, JUNK, TRASH ].compact.uniq.select { |folder| folder.in?(server_folders) }
     end
 
     def server_folders
@@ -85,6 +94,10 @@ module Mails
 
     def server_trash?
       TRASH.in?(server_folders)
+    end
+
+    def junk_folder?
+      JUNK.in?(server_folders)
     end
 
     # Archived mail as the Archive lists it: mail archived here, and the mail in the server's
@@ -143,6 +156,16 @@ module Mails
           message.record_event(:unarchived, moved_from: was_in)
         end
       end
+    end
+
+    # Junk goes to the server's junk folder, and mail that isn't junk back to the inbox, as
+    # in other mail programs: the server's filter learns from what is moved in and out.
+    def mark_as_junk(messages)
+      move(messages.reject(&:junk?), JUNK)
+    end
+
+    def not_junk(messages)
+      move(messages.select(&:junk?), "INBOX")
     end
 
     def move(messages, target_folder)
