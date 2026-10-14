@@ -30,6 +30,8 @@ module Files
     scope :ordered, -> { order(:position, :name) }
 
     before_save :cache_file_metadata, if: -> { file.attached? }
+    # A file added is heard outside the browser (Event): its name, where it is and how big
+    after_create_commit -> { ::Event.record("file.created", tool: tool, record: self, name: name, folder: folder_path, size: file_size) }
 
     def extension
       File.extname(name).delete(".").downcase
@@ -78,6 +80,11 @@ module Files
 
     def icon_name
       FilePreview.icon_name(content_type: content_type, extension: extension)
+    end
+
+    # The folders it is in, from the top: "Clients/Acme". Nil at the top itself.
+    def folder_path
+      folder&.breadcrumbs&.map(&:name)&.join("/")
     end
 
     private

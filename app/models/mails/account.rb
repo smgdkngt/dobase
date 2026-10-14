@@ -193,8 +193,15 @@ module Mails
         on_server.each { |folder, uids| ImapSyncJob.perform_later(id, "delete_message", uids, folder) }
         archived.each { |message| ImapSyncJob.perform_later(id, "delete_message_by_message_id", nil, archive_folder, message.message_id) }
       end
-      messages.each { |message| message.record_event(:deleted, moved_from: was_in[message.id]) }
+      messages.each { |message| message.draft? ? message.record_discarded : message.record_event(:deleted, moved_from: was_in[message.id]) }
       messages
+    end
+
+    # A draft thrown away for good at once, from here and from the server's Drafts
+    def discard(draft)
+      ImapSyncJob.perform_later(id, "delete_draft", draft.uid, "Drafts") if draft.uid
+      draft.destroy
+      draft.record_discarded
     end
 
     # Mail in the server's trash goes back to the inbox, a draft to the drafts. Mail deleted

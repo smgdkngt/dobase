@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_09_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_14_100000) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -100,6 +100,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_09_100000) do
     t.string "remote_id"
     t.string "remote_url"
     t.string "sync_token"
+    t.datetime "synced_at"
     t.datetime "updated_at", null: false
     t.index ["calendar_account_id", "remote_id"], name: "index_calendar_calendars_on_calendar_account_id_and_remote_id", unique: true
     t.index ["calendar_account_id"], name: "index_calendar_calendars_on_calendar_account_id"

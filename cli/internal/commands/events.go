@@ -20,7 +20,7 @@ func eventStream() []*Definition {
 		New("events", "Print what happened in your tools since last time, a line of JSON per event (--follow keeps listening)", nil, []Flag{
 			Switch("follow", "Keep listening, and print every event the moment it happens"),
 			Each("tool", "TOOL", "Only this tool's events; repeat for several"),
-			Each("kind", "KIND", "Only this kind: a family (mail, card, chat) or one (card.moved); repeat for several"),
+			Each("kind", "KIND", "Only this kind: a family (mail, card, chat, file, calendar) or one (card.moved); repeat for several"),
 			Switch("skip-own", "Leave out what was done with this access token"),
 			F("since", "WHEN", "Start that long ago (30m, 2h, 3d) or at a time, not where this listener was"),
 			F("name", "NAME", "This listener's name, under which it remembers where it was (default: default)"),

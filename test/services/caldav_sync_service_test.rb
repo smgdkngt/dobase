@@ -795,7 +795,52 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
 
   # Response XML generators
 
+
+  # Events (what a listener outside the browser hears)
+
+  test "a calendar's first sync brings what it has, which is no news" do
+    calendar = calendars_calendars(:personal)
+    calendar.update!(sync_token: nil, ctag: nil, synced_at: nil)
+    stub_request(:report, calendar.remote_url).to_return(status: 207, body: calendar_query_response([ { uid: "old-1" }, { uid: "old-2" } ]))
+    stub_request(:propfind, calendar.remote_url).to_return(status: 207, body: sync_token_response)
+
+    assert_no_difference -> { Event.count } do
+      @service.sync_calendar(calendar)
+    end
+    assert calendar.events.exists?(uid: "old-2")
+    assert_not_nil calendar.reload.synced_at
+  end
+
+  test "a sync says what was made, changed and removed on the server, and nothing when nothing was" do
+    calendar = calendars_calendars(:personal)
+    calendar.update!(sync_token: nil, ctag: nil, synced_at: 1.day.ago)
+    calendar.events.destroy_all
+    starts = Time.utc(2030, 1, 10, 9)
+    lunch = { uid: "lunch", summary: "Lunch", starts_at: starts, ends_at: starts + 1.hour }
+    stub_request(:propfind, calendar.remote_url).to_return(status: 207, body: sync_token_response)
+
+    report = stub_request(:report, calendar.remote_url).to_return(status: 207, body: calendar_query_response([ lunch, { uid: "gone", summary: "Gone", starts_at: starts, ends_at: starts } ]))
+    made = events_of { @service.sync_calendar(calendar) }
+    assert_equal [ [ "calendar.event_created", "Lunch", nil ], [ "calendar.event_created", "Gone", nil ] ], made.map { |event| [ event.kind, event.data["title"], event.user_id ] }
+
+    assert_empty events_of { @service.sync_calendar(calendar) }
+
+    # Changed on the server: a new ctag, and the calendar is read whole
+    remove_request_stub(report)
+    stub_request(:report, calendar.remote_url).to_return(status: 207, body: calendar_query_response([ lunch.merge(summary: "Long lunch", ends_at: starts + 2.hours) ]))
+    calendar.update!(ctag: "before-the-change")
+    changed = events_of { @service.sync_calendar(calendar) }
+    assert_equal [ [ "calendar.event_updated", "Long lunch", %w[title ends_at] ], [ "calendar.event_deleted", "Gone", nil ] ],
+      changed.map { |event| [ event.kind, event.data["title"], event.data["changed"] ] }
+  end
+
   private
+
+  def events_of
+    before = Event.maximum(:id).to_i
+    yield
+    Event.where(id: (before + 1)..).order(:id).to_a
+  end
 
   def capture_put(url)
     sent = nil

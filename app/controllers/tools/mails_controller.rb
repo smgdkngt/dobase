@@ -110,8 +110,7 @@ module Tools
 
     def destroy
       if @message.draft?
-        ImapSyncJob.perform_later(@tool.mail_account.id, "delete_draft", @message.uid, "Drafts") if @message.uid
-        @message.destroy
+        @tool.mail_account.discard(@message)
         # Discarded where it shows in its conversation, the conversation stays open
         answered = @message.conversation.not_draft.last if params[:from] == "conversation"
         redirect_to answered ? tool_mail_path(@tool, answered, folder: params[:folder]) : tool_mails_path(@tool, folder: "drafts"), notice: "Draft deleted."
@@ -321,9 +320,10 @@ module Tools
       SmtpSendService.new(@mail_account).send_email(
         to: to, cc: cc, bcc: bcc, subject: params[:subject],
         body: ::Mails::PlainText.from_html(body_html), body_html: body_html,
-        attachments: attachments.presence, inline_images: quote&.inline_images.presence, in_reply_to: params[:in_reply_to].presence
+        attachments: attachments.presence, inline_images: quote&.inline_images.presence, in_reply_to: params[:in_reply_to].presence,
+        quoted: message.quoted_message
       )
-      discard_draft(draft)
+      remove_sent_draft(draft)
 
       render json: { to: to, cc: cc.to_a, bcc: bcc.to_a, subject: params[:subject] }, status: :created
     rescue SmtpSendService::SendError => e
@@ -374,7 +374,8 @@ module Tools
       draft.quote_html if draft && draft.quoted_message_id.to_s == params[:quoted_message_id].to_s
     end
 
-    def discard_draft(draft)
+    # The draft that went out as this mail: it was sent, not thrown away
+    def remove_sent_draft(draft)
       return unless draft
 
       ImapSyncJob.perform_later(@mail_account.id, "delete_draft", draft.uid, "Drafts") if draft.uid

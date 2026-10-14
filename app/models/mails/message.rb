@@ -246,12 +246,37 @@ module Mails
 
     # What happened to the mail, for whoever listens from outside the browser (Event):
     # who it is from, what it is called and where it is, never what it says. A draft
-    # is nobody's news.
-    def record_event(kind, **data)
+    # is nobody's news, until it is thrown away (record_discarded).
+    def record_event(kind, by: Current.user, **data)
       return if draft?
 
-      Event.record("mail.#{kind}", tool: account.tool, record: self, from: from_address, from_name: from_name.presence,
+      Event.record("mail.#{kind}", tool: account.tool, record: self, user: by, from: from_address, from_name: from_name.presence,
         subject: subject, folder: folder, **data)
+    end
+
+    # Mail that went out: who it went to, and the mail it answers or forwards (as TOOL/ID,
+    # which `dobase mail archive` takes), so that conversation can be filed after it.
+    # `quoted` is the mail a draft quoted, which a forward is only known by.
+    def record_sent(by: Current.user, quoted: nil)
+      answered = answered_message || (quoted if in_reply_to.present?)
+      about = { (in_reply_to.present? ? :in_reply_to : :forwards) => (answered || quoted)&.then { |mail| "#{account.tool_id}/#{mail.id}" } }
+      record_event(:sent, by: by, to: to_addresses_list, **about)
+    end
+
+    # A draft thrown away without being sent: what it was called and who it was for.
+    # Writing and saving one is no event.
+    def record_discarded
+      Event.record("mail.draft_discarded", tool: account.tool, record: self, subject: subject, to: to_addresses_list)
+    end
+
+    # The mail this one answers, when the account has it. Drafts written here keep
+    # their Message-ID in angle brackets, synced mail without.
+    def answered_message
+      return if in_reply_to.blank?
+
+      bare = in_reply_to.delete("<>").strip
+      account.messages.not_draft.where(message_id: [ bare, "<#{bare}>" ]).where.not(id: id)
+        .order(Arel.sql("CASE WHEN folder = 'Sent' THEN 1 ELSE 0 END")).first
     end
 
     def conversation_count
