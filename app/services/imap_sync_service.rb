@@ -36,9 +36,10 @@ class ImapSyncService
     connect do |imap|
       mailboxes = imap.list("", "*") || []
       # The server's sent, drafts, trash and junk folders are known here as "Sent", "Drafts", "Trash" and "Junk"
-      special = SPECIAL_FOLDERS.keys.index_by { |folder| find_special_folder(mailboxes, folder) }.except(nil)
-      # Leave out Gmail's other system folders
-      folders = mailboxes.map(&:name).reject { |f| f.start_with?("[Gmail]/") && !special.key?(f) }
+      special = SPECIAL_FOLDERS.keys.index_by { |folder| find_special_folder(mailboxes, folder, imap: imap) }.except(nil)
+      # Leave out Gmail's other system folders, and the server's other junk folders while they're empty
+      spare_junk = junk_folders(mailboxes).reject { |name| special.key?(name) || message_count(imap, name).positive? }
+      folders = mailboxes.map(&:name).reject { |f| (f.start_with?("[Gmail]/") && !special.key?(f)) || spare_junk.include?(f) }
       normalized = folders.map { |f| special.fetch(f, f) }.uniq
       special.each { |server_name, folder| adopt_special_folder(server_name, folder) }
       @account.update!(synced_folders: normalized.to_json, folder_prefix: folder_prefix(imap, mailboxes))
@@ -397,7 +398,7 @@ class ImapSyncService
   # those folders ("[Gmail]/Sent Mail", "INBOX.Drafts", ...). Lists the server's folders at most once.
   def server_folder_names(imap, *folders)
     mailboxes = imap.list("", "*") if folders.intersect?(SPECIAL_FOLDERS.keys)
-    folders.map { |folder| (mailboxes && find_special_folder(mailboxes, folder)) || folder }
+    folders.map { |folder| (mailboxes && find_special_folder(mailboxes, folder, imap: imap)) || folder }
   end
 
   # Mail synced from a special folder before it was known as one (like iCloud's "Deleted
@@ -439,9 +440,39 @@ class ImapSyncService
     @account.folder_prefix
   end
 
-  def find_special_folder(mailboxes, folder)
+  def find_special_folder(mailboxes, folder, imap: nil)
+    return find_junk_folder(imap, mailboxes) if folder == "Junk" && imap
+
     attribute, names = SPECIAL_FOLDERS[folder]
     find_folder(mailboxes, attribute, names) if attribute
+  end
+
+  # A host can have several junk folders: Dovecot's "Spam" marked \Junk, the spam filter's
+  # "INBOX.spam" beside it, webmail's "Junk". The one mail lands in is the one with mail in
+  # it: the fullest is the junk folder, and with all of them empty the one the server marks,
+  # then the first by name.
+  def find_junk_folder(imap, mailboxes)
+    candidates = junk_folders(mailboxes)
+    return candidates.first if candidates.size < 2
+
+    candidates.each_with_index.max_by { |name, index| [ message_count(imap, name), -index ] }.first
+  end
+
+  # The folders that may be the junk folder: those the server marks, then those named so
+  def junk_folders(mailboxes)
+    attribute, names = SPECIAL_FOLDERS["Junk"]
+    marked = mailboxes.select { |mailbox| mailbox.attr.include?(attribute) }.map(&:name)
+    (marked + names.select { |name| mailboxes.any? { |mailbox| mailbox.name == name } }).uniq
+  end
+
+  # How many messages a folder has; one the server won't open counts for less than an empty one
+  def message_count(imap, folder)
+    @message_counts ||= {}
+    @message_counts[folder] ||= begin
+      imap.status(folder, [ "MESSAGES" ])["MESSAGES"].to_i
+    rescue Net::IMAP::NoResponseError, Net::IMAP::BadResponseError
+      -1
+    end
   end
 
   # The folder the server marks with the SPECIAL-USE attribute (RFC 6154),
