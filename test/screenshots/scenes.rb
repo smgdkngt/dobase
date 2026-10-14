@@ -10,6 +10,11 @@ require "application_system_test_case"
 # a clock that stands still, in a window of a set size. Two runs of the same code
 # give the same pictures to the pixel, so a pixel that differs is the change.
 class ScreenshotScenes < ApplicationSystemTestCase
+  # One scene after another. Above 50 tests Rails runs them in processes side by side, and
+  # every scene starts a chromedriver of its own: processes that start one at the same
+  # moment take the same port, and one of them finds nobody there
+  parallelize(workers: 1)
+
   # A Wednesday, so tomorrow and yesterday are in the same week, and in the future,
   # so a cookie the server dates from here hasn't run out for the browser
   NOW = Time.utc(2030, 1, 16, 10, 0)
