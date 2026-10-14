@@ -5,6 +5,8 @@ module Calendars
     self.table_name = "calendar_calendars"
 
     belongs_to :account, class_name: "Calendars::Account", foreign_key: "calendar_account_id"
+    # A calendar that goes takes its events along without a word (Event)
+    around_destroy { |_calendar, removal| ::Event.suppress(&removal) }
     has_many :events, class_name: "Calendars::Event", foreign_key: "calendar_id", dependent: :destroy
 
     validates :remote_id, presence: true, uniqueness: { scope: :calendar_account_id }, unless: -> { account&.local? }

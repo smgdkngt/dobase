@@ -21,6 +21,11 @@ module Mails
   # - A copy is nothing. Mail archived here keeps its row and gets a second one in
   #   the server's archive folder; some servers show one message in several folders.
   #
+  # - Mail new in Sent was sent by another mail program (mail.sent). Mail sent from
+  #   here is in Sent before the sync gets there, and said when it went out
+  #   (SmtpSendService): the sync finds that row by its Message-ID. So is mail the
+  #   account had before this run under that Message-ID: it isn't new.
+  #
   # Mail is told apart by its Message-ID, which its sender wrote. Mail that comes
   # in under the Message-ID of mail the account already has reads as a copy of
   # it, and gives no event. It is in the mailbox like any other.
@@ -33,7 +38,7 @@ module Mails
 
     # What is kept of a message until the run is over: enough to tell it apart and to
     # say what it was, without what it says. A run can see thousands.
-    KEPT = %w[id mail_account_id message_id folder uid draft from_address from_name subject].freeze
+    KEPT = %w[id mail_account_id message_id folder uid draft from_address from_name subject to_addresses in_reply_to].freeze
 
     Arrival = Struct.new(:message, :received_at, :new_number)
 
@@ -85,6 +90,8 @@ module Mails
             record_move(message, departure.folder)
           elsif new_mail?(arrival) && !copy?(message)
             message.record_event(:received)
+          elsif sent_elsewhere?(arrival)
+            message.record_sent
           end
         end
 
@@ -109,10 +116,26 @@ module Mails
       end
 
       def new_mail?(arrival)
-        return false if @synced_before.nil? || !arrival.new_number
         return false if arrival.message.folder.in?(NO_INBOX) || arrival.message.folder == @account.archive_folder.presence
 
+        new_on_server?(arrival)
+      end
+
+      def sent_elsewhere?(arrival)
+        message = arrival.message
+        message.folder == "Sent" && new_on_server?(arrival) &&
+          !@account.messages.where(message_id: message.message_id).where.not(id: arrived_ids).exists?
+      end
+
+      # Given a higher number than its folder had, and taken in since the last sync
+      def new_on_server?(arrival)
+        return false if @synced_before.nil? || !arrival.new_number
+
         arrival.received_at.nil? || arrival.received_at >= @synced_before - CLOCK_SLACK
+      end
+
+      def arrived_ids
+        @arrived_ids ||= @arrived.map { |arrival| arrival.message.id }
       end
 
       # The same mail in another folder too. Mail to yourself is in Sent and comes in as well.

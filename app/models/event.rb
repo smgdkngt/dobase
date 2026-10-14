@@ -14,15 +14,19 @@
 # (PurgeEventsJob); a listener that was away for longer is told there is a gap.
 #
 # Written by the models, so that no way of changing something can forget it: a card
-# when it is saved or removed, a comment and a chat message when they are made
-# (their callbacks), and mail in the methods of Mails::Account that do something
-# to it and at the end of a sync (Mails::SyncEvents). Mail has no callback: a sync
-# copies and removes rows that are no news. No controller writes an event.
+# when it is saved or removed, a comment, a chat message and a file when they are
+# made, an appointment when it is made, changed or removed (their callbacks), and
+# mail in the methods of Mails::Account that do something to it, when it has gone
+# out (SmtpSendService) and at the end of a sync (Mails::SyncEvents). Mail has no
+# callback: a sync copies and removes rows that are no news. No controller writes
+# an event.
 class Event < ApplicationRecord
   KINDS = %w[
-    mail.received mail.moved mail.archived mail.unarchived mail.deleted
+    mail.received mail.sent mail.moved mail.archived mail.unarchived mail.deleted mail.draft_discarded
     card.created card.updated card.moved card.commented card.archived card.unarchived card.deleted
     chat.message
+    file.created
+    calendar.event_created calendar.event_updated calendar.event_deleted
   ].freeze
   KEPT_FOR = 7.days
   # A title or a subject is somebody else's text: one line, and not a long one
@@ -63,11 +67,12 @@ class Event < ApplicationRecord
 
   class << self
     # What happened, to which record, and the few words that say it. Who did it is
-    # whoever is asking now, with the token they ask with; a job has nobody.
-    # Writing an event down never stops what it is about.
-    def record(kind, tool:, record: nil, **data)
+    # whoever is asking now, with the token they ask with; a job has nobody, unless
+    # it knows whose work it finishes (`user`). Writing an event down never stops
+    # what it is about.
+    def record(kind, tool:, record: nil, user: Current.user, **data)
       token = Current.access_token
-      create!(kind: kind, tool_id: tool.id, record_id: record&.id, user: Current.user,
+      create!(kind: kind, tool_id: tool.id, record_id: record&.id, user: user,
         access_token_id: token&.id, via: token&.name, agent: token&.agent? || false, data: tidy(data))
     rescue StandardError => error
       raise if Rails.env.local?
@@ -114,7 +119,16 @@ class Event < ApplicationRecord
 
     private
       def tidy(data)
-        data.compact.transform_values { |value| value.is_a?(String) ? line(value) : value }
+        data.compact.transform_values { |value| tidy_value(value) }
+      end
+
+      # A list of addresses is somebody's text as much as a subject is
+      def tidy_value(value)
+        case value
+        when String then line(value)
+        when Array then value.map { |item| tidy_value(item) }
+        else value
+        end
       end
   end
 

@@ -24,7 +24,7 @@ class SendMailJob < ApplicationJob
         subject: message.subject, body: Mails::PlainText.from_html(body_html), body_html: body_html,
         attachments: message.attachments.filter_map { |attachment| attachment.file.blob if attachment.file.attached? }.presence,
         inline_images: Mails::Quote.of(message)&.inline_images.presence, in_reply_to: message.in_reply_to,
-        sent_copy: message
+        sent_copy: message, quoted: message.quoted_message, sender: sender
       )
     rescue SmtpSendService::Unreachable
       raise

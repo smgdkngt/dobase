@@ -24,8 +24,22 @@ module Calendars
                   :recurrence_count,        # integer
                   :recurrence_until         # date string
 
+    # What a listener outside the browser hears changed (Event), by the name it hears it under:
+    # when, what and where. The rest (attendees, what the server keeps) changes too often to say.
+    TOLD_CHANGES = { "summary" => "title", "starts_at" => "starts_at", "ends_at" => "ends_at", "all_day" => "all_day",
+                     "location" => "location", "calendar_id" => "calendar" }.freeze
+
     before_validation :pin_all_day_to_dates, if: :all_day_times_to_pin?
     before_validation :build_recurrence_from_form, if: :recurrence_frequency_provided?
+
+    # Made, changed or removed here, through the API or by a sync: each is an event, unless
+    # nothing that is told changed. A calendar's first sync is quiet (CaldavSyncService).
+    after_create { record_event(:created) }
+    after_update do
+      changed = TOLD_CHANGES.filter_map { |attribute, told| told if saved_change_to_attribute?(attribute) }
+      record_event(:updated, changed: changed) if changed.any?
+    end
+    after_destroy { record_event(:deleted) }
 
     validates :uid, presence: true
     validates :summary, presence: true
@@ -182,6 +196,12 @@ module Calendars
     # recurring event answer true.
     def occurrence?
       false
+    end
+
+    def record_event(kind, **data)
+      ::Event.record("calendar.event_#{kind}", tool: calendar.account.tool, record: self, title: summary,
+        starts_at: starts_at&.utc&.iso8601, ends_at: ends_at&.utc&.iso8601, all_day: all_day?,
+        location: location.presence, calendar: calendar.name, **data)
     end
 
     private

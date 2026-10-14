@@ -124,6 +124,61 @@ class EventsWrittenTest < ActiveSupport::TestCase
     assert_equal [ 1, first.id ], event.data.values_at("files", "reply_to")
   end
 
+  test "a file added says what it is called, where it is and how big" do
+    tool = tools(:my_files)
+    item = nil
+
+    events = events_of do
+      item = tool.file_items.new(name: "notes.txt", folder: file_folders(:documents))
+      item.file.attach(io: StringIO.new("hello"), filename: "notes.txt", content_type: "text/plain")
+      item.save!
+      item.update!(name: "renamed.txt")
+    end
+
+    assert_equal [ [ "file.created", item.id, { "name" => "notes.txt", "folder" => file_folders(:documents).name, "size" => 5 } ] ], summary(events)
+    assert_equal tool.id, events.sole.tool_id
+  end
+
+  test "an appointment made, changed and removed" do
+    calendar = calendars_calendars(:personal)
+    event = nil
+    starts = Time.utc(2030, 1, 10, 9)
+
+    made = events_of { event = calendar.events.create!(uid: "lunch@test", summary: "Lunch", location: "Cafe", starts_at: starts, ends_at: starts + 1.hour) }
+    assert_equal [ [ "calendar.event_created", event.id, { "title" => "Lunch", "starts_at" => "2030-01-10T09:00:00Z", "ends_at" => "2030-01-10T10:00:00Z",
+      "all_day" => false, "location" => "Cafe", "calendar" => "Personal" } ] ], summary(made)
+    assert_equal tools(:my_calendar).id, made.sole.tool_id
+
+    changed = events_of do
+      event.update!(starts_at: starts + 1.hour, ends_at: starts + 2.hours)
+      event.update!(summary: "Long lunch", location: "Park")
+      event.update!(calendar: calendars_calendars(:work))
+    end
+    assert_equal [ %w[starts_at ends_at], %w[title location], %w[calendar] ], changed.map { |change| change.data["changed"] }
+    assert_equal %w[calendar.event_updated], changed.map(&:kind).uniq
+
+    removed = events_of { event.destroy! }
+    assert_equal [ [ "calendar.event_deleted", event.id, "Long lunch", "Work" ] ], removed.map { |change| [ change.kind, change.record_id, change.data["title"], change.data["calendar"] ] }
+  end
+
+  test "an appointment saved without a change to when, what or where is no event" do
+    event = calendars_events(:meeting)
+
+    events = events_of do
+      event.update!(summary: event.summary)
+      event.update!(etag: "new-etag", description: "Another agenda", attendees: [ { "email" => "ann@example.com" } ])
+    end
+
+    assert_empty events
+  end
+
+  test "a calendar that goes takes its appointments along without a word" do
+    calendar = calendars_calendars(:personal)
+    assert_operator calendar.events.count, :>, 0
+
+    assert_empty events_of { calendar.destroy! }
+  end
+
   private
     def events_of
       before = Event.maximum(:id).to_i

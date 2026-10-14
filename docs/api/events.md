@@ -51,7 +51,8 @@ and keeps listening.
   first request of a listener that wants some history. Go on with `after`.
 - `tool[]=107&tool[]=110` gives only those tools' events.
 - `kind[]=mail&kind[]=card.moved` gives only those kinds: a family (`mail`,
-  `card`, `chat`) or one kind. A kind that doesn't exist is a `422`.
+  `card`, `chat`, `file`, `calendar`) or one kind. A kind that doesn't exist is
+  a `422`.
 - `skip_own=1` leaves out what was done with the token that asks.
 - `gap` is true when events after your number are gone. They are kept for
   seven days; a listener that was away for longer has missed some and should
@@ -63,11 +64,13 @@ You get the events of the tools you are on now, from the moment you came on.
 In an event:
 
 - `ref` is the thing it is about, as the CLI names it (`dobase card show 110/44`,
-  `dobase mail show 107/5512`): a card, a mail message or a chat message. A
-  deleted thing keeps its `ref`, which then finds nothing.
+  `dobase mail show 107/5512`, `dobase file show 12/301`, `dobase event show 9/77`):
+  a card, a mail message, a chat message, a file or an appointment. A deleted
+  thing keeps its `ref`, which then finds nothing.
 - `by` is who did it, `via` the name of the access token they did it with (null
   in the browser) and `agent` whether that token posts under its own name. It
-  is null for what nobody here did: mail that arrived, what the mail sync found.
+  is null for what nobody here did: mail that arrived, what the mail or calendar
+  sync found.
 - `own` is true when it was done with the token that asks.
 - `data` is a few words about it, never more: text of other people, cut to one
   line of 200 characters at most.
@@ -78,21 +81,43 @@ In an event:
 | `mail.moved` | Moved to another folder, or restored from the trash | the same, and `moved_from` |
 | `mail.archived`, `mail.unarchived` | Archived or brought back | the same; `moved_from` when another mail program did it |
 | `mail.deleted` | Moved to the trash, or gone from the server | the same; `moved_from` when it went to the trash |
+| `mail.sent` | Sent from here, or sent by another mail program (found in Sent by the sync) | the same, and `to` (addresses); `in_reply_to` or `forwards` (the `ref` of the mail it answers or forwards) |
+| `mail.draft_discarded` | A draft thrown away without being sent | `subject`, `to` (addresses) |
 | `card.created`, `card.archived`, `card.unarchived`, `card.deleted` | | `title`, `column` |
 | `card.updated` | Title, description, due date, assignee or colour changed | `title`, `column`, `changed` (which of those), `assignee` when it changed |
 | `card.moved` | Moved to another column (not within its own) | `title`, `column`, `moved_from` |
 | `card.commented` | | `title`, `column`, `comment_id`, `excerpt` (140 characters) |
 | `chat.message` | A message was posted | `excerpt` (140 characters), `files` (how many), `reply_to` |
+| `file.created` | A file was added to a files tool | `name`, `folder` (its path, null at the top), `size` (bytes) |
+| `calendar.event_created`, `calendar.event_deleted` | An appointment made or removed, here or on the calendar's server | `title`, `starts_at`, `ends_at` (UTC), `all_day`, `location`, `calendar` |
+| `calendar.event_updated` | Its title, time, place or calendar changed | the same, and `changed` (of `title`, `starts_at`, `ends_at`, `all_day`, `location`, `calendar`) |
 
 A mail event says who the mail is from, what it is called and where it is. It
 never carries the text of a mail. What is done to a conversation is an event
-per message. Drafts give no events, and neither does reading or starring.
+per message. Writing, saving or moving a draft gives no event, and neither does
+reading or starring; a draft thrown away (to the trash, or deleted at once) is
+`mail.draft_discarded`, and one that went out is `mail.sent` only.
+
+`mail.sent` is said once per mail. Mail sent from here is said when the mail
+server took it, by whoever sent it. Mail another mail program sent is said by
+the sync that finds it in Sent, with `by` null; mail sent from here is already
+there under its Message-ID and is not said again. A reply names the mail it
+answers in `in_reply_to` (when this account has it), a forward sent from here
+the mail it forwards in `forwards`: `dobase mail archive` on that `ref` files
+the conversation. A draft thrown away in another mail program is no event.
 
 What another mail program does shows at the next sync: mail it moved, archived
 or threw away is one event, and mail that is gone from the server altogether is
 `mail.deleted`. A sync reads up to 500 new messages per folder. Of more than
 that moved at once elsewhere, the first 500 are events; the rest gives none,
 and no mail is called deleted in a sync that left mail unread.
+
+An appointment is an event when it is made, removed, or its title, time,
+place or calendar change, here or on its server (the calendar sync, every
+fifteen minutes). A sync that changes nothing says nothing, and neither does a
+calendar's first sync, which brings what it has. A repeating appointment is one
+event for the series. A calendar that is removed takes its appointments along
+without events.
 
 Text in an event (a title, a subject, a name) is one line without control
 characters or characters that can't be seen.

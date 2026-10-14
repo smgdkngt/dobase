@@ -104,6 +104,9 @@ class EventTest < ActiveSupport::TestCase
     assert_equal [ moved, mail ].sort_by(&:id), Event.of_kinds([ "card.moved", "mail" ]).order(:id).to_a
     assert Event.kind?("mail")
     assert Event.kind?("chat.message")
+    assert Event.kind?("file")
+    assert Event.kind?("calendar")
+    assert Event.kind?("mail.draft_discarded")
     assert_not Event.kind?("card.")
     assert_not Event.kind?("car")
   end

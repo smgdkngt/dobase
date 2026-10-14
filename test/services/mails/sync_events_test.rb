@@ -83,7 +83,37 @@ module Mails
     test "mail sent from another program, a draft or what is thrown away there has not come in" do
       events = run_of("INBOX" => @inbox, "Sent" => @sent.merge(109 => "sent-elsewhere"), "Trash" => { 4 => "junked" })
 
-      assert_empty events
+      assert_equal %w[mail.sent], events.map(&:kind)
+    end
+
+    test "mail another program sent says who it went to and which mail it answers" do
+      answered = mails_messages(:inbox_read)
+
+      events = run_of("INBOX" => @inbox, "Sent" => @sent.merge(109 => [ "sent-elsewhere", 1.minute.ago, "msg-002@example.com" ]))
+
+      sent = @account.messages.find_by!(message_id: "sent-elsewhere@example.com")
+      assert_equal [ [ "mail.sent", sent.id, nil, { "from" => "ann@example.com", "from_name" => "Ann", "subject" => "sent-elsewhere", "folder" => "Sent",
+        "to" => [ "me@example.com" ], "in_reply_to" => "#{@account.tool_id}/#{answered.id}" } ] ],
+        events.map { |event| [ event.kind, event.record_id, event.user_id, event.data ] }
+    end
+
+    test "mail sent from here is said when it went out, not again when the sync finds it in Sent" do
+      capture_smtp_deliveries do
+        SmtpSendService.new(@account).send_email(to: [ "ann@example.com" ], subject: "From here", body: "Hi", body_html: "<p>Hi</p>")
+      end
+      sent = @account.messages.find_by!(folder: "Sent", subject: "From here")
+      assert Event.exists?(kind: "mail.sent", record_id: sent.id)
+
+      assert_empty run_of("INBOX" => @inbox, "Sent" => @sent.merge(110 => sent.message_id))
+      assert_equal [ 110 ], @account.messages.where(message_id: sent.message_id).pluck(:uid)
+    end
+
+    test "mail sent long ago, or found by a first sync, is not sent now" do
+      sent = @sent.merge(109 => [ "old-sent", 3.weeks.ago ], 50 => "backfilled-sent")
+      assert_empty run_of("INBOX" => @inbox, "Sent" => sent)
+
+      @account.update!(last_synced_at: nil)
+      assert_empty run_of("INBOX" => @inbox, "Sent" => sent.merge(111 => "first-sync"))
     end
 
     test "mail to yourself is in Sent and comes in as well" do
@@ -233,12 +263,12 @@ module Mails
     end
 
     private
-      # One run of the sync over these folders: { folder => { uid => message id, or [ id, when the server took it in ] } }
+      # One run of the sync over these folders: { folder => { uid => message id, or [ id, when the server took it in, what it answers ] } }
       def run_of(complete: true, **folders)
         before = Event.maximum(:id).to_i
         service = ImapSyncService.new(@account)
         folders.each do |folder, mail|
-          messages = mail.map { |uid, (id, received_at)| fetch_data(uid, id, received_at || 1.minute.ago) }
+          messages = mail.map { |uid, (id, received_at, in_reply_to)| fetch_data(uid, id, received_at || 1.minute.ago, in_reply_to) }
           service.send(:fetch_recent_emails, FakeImap.new(messages), folder, 50)
         end
         service.record_events(complete: complete)
@@ -257,12 +287,14 @@ module Mails
       end
 
       # A message as net-imap hands it over. The server's INTERNALDATE comes as text.
-      def fetch_data(uid, id, received_at)
-        raw = Mail.new(from: "Ann <ann@example.com>", to: "me@example.com", subject: id, message_id: "<#{id}@example.com>",
-          body: "The body, which is nobody's business").to_s
+      # An id with a host of its own is the whole Message-ID
+      def fetch_data(uid, id, received_at, in_reply_to = nil)
+        message_id = id.include?("@") ? id : "#{id}@example.com"
+        raw = Mail.new(from: "Ann <ann@example.com>", to: "me@example.com", subject: id, message_id: "<#{message_id}>",
+          in_reply_to: in_reply_to && "<#{in_reply_to}>", body: "The body, which is nobody's business").to_s
         envelope = Net::IMAP::Envelope.new(
           nil, id, [ Net::IMAP::Address.new("Ann", nil, "ann", "example.com") ], nil, nil,
-          [ Net::IMAP::Address.new(nil, nil, "me", "example.com") ], nil, nil, nil, "<#{id}@example.com>"
+          [ Net::IMAP::Address.new(nil, nil, "me", "example.com") ], nil, nil, nil, "<#{message_id}>"
         )
         Net::IMAP::FetchData.new(1, { "UID" => uid, "ENVELOPE" => envelope, "FLAGS" => [],
           "INTERNALDATE" => received_at.strftime("%d-%b-%Y %H:%M:%S %z"), "BODY[]" => raw })

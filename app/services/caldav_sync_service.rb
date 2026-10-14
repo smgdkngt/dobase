@@ -92,8 +92,17 @@ class CaldavSyncService
     raise SyncError, failures.first if calendars.any? && failures.size == calendars.size
   end
 
+  # A calendar's first sync brings what it has, which is no news: its events are
+  # heard (Event) from the next sync on
   def sync_calendar(calendar)
     return if @account.local?
+    return sync_events_of(calendar) if calendar.synced_at
+
+    ::Event.suppress { sync_events_of(calendar) }
+    calendar.update!(synced_at: Time.current)
+  end
+
+  def sync_events_of(calendar)
     if calendar.sync_token.present? && !ctag_changed?(calendar)
       delta_sync(calendar)
     else

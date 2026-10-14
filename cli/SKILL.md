@@ -136,24 +136,35 @@ dobase events --since 2h                           # start two hours back instea
 ```
 
 Run `events --follow` as a background process to be woken by what happens in
-Dobase instead of polling it: mail that comes in, cards made, changed, moved,
-commented on, archived or deleted, chat messages. Each line is one event:
+Dobase instead of polling it: mail that comes in or goes out, drafts thrown
+away, cards made, changed, moved, commented on, archived or deleted, chat
+messages, files added, appointments made, changed or removed. Each line is one
+event:
 
 ```json
 {"id":813,"kind":"mail.received","at":"2026-10-09T14:05:40Z","tool":{"id":107,"name":"Mail","type":"mail"},"ref":"107/5512","by":null,"own":false,"data":{"from":"ann@example.com","from_name":"Ann Lee","subject":"Lunch on Friday?","folder":"INBOX"}}
 ```
 
-- `ref` is the TOOL/ID to pass on: `dobase mail show 107/5512`, `dobase card show 110/44`.
+- `ref` is the TOOL/ID to pass on: `dobase mail show 107/5512`, `dobase card show 110/44`,
+  `dobase file show 12/301`, `dobase event show 9/77`.
   An event carries a few words (a title, a subject, the first 140 characters of
   a comment or chat message), never the text of a mail. Read the thing itself
   for more.
 - `by` is who did it (`via` the token's name), and null for what came from
   outside, like mail arriving. `--skip-own` leaves out what was done with the
   token you run with, so your own work doesn't wake you.
-- Kinds: `mail.received`, `mail.moved`, `mail.archived`, `mail.unarchived`,
-  `mail.deleted`, `card.created`, `card.updated`, `card.moved`,
-  `card.commented`, `card.archived`, `card.unarchived`, `card.deleted`,
-  `chat.message`. `--kind mail` is every mail event.
+- Kinds: `mail.received`, `mail.sent`, `mail.moved`, `mail.archived`,
+  `mail.unarchived`, `mail.deleted`, `mail.draft_discarded`, `card.created`,
+  `card.updated`, `card.moved`, `card.commented`, `card.archived`,
+  `card.unarchived`, `card.deleted`, `chat.message`, `file.created`,
+  `calendar.event_created`, `calendar.event_updated`, `calendar.event_deleted`.
+  `--kind mail` is every mail event, `--kind calendar` every appointment.
+- `mail.sent` comes once per mail, also for mail sent from another mail
+  program (then `by` is null). Its `data.in_reply_to` (or `forwards`) is the
+  `ref` of the mail it answers: `dobase mail archive` on it files that
+  conversation once the answer is out.
+- `calendar.event_updated` names in `data.changed` what changed (`title`,
+  `starts_at`, `ends_at`, `all_day`, `location`, `calendar`); times are UTC.
 - A listener remembers the last event it printed under its `--name` (`default`
   without one), so after a restart or a network that went away it goes on where
   it was: nothing is missed. (Killed between printing a line and noting it, it

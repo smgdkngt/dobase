@@ -63,14 +63,17 @@ class SmtpSendService
   # inline_images are the pictures the HTML shows by cid: (a quote's, Mails::Quote#inline_images).
   # sent_copy is the mail as it's kept in Sent, when it's there already (the compose page's,
   # which shows in its conversation while it's sent): it goes out under its Message-ID.
-  def send_email(to:, subject:, body:, body_html: nil, cc: nil, bcc: nil, attachments: nil, inline_images: nil, in_reply_to: nil, sent_copy: nil)
+  # quoted is the mail a reply or forward quotes, and sender who sent it (a job has
+  # nobody asking): both only for the event that says the mail went out.
+  def send_email(to:, subject:, body:, body_html: nil, cc: nil, bcc: nil, attachments: nil, inline_images: nil, in_reply_to: nil,
+                 sent_copy: nil, quoted: nil, sender: Current.user)
     in_reply_to = in_reply_to.presence
     email = { to: to, subject: subject, body: body, body_html: body_html, cc: cc, bcc: bcc, attachments: attachments,
               inline_images: inline_images, in_reply_to: in_reply_to, references: references_for(in_reply_to),
               message_id: sent_copy&.message_id }
 
     mail = deliver(**email)
-    file_sent_email(mail, sent_copy: sent_copy, **email)
+    file_sent_email(mail, sent_copy: sent_copy, quoted: quoted, sender: sender, **email)
 
     true
   end
@@ -112,9 +115,12 @@ class SmtpSendService
   # The email has gone out by now. Failing to keep contacts or the sent copy is
   # reported, not raised: callers would otherwise think the send failed and try again.
   # The sync puts a copy in the server's sent folder, for other mail programs.
-  def file_sent_email(mail, **email)
+  # The sent copy says it went out (Event). Mail from another mail program is said by the
+  # sync that finds it in Sent (Mails::SyncEvents); this copy is found there by its
+  # Message-ID, so a mail is said once.
+  def file_sent_email(mail, quoted:, sender:, **email)
     record_contacts(to: email[:to], cc: email[:cc], bcc: email[:bcc])
-    save_sent_email(mail, **email)
+    save_sent_email(mail, **email).record_sent(by: sender, quoted: quoted)
     SyncEmailsJob.perform_later(@account.id)
   rescue StandardError => error
     Rails.error.report(error, context: { mail_account_id: @account.id, message_id: mail.message_id })
