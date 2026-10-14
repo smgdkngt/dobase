@@ -30,6 +30,11 @@
       <%= render "components/icon_button", icon: "rotate-ccw", title: "Restore",
           href: tool_mail_trash_path(@tool, @selected_message), method: :delete,
           data: { turbo_frame: "_top" } %>
+    <% elsif @current_folder == "junk" %>
+      <%= render "components/button", text: "Not junk", icon: "shield-check", size: :sm, variant: :secondary,
+          href: tool_mail_junk_path(@tool, @selected_message), method: :delete,
+          title: "Move to the inbox (e)",
+          data: { controller: "hotkey", hotkey: "e", turbo_frame: "_top" } %>
     <% elsif @current_folder == "archive" %>
       <%= render "components/icon_button", icon: "archive-restore", title: "Unarchive (e)",
           href: tool_mail_archive_path(@tool, @selected_message), method: :delete,
@@ -60,6 +65,16 @@
                 data: { turbo_frame: "_top" } do %>
             <%= render "shared/icon", name: icon, size: 16 %>
             <span><%= label %></span>
+          <% end %>
+        <% end %>
+        <% if @tool.mail_account.junk_folder? && @current_folder != "junk" %>
+          <div class="dropdown-divider"></div>
+          <%= button_to tool_mail_junk_path(@tool, @selected_message),
+                class: "dropdown-item flex items-center gap-2",
+                params: { folder: @current_folder },
+                data: { turbo_frame: "_top" } do %>
+            <%= render "shared/icon", name: "shield-alert", size: 16 %>
+            <span>Junk</span>
           <% end %>
         <% end %>
       </div>

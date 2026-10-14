@@ -49,6 +49,13 @@ module Mails
       assert_equal [ [ "mail.received", "Receipts" ] ], events.map { |event| [ event.kind, event.data["folder"] ] }
     end
 
+    test "mail the server took for junk wakes nobody, and moved out of it is a move" do
+      assert_empty run_of("INBOX" => @inbox, "Junk" => { 1 => "spam", 2 => "invitation" })
+
+      events = run_of("INBOX" => @inbox.merge(204 => "invitation"), "Junk" => { 1 => "spam" })
+      assert_equal [ [ "mail.moved", "INBOX", "Junk" ] ], events.map { |event| [ event.kind, event.data["folder"], event.data["moved_from"] ] }
+    end
+
     test "the first sync of an account brings its mail, which is not news" do
       @account.update!(last_synced_at: nil)
       @account.messages.destroy_all

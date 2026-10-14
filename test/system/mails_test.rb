@@ -807,6 +807,28 @@ class MailsTest < ApplicationSystemTestCase
     SmtpSendService.remove_method :send_email_without_failure
   end
 
+  test "mail someone was waiting for is found in Junk, and Not junk puts it in the inbox" do
+    account = mails_accounts(:primary)
+    account.update!(synced_folders: %w[INBOX Sent Archive Receipts Junk].to_json)
+    account.messages.create!(message_id: "<invite@hans.example>", folder: "Junk", subject: "Tasting night", from_name: "Hans",
+      from_address: "hans@hans.example", sent_at: 1.hour.ago, read: false, body_html: "<p>Kom je ook?</p>")
+
+    visit tool_mails_path(@tool)
+    assert_no_text "Tasting night"
+    find(".mail-folder-picker button").click
+    within("#mail-folder-menu") { click_on "Junk" }
+
+    find(".mail-list-item", text: "Tasting night").click
+    assert_selector ".mail-detail-header h1", text: "Tasting night"
+    click_on "Not junk"
+
+    assert_text "Moved to the inbox."
+    find(".mail-folder-picker button").click
+    within("#mail-folder-menu") { click_on "Inbox" }
+    assert_text "Tasting night"
+    assert_equal "INBOX", account.messages.find_by!(subject: "Tasting night").folder
+  end
+
   test "bulk select and archive" do
     visit tool_mails_path(@tool)
 

@@ -14,7 +14,7 @@ import (
 
 // mailViews are the views `mail list` shows, with their names.
 var mailViews = [][2]string{
-	{"inbox", "Inbox"}, {"drafts", "Drafts"}, {"starred", "Starred"}, {"sent", "Sent"}, {"archive", "Archive"}, {"trash", "Trash"},
+	{"inbox", "Inbox"}, {"drafts", "Drafts"}, {"starred", "Starred"}, {"sent", "Sent"}, {"archive", "Archive"}, {"junk", "Junk"}, {"trash", "Trash"},
 }
 
 const (
@@ -54,6 +54,9 @@ func mail() []*Definition {
 			[]string{"TOOL/MESSAGE", "FOLDER"}, nil, moveMail),
 		New("mail trash", "Move a message, with its conversation in the inbox, to the trash on the mail server (nothing is deleted)",
 			[]string{"TOOL/MESSAGE"}, []Flag{F("folder", "FOLDER", "The folder the conversation is in, when it isn't the inbox")}, trashMail),
+		New("mail junk", "Move a message, with its conversation, to the junk folder on the mail server",
+			[]string{"TOOL/MESSAGE"}, []Flag{F("folder", "FOLDER", "The folder the conversation is in, when it isn't the inbox")}, junkMail),
+		New("mail not-junk", "Move a message in junk, with its conversation there, back to the inbox", []string{"TOOL/MESSAGE"}, nil, notJunkMail),
 		New("mail restore", "Bring a message back from the trash: to the inbox, or to Drafts when it is a draft", []string{"TOOL/MESSAGE"}, nil, restoreMail),
 		New("mail discard", "Discard a saved draft: it moves to the trash, and `mail restore` brings it back", []string{"TOOL/DRAFT"}, nil, discardMailDraft),
 		New("mail draft", "Save a new draft (nothing is sent; it is copied to the server's Drafts folder)", []string{"TOOL"},
@@ -307,9 +310,11 @@ func moveMail(ctx *Ctx, args *Args) error {
 	if folder == "sent" {
 		folder = "Sent"
 	}
-	if slices.Contains([]string{"drafts", "starred", "archive", "trash"}, folder) {
+	if slices.Contains([]string{"drafts", "starred", "archive", "junk", "trash"}, folder) {
 		hint := ""
 		switch folder {
+		case "junk":
+			hint = "; use `dobase mail junk`"
 		case "starred":
 			hint = "; use `dobase mail star`"
 		case "archive":
@@ -354,6 +359,25 @@ func trashMail(ctx *Ctx, args *Args) error {
 		ctx.Sayf("Moved %s to the trash. Bring it back with: dobase mail restore %s/%s", mailDescribe(tool, message), tool.Get("id").S(), message.Get("id").S())
 		return nil
 	})
+}
+
+func junkMail(ctx *Ctx, args *Args) error {
+	tool, id, err := ctx.ToolAndID(args.At(0), "mail", "message")
+	if err != nil {
+		return err
+	}
+	message, err := ctx.Post(fmt.Sprintf("/tools/%s/mails/%d/junk", tool.Get("id").S(), id), api.Object("folder", optionalMailFlag(args, "folder")))
+	if err != nil {
+		return err
+	}
+	return ctx.Output(message, func() error {
+		ctx.Sayf("Moved %s to junk. Bring it back with: dobase mail not-junk %s/%s", mailDescribe(tool, message), tool.Get("id").S(), message.Get("id").S())
+		return nil
+	})
+}
+
+func notJunkMail(ctx *Ctx, args *Args) error {
+	return changeMail(ctx, args, false, "junk", func(message string) string { return "Moved " + message + " to the inbox." })
 }
 
 func restoreMail(ctx *Ctx, args *Args) error {
@@ -1197,6 +1221,8 @@ func mailFolderSummary(mailbox api.Value) string {
 			number, label = counts.Get("inbox_unread").Int(), " unread"
 		case "drafts":
 			number = counts.Get("drafts").Int()
+		case "junk":
+			number, label = counts.Get("junk_unread").Int(), " unread"
 		case "trash":
 			number = counts.Get("trash").Int()
 		}

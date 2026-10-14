@@ -33,6 +33,12 @@ module Tools
         when "archive"
           count = @mail_account.archive(conversations_of(messages, folder).to_a).size
           "#{count} email(s) archived."
+        when "junk"
+          count = @mail_account.mark_as_junk(conversations_of(messages, folder).not_draft.to_a).size
+          "#{count} email(s) moved to Junk."
+        when "not_junk"
+          count = @mail_account.not_junk(conversations_of(messages, "junk").to_a).size
+          "#{count} email(s) moved to the inbox."
         when "mark_read", "mark_unread"
           read = action == "mark_read"
           messages = conversations_of(messages, folder).where(read: !read)

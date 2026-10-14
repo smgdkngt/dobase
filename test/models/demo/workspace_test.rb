@@ -45,7 +45,7 @@ class Demo::WorkspaceTest < ActiveSupport::TestCase
     assert_equal 12, board.cards.count
     assert_equal Date.new(2031, 5, 9), board.cards.find_by!(title: "Write press release for launch day").due_date.to_date
     assert_equal 15, @owner.owned_tools.find_by!(name: "Team Chat").chat.messages.count
-    assert_equal 8, @owner.owned_tools.find_by!(name: "Mail").mail_account.messages.count
+    assert_equal 10, @owner.owned_tools.find_by!(name: "Mail").mail_account.messages.count
     assert_equal 12, @owner.owned_tools.find_by!(name: "Team Files").file_items.count
     assert_operator @owner.owned_tools.find_by!(name: "Calendar").calendar_account.events.count, :>=, 17
   end

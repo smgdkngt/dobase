@@ -27,8 +27,9 @@ module Mails
   class SyncEvents
     # The servers' clocks and this one's needn't agree
     CLOCK_SLACK = 1.hour
-    # Mail that turns up in these has not come in: it was sent, written or thrown away
-    NO_INBOX = [ "Sent", "Drafts", Account::TRASH ].freeze
+    # Mail that turns up in these has not come in: it was sent, written or thrown away, or
+    # the server took it for junk (nobody is woken for spam; moved to the inbox it is a move)
+    NO_INBOX = [ "Sent", "Drafts", Account::TRASH, Account::JUNK ].freeze
 
     # What is kept of a message until the run is over: enough to tell it apart and to
     # say what it was, without what it says. A run can see thousands.

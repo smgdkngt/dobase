@@ -35,6 +35,7 @@ module Mails
     scope :not_draft, -> { where(draft: false) }
     scope :inbox, -> { where(folder: "INBOX").not_trashed.not_draft }
     scope :sent, -> { where(folder: "Sent").not_trashed.not_draft }
+    scope :junk, -> { where(folder: Account::JUNK).not_trashed.not_draft }
     scope :drafts, -> { where(draft: true).not_trashed }
     scope :unread, -> { where(read: false) }
     scope :starred, -> { where(starred: true).not_trashed.not_draft }
@@ -174,6 +175,16 @@ module Mails
     # The mail server didn't take it: a draft again, to change or send once more
     def back_to_drafts!
       update!(draft: true, sending: false, folder: "Drafts", trashed: false, archived: false)
+    end
+
+    def junk?
+      folder == Account::JUNK && !trashed?
+    end
+
+    # Images load straight away from a trusted sender (Account#shows_images_from?), never in
+    # junk: who it says it is from is what spam lies about, and an image tells it the mail was read
+    def shows_images?
+      !junk? && account.shows_images_from?(from_address)
     end
 
     def mark_as_read!

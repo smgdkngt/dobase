@@ -237,12 +237,52 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_equal "This is a draft message.\n\nAnn wrote:\n\n> Lunch?", raw.text_part.decoded
   end
 
-  test "the server's sent and drafts folders are listed as Sent and Drafts" do
-    server = FakeImapServer.new(folders: [ "INBOX", "Receipts", [ "[Gmail]/Sent Mail", :Sent ], "[Gmail]/Drafts", "[Gmail]/Spam" ])
+  test "the server's sent, drafts and junk folders are listed as Sent, Drafts and Junk" do
+    server = FakeImapServer.new(folders: [ "INBOX", "Receipts", [ "[Gmail]/Sent Mail", :Sent ], "[Gmail]/Drafts", "[Gmail]/Spam", "[Gmail]/Important" ])
 
     connect_to_imap(server) { @service.sync_folders }
 
-    assert_equal %w[INBOX Receipts Sent Drafts], JSON.parse(@account.reload.synced_folders)
+    assert_equal %w[INBOX Receipts Sent Drafts Junk], JSON.parse(@account.reload.synced_folders)
+  end
+
+  # iCloud has "Junk", a host with Dovecot "INBOX.spam", marked \Junk or not
+  test "the server's junk folder is known as Junk, by its mark or by its name, and mail synced from it before goes along" do
+    { [ "INBOX.spam", :Junk ] => "INBOX.spam", "INBOX.spam" => "INBOX.spam", "Junk" => "Junk", [ "Bulk", :Junk ] => "Bulk" }.each do |listed, name|
+      connect_to_imap(FakeImapServer.new(folders: [ "INBOX", listed ])) { @service.sync_folders }
+
+      assert_equal %w[INBOX Junk], JSON.parse(@account.reload.synced_folders), name
+      assert_equal [ "Junk" ], @account.other_folders_to_sync, name
+    end
+
+    # A junk folder by a name that wasn't known before was synced as a folder of its own
+    earlier = mails_messages(:inbox_read)
+    earlier.update!(folder: "INBOX.Junk", uid: 5)
+    connect_to_imap(FakeImapServer.new(folders: [ "INBOX", [ "INBOX.Junk", :Junk ] ])) { @service.sync_folders }
+
+    assert_equal [ "Junk", false, 5 ], [ earlier.reload.folder, earlier.trashed?, earlier.uid ]
+    assert_not_includes @account.custom_folders, "INBOX.Junk"
+  end
+
+  # On a host with a spam filter and webmail both, the filter's folder is the one mail lands in
+  test "a second spam folder beside the junk folder is one of the account's own, and synced" do
+    server = FakeImapServer.new(folders: [ "INBOX", "INBOX.Junk", "INBOX.spam" ])
+
+    connect_to_imap(server) { @service.sync_folders }
+
+    assert_equal %w[INBOX INBOX.Junk Junk], JSON.parse(@account.reload.synced_folders)
+    assert_equal [ "INBOX.Junk" ], @account.custom_folders
+    assert_equal [ "INBOX.Junk", "Junk" ], @account.other_folders_to_sync
+  end
+
+  test "the trash and junk are synced by the server's names for them" do
+    server = FakeImapServer.new(folders: [ "INBOX", [ "Deleted Messages", :Trash ], [ "INBOX.spam", :Junk ] ])
+
+    connect_to_imap(server) do
+      @service.sync_folder("Trash")
+      @service.sync_folder("Junk")
+    end
+
+    assert_equal [ "Deleted Messages", "INBOX.spam" ], server.selected
   end
 
   test "a server that keeps its folders inside the inbox says so, and the account remembers" do

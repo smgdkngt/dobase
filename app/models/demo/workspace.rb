@@ -484,7 +484,7 @@ module Demo
         smtp_auth: "plain",
         sync_status: "synced",
         last_synced_at: Time.current,
-        synced_folders: '["INBOX","Sent"]'
+        synced_folders: '["INBOX","Sent","Junk"]'
       )
 
       # Inbox emails
@@ -607,6 +607,37 @@ module Demo
         body_html: "<p>Hi there,</p><p>I'd like to place an order for our next production batch:</p><ul><li>50 lbs organic sesame seeds</li><li>30 lbs raw honey</li><li>25 lbs dark chocolate (72% cacao)</li><li>20 lbs dried chili flakes</li></ul><p>Can you confirm availability and delivery timeline?</p><p>Thanks,<br>Sophie Chen<br>Moonshot Snacks</p>",
         body_plain: "Hi there, I'd like to place an order for our next production batch: 50 lbs organic sesame seeds, 30 lbs raw honey, 25 lbs dark chocolate (72% cacao), 20 lbs dried chili flakes. Can you confirm availability and delivery timeline?",
         sent_at: 2.days.ago,
+        read: true,
+        starred: false
+      )
+
+      # Junk: what the server took for spam, and a mail someone was waiting for among it
+      mail_account.messages.create!(
+        message_id: "<tasting-1@thecornerpantry.com>",
+        uid: 9,
+        folder: "Junk",
+        subject: "Tasting night at The Corner Pantry: you're invited",
+        from_name: "Hans de Vries",
+        from_address: "hans@thecornerpantry.com",
+        to_addresses: '["sophie@moonshot-snacks.com"]',
+        body_html: "<p>Hi Sophie,</p><p>We're holding a tasting night for local makers next Thursday at 7pm, and we'd love Moonshot Snacks to be part of it. Bring a few bags and we'll set up a table for you.</p><p>Let me know if you can make it!</p><p>Hans<br>The Corner Pantry</p>",
+        body_plain: "Hi Sophie, We're holding a tasting night for local makers next Thursday at 7pm, and we'd love Moonshot Snacks to be part of it. Bring a few bags and we'll set up a table for you. Let me know if you can make it! Hans, The Corner Pantry",
+        sent_at: 5.hours.ago,
+        read: false,
+        starred: false
+      )
+
+      mail_account.messages.create!(
+        message_id: "<a8f3k2@promo-blast.biz>",
+        uid: 10,
+        folder: "Junk",
+        subject: "Congratulations!!! You have been selected",
+        from_name: "Rewards Center",
+        from_address: "winner@promo-blast.biz",
+        to_addresses: '["sophie@moonshot-snacks.com"]',
+        body_html: "<p>Dear valued customer,</p><p>You have been selected to receive an exclusive reward. Claim it within 24 hours.</p>",
+        body_plain: "Dear valued customer, You have been selected to receive an exclusive reward. Claim it within 24 hours.",
+        sent_at: 1.day.ago,
         read: true,
         starred: false
       )

@@ -19,8 +19,8 @@ mail to the trash when the mail server has a trash folder, see
 `GET /tools/:tool_id/mails` returns the conversations in a folder, newest first,
 30 per page. Optional parameters:
 
-- `folder`: `inbox` (default), `drafts`, `starred`, `sent`, `archive`, `trash`,
-  or one of the `custom_folders`
+- `folder`: `inbox` (default), `drafts`, `starred`, `sent`, `archive`, `junk`,
+  `trash`, or one of the `custom_folders`
 - `q`: only messages whose subject, sender address or text contains this
 - `page`: page number, from 1
 
@@ -33,8 +33,8 @@ mail to the trash when the mail server has a trash folder, see
   "page": 1,
   "total_pages": 1,
   "total_count": 5,
-  "counts": { "inbox_unread": 3, "drafts": 0, "trash": 0 },
-  "folders": ["inbox", "drafts", "starred", "sent", "archive", "trash"],
+  "counts": { "inbox_unread": 3, "drafts": 0, "trash": 0, "junk_unread": 1 },
+  "folders": ["inbox", "drafts", "starred", "sent", "archive", "junk", "trash"],
   "custom_folders": ["Receipts"],
   "conversations": [
     {
@@ -205,6 +205,24 @@ away. With a token that answers `422` and nothing happens:
 ```json
 { "error": "This account's mail server has no trash folder, so trashing would delete the mail there. Archive it instead." }
 ```
+
+## Junk
+
+| Request | Does |
+|---------|------|
+| `POST /tools/:tool_id/mails/:id/junk` | Move to junk |
+| `DELETE /tools/:tool_id/mails/:id/junk` | Not junk: move back to the inbox |
+
+Both return `200` and the message. Junk is the mail server's junk folder,
+whatever the server calls it ("Spam", `INBOX.spam`, `[Gmail]/Spam`): here that
+folder is always `Junk`, and it isn't one of the folders to move to. Only an
+account whose server has one lists `junk` in `folders` and `junk_unread` in
+`counts`; moving to junk on a server without one answers `422`. Like
+archiving, both act on the whole conversation in the folder you're looking at
+(`folder`, default `inbox`; `junk` for moving it out).
+
+Mail that arrives in junk gives no `mail.received` event and doesn't count as
+unread mail. Images in it stay hidden, also from a trusted sender.
 
 ## Drafts
 

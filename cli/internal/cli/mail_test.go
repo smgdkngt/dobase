@@ -540,3 +540,30 @@ func TestTrashIsItsOwnCommandAndADraftIsDiscardedByItself(t *testing.T) {
 		t.Errorf("out %q", out.String())
 	}
 }
+
+func TestJunkIsItsOwnCommand(t *testing.T) {
+	var sent []api.Value
+	var opened []string
+	var out bytes.Buffer
+	fake := newFakeAPI(mailWithAttachments, &sent)
+	ctx := mailCtx(&out, false, fake, &opened)
+
+	if err := invoke(ctx, "mail move", "8/310", "junk"); api.KindOf(err) != api.Usage || !strings.Contains(err.Error(), "dobase mail junk") {
+		t.Errorf("got %v", err)
+	}
+	for _, command := range [][]string{{"mail junk", "8/310", "--folder", "Receipts"}, {"mail not-junk", "8/310"}} {
+		if err := invoke(ctx, command[0], command[1:]...); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if want := []string{"POST /tools/8/mails/310/junk", "DELETE /tools/8/mails/310/junk"}; !slices.Equal(fake.requests, want) {
+		t.Errorf("requests %v", fake.requests)
+	}
+	if got := sent[0].Get("folder").S(); got != "Receipts" {
+		t.Errorf("folder %q", got)
+	}
+	if !strings.Contains(out.String(), "dobase mail not-junk 8/") || !strings.Contains(out.String(), "to the inbox.") {
+		t.Errorf("out %q", out.String())
+	}
+}

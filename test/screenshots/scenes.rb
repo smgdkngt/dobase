@@ -10,6 +10,11 @@ require "application_system_test_case"
 # a clock that stands still, in a window of a set size. Two runs of the same code
 # give the same pictures to the pixel, so a pixel that differs is the change.
 class ScreenshotScenes < ApplicationSystemTestCase
+  # One scene after another. Above 50 tests Rails runs them in processes side by side, and
+  # every scene starts a chromedriver of its own: processes that start one at the same
+  # moment take the same port, and one of them finds nobody there
+  parallelize(workers: 1)
+
   # A Wednesday, so tomorrow and yesterday are in the same week, and in the future,
   # so a cookie the server dates from here hasn't run out for the browser
   NOW = Time.utc(2030, 1, 16, 10, 0)
@@ -145,6 +150,11 @@ class ScreenshotScenes < ApplicationSystemTestCase
     workspace page_of("Mail", "mails/#{mail("Seed Round Follow-up").id}")
   end
 
+  # Mail the server took for junk, opened there: Not junk takes it to the inbox
+  scene "workspace/mail-junk" do
+    workspace page_of("Mail", "mails/#{mail("Tasting night at The Corner Pantry: you're invited").id}?folder=junk")
+  end
+
   scene "workspace/card" do
     workspace page_of("Product Launch", "board?card=#{card("Write press release for launch day").id}")
     assert_selector "#{TILE} > .tile-frame dialog[open]"
@@ -197,6 +207,21 @@ class ScreenshotScenes < ApplicationSystemTestCase
 
   scene "phone/mail-conversation", size: PHONE do
     one_tool page_of("Mail", "mails/#{mail("Seed Round Follow-up").id}")
+  end
+
+  scene "phone/mail-junk", size: PHONE do
+    one_tool page_of("Mail", "mails?folder=junk")
+  end
+
+  # Junk in the folders, beside the trash
+  scene "workspace/mail-folders" do
+    workspace page_of("Mail", "mails?folder=junk")
+    find("#{TILE} .mail-folder-picker button").click
+    assert_selector "#{TILE} .mail-folder-picker [popover]:popover-open"
+  end
+
+  scene "phone/mail-junk-open", size: PHONE do
+    one_tool page_of("Mail", "mails/#{mail("Tasting night at The Corner Pantry: you're invited").id}?folder=junk")
   end
 
   scene "phone/mail-compose", size: PHONE do
