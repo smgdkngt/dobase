@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html <%= tag.attributes(theme_attributes) %>>
+  <head>
+    <title><%= content_for(:title) || app_name %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <% unless current_theme %><meta name="color-scheme" content="light dark"><% end %>
+    <%= csp_meta_tag %>
+    <link rel="icon" href="/favicon.ico" sizes="32x32">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <%= stylesheet_link_tag "tailwind" %>
+    <%# Nothing of the app's own JavaScript: this page only hands itself on %>
+    <%= yield :head %>
+  </head>
+
+  <body class="bg-background-secondary text-text-primary">
+    <main class="min-h-dvh flex items-center justify-center p-6" id="main-content">
+      <%= yield %>
+    </main>
+  </body>
+</html>

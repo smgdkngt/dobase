@@ -7,6 +7,7 @@ Rails.application.routes.draw do
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
   resource :protocol_link, only: :show, path: "open" # web+dobase:// links, see the manifest
+  get "app(/*path)", to: "app_links#show", as: :app_link, format: false # the other way: a page handed to the app
 
   # Authentication
   resource :session

@@ -29,6 +29,13 @@ class ApplicationController < ActionController::Base
     !(Rails.env.test? && cookies[:workspace] == "off")
   end
 
+  # Without a pattern that looks for one word after another: a long made-up user
+  # agent would keep such a pattern busy
+  def phone?
+    agent = request.user_agent.to_s
+    agent.match?(/iPhone|iPod|Windows Phone/) || (agent.include?("Android") && agent.include?("Mobile"))
+  end
+
   # A tile in the workspace (workspace_controller.js) is a tool's page of its own in
   # a frame, drawn without the sidebar and everything else around a tool. The
   # browser says so when it loads the frame, Turbo inside it with every request.

@@ -1,0 +1,19 @@
+<% content_for :title, "Opening in #{app_name}" %>
+<% content_for :head do %>
+  <%= javascript_include_tag "app_link", data: { link: ProtocolLink.to(@page), page: @page } %>
+<% end %>
+
+<div class="w-full max-w-sm text-center">
+  <%= render "shared/logo", class: "w-16 h-16 mx-auto mb-4" %>
+  <h1 class="text-2xl font-semibold text-text-primary">Opening in the <%= app_name %> app</h1>
+  <p class="text-text-secondary mt-1">Your browser may ask first. Then this tab can be closed.</p>
+
+  <div class="flex flex-col gap-2 mt-8">
+    <%= render "components/button", text: "Open in the app", icon: "external-link", href: ProtocolLink.to(@page), full_width: true %>
+    <%= render "components/button", text: "Open here instead", variant: :secondary, href: @page, full_width: true %>
+  </div>
+
+  <p class="text-sm text-text-tertiary mt-6">
+    No <%= app_name %> app on this computer? Install it from your browser's menu, or with <code>dobase app install</code>.
+  </p>
+</div>

@@ -173,7 +173,10 @@ window.
   app is a desktop entry, `~/.local/share/applications/dobase.desktop`.
 
 Links to other sites that you follow in the app open in your own browser. `o`
-and `--open` use this app from then on. The pages may notify you, and use the
+and `--open` use this app from then on. A Dobase link with `/app` in front of
+its path, such as `https://dobase.example.com/app/tools/12/mails`, opens in the
+app when you click it in another program: the browser hands it on (it may ask
+the first time) and keeps a tab with a way to open it there instead. The pages may notify you, and use the
 camera, the microphone and the screen for calls; macOS asks about each once.
 
 Run `dobase app install` again to bring the app up to date: it gets the newest

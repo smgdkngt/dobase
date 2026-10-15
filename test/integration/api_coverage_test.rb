@@ -35,11 +35,12 @@ class ApiCoverageTest < ActiveSupport::TestCase
     tools/calendars/accounts#edit
   ].freeze
 
-  # About the window a browser has open: where it goes when it opens the app, and
-  # how its tiles are arranged
+  # About the window a browser has open: where it goes when it opens the app, how its
+  # tiles are arranged, and a page it hands to the installed app
   A_BROWSERS_OWN = %w[
     dashboard#index
     workspaces#show
+    app_links#show
   ].freeze
 
   # Still to come

@@ -275,6 +275,13 @@ class ScreenshotScenes < ApplicationSystemTestCase
     assert_selector "form"
   end
 
+  # A link from another program, handed on to the installed app (headless Chrome has
+  # none, so the page stays)
+  scene "signed-out/open-in-the-app" do
+    visit "/app#{page_of("Product Launch", "board")}"
+    assert_selector "h1"
+  end
+
   private
 
   # ── What a scene is made of ──

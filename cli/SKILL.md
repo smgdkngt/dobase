@@ -228,6 +228,12 @@ it, also when you send that draft.
 installed Dobase app or the browser, ready to edit and send. Only when someone
 is at the computer.
 
+To give someone a link to a draft (or any page) that they click in another app,
+put `/app` between the server's address and the page's path:
+`https://dobase.example.com/app/tools/8/mails/new?draft_id=312` for draft 8/312.
+In a browser that page opens the installed Dobase app on the page itself, on a
+phone it is the page. A `web+dobase://` link is not clickable in most apps.
+
 `--attach PATH` on `draft`, `update`, `reply` and `forward` puts a file on the
 draft; repeat it for more (25 MB together). The summary says how many
 attachments the draft has. With `--send` the mail goes out with them. To change
