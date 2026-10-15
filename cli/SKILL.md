@@ -273,8 +273,13 @@ dobase file download 5/31 --output /tmp/contract.pdf
 dobase file rename 5/31 "Contract 2026.pdf"
 dobase file move 5/31 root
 dobase folder create team-files "Invoices" --parent 7
+dobase folder rename 5/7 "Invoices 2026"
+dobase folder move 5/7 root               # or into another folder id
 dobase folder download 5/7 --output /tmp/  # a zip of everything inside
 ```
+
+Folders have their own noun: `dobase folder create|rename|move|delete|show|download`
+(`dobase help folder`). `file` commands only touch files.
 
 ## Rules
 

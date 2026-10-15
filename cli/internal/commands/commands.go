@@ -40,7 +40,7 @@ func Nouns() []Noun {
 		{"calendar", "The calendars of a calendar tool, and syncing them"},
 		{"chat", "Messages in a chat (chat tools)"},
 		{"doc", "Documents (docs tools)"},
-		{"file", "Files and their downloads (files tools)"},
+		{"file", "Files and their downloads (files tools); folders are dobase folder"},
 		{"folder", "Folders of files (files tools)"},
 		{"mail", "Email in mail tools: conversations, flags, drafts and sending"},
 		{"notification", "Your notifications"},
