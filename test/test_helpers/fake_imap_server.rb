@@ -11,8 +11,10 @@ class FakeImapServer
   # message_ids: { [folder, "<message-id>"] => [uid, ...] }
   # messages: { [folder, uid] => raw message }, for fetching them
   # namespace: what the server keeps the account's own folders under, like "INBOX."; it says so when it has NAMESPACE
-  def initialize(folders: [ "INBOX" ], message_ids: {}, messages: {}, capabilities: %w[IMAP4REV1 UIDPLUS], namespace: "", delimiter: "/")
+  # counts: { folder => how many messages STATUS says it has }, nil for one it won't open; others have none
+  def initialize(folders: [ "INBOX" ], message_ids: {}, messages: {}, capabilities: %w[IMAP4REV1 UIDPLUS], namespace: "", delimiter: "/", counts: {})
     @folders = folders
+    @counts = counts
     @namespace = namespace
     @delimiter = delimiter
     @message_ids = message_ids
@@ -41,6 +43,12 @@ class FakeImapServer
   def list(_reference, _pattern)
     @lists += 1
     @folders.map { |name, *attributes| Net::IMAP::MailboxList.new(attributes, @delimiter, name) }
+  end
+
+  def status(folder, _items)
+    raise Net::IMAP::NoResponseError, Net::IMAP::TaggedResponse.new("A1", "NO", Net::IMAP::ResponseText.new(nil, "Mailbox doesn't exist"), "") if @counts.key?(folder) && @counts[folder].nil?
+
+    { "MESSAGES" => @counts.fetch(folder, 0) }
   end
 
   def namespace
