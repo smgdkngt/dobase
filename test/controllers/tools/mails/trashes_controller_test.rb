@@ -63,6 +63,29 @@ module Tools
         assert ::Mails::Message.exists?(in_inbox.id)
       end
 
+      # The inbox lists Welcome (an hour ago), Your weekly report (two hours) and Important info (a day)
+      test "trashing an open conversation opens the one below it in the list" do
+        post tool_mail_trash_path(@tool, mails_messages(:inbox_unread), folder: "inbox")
+        assert_redirected_to tool_mail_path(@tool, mails_messages(:inbox_read), folder: "inbox")
+      end
+
+      test "the conversation that comes next is found by its newest message, as the list has it, and opened there" do
+        # A new message puts Important info at the top of the list
+        reply = mails_messages(:starred_message).dup.tap { |message| message.update!(message_id: "<msg-003-re@example.com>", uid: 110, sent_at: 30.minutes.ago) }
+
+        # Your weekly report is at the bottom: what was above it comes up, not Important info's older message
+        post tool_mail_trash_path(@tool, mails_messages(:inbox_read), folder: "inbox")
+        assert_redirected_to tool_mail_path(@tool, mails_messages(:inbox_unread), folder: "inbox")
+
+        post tool_mail_trash_path(@tool, mails_messages(:inbox_unread), folder: "inbox")
+        assert_redirected_to tool_mail_path(@tool, reply, folder: "inbox")
+      end
+
+      test "the last conversation in a folder leaves the folder's empty list" do
+        delete tool_mail_trash_path(@tool, mails_messages(:trashed_message))
+        assert_redirected_to tool_mails_path(@tool, folder: "trash")
+      end
+
       test "destroy_all empties trash" do
         assert ::Mails::Message.where(mail_account_id: mails_accounts(:primary).id).trashed.any?
         delete tool_empty_trash_path(@tool)

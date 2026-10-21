@@ -53,15 +53,31 @@ class WorkspaceInPageMailTest < ApplicationSystemTestCase
     assert_current_path workspace_path
   end
 
-  test "an open conversation is archived, and the tile goes on" do
+  # Archive and Delete are links Turbo sends as a form it makes outside the tile: the
+  # workspace still knows which tile pressed them (workspace_controller.js#tileFrameOf),
+  # and takes that tile on to the conversation below, instead of drawing it again where it was
+  test "an open conversation is archived, and the tile goes on to the next one in the list" do
     find("#{MAIL} .mail-list-item", text: "Welcome to Dobase").click
     assert_selector "#{MAIL} .mail-detail-header h1", text: "Welcome to Dobase"
 
     find("#{MAIL} [title='Archive (e)']").click
 
     assert_db_change -> { @message.reload.archived? }
+    assert_selector "#{MAIL} .mail-detail-header h1", text: "Your weekly report"
     assert_no_selector "#{MAIL} .mail-list-item", text: "Welcome to Dobase"
     assert_selector MAIL, count: 1
+    assert_current_path workspace_path
+  end
+
+  test "a conversation trashed with # in the tile makes way for the next one in the list" do
+    find("#{MAIL} .mail-list-item", text: "Welcome to Dobase").click
+    assert_selector "#{MAIL} .mail-detail-header h1", text: "Welcome to Dobase"
+
+    page.send_keys("#")
+
+    assert_db_change -> { @message.reload.trashed? }
+    assert_selector "#{MAIL} .mail-detail-header h1", text: "Your weekly report"
+    assert_no_selector "#{MAIL} .mail-list-item", text: "Welcome to Dobase"
     assert_current_path workspace_path
   end
 

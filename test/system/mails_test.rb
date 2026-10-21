@@ -165,6 +165,30 @@ class MailsTest < ApplicationSystemTestCase
     click_with_retry("[title='Delete (#)']") { message.reload.trashed? }
   end
 
+  test "a trashed conversation makes way for the next one in the list" do
+    open_message(mails_messages(:inbox_unread), folder: "inbox")
+
+    find("[title='Delete (#)']").click
+
+    assert_selector ".mail-detail-header h1", text: "Your weekly report"
+    assert_no_selector ".mail-list-item", text: "Welcome to Dobase"
+  end
+
+  # As in Apple Mail on a phone: the next one is read, not the list
+  test "on a phone a trashed conversation makes way for the next one too, in its place" do
+    page.driver.browser.manage.window.resize_to(390, 844)
+    visit tool_mail_path(@tool, mails_messages(:inbox_unread), folder: "inbox")
+    assert_selector ".mail-detail-header h1", text: "Welcome to Dobase"
+    wait_for_turbo
+
+    find("[title='Delete (#)']").click
+
+    assert_selector ".mail-detail-header h1", text: "Your weekly report"
+    assert_no_selector ".mail-list-item", text: "Your weekly report", visible: true
+  ensure
+    page.driver.browser.manage.window.resize_to(1400, 1400)
+  end
+
   test "the # shortcut trashes the open message" do
     message = mails_messages(:inbox_unread)
     open_message(message)

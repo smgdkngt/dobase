@@ -11,20 +11,17 @@ module NextMailNavigation
     end
   end
 
+  # The conversation that takes the place of this one in the folder's list once it has
+  # gone from there: the one below it, or at the bottom of the list the one above. The
+  # list has conversations by their newest message, and opens one on that message.
   def find_next_message(current_message, folder)
     scope = mail_folder_scope(folder)
-    sent_at = current_message.sent_at
+    latest = scope.where(thread_id: current_message.thread_id).maximum(:sent_at) || current_message.sent_at
+    others = scope.where.not(thread_id: current_message.thread_id).group(:thread_id)
 
-    # Next conversation (older) — the one below in the list
-    scope.where.not(thread_id: current_message.thread_id)
-         .where(sent_at: ...sent_at)
-         .order(sent_at: :desc)
-         .first ||
-    # Fall back to previous conversation (newer) — the one above
-    scope.where.not(thread_id: current_message.thread_id)
-         .where("sent_at > ?", sent_at)
-         .order(sent_at: :asc)
-         .first
+    thread_id = others.having("MAX(mail_messages.sent_at) < ?", latest).order(Arel.sql("MAX(mail_messages.sent_at) DESC")).pick(:thread_id) ||
+                others.having("MAX(mail_messages.sent_at) > ?", latest).order(Arel.sql("MAX(mail_messages.sent_at) ASC")).pick(:thread_id)
+    scope.where(thread_id: thread_id).order(sent_at: :desc).first if thread_id
   end
 
   # Archiving and trashing act on conversations, the way the folder's list shows them:

@@ -98,10 +98,18 @@ export default class extends Controller {
     })
     this.listen(window, "command-palette:show", () => this.showMenu())
     this.listen(window, "command-palette:hide", () => this.closeMenu({ toTheTile: true }))
+    // A link that is sent as a form (data-turbo-method: a mail trashed or archived) has
+    // Turbo make that form at the end of <body>, outside the tile it was pressed in:
+    // which tile that was is kept here until its form is sent (tileFrameOf)
+    this.listen(this.tilesTarget, "click", (event) => {
+      const link = event.target.closest?.("a[data-turbo-method]")
+      const frame = link?.closest(".tile-frame")
+      if (frame) this.pressedLink = { frame, path: new URL(link.href).pathname }
+    }, true)
     // When a form on this page was sent, and which tool it was about (its settings), if any
     this.listen(document, "turbo:submit-end", (event) => {
       // (and from which tile, when the form was in one that is part of this page)
-      const tile = event.target.closest?.(".tile-frame")?.closest("[data-tile-id]")?.dataset.tileId
+      const tile = this.tileFrameOf(event.target)?.closest("[data-tile-id]")?.dataset.tileId
       this.submitted = { at: performance.now(), toolId: toolIdOf(pathOf(event.target.action)), tile }
     })
     this.listen(document, "turbo:morph", () => this.refreshed())
@@ -124,7 +132,7 @@ export default class extends Controller {
     // that tile is: a form answered with "back where you came from" would be sent
     // to this page's address otherwise (ApplicationController#redirect_back_or_to)
     this.listen(document, "turbo:before-fetch-request", (event) => {
-      const frame = event.target.closest?.(".tile-frame")
+      const frame = this.tileFrameOf(event.target)
       if (!frame) return
 
       const { headers } = event.detail.fetchOptions
@@ -304,6 +312,16 @@ export default class extends Controller {
     tile.inert = true
     tile.addEventListener("animationend", () => tile.remove(), { once: true })
     setTimeout(() => tile.remove(), 400)
+  }
+
+  // The tile a form was sent from, as the frame its page is in: the one it lies in, or
+  // for a form Turbo made of a link (above), the one that link was pressed in
+  tileFrameOf(element) {
+    const frame = element.closest?.(".tile-frame")
+    if (frame || !(element instanceof HTMLFormElement) || element.closest("#workspace-tiles")) return frame
+
+    const pressed = this.pressedLink
+    if (pressed?.frame.isConnected && pressed.path === new URL(element.action).pathname) return pressed.frame
   }
 
   // The page in a tile, drawn again where it is: its tool was renamed, or set up
