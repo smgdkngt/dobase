@@ -4,6 +4,9 @@ class User < ApplicationRecord
   has_secure_password
   has_many :sessions, dependent: :destroy
   has_many :access_tokens, dependent: :destroy
+  has_many :mcp_tool_calls, class_name: "Mcp::ToolCall", dependent: :delete_all
+  # A new password, or MCP switched off, ends every connection an MCP client made
+  after_update_commit :end_connections, if: -> { saved_change_to_password_digest? || (saved_change_to_mcp_enabled? && !mcp_enabled?) }
   has_one :workspace_layout, dependent: :delete
 
   has_many :owned_tools, class_name: "Tool", foreign_key: :owner_id, dependent: :destroy
@@ -222,6 +225,10 @@ class User < ApplicationRecord
   end
 
   private
+
+  def end_connections
+    access_tokens.connections.destroy_all
+  end
 
   def hand_over_co_owned_tools
     owned_tools.find_each do |tool|

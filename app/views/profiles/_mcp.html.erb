@@ -1,0 +1,39 @@
+<%# locals: (user:) %>
+<%= turbo_frame_tag "mcp" do %>
+  <h3 class="text-sm font-semibold text-text-primary mt-8 mb-1">Claude and other MCP clients</h3>
+  <p class="text-xs text-text-tertiary mb-3">
+    Add <%= app_name %> to Claude as a connector with this address. Claude asks you to sign in here and say yes;
+    the connection then shows above as a token, where you can end it. It lasts thirty days.
+  </p>
+  <div class="flex gap-2 mb-4" data-controller="clipboard">
+    <input type="text" readonly value="<%= root_url %>mcp" class="input flex-1 font-mono text-xs" aria-label="MCP address" data-clipboard-target="source">
+    <%= render "components/button", text: "Copy", variant: :secondary, size: :sm, type: :button, data: { action: "clipboard#copy", clipboard_target: "button" } %>
+  </div>
+
+  <%= form_with url: profile_mcp_access_path, method: :patch, class: "flex items-end gap-3 mb-6" do %>
+    <div class="flex-1">
+      <%= render "components/form_field",
+            label: "Connections from Claude and other programs",
+            name: "enabled",
+            type: :select,
+            value: user.mcp_enabled?.to_s,
+            options: [ [ "Allowed", "true" ], [ "Off: end them all and refuse new ones", "false" ] ] %>
+    </div>
+    <%= render "components/button", text: "Save", variant: :secondary, class: "mb-4" %>
+  <% end %>
+
+  <% calls = user.mcp_tool_calls.includes(:access_token).newest_first.limit(20) %>
+  <% if calls.any? %>
+    <h4 class="text-xs font-semibold text-text-secondary mb-2">Latest calls</h4>
+    <div class="space-y-1">
+      <% calls.each do |call| %>
+        <div class="flex items-center gap-2 text-xs">
+          <%= render "components/badge", text: call.outcome, variant: call.outcome == "ok" ? :muted : :error, size: :sm %>
+          <span class="font-mono text-text-primary"><%= call.tool %></span>
+          <span class="text-text-tertiary truncate"><%= call.access_token&.name || "ended connection" %></span>
+          <span class="ml-auto text-text-tertiary flex-shrink-0"><%= format_datetime(call.created_at) %></span>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>

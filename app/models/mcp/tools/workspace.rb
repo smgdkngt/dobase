@@ -1,0 +1,55 @@
+# frozen_string_literal: true
+
+module Mcp
+  module Tools
+    # Who you are, which tools you have, and what goes on across them
+    module Workspace
+      extend Declaring
+
+      tool "whoami", "Who am I",
+        "The signed-in person and the connection being used (its name, whether it may write, whether it writes as an agent).",
+        read_only: true do
+        get "/profile"
+      end
+
+      tool "tool_list", "List tools",
+        "Every tool in the workspace (boards, todos, docs, chat, mail, calendar, files, room) with its id and type. " \
+        "Start here: every other tool takes one of these ids.",
+        read_only: true do
+        get "/tools"
+      end
+
+      tool "tool_show", "Show a tool", "One tool: its name, type and the people it is shared with.",
+        params: { tool_id: id("The tool's id", required: true) }, read_only: true do
+        get "/tools/#{arg(:tool_id)}"
+      end
+
+      tool "search", "Search everything",
+        "Search every tool for cards, todos, documents, chat messages, mail, files and appointments that match.",
+        params: { query: text("What to look for", required: true) }, read_only: true do
+        get "/search", q: arg(:query)
+      end
+
+      tool "notification_list", "List notifications", "Your latest notifications, newest first. Reading them doesn't mark them read.",
+        params: { unread: flag("Only the unread ones"), limit: number("How many, up to 100", maximum: 100) },
+        read_only: true do
+        get "/notifications", unread: arg(:unread) ? "true" : nil, limit: arg(:limit)
+      end
+
+      tool "event_list", "List events",
+        "What happened in your tools, oldest first, by number: mail received, sent or moved, cards made, moved or " \
+        "commented on, chat messages, files added, appointments. Without after or since you get only the cursor, the " \
+        "number to ask after next time. Gives a few words per event, never the text of a mail.",
+        params: {
+          after: number("Events after this number (a cursor from an earlier call)", minimum: 0),
+          since: text("Events from this moment on (ISO 8601)"),
+          tool_ids: list({ type: "integer" }, "Only these tools"),
+          kinds: list({ type: "string" }, "Only these kinds, or families like mail or card"),
+          skip_own: flag("Leave out what this connection did itself")
+        }, read_only: true do
+        get "/events", after: arg(:after), since: arg(:since), tool: arg(:tool_ids), kind: arg(:kinds),
+          skip_own: arg(:skip_own) ? "1" : nil
+      end
+    end
+  end
+end

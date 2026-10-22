@@ -303,6 +303,7 @@
       <%# API panel %>
       <div data-tabs-target="panel" data-tab="api" class="hidden">
         <%= render "profiles/access_tokens", access_tokens: @access_tokens %>
+        <%= render "profiles/mcp", user: current_user %>
       </div>
     </div>
   </div>
