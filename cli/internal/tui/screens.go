@@ -5,7 +5,6 @@ package tui
 // to reload its data without losing your place.
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -20,9 +19,9 @@ type Screen interface {
 	Key(key Key, view *View, fx *Fx) bool
 	// Refresh reloads the screen's data, keeping the selection; nil when there's nothing to reload.
 	Refresh() Job
-	// LiveRequest is what a screen that changes while you look at it reloads every few seconds, in the background.
-	LiveRequest() (path string, params []api.Param, ok bool)
-	// ApplyLive takes in what LiveRequest fetched, keeping your place.
+	// LiveCall is the tool a screen that changes while you look at it reloads every few seconds, in the background.
+	LiveCall() (tool string, args Args, ok bool)
+	// ApplyLive takes in what LiveCall fetched, keeping your place.
 	ApplyLive(value api.Value)
 	Hints() []hint
 	// Help is the keys of this screen, for the help popup.
@@ -32,8 +31,8 @@ type Screen interface {
 // notLive is for screens that don't refresh by themselves.
 type notLive struct{}
 
-func (notLive) LiveRequest() (string, []api.Param, bool) { return "", nil, false }
-func (notLive) ApplyLive(api.Value)                      {}
+func (notLive) LiveCall() (string, Args, bool) { return "", nil, false }
+func (notLive) ApplyLive(api.Value)            {}
 
 // openScreen loads the screen for tool.
 func openScreen(app *App, tool api.Value) (Screen, error) {
@@ -96,7 +95,7 @@ func focus(app *App, url string) error {
 		}
 		app.popup = detail
 	} else if document, ok := numberAfter("/documents/"); ok {
-		content, err := app.get(fmt.Sprintf("/tools/%d/docs/documents/%d", tool, document))
+		content, err := app.read("doc_show", Args{"tool_id": tool, "document_id": document})
 		if err != nil {
 			return err
 		}
@@ -106,7 +105,7 @@ func focus(app *App, url string) error {
 	} else if file, ok := numberAfter("/files/items/"); ok {
 		if _, ok := app.screen.(*Files); ok {
 			// A file's link doesn't say where it is; the file does.
-			item, err := app.get(fmt.Sprintf("/tools/%d/files/items/%d", tool, file))
+			item, err := app.read("file_show", Args{"tool_id": tool, "file_id": file})
 			if err != nil {
 				return err
 			}

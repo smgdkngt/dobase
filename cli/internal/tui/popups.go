@@ -28,7 +28,9 @@ type Detail struct {
 
 // CommentOn is where a comment goes, and how to show the detail again afterwards.
 type CommentOn struct {
-	path   string
+	// tool is card_comment or todo_comment, on the arguments that say which card or todo
+	tool   string
+	on     Args
 	reload func(app *App) (*Detail, error)
 }
 
@@ -100,7 +102,11 @@ func popupKey(popup Popup, key Key, fx *Fx) {
 			if p.comment != nil {
 				comment := *p.comment
 				fx.popup = inputPopup("New comment", "Write a comment and press enter", "Posting your comment", func(app *App, text string) error {
-					if _, err := app.post(comment.path, api.Object("body", command.Paragraphs(text))); err != nil {
+					args := Args{"text": command.Paragraphs(text), "html": true}
+					for name, value := range comment.on {
+						args[name] = value
+					}
+					if _, err := app.change(comment.tool, args); err != nil {
 						return err
 					}
 					detail, err := comment.reload(app)
@@ -148,7 +154,7 @@ func popupKey(popup Popup, key Key, fx *Fx) {
 			if query != p.searchedFor && len([]rune(query)) >= 2 {
 				p.searchedFor = query
 				fx.job("Searching for “"+query+"”", func(app *App) error {
-					found, err := app.get("/search", api.Param{Name: "q", Value: query})
+					found, err := app.read("search", Args{"query": query})
 					if err != nil {
 						return err
 					}
@@ -183,9 +189,9 @@ func popupKey(popup Popup, key Key, fx *Fx) {
 		case key.Is('x'):
 			if p.selected < len(p.items) {
 				p.items[p.selected] = p.items[p.selected].With("read", true)
-				id := p.items[p.selected].Get("id").S()
+				id := p.items[p.selected].Get("id").Int()
 				fx.job("Marking it read", func(app *App) error {
-					_, err := app.post("/notifications/"+id+"/read", api.Object())
+					_, err := app.change("notification_read", Args{"notification_id": id})
 					return err
 				})
 			}
@@ -194,7 +200,7 @@ func popupKey(popup Popup, key Key, fx *Fx) {
 				p.items[i] = p.items[i].With("read", true)
 			}
 			fx.job("Marking everything read", func(app *App) error {
-				result, err := app.post("/notification_reads", api.Object())
+				result, err := app.change("notification_read", nil)
 				if err != nil {
 					return err
 				}

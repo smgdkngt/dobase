@@ -39,7 +39,7 @@ type Todos struct {
 }
 
 func loadTodos(app *App, tool api.Value) (*Todos, error) {
-	todo, err := app.get(toolPath(tool) + "/todo")
+	todo, err := app.read("todo_list", Args{"tool_id": tool.Get("id")})
 	if err != nil {
 		return nil, err
 	}
@@ -68,8 +68,8 @@ func (s *Todos) Hints() []hint           { return todosHints }
 func (s *Todos) Help() []hint            { return todosHelp }
 func (s *Todos) toolID() int64           { return s.tool.Get("id").Int() }
 
-func (s *Todos) LiveRequest() (string, []api.Param, bool) {
-	return toolPath(s.tool) + "/todo", nil, true
+func (s *Todos) LiveCall() (string, Args, bool) {
+	return "todo_list", Args{"tool_id": s.tool.Get("id")}, true
 }
 
 func (s *Todos) ApplyLive(value api.Value) {
@@ -144,9 +144,9 @@ func (s *Todos) Key(key Key, view *View, fx *Fx) bool {
 		if !ok {
 			return true
 		}
-		listID, name := list.Get("id").S(), list.Get("title").S()
+		tool, listID, name := s.toolID(), list.Get("id").S(), list.Get("title").S()
 		fx.popup = inputPopup("New todo in "+name, "What needs doing?", "Adding the todo", func(app *App, title string) error {
-			item, err := app.post("/todo_lists/"+listID+"/items", api.Object("item", api.Object("title", title)))
+			item, err := app.change("todo_create", Args{"tool_id": tool, "list": listID, "title": title})
 			if err != nil {
 				return err
 			}
@@ -159,7 +159,7 @@ func (s *Todos) Key(key Key, view *View, fx *Fx) bool {
 	case key.Is('N'):
 		tool := s.toolID()
 		fx.popup = inputPopup("New list", "What's the list called?", "Adding the list", func(app *App, title string) error {
-			if _, err := app.post(fmt.Sprintf("/tools/%d/todo/lists", tool), api.Object("title", title)); err != nil {
+			if _, err := app.change("todolist_create", Args{"tool_id": tool, "title": title}); err != nil {
 				return err
 			}
 			if err := reloadTodos(app, 0); err != nil {
@@ -249,12 +249,11 @@ func (s *Todos) toggle(fx *Fx) {
 	if done {
 		label = "Ticking it off"
 	}
-	path := fmt.Sprintf("/tools/%d/todo/items/%d/completion", tool, id)
 	complete := func(app *App, done bool) (api.Value, error) {
 		if done {
-			return app.post(path, api.Object())
+			return app.change("todo_finish", Args{"tool_id": tool, "todo_id": id})
 		}
-		return app.delete(path)
+		return app.change("todo_reopen", Args{"tool_id": tool, "todo_id": id})
 	}
 	fx.job(label, func(app *App) error {
 		item, err := complete(app, done)
@@ -350,7 +349,7 @@ func reloadTodos(app *App, item int64) error {
 	if !ok {
 		return nil
 	}
-	fresh, err := app.get(toolPath(screen.tool) + "/todo")
+	fresh, err := app.read("todo_list", Args{"tool_id": screen.tool.Get("id")})
 	if err != nil {
 		return err
 	}
@@ -361,14 +360,16 @@ func reloadTodos(app *App, item int64) error {
 }
 
 func updateItem(app *App, tool, id int64, attributes api.Value) error {
-	if _, err := app.patch(fmt.Sprintf("/tools/%d/todo/items/%d", tool, id), api.Object("item", attributes)); err != nil {
+	args := asToolArgs(attributes)
+	args["tool_id"], args["todo_id"] = tool, id
+	if _, err := app.change("todo_update", args); err != nil {
 		return err
 	}
 	return reloadTodos(app, id)
 }
 
 func todoDetail(app *App, tool, id int64) (*Detail, error) {
-	item, err := app.get(fmt.Sprintf("/tools/%d/todo/items/%d", tool, id))
+	item, err := app.read("todo_show", Args{"tool_id": tool, "todo_id": id})
 	if err != nil {
 		return nil, err
 	}
@@ -402,7 +403,8 @@ func todoDetail(app *App, tool, id int64) (*Detail, error) {
 		lines: lines,
 		url:   url,
 		comment: &CommentOn{
-			path:   fmt.Sprintf("/tools/%d/todo/items/%d/comments", tool, id),
+			tool:   "todo_comment",
+			on:     Args{"tool_id": tool, "todo_id": id},
 			reload: func(app *App) (*Detail, error) { return todoDetail(app, tool, id) },
 		},
 	}, nil

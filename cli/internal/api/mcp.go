@@ -270,6 +270,8 @@ func (m *MCP) Listen(ctx context.Context, uris []string, opened func(), changed 
 	}
 	request = request.WithContext(ctx)
 	request.Header.Set("Accept", "text/event-stream")
+	// Not compressed: Thruster holds a compressed stream back, headers and all, until enough of it has come
+	request.Header.Set("Accept-Encoding", "identity")
 	request.Header.Set("MCP-Protocol-Version", Protocol)
 	request.Header.Set("Mcp-Session-Id", session)
 	response, err := m.client.http.Do(request)
