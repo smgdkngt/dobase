@@ -19,9 +19,10 @@ tool.
   `Authorization: Bearer <token>`.
 
 Both are one kind of token. A connection made by signing in shows under
-**Profile → API** next to your personal tokens, and is ended there. It lasts
-thirty days from the moment you said yes, however often the client refreshes
-it. Changing your password ends every connection; so does switching
+**Profile → API** next to your personal tokens, and is ended there. One made
+by Claude lasts thirty days from the moment you said yes, however often it is
+refreshed; a login by code (`dobase login`) lasts until it goes thirty days
+unused. Changing your password ends every connection; so does switching
 "Connections from Claude and other programs" off on the same page. Every tool
 call is listed there, refused ones too.
 

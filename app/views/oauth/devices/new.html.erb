@@ -24,7 +24,7 @@
             <%= hidden_field_tag :user_code, @device.user_code, id: nil %>
             <p class="text-sm text-text-secondary mb-4">
               It sees the tools you have, as you see them, and nothing that is only yours to manage. The connection
-              shows under Profile, API, where you can end it. It lasts thirty days.
+              shows under Profile, API, where you can end it. It ends by itself after thirty days unused.
             </p>
             <div class="space-y-3 mb-6">
               <%= render "components/form_field",

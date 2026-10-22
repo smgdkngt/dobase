@@ -17,5 +17,9 @@ class CreateOauthDeviceCodes < ActiveRecord::Migration[8.1]
       t.datetime :polled_at
       t.timestamps
     end
+
+    # A login by code (the CLI on a machine) lasts thirty days from when it was
+    # last used; a connection Claude made, thirty days from consent
+    add_column :access_tokens, :renews, :boolean, null: false, default: false
   end
 end

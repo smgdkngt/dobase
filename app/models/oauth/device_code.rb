@@ -71,7 +71,7 @@ module Oauth
       return "access_denied" unless user.mcp_enabled?
 
       update!(status: "used")
-      user.access_tokens.create!(name: client.name, permission:, agent:, oauth_client: client,
+      user.access_tokens.create!(name: client.name, permission:, agent:, oauth_client: client, renews: true,
         expires_at: AccessToken::CONNECTION_LIFETIME.from_now)
     end
   end

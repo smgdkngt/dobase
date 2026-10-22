@@ -22,6 +22,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_200000) do
     t.boolean "agent", default: false, null: false
     t.integer "oauth_client_id"
     t.datetime "expires_at"
+    t.boolean "renews", default: false, null: false
     t.index ["oauth_client_id"], name: "index_access_tokens_on_oauth_client_id"
     t.index ["token_digest"], name: "index_access_tokens_on_token_digest", unique: true
     t.index ["user_id"], name: "index_access_tokens_on_user_id"

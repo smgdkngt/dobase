@@ -87,6 +87,27 @@ class OauthDeviceFlowTest < ActionDispatch::IntegrationTest
     assert_equal "invalid_grant", response.parsed_body["error"]
   end
 
+  test "a login by code lasts thirty days from its last use, a connection by consent thirty days from consent" do
+    _, device_code = Oauth::DeviceCode.issue(@client)
+    Oauth::DeviceCode.find_by!(device_code_digest: Oauth.digest(device_code)).approve(@user, permission: "write", agent: true)
+    poll({ "device_code" => device_code })
+    refresh = response.parsed_body["refresh_token"]
+
+    travel 25.days do
+      post "/oauth/token", params: { grant_type: "refresh_token", refresh_token: refresh, client_id: @client.uid }
+      assert_response :success
+      refresh = response.parsed_body["refresh_token"]
+    end
+    travel 50.days do
+      post "/oauth/token", params: { grant_type: "refresh_token", refresh_token: refresh, client_id: @client.uid }
+      assert_response :success, "still in use, so still signed in"
+    end
+    travel 85.days do
+      post "/oauth/token", params: { grant_type: "refresh_token", refresh_token: response.parsed_body["refresh_token"], client_id: @client.uid }
+      assert_response :bad_request, "thirty days unused ends it"
+    end
+  end
+
   test "the metadata names the device endpoint" do
     get "/.well-known/oauth-authorization-server"
     assert_equal "http://www.example.com/oauth/device_authorization", response.parsed_body["device_authorization_endpoint"]

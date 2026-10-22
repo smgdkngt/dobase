@@ -39,7 +39,8 @@ signed in to Dobase (your phone will do), check the code, and pick whether
 `dobase` may change things or only read, and whether what it writes shows
 under its own name or yours. The terminal carries on by itself. Nothing to
 copy, and no browser needed on the machine itself, so it works over SSH too.
-The connection is listed under **Profile → API**, where you can end it.
+The connection is listed under **Profile → API**, where you can end it. It
+ends by itself once the machine hasn't used it for thirty days.
 
 To use a personal access token instead (Profile → API), run
 `dobase login --token URL`, or pipe the token in. Either way the URL and the
