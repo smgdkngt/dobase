@@ -117,7 +117,9 @@ module Mcp
         meta: shape && { "dobase/shape" => shape })
     rescue Tool::Error, Api::Error => error
       log(tool, arguments, error.is_a?(Api::Error) && error.status == 403 ? "denied" : "error", started:, error: error.message)
-      MCP::Tool::Response.new([ { type: "text", text: error.message } ], error: true)
+      # What the API itself said, for a client that shows it as it did before MCP (the CLI)
+      meta = { "dobase/status" => error.status, "dobase/message" => error.said } if error.is_a?(Api::Error)
+      MCP::Tool::Response.new([ { type: "text", text: error.message } ], error: true, meta:)
     rescue StandardError => error
       Rails.error.report(error, handled: true, context: { mcp_tool: tool.name })
       log(tool, arguments, "error", started:, error: "#{error.class}: #{error.message}")

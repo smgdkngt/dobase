@@ -50,7 +50,7 @@ func listTodos(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	todo, err := ctx.Get(fmt.Sprintf("/tools/%s/todo", tool.Get("id").S()), "completed", If(completed, "true"))
+	todo, err := ctx.Call("todo_list", toolArgs("tool_id", tool.Get("id"), "completed", completed))
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func showTodo(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	item, err := ctx.Get(fmt.Sprintf("/tools/%s/todo/items/%d", tool.Get("id").S(), id))
+	item, err := ctx.Call("todo_show", toolArgs("tool_id", tool.Get("id"), "todo_id", id))
 	if err != nil {
 		return err
 	}
@@ -121,7 +121,9 @@ func createTodo(ctx *Ctx, args *Args) error {
 		return err
 	}
 	attributes["title"] = args.At(1)
-	item, err := ctx.Post(fmt.Sprintf("/todo_lists/%s/items", target.Get("id").S()), map[string]any{"item": attributes})
+	created := asToolArgs(attributes)
+	created["tool_id"], created["list"] = tool.Get("id"), target.Get("id").S()
+	item, err := ctx.Call("todo_create", created)
 	if err != nil {
 		return err
 	}
@@ -148,7 +150,9 @@ func updateTodo(ctx *Ctx, args *Args) error {
 		return api.Usagef("Nothing to update. See `dobase help todo`.")
 	}
 
-	item, err := ctx.Patch(fmt.Sprintf("/tools/%s/todo/items/%d", tool.Get("id").S(), id), map[string]any{"item": attributes})
+	changes := asToolArgs(attributes)
+	changes["tool_id"], changes["todo_id"] = tool.Get("id"), id
+	item, err := ctx.Call("todo_update", changes)
 	if err != nil {
 		return err
 	}
@@ -163,7 +167,7 @@ func finishTodo(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	item, err := ctx.Post(fmt.Sprintf("/tools/%s/todo/items/%d/completion", tool.Get("id").S(), id), map[string]any{})
+	item, err := ctx.Call("todo_finish", toolArgs("tool_id", tool.Get("id"), "todo_id", id))
 	if err != nil {
 		return err
 	}
@@ -182,7 +186,7 @@ func reopenTodo(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	item, err := ctx.Delete(fmt.Sprintf("/tools/%s/todo/items/%d/completion", tool.Get("id").S(), id))
+	item, err := ctx.Call("todo_reopen", toolArgs("tool_id", tool.Get("id"), "todo_id", id))
 	if err != nil {
 		return err
 	}
@@ -198,7 +202,7 @@ func moveTodo(ctx *Ctx, args *Args) error {
 		return err
 	}
 	list, hasList := args.Get(1), len(args.Positional) > 1
-	position, hasPosition := args.Flag("position")
+	at, hasPosition := args.Flag("position")
 	if !hasList && !hasPosition {
 		return api.Usagef("Give a LIST, a --position, or both.")
 	}
@@ -209,12 +213,13 @@ func moveTodo(ctx *Ctx, args *Args) error {
 		if err != nil {
 			return err
 		}
-		body["todo_list_id"] = target.Get("id")
+		body["list"] = target.Get("id").S()
 	}
 	if hasPosition {
-		body["position"] = zeroBased(position)
+		body["position"] = position(at)
 	}
-	item, err := ctx.Patch(fmt.Sprintf("/tools/%s/todo/items/%d/position", tool.Get("id").S(), id), Compact(body))
+	body["tool_id"], body["todo_id"] = tool.Get("id"), id
+	item, err := ctx.Call("todo_move", body)
 	if err != nil {
 		return err
 	}
@@ -230,7 +235,7 @@ func deleteTodo(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	if _, err := ctx.Delete(fmt.Sprintf("/tools/%s/todo/items/%d", tool.Get("id").S(), id)); err != nil {
+	if _, err := ctx.Call("todo_delete", toolArgs("tool_id", tool.Get("id"), "todo_id", id, "confirm", true)); err != nil {
 		return err
 	}
 	return ctx.Output(api.Null, func() error {
@@ -248,7 +253,7 @@ func commentTodo(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	comment, err := ctx.Post(fmt.Sprintf("/tools/%s/todo/items/%d/comments", tool.Get("id").S(), id), map[string]any{"body": body})
+	comment, err := ctx.Call("todo_comment", toolArgs("tool_id", tool.Get("id"), "todo_id", id, "text", body, "html", true))
 	if err != nil {
 		return err
 	}
@@ -263,8 +268,7 @@ func uncommentTodo(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	path := fmt.Sprintf("/tools/%s/todo/items/%d/comments", tool.Get("id").S(), id)
-	return deleteComment(ctx, path, args.At(1), fmt.Sprintf("todo %s/%d", tool.Get("id").S(), id))
+	return deleteComment(ctx, "todo_uncomment", toolArgs("tool_id", tool.Get("id"), "todo_id", id), args.At(1), fmt.Sprintf("todo %s/%d", tool.Get("id").S(), id))
 }
 
 func attachTodo(ctx *Ctx, args *Args) error {
@@ -282,7 +286,7 @@ func createTodoList(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	list, err := ctx.Post(fmt.Sprintf("/tools/%s/todo/lists", tool.Get("id").S()), map[string]any{"title": args.At(1)})
+	list, err := ctx.Call("todolist_create", toolArgs("tool_id", tool.Get("id"), "title", args.At(1)))
 	if err != nil {
 		return err
 	}
@@ -297,7 +301,7 @@ func renameTodoList(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	list, err := ctx.Patch(fmt.Sprintf("/tools/%s/todo/lists/%d", tool.Get("id").S(), id), map[string]any{"title": args.At(1)})
+	list, err := ctx.Call("todolist_rename", toolArgs("tool_id", tool.Get("id"), "list_id", id, "title", args.At(1)))
 	if err != nil {
 		return err
 	}
@@ -312,7 +316,7 @@ func deleteTodoList(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	if _, err := ctx.Delete(fmt.Sprintf("/tools/%s/todo/lists/%d", tool.Get("id").S(), id)); err != nil {
+	if _, err := ctx.Call("todolist_delete", toolArgs("tool_id", tool.Get("id"), "list_id", id, "confirm", true)); err != nil {
 		return err
 	}
 	return ctx.Output(api.Null, func() error {
@@ -333,7 +337,7 @@ func todoSummary(item api.Value) string {
 }
 
 func findTodoList(ctx *Ctx, tool api.Value, reference string) (api.Value, error) {
-	todo, err := ctx.Get(fmt.Sprintf("/tools/%s/todo", tool.Get("id").S()))
+	todo, err := ctx.Call("todo_list", toolArgs("tool_id", tool.Get("id")))
 	if err != nil {
 		return api.Null, err
 	}

@@ -26,7 +26,7 @@ func TestADownloadThatBreaksOffFailsAndLeavesNoFile(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	client, err := NewClient(server.URL, "token", "test")
+	client, err := NewClient(server.URL, Static("token"), "test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestAnErrorFromTheServerKeepsItsStatus(t *testing.T) {
 		w.Write([]byte(`{"error": "This folder has no share link"}`))
 	}))
 	defer server.Close()
-	client, err := NewClient(server.URL, "token", "test")
+	client, err := NewClient(server.URL, Static("token"), "test")
 	if err != nil {
 		t.Fatal(err)
 	}

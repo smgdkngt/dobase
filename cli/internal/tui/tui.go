@@ -16,7 +16,7 @@ import (
 // Run opens the app until it's quit.
 func Run(cfg *config.Config, userAgent string) error {
 	url := cfg.URL()
-	client, err := api.NewClient(url, cfg.Token(), userAgent)
+	client, err := api.NewMCP(url, cfg.Credentials(), userAgent)
 	if err != nil {
 		return err
 	}

@@ -215,12 +215,13 @@ func TestJSONKeepsTheServersKeyOrderAndDoesNotEscapeHTML(t *testing.T) {
 	}
 }
 
-// fakeAPI answers GETs from a fixed set of paths, records every other request
-// ("DELETE /path"), its body and the paths it sent to or downloaded from, and
-// saves downloads as "data from PATH". A path in errors fails with that error.
-// Uploads are recorded as "PATH: file, file", the fields that went with them as
-// "name=value", and answered with a draft (or chat message) that has those files
-// attached.
+// fakeAPI is a small Dobase MCP server. A tool that reads answers from a
+// fixed set of paths, the API path the real tool asks (readTools); every
+// other call is recorded as "tool_name" with its arguments in sent, and
+// answered with a draft (or chat message). Uploads are recorded as
+// "PATH: file, file", the fields that went with them as "name=value", and
+// answered with a draft that has those files attached. A tool name or a read
+// tool's path in errors fails with that error.
 type fakeAPI struct {
 	responses api.Value
 	sent      *[]api.Value
@@ -235,24 +236,61 @@ func newFakeAPI(responses string, sent *[]api.Value) *fakeAPI {
 	return &fakeAPI{responses: api.MustParse(responses), sent: sent}
 }
 
-func (f *fakeAPI) Request(method api.Method, path string, _ []api.Param, body any) (api.Value, error) {
-	if err := f.errors[path]; err != nil {
+// readTools are the paths the server's read tools ask the API, as in app/models/mcp/tools/*.rb
+var readTools = map[string]func(a api.Value) string{
+	"whoami":               func(api.Value) string { return "/profile" },
+	"tool_list":            func(api.Value) string { return "/tools" },
+	"tool_show":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() },
+	"search":               func(api.Value) string { return "/search" },
+	"notification_list":    func(api.Value) string { return "/notifications" },
+	"event_list":           func(api.Value) string { return "/events" },
+	"appearance_show":      func(api.Value) string { return "/appearance" },
+	"card_list":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/board" },
+	"card_show":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/board/cards/" + a.Get("card_id").S() },
+	"todo_list":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/todo" },
+	"todo_show":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/todo/items/" + a.Get("todo_id").S() },
+	"doc_list":             func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/docs" },
+	"doc_show":             func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/docs/documents/" + a.Get("document_id").S() },
+	"chat_list":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/chat" },
+	"mail_list":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/mails" },
+	"mail_show":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/mails/" + a.Get("mail_id").S() },
+	"mail_contacts":        func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/mails_contacts" },
+	"mail_sync_status":     func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/sync" },
+	"appointment_list":     func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/calendar" },
+	"appointment_show":     func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/calendar/events/" + a.Get("appointment_id").S() },
+	"calendar_sync_status": func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/calendar/sync" },
+	"file_list":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/files" },
+	"file_show":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/files/items/" + a.Get("file_id").S() },
+	"file_read":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/file_previews/" + a.Get("preview_id").S() },
+	"folder_share": func(a api.Value) string {
+		return "/tools/" + a.Get("tool_id").S() + "/files/folders/" + a.Get("folder_id").S() + "/share"
+	},
+}
+
+func (f *fakeAPI) Call(tool string, args map[string]any) (api.Value, error) {
+	arguments := api.Of(args)
+	if path, reads := readTools[tool]; reads {
+		if err := f.errors[path(arguments)]; err != nil {
+			return api.Null, err
+		}
+		return f.responses.Get(path(arguments)), nil
+	}
+	if err := f.errors[tool]; err != nil {
 		return api.Null, err
 	}
-	if method == api.Get {
-		return f.responses.Get(path), nil
-	}
-	sent := api.Of(body)
-	*f.sent = append(*f.sent, sent)
-	f.paths = append(f.paths, path)
-	f.requests = append(f.requests, string(method)+" "+path)
+	*f.sent = append(*f.sent, arguments)
+	f.requests = append(f.requests, tool)
 	// A draft has the attachments it forwards
 	attachments := []api.Value{}
-	for _, id := range sent.Get("forward_attachment_ids").Items() {
+	for _, id := range arguments.Get("forward_attachment_ids").Items() {
 		attachments = append(attachments, api.Object("id", id))
 	}
-	return api.Object("id", 400, "subject", sent.Get("subject"), "to", []string{"ann@example.com"}, "cc", []string{},
+	return api.Object("id", 400, "subject", arguments.Get("subject"), "to", []string{"ann@example.com"}, "cc", []string{},
 		"attachments", attachments, "url", "https://dobase.test/tools/8/mails/new?draft_id=400"), nil
+}
+
+func (f *fakeAPI) Request(method api.Method, path string, _ []api.Param, body any) (api.Value, error) {
+	panic(fmt.Sprintf("%s %s went past MCP", method, path))
 }
 
 func (f *fakeAPI) Upload(path string, files []api.FilePart, fields []api.Param) (api.Value, error) {

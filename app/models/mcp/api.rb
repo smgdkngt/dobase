@@ -22,6 +22,18 @@ module Mcp
         super(self.class.message_for(status, body))
       end
 
+      # The API's own words: its errors joined, its error, or the start of whatever else it sent
+      def said
+        if body.is_a?(Hash) && (body.key?("errors") || body.key?("error"))
+          errors = body.key?("errors") ? body["errors"] : body["error"]
+          errors.is_a?(Array) ? errors.join(", ") : errors.to_s
+        elsif body.is_a?(String) && body.strip.present?
+          body.strip.lines.first.strip.first(200)
+        else
+          "Request failed"
+        end
+      end
+
       def self.message_for(status, body)
         detail = body["error"].presence || Array(body["errors"]).to_sentence.presence if body.is_a?(Hash)
         detail ||= Rack::Utils::HTTP_STATUS_CODES[status]

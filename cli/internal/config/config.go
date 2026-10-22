@@ -41,11 +41,18 @@ func (c *Config) Token() string {
 	if token := os.Getenv("DOBASE_TOKEN"); token != "" {
 		return token
 	}
+	if saved := c.load().Get("oauth"); !saved.IsNull() {
+		return saved.Get("access_token").S()
+	}
 	return c.load().Get("token").S()
 }
 
-// Save writes the URL and token to a file only this user can read.
+// Save writes the URL and a personal token to a file only this user can read.
 func (c *Config) Save(url, token string) error {
+	return c.write(api.Object("url", strings.TrimRight(url, "/"), "token", token))
+}
+
+func (c *Config) write(saved api.Value) error {
 	path := Path()
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
@@ -54,7 +61,7 @@ func (c *Config) Save(url, token string) error {
 	if err := os.Chmod(dir, 0o700); err != nil {
 		return api.PathError(dir, err)
 	}
-	contents := api.Object("url", strings.TrimRight(url, "/"), "token", token).Pretty()
+	contents := saved.Pretty()
 
 	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {

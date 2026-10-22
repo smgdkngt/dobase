@@ -43,7 +43,7 @@ func TestCardCreateResolvesTheColumnAssigneeAndDueDate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := `{"card":{"assigned_user_id":5,"color":"red","description":"<p>One &lt;b&gt;</p><p>Two</p>","due_date":"2026-10-01","title":"Ship it"}}`
+	want := `{"assignee":"5","color":"red","column":"31","description":"<p>One &lt;b&gt;</p><p>Two</p>","due":"2026-10-01","html":true,"title":"Ship it","tool_id":13}`
 	if got := sent[0].JSON(); got != want {
 		t.Errorf("sent %s", got)
 	}
@@ -56,7 +56,7 @@ func TestCardCreateResolvesTheColumnAssigneeAndDueDate(t *testing.T) {
 	if err := invoke(ctx, "card create", "13", "Plan", "--due", "none", "--assignee", "none", "--color", "none"); err != nil {
 		t.Fatal(err)
 	}
-	if got := sent[1].JSON(); got != `{"card":{"assigned_user_id":null,"color":"","due_date":null,"title":"Plan"}}` {
+	if got := sent[1].JSON(); got != `{"assignee":"none","color":"none","column":"30","due":"none","title":"Plan","tool_id":13}` {
 		t.Errorf("sent %s", got)
 	}
 	if !strings.Contains(out.String(), " in To do: ") {
@@ -84,7 +84,7 @@ func TestCardMoveSendsOnlyWhatWasGiven(t *testing.T) {
 	if err := invoke(ctx, "card move", "13/9", "--position", "3"); err != nil {
 		t.Fatal(err)
 	}
-	if got := sent[0].JSON() + " " + sent[1].JSON(); got != `{"column_id":31} {"position":2}` {
+	if got := sent[0].JSON() + " " + sent[1].JSON(); got != `{"card_id":9,"column":"31","tool_id":13} {"card_id":9,"position":3,"tool_id":13}` {
 		t.Errorf("sent %s", got)
 	}
 	if err := invoke(ctx, "card move", "13/9"); err == nil || err.Error() != "Give a COLUMN, a --position, or both." {
@@ -123,10 +123,10 @@ func TestTodoCreateAndUpdateBodies(t *testing.T) {
 	if err := invoke(ctx, "todo update", "14/7", "--repeat", "none", "--due", "none", "--title", "Water"); err != nil {
 		t.Fatal(err)
 	}
-	if got := sent[0].JSON(); got != `{"item":{"assigned_user_id":5,"recurrence_rule":"monthly","title":"Mow"}}` {
+	if got := sent[0].JSON(); got != `{"assignee":"5","list":"41","repeat":"monthly","title":"Mow","tool_id":14}` {
 		t.Errorf("sent %s", got)
 	}
-	if got := sent[1].JSON(); got != `{"item":{"due_date":null,"recurrence_rule":null,"title":"Water"}}` {
+	if got := sent[1].JSON(); got != `{"due":"none","repeat":"none","title":"Water","todo_id":7,"tool_id":14}` {
 		t.Errorf("sent %s", got)
 	}
 	if !strings.Contains(out.String(), `Created todo 14/400 "" in Garden: `) || !strings.Contains(out.String(), `Updated todo 14/400 "".`) {
@@ -150,9 +150,12 @@ func TestCommentsAreDeletedByTheIDShowPrints(t *testing.T) {
 	if err := invoke(ctx, "todo uncomment", "14/7", "78"); err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"DELETE /tools/13/board/cards/104/comments/77", "DELETE /tools/14/todo/items/7/comments/78"}
+	want := []string{"card_uncomment", "todo_uncomment"}
 	if !slices.Equal(fake.requests, want) {
 		t.Errorf("requests %v", fake.requests)
+	}
+	if got := sent[0].JSON() + " " + sent[1].JSON(); got != `{"card_id":104,"comment_id":77,"confirm":true,"tool_id":13} {"comment_id":78,"confirm":true,"todo_id":7,"tool_id":14}` {
+		t.Errorf("sent %s", got)
 	}
 	if want := "Deleted comment 77 from card 13/104.\nDeleted comment 78 from todo 14/7.\n"; out.String() != want {
 		t.Errorf("out %q", out.String())

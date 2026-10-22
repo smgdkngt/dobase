@@ -37,13 +37,16 @@ func showDetails(ctx *Ctx, record api.Value) {
 	}
 }
 
-// deleteComment deletes a comment, by the id `show` prints, from the comments
-// at path. label is what it was on: "card 12/104".
-func deleteComment(ctx *Ctx, path, comment, label string) error {
+// deleteComment deletes a comment, by the id `show` prints, with tool (card_uncomment,
+// todo_uncomment) and what it was on in args. label is what it was on: "card 12/104".
+func deleteComment(ctx *Ctx, tool string, args map[string]any, comment, label string) error {
 	if !IsDigits(comment) {
 		return api.Usagef("Expected a comment id like 77, got %s. `show` prints them as [comment ID].", Quoted(comment))
 	}
-	if _, err := ctx.Delete(path + "/" + comment); err != nil {
+	id, _ := strconv.ParseInt(comment, 10, 64)
+	args["comment_id"] = id
+	args["confirm"] = true
+	if _, err := ctx.Call(tool, args); err != nil {
 		return err
 	}
 	return ctx.Output(api.Null, func() error {
@@ -52,10 +55,60 @@ func deleteComment(ctx *Ctx, path, comment, label string) error {
 	})
 }
 
-// zeroBased turns "3" (1 = top) into the API's 0-based position.
-func zeroBased(position string) int64 {
-	n, _ := strconv.ParseInt(strings.TrimSpace(position), 10, 64)
-	return max(n-1, 0)
+// position turns "3" (1 = top) into a tool's position, which counts the same way.
+func position(text string) int64 {
+	n, _ := strconv.ParseInt(strings.TrimSpace(text), 10, 64)
+	return max(n, 1)
+}
+
+// asToolArgs turns a card's or todo's attributes, as the API names them, into
+// what card_create, card_update, todo_create and todo_update take: the text is
+// HTML already, and what clears a field is "none".
+func asToolArgs(attributes map[string]any) map[string]any {
+	args := map[string]any{}
+	none := func(value any) any {
+		if v, ok := value.(api.Value); ok {
+			if v.IsNull() {
+				return "none"
+			}
+			return v.S()
+		}
+		if value == nil || value == "" {
+			return "none"
+		}
+		return value
+	}
+	for name, value := range attributes {
+		switch name {
+		case "description":
+			args["description"], args["html"] = value, true
+		case "due_date":
+			args["due"] = none(value)
+		case "assigned_user_id":
+			args["assignee"] = none(value)
+		case "color", "recurrence_rule":
+			key := map[string]string{"color": "color", "recurrence_rule": "repeat"}[name]
+			args[key] = none(value)
+		default:
+			args[name] = value
+		}
+	}
+	return args
+}
+
+// toolArgs are a tool's arguments, leaving out what wasn't given (null).
+func toolArgs(pairs ...any) map[string]any {
+	args := map[string]any{}
+	for i := 0; i+1 < len(pairs); i += 2 {
+		if value, ok := pairs[i+1].(api.Value); ok && value.IsNull() {
+			continue
+		}
+		if pairs[i+1] == nil {
+			continue
+		}
+		args[pairs[i].(string)] = pairs[i+1]
+	}
+	return args
 }
 
 // attachFiles uploads each file as an attachment to path, one request per file.

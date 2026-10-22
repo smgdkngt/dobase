@@ -48,13 +48,22 @@ func (c *Ctx) SetAPI(a api.API) {
 // API is the server, connected on first use.
 func (c *Ctx) API() (api.API, error) {
 	if c.api == nil {
-		client, err := api.NewClient(c.Config.URL(), c.Config.Token(), c.UserAgent)
+		server, err := api.NewMCP(c.Config.URL(), c.Config.Credentials(), c.UserAgent)
 		if err != nil {
 			return nil, err
 		}
-		c.api = client
+		c.api = server
 	}
 	return c.api, nil
+}
+
+// Call runs an MCP tool on the server.
+func (c *Ctx) Call(tool string, args map[string]any) (api.Value, error) {
+	server, err := c.API()
+	if err != nil {
+		return api.Null, err
+	}
+	return server.Call(tool, args)
 }
 
 // Get is a GET with query parameters as name, value pairs; empty values are left out.
@@ -91,7 +100,7 @@ func (c *Ctx) request(method api.Method, path string, params []api.Param, body a
 // Me is the signed-in user's profile.
 func (c *Ctx) Me() (api.Value, error) {
 	if c.me == nil {
-		profile, err := c.Get("/profile")
+		profile, err := c.Call("whoami", nil)
 		if err != nil {
 			return api.Null, err
 		}
@@ -106,7 +115,7 @@ func (c *Ctx) Me() (api.Value, error) {
 // kind count, so "launch" finds the one todos tool among several "Launch" tools.
 func (c *Ctx) Tool(reference, kind string) (api.Value, error) {
 	if c.tools == nil {
-		tools, err := c.Get("/tools")
+		tools, err := c.Call("tool_list", nil)
 		if err != nil {
 			return api.Null, err
 		}
@@ -168,7 +177,7 @@ func (c *Ctx) UserID(tool api.Value, value string) (api.Value, error) {
 		return api.Of(id), nil
 	}
 
-	details, err := c.Get("/tools/" + tool.Get("id").S())
+	details, err := c.Call("tool_show", map[string]any{"tool_id": tool.Get("id")})
 	if err != nil {
 		return api.Null, err
 	}

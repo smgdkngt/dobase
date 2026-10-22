@@ -32,6 +32,8 @@ type FilePart struct{ Field, Path string }
 
 // API is what commands need from the server. Tests swap in a fake.
 type API interface {
+	// Call runs an MCP tool and returns the API's JSON (an object, a list, or null for nothing).
+	Call(tool string, args map[string]any) (Value, error)
 	// Request sends body (nil for none) as JSON. Null means the server sent no content.
 	Request(method Method, path string, params []Param, body any) (Value, error)
 	// Upload is a multipart POST of files and text fields.
@@ -44,13 +46,17 @@ type API interface {
 // Client talks JSON over HTTP to a Dobase server.
 type Client struct {
 	base      *url.URL
-	token     string
+	creds     Credentials
 	userAgent string
 	http      *http.Client
 }
 
-// NewClient needs a URL and a token.
-func NewClient(serverURL, token, userAgent string) (*Client, error) {
+// NewClient needs a URL and credentials.
+func NewClient(serverURL string, creds Credentials, userAgent string) (*Client, error) {
+	token := ""
+	if creds != nil {
+		token, _ = creds.Token()
+	}
 	if serverURL == "" || token == "" {
 		return nil, Failf("Not signed in. Run `dobase login URL` first, or set DOBASE_URL and DOBASE_TOKEN.")
 	}
@@ -67,7 +73,15 @@ func NewClient(serverURL, token, userAgent string) (*Client, error) {
 		// Redirects are answered by hand, so the token never follows one elsewhere.
 		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 	}
-	return &Client{base: base, token: token, userAgent: userAgent, http: client}, nil
+	return &Client{base: base, creds: creds, userAgent: userAgent, http: client}, nil
+}
+
+// Base is the server's address, without a trailing slash.
+func (c *Client) Base() string { return strings.TrimRight(c.base.String(), "/") }
+
+// refresh asks for a token in place of the one request was refused with.
+func (c *Client) refresh(request *http.Request) (string, error) {
+	return c.creds.Refresh(strings.TrimPrefix(request.Header.Get("Authorization"), "Bearer "))
 }
 
 func (c *Client) urlFor(path string) (*url.URL, error) {
@@ -97,7 +111,11 @@ func (c *Client) newRequest(method Method, target *url.URL, body io.Reader) (*ht
 	request.Header.Set("Accept", "application/json")
 	request.Header.Set("User-Agent", c.userAgent)
 	if target.Hostname() == c.base.Hostname() && port(target) == port(c.base) {
-		request.Header.Set("Authorization", "Bearer "+c.token)
+		token, err := c.creds.Token()
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("Authorization", "Bearer "+token)
 	}
 	return request, nil
 }
