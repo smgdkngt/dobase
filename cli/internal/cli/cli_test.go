@@ -238,30 +238,42 @@ func newFakeAPI(responses string, sent *[]api.Value) *fakeAPI {
 
 // readTools are the paths the server's read tools ask the API, as in app/models/mcp/tools/*.rb
 var readTools = map[string]func(a api.Value) string{
-	"whoami":               func(api.Value) string { return "/profile" },
-	"tool_list":            func(api.Value) string { return "/tools" },
-	"tool_show":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() },
-	"search":               func(api.Value) string { return "/search" },
-	"notification_list":    func(api.Value) string { return "/notifications" },
-	"event_list":           func(api.Value) string { return "/events" },
-	"appearance_show":      func(api.Value) string { return "/appearance" },
-	"card_list":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/board" },
-	"card_show":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/board/cards/" + a.Get("card_id").S() },
-	"todo_list":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/todo" },
-	"todo_show":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/todo/items/" + a.Get("todo_id").S() },
-	"doc_list":             func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/docs" },
-	"doc_show":             func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/docs/documents/" + a.Get("document_id").S() },
-	"chat_list":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/chat" },
-	"mail_list":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/mails" },
-	"mail_show":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/mails/" + a.Get("mail_id").S() },
-	"mail_contacts":        func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/mails_contacts" },
-	"mail_sync_status":     func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/sync" },
-	"appointment_list":     func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/calendar" },
-	"appointment_show":     func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/calendar/events/" + a.Get("appointment_id").S() },
+	"whoami":            func(api.Value) string { return "/profile" },
+	"tool_list":         func(api.Value) string { return "/tools" },
+	"tool_show":         func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() },
+	"search":            func(api.Value) string { return "/search" },
+	"notification_list": func(api.Value) string { return "/notifications" },
+	"event_list":        func(api.Value) string { return "/events" },
+	"appearance_show":   func(api.Value) string { return "/appearance" },
+	"card_list":         func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/board" },
+	"card_show": func(a api.Value) string {
+		return "/tools/" + a.Get("tool_id").S() + "/board/cards/" + a.Get("card_id").S()
+	},
+	"todo_list": func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/todo" },
+	"todo_show": func(a api.Value) string {
+		return "/tools/" + a.Get("tool_id").S() + "/todo/items/" + a.Get("todo_id").S()
+	},
+	"doc_list": func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/docs" },
+	"doc_show": func(a api.Value) string {
+		return "/tools/" + a.Get("tool_id").S() + "/docs/documents/" + a.Get("document_id").S()
+	},
+	"chat_list":        func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/chat" },
+	"mail_list":        func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/mails" },
+	"mail_show":        func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/mails/" + a.Get("mail_id").S() },
+	"mail_contacts":    func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/mails_contacts" },
+	"mail_sync_status": func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/sync" },
+	"appointment_list": func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/calendar" },
+	"appointment_show": func(a api.Value) string {
+		return "/tools/" + a.Get("tool_id").S() + "/calendar/events/" + a.Get("appointment_id").S()
+	},
 	"calendar_sync_status": func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/calendar/sync" },
 	"file_list":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/files" },
-	"file_show":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/files/items/" + a.Get("file_id").S() },
-	"file_read":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/file_previews/" + a.Get("preview_id").S() },
+	"file_show": func(a api.Value) string {
+		return "/tools/" + a.Get("tool_id").S() + "/files/items/" + a.Get("file_id").S()
+	},
+	"file_read": func(a api.Value) string {
+		return "/tools/" + a.Get("tool_id").S() + "/file_previews/" + a.Get("preview_id").S()
+	},
 	"folder_share": func(a api.Value) string {
 		return "/tools/" + a.Get("tool_id").S() + "/files/folders/" + a.Get("folder_id").S() + "/share"
 	},
