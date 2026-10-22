@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"fmt"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -77,7 +78,7 @@ func (o *oauth) Refresh(refused string) (string, error) {
 	o.config.loaded = false
 	saved := o.config.load().Get("oauth")
 	if saved.IsNull() {
-		return "", api.Failf("Signed out. Run `dobase login URL` again.")
+		return "", &api.Error{Kind: api.Failed, Message: "Signed out. Run `dobase login URL` again.", Status: http.StatusUnauthorized}
 	}
 	expires, _ := time.Parse(time.RFC3339, saved.Get("expires_at").S())
 	if current := saved.Get("access_token").S(); current != refused && time.Until(expires) > margin {
@@ -90,7 +91,8 @@ func (o *oauth) Refresh(refused string) (string, error) {
 		return "", err
 	}
 	if status != http.StatusOK {
-		return "", api.Failf("The login has ended (%s). Run `dobase login %s` again.", tokens.Get("error").Or("refused"), o.config.URL())
+		return "", &api.Error{Kind: api.Failed, Status: http.StatusUnauthorized,
+			Message: fmt.Sprintf("The login has ended (%s). Run `dobase login %s` again.", tokens.Get("error").Or("refused"), o.config.URL())}
 	}
 	if err := o.config.SaveOAuth(o.config.URL(), saved.Get("client_id").S(), tokens); err != nil {
 		return "", err

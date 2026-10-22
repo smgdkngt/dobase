@@ -29,7 +29,7 @@ type Static string
 func (s Static) Token() (string, error) { return string(s), nil }
 
 func (s Static) Refresh(string) (string, error) {
-	return "", Failf("The server refused the token. Run `dobase login URL` again, or set DOBASE_TOKEN.")
+	return "", &Error{Kind: Failed, Message: "The server refused the token. Run `dobase login URL` again, or set DOBASE_TOKEN.", Status: http.StatusUnauthorized}
 }
 
 // MCP talks to a Dobase server's /mcp: its tools by name, and its stream of
@@ -256,6 +256,12 @@ func (m *MCP) send(message map[string]any, session string, retry bool) (Value, i
 // stream ends now and then by itself (the server's limit is half an hour):
 // the caller listens again.
 func (m *MCP) Listen(ctx context.Context, uris []string, opened func(), changed func(uri string)) error {
+	return m.ListenAlive(ctx, uris, opened, changed, nil)
+}
+
+// ListenAlive is Listen that also calls alive for whatever the stream says,
+// the server's pings included, so a caller can tell a quiet stream from a dead one.
+func (m *MCP) ListenAlive(ctx context.Context, uris []string, opened func(), changed func(uri string), alive func()) error {
 	session, err := m.ensureSession()
 	if err != nil {
 		return err
@@ -309,6 +315,9 @@ func (m *MCP) Listen(ctx context.Context, uris []string, opened func(), changed 
 	lines.Buffer(make([]byte, 64*1024), 1024*1024)
 	for lines.Scan() {
 		line := lines.Text()
+		if alive != nil {
+			alive()
+		}
 		if !strings.HasPrefix(line, "data:") {
 			continue
 		}

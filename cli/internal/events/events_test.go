@@ -5,22 +5,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
-	"golang.org/x/net/websocket"
-
 	"github.com/smgdkngt/dobase/cli/internal/api"
 )
 
-// server is a Dobase as far as a listener meets it: GET /events and the cable.
+// server is a Dobase as far as a listener meets it: its MCP endpoint, with
+// the tool event_list and the stream that says there is something new.
 type server struct {
 	*httptest.Server
 	t *testing.T
@@ -34,8 +33,8 @@ type server struct {
 	noCable bool
 	silent  bool
 	asked   []string
-	lines   []*websocket.Conn
-	origins []string
+	lines   []chan string
+	opened  int
 }
 
 const token = "dobase_test_token"
@@ -43,33 +42,63 @@ const token = "dobase_test_token"
 func newServer(t *testing.T) *server {
 	s := &server{t: t}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/events", s.serveEvents)
-	mux.Handle("/cable", websocket.Server{Handshake: s.handshake, Handler: s.serveCable})
+	mux.HandleFunc("/mcp", s.serveMCP)
 	s.Server = httptest.NewServer(mux)
-	t.Cleanup(s.Close)
+	t.Cleanup(func() {
+		s.dropLines()
+		s.Close()
+	})
 	return s
 }
 
-func (s *server) serveEvents(w http.ResponseWriter, r *http.Request) {
+func (s *server) serveMCP(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.asked = append(s.asked, r.URL.RawQuery)
-	w.Header().Set("Content-Type", "application/json")
-	switch {
-	case s.down:
-		w.WriteHeader(http.StatusBadGateway)
-		fmt.Fprint(w, "<html>Bad gateway</html>")
-		return
-	case s.revoked || r.Header.Get("Authorization") != "Bearer "+token:
+	refused := s.revoked || r.Header.Get("Authorization") != "Bearer "+token
+	s.mu.Unlock()
+	if refused {
 		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, `{"error":"Invalid access token"}`)
+		fmt.Fprint(w, `{"error":"invalid_token"}`)
+		return
+	}
+	if r.Method == http.MethodGet {
+		s.serveStream(w, r)
 		return
 	}
 
-	query := r.URL.Query()
+	body, _ := io.ReadAll(r.Body)
+	message := api.MustParse(string(body))
+	w.Header().Set("Content-Type", "application/json")
+	switch message.Get("method").S() {
+	case "initialize":
+		w.Header().Set("Mcp-Session-Id", "session-1")
+		fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%s,"result":{"protocolVersion":"2025-06-18"}}`, message.Get("id").JSON())
+	case "notifications/initialized":
+		w.WriteHeader(http.StatusAccepted)
+	case "tools/call":
+		s.serveEvents(w, message)
+	default:
+		fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%s,"result":{}}`, message.Get("id").JSON())
+	}
+}
+
+func (s *server) serveEvents(w http.ResponseWriter, message api.Value) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	args := message.Get("params", "arguments")
+	if name := message.Get("params", "name").S(); name != "event_list" {
+		s.t.Errorf("called %s", name)
+	}
+	s.asked = append(s.asked, args.JSON())
+	if s.down {
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusBadGateway)
+		fmt.Fprint(w, "<html>Bad gateway</html>")
+		return
+	}
+
 	var listed []string
-	if query.Has("after") || query.Has("since") {
-		after, _ := strconv.ParseInt(query.Get("after"), 10, 64)
+	if args.Has("after") || args.Has("since") {
+		after := args.Get("after").Int()
 		for _, id := range s.events {
 			if id > after {
 				listed = append(listed, fmt.Sprintf(`{"id":%d,"kind":"card.created","data":{"title":"Card %d\nwith <a> second line"}}`, id, id))
@@ -83,50 +112,49 @@ func (s *server) serveEvents(w http.ResponseWriter, r *http.Request) {
 		listed = listed[:2]
 		cursor = api.MustParse(listed[1]).Get("id").Int()
 	}
-	after, _ := strconv.ParseInt(query.Get("after"), 10, 64)
-	gap := query.Has("after") && after < s.gapUpTo
-	fmt.Fprintf(w, `{"events":[%s],"cursor":%d,"more":%t,"gap":%t}`, strings.Join(listed, ","), cursor, more, gap)
+	gap := args.Has("after") && args.Get("after").Int() < s.gapUpTo
+	page := fmt.Sprintf(`{"events":[%s],"cursor":%d,"more":%t,"gap":%t}`, strings.Join(listed, ","), cursor, more, gap)
+	fmt.Fprintf(w, `{"jsonrpc":"2.0","id":%s,"result":{"content":[],"structuredContent":%s}}`, message.Get("id").JSON(), page)
 }
 
-func (s *server) handshake(config *websocket.Config, r *http.Request) error {
+// serveStream is the GET stream: pings, and a notification for every signalled event
+func (s *server) serveStream(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.origins = append(s.origins, r.Header.Get("Origin"))
-	if s.noCable || r.Header.Get("Authorization") != "Bearer "+token || r.Header.Get("Origin") != "http://"+r.Host {
-		return errors.New("refused")
+	s.opened++
+	if s.noCable {
+		s.mu.Unlock()
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
 	}
-	return nil
-}
+	silent := s.silent
+	line := make(chan string, 16)
+	s.lines = append(s.lines, line)
+	s.mu.Unlock()
 
-func (s *server) serveCable(ws *websocket.Conn) {
-	s.mu.Lock()
-	silent, revoked := s.silent, s.revoked
-	s.mu.Unlock()
-	if revoked {
-		websocket.Message.Send(ws, `{"type":"disconnect","reason":"unauthorized","reconnect":false}`)
-		return
-	}
-	websocket.Message.Send(ws, `{"type":"welcome"}`)
-	var command string
-	if err := websocket.Message.Receive(ws, &command); err != nil {
-		return
-	}
-	if got := api.MustParse(command); got.Get("command").S() != "subscribe" || got.Get("identifier").S() != `{"channel":"EventsChannel"}` {
-		s.t.Errorf("subscribed with %s", command)
-	}
-	websocket.Message.Send(ws, `{"identifier":"{\"channel\":\"EventsChannel\"}","type":"confirm_subscription"}`)
-	s.mu.Lock()
-	s.lines = append(s.lines, ws)
-	s.mu.Unlock()
-	for !silent {
-		if err := websocket.Message.Send(ws, `{"type":"ping","message":1}`); err != nil {
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.WriteHeader(http.StatusOK)
+	flusher := w.(http.Flusher)
+	flusher.Flush()
+	ping := time.NewTicker(10 * time.Millisecond)
+	defer ping.Stop()
+	for {
+		select {
+		case <-r.Context().Done():
 			return
+		case said, open := <-line:
+			if !open {
+				return
+			}
+			fmt.Fprint(w, said)
+			flusher.Flush()
+		case <-ping.C:
+			// A stream that says nothing, and stays open: a connection that died on the way
+			if !silent {
+				fmt.Fprint(w, ": ping\n\n")
+				flusher.Flush()
+			}
 		}
-		time.Sleep(10 * time.Millisecond)
 	}
-	// A line that says nothing, and stays open: a connection that died on the way
-	var nothing string
-	websocket.Message.Receive(ws, &nothing)
 }
 
 // happen adds an event; with a signal, it is said on every line, as the server does.
@@ -137,7 +165,7 @@ func (s *server) happen(signal bool) int64 {
 	s.events = append(s.events, s.newest)
 	if signal {
 		for _, line := range s.lines {
-			websocket.Message.Send(line, fmt.Sprintf(`{"identifier":"{\"channel\":\"EventsChannel\"}","message":{"id":%d}}`, s.newest))
+			line <- "data: {\"jsonrpc\":\"2.0\",\"method\":\"notifications/resources/updated\",\"params\":{\"uri\":\"dobase://events\"}}\n\n"
 		}
 	}
 	return s.newest
@@ -160,7 +188,7 @@ func (s *server) dropLines() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, line := range s.lines {
-		line.Close()
+		close(line)
 	}
 	s.lines = nil
 }
@@ -180,7 +208,7 @@ func (s *server) questions() int {
 func (s *server) connections() int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return len(s.origins)
+	return s.opened
 }
 
 // output collects what a listener prints, line by line.
@@ -219,7 +247,7 @@ func (o *output) ids() string {
 
 func listener(t *testing.T, s *server, out *output, name string) *Listener {
 	t.Helper()
-	client, err := api.NewClient(s.URL, token, "test")
+	server, err := api.NewMCP(s.URL, api.Static(token), "test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -228,8 +256,8 @@ func listener(t *testing.T, s *server, out *output, name string) *Listener {
 		t.Fatal(err)
 	}
 	t.Cleanup(bookmark.Close)
-	line := &Line{Server: s.URL, Token: token, UserAgent: "test", Quiet: 300 * time.Millisecond}
-	return &Listener{Server: client, Out: out, Bookmark: bookmark, Line: line.Listen,
+	line := &Line{Server: server, Quiet: 300 * time.Millisecond}
+	return &Listener{Server: server, Out: out, Bookmark: bookmark, Line: line.Listen,
 		Poll: time.Hour, Retry: 10 * time.Millisecond, RetryMax: 40 * time.Millisecond}
 }
 
@@ -433,8 +461,8 @@ func TestSinceAndTheFiltersAreAskedOfTheServer(t *testing.T) {
 	l.Once()
 
 	want := []string{
-		"since=2026-10-09T08%3A00%3A00Z&tool%5B%5D=107&tool%5B%5D=110&kind%5B%5D=mail&kind%5B%5D=card.moved&skip_own=1",
-		"after=1&tool%5B%5D=107&tool%5B%5D=110&kind%5B%5D=mail&kind%5B%5D=card.moved&skip_own=1",
+		`{"kinds":["mail","card.moved"],"since":"2026-10-09T08:00:00Z","skip_own":true,"tool_ids":[107,110]}`,
+		`{"after":1,"kinds":["mail","card.moved"],"skip_own":true,"tool_ids":[107,110]}`,
 	}
 	if got := strings.Join(s.asked, "\n"); got != strings.Join(want, "\n") {
 		t.Fatalf("asked\n%s", got)
@@ -532,11 +560,6 @@ func TestFollowingPrintsAnEventTheMomentItIsSignalled(t *testing.T) {
 	s.happen(true)
 	eventually(t, "the next two are printed", func() bool { return out.ids() == "2 3 4" })
 
-	s.set(func(s *server) {
-		if s.origins[0] != s.URL {
-			t.Errorf("connected with Origin %q, the server is %s", s.origins[0], s.URL)
-		}
-	})
 }
 
 func TestFollowingMissesNothingWhileTheLineIsDownAndPrintsNothingTwice(t *testing.T) {
@@ -629,14 +652,9 @@ func TestARevokedTokenEndsTheListenerWithAReason(t *testing.T) {
 	go func() { ended <- l.Follow(ctx) }()
 	eventually(t, "the line is open", func() bool { return s.open() == 1 })
 
-	// The server closes the line and refuses the token from then on
-	s.set(func(s *server) {
-		s.revoked = true
-		for _, line := range s.lines {
-			websocket.Message.Send(line, `{"type":"disconnect","reason":"unauthorized","reconnect":false}`)
-			line.Close()
-		}
-	})
+	// The server closes the stream and refuses the token from then on
+	s.set(func(s *server) { s.revoked = true })
+	s.dropLines()
 
 	select {
 	case err := <-ended:
@@ -677,34 +695,15 @@ func TestStoppingAListenerEndsItWithoutAnError(t *testing.T) {
 
 func TestWhyALineFailedNeverNamesTheToken(t *testing.T) {
 	var said bytes.Buffer
-	line := &Line{Server: "http://127.0.0.1:1", Token: token, UserAgent: "test", Quiet: 200 * time.Millisecond}
-	err := line.Listen(context.Background(), func() {})
+	server, err := api.NewMCP("http://127.0.0.1:1", api.Static(token), "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	line := &Line{Server: server, Quiet: 200 * time.Millisecond}
+	err = line.Listen(context.Background(), func() {})
 	fmt.Fprintf(&said, "%v %+v %#v", err, err, err)
 
 	if err == nil || strings.Contains(said.String(), token) {
 		t.Fatalf("said %s", said.String())
-	}
-}
-
-func TestTheCableIsFoundBesideTheServerAndOnlyOverHTTP(t *testing.T) {
-	for server, want := range map[string]string{
-		"https://app.dobase.co":       "wss://app.dobase.co/cable https://app.dobase.co",
-		"https://app.dobase.co/":      "wss://app.dobase.co/cable https://app.dobase.co",
-		"http://localhost:3010":       "ws://localhost:3010/cable http://localhost:3010",
-		"https://example.com/dobase/": "wss://example.com/dobase/cable https://example.com",
-	} {
-		config, err := (&Line{Server: server, Token: token}).config()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if got := config.Location.String() + " " + config.Origin.String(); got != want {
-			t.Errorf("%s: %s", server, got)
-		}
-		if config.Header.Get("Authorization") != "Bearer "+token {
-			t.Errorf("%s: no token", server)
-		}
-	}
-	if _, err := (&Line{Server: "ftp://example.com"}).config(); err == nil {
-		t.Error("ftp is no server")
 	}
 }
