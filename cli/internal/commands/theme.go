@@ -26,7 +26,7 @@ func theme() []*Definition {
 }
 
 func listThemes(ctx *Ctx, _ *Args) error {
-	appearance, err := ctx.Get("/appearance")
+	appearance, err := ctx.Call("appearance_show", nil)
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func setTheme(ctx *Ctx, args *Args) error {
 	if name == "default" || name == "dobase" {
 		body["theme"] = nil
 	}
-	appearance, err := ctx.Patch("/appearance", body)
+	appearance, err := ctx.Call("appearance_update", body)
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func setTypeface(ctx *Ctx, args *Args) error {
 	default:
 		return api.Usagef("The typeface is mono or default, not %s.", Quoted(args.At(0)))
 	}
-	appearance, err := ctx.Patch("/appearance", body)
+	appearance, err := ctx.Call("appearance_update", body)
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,7 @@ func syncTheme(ctx *Ctx, args *Args) error {
 	}
 	// An older Omarchy theme has no colors.toml; its name still finds a built-in one
 
-	appearance, err := ctx.Patch("/appearance", body)
+	appearance, err := ctx.Call("appearance_update", body)
 	if err != nil {
 		return err
 	}
