@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_14_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_22_100000) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -20,6 +20,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_100000) do
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
     t.boolean "agent", default: false, null: false
+    t.integer "oauth_client_id"
+    t.datetime "expires_at"
+    t.index ["oauth_client_id"], name: "index_access_tokens_on_oauth_client_id"
     t.index ["token_digest"], name: "index_access_tokens_on_token_digest", unique: true
     t.index ["user_id"], name: "index_access_tokens_on_user_id"
   end
@@ -497,6 +500,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_100000) do
     t.index ["mail_account_id", "email_address"], name: "index_mail_trusted_senders_on_account_and_address", unique: true
   end
 
+  create_table "mcp_tool_calls", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.integer "access_token_id"
+    t.string "tool", null: false
+    t.json "arguments", default: {}, null: false
+    t.string "outcome", null: false
+    t.string "error"
+    t.integer "duration_ms"
+    t.datetime "created_at", null: false
+    t.index ["access_token_id"], name: "index_mcp_tool_calls_on_access_token_id"
+    t.index ["user_id", "created_at"], name: "index_mcp_tool_calls_on_user_id_and_created_at"
+    t.index ["user_id"], name: "index_mcp_tool_calls_on_user_id"
+  end
+
   create_table "noticed_events", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "notifications_count"
@@ -519,6 +536,48 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_100000) do
     t.datetime "updated_at", null: false
     t.index ["event_id"], name: "index_noticed_notifications_on_event_id"
     t.index ["recipient_type", "recipient_id"], name: "index_noticed_notifications_on_recipient"
+  end
+
+  create_table "oauth_authorization_codes", force: :cascade do |t|
+    t.string "code_digest", null: false
+    t.integer "oauth_client_id", null: false
+    t.integer "user_id", null: false
+    t.string "redirect_uri", null: false
+    t.string "code_challenge", null: false
+    t.string "permission", default: "read", null: false
+    t.boolean "agent", default: true, null: false
+    t.datetime "expires_at", null: false
+    t.datetime "used_at"
+    t.integer "access_token_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["access_token_id"], name: "index_oauth_authorization_codes_on_access_token_id"
+    t.index ["code_digest"], name: "index_oauth_authorization_codes_on_code_digest", unique: true
+    t.index ["oauth_client_id"], name: "index_oauth_authorization_codes_on_oauth_client_id"
+    t.index ["user_id"], name: "index_oauth_authorization_codes_on_user_id"
+  end
+
+  create_table "oauth_clients", force: :cascade do |t|
+    t.string "uid", null: false
+    t.string "name", null: false
+    t.json "redirect_uris", default: [], null: false
+    t.datetime "last_used_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["uid"], name: "index_oauth_clients_on_uid", unique: true
+  end
+
+  create_table "oauth_grants", force: :cascade do |t|
+    t.integer "access_token_id", null: false
+    t.string "token_digest", null: false
+    t.string "refresh_token_digest", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "revoked_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["access_token_id"], name: "index_oauth_grants_on_access_token_id"
+    t.index ["refresh_token_digest"], name: "index_oauth_grants_on_refresh_token_digest", unique: true
+    t.index ["token_digest"], name: "index_oauth_grants_on_token_digest", unique: true
   end
 
   create_table "rooms", force: :cascade do |t|
@@ -661,6 +720,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_100000) do
     t.string "typeface"
     t.boolean "theme_follows_system", default: false, null: false
     t.string "dark_theme_name"
+    t.boolean "mcp_enabled", default: true, null: false
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 
@@ -673,6 +733,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_100000) do
     t.index ["user_id"], name: "index_workspace_layouts_on_user_id", unique: true
   end
 
+  add_foreign_key "access_tokens", "oauth_clients", on_delete: :cascade
   add_foreign_key "access_tokens", "users"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
@@ -729,6 +790,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_100000) do
   add_foreign_key "mail_contacts", "mail_accounts"
   add_foreign_key "mail_messages", "mail_accounts"
   add_foreign_key "mail_trusted_senders", "mail_accounts"
+  add_foreign_key "mcp_tool_calls", "access_tokens", on_delete: :nullify
+  add_foreign_key "mcp_tool_calls", "users", on_delete: :cascade
+  add_foreign_key "oauth_authorization_codes", "access_tokens", on_delete: :nullify
+  add_foreign_key "oauth_authorization_codes", "oauth_clients", on_delete: :cascade
+  add_foreign_key "oauth_authorization_codes", "users", on_delete: :cascade
+  add_foreign_key "oauth_grants", "access_tokens", on_delete: :cascade
   add_foreign_key "rooms", "tools"
   add_foreign_key "sessions", "users"
   add_foreign_key "sidebar_groups", "users"

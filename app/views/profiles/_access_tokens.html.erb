@@ -53,7 +53,7 @@
       <% access_tokens.each do |token| %>
         <div class="flex items-start gap-3 p-3 rounded-lg bg-background-secondary">
           <div class="flex-shrink-0 mt-0.5 text-text-secondary">
-            <%= render "shared/icon", name: "key-round", size: 16 %>
+            <%= render "shared/icon", name: token.connection? ? "link" : "key-round", size: 16 %>
           </div>
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
@@ -64,7 +64,11 @@
               <% end %>
             </div>
             <p class="text-xs text-text-tertiary">
-              Created <%= time_ago_in_words(token.created_at) %> ago
+              <% if token.connection? %>
+                Connected by MCP <%= time_ago_in_words(token.created_at) %> ago, ends in <%= time_ago_in_words(token.expires_at) %>
+              <% else %>
+                Created <%= time_ago_in_words(token.created_at) %> ago
+              <% end %>
               &middot;
               <%= token.last_used_at ? "Last used #{time_ago_in_words(token.last_used_at)} ago" : "Never used" %>
             </p>

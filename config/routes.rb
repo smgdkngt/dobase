@@ -33,8 +33,20 @@ Rails.application.routes.draw do
   resource :profile, only: %i[show edit update destroy] do
     scope module: :profiles do
       resources :access_tokens, only: %i[create update destroy]
+      resource :mcp_access, only: :update
     end
   end
+  # MCP for Claude and the dobase CLI (Mcp::Endpoint), and OAuth 2.1 for the clients that connect to it
+  match "mcp", to: ->(env) { Mcp::Endpoint.call(env) }, via: %i[get post delete]
+  get ".well-known/oauth-protected-resource(/mcp)", to: "oauth/protected_resources#show", format: false
+  get ".well-known/oauth-authorization-server", to: "oauth/authorization_servers#show", format: false
+  namespace :oauth do
+    resources :clients, only: :create, path: "register"
+    resource :authorization, only: %i[new create], path: "authorize", path_names: { new: "" }
+    resources :tokens, only: :create, path: "token"
+    resources :revocations, only: :create, path: "revoke"
+  end
+
   resource :appearance, only: %i[show update]
   # The logo in a theme's colours, as a picture a mail can show: /logos/7aa2f7-1a1b26.png
   resources :logos, only: :show

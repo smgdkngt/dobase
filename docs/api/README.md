@@ -3,8 +3,9 @@
 Dobase has a JSON API for scripts, integrations and AI assistants. It is the
 same app you use in the browser: the same URLs, controllers and permissions,
 answering in JSON. The [`dobase` command-line tool](../../cli/README.md) is
-built on it.
+built on it, and Dobase is an [MCP server](mcp.md) for Claude and other MCP clients.
 
+- [MCP](mcp.md): the same, as tools for Claude, with OAuth to connect
 - [Tools](tools.md): list, show, create and rename tools; who you are
 - [Search](search.md): everything you share, searched at once
 - [Events](events.md): what happens in your tools as it happens, for a program that listens

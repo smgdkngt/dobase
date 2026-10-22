@@ -116,3 +116,6 @@ gem "rqrcode", "~> 3.0"
 
 # ALTCHA proof-of-work spam protection
 gem "altcha"
+
+# Model Context Protocol server for Claude and the dobase CLI [https://github.com/modelcontextprotocol/ruby-sdk]
+gem "mcp", "~> 1.8"

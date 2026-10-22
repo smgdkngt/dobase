@@ -1,0 +1,12 @@
+<% content_for :title, "Can't connect - #{app_name}" %>
+
+<div class="flex items-center justify-center min-h-full py-12">
+  <div class="w-full max-w-sm text-center">
+    <%= render "shared/logo", class: "w-16 h-16 mx-auto mb-4" %>
+    <h1 class="text-2xl font-semibold text-text-primary">Can't connect</h1>
+    <p class="text-text-secondary mt-2">
+      The program that sent you here isn't known to <%= app_name %>, or asked to send you somewhere it may not.
+      Nothing was connected. Start connecting again from that program.
+    </p>
+  </div>
+</div>
