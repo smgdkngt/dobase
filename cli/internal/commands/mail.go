@@ -137,21 +137,22 @@ func listMail(ctx *Ctx, args *Args) error {
 	search, hasSearch := args.Flag("search")
 	page, hasPage := args.Flag("page")
 
-	// Given flags are sent even when empty, so this doesn't go through ctx.Get.
-	var params []api.Param
-	for _, param := range []struct {
-		name, value string
-		given       bool
-	}{{"folder", folder, hasFolder}, {"q", search, hasSearch}, {"page", page, hasPage}} {
-		if param.given {
-			params = append(params, api.Param{Name: param.name, Value: param.value})
+	// Given flags are sent even when empty
+	params := map[string]any{"tool_id": tool.Get("id")}
+	if hasFolder {
+		params["folder"] = folder
+	}
+	if hasSearch {
+		params["query"] = search
+	}
+	if hasPage {
+		if n, err := strconv.ParseInt(strings.TrimSpace(page), 10, 64); err == nil {
+			params["page"] = n
+		} else {
+			params["page"] = page
 		}
 	}
-	server, err := ctx.API()
-	if err != nil {
-		return err
-	}
-	mailbox, err := server.Request(api.Get, fmt.Sprintf("/tools/%s/mails", tool.Get("id").S()), params, nil)
+	mailbox, err := ctx.Call("mail_list", params)
 	if err != nil {
 		return err
 	}
@@ -215,7 +216,7 @@ func showMail(ctx *Ctx, args *Args) error {
 		return err
 	}
 	html := args.On("html")
-	conversation, err := ctx.Get(fmt.Sprintf("/tools/%s/mails/%d", tool.Get("id").S(), id))
+	conversation, err := mailConversation(ctx, tool, id)
 	if err != nil {
 		return err
 	}
@@ -331,7 +332,7 @@ func moveMail(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	message, err := ctx.Post(fmt.Sprintf("/tools/%s/mails/%d/move", tool.Get("id").S(), id), api.Object("folder", folder))
+	message, err := ctx.Call("mail_move", toolArgs("tool_id", tool.Get("id"), "mail_id", id, "folder", folder))
 	if api.StatusOf(err) == 422 {
 		// The server's trash ("Deleted Messages", "Bin", ...) is no folder to move to: it is the trash here
 		return api.Failf("%s has no folder %s to move mail to. Move to INBOX, Sent or a custom folder (see `dobase mail list`), or trash it with `dobase mail trash`.",
@@ -351,7 +352,7 @@ func trashMail(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	message, err := ctx.Post(fmt.Sprintf("/tools/%s/mails/%d/trash", tool.Get("id").S(), id), api.Object("folder", optionalMailFlag(args, "folder")))
+	message, err := ctx.Call("mail_trash", toolArgs("tool_id", tool.Get("id"), "mail_id", id, "folder", optionalMailFlag(args, "folder")))
 	if err != nil {
 		return err
 	}
@@ -366,7 +367,7 @@ func junkMail(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	message, err := ctx.Post(fmt.Sprintf("/tools/%s/mails/%d/junk", tool.Get("id").S(), id), api.Object("folder", optionalMailFlag(args, "folder")))
+	message, err := ctx.Call("mail_junk", toolArgs("tool_id", tool.Get("id"), "mail_id", id, "folder", optionalMailFlag(args, "folder")))
 	if err != nil {
 		return err
 	}
@@ -399,7 +400,7 @@ func discardMailDraft(ctx *Ctx, args *Args) error {
 	if saved.Get("trashed").Truthy() {
 		return api.Failf("Draft %s/%d is in the trash already.", tool.Get("id").S(), id)
 	}
-	draft, err := ctx.Post(fmt.Sprintf("/tools/%s/mails/%d/trash", tool.Get("id").S(), id), map[string]any{})
+	draft, err := ctx.Call("mail_discard", toolArgs("tool_id", tool.Get("id"), "draft_id", id))
 	if err != nil {
 		return err
 	}
@@ -431,8 +432,8 @@ func draftMail(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	email := api.Object("to", args.Value("to"), "cc", optionalMailFlag(args, "cc"), "bcc", optionalMailFlag(args, "bcc"), "subject", subject, "body", body)
-	draft, err := ctx.Post(fmt.Sprintf("/tools/%s/mails/drafts", tool.Get("id").S()), email)
+	draft, err := ctx.Call("mail_draft", toolArgs("tool_id", tool.Get("id"), "to", args.Value("to"), "cc", optionalMailFlag(args, "cc"),
+		"bcc", optionalMailFlag(args, "bcc"), "subject", subject, "body", body, "html", true))
 	if err != nil {
 		return err
 	}
@@ -472,8 +473,9 @@ func updateMailDraft(ctx *Ctx, args *Args) error {
 		if fields["body"], err = ctx.RichText(body, args.On("html")); err != nil {
 			return err
 		}
+		fields["html"] = true
 	}
-	quote, err := mailQuoteFields(ctx, args)
+	quote, err := mailQuoteArgs(ctx, args)
 	if err != nil {
 		return err
 	}
@@ -491,7 +493,8 @@ func updateMailDraft(ctx *Ctx, args *Args) error {
 	// Attaching alone changes nothing else: the files go onto the draft as it is
 	draft := api.Object("id", id)
 	if len(fields) > 0 {
-		if draft, err = ctx.Patch(fmt.Sprintf("/tools/%s/mails/drafts/%d", tool.Get("id").S(), id), fields); err != nil {
+		fields["tool_id"], fields["draft_id"] = tool.Get("id"), id
+		if draft, err = ctx.Call("mail_update", fields); err != nil {
 			return err
 		}
 	}
@@ -524,7 +527,7 @@ func replyMail(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	conversation, err := ctx.Get(fmt.Sprintf("/tools/%s/mails/%d", tool.Get("id").S(), id))
+	conversation, err := mailConversation(ctx, tool, id)
 	if err != nil {
 		return err
 	}
@@ -536,8 +539,8 @@ func replyMail(ctx *Ctx, args *Args) error {
 		return api.Failf("%[1]s/%[2]d is a draft. Send it with: dobase mail send %[1]s --draft %[2]d", tool.Get("id").S(), id)
 	}
 
-	to, cc := replyRecipients(original, conversation.Get("account", "email_address").S(), args.On("all"))
-	if len(to) == 0 {
+	// Checked here so the answer is the CLI's own; mail_reply works the addresses out the same way
+	if to, _ := replyRecipients(original, conversation.Get("account", "email_address").S(), args.On("all")); len(to) == 0 {
 		return api.Failf("%s/%d has no address to reply to.", tool.Get("id").S(), id)
 	}
 
@@ -545,33 +548,16 @@ func replyMail(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	reply := api.Object(
-		"to", strings.Join(to, ", "),
-		"cc", strings.Join(cc, ", "),
-		"subject", "Re: "+stripReplyPrefix(original.Get("subject").S()),
-		"body", body,
-		"in_reply_to", original.Get("message_id"),
-		// The server quotes it below the text as it was written, like the compose page does
-		"quoted_message_id", original.Get("id"),
-	)
-	quote, err := mailQuoteFields(ctx, args)
+	// mail_reply saves the reply in the conversation with the message quoted below it
+	reply := toolArgs("tool_id", tool.Get("id"), "mail_id", id, "body", body, "html", true, "all", args.On("all"))
+	quote, err := mailQuoteArgs(ctx, args)
 	if err != nil {
 		return err
 	}
 	for name, value := range quote {
-		reply = reply.With(name, value)
+		reply[name] = value
 	}
-	if args.On("send") && len(files) == 0 {
-		sent, err := ctx.Post(fmt.Sprintf("/tools/%s/mails", tool.Get("id").S()), reply)
-		if err != nil {
-			return err
-		}
-		return ctx.Output(sent, func() error {
-			ctx.Sayf("Sent %s to %s.", Quoted(sent.Get("subject").S()), mailRecipients(sent))
-			return nil
-		})
-	}
-	draft, err := ctx.Post(fmt.Sprintf("/tools/%s/mails/drafts", tool.Get("id").S()), reply)
+	draft, err := ctx.Call("mail_reply", reply)
 	if err != nil {
 		return err
 	}
@@ -579,7 +565,7 @@ func replyMail(ctx *Ctx, args *Args) error {
 		return err
 	}
 	if args.On("send") {
-		sent, err := sendMailDraft(ctx, tool, reply, draft)
+		sent, err := sendMailDraft(ctx, tool, draft)
 		if err != nil {
 			return err
 		}
@@ -628,41 +614,26 @@ func forwardMail(ctx *Ctx, args *Args) error {
 			return err
 		}
 	}
-	attachmentIDs := []api.Value{}
+	// mail_forward takes along the attachments that are stored here, as counted here
+	forwarded := 0
 	for _, attachment := range original.Get("attachments").Items() {
 		if !attachment.Get("download_url").IsNull() {
-			attachmentIDs = append(attachmentIDs, attachment.Get("id"))
+			forwarded++
 		}
 	}
 
-	email := api.Object(
-		"to", args.Value("to"),
-		"cc", optionalMailFlag(args, "cc"),
-		"subject", "Fwd: "+stripReplyPrefix(original.Get("subject").S()),
-		"body", note,
-		// The server adds it below the note as it was written, with the header block of a forward
-		"quoted_message_id", original.Get("id"),
-		"forward_attachment_ids", attachmentIDs,
-	)
-	quote, err := mailQuoteFields(ctx, args)
+	// mail_forward saves the forward with the message below the note, as it was written
+	email := toolArgs("tool_id", tool.Get("id"), "mail_id", id, "to", args.Value("to"), "cc", optionalMailFlag(args, "cc"),
+		"body", note, "html", true)
+	quote, err := mailQuoteArgs(ctx, args)
 	if err != nil {
 		return err
 	}
 	for name, value := range quote {
-		email = email.With(name, value)
+		email[name] = value
 	}
-	attached := Count(int64(len(attachmentIDs)+len(files)), "attachment")
-	if args.On("send") && len(files) == 0 {
-		sent, err := ctx.Post(fmt.Sprintf("/tools/%s/mails", tool.Get("id").S()), email)
-		if err != nil {
-			return err
-		}
-		return ctx.Output(sent, func() error {
-			ctx.Sayf("Forwarded %s to %s with %s.", Quoted(sent.Get("subject").S()), mailRecipients(sent), attached)
-			return nil
-		})
-	}
-	draft, err := ctx.Post(fmt.Sprintf("/tools/%s/mails/drafts", tool.Get("id").S()), email)
+	attached := Count(int64(forwarded+len(files)), "attachment")
+	draft, err := ctx.Call("mail_forward", email)
 	if err != nil {
 		return err
 	}
@@ -670,7 +641,7 @@ func forwardMail(ctx *Ctx, args *Args) error {
 		return err
 	}
 	if args.On("send") {
-		sent, err := sendMailDraft(ctx, tool, email, draft)
+		sent, err := sendMailDraft(ctx, tool, draft)
 		if err != nil {
 			return err
 		}
@@ -794,7 +765,6 @@ func sendMail(ctx *Ctx, args *Args) error {
 		return err
 	}
 
-	var request api.Value
 	if draft, ok := args.Flag("draft"); ok {
 		if args.Any("to", "cc", "bcc", "subject", "body", "html") {
 			return api.Usagef("--draft sends the draft as it is saved; leave out --to, --cc, --bcc, --subject, --body and --html.")
@@ -806,7 +776,7 @@ func sendMail(ctx *Ctx, args *Args) error {
 		}
 		draftID, _ := strconv.ParseInt(id, 10, 64)
 
-		conversation, err := ctx.Get(fmt.Sprintf("/tools/%s/mails/%d", tool.Get("id").S(), draftID))
+		conversation, err := mailConversation(ctx, tool, draftID)
 		if err != nil {
 			return err
 		}
@@ -817,26 +787,15 @@ func sendMail(ctx *Ctx, args *Args) error {
 		if len(saved.Get("to").Items()) == 0 {
 			return api.Failf("Draft %s/%d has no recipients.", tool.Get("id").S(), draftID)
 		}
+	}
 
-		body := saved.Get("body_html").S()
-		if saved.Get("body_html").IsNull() {
-			body = EscapeHTML(saved.Get("body").S())
+	var sent api.Value
+	if draft, ok := args.Flag("draft"); ok {
+		// mail_send sends the draft as it is saved, with its attachments; saying --draft is saying yes
+		draftID, _ := strconv.ParseInt(draft[strings.LastIndex(draft, "/")+1:], 10, 64)
+		if sent, err = ctx.Call("mail_send", toolArgs("tool_id", tool.Get("id"), "draft_id", draftID, "confirm", true)); err != nil {
+			return err
 		}
-		attachmentIDs := []api.Value{}
-		for _, attachment := range saved.Get("attachments").Items() {
-			attachmentIDs = append(attachmentIDs, attachment.Get("id"))
-		}
-		request = api.Object(
-			"to", mailList(saved.Get("to")),
-			"cc", mailList(saved.Get("cc")),
-			"bcc", mailList(saved.Get("bcc")),
-			"subject", saved.Get("subject"),
-			"body", body,
-			"in_reply_to", saved.Get("in_reply_to"),
-			"quoted_message_id", saved.Get("quoted_message_id"),
-			"draft_id", saved.Get("id"),
-			"forward_attachment_ids", attachmentIDs,
-		)
 	} else {
 		if err := requireMailFlags(args, "to", "subject", "body"); err != nil {
 			return err
@@ -849,19 +808,17 @@ func sendMail(ctx *Ctx, args *Args) error {
 		if err != nil {
 			return err
 		}
-		request = api.Object(
-			"to", args.Value("to"),
-			"cc", optionalMailFlag(args, "cc"),
-			"bcc", optionalMailFlag(args, "bcc"),
-			"subject", subject,
-			"body", body,
-		)
+		// Mail goes out as a draft that is sent at once, which is what mail_send sends
+		draft, err := ctx.Call("mail_draft", toolArgs("tool_id", tool.Get("id"), "to", args.Value("to"), "cc", optionalMailFlag(args, "cc"),
+			"bcc", optionalMailFlag(args, "bcc"), "subject", subject, "body", body, "html", true))
+		if err != nil {
+			return err
+		}
+		if sent, err = sendMailDraft(ctx, tool, draft); err != nil {
+			return err
+		}
 	}
 
-	sent, err := ctx.Post(fmt.Sprintf("/tools/%s/mails", tool.Get("id").S()), request)
-	if err != nil {
-		return err
-	}
 	return ctx.Output(sent, func() error {
 		ctx.Sayf("Sent %s to %s.", Quoted(sent.Get("subject").S()), mailRecipients(sent))
 		return nil
@@ -873,7 +830,7 @@ func syncMail(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	status, err := ctx.Post(fmt.Sprintf("/tools/%s/sync", tool.Get("id").S()), map[string]any{})
+	status, err := ctx.Call("mail_sync", toolArgs("tool_id", tool.Get("id")))
 	if err != nil {
 		return err
 	}
@@ -897,7 +854,7 @@ func mailContacts(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	contacts, err := ctx.Get(fmt.Sprintf("/tools/%s/mails_contacts", tool.Get("id").S()), "q", query)
+	contacts, err := ctx.Call("mail_contacts", toolArgs("tool_id", tool.Get("id"), "query", query))
 	if err != nil {
 		return err
 	}
@@ -917,13 +874,13 @@ func changeMail(ctx *Ctx, args *Args, add bool, action string, done func(string)
 	if err != nil {
 		return err
 	}
-	path := fmt.Sprintf("/tools/%s/mails/%d/%s", tool.Get("id").S(), id, action)
-	var message api.Value
-	if add {
-		message, err = ctx.Post(path, map[string]any{})
-	} else {
-		message, err = ctx.Delete(path)
+	// The tool for adding a flag or undoing it: mail_read and mail_unread, mail_trash and mail_restore
+	undo := map[string]string{"read": "mail_unread", "star": "mail_unstar", "archive": "mail_unarchive", "junk": "mail_not_junk", "trash": "mail_restore"}
+	name := "mail_" + action
+	if !add {
+		name = undo[action]
 	}
+	message, err := ctx.Call(name, toolArgs("tool_id", tool.Get("id"), "mail_id", id))
 	if err != nil {
 		return err
 	}
@@ -943,8 +900,13 @@ func mailMessage(conversation api.Value, id int64) (api.Value, bool) {
 	return api.Null, false
 }
 
+// mailConversation is the conversation a message is in, with each message's HTML as it arrived.
+func mailConversation(ctx *Ctx, tool api.Value, id int64) (api.Value, error) {
+	return ctx.Call("mail_show", toolArgs("tool_id", tool.Get("id"), "mail_id", id, "include_html", true))
+}
+
 func messageInConversation(ctx *Ctx, tool api.Value, id int64) (api.Value, error) {
-	conversation, err := ctx.Get(fmt.Sprintf("/tools/%s/mails/%d", tool.Get("id").S(), id))
+	conversation, err := mailConversation(ctx, tool, id)
 	if err != nil {
 		return api.Null, err
 	}
@@ -977,14 +939,10 @@ func mailAttached(draft api.Value) string {
 	return If(count > 0, " with "+Count(count, "attachment"))
 }
 
-// sendMailDraft sends email as the saved draft it was made into, with everything attached to that draft.
-func sendMailDraft(ctx *Ctx, tool, email, draft api.Value) (api.Value, error) {
-	attachmentIDs := []api.Value{}
-	for _, attachment := range draft.Get("attachments").Items() {
-		attachmentIDs = append(attachmentIDs, attachment.Get("id"))
-	}
-	email = email.With("draft_id", draft.Get("id")).With("forward_attachment_ids", attachmentIDs)
-	sent, err := ctx.Post(fmt.Sprintf("/tools/%s/mails", tool.Get("id").S()), email)
+// sendMailDraft sends a saved draft as it is, with everything attached to it. The command
+// that gets here was told to send, which is the confirmation mail_send asks for.
+func sendMailDraft(ctx *Ctx, tool, draft api.Value) (api.Value, error) {
+	sent, err := ctx.Call("mail_send", toolArgs("tool_id", tool.Get("id"), "draft_id", draft.Get("id"), "confirm", true))
 	if err != nil {
 		return api.Null, api.Failf("Nothing was sent, and the mail is saved as draft %s/%s: %v", tool.Get("id").S(), draft.Get("id").S(), err)
 	}
@@ -1053,13 +1011,13 @@ func requireMailFlags(args *Args, names ...string) error {
 	return nil
 }
 
-// mailQuoteFields is what --quote and --no-quote say about the mail quoted below the text:
+// mailQuoteArgs is what --quote and --no-quote say about the mail quoted below the text:
 // the quote as given, no quote at all, or nothing (the server quotes the mail as it was written).
-func mailQuoteFields(ctx *Ctx, args *Args) (map[string]any, error) {
+func mailQuoteArgs(ctx *Ctx, args *Args) (map[string]any, error) {
 	quote, changed := args.Flag("quote")
 	if !changed {
 		if args.On("no-quote") {
-			return map[string]any{"quoted_message_id": api.Null}, nil
+			return map[string]any{"no_quote": true}, nil
 		}
 		return nil, nil
 	}
