@@ -6,9 +6,12 @@ package tui
 // loop draws a spinner, then runs it. So the screen always shows what's going on.
 
 import (
+	"context"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/smgdkngt/dobase/cli/internal/api"
@@ -45,6 +48,54 @@ type background struct {
 	// theme is an answer under way to "which theme is this person in?"
 	theme        chan liveResult
 	themeChecked time.Time
+	// heard is what the server's stream told of: a tool that changed, or 0 for
+	// a new event (which the home screen's notifications show).
+	heard chan int64
+	// streaming is on while the stream is open: then the slow poll is only a fallback.
+	streaming atomic.Bool
+}
+
+// Polled this often while the stream says when something changed, and this often without it
+const (
+	pollWithStream    = 60 * time.Second
+	pollWithoutStream = 10 * time.Second
+)
+
+// streamer is a server that tells of changes (api.MCP), as the stream on /mcp does.
+type streamer interface {
+	Listen(ctx context.Context, uris []string, opened func(), changed func(uri string)) error
+}
+
+// listen keeps a stream open to the server until ctx is done, subscribed to
+// the person's events and to each of their tools, and passes on what it
+// hears. One stream for the whole app: the server keeps one per session, and
+// knows a closed one only some seconds later. A stream that ends is opened
+// again after a pause; meanwhile the quicker poll carries on.
+func (a *App) listen(ctx context.Context, server streamer) {
+	bg := a.background
+	if bg == nil {
+		return
+	}
+	uris := []string{"dobase://events"}
+	for _, tool := range a.tools {
+		uris = append(uris, "dobase://tools/"+tool.Get("id").S())
+	}
+	go func() {
+		for ctx.Err() == nil {
+			server.Listen(ctx, uris, func() { bg.streaming.Store(true) }, func(uri string) {
+				id, _ := strconv.ParseInt(strings.TrimPrefix(uri, "dobase://tools/"), 10, 64)
+				select {
+				case bg.heard <- id:
+				default:
+				}
+			})
+			bg.streaming.Store(false)
+			select {
+			case <-ctx.Done():
+			case <-time.After(5 * time.Second):
+			}
+		}
+	}()
 }
 
 type liveResult struct {
@@ -142,7 +193,7 @@ func NewApp(server api.API, base string, browser func(string) error) *App {
 
 // refreshInBackground refreshes live screens in the background with this client.
 func (a *App) refreshInBackground(client api.API) {
-	a.background = &background{client: client}
+	a.background = &background{client: client, heard: make(chan int64, 16)}
 }
 
 // offerUndo lets `u` take back what was just done, for a minute.
@@ -153,32 +204,48 @@ func (a *App) offerUndo(label string, job Job) {
 
 // -- API ------------------------------------------------------------------------
 
-func (a *App) get(path string, params ...api.Param) (api.Value, error) {
-	return a.api.Request(api.Get, path, params, nil)
+// Args are an MCP tool's arguments.
+type Args = map[string]any
+
+// read runs a tool that only reads.
+func (a *App) read(tool string, args Args) (api.Value, error) {
+	return a.api.Call(tool, args)
 }
 
-func (a *App) post(path string, body api.Value) (api.Value, error) {
-	return a.change(api.Post, path, body)
-}
-
-func (a *App) patch(path string, body api.Value) (api.Value, error) {
-	return a.change(api.Patch, path, body)
-}
-
-func (a *App) delete(path string) (api.Value, error) {
-	return a.change(api.Delete, path, nil)
-}
-
-// change sends a request that changes something, and notes that it did.
-func (a *App) change(method api.Method, path string, body any) (api.Value, error) {
-	value, err := a.api.Request(method, path, nil, body)
+// change runs a tool that changes something, and notes that it did.
+func (a *App) change(tool string, args Args) (api.Value, error) {
+	value, err := a.api.Call(tool, args)
 	a.changed = a.changed || err == nil
 	return value, err
 }
 
+// asToolArgs turns a card's or todo's attributes, as the API names them, into
+// what card_update and todo_update take: what clears a field is "none".
+func asToolArgs(attributes api.Value) Args {
+	args := Args{}
+	none := func(value api.Value) string {
+		if value.IsNull() || value.S() == "" {
+			return "none"
+		}
+		return value.S()
+	}
+	for _, name := range attributes.Keys() {
+		value := attributes.Get(name)
+		switch name {
+		case "due_date":
+			args["due"] = none(value)
+		case "assigned_user_id":
+			args["assignee"] = none(value)
+		default:
+			args[name] = value
+		}
+	}
+	return args
+}
+
 // Start loads who's signed in, their tools and the home screen.
 func (a *App) Start() error {
-	me, err := a.get("/profile")
+	me, err := a.read("whoami", nil)
 	if err != nil {
 		return err
 	}
@@ -195,7 +262,7 @@ func (a *App) Start() error {
 }
 
 func (a *App) loadTools() error {
-	tools, err := a.get("/tools")
+	tools, err := a.read("tool_list", nil)
 	if err != nil {
 		return err
 	}
@@ -297,7 +364,7 @@ func (a *App) globalKey(key Key, fx *Fx) {
 		fx.popup = &SearchPopup{}
 	case key.Is('n'):
 		fx.job("Fetching notifications", func(app *App) error {
-			items, err := app.get("/notifications", api.Param{Name: "limit", Value: "30"})
+			items, err := app.read("notification_list", Args{"limit": 30})
 			if err != nil {
 				return err
 			}
@@ -544,18 +611,34 @@ func (a *App) pollBackground() {
 		bg.inflight = nil
 	}
 
-	if time.Since(a.lastRefresh) < 10*time.Second || len(a.jobs) > 0 {
+	// What the stream told of is fetched now; without it, every so often
+	for drained := false; !drained; {
+		select {
+		case id := <-bg.heard:
+			_, home := a.screen.(*Home)
+			if (id != 0 && id == tool) || (id == 0 && home) {
+				a.lastRefresh = time.Time{}
+			}
+		default:
+			drained = true
+		}
+	}
+	every := pollWithoutStream
+	if bg.streaming.Load() {
+		every = pollWithStream
+	}
+	if time.Since(a.lastRefresh) < every || len(a.jobs) > 0 {
 		return
 	}
 	a.lastRefresh = time.Now()
-	path, params, ok := a.screen.LiveRequest()
+	name, args, ok := a.screen.LiveCall()
 	if !ok {
 		return
 	}
 	results := make(chan liveResult, 1)
 	client := bg.client
 	go func() {
-		value, err := client.Request(api.Get, path, params, nil)
+		value, err := client.Call(name, args)
 		results <- liveResult{value, err}
 	}()
 	bg.inflight = &inflight{results: results, started: time.Now(), tool: tool}
@@ -583,7 +666,7 @@ func (a *App) pollTheme(bg *background) {
 	results := make(chan liveResult, 1)
 	client := bg.client
 	go func() {
-		value, err := client.Request(api.Get, "/appearance", nil, nil)
+		value, err := client.Call("appearance_show", nil)
 		results <- liveResult{value, err}
 	}()
 	bg.theme = results

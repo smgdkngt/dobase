@@ -215,12 +215,13 @@ func TestJSONKeepsTheServersKeyOrderAndDoesNotEscapeHTML(t *testing.T) {
 	}
 }
 
-// fakeAPI answers GETs from a fixed set of paths, records every other request
-// ("DELETE /path"), its body and the paths it sent to or downloaded from, and
-// saves downloads as "data from PATH". A path in errors fails with that error.
-// Uploads are recorded as "PATH: file, file", the fields that went with them as
-// "name=value", and answered with a draft (or chat message) that has those files
-// attached.
+// fakeAPI is a small Dobase MCP server. A tool that reads answers from a
+// fixed set of paths, the API path the real tool asks (readTools); every
+// other call is recorded as "tool_name" with its arguments in sent, and
+// answered with a draft (or chat message). Uploads are recorded as
+// "PATH: file, file", the fields that went with them as "name=value", and
+// answered with a draft that has those files attached. A tool name or a read
+// tool's path in errors fails with that error.
 type fakeAPI struct {
 	responses api.Value
 	sent      *[]api.Value
@@ -235,23 +236,68 @@ func newFakeAPI(responses string, sent *[]api.Value) *fakeAPI {
 	return &fakeAPI{responses: api.MustParse(responses), sent: sent}
 }
 
-func (f *fakeAPI) Request(method api.Method, path string, _ []api.Param, body any) (api.Value, error) {
-	if err := f.errors[path]; err != nil {
+// readTools are the paths the server's read tools ask the API, as in app/models/mcp/tools/*.rb
+var readTools = map[string]func(a api.Value) string{
+	"whoami":            func(api.Value) string { return "/profile" },
+	"tool_list":         func(api.Value) string { return "/tools" },
+	"tool_show":         func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() },
+	"search":            func(api.Value) string { return "/search" },
+	"notification_list": func(api.Value) string { return "/notifications" },
+	"event_list":        func(api.Value) string { return "/events" },
+	"appearance_show":   func(api.Value) string { return "/appearance" },
+	"card_list":         func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/board" },
+	"card_show": func(a api.Value) string {
+		return "/tools/" + a.Get("tool_id").S() + "/board/cards/" + a.Get("card_id").S()
+	},
+	"todo_list": func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/todo" },
+	"todo_show": func(a api.Value) string {
+		return "/tools/" + a.Get("tool_id").S() + "/todo/items/" + a.Get("todo_id").S()
+	},
+	"doc_list": func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/docs" },
+	"doc_show": func(a api.Value) string {
+		return "/tools/" + a.Get("tool_id").S() + "/docs/documents/" + a.Get("document_id").S()
+	},
+	"chat_list":        func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/chat" },
+	"mail_list":        func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/mails" },
+	"mail_show":        func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/mails/" + a.Get("mail_id").S() },
+	"mail_contacts":    func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/mails_contacts" },
+	"mail_sync_status": func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/sync" },
+	"appointment_list": func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/calendar" },
+	"appointment_show": func(a api.Value) string {
+		return "/tools/" + a.Get("tool_id").S() + "/calendar/events/" + a.Get("appointment_id").S()
+	},
+	"calendar_sync_status": func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/calendar/sync" },
+	"file_list":            func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/files" },
+	"file_show": func(a api.Value) string {
+		return "/tools/" + a.Get("tool_id").S() + "/files/items/" + a.Get("file_id").S()
+	},
+	"file_read": func(a api.Value) string {
+		return "/tools/" + a.Get("tool_id").S() + "/file_previews/" + a.Get("preview_id").S()
+	},
+	"folder_share": func(a api.Value) string {
+		return "/tools/" + a.Get("tool_id").S() + "/files/folders/" + a.Get("folder_id").S() + "/share"
+	},
+}
+
+func (f *fakeAPI) Call(tool string, args map[string]any) (api.Value, error) {
+	arguments := api.Of(args)
+	if path, reads := readTools[tool]; reads {
+		if err := f.errors[path(arguments)]; err != nil {
+			return api.Null, err
+		}
+		return f.responses.Get(path(arguments)), nil
+	}
+	if err := f.errors[tool]; err != nil {
 		return api.Null, err
 	}
-	if method == api.Get {
-		return f.responses.Get(path), nil
-	}
-	sent := api.Of(body)
-	*f.sent = append(*f.sent, sent)
-	f.paths = append(f.paths, path)
-	f.requests = append(f.requests, string(method)+" "+path)
+	*f.sent = append(*f.sent, arguments)
+	f.requests = append(f.requests, tool)
 	// A draft has the attachments it forwards
 	attachments := []api.Value{}
-	for _, id := range sent.Get("forward_attachment_ids").Items() {
+	for _, id := range arguments.Get("forward_attachment_ids").Items() {
 		attachments = append(attachments, api.Object("id", id))
 	}
-	return api.Object("id", 400, "subject", sent.Get("subject"), "to", []string{"ann@example.com"}, "cc", []string{},
+	return api.Object("id", 400, "subject", arguments.Get("subject"), "to", []string{"ann@example.com"}, "cc", []string{},
 		"attachments", attachments, "url", "https://dobase.test/tools/8/mails/new?draft_id=400"), nil
 }
 
@@ -304,13 +350,13 @@ func TestChatPostsParagraphsAndRepliesToTheMessageGiven(t *testing.T) {
 	if err := invoke(ctx, "chat post", "team", "Hi <you>\n\nBye", "--reply-to", "12/77"); err != nil {
 		t.Fatal(err)
 	}
-	if got := sent[0].JSON(); got != `{"message":{"body":"<p>Hi &lt;you&gt;</p><p>Bye</p>","reply_to_id":"77"}}` {
+	if got := sent[0].JSON(); got != `{"html":true,"reply_to_id":77,"text":"<p>Hi &lt;you&gt;</p><p>Bye</p>","tool_id":12}` {
 		t.Errorf("sent %s", got)
 	}
 	if err := invoke(ctx, "chat post", "team", "see https://example.com", "--html"); err != nil {
 		t.Fatal(err)
 	}
-	if got := sent[1].JSON(); got != `{"message":{"body":"see https://example.com"}}` {
+	if got := sent[1].JSON(); got != `{"html":true,"text":"see https://example.com","tool_id":12}` {
 		t.Errorf("sent %s", got)
 	}
 	if err := invoke(ctx, "chat post", "board", "Hi"); err == nil || !strings.Contains(err.Error(), "Team board (13) is a boards tool, not chat.") {
@@ -466,7 +512,7 @@ func TestTextThatStartsWithADashIsTextNotAnOption(t *testing.T) {
 		}
 	}
 	for i, want := range []string{"- first point", "-5 degrees", "-x", "--- cut here ---", "-- Sem", "--force didn&#39;t help", "from stdin"} {
-		if got := sent[i].Get("body").S(); got != "<p>"+want+"</p>" {
+		if got := sent[i].Get("text").S(); got != "<p>"+want+"</p>" {
 			t.Errorf("%q was sent as %q", texts[i], got)
 		}
 	}
@@ -475,7 +521,7 @@ func TestTextThatStartsWithADashIsTextNotAnOption(t *testing.T) {
 	if err := invoke(ctx, "card create", "roadmap", "-1 day", "--description", "- one\n- two", "--column=Doing"); err != nil {
 		t.Fatal(err)
 	}
-	if got := sent[len(sent)-1].JSON(); got != `{"card":{"description":"<p>- one<br>- two</p>","title":"-1 day"}}` {
+	if got := sent[len(sent)-1].JSON(); got != `{"column":"31","description":"<p>- one<br>- two</p>","html":true,"title":"-1 day","tool_id":13}` {
 		t.Errorf("sent %s", got)
 	}
 
@@ -488,7 +534,7 @@ func TestTextThatStartsWithADashIsTextNotAnOption(t *testing.T) {
 	if err := invoke(ctx, "card comment", "13/104", "--", "--html"); err != nil {
 		t.Fatal(err)
 	}
-	if got := sent[len(sent)-1].Get("body").S(); got != "<p>--html</p>" {
+	if got := sent[len(sent)-1].Get("text").S(); got != "<p>--html</p>" {
 		t.Errorf("after --, --html was sent as %q", got)
 	}
 }
@@ -517,5 +563,68 @@ func TestJSONIsOnlyAnOptionBeforeTheDoubleDash(t *testing.T) {
 	status, _, err := run("chat", "post", "team", "--", "--json")
 	if status != 1 || !strings.Contains(err, "Not signed in") {
 		t.Errorf("status %d, err %q", status, err)
+	}
+}
+
+// Each command of docs, files, chat, notifications and search calls its MCP
+// tool with the ids it resolved, HTML it made, and confirm for what deletes.
+func TestCommandsCallTheirTools(t *testing.T) {
+	responses := `{
+  "/tools": [{"id": 12, "name": "Team", "type": "chat"}, {"id": 15, "name": "Notes", "type": "docs"}, {"id": 19, "name": "Stuff", "type": "files"}],
+  "/tools/19/files": {"folder": {"id": 5, "name": "Photos"}, "folders": [], "files": [], "breadcrumbs": []},
+  "/tools/15/docs": {"documents": []},
+  "/tools/12/chat": {"messages": []},
+  "/search": {"results": []},
+  "/notifications": []
+}`
+	for _, c := range []struct {
+		argv []string
+		tool string
+		want string
+	}{
+		{[]string{"doc create", "notes", "Plan", "--content", "Step"}, "doc_create", `{"content":"<p>Step</p>","html":true,"title":"Plan","tool_id":15}`},
+		{[]string{"doc update", "15/3", "--title", "Plans"}, "doc_update", `{"document_id":3,"html":true,"title":"Plans","tool_id":15}`},
+		{[]string{"doc delete", "15/3"}, "doc_delete", `{"confirm":true,"document_id":3,"tool_id":15}`},
+		{[]string{"file rename", "19/7", "b.txt"}, "file_rename", `{"file_id":7,"name":"b.txt","tool_id":19}`},
+		{[]string{"file move", "19/7", "5"}, "file_move", `{"file_id":7,"to_folder_id":5,"tool_id":19}`},
+		{[]string{"file move", "19/7", "root"}, "file_move", `{"file_id":7,"tool_id":19}`},
+		{[]string{"file delete", "19/7"}, "file_delete", `{"confirm":true,"file_id":7,"tool_id":19}`},
+		{[]string{"folder create", "stuff", "Old", "--parent", "5"}, "folder_create", `{"name":"Old","parent_id":5,"tool_id":19}`},
+		{[]string{"folder rename", "19/5", "Pics"}, "folder_rename", `{"folder_id":5,"name":"Pics","tool_id":19}`},
+		{[]string{"folder move", "19/5", "root"}, "folder_move", `{"folder_id":5,"tool_id":19}`},
+		{[]string{"folder delete", "19/5"}, "folder_delete", `{"confirm":true,"folder_id":5,"tool_id":19}`},
+		{[]string{"chat edit", "12/9", "Better"}, "chat_edit", `{"html":true,"message_id":9,"text":"<p>Better</p>","tool_id":12}`},
+		{[]string{"chat delete", "12/9"}, "chat_delete", `{"confirm":true,"message_id":9,"tool_id":12}`},
+		{[]string{"chat react", "12/9", "👍"}, "chat_react", `{"emoji":"👍","message_id":9,"remove":false,"tool_id":12}`},
+		{[]string{"chat react", "12/9", "👍", "--remove"}, "chat_react", `{"emoji":"👍","message_id":9,"remove":true,"tool_id":12}`},
+		{[]string{"chat read", "team"}, "chat_read", `{"tool_id":12}`},
+		{[]string{"notification read", "41"}, "notification_read", `{"notification_id":41}`},
+		{[]string{"notification read", "--all"}, "notification_read", `{}`},
+	} {
+		var sent []api.Value
+		fake := newFakeAPI(responses, &sent)
+		ctx := command.NewCtx(&config.Config{}, &bytes.Buffer{}, false, "test")
+		ctx.SetAPI(fake)
+		if err := invoke(ctx, c.argv[0], c.argv[1:]...); err != nil {
+			t.Errorf("%v: %v", c.argv, err)
+			continue
+		}
+		if len(fake.requests) != 1 || fake.requests[0] != c.tool || sent[0].JSON() != c.want {
+			t.Errorf("%v: %v %v", c.argv, fake.requests, sent)
+		}
+	}
+
+	// What only reads sends nothing, and --limit is made what the server would make of it
+	var sent []api.Value
+	ctx := command.NewCtx(&config.Config{}, &bytes.Buffer{}, false, "test")
+	ctx.SetAPI(newFakeAPI(responses, &sent))
+	for _, argv := range [][]string{{"doc list", "notes"}, {"file list", "stuff"}, {"chat list", "team", "--limit", "500"},
+		{"notification list", "--limit", "x"}, {"search", "launch"}} {
+		if err := invoke(ctx, argv[0], argv[1:]...); err != nil {
+			t.Errorf("%v: %v", argv, err)
+		}
+	}
+	if len(sent) != 0 {
+		t.Errorf("sent %v", sent)
 	}
 }

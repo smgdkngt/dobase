@@ -5,9 +5,11 @@ package tui
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -24,19 +26,160 @@ type call struct {
 	query string
 }
 
-// fakeServer answers from a map of paths (and records every request). A
-// request whose key is in failing gets an error instead.
+// fakeServer is a small Dobase MCP server: a tool call becomes the API
+// request the server's tool makes (app/models/mcp/tools/*.rb), which is
+// recorded and answered from a map of paths. A request whose key is in
+// failing gets an error instead.
 type fakeServer struct {
 	responses api.Value
 	calls     *[]call
 	failing   map[string]bool
+	// mu guards calls against the background's refreshes, which run on a goroutine of their own
+	mu sync.Mutex
 }
 
-func (f *fakeServer) Request(method api.Method, path string, params []api.Param, body any) (api.Value, error) {
+func (f *fakeServer) Call(tool string, args map[string]any) (api.Value, error) {
+	method, path, params, body := toolRequest(tool, api.Of(args))
+	return f.request(method, path, params, body)
+}
+
+// toolRequest is the API request a tool makes for these arguments.
+func toolRequest(tool string, a api.Value) (api.Method, string, []api.Param, any) {
+	tools := "/tools/" + a.Get("tool_id").S()
+	query := func(names ...string) []api.Param {
+		var params []api.Param
+		for _, name := range names {
+			if value := a.Get(name); !value.IsNull() {
+				key := map[string]string{"query": "q"}[name]
+				if key == "" {
+					key = name
+				}
+				params = append(params, api.Param{Name: key, Value: value.S()})
+			}
+		}
+		return params
+	}
+	// What a card or todo update says, as the API takes it
+	attributes := func() api.Value {
+		attributes := api.Object()
+		for _, name := range a.Keys() {
+			value := a.Get(name)
+			switch name {
+			case "tool_id", "card_id", "todo_id":
+			case "due", "assignee":
+				key := map[string]string{"due": "due_date", "assignee": "assigned_user_id"}[name]
+				if value.S() == "none" {
+					attributes = attributes.With(key, api.Null)
+				} else if name == "assignee" {
+					attributes = attributes.With(key, api.Of(value.Int()))
+				} else {
+					attributes = attributes.With(key, value)
+				}
+			default:
+				attributes = attributes.With(name, value)
+			}
+		}
+		return attributes
+	}
+	position := func() api.Value {
+		body := api.Object()
+		if !a.Get("column").IsNull() {
+			body = body.With("column_id", api.Of(a.Get("column").Int()))
+		}
+		if !a.Get("position").IsNull() {
+			body = body.With("position", a.Get("position").Int()-1)
+		}
+		return body
+	}
+	card := fmt.Sprintf("%s/board/cards/%s", tools, a.Get("card_id").S())
+	item := fmt.Sprintf("%s/todo/items/%s", tools, a.Get("todo_id").S())
+	message := fmt.Sprintf("%s/chat/messages/%s", tools, a.Get("message_id").S())
+	switch tool {
+	case "whoami":
+		return api.Get, "/profile", nil, nil
+	case "tool_list":
+		return api.Get, "/tools", nil, nil
+	case "appearance_show":
+		return api.Get, "/appearance", nil, nil
+	case "search":
+		return api.Get, "/search", query("query"), nil
+	case "notification_list":
+		return api.Get, "/notifications", query("unread", "limit"), nil
+	case "notification_read":
+		if id := a.Get("notification_id"); !id.IsNull() {
+			return api.Post, "/notifications/" + id.S() + "/read", nil, api.Object()
+		}
+		return api.Post, "/notification_reads", nil, api.Object()
+	case "card_list":
+		return api.Get, tools + "/board", nil, nil
+	case "card_show":
+		return api.Get, card, nil, nil
+	case "card_create":
+		return api.Post, "/columns/" + a.Get("column").S() + "/cards", nil, api.Object("card", api.Object("title", a.Get("title")))
+	case "card_update":
+		return api.Patch, card, nil, api.Object("card", attributes())
+	case "card_move":
+		return api.Patch, card + "/position", nil, position()
+	case "card_archive":
+		return api.Post, card + "/archive", nil, api.Object()
+	case "card_unarchive":
+		return api.Delete, card + "/archive", nil, nil
+	case "card_comment", "todo_comment":
+		on := card
+		if tool == "todo_comment" {
+			on = item
+		}
+		return api.Post, on + "/comments", nil, api.Object("body", a.Get("text"))
+	case "todo_list":
+		return api.Get, tools + "/todo", nil, nil
+	case "todo_show":
+		return api.Get, item, nil, nil
+	case "todo_create":
+		return api.Post, "/todo_lists/" + a.Get("list").S() + "/items", nil, api.Object("item", api.Object("title", a.Get("title")))
+	case "todo_update":
+		return api.Patch, item, nil, api.Object("item", attributes())
+	case "todo_finish":
+		return api.Post, item + "/completion", nil, api.Object()
+	case "todo_reopen":
+		return api.Delete, item + "/completion", nil, nil
+	case "todolist_create":
+		return api.Post, tools + "/todo/lists", nil, api.Object("title", a.Get("title"))
+	case "doc_list":
+		return api.Get, tools + "/docs", nil, nil
+	case "doc_show":
+		return api.Get, tools + "/docs/documents/" + a.Get("document_id").S(), nil, nil
+	case "chat_list":
+		return api.Get, tools + "/chat", query("limit", "before"), nil
+	case "chat_post":
+		return api.Post, tools + "/chat/messages", nil, api.Object("message", api.Object("body", a.Get("text")))
+	case "chat_delete":
+		return api.Delete, message, nil, nil
+	case "chat_react":
+		if a.Get("remove").Truthy() {
+			return api.Delete, message + "/reactions/" + url.QueryEscape(a.Get("emoji").S()), nil, nil
+		}
+		return api.Post, message + "/reactions", nil, api.Object("emoji", a.Get("emoji"))
+	case "mail_list":
+		return api.Get, tools + "/mails", query("folder"), nil
+	case "mail_show":
+		return api.Get, tools + "/mails/" + a.Get("mail_id").S(), nil, nil
+	case "appointment_list":
+		return api.Get, tools + "/calendar", query("start_date", "end_date"), nil
+	case "file_list":
+		return api.Get, tools + "/files", query("folder_id"), nil
+	case "file_show":
+		return api.Get, tools + "/files/items/" + a.Get("file_id").S(), nil, nil
+	}
+	panic("no such tool in the fake: " + tool)
+}
+
+func (f *fakeServer) request(method api.Method, path string, params []api.Param, body any) (api.Value, error) {
 	query := make([]string, len(params))
 	for i, param := range params {
 		query[i] = param.Name + "=" + param.Value
 	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	*f.calls = append(*f.calls, call{method, path, api.Of(body), strings.Join(query, "&")})
 	key := path
 	if method != api.Get {

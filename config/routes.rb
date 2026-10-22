@@ -45,6 +45,9 @@ Rails.application.routes.draw do
     resource :authorization, only: %i[new create], path: "authorize", path_names: { new: "" }
     resources :tokens, only: :create, path: "token"
     resources :revocations, only: :create, path: "revoke"
+    # The device flow, for `dobase login`: the CLI asks for a code, the person confirms it on the device page
+    resources :device_authorizations, only: :create, path: "device_authorization"
+    resource :device, only: %i[new create], path_names: { new: "" }
   end
 
   resource :appearance, only: %i[show update]

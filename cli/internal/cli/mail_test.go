@@ -37,8 +37,65 @@ const mailWithAttachments = `{
 	] }
 }`
 
+// mailFake is fakeAPI with what the server's mail tools work out themselves and
+// answer with: the subject of a reply or forward, and of what mail_send sent.
+type mailFake struct {
+	*fakeAPI
+	subjects map[string]string
+}
+
+func (m *mailFake) Call(tool string, args map[string]any) (api.Value, error) {
+	value, err := m.fakeAPI.Call(tool, args)
+	if subject, ok := m.subjects[tool]; ok && err == nil {
+		value = value.With("subject", subject)
+	}
+	return value, err
+}
+
+// askedFake is fakeAPI that also keeps every call, reads too, as "tool {args}".
+type askedFake struct {
+	*fakeAPI
+	asked []string
+}
+
+func (a *askedFake) Call(tool string, args map[string]any) (api.Value, error) {
+	a.asked = append(a.asked, tool+" "+api.Of(args).JSON())
+	return a.fakeAPI.Call(tool, args)
+}
+
+func TestMailIsListedSyncedAndSearchedWithTheToolsArguments(t *testing.T) {
+	var sent []api.Value
+	var out bytes.Buffer
+	fake := &askedFake{fakeAPI: newFakeAPI(`{
+		"/tools": [{ "id": 8, "name": "Inbox", "type": "mail" }],
+		"/tools/8/mails": { "account": { "email_address": "me@example.com" }, "folder": "Receipts", "conversations": [] },
+		"/tools/8/mails_contacts": [{ "name": "Ann Lee", "email_address": "ann@example.com" }]
+	}`, &sent)}
+	ctx := command.NewCtx(&config.Config{}, &out, false, "test")
+	ctx.SetAPI(fake)
+
+	for _, argv := range [][]string{{"mail list", "8"}, {"mail list", "8", "--folder", "Receipts", "--search", "", "--page", "2"}, {"mail sync", "8"}, {"mail contacts", "8", "an"}} {
+		if err := invoke(ctx, argv[0], argv[1:]...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want := []string{
+		`tool_list {}`, `mail_list {"tool_id":8}`,
+		// Given flags go along even when empty
+		`mail_list {"folder":"Receipts","page":2,"query":"","tool_id":8}`,
+		`mail_sync {"tool_id":8}`,
+		`mail_contacts {"query":"an","tool_id":8}`,
+	}
+	if !slices.Equal(fake.asked, want) {
+		t.Errorf("asked %v", fake.asked)
+	}
+	if !strings.Contains(out.String(), "Ann Lee <ann@example.com>") {
+		t.Errorf("out %q", out.String())
+	}
+}
+
 // mailCtx is a context on fake, whose browser records the URLs it opens.
-func mailCtx(out *bytes.Buffer, json bool, fake *fakeAPI, opened *[]string) *command.Ctx {
+func mailCtx(out *bytes.Buffer, json bool, fake api.API, opened *[]string) *command.Ctx {
 	ctx := command.NewCtx(&config.Config{}, out, json, "test")
 	ctx.SetAPI(fake)
 	ctx.Browser = func(url string) error {
@@ -52,7 +109,7 @@ func TestRepliesSentFromTheCLINameTheMessageTheyAnswer(t *testing.T) {
 	var sent []api.Value
 	var out bytes.Buffer
 	ctx := command.NewCtx(&config.Config{}, &out, false, "test")
-	ctx.SetAPI(newFakeAPI(`{
+	fake := newFakeAPI(`{
 		"/tools": [{ "id": 8, "name": "Inbox", "type": "mail" }],
 		"/tools/8/mails/310": { "account": { "email_address": "me@example.com" }, "messages": [
 			{ "id": 310, "draft": false, "from_address": "ann@example.com", "to": ["me@example.com", "bob@example.com"],
@@ -61,8 +118,12 @@ func TestRepliesSentFromTheCLINameTheMessageTheyAnswer(t *testing.T) {
 		"/tools/8/mails/312": { "messages": [
 			{ "id": 312, "draft": true, "to": ["ann@example.com"], "cc": [], "subject": "Re: Plans",
 			  "body_html": "<p>Yes</p>", "in_reply_to": "plans@example.com" }
+		] },
+		"/tools/8/mails/313": { "account": { "email_address": "me@example.com" }, "messages": [
+			{ "id": 313, "draft": false, "from_address": "me@example.com", "to": [], "cc": [], "subject": "Notes" }
 		] }
-	}`, &sent))
+	}`, &sent)
+	ctx.SetAPI(&mailFake{fake, map[string]string{"mail_send": "Re: Plans"}})
 
 	if err := invoke(ctx, "mail reply", "8/310", "--body", "Sure", "--send", "--all"); err != nil {
 		t.Fatal(err)
@@ -71,27 +132,27 @@ func TestRepliesSentFromTheCLINameTheMessageTheyAnswer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, email := range sent {
-		if got := email.Get("in_reply_to").S(); got != "plans@example.com" {
-			t.Errorf("in_reply_to %q", got)
-		}
+	// mail_reply saves the reply in the conversation (addresses, subject, In-Reply-To and the
+	// quote are the server's to work out, as for the compose page), and --send sends that draft
+	if want := []string{"mail_reply", "mail_send", "mail_send"}; !slices.Equal(fake.requests, want) {
+		t.Errorf("requests %v", fake.requests)
 	}
-	for key, want := range map[string]string{"to": "ann@example.com", "cc": "bob@example.com, cy@example.com", "subject": "Re: Plans"} {
-		if got := sent[0].Get(key).S(); got != want {
-			t.Errorf("%s: got %q", key, got)
-		}
+	if got := sent[0].JSON(); got != `{"all":true,"body":"<p>Sure</p>","html":true,"mail_id":310,"tool_id":8}` {
+		t.Errorf("reply %s", got)
 	}
-	if got := sent[0].Get("body").S(); got != "<p>Sure</p>" {
-		t.Errorf("body %q", got)
+	if got := sent[1].JSON() + " " + sent[2].JSON(); got != `{"confirm":true,"draft_id":400,"tool_id":8} {"confirm":true,"draft_id":312,"tool_id":8}` {
+		t.Errorf("sent %s", got)
 	}
-	if got := sent[0].Get("quoted_message_id").JSON(); got != "310" {
-		t.Errorf("quoted_message_id %s", got)
-	}
-	if got := sent[1].Get("draft_id").JSON(); got != "312" {
-		t.Errorf("draft_id %s", got)
-	}
-	if !strings.Contains(out.String(), `Sent "Re: Plans" to ann@example.com.`) {
+	if strings.Count(out.String(), `Sent "Re: Plans" to ann@example.com.`) != 2 {
 		t.Errorf("out %q", out.String())
+	}
+
+	// A reply needs someone to go to, which the CLI says before anything is saved
+	if err := invoke(ctx, "mail reply", "8/313", "--body", "Hi"); err == nil || err.Error() != "8/313 has no address to reply to." {
+		t.Errorf("got %v", err)
+	}
+	if len(sent) != 3 {
+		t.Errorf("%d requests", len(sent))
 	}
 }
 
@@ -100,7 +161,7 @@ func TestForwardsNameTheOriginalAndCarryItsStoredAttachments(t *testing.T) {
 	var opened []string
 	var out bytes.Buffer
 	fake := newFakeAPI(mailWithAttachments, &sent)
-	ctx := mailCtx(&out, false, fake, &opened)
+	ctx := mailCtx(&out, false, &mailFake{fake, map[string]string{"mail_forward": "Fwd: Plans"}}, &opened)
 
 	if err := invoke(ctx, "mail forward", "8/310", "--to", "bob@example.com", "--body", "See below", "--open"); err != nil {
 		t.Fatal(err)
@@ -109,30 +170,19 @@ func TestForwardsNameTheOriginalAndCarryItsStoredAttachments(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if want := []string{"/tools/8/mails/drafts", "/tools/8/mails"}; !slices.Equal(fake.paths, want) {
-		t.Errorf("paths %v", fake.paths)
+	if want := []string{"mail_forward", "mail_send"}; !slices.Equal(fake.requests, want) {
+		t.Errorf("requests %v", fake.requests)
 	}
-	if got := sent[0].Get("to").S(); got != "bob@example.com" {
-		t.Errorf("to %q", got)
-	}
-	if got := sent[0].Get("subject").S(); got != "Fwd: Plans" {
-		t.Errorf("subject %q", got)
-	}
-	if got := sent[0].Get("forward_attachment_ids").JSON(); got != "[51,52]" {
-		t.Errorf("forward_attachment_ids %s", got)
-	}
-	// The server adds the forwarded mail below the note
-	if got := sent[0].Get("body").S(); got != "<p>See below</p>" {
-		t.Errorf("body %q", got)
-	}
-	if got := sent[0].Get("quoted_message_id").JSON(); got != "310" {
-		t.Errorf("quoted_message_id %s", got)
+	// The server adds the forwarded mail below the note, with its stored attachments (51 and 52; 53 was never stored)
+	if got := sent[0].JSON(); got != `{"body":"<p>See below</p>","html":true,"mail_id":310,"to":"bob@example.com","tool_id":8}` {
+		t.Errorf("forward %s", got)
 	}
 	if want := []string{"https://dobase.test/tools/8/mails/new?draft_id=400"}; !slices.Equal(opened, want) {
 		t.Errorf("opened %v", opened)
 	}
-	if got := sent[1].Get("forward_attachment_ids").JSON(); got != "[61]" {
-		t.Errorf("forward_attachment_ids %s", got)
+	// A saved draft is sent as it is, with the attachments it has
+	if got := sent[1].JSON(); got != `{"confirm":true,"draft_id":312,"tool_id":8}` {
+		t.Errorf("send %s", got)
 	}
 	if !strings.Contains(out.String(), `Saved forward draft 8/400 "Fwd: Plans" to ann@example.com with 2 attachments.`) {
 		t.Errorf("out %q", out.String())
@@ -152,8 +202,9 @@ func TestRepliesLeaveTheQuoteToTheServer(t *testing.T) {
 	if got := sent[0].Get("body").S(); got != "<p>Plan B.</p><p>See you then.</p>" {
 		t.Errorf("body %q", got)
 	}
-	if got := sent[0].Get("quoted_message_id").JSON(); got != "310" {
-		t.Errorf("quoted_message_id %s", got)
+	// Nothing said about the quote: the server quotes the mail as it was written
+	if got := sent[0].JSON(); got != `{"all":false,"body":"<p>Plan B.</p><p>See you then.</p>","html":true,"mail_id":310,"tool_id":8}` {
+		t.Errorf("reply %s", got)
 	}
 }
 
@@ -181,24 +232,23 @@ func TestAQuoteIsChangedOrLeftOutWhereFlagsSay(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if want := []string{"POST /tools/8/mails/drafts", "POST /tools/8/mails", "POST /tools/8/mails/drafts",
-		"PATCH /tools/8/mails/drafts/312", "PATCH /tools/8/mails/drafts/312"}; !slices.Equal(fake.requests, want) {
+	if want := []string{"mail_reply", "mail_reply", "mail_send", "mail_forward", "mail_update", "mail_update"}; !slices.Equal(fake.requests, want) {
 		t.Errorf("requests %v", fake.requests)
 	}
 	// The quote as given, of the mail it still answers
-	for _, index := range []int{0, 2} {
-		if got := sent[index].Get("quoted_message_id").JSON() + " " + sent[index].Get("quote_html").S(); got != "310 "+changed {
+	for _, index := range []int{0, 3} {
+		if got := sent[index].Get("mail_id").JSON() + " " + sent[index].Get("quote_html").S(); got != "310 "+changed {
 			t.Errorf("request %d: %s", index, got)
 		}
 	}
-	// Nothing is quoted, and the reply still has what a reply has
-	if got := sent[1].Get("quoted_message_id").JSON() + " " + sent[1].Get("subject").S(); got != "null Re: Plans" || sent[1].Has("quote_html") {
-		t.Errorf("reply without a quote: %s", sent[1].JSON())
+	// Nothing is quoted, and the reply still is one
+	if got := sent[1].JSON(); got != `{"all":false,"body":"<p>Sure</p>","html":true,"mail_id":310,"no_quote":true,"tool_id":8}` {
+		t.Errorf("reply without a quote: %s", got)
 	}
-	if got := sent[3].JSON(); got != `{"quote_html":"<p>Ann wrote:</p><blockquote type=\"cite\"><p>Plan A</p></blockquote>"}` {
+	if got := sent[4].JSON(); got != `{"draft_id":312,"quote_html":"<p>Ann wrote:</p><blockquote type=\"cite\"><p>Plan A</p></blockquote>","tool_id":8}` {
 		t.Errorf("update: %s", got)
 	}
-	if got := sent[4].JSON(); got != `{"quoted_message_id":null}` {
+	if got := sent[5].JSON(); got != `{"draft_id":312,"no_quote":true,"tool_id":8}` {
 		t.Errorf("update: %s", got)
 	}
 
@@ -207,7 +257,7 @@ func TestAQuoteIsChangedOrLeftOutWhereFlagsSay(t *testing.T) {
 			t.Errorf("%v: got %v", flags, err)
 		}
 	}
-	if len(sent) != 5 {
+	if len(sent) != 6 {
 		t.Errorf("%d requests", len(sent))
 	}
 }
@@ -322,14 +372,9 @@ func TestSendingADraftKeepsItsBcc(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if got := sent[0].Get("bcc").S(); got != "boss@example.com, audit@example.com" {
-		t.Errorf("bcc %q", got)
-	}
-	if got := sent[0].Get("cc").S(); got != "bob@example.com" {
-		t.Errorf("cc %q", got)
-	}
-	if got := sent[1].Get("bcc").S(); got != "" {
-		t.Errorf("bcc of a draft without one: %q", got)
+	// mail_send sends the saved draft as it is, Cc and Bcc included: nothing of it goes through the CLI
+	if got := sent[0].JSON() + " " + sent[1].JSON(); got != `{"confirm":true,"draft_id":312,"tool_id":8} {"confirm":true,"draft_id":313,"tool_id":8}` {
+		t.Errorf("sent %s", got)
 	}
 }
 
@@ -343,10 +388,10 @@ func TestADraftIsChangedOnlyWhereFlagsSay(t *testing.T) {
 	if err := invoke(ctx, "mail update", "8/312", "--subject", "Plans, again", "--bcc", "boss@example.com", "--cc", "", "--body", "Hi\n\nBye", "--open"); err != nil {
 		t.Fatal(err)
 	}
-	if want := []string{"PATCH /tools/8/mails/drafts/312"}; !slices.Equal(fake.requests, want) {
+	if want := []string{"mail_update"}; !slices.Equal(fake.requests, want) {
 		t.Errorf("requests %v", fake.requests)
 	}
-	if got := sent[0].JSON(); got != `{"bcc":"boss@example.com","body":"<p>Hi</p><p>Bye</p>","cc":"","subject":"Plans, again"}` {
+	if got := sent[0].JSON(); got != `{"bcc":"boss@example.com","body":"<p>Hi</p><p>Bye</p>","cc":"","draft_id":312,"html":true,"subject":"Plans, again","tool_id":8}` {
 		t.Errorf("sent %s", got)
 	}
 	if want := []string{"https://dobase.test/tools/8/mails/new?draft_id=400"}; !slices.Equal(opened, want) {
@@ -398,7 +443,7 @@ func TestFilesAreAttachedToTheSavedDraft(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if want := []string{"POST /tools/8/mails/drafts", "POST /tools/8/mails/drafts", "POST /tools/8/mails/drafts"}; !slices.Equal(fake.requests, want) {
+	if want := []string{"mail_draft", "mail_reply", "mail_forward"}; !slices.Equal(fake.requests, want) {
 		t.Errorf("requests %v", fake.requests)
 	}
 	if want := []string{
@@ -467,7 +512,7 @@ func TestADraftThatCouldNotTakeItsFilesIsStillThere(t *testing.T) {
 		t.Errorf("got %v", err)
 	}
 	// Nothing went out without its attachment
-	if want := []string{"POST /tools/8/mails/drafts"}; !slices.Equal(fake.requests, want) {
+	if want := []string{"mail_reply"}; !slices.Equal(fake.requests, want) {
 		t.Errorf("requests %v", fake.requests)
 	}
 }
@@ -477,7 +522,7 @@ func TestSendingWithAttachmentsGoesThroughADraftThatHasThem(t *testing.T) {
 	var opened []string
 	var out bytes.Buffer
 	fake := newFakeAPI(mailWithAttachments, &sent)
-	ctx := mailCtx(&out, false, fake, &opened)
+	ctx := mailCtx(&out, false, &mailFake{fake, map[string]string{"mail_send": "Re: Plans"}}, &opened)
 	offer := filepath.Join(t.TempDir(), "offer.pdf")
 	if err := os.WriteFile(offer, []byte("pdf"), 0o644); err != nil {
 		t.Fatal(err)
@@ -487,16 +532,15 @@ func TestSendingWithAttachmentsGoesThroughADraftThatHasThem(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if want := []string{"POST /tools/8/mails/drafts", "POST /tools/8/mails"}; !slices.Equal(fake.requests, want) {
+	// The reply is saved, the file attached to that draft, and the draft sent with what it has
+	if want := []string{"mail_reply", "mail_send"}; !slices.Equal(fake.requests, want) {
 		t.Errorf("requests %v", fake.requests)
 	}
-	if got := sent[1].Get("draft_id").JSON() + " " + sent[1].Get("forward_attachment_ids").JSON(); got != "400 [900]" {
-		t.Errorf("draft and attachments %s", got)
+	if want := []string{"/tools/8/mails/drafts/400/attachments: files[]=offer.pdf"}; !slices.Equal(fake.uploads, want) {
+		t.Errorf("uploads %v", fake.uploads)
 	}
-	for _, key := range []string{"to", "subject", "body", "in_reply_to", "quoted_message_id"} {
-		if !sent[1].Get(key).Equal(sent[0].Get(key)) {
-			t.Errorf("%s: sent %s, saved %s", key, sent[1].Get(key).JSON(), sent[0].Get(key).JSON())
-		}
+	if got := sent[1].JSON(); got != `{"confirm":true,"draft_id":400,"tool_id":8}` {
+		t.Errorf("send %s", got)
 	}
 	if !strings.Contains(out.String(), `Sent "Re: Plans" to ann@example.com with 1 attachment.`) {
 		t.Errorf("out %q", out.String())
@@ -508,7 +552,7 @@ func TestTrashIsItsOwnCommandAndADraftIsDiscardedByItself(t *testing.T) {
 	var opened []string
 	var out bytes.Buffer
 	fake := newFakeAPI(mailWithAttachments, &sent)
-	fake.errors = map[string]error{"/tools/8/mails/310/move": &api.Error{Message: "Invalid folder name (HTTP 422)", Status: 422}}
+	fake.errors = map[string]error{"mail_move": &api.Error{Message: "Invalid folder name (HTTP 422)", Status: 422}}
 	ctx := mailCtx(&out, false, fake, &opened)
 
 	// The server's trash is no folder to move to, whatever the server calls it
@@ -530,8 +574,11 @@ func TestTrashIsItsOwnCommandAndADraftIsDiscardedByItself(t *testing.T) {
 		t.Errorf("got %v", err)
 	}
 
-	if want := []string{"POST /tools/8/mails/310/trash", "POST /tools/8/mails/310/trash", "DELETE /tools/8/mails/310/trash", "POST /tools/8/mails/312/trash"}; !slices.Equal(fake.requests, want) {
+	if want := []string{"mail_trash", "mail_trash", "mail_restore", "mail_discard"}; !slices.Equal(fake.requests, want) {
 		t.Errorf("requests %v", fake.requests)
+	}
+	if got := sent[0].JSON() + " " + sent[3].JSON(); got != `{"mail_id":310,"tool_id":8} {"draft_id":312,"tool_id":8}` {
+		t.Errorf("sent %s", got)
 	}
 	if got := sent[1].Get("folder").S(); got != "Receipts" {
 		t.Errorf("folder %q", got)
@@ -557,7 +604,7 @@ func TestJunkIsItsOwnCommand(t *testing.T) {
 		}
 	}
 
-	if want := []string{"POST /tools/8/mails/310/junk", "DELETE /tools/8/mails/310/junk"}; !slices.Equal(fake.requests, want) {
+	if want := []string{"mail_junk", "mail_not_junk"}; !slices.Equal(fake.requests, want) {
 		t.Errorf("requests %v", fake.requests)
 	}
 	if got := sent[0].Get("folder").S(); got != "Receipts" {

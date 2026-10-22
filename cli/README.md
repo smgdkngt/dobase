@@ -1,9 +1,10 @@
 # dobase CLI
 
 `dobase` works with your Dobase tools from the terminal: boards, todos, docs,
-chat, notifications, mail, calendar and files. It talks to the
-[Dobase API](../docs/api/README.md) with a personal access token. It suits
-scripts and AI assistants just as well as people.
+chat, notifications, mail, calendar and files. It talks to Dobase's
+[MCP server](../docs/api/mcp.md), the same tools Claude uses there, and gets
+the [API](../docs/api/README.md)'s own JSON back. It suits scripts and AI
+assistants just as well as people.
 
 It is a single program with nothing else to install, built for macOS, Linux
 and Windows with every [release](https://github.com/smgdkngt/dobase/releases).
@@ -27,23 +28,33 @@ On Windows, download `dobase-x86_64-pc-windows-msvc.zip` from the
 
 `dobase --version` shows which release you have.
 
-Then sign in. In the browser, create a token under **Profile → API**, then run:
+Then sign in:
 
 ```bash
 dobase login https://dobase.example.com
 ```
 
-`login` asks for the token and saves the URL and token to
-`~/.config/dobase/config.json`, readable only by you. `DOBASE_URL` and
-`DOBASE_TOKEN` override the saved values, which is handy for scripts or a
-second instance:
+`login` shows a code and an address. Open it in any browser where you are
+signed in to Dobase (your phone will do), check the code, and pick whether
+`dobase` may change things or only read, and whether what it writes shows
+under its own name or yours. The terminal carries on by itself. Nothing to
+copy, and no browser needed on the machine itself, so it works over SSH too.
+The connection is listed under **Profile → API**, where you can end it. It
+ends by itself once the machine hasn't used it for thirty days.
+
+To use a personal access token instead (Profile → API), run
+`dobase login --token URL`, or pipe the token in. Either way the URL and the
+token are saved in `~/.config/dobase/config.json`, readable only by you.
+`DOBASE_URL` and `DOBASE_TOKEN` override the saved values, which is handy for
+scripts or a second instance:
 
 ```bash
 DOBASE_URL=http://localhost:3000 DOBASE_TOKEN=dobase_... dobase tool list
 ```
 
 Pick **Read only** if you only want to look things up. A read-only token
-can't change anything.
+can't change anything. `dobase logout` forgets the login and, for one made
+with a code, ends it on the server too.
 
 ## Look around
 
@@ -121,9 +132,9 @@ It remembers the last event it printed, per `--name`, in
 network, it goes on where it was: nothing is missed. (Killed between printing
 a line and noting it, it prints that one line again.)
 The server keeps events for seven days; a listener that was away for longer
-gets a line of kind `stream.gap` first. Between events it holds a WebSocket to
-the server open, over which the server only says that there is something new,
-and it asks every five minutes besides. The [API's page on
+gets a line of kind `stream.gap` first. Between events it holds the MCP
+server's stream open, over which the server only says that there is something
+new, and it asks every five minutes besides. The [API's page on
 events](../docs/api/events.md) describes what a line holds.
 
 ## Themes

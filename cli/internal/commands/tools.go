@@ -23,7 +23,7 @@ func tools() []*Definition {
 }
 
 func listTools(ctx *Ctx, args *Args) error {
-	all, err := ctx.Get("/tools")
+	all, err := ctx.Call("tool_list", nil)
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func showTool(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	details, err := ctx.Get("/tools/" + tool.Get("id").S())
+	details, err := ctx.Call("tool_show", map[string]any{"tool_id": tool.Get("id")})
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func createTool(ctx *Ctx, args *Args) error {
 		return api.Usagef("TYPE must be one of: %s", strings.Join(toolTypes, ", "))
 	}
 
-	created, err := ctx.Post("/tools", map[string]any{"tool": map[string]any{"name": name, "tool_type": kind}})
+	created, err := ctx.Call("tool_create", map[string]any{"name": name, "type": kind})
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func renameTool(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	updated, err := ctx.Patch("/tools/"+tool.Get("id").S(), map[string]any{"tool": map[string]any{"name": args.At(1)}})
+	updated, err := ctx.Call("tool_rename", map[string]any{"tool_id": tool.Get("id"), "name": args.At(1)})
 	if err != nil {
 		return err
 	}

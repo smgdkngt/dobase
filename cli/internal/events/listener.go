@@ -1,14 +1,14 @@
 // Package events is `dobase events`: what happens in someone's tools, printed
 // one line of JSON per event.
 //
-// The server numbers its events and hands out "everything after N" (GET
-// /events). A listener remembers the number of the last line it printed
+// The server numbers its events and hands out "everything after N" (the MCP
+// tool event_list). A listener remembers the number of the last line it printed
 // (Bookmark), so whatever happens to it in between, a restart, a network that
 // went away, a server that was deployed, it goes on where it was: nothing is
 // missed and nothing printed twice.
 //
-// To hear of an event when it happens, the listener keeps a WebSocket open
-// (Line) over which the server only says "there is something", and then asks.
+// To hear of an event when it happens, the listener keeps the server's MCP
+// stream open (Line), over which it only says "there is something", and then asks.
 // A signal that got lost costs time, never an event: it also asks after every
 // reconnect and every few minutes.
 package events
@@ -38,7 +38,7 @@ type Filter struct {
 
 // Listener prints events and keeps its place.
 type Listener struct {
-	// Server answers GET /events.
+	// Server answers event_list.
 	Server api.API
 	Filter Filter
 	// Out gets a line per event, and nothing else: each line wakes whoever reads it.
@@ -177,24 +177,29 @@ func (l *Listener) catchUp() error {
 }
 
 func (l *Listener) ask() (api.Value, error) {
-	var params []api.Param
+	args := map[string]any{}
 	switch {
 	case l.Since != "":
-		params = append(params, api.Param{Name: "since", Value: l.Since})
+		args["since"] = l.Since
 	case l.Bookmark.Known:
-		params = append(params, api.Param{Name: "after", Value: strconv.FormatInt(l.Bookmark.Cursor, 10)})
+		args["after"] = l.Bookmark.Cursor
 	}
-	for _, tool := range l.Filter.Tools {
-		params = append(params, api.Param{Name: "tool[]", Value: tool})
+	if len(l.Filter.Tools) > 0 {
+		ids := make([]int64, 0, len(l.Filter.Tools))
+		for _, tool := range l.Filter.Tools {
+			id, _ := strconv.ParseInt(tool, 10, 64)
+			ids = append(ids, id)
+		}
+		args["tool_ids"] = ids
 	}
-	for _, kind := range l.Filter.Kinds {
-		params = append(params, api.Param{Name: "kind[]", Value: kind})
+	if len(l.Filter.Kinds) > 0 {
+		args["kinds"] = l.Filter.Kinds
 	}
 	if l.Filter.SkipOwn {
-		params = append(params, api.Param{Name: "skip_own", Value: "1"})
+		args["skip_own"] = true
 	}
 
-	page, err := l.Server.Request(api.Get, "/events", params, nil)
+	page, err := l.Server.Call("event_list", args)
 	switch api.StatusOf(err) {
 	case http.StatusUnauthorized:
 		return api.Null, &Gone{"The access token was revoked or is not valid. Run `dobase login` for a new one."}

@@ -42,7 +42,7 @@ type Board struct {
 }
 
 func loadBoard(app *App, tool api.Value) (*Board, error) {
-	board, err := app.get(toolPath(tool) + "/board")
+	board, err := app.read("card_list", Args{"tool_id": tool.Get("id")})
 	if err != nil {
 		return nil, err
 	}
@@ -55,8 +55,8 @@ func (s *Board) Hints() []hint           { return boardHints }
 func (s *Board) Help() []hint            { return boardHelp }
 func (s *Board) toolID() int64           { return s.tool.Get("id").Int() }
 
-func (s *Board) LiveRequest() (string, []api.Param, bool) {
-	return toolPath(s.tool) + "/board", nil, true
+func (s *Board) LiveCall() (string, Args, bool) {
+	return "card_list", Args{"tool_id": s.tool.Get("id")}, true
 }
 
 func (s *Board) ApplyLive(value api.Value) {
@@ -146,9 +146,9 @@ func (s *Board) Key(key Key, view *View, fx *Fx) bool {
 			return true
 		}
 		column := s.columns[s.column]
-		columnID, name := column.Get("id").S(), column.Get("name").S()
+		tool, columnID, name := s.toolID(), column.Get("id").S(), column.Get("name").S()
 		fx.popup = inputPopup("New card in "+name, "What needs doing?", "Adding the card", func(app *App, title string) error {
-			card, err := app.post("/columns/"+columnID+"/cards", api.Object("card", api.Object("title", title)))
+			card, err := app.change("card_create", Args{"tool_id": tool, "column": columnID, "title": title})
 			if err != nil {
 				return err
 			}
@@ -215,9 +215,9 @@ func (s *Board) Key(key Key, view *View, fx *Fx) bool {
 	case key.Is('a'):
 		if card, ok := s.card(); ok {
 			tool, id, title := s.toolID(), card.Get("id").Int(), card.Get("title").S()
-			path := fmt.Sprintf("/tools/%d/board/cards/%d/archive", tool, id)
+			card := Args{"tool_id": tool, "card_id": id}
 			fx.popup = confirmPopup("Archive “"+title+"”? You can bring it back in the browser.", "Archiving", func(app *App) error {
-				if _, err := app.post(path, api.Object()); err != nil {
+				if _, err := app.change("card_archive", card); err != nil {
 					return err
 				}
 				if err := reloadBoard(app, 0); err != nil {
@@ -225,7 +225,7 @@ func (s *Board) Key(key Key, view *View, fx *Fx) bool {
 				}
 				app.say("Archived 📦", ToneSuccess)
 				app.offerUndo("the archiving", func(app *App) error {
-					if _, err := app.delete(path); err != nil {
+					if _, err := app.change("card_unarchive", card); err != nil {
 						return err
 					}
 					return reloadBoard(app, id)
@@ -284,16 +284,15 @@ func (s *Board) moveAcross(forward bool, fx *Fx) {
 	if isDoneColumn(columnName) {
 		fx.confetti = true
 	}
-	path := fmt.Sprintf("/tools/%d/board/cards/%d/position", tool, id)
 	fx.job("Moving to "+columnName, func(app *App) error {
-		if _, err := app.patch(path, api.Object("column_id", columnID)); err != nil {
+		if _, err := app.change("card_move", Args{"tool_id": tool, "card_id": id, "column": columnID.S()}); err != nil {
 			return err
 		}
 		if err := reloadBoard(app, id); err != nil {
 			return err
 		}
 		app.offerUndo("the move", func(app *App) error {
-			if _, err := app.patch(path, api.Object("column_id", fromColumn, "position", fromPosition)); err != nil {
+			if _, err := app.change("card_move", Args{"tool_id": tool, "card_id": id, "column": fromColumn.S(), "position": fromPosition + 1}); err != nil {
 				return err
 			}
 			return reloadBoard(app, id)
@@ -320,16 +319,15 @@ func (s *Board) moveWithin(down bool, fx *Fx) {
 	s.columns[column] = s.columns[column].With("cards", cards)
 	s.cards[column] = target
 	tool, id := s.toolID(), cards[target].Get("id").Int()
-	path := fmt.Sprintf("/tools/%d/board/cards/%d/position", tool, id)
 	fx.job("Moving", func(app *App) error {
-		if _, err := app.patch(path, api.Object("position", target)); err != nil {
+		if _, err := app.change("card_move", Args{"tool_id": tool, "card_id": id, "position": target + 1}); err != nil {
 			return err
 		}
 		if err := reloadBoard(app, id); err != nil {
 			return err
 		}
 		app.offerUndo("the move", func(app *App) error {
-			if _, err := app.patch(path, api.Object("position", index)); err != nil {
+			if _, err := app.change("card_move", Args{"tool_id": tool, "card_id": id, "position": index + 1}); err != nil {
 				return err
 			}
 			return reloadBoard(app, id)
@@ -437,7 +435,7 @@ func reloadBoard(app *App, card int64) error {
 	if !ok {
 		return nil
 	}
-	fresh, err := app.get(toolPath(board.tool) + "/board")
+	fresh, err := app.read("card_list", Args{"tool_id": board.tool.Get("id")})
 	if err != nil {
 		return err
 	}
@@ -448,7 +446,9 @@ func reloadBoard(app *App, card int64) error {
 }
 
 func updateCard(app *App, tool, id int64, attributes api.Value) error {
-	if _, err := app.patch(fmt.Sprintf("/tools/%d/board/cards/%d", tool, id), api.Object("card", attributes)); err != nil {
+	args := asToolArgs(attributes)
+	args["tool_id"], args["card_id"] = tool, id
+	if _, err := app.change("card_update", args); err != nil {
 		return err
 	}
 	return reloadBoard(app, id)
@@ -515,7 +515,7 @@ func shortDate(date string) string {
 
 // cardDetail is the popup for a card: its details, description, comments and files.
 func cardDetail(app *App, tool, id int64) (*Detail, error) {
-	card, err := app.get(fmt.Sprintf("/tools/%d/board/cards/%d", tool, id))
+	card, err := app.read("card_show", Args{"tool_id": tool, "card_id": id})
 	if err != nil {
 		return nil, err
 	}
@@ -544,7 +544,8 @@ func cardDetail(app *App, tool, id int64) (*Detail, error) {
 		lines: lines,
 		url:   url,
 		comment: &CommentOn{
-			path:   fmt.Sprintf("/tools/%d/board/cards/%d/comments", tool, id),
+			tool:   "card_comment",
+			on:     Args{"tool_id": tool, "card_id": id},
 			reload: func(app *App) (*Detail, error) { return cardDetail(app, tool, id) },
 		},
 	}, nil

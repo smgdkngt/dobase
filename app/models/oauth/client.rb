@@ -12,6 +12,7 @@ module Oauth
 
     has_many :access_tokens, foreign_key: :oauth_client_id, inverse_of: :oauth_client, dependent: :destroy
     has_many :authorization_codes, foreign_key: :oauth_client_id, inverse_of: :client, dependent: :delete_all
+    has_many :device_codes, foreign_key: :oauth_client_id, inverse_of: :client, dependent: :delete_all
 
     validates :uid, presence: true, uniqueness: true
     validates :name, presence: true, length: { maximum: 100 }

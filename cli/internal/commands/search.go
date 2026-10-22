@@ -20,7 +20,7 @@ func runSearch(ctx *Ctx, args *Args) error {
 		return api.Usagef("Give at least two characters to search for.")
 	}
 
-	result, err := ctx.Get("/search", "q", query)
+	result, err := ctx.Call("search", toolArgs("query", query))
 	if err != nil {
 		return err
 	}

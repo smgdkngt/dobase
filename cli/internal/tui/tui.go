@@ -3,6 +3,7 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -16,7 +17,7 @@ import (
 // Run opens the app until it's quit.
 func Run(cfg *config.Config, userAgent string) error {
 	url := cfg.URL()
-	client, err := api.NewClient(url, cfg.Token(), userAgent)
+	client, err := api.NewMCP(url, cfg.Credentials(), userAgent)
 	if err != nil {
 		return err
 	}
@@ -28,6 +29,11 @@ func Run(cfg *config.Config, userAgent string) error {
 	if err != nil {
 		return err
 	}
+	// Changes on the server are heard as they happen, while the app is open
+	listening, stop := context.WithCancel(context.Background())
+	defer stop()
+	app.listen(listening, client)
+	defer client.Close()
 
 	screen, err := tcell.NewScreen()
 	if err == nil {

@@ -33,7 +33,7 @@ type Docs struct {
 }
 
 func loadDocs(app *App, tool api.Value) (*Docs, error) {
-	docs, err := app.get(toolPath(tool) + "/docs")
+	docs, err := app.read("doc_list", Args{"tool_id": tool.Get("id")})
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (s *Docs) Refresh() Job {
 		}
 		fresh.selected = min(selected, sat(len(fresh.documents)-1))
 		if hasOpen {
-			document, err := app.get(fmt.Sprintf("%s/docs/documents/%d", toolPath(tool), open))
+			document, err := app.read("doc_show", Args{"tool_id": tool.Get("id"), "document_id": open})
 			if err != nil {
 				return err
 			}
@@ -93,9 +93,9 @@ func (s *Docs) Key(key Key, view *View, fx *Fx) bool {
 		if s.selected >= len(s.documents) {
 			return true
 		}
-		tool, id := s.tool.Get("id").S(), s.documents[s.selected].Get("id").S()
+		tool, id := s.tool.Get("id"), s.documents[s.selected].Get("id")
 		fx.job("Opening the document", func(app *App) error {
-			document, err := app.get("/tools/" + tool + "/docs/documents/" + id)
+			document, err := app.read("doc_show", Args{"tool_id": tool, "document_id": id})
 			if err != nil {
 				return err
 			}

@@ -73,7 +73,12 @@ func runEvents(ctx *Ctx, args *Args) error {
 		return listener.Once()
 	}
 
-	line := &events.Line{Server: ctx.Config.URL(), Token: ctx.Config.Token(), UserAgent: ctx.UserAgent, Quiet: 20 * time.Second, Log: log}
+	stream, ok := server.(events.Stream)
+	if !ok {
+		return api.Failf("This connection has no stream to follow.")
+	}
+	// The server pings every thirty seconds
+	line := &events.Line{Server: stream, Quiet: 75 * time.Second, Log: log}
 	listener.Line = line.Listen
 	// Stopped from outside (Ctrl+C, a session that ends) is the way a listener ends
 	stopped, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

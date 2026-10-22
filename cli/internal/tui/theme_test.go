@@ -53,8 +53,8 @@ func TestWithoutAThemeTheAppKeepsItsOwnColors(t *testing.T) {
 // themeServer answers the appearance request and nothing else.
 type themeServer struct{ fakeServer }
 
-func (s *themeServer) Request(method api.Method, path string, params []api.Param, body any) (api.Value, error) {
-	if path == "/appearance" {
+func (s *themeServer) Call(tool string, _ map[string]any) (api.Value, error) {
+	if tool == "appearance_show" {
 		return api.MustParse(`{"colors": {"background": "#1a1b26", "foreground": "#a9b1d6", "accent": "#7aa2f7"}}`), nil
 	}
 	return api.Null, nil

@@ -19,9 +19,10 @@ tool.
   `Authorization: Bearer <token>`.
 
 Both are one kind of token. A connection made by signing in shows under
-**Profile → API** next to your personal tokens, and is ended there. It lasts
-thirty days from the moment you said yes, however often the client refreshes
-it. Changing your password ends every connection; so does switching
+**Profile → API** next to your personal tokens, and is ended there. One made
+by Claude lasts thirty days from the moment you said yes, however often it is
+refreshed; a login by code (`dobase login`) lasts until it goes thirty days
+unused. Changing your password ends every connection; so does switching
 "Connections from Claude and other programs" off on the same page. Every tool
 call is listed there, refused ones too.
 
@@ -48,8 +49,30 @@ Streamable HTTP, protocol version `2025-06-18` and later: `POST /mcp` with one
 JSON-RPC message (batches are refused), answered with JSON. `initialize` starts
 a session (`Mcp-Session-Id`), which belongs to the token that started it.
 Sessions live in the server's memory, so after a deploy a client gets `404` and
-starts a new one. `DELETE /mcp` ends a session. Requests are limited to 120 a
-minute per person and 8 MB each (files come along as base64).
+starts a new one. `DELETE /mcp` ends a session. Requests are limited to 600 a
+minute per person (tool calls and reads; starting a session or a ping doesn't count) and 8 MB each (files come along as base64).
+
+## Live updates
+
+A session can hear that something changed instead of asking again and again.
+Open its stream with `GET /mcp` (`Accept: text/event-stream`, the session's
+`Mcp-Session-Id`), then subscribe with `resources/subscribe`:
+
+- `dobase://events`: there is a new event in your tools (what
+  `dobase events --follow` listens for). Ask `event_list` after your cursor for
+  what; `resources/read` of it gives the cursor to start from.
+- `dobase://tools/<id>`: something in that tool changed, whoever changed it and
+  from where (what an open page of the tool draws itself again for). Only for a
+  tool you have; `resources/read` of it gives the tool.
+
+Each change arrives on the stream as
+`{"method": "notifications/resources/updated", "params": {"uri": "..."}}`,
+saying only that it changed, never what. The stream is pinged every 30 seconds
+and lasts 30 minutes at most; a session that sends nothing for 30 minutes ends.
+A client keeps it going by sending `ping` now and then and opening the stream
+again when it closes; after a `404` it starts a new session and subscribes
+again. Revoking the token closes its streams at once. One token holds 20
+sessions at most; past that its oldest ends.
 
 ## Tools
 

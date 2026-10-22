@@ -50,7 +50,7 @@ func listCards(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	board, err := ctx.Get(fmt.Sprintf("/tools/%s/board", tool.Get("id").S()), "archived", If(archived, "true"))
+	board, err := ctx.Call("card_list", toolArgs("tool_id", tool.Get("id"), "archived", archived))
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func showCard(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	card, err := ctx.Get(fmt.Sprintf("/tools/%s/board/cards/%d", tool.Get("id").S(), id))
+	card, err := ctx.Call("card_show", toolArgs("tool_id", tool.Get("id"), "card_id", id))
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,9 @@ func createCard(ctx *Ctx, args *Args) error {
 		return err
 	}
 	attributes["title"] = args.At(1)
-	card, err := ctx.Post(fmt.Sprintf("/columns/%s/cards", target.Get("id").S()), map[string]any{"card": attributes})
+	created := asToolArgs(attributes)
+	created["tool_id"], created["column"] = tool.Get("id"), target.Get("id").S()
+	card, err := ctx.Call("card_create", created)
 	if err != nil {
 		return err
 	}
@@ -140,7 +142,9 @@ func updateCard(ctx *Ctx, args *Args) error {
 		return api.Usagef("Nothing to update. See `dobase help card`.")
 	}
 
-	card, err := ctx.Patch(fmt.Sprintf("/tools/%s/board/cards/%d", tool.Get("id").S(), id), map[string]any{"card": attributes})
+	changes := asToolArgs(attributes)
+	changes["tool_id"], changes["card_id"] = tool.Get("id"), id
+	card, err := ctx.Call("card_update", changes)
 	if err != nil {
 		return err
 	}
@@ -156,23 +160,23 @@ func moveCard(ctx *Ctx, args *Args) error {
 		return err
 	}
 	column, hasColumn := args.Get(1), len(args.Positional) > 1
-	position, hasPosition := args.Flag("position")
+	at, hasPosition := args.Flag("position")
 	if !hasColumn && !hasPosition {
 		return api.Usagef("Give a COLUMN, a --position, or both.")
 	}
 
-	body := map[string]any{}
+	body := map[string]any{"tool_id": tool.Get("id"), "card_id": id}
 	if hasColumn {
 		target, err := findColumn(ctx, tool, column)
 		if err != nil {
 			return err
 		}
-		body["column_id"] = target.Get("id")
+		body["column"] = target.Get("id").S()
 	}
 	if hasPosition {
-		body["position"] = zeroBased(position)
+		body["position"] = position(at)
 	}
-	card, err := ctx.Patch(fmt.Sprintf("/tools/%s/board/cards/%d/position", tool.Get("id").S(), id), Compact(body))
+	card, err := ctx.Call("card_move", body)
 	if err != nil {
 		return err
 	}
@@ -188,7 +192,7 @@ func archiveCard(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	card, err := ctx.Post(fmt.Sprintf("/tools/%s/board/cards/%d/archive", tool.Get("id").S(), id), map[string]any{})
+	card, err := ctx.Call("card_archive", toolArgs("tool_id", tool.Get("id"), "card_id", id))
 	if err != nil {
 		return err
 	}
@@ -203,7 +207,7 @@ func unarchiveCard(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	card, err := ctx.Delete(fmt.Sprintf("/tools/%s/board/cards/%d/archive", tool.Get("id").S(), id))
+	card, err := ctx.Call("card_unarchive", toolArgs("tool_id", tool.Get("id"), "card_id", id))
 	if err != nil {
 		return err
 	}
@@ -218,7 +222,7 @@ func deleteCard(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	if _, err := ctx.Delete(fmt.Sprintf("/tools/%s/board/cards/%d", tool.Get("id").S(), id)); err != nil {
+	if _, err := ctx.Call("card_delete", toolArgs("tool_id", tool.Get("id"), "card_id", id, "confirm", true)); err != nil {
 		return err
 	}
 	return ctx.Output(api.Null, func() error {
@@ -236,7 +240,7 @@ func commentCard(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	comment, err := ctx.Post(fmt.Sprintf("/tools/%s/board/cards/%d/comments", tool.Get("id").S(), id), map[string]any{"body": body})
+	comment, err := ctx.Call("card_comment", toolArgs("tool_id", tool.Get("id"), "card_id", id, "text", body, "html", true))
 	if err != nil {
 		return err
 	}
@@ -251,8 +255,7 @@ func uncommentCard(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	path := fmt.Sprintf("/tools/%s/board/cards/%d/comments", tool.Get("id").S(), id)
-	return deleteComment(ctx, path, args.At(1), fmt.Sprintf("card %s/%d", tool.Get("id").S(), id))
+	return deleteComment(ctx, "card_uncomment", toolArgs("tool_id", tool.Get("id"), "card_id", id), args.At(1), fmt.Sprintf("card %s/%d", tool.Get("id").S(), id))
 }
 
 func attachCard(ctx *Ctx, args *Args) error {
@@ -270,7 +273,7 @@ func createColumn(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	column, err := ctx.Post(fmt.Sprintf("/tools/%s/board/columns", tool.Get("id").S()), map[string]any{"name": args.At(1)})
+	column, err := ctx.Call("column_create", toolArgs("tool_id", tool.Get("id"), "name", args.At(1)))
 	if err != nil {
 		return err
 	}
@@ -285,7 +288,7 @@ func renameColumn(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	column, err := ctx.Patch(fmt.Sprintf("/tools/%s/board/columns/%d", tool.Get("id").S(), id), map[string]any{"name": args.At(1)})
+	column, err := ctx.Call("column_rename", toolArgs("tool_id", tool.Get("id"), "column_id", id, "name", args.At(1)))
 	if err != nil {
 		return err
 	}
@@ -300,7 +303,7 @@ func deleteColumn(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	if _, err := ctx.Delete(fmt.Sprintf("/tools/%s/board/columns/%d", tool.Get("id").S(), id)); err != nil {
+	if _, err := ctx.Call("column_delete", toolArgs("tool_id", tool.Get("id"), "column_id", id, "confirm", true)); err != nil {
 		return err
 	}
 	return ctx.Output(api.Null, func() error {
@@ -321,7 +324,7 @@ func cardSummary(card api.Value) string {
 
 // findColumn is the first column, or the one whose id or name (or the start of it) is reference.
 func findColumn(ctx *Ctx, tool api.Value, reference string) (api.Value, error) {
-	board, err := ctx.Get(fmt.Sprintf("/tools/%s/board", tool.Get("id").S()))
+	board, err := ctx.Call("card_list", toolArgs("tool_id", tool.Get("id")))
 	if err != nil {
 		return api.Null, err
 	}

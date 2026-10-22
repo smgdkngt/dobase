@@ -62,6 +62,7 @@ class AccessToken < ApplicationRecord
 
   def close_connections
     ActionCable.server.remote_connections.where(current_user: user, access_token: self).disconnect(reconnect: false)
+    Mcp::Endpoint.running_live&.close_token(id)
   end
 
   def generate_token

@@ -42,6 +42,13 @@ module Mcp
         get "/tools/#{arg(:tool_id)}/file_previews/#{arg(:preview_id)}"
       end
 
+      tool "folder_share", "A folder's share link", "A folder's public share link, or nothing when it has none.",
+        params: folder, read_only: true do
+        get Files.folder_path(self) + "/share"
+      rescue Api::Error => error
+        raise unless error.status == 404
+      end
+
       tool "file_upload", "Upload files", "Adds files to a files tool, at the top or in a folder.",
         params: { tool_id: tool_id("files"), folder_id: id("The folder to put them in"), files: file_list("The files", required: true) } do
         upload "/tools/#{arg(:tool_id)}/files/uploads", { files: files(:files), folder_id: arg(:folder_id) }.compact

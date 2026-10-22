@@ -11,7 +11,7 @@ import (
 	"github.com/smgdkngt/dobase/cli/internal/config"
 )
 
-// eventsAPI answers GET /events with the pages it was given, in turn, and
+// eventsAPI answers event_list with the pages it was given, in turn, and
 // keeps what it was asked.
 type eventsAPI struct {
 	*fakeAPI
@@ -19,15 +19,11 @@ type eventsAPI struct {
 	asked []string
 }
 
-func (e *eventsAPI) Request(method api.Method, path string, params []api.Param, body any) (api.Value, error) {
-	if path != "/events" {
-		return e.fakeAPI.Request(method, path, params, body)
+func (e *eventsAPI) Call(tool string, args map[string]any) (api.Value, error) {
+	if tool != "event_list" {
+		return e.fakeAPI.Call(tool, args)
 	}
-	var query []string
-	for _, param := range params {
-		query = append(query, param.Name+"="+param.Value)
-	}
-	e.asked = append(e.asked, strings.Join(query, "&"))
+	e.asked = append(e.asked, api.Of(args).JSON())
 	page := e.pages[0]
 	if len(e.pages) > 1 {
 		e.pages = e.pages[1:]
@@ -71,7 +67,7 @@ func TestEventsPrintsALinePerEventAndGoesOnWhereItWas(t *testing.T) {
 		t.Fatalf("third run: %v, printed %q", err, out.String())
 	}
 
-	if got := strings.Join(fake.asked, " | "); got != " | after=811 | after=815" {
+	if got := strings.Join(fake.asked, " | "); got != `{} | {"after":811} | {"after":815}` {
 		t.Errorf("asked %q", got)
 	}
 }
@@ -83,7 +79,7 @@ func TestEventsAsksForTheToolsKindsAndTimeGiven(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := "since=2026-10-09T06:00:00Z&tool[]=110&tool[]=107&kind[]=mail&kind[]=card.moved&skip_own=1"; fake.asked[0] != want {
+	if want := `{"kinds":["mail","card.moved"],"since":"2026-10-09T06:00:00Z","skip_own":true,"tool_ids":[110,107]}`; fake.asked[0] != want {
 		t.Errorf("asked %q", fake.asked[0])
 	}
 
@@ -91,10 +87,10 @@ func TestEventsAsksForTheToolsKindsAndTimeGiven(t *testing.T) {
 	if err := invoke(ctx, "events", "--since", "2h", "--name", "mac"); err != nil {
 		t.Fatal(err)
 	}
-	if !regexp.MustCompile(`^since=20\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ$`).MatchString(fake.asked[1]) {
+	if !regexp.MustCompile(`^\{"since":"20\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ"\}$`).MatchString(fake.asked[1]) {
 		t.Errorf("asked %q", fake.asked[1])
 	}
-	if err := invoke(ctx, "events", "--name", "spark"); err != nil || fake.asked[2] != "after=3" {
+	if err := invoke(ctx, "events", "--name", "spark"); err != nil || fake.asked[2] != `{"after":3}` {
 		t.Errorf("asked %q (%v)", fake.asked[2], err)
 	}
 }

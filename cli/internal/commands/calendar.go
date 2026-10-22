@@ -106,7 +106,7 @@ func listEvents(ctx *Ctx, args *Args) error {
 		lastDay = addDays(first, count-1).Format(DateLayout)
 	}
 
-	agenda, err := ctx.Get(fmt.Sprintf("/tools/%s/calendar", tool.Get("id").S()), "start_date", firstDay, "end_date", lastDay)
+	agenda, err := ctx.Call("appointment_list", dayArgs(tool, firstDay, lastDay))
 	if err != nil {
 		return err
 	}
@@ -165,7 +165,7 @@ func showEvent(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	event, err := ctx.Get(fmt.Sprintf("/tools/%s/calendar/events/%d", tool.Get("id").S(), id))
+	event, err := ctx.Call("appointment_show", toolArgs("tool_id", tool.Get("id"), "appointment_id", id))
 	if err != nil {
 		return err
 	}
@@ -215,7 +215,9 @@ func createEvent(ctx *Ctx, args *Args) error {
 		return err
 	}
 	attributes["summary"] = args.At(1)
-	event, err := ctx.Post(fmt.Sprintf("/tools/%s/calendar/events", tool.Get("id").S()), map[string]any{"calendars_event": attributes})
+	created := appointmentArgs(attributes)
+	created["tool_id"] = tool.Get("id")
+	event, err := ctx.Call("appointment_create", created)
 	if err != nil {
 		return err
 	}
@@ -233,14 +235,12 @@ func updateEvent(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	path := fmt.Sprintf("/tools/%s/calendar/events/%d", tool.Get("id").S(), id)
-
 	changesTiming := args.Any("start", "end", "duration", "all-day")
 	_, repeats := args.Flag("repeat")
 	changesRepeatEnd := args.Any("repeat-until", "repeat-count") && !repeats
 	var current *api.Value
 	if changesTiming || changesRepeatEnd {
-		event, err := ctx.Get(path)
+		event, err := ctx.Call("appointment_show", toolArgs("tool_id", tool.Get("id"), "appointment_id", id))
 		if err != nil {
 			return err
 		}
@@ -261,7 +261,9 @@ func updateEvent(ctx *Ctx, args *Args) error {
 		return api.Usagef("Nothing to update. See `dobase help event`.")
 	}
 
-	event, err := ctx.Patch(path, map[string]any{"calendars_event": attributes})
+	changes := appointmentArgs(attributes)
+	changes["tool_id"], changes["appointment_id"] = tool.Get("id"), id
+	event, err := ctx.Call("appointment_update", changes)
 	if err != nil {
 		return err
 	}
@@ -278,7 +280,7 @@ func deleteEvent(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	if _, err := ctx.Delete(fmt.Sprintf("/tools/%s/calendar/events/%d", tool.Get("id").S(), id)); err != nil {
+	if _, err := ctx.Call("appointment_delete", toolArgs("tool_id", tool.Get("id"), "appointment_id", id, "confirm", true)); err != nil {
 		return err
 	}
 	return ctx.Output(api.Null, func() error {
@@ -315,16 +317,14 @@ func syncCalendar(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	path := fmt.Sprintf("/tools/%s/calendar/sync", tool.Get("id").S())
-
-	status, err := ctx.Post(path, map[string]any{})
+	status, err := ctx.Call("calendar_sync", toolArgs("tool_id", tool.Get("id")))
 	if err != nil {
 		return err
 	}
 	deadline := time.Now().Add(syncTimeout)
 	for status.Get("status").S() == "syncing" && time.Now().Before(deadline) {
 		time.Sleep(time.Second)
-		if status, err = ctx.Get(path); err != nil {
+		if status, err = ctx.Call("calendar_sync_status", toolArgs("tool_id", tool.Get("id"))); err != nil {
 			return err
 		}
 	}
@@ -350,7 +350,42 @@ func syncCalendar(ctx *Ctx, args *Args) error {
 // calendarOverview is the calendar for a single day: enough for its calendars and sync status.
 func calendarOverview(ctx *Ctx, tool api.Value) (api.Value, error) {
 	today := Today().Format(DateLayout)
-	return ctx.Get(fmt.Sprintf("/tools/%s/calendar", tool.Get("id").S()), "start_date", today, "end_date", today)
+	return ctx.Call("appointment_list", dayArgs(tool, today, today))
+}
+
+// dayArgs are appointment_list's arguments, leaving out a day that isn't given.
+func dayArgs(tool api.Value, first, last string) map[string]any {
+	args := toolArgs("tool_id", tool.Get("id"))
+	if first != "" {
+		args["start_date"] = first
+	}
+	if last != "" {
+		args["end_date"] = last
+	}
+	return args
+}
+
+// appointmentNames are the tools' names for the API's event attributes the CLI builds.
+var appointmentNames = map[string]string{
+	"summary": "title", "start_time": "starts", "end_time": "ends", "calendar_id": "calendar",
+	"recurrence_frequency": "repeat", "recurrence_interval": "repeat_every", "recurrence_days_of_week": "repeat_on",
+	"recurrence_monthly_by": "repeat_monthly_by", "recurrence_end_type": "repeat_ends", "recurrence_count": "repeat_count",
+	"recurrence_until": "repeat_until",
+}
+
+// appointmentArgs turns the attributes into what appointment_create and appointment_update take.
+func appointmentArgs(attributes map[string]any) map[string]any {
+	args := map[string]any{}
+	for name, value := range attributes {
+		if renamed, ok := appointmentNames[name]; ok {
+			name = renamed
+		}
+		if name == "calendar" {
+			value = api.Of(value).S()
+		}
+		args[name] = value
+	}
+	return args
 }
 
 // -- Input -------------------------------------------------------------------

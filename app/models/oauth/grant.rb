@@ -4,8 +4,10 @@ module Oauth
   # A pair of tokens an OAuth client sends: an access token that lasts an hour
   # and a refresh token that gets the next pair. Both are kept as digests. All
   # pairs of one connection share its end date, however often they are
-  # refreshed; a refresh token used a second time can only be a copy in someone
-  # else's hands, and ends the whole connection.
+  # refreshed, except a login by code (the CLI), whose end moves on with every
+  # refresh, so a machine in use stays signed in and one left alone runs out.
+  # A refresh token used a second time can only be a copy in someone else's
+  # hands, and ends the whole connection.
   class Grant < ApplicationRecord
     self.table_name = "oauth_grants"
 
@@ -45,6 +47,7 @@ module Oauth
       end
       return if connection.expired? || !connection.user.mcp_enabled?
 
+      connection.update!(expires_at: AccessToken::CONNECTION_LIFETIME.from_now) if connection.renews?
       issue(connection)
     end
 

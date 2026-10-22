@@ -1,6 +1,9 @@
 package commands
 
 import (
+	"strconv"
+	"strings"
+
 	"github.com/smgdkngt/dobase/cli/internal/api"
 	. "github.com/smgdkngt/dobase/cli/internal/command"
 )
@@ -17,7 +20,7 @@ func notifications() []*Definition {
 
 func listNotifications(ctx *Ctx, args *Args) error {
 	unread := args.On("unread")
-	notifications, err := ctx.Get("/notifications", "unread", If(unread, "true"), "limit", args.Value("limit"))
+	notifications, err := ctx.Call("notification_list", toolArgs("unread", unread, "limit", limitArg(args.Value("limit"), 100)))
 	if err != nil {
 		return err
 	}
@@ -46,6 +49,16 @@ func listNotifications(ctx *Ctx, args *Args) error {
 	})
 }
 
+// limitArg is a --limit as a tool takes it: within 1 and max, as the server
+// would have made it, and left out when it isn't a number (the server's default).
+func limitArg(text string, most int64) any {
+	n, err := strconv.ParseInt(strings.TrimSpace(text), 10, 64)
+	if err != nil {
+		return nil
+	}
+	return min(max(n, 1), most)
+}
+
 func readNotification(ctx *Ctx, args *Args) error {
 	id, all := args.Get(0), args.On("all")
 	if id != "" && all {
@@ -56,7 +69,7 @@ func readNotification(ctx *Ctx, args *Args) error {
 	case id == "" && !all:
 		return api.Usagef("Give a notification ID or --all. `dobase notification list` shows the ids.")
 	case id == "":
-		result, err := ctx.Post("/notification_reads", map[string]any{})
+		result, err := ctx.Call("notification_read", nil)
 		if err != nil {
 			return err
 		}
@@ -69,7 +82,8 @@ func readNotification(ctx *Ctx, args *Args) error {
 	if !IsDigits(id) {
 		return api.Usagef("Expected a notification id like 41, got %s.", Quoted(id))
 	}
-	notification, err := ctx.Post("/notifications/"+id+"/read", map[string]any{})
+	number, _ := strconv.ParseInt(id, 10, 64)
+	notification, err := ctx.Call("notification_read", toolArgs("notification_id", number))
 	if err != nil {
 		return err
 	}

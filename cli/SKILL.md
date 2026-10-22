@@ -5,8 +5,9 @@ description: Work in the user's Dobase workspace through the `dobase` CLI. Cover
 
 # Dobase
 
-Dobase is the user's self-hosted workspace. `dobase` talks to its JSON API with
-a personal access token. It is a single program with nothing else to install.
+Dobase is the user's self-hosted workspace. `dobase` talks to its MCP server
+(the API's tools) with the machine's login. It is a single program with nothing
+else to install.
 
 ```bash
 dobase whoami                            # who and where; says whether the token can write
@@ -17,8 +18,8 @@ If `dobase` isn't found, ask the user to install it (`cli/README.md` in the
 Dobase repository says how). Don't install it yourself.
 
 If `whoami` says you're not signed in, ask the user to run `dobase login URL`
-in their own terminal. They create a token under Profile → API. Never ask for
-the token in the conversation and never print `~/.config/dobase/config.json`.
+in their own terminal: it shows a code they confirm in a browser. Never ask for
+a token in the conversation and never print `~/.config/dobase/config.json`.
 A `403 This access token is read-only` means the user chose a read-only
 token. Tell them; don't look for a way around it.
 

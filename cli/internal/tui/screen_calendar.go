@@ -44,9 +44,8 @@ func loadCalendar(app *App, tool api.Value) (*Calendar, error) {
 
 func loadCalendarFrom(app *App, tool api.Value, start time.Time) (*Calendar, error) {
 	end := start.AddDate(0, 0, calendarDays-1)
-	agenda, err := app.get(toolPath(tool)+"/calendar",
-		api.Param{Name: "start_date", Value: start.Format(command.DateLayout)},
-		api.Param{Name: "end_date", Value: end.Format(command.DateLayout)})
+	agenda, err := app.read("appointment_list", Args{"tool_id": tool.Get("id"),
+		"start_date": start.Format(command.DateLayout), "end_date": end.Format(command.DateLayout)})
 	if err != nil {
 		return nil, err
 	}
