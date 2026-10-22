@@ -73,37 +73,6 @@ func (c *Ctx) Call(tool string, args map[string]any) (api.Value, error) {
 	return server.Call(tool, args)
 }
 
-// Get is a GET with query parameters as name, value pairs; empty values are left out.
-func (c *Ctx) Get(path string, params ...string) (api.Value, error) {
-	var query []api.Param
-	for i := 0; i+1 < len(params); i += 2 {
-		if params[i+1] != "" {
-			query = append(query, api.Param{Name: params[i], Value: params[i+1]})
-		}
-	}
-	return c.request(api.Get, path, query, nil)
-}
-
-func (c *Ctx) Post(path string, body any) (api.Value, error) {
-	return c.request(api.Post, path, nil, body)
-}
-
-func (c *Ctx) Patch(path string, body any) (api.Value, error) {
-	return c.request(api.Patch, path, nil, body)
-}
-
-func (c *Ctx) Delete(path string) (api.Value, error) {
-	return c.request(api.Delete, path, nil, nil)
-}
-
-func (c *Ctx) request(method api.Method, path string, params []api.Param, body any) (api.Value, error) {
-	server, err := c.API()
-	if err != nil {
-		return api.Null, err
-	}
-	return server.Request(method, path, params, body)
-}
-
 // Me is the signed-in user's profile.
 func (c *Ctx) Me() (api.Value, error) {
 	if c.me == nil {

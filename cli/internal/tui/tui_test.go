@@ -173,10 +173,6 @@ func toolRequest(tool string, a api.Value) (api.Method, string, []api.Param, any
 	panic("no such tool in the fake: " + tool)
 }
 
-func (f *fakeServer) Request(method api.Method, path string, _ []api.Param, _ any) (api.Value, error) {
-	panic(fmt.Sprintf("%s %s went past MCP", method, path))
-}
-
 func (f *fakeServer) request(method api.Method, path string, params []api.Param, body any) (api.Value, error) {
 	query := make([]string, len(params))
 	for i, param := range params {

@@ -87,7 +87,17 @@ module Mcp
     def stream(status, headers, body)
       return [ status, headers, body ] unless body.respond_to?(:call) && !body.respond_to?(:each)
 
-      [ status, headers.merge("rack.hijack" => body, "x-accel-buffering" => "no"), [] ]
+      # A proxy that compresses (Thruster) holds a response back for a client
+      # that takes gzip until it has read the first of it, and a stream says
+      # nothing until its first ping: so it is told the stream isn't encoded,
+      # and the stream starts with a comment of its own
+      opened = proc do |socket|
+        socket.write(": open\n\n")
+        socket.flush
+        body.call(socket)
+      end
+      [ status, headers.merge("rack.hijack" => opened, "x-accel-buffering" => "no", "content-encoding" => "identity",
+        "cache-control" => "no-cache, no-transform"), [] ]
     end
 
     def unauthorized(request)

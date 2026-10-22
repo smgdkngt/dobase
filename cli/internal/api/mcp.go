@@ -58,11 +58,6 @@ func NewMCP(serverURL string, creds Credentials, userAgent string) (*MCP, error)
 // Client is the plain HTTP side, for files: uploads and downloads stay requests of their own.
 func (m *MCP) Client() *Client { return m.client }
 
-// Request is the plain API, for what has no tool yet.
-func (m *MCP) Request(method Method, path string, params []Param, body any) (Value, error) {
-	return m.client.Request(method, path, params, body)
-}
-
 func (m *MCP) Upload(path string, files []FilePart, fields []Param) (Value, error) {
 	return m.client.Upload(path, files, fields)
 }

@@ -34,8 +34,6 @@ type FilePart struct{ Field, Path string }
 type API interface {
 	// Call runs an MCP tool and returns the API's JSON (an object, a list, or null for nothing).
 	Call(tool string, args map[string]any) (Value, error)
-	// Request sends body (nil for none) as JSON. Null means the server sent no content.
-	Request(method Method, path string, params []Param, body any) (Value, error)
 	// Upload is a multipart POST of files and text fields.
 	Upload(path string, files []FilePart, fields []Param) (Value, error)
 	// Download streams path to destination, following redirects, and returns

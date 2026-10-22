@@ -301,10 +301,6 @@ func (f *fakeAPI) Call(tool string, args map[string]any) (api.Value, error) {
 		"attachments", attachments, "url", "https://dobase.test/tools/8/mails/new?draft_id=400"), nil
 }
 
-func (f *fakeAPI) Request(method api.Method, path string, _ []api.Param, body any) (api.Value, error) {
-	panic(fmt.Sprintf("%s %s went past MCP", method, path))
-}
-
 func (f *fakeAPI) Upload(path string, files []api.FilePart, fields []api.Param) (api.Value, error) {
 	if err := f.errors[path]; err != nil {
 		return api.Null, err
