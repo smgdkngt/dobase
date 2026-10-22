@@ -2,8 +2,8 @@ package config
 
 import (
 	"bytes"
-	"fmt"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
