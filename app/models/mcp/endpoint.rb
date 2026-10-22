@@ -11,7 +11,7 @@ module Mcp
   # protocol says it should.
   class Endpoint
     REQUESTS_PER_MINUTE = 120
-    MAX_BODY_BYTES = 1.megabyte
+    MAX_BODY_BYTES = 8.megabytes # files come along as base64
     BUILDING = Monitor.new # reentrant: building the transport asks for the server
 
     def self.call(env)

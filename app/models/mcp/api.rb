@@ -12,6 +12,7 @@ module Mcp
   # the `/mcp` request already runs (a second one would reset it), and the
   # rest is about browsers and sessions, which a token request doesn't have.
   class Api
+    BOUNDARY = "DobaseMcp#{SecureRandom.hex(8)}"
     class Error < StandardError
       attr_reader :status, :body
 
@@ -57,17 +58,25 @@ module Mcp
       request("DELETE", path, query: params.compact_blank)
     end
 
+    # A multipart form, for files: params holding Rack::Multipart::UploadedFiles
+    def upload(path, params)
+      request("POST", path, form: params)
+    end
+
     def url(path)
       "#{@https ? "https" : "http"}://#{@host}#{path}"
     end
 
     private
 
-    def request(method, path, query: nil, body: nil)
+    def request(method, path, query: nil, body: nil, form: nil)
       target = query.present? ? "#{path}?#{query.to_query}" : path
-      input = body.nil? ? "" : body.to_json
-      env = Rack::MockRequest.env_for(url(target), method:, input:,
-        "CONTENT_TYPE" => "application/json", "HTTP_ACCEPT" => "application/json",
+      content = if form
+        { input: multipart(form), "CONTENT_TYPE" => "multipart/form-data; boundary=#{BOUNDARY}" }
+      else
+        { input: body.nil? ? "" : body.to_json, "CONTENT_TYPE" => "application/json" }
+      end
+      env = Rack::MockRequest.env_for(url(target), method:, **content, "HTTP_ACCEPT" => "application/json",
         "HTTP_AUTHORIZATION" => "Bearer #{@token}", "REMOTE_ADDR" => @remote_ip)
       env.merge!(Rails.application.env_config)
       ActionDispatch::Request::Session.disabled(ActionDispatch::Request.new(env))
@@ -80,6 +89,30 @@ module Mcp
       raise Error.new(status, parsed) unless status.between?(200, 299)
 
       parsed
+    end
+
+    # Rack's own builder takes a list of files for a hash, so the form is written here
+    def multipart(params)
+      body = +"".b
+      fields(params).each do |name, value|
+        body << "--#{BOUNDARY}\r\n"
+        if value.is_a?(Rack::Multipart::UploadedFile)
+          filename = value.original_filename.to_s.delete("\"\r\n")
+          body << %(content-disposition: form-data; name="#{name}"; filename="#{filename}"\r\n)
+          body << "content-type: #{value.content_type}\r\n\r\n" << value.read.b << "\r\n"
+        else
+          body << %(content-disposition: form-data; name="#{name}"\r\n\r\n) << value.to_s.b << "\r\n"
+        end
+      end
+      body << "--#{BOUNDARY}--\r\n"
+    end
+
+    def fields(value, prefix = nil)
+      case value
+      when Hash then value.flat_map { |key, inner| fields(inner, prefix ? "#{prefix}[#{key}]" : key.to_s) }
+      when Array then value.flat_map { fields(it, "#{prefix}[]") }
+      else [ [ prefix, value ] ]
+      end
     end
 
     def parse(text, headers)

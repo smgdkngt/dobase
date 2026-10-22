@@ -49,7 +49,7 @@ JSON-RPC message (batches are refused), answered with JSON. `initialize` starts
 a session (`Mcp-Session-Id`), which belongs to the token that started it.
 Sessions live in the server's memory, so after a deploy a client gets `404` and
 starts a new one. `DELETE /mcp` ends a session. Requests are limited to 120 a
-minute per person and 1 MB each.
+minute per person and 8 MB each (files come along as base64).
 
 ## Tools
 
@@ -62,16 +62,31 @@ it is called with `confirm: true`.
 | Tool | What it does | API |
 |------|--------------|-----|
 | `whoami` | You, and the token in use | [Tools](tools.md#who-am-i) |
-| `tool_list`, `tool_show` | Your tools, one tool | [Tools](tools.md) |
+| `tool_list`, `tool_show`, `tool_create`, `tool_rename` | Your tools | [Tools](tools.md) |
 | `search` | Every tool at once | [Search](search.md) |
-| `notification_list` | Your notifications | [Notifications](notifications.md) |
+| `notification_list`, `notification_read` | Your notifications | [Notifications](notifications.md) |
 | `event_list` | What happened, by number | [Events](events.md) |
-| `card_list`, `card_show` | A board, a card | [Boards](boards.md) |
-| `todo_list`, `todo_show` | A todo tool, a todo | [Todos](todos.md) |
-| `doc_list`, `doc_show` | Documents | [Docs](docs.md) |
-| `chat_list` | A chat's messages | [Chat](chat.md) |
-| `mail_list`, `mail_show`, `mail_contacts` | Conversations, one conversation (without its HTML unless `include_html`), people to mail | [Mail](mail.md) |
-| `appointment_list`, `appointment_show` | A calendar's appointments, one appointment | [Calendar](calendar.md) |
-| `file_list`, `file_show`, `file_read` | A folder, a file, what can be read out of a file or attachment | [Files](files.md) |
+| `card_list`, `card_show`, `card_create`, `card_update`, `card_move`, `card_archive`, `card_unarchive`, `card_delete`\*, `card_comment`, `card_uncomment`\*, `card_attach`, `column_create`, `column_rename`, `column_delete`\* | Boards | [Boards](boards.md) |
+| `todo_list`, `todo_show`, `todo_create`, `todo_update`, `todo_finish`, `todo_reopen`, `todo_move`, `todo_delete`\*, `todo_comment`, `todo_uncomment`\*, `todo_attach`, `todolist_create`, `todolist_rename`, `todolist_delete`\* | Todos | [Todos](todos.md) |
+| `doc_list`, `doc_show`, `doc_create`, `doc_update`, `doc_delete`\* | Documents | [Docs](docs.md) |
+| `chat_list`, `chat_post`, `chat_edit`, `chat_delete`\*, `chat_react`, `chat_read` | Chat | [Chat](chat.md) |
+| `mail_list`, `mail_show`, `mail_contacts`, `mail_sync`, `mail_sync_status` | Conversations (`mail_show` leaves out the HTML unless `include_html`), people to mail, fetching new mail | [Mail](mail.md) |
+| `mail_read`, `mail_unread`, `mail_star`, `mail_unstar`, `mail_archive`, `mail_unarchive`, `mail_move`, `mail_trash`, `mail_restore`, `mail_junk`, `mail_not_junk` | Flags and folders; trashing is a move, undone by `mail_restore` | [Mail](mail.md#flags-archive-and-folders) |
+| `mail_draft`, `mail_update`, `mail_reply`, `mail_forward`, `mail_discard`, `mail_send`\* | Writing mail. Every one but `mail_send` saves a draft; `mail_send` sends a saved draft as it is | [Mail](mail.md#drafts) |
+| `appointment_list`, `appointment_show`, `appointment_create`, `appointment_update`, `appointment_delete`\*, `calendar_sync` | Calendars | [Calendar](calendar.md) |
+| `file_list`, `file_show`, `file_read`, `file_upload`, `file_rename`, `file_move`, `file_delete`\*, `folder_create`, `folder_rename`, `folder_move`, `folder_delete`\* | Files, and what can be read out of a file or attachment | [Files](files.md) |
+
+\* destructive: does nothing without `confirm: true`.
+
+Text (a description, a comment, a message, a mail, a document) is plain text,
+written as paragraphs the way the CLI does, or HTML with `html: true`. Files go
+along as `{"name", "content_base64"}`, a few megabytes in all. A person is
+`me`, `none`, an id, an address or part of a name of someone the tool is shared
+with; a column, list or calendar is its id or its name; a due date is
+`YYYY-MM-DD`, `today`, `tomorrow` or `none`.
+
+Mail is written as a draft first and sent only by `mail_send`, so what goes out
+is always something that could be shown first. Downloading a file as it is
+stays a plain HTTP request (`download_url`).
 
 Reading mail, a chat or notifications through MCP doesn't mark them read.
