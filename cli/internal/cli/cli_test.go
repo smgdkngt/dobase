@@ -354,13 +354,13 @@ func TestChatPostsParagraphsAndRepliesToTheMessageGiven(t *testing.T) {
 	if err := invoke(ctx, "chat post", "team", "Hi <you>\n\nBye", "--reply-to", "12/77"); err != nil {
 		t.Fatal(err)
 	}
-	if got := sent[0].JSON(); got != `{"message":{"body":"<p>Hi &lt;you&gt;</p><p>Bye</p>","reply_to_id":"77"}}` {
+	if got := sent[0].JSON(); got != `{"html":true,"reply_to_id":77,"text":"<p>Hi &lt;you&gt;</p><p>Bye</p>","tool_id":12}` {
 		t.Errorf("sent %s", got)
 	}
 	if err := invoke(ctx, "chat post", "team", "see https://example.com", "--html"); err != nil {
 		t.Fatal(err)
 	}
-	if got := sent[1].JSON(); got != `{"message":{"body":"see https://example.com"}}` {
+	if got := sent[1].JSON(); got != `{"html":true,"text":"see https://example.com","tool_id":12}` {
 		t.Errorf("sent %s", got)
 	}
 	if err := invoke(ctx, "chat post", "board", "Hi"); err == nil || !strings.Contains(err.Error(), "Team board (13) is a boards tool, not chat.") {
@@ -516,7 +516,7 @@ func TestTextThatStartsWithADashIsTextNotAnOption(t *testing.T) {
 		}
 	}
 	for i, want := range []string{"- first point", "-5 degrees", "-x", "--- cut here ---", "-- Sem", "--force didn&#39;t help", "from stdin"} {
-		if got := sent[i].Get("body").S(); got != "<p>"+want+"</p>" {
+		if got := sent[i].Get("text").S(); got != "<p>"+want+"</p>" {
 			t.Errorf("%q was sent as %q", texts[i], got)
 		}
 	}
@@ -525,7 +525,7 @@ func TestTextThatStartsWithADashIsTextNotAnOption(t *testing.T) {
 	if err := invoke(ctx, "card create", "roadmap", "-1 day", "--description", "- one\n- two", "--column=Doing"); err != nil {
 		t.Fatal(err)
 	}
-	if got := sent[len(sent)-1].JSON(); got != `{"card":{"description":"<p>- one<br>- two</p>","title":"-1 day"}}` {
+	if got := sent[len(sent)-1].JSON(); got != `{"column":"31","description":"<p>- one<br>- two</p>","html":true,"title":"-1 day","tool_id":13}` {
 		t.Errorf("sent %s", got)
 	}
 
@@ -538,7 +538,7 @@ func TestTextThatStartsWithADashIsTextNotAnOption(t *testing.T) {
 	if err := invoke(ctx, "card comment", "13/104", "--", "--html"); err != nil {
 		t.Fatal(err)
 	}
-	if got := sent[len(sent)-1].Get("body").S(); got != "<p>--html</p>" {
+	if got := sent[len(sent)-1].Get("text").S(); got != "<p>--html</p>" {
 		t.Errorf("after --, --html was sent as %q", got)
 	}
 }
@@ -567,5 +567,68 @@ func TestJSONIsOnlyAnOptionBeforeTheDoubleDash(t *testing.T) {
 	status, _, err := run("chat", "post", "team", "--", "--json")
 	if status != 1 || !strings.Contains(err, "Not signed in") {
 		t.Errorf("status %d, err %q", status, err)
+	}
+}
+
+// Each command of docs, files, chat, notifications and search calls its MCP
+// tool with the ids it resolved, HTML it made, and confirm for what deletes.
+func TestCommandsCallTheirTools(t *testing.T) {
+	responses := `{
+  "/tools": [{"id": 12, "name": "Team", "type": "chat"}, {"id": 15, "name": "Notes", "type": "docs"}, {"id": 19, "name": "Stuff", "type": "files"}],
+  "/tools/19/files": {"folder": {"id": 5, "name": "Photos"}, "folders": [], "files": [], "breadcrumbs": []},
+  "/tools/15/docs": {"documents": []},
+  "/tools/12/chat": {"messages": []},
+  "/search": {"results": []},
+  "/notifications": []
+}`
+	for _, c := range []struct {
+		argv []string
+		tool string
+		want string
+	}{
+		{[]string{"doc create", "notes", "Plan", "--content", "Step"}, "doc_create", `{"content":"<p>Step</p>","html":true,"title":"Plan","tool_id":15}`},
+		{[]string{"doc update", "15/3", "--title", "Plans"}, "doc_update", `{"document_id":3,"html":true,"title":"Plans","tool_id":15}`},
+		{[]string{"doc delete", "15/3"}, "doc_delete", `{"confirm":true,"document_id":3,"tool_id":15}`},
+		{[]string{"file rename", "19/7", "b.txt"}, "file_rename", `{"file_id":7,"name":"b.txt","tool_id":19}`},
+		{[]string{"file move", "19/7", "5"}, "file_move", `{"file_id":7,"to_folder_id":5,"tool_id":19}`},
+		{[]string{"file move", "19/7", "root"}, "file_move", `{"file_id":7,"tool_id":19}`},
+		{[]string{"file delete", "19/7"}, "file_delete", `{"confirm":true,"file_id":7,"tool_id":19}`},
+		{[]string{"folder create", "stuff", "Old", "--parent", "5"}, "folder_create", `{"name":"Old","parent_id":5,"tool_id":19}`},
+		{[]string{"folder rename", "19/5", "Pics"}, "folder_rename", `{"folder_id":5,"name":"Pics","tool_id":19}`},
+		{[]string{"folder move", "19/5", "root"}, "folder_move", `{"folder_id":5,"tool_id":19}`},
+		{[]string{"folder delete", "19/5"}, "folder_delete", `{"confirm":true,"folder_id":5,"tool_id":19}`},
+		{[]string{"chat edit", "12/9", "Better"}, "chat_edit", `{"html":true,"message_id":9,"text":"<p>Better</p>","tool_id":12}`},
+		{[]string{"chat delete", "12/9"}, "chat_delete", `{"confirm":true,"message_id":9,"tool_id":12}`},
+		{[]string{"chat react", "12/9", "👍"}, "chat_react", `{"emoji":"👍","message_id":9,"remove":false,"tool_id":12}`},
+		{[]string{"chat react", "12/9", "👍", "--remove"}, "chat_react", `{"emoji":"👍","message_id":9,"remove":true,"tool_id":12}`},
+		{[]string{"chat read", "team"}, "chat_read", `{"tool_id":12}`},
+		{[]string{"notification read", "41"}, "notification_read", `{"notification_id":41}`},
+		{[]string{"notification read", "--all"}, "notification_read", `{}`},
+	} {
+		var sent []api.Value
+		fake := newFakeAPI(responses, &sent)
+		ctx := command.NewCtx(&config.Config{}, &bytes.Buffer{}, false, "test")
+		ctx.SetAPI(fake)
+		if err := invoke(ctx, c.argv[0], c.argv[1:]...); err != nil {
+			t.Errorf("%v: %v", c.argv, err)
+			continue
+		}
+		if len(fake.requests) != 1 || fake.requests[0] != c.tool || sent[0].JSON() != c.want {
+			t.Errorf("%v: %v %v", c.argv, fake.requests, sent)
+		}
+	}
+
+	// What only reads sends nothing, and --limit is made what the server would make of it
+	var sent []api.Value
+	ctx := command.NewCtx(&config.Config{}, &bytes.Buffer{}, false, "test")
+	ctx.SetAPI(newFakeAPI(responses, &sent))
+	for _, argv := range [][]string{{"doc list", "notes"}, {"file list", "stuff"}, {"chat list", "team", "--limit", "500"},
+		{"notification list", "--limit", "x"}, {"search", "launch"}} {
+		if err := invoke(ctx, argv[0], argv[1:]...); err != nil {
+			t.Errorf("%v: %v", argv, err)
+		}
+	}
+	if len(sent) != 0 {
+		t.Errorf("sent %v", sent)
 	}
 }

@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"fmt"
-
 	"github.com/smgdkngt/dobase/cli/internal/api"
 	. "github.com/smgdkngt/dobase/cli/internal/command"
 )
@@ -28,7 +26,7 @@ func listDocs(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	docs, err := ctx.Get(fmt.Sprintf("/tools/%s/docs", tool.Get("id").S()))
+	docs, err := ctx.Call("doc_list", toolArgs("tool_id", tool.Get("id")))
 	if err != nil {
 		return err
 	}
@@ -54,7 +52,7 @@ func showDoc(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	document, err := ctx.Get(fmt.Sprintf("/tools/%s/docs/documents/%d", tool.Get("id").S(), id))
+	document, err := ctx.Call("doc_show", toolArgs("tool_id", tool.Get("id"), "document_id", id))
 	if err != nil {
 		return err
 	}
@@ -92,7 +90,8 @@ func createDoc(ctx *Ctx, args *Args) error {
 		}
 	}
 
-	document, err := ctx.Post(fmt.Sprintf("/tools/%s/docs/documents", tool.Get("id").S()), map[string]any{"docs_document": attributes})
+	attributes["tool_id"], attributes["html"] = tool.Get("id"), true
+	document, err := ctx.Call("doc_create", attributes)
 	if err != nil {
 		return err
 	}
@@ -120,7 +119,8 @@ func updateDoc(ctx *Ctx, args *Args) error {
 		return api.Usagef("Nothing to update. See `dobase help doc`.")
 	}
 
-	document, err := ctx.Patch(fmt.Sprintf("/tools/%s/docs/documents/%d", tool.Get("id").S(), id), map[string]any{"docs_document": attributes})
+	attributes["tool_id"], attributes["document_id"], attributes["html"] = tool.Get("id"), id, true
+	document, err := ctx.Call("doc_update", attributes)
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func deleteDoc(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	if _, err := ctx.Delete(fmt.Sprintf("/tools/%s/docs/documents/%d", tool.Get("id").S(), id)); err != nil {
+	if _, err := ctx.Call("doc_delete", toolArgs("tool_id", tool.Get("id"), "document_id", id, "confirm", true)); err != nil {
 		return err
 	}
 	return ctx.Output(api.Null, func() error {
