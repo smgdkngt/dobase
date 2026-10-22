@@ -2,7 +2,7 @@ package commands
 
 import (
 	"fmt"
-	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/smgdkngt/dobase/cli/internal/api"
@@ -46,7 +46,7 @@ func listChat(ctx *Ctx, args *Args) error {
 			return err
 		}
 	}
-	chat, err := ctx.Get(fmt.Sprintf("/tools/%s/chat", tool.Get("id").S()), "limit", limit, "before", before)
+	chat, err := ctx.Call("chat_list", toolArgs("tool_id", tool.Get("id"), "limit", limitArg(limit, 200), "before", idArg(before)))
 	if err != nil {
 		return err
 	}
@@ -123,7 +123,8 @@ func postChat(ctx *Ctx, args *Args) error {
 	if len(files) > 0 {
 		message, err = postChatFiles(ctx, path, body, replyTo, files)
 	} else {
-		message, err = ctx.Post(path, map[string]any{"message": Compact(map[string]any{"body": body, "reply_to_id": replyTo})})
+		reply, _ := replyTo.(string)
+		message, err = ctx.Call("chat_post", toolArgs("tool_id", tool.Get("id"), "text", body, "html", true, "reply_to_id", idArg(reply)))
 	}
 	if err != nil {
 		return err
@@ -162,7 +163,7 @@ func editChat(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	message, err := ctx.Patch(fmt.Sprintf("/tools/%s/chat/messages/%d", tool.Get("id").S(), id), map[string]any{"message": map[string]any{"body": body}})
+	message, err := ctx.Call("chat_edit", toolArgs("tool_id", tool.Get("id"), "message_id", id, "text", body, "html", true))
 	if err != nil {
 		return err
 	}
@@ -177,7 +178,7 @@ func deleteChat(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	if _, err := ctx.Delete(fmt.Sprintf("/tools/%s/chat/messages/%d", tool.Get("id").S(), id)); err != nil {
+	if _, err := ctx.Call("chat_delete", toolArgs("tool_id", tool.Get("id"), "message_id", id, "confirm", true)); err != nil {
 		return err
 	}
 	return ctx.Output(api.Null, func() error {
@@ -192,14 +193,7 @@ func reactChat(ctx *Ctx, args *Args) error {
 		return err
 	}
 	emoji, remove := args.At(1), args.On("remove")
-	path := fmt.Sprintf("/tools/%s/chat/messages/%d/reactions", tool.Get("id").S(), id)
-
-	var message api.Value
-	if remove {
-		message, err = ctx.Delete(path + "/" + url.QueryEscape(emoji))
-	} else {
-		message, err = ctx.Post(path, map[string]any{"emoji": emoji})
-	}
+	message, err := ctx.Call("chat_react", toolArgs("tool_id", tool.Get("id"), "message_id", id, "emoji", emoji, "remove", remove))
 	if err != nil {
 		return err
 	}
@@ -218,7 +212,7 @@ func readChat(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	receipt, err := ctx.Post(fmt.Sprintf("/tools/%s/chat/read", tool.Get("id").S()), map[string]any{})
+	receipt, err := ctx.Call("chat_read", toolArgs("tool_id", tool.Get("id")))
 	if err != nil {
 		return err
 	}
@@ -235,6 +229,15 @@ func messageID(value string) (string, error) {
 		return "", api.Usagef("Expected a message id like 104, got %s.", Quoted(value))
 	}
 	return id, nil
+}
+
+// idArg is an id the CLI checked to be digits, as a number; "" is none.
+func idArg(id string) any {
+	n, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return nil
+	}
+	return n
 }
 
 func isBlank(text string) bool { return strings.TrimSpace(text) == "" }

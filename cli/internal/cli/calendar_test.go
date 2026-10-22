@@ -241,10 +241,10 @@ Shared:     https://dobase.test/s/abc (expires 2026-10-01, password protected, d
 		t.Errorf("out %q", out.String())
 	}
 
-	// A folder without a link: the server answers 404 for it
+	// A folder without a link: folder_share answers nothing for it
 	out.Reset()
 	ctx.JSON = true
-	fake.errors = map[string]error{"/tools/19/files/folders/5/share": &api.Error{Kind: api.Failed, Message: "This folder has no share link (HTTP 404)", Status: 404}}
+	fake.responses = fake.responses.With("/tools/19/files/folders/5/share", nil)
 	if err := invoke(ctx, "folder show", "19/5"); err != nil {
 		t.Fatal(err)
 	}

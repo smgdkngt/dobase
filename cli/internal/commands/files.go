@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -48,7 +47,7 @@ func listFiles(ctx *Ctx, args *Args) error {
 			return err
 		}
 	}
-	listing, err := ctx.Get(fmt.Sprintf("/tools/%s/files", tool.Get("id").S()), "folder_id", folder.S())
+	listing, err := ctx.Call("file_list", toolArgs("tool_id", tool.Get("id"), "folder_id", folder))
 	if err != nil {
 		return err
 	}
@@ -96,7 +95,7 @@ func showFile(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	file, err := ctx.Get(fmt.Sprintf("/tools/%s/files/items/%d", tool.Get("id").S(), id))
+	file, err := ctx.Call("file_show", toolArgs("tool_id", tool.Get("id"), "file_id", id))
 	if err != nil {
 		return err
 	}
@@ -168,7 +167,7 @@ func downloadFile(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	file, err := ctx.Get(fmt.Sprintf("/tools/%s/files/items/%d", tool.Get("id").S(), id))
+	file, err := ctx.Call("file_show", toolArgs("tool_id", tool.Get("id"), "file_id", id))
 	if err != nil {
 		return err
 	}
@@ -189,7 +188,7 @@ func renameFile(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	file, err := ctx.Patch(fmt.Sprintf("/tools/%s/files/items/%d", tool.Get("id").S(), id), map[string]any{"name": args.At(1)})
+	file, err := ctx.Call("file_rename", toolArgs("tool_id", tool.Get("id"), "file_id", id, "name", args.At(1)))
 	if err != nil {
 		return err
 	}
@@ -208,7 +207,7 @@ func moveFile(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	file, err := ctx.Patch(fmt.Sprintf("/tools/%s/files/items/%d", tool.Get("id").S(), id), map[string]any{"folder_id": folder})
+	file, err := ctx.Call("file_move", toolArgs("tool_id", tool.Get("id"), "file_id", id, "to_folder_id", folder))
 	if err != nil {
 		return err
 	}
@@ -223,7 +222,7 @@ func deleteFile(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	if _, err := ctx.Delete(fmt.Sprintf("/tools/%s/files/items/%d", tool.Get("id").S(), id)); err != nil {
+	if _, err := ctx.Call("file_delete", toolArgs("tool_id", tool.Get("id"), "file_id", id, "confirm", true)); err != nil {
 		return err
 	}
 	return ctx.Output(api.Null, func() error {
@@ -243,7 +242,7 @@ func createFolder(ctx *Ctx, args *Args) error {
 			return err
 		}
 	}
-	folder, err := ctx.Post(fmt.Sprintf("/tools/%s/files/folders", tool.Get("id").S()), Compact(map[string]any{"name": args.At(1), "parent_id": parent}))
+	folder, err := ctx.Call("folder_create", toolArgs("tool_id", tool.Get("id"), "name", args.At(1), "parent_id", parent))
 	if err != nil {
 		return err
 	}
@@ -263,15 +262,12 @@ func showFolder(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	listing, err := ctx.Get(fmt.Sprintf("/tools/%s/files", tool.Get("id").S()), "folder_id", strconv.FormatInt(id, 10))
+	listing, err := ctx.Call("file_list", toolArgs("tool_id", tool.Get("id"), "folder_id", id))
 	if err != nil {
 		return err
 	}
-	share, err := ctx.Get(fmt.Sprintf("/tools/%s/files/folders/%d/share", tool.Get("id").S(), id))
-	// A folder without a link is a 404 there
-	if api.StatusOf(err) == http.StatusNotFound {
-		share, err = api.Null, nil
-	}
+	// Null for a folder without a link
+	share, err := ctx.Call("folder_share", toolArgs("tool_id", tool.Get("id"), "folder_id", id))
 	if err != nil {
 		return err
 	}
@@ -298,7 +294,7 @@ func renameFolder(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	folder, err := ctx.Patch(fmt.Sprintf("/tools/%s/files/folders/%d", tool.Get("id").S(), id), map[string]any{"name": args.At(1)})
+	folder, err := ctx.Call("folder_rename", toolArgs("tool_id", tool.Get("id"), "folder_id", id, "name", args.At(1)))
 	if err != nil {
 		return err
 	}
@@ -317,7 +313,7 @@ func moveFolder(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	folder, err := ctx.Patch(fmt.Sprintf("/tools/%s/files/folders/%d", tool.Get("id").S(), id), map[string]any{"parent_id": parent})
+	folder, err := ctx.Call("folder_move", toolArgs("tool_id", tool.Get("id"), "folder_id", id, "to_folder_id", parent))
 	if err != nil {
 		return err
 	}
@@ -332,7 +328,7 @@ func deleteFolder(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	if _, err := ctx.Delete(fmt.Sprintf("/tools/%s/files/folders/%d", tool.Get("id").S(), id)); err != nil {
+	if _, err := ctx.Call("folder_delete", toolArgs("tool_id", tool.Get("id"), "folder_id", id, "confirm", true)); err != nil {
 		return err
 	}
 	return ctx.Output(api.Null, func() error {
@@ -346,7 +342,7 @@ func downloadFolder(ctx *Ctx, args *Args) error {
 	if err != nil {
 		return err
 	}
-	listing, err := ctx.Get(fmt.Sprintf("/tools/%s/files", tool.Get("id").S()), "folder_id", strconv.FormatInt(id, 10))
+	listing, err := ctx.Call("file_list", toolArgs("tool_id", tool.Get("id"), "folder_id", id))
 	if err != nil {
 		return err
 	}
