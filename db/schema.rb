@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_22_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_22_200000) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -567,6 +567,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_100000) do
     t.index ["uid"], name: "index_oauth_clients_on_uid", unique: true
   end
 
+  create_table "oauth_device_codes", force: :cascade do |t|
+    t.string "device_code_digest", null: false
+    t.string "user_code", null: false
+    t.integer "oauth_client_id", null: false
+    t.integer "user_id"
+    t.string "permission", default: "write", null: false
+    t.boolean "agent", default: false, null: false
+    t.string "status", default: "pending", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "polled_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["device_code_digest"], name: "index_oauth_device_codes_on_device_code_digest", unique: true
+    t.index ["oauth_client_id"], name: "index_oauth_device_codes_on_oauth_client_id"
+    t.index ["user_code"], name: "index_oauth_device_codes_on_user_code", unique: true
+    t.index ["user_id"], name: "index_oauth_device_codes_on_user_id"
+  end
+
   create_table "oauth_grants", force: :cascade do |t|
     t.integer "access_token_id", null: false
     t.string "token_digest", null: false
@@ -795,6 +813,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_100000) do
   add_foreign_key "oauth_authorization_codes", "access_tokens", on_delete: :nullify
   add_foreign_key "oauth_authorization_codes", "oauth_clients", on_delete: :cascade
   add_foreign_key "oauth_authorization_codes", "users", on_delete: :cascade
+  add_foreign_key "oauth_device_codes", "oauth_clients", on_delete: :cascade
+  add_foreign_key "oauth_device_codes", "users", on_delete: :cascade
   add_foreign_key "oauth_grants", "access_tokens", on_delete: :cascade
   add_foreign_key "rooms", "tools"
   add_foreign_key "sessions", "users"

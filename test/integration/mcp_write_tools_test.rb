@@ -266,6 +266,38 @@ class McpWriteToolsTest < ActionDispatch::IntegrationTest
     SmtpSendService.singleton_class.remove_method(:new) if SmtpSendService.singleton_class.method_defined?(:new, false)
   end
 
+  test "the theme" do
+    assert call!("appearance_show").key?("themes")
+    call!("appearance_update", theme: "gruvbox")
+    assert_equal "gruvbox", @user.reload.theme_name
+    call!("appearance_update", theme: nil)
+    assert_nil @user.reload.theme_name
+  end
+
+  test "sync status and share links" do
+    assert call!("calendar_sync_status", tool_id: tools(:my_calendar).id).key?("status")
+
+    files = tools(:my_files)
+    folder = call!("folder_create", tool_id: files.id, name: "Unshared")
+    assert_equal({ "done" => true }, call!("folder_share", tool_id: files.id, folder_id: folder["id"]))
+  end
+
+  test "mail: a reply quotes what it answers, changed, or nothing" do
+    mail = tools(:my_mail)
+    original = mails_messages(:inbox_unread)
+
+    plain = call!("mail_reply", tool_id: mail.id, mail_id: original.id, body: "Yes")
+    assert_equal original.id, Mails::Message.find(plain["id"]).quoted_message_id
+
+    changed = call!("mail_reply", tool_id: mail.id, mail_id: original.id, body: "Yes", quote_html: "<p>Only this part</p>")
+    assert_includes Mails::Message.find(changed["id"]).quote_html, "Only this part"
+
+    bare = call!("mail_reply", tool_id: mail.id, mail_id: original.id, body: "Yes", no_quote: true)
+    assert_nil Mails::Message.find(bare["id"]).quoted_message_id
+    call!("mail_update", tool_id: mail.id, draft_id: plain["id"], no_quote: true)
+    assert_nil Mails::Message.find(plain["id"]).quoted_message_id
+  end
+
   private
 
   def call(name, **arguments)

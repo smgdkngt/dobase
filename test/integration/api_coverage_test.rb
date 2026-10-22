@@ -35,6 +35,7 @@ class ApiCoverageTest < ActiveSupport::TestCase
     tools/calendars/accounts#new
     tools/calendars/accounts#edit
     oauth/authorizations#new
+    oauth/devices#new
   ].freeze
 
   # About the window a browser has open: where it goes when it opens the app, how its

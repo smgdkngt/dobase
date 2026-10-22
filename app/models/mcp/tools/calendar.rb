@@ -93,6 +93,11 @@ module Mcp
         delete Calendar.path(self)
       end
 
+      tool "calendar_sync_status", "Calendar sync status", "Whether a calendar tool is syncing, and when it last did.",
+        params: { tool_id: tool_id("calendar") }, read_only: true do
+        get "/tools/#{arg(:tool_id)}/calendar/sync"
+      end
+
       tool "calendar_sync", "Sync a calendar",
         "Starts fetching a calendar tool's appointments from its server now (it happens every 15 minutes anyway). " \
         "appointment_list shows when it is done.",

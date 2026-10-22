@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 
 module Oauth
-  # The token endpoint: a consent code (with its PKCE verifier) or a refresh
-  # token for a fresh pair of tokens
+  # The token endpoint: a consent code (with its PKCE verifier), a refresh
+  # token or a confirmed device code (RFC 8628) for a fresh pair of tokens
   class TokensController < ActionController::API
+    DEVICE_CODE = "urn:ietf:params:oauth:grant-type:device_code"
+
     rate_limit to: 60, within: 1.minute, with: -> { oauth_error("slow_down", :too_many_requests) }
 
     def create
@@ -14,6 +16,11 @@ module Oauth
       connection_and_grant = case params[:grant_type]
       when "authorization_code" then exchange_code(client)
       when "refresh_token" then Grant.refresh(params[:refresh_token], client:)
+      when DEVICE_CODE
+        connection = DeviceCode.poll(params[:device_code], client:)
+        return oauth_error(connection) if connection.is_a?(String)
+
+        Grant.issue(connection)
       else return oauth_error("unsupported_grant_type")
       end
       return oauth_error("invalid_grant") if connection_and_grant.nil?

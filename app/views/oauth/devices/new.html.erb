@@ -1,0 +1,63 @@
+<% content_for :title, "Connect the command line - #{app_name}" %>
+
+<div class="flex items-center justify-center min-h-full py-12">
+  <div class="w-full max-w-md">
+    <div class="text-center mb-8">
+      <%= render "shared/logo", class: "w-16 h-16 mx-auto mb-4" %>
+      <% if @device %>
+        <h1 class="text-2xl font-semibold text-text-primary">Connect <%= @device.client.name %></h1>
+        <p class="text-text-secondary mt-1">
+          It asks to work in <%= app_name %> as <strong><%= current_user.email_address %></strong>.
+          Only say yes if you just ran <code>dobase login</code> and it shows <strong><%= @device.user_code %></strong>.
+        </p>
+      <% else %>
+        <h1 class="text-2xl font-semibold text-text-primary">Connect the command line</h1>
+        <p class="text-text-secondary mt-1">Type the code <code>dobase login</code> shows.</p>
+      <% end %>
+    </div>
+
+    <div class="auth-card">
+      <div class="card-body">
+        <%= render "shared/flash", position: :inline %>
+        <% if @device %>
+          <%= form_with url: oauth_device_path, method: :post, data: { turbo: false } do %>
+            <%= hidden_field_tag :user_code, @device.user_code, id: nil %>
+            <p class="text-sm text-text-secondary mb-4">
+              It sees the tools you have, as you see them, and nothing that is only yours to manage. The connection
+              shows under Profile, API, where you can end it. It lasts thirty days.
+            </p>
+            <div class="space-y-3 mb-6">
+              <%= render "components/form_field",
+                    label: "It may",
+                    name: "permission",
+                    type: :select,
+                    value: "write",
+                    options: [ [ "Read and change things", "write" ], [ "Only read", "read" ] ] %>
+              <%= render "components/form_field",
+                    label: "What it writes shows as",
+                    name: "agent",
+                    type: :select,
+                    value: "true",
+                    options: [ [ "#{@device.client.name} for #{current_user.first_name}", "true" ], [ "#{current_user.name}, via #{@device.client.name}", "false" ] ] %>
+            </div>
+            <div class="flex flex-col gap-2">
+              <%= render "components/button", text: "Allow", name: "decision", value: "allow", full_width: true %>
+              <%= render "components/button", text: "Deny", name: "decision", value: "deny", variant: :ghost, full_width: true %>
+            </div>
+          <% end %>
+        <% else %>
+          <%= form_with url: new_oauth_device_path, method: :get, data: { turbo: false } do %>
+            <%= render "components/form_field",
+                  label: "Code",
+                  name: "user_code",
+                  value: @user_code,
+                  required: true,
+                  placeholder: "BCDF-GHJK",
+                  error: @user_code.present? ? "That code isn't valid, or has expired." : nil %>
+            <%= render "components/button", text: "Continue", full_width: true %>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

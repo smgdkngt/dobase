@@ -54,6 +54,24 @@ module Mcp
         patch "/tools/#{arg(:tool_id)}", tool: { name: arg(:name) }
       end
 
+      tool "appearance_show", "Show the theme", "The theme you see Dobase in, its colours, and the built-in themes.",
+        read_only: true do
+        get "/appearance"
+      end
+
+      tool "appearance_update", "Pick a theme",
+        "Picks a built-in theme (or a palette of your own with colors), a typeface, or one theme for a light and one " \
+        "for a dark system. Only what is given changes; theme: null goes back to the app's own look.",
+        params: {
+          theme: { type: %w[string null], description: "A built-in theme's name, a name for colors of your own, or null" },
+          colors: { type: "object", description: "A palette of your own, in the names of Omarchy's colors.toml" },
+          scheme: choice(%w[light dark], "Which half of a light and dark pair this theme is"),
+          typeface: { type: %w[string null], enum: [ "mono", nil ], description: "mono, or null for the app's own" },
+          follow_system: flag("One theme for a light system and one for a dark one")
+        } do
+        patch "/appearance", %i[theme colors scheme typeface follow_system].select { given?(it) }.index_with { arg(it) }
+      end
+
       tool "event_list", "List events",
         "What happened in your tools, oldest first, by number: mail received, sent or moved, cards made, moved or " \
         "commented on, chat messages, files added, appointments. Without after or since you get only the cursor, the " \

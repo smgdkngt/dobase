@@ -64,6 +64,24 @@ module Mcp
         }
       end
 
+      def self.quote_fields
+        {
+          quote_html: text("The quoted mail as it should go out instead, header line included (HTML)"),
+          no_quote: flag("Quote nothing")
+        }
+      end
+
+      # What a draft says about the mail it quotes
+      def self.quote(call)
+        if call.arg(:no_quote)
+          { quoted_message_id: nil }
+        elsif call.given?(:quote_html)
+          { quote_html: call.arg(:quote_html) }
+        else
+          {}
+        end
+      end
+
       tool "mail_list", "List mail",
         "The conversations in a mail folder, newest first, 30 a page, with the folder's counts and the account's folders.",
         params: {
@@ -165,8 +183,8 @@ module Mcp
 
       tool "mail_update", "Change a draft",
         "Changes a draft's addresses, subject or text (each replaces what was there), and adds files to it.",
-        params: { tool_id: tool_id("mail"), draft_id: id("The draft's id", required: true) }.merge(draft_fields) do
-        fields = args(:to, :cc, :bcc, :subject)
+        params: { tool_id: tool_id("mail"), draft_id: id("The draft's id", required: true) }.merge(draft_fields).merge(quote_fields) do
+        fields = args(:to, :cc, :bcc, :subject).merge(Mail.quote(self))
         fields[:body] = rich(:body) if given?(:body)
         draft = fields.any? ? patch("/tools/#{arg(:tool_id)}/mails/drafts/#{arg(:draft_id)}", fields) : nil
         attachments = files(:files)
@@ -179,8 +197,8 @@ module Mcp
         "Saves a reply to a message as a draft, in its conversation, with the message quoted below. Nothing is sent: " \
         "mail_send sends it once the user agrees.",
         params: message.merge(body: text("The reply, plain text (or HTML with html: true)", required: true), html: html_flag,
-                               all: flag("Reply to everyone it went to as well"), quote: flag("Quote the message below (default true)"),
-                               files: file_list("Files to attach")) do
+                               all: flag("Reply to everyone it went to as well"),
+                               files: file_list("Files to attach")).merge(quote_fields) do
         conversation, original = Mail.find(self, arg(:mail_id))
         raise Tool::Error, "That is a draft: send it with mail_send" if original["draft"]
 
@@ -188,7 +206,7 @@ module Mcp
         raise Tool::Error, "That message has no address to reply to" if to.empty?
 
         Mail.save_draft(self, to: to.join(", "), cc: cc.join(", "), subject: "Re: #{Mail.subject(original["subject"])}",
-          body: rich(:body), in_reply_to: original["message_id"], quoted_message_id: arg(:quote) == false ? nil : original["id"])
+          body: rich(:body), in_reply_to: original["message_id"], quoted_message_id: original["id"], **Mail.quote(self))
       end
 
       tool "mail_forward", "Write a forward",
@@ -196,13 +214,13 @@ module Mcp
         "mail_send sends it once the user agrees.",
         params: message.merge(to: text("Addresses, comma-separated", required: true), cc: text("Cc addresses, comma-separated"),
                                body: text("A note above it, plain text (or HTML with html: true)"), html: html_flag,
-                               files: file_list("More files to attach")) do
+                               files: file_list("More files to attach")).merge(quote_fields) do
         _, original = Mail.find(self, arg(:mail_id))
         raise Tool::Error, "That is a draft; only sent or received mail can be forwarded" if original["draft"]
 
         Mail.save_draft(self, to: arg(:to), cc: arg(:cc), subject: "Fwd: #{Mail.subject(original["subject"])}",
           body: given?(:body) ? rich(:body) : "", quoted_message_id: original["id"],
-          forward_attachment_ids: original["attachments"].to_a.filter_map { it["id"] if it["download_url"] })
+          forward_attachment_ids: original["attachments"].to_a.filter_map { it["id"] if it["download_url"] }, **Mail.quote(self))
       end
 
       tool "mail_discard", "Discard a draft", "Moves a draft to the trash; mail_restore brings it back.",

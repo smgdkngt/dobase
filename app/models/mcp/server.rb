@@ -111,9 +111,10 @@ module Mcp
       started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       raise Tool::Error, "The connection has ended. Connect again." if @access_token.nil? || @access_token.expired?
 
-      result = structured(tool.call(api, arguments))
+      result, shape = structured(tool.call(api, arguments))
       log(tool, arguments, "ok", started:)
-      MCP::Tool::Response.new([ { type: "text", text: JSON.pretty_generate(result) } ], structured_content: result)
+      MCP::Tool::Response.new([ { type: "text", text: JSON.pretty_generate(result) } ], structured_content: result,
+        meta: shape && { "dobase/shape" => shape })
     rescue Tool::Error, Api::Error => error
       log(tool, arguments, error.is_a?(Api::Error) && error.status == 403 ? "denied" : "error", started:, error: error.message)
       MCP::Tool::Response.new([ { type: "text", text: error.message } ], error: true)
@@ -170,13 +171,14 @@ module Mcp
       Api.new(token: @auth_info.token, host: claims["host"], https: claims["https"], remote_ip: claims["remote_ip"])
     end
 
-    # structuredContent is an object: a list comes as items, nothing as done
+    # structuredContent is an object: a list comes as items, nothing as done.
+    # _meta says which, so a client (the CLI) gets the API's own JSON back.
     def structured(result)
       case result
-      when Hash then result
-      when Array then { "items" => result }
-      when nil then { "done" => true }
-      else { "result" => result }
+      when Hash then [ result, nil ]
+      when Array then [ { "items" => result }, "items" ]
+      when nil then [ { "done" => true }, "nothing" ]
+      else [ { "result" => result }, "result" ]
       end
     end
 
