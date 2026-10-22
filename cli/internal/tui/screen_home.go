@@ -38,7 +38,7 @@ type Home struct {
 }
 
 func loadHome(app *App) (*Home, error) {
-	notifications, err := app.get("/notifications", api.Param{Name: "limit", Value: strconv.Itoa(homeNotifications)})
+	notifications, err := app.read("notification_list", Args{"limit": homeNotifications})
 	if err != nil {
 		return nil, err
 	}
@@ -53,8 +53,8 @@ func (h *Home) Hints() []hint {
 	return []hint{{"↑↓", "choose"}, {"enter", "open"}, {"/", "search"}, {"n", "notifications"}, {"q", "quit"}}
 }
 
-func (h *Home) LiveRequest() (string, []api.Param, bool) {
-	return "/notifications", []api.Param{{Name: "limit", Value: strconv.Itoa(homeNotifications)}}, true
+func (h *Home) LiveCall() (string, Args, bool) {
+	return "notification_list", Args{"limit": homeNotifications}, true
 }
 
 func (h *Home) ApplyLive(value api.Value) { h.replaceNotifications(slices.Clone(value.Items())) }
@@ -91,10 +91,10 @@ func (h *Home) Key(key Key, view *View, fx *Fx) bool {
 		}
 	case key.Is('x') && h.onNotifications:
 		if h.notification < len(h.notifications) {
-			id := h.notifications[h.notification].Get("id").S()
+			id := h.notifications[h.notification].Get("id").Int()
 			h.notifications[h.notification] = h.notifications[h.notification].With("read", true)
 			fx.job("Marking it read", func(app *App) error {
-				_, err := app.post("/notifications/"+id+"/read", api.Object())
+				_, err := app.change("notification_read", Args{"notification_id": id})
 				return err
 			})
 		}
@@ -228,9 +228,9 @@ func toolIDIn(url string) (int64, bool) {
 func openNotification(notification *api.Value, fx *Fx) {
 	if !notification.Get("read").Truthy() {
 		*notification = notification.With("read", true)
-		id := notification.Get("id").S()
+		id := notification.Get("id").Int()
 		fx.job("Marking it read", func(app *App) error {
-			_, err := app.post("/notifications/"+id+"/read", api.Object())
+			_, err := app.change("notification_read", Args{"notification_id": id})
 			return err
 		})
 	}

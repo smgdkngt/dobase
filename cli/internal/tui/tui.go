@@ -3,6 +3,7 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -28,6 +29,11 @@ func Run(cfg *config.Config, userAgent string) error {
 	if err != nil {
 		return err
 	}
+	// Changes on the server are heard as they happen, while the app is open
+	listening, stop := context.WithCancel(context.Background())
+	defer stop()
+	app.listen(listening, client)
+	defer client.Close()
 
 	screen, err := tcell.NewScreen()
 	if err == nil {

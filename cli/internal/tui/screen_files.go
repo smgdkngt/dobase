@@ -44,11 +44,11 @@ type fileEntry struct {
 }
 
 func loadFiles(app *App, tool api.Value, folder int64) (*Files, error) {
-	var params []api.Param
+	args := Args{"tool_id": tool.Get("id")}
 	if folder != 0 {
-		params = append(params, api.Param{Name: "folder_id", Value: strconv.FormatInt(folder, 10)})
+		args["folder_id"] = folder
 	}
-	listing, err := app.get(toolPath(tool)+"/files", params...)
+	listing, err := app.read("file_list", args)
 	if err != nil {
 		return nil, err
 	}

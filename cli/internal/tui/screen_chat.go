@@ -5,9 +5,7 @@ package tui
 import (
 	"fmt"
 	"math"
-	"net/url"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -73,8 +71,8 @@ func (s *Chat) Hints() []hint {
 
 func (s *Chat) Refresh() Job { return reloadChat }
 
-func (s *Chat) LiveRequest() (string, []api.Param, bool) {
-	return toolPath(s.tool) + "/chat", []api.Param{{Name: "limit", Value: strconv.Itoa(chatPage)}}, true
+func (s *Chat) LiveCall() (string, Args, bool) {
+	return "chat_list", Args{"tool_id": s.tool.Get("id"), "limit": chatPage}, true
 }
 
 func (s *Chat) ApplyLive(value api.Value) { s.merge(value) }
@@ -168,7 +166,7 @@ func (s *Chat) Key(key Key, view *View, fx *Fx) bool {
 				s.scrollDown(math.MaxInt)
 				tool := s.tool.Get("id").Int()
 				fx.job("Sending", func(app *App) error {
-					message, err := app.post(fmt.Sprintf("/tools/%d/chat/messages", tool), api.Object("message", api.Object("body", command.Paragraphs(text))))
+					message, err := app.change("chat_post", Args{"tool_id": tool, "text": command.Paragraphs(text), "html": true})
 					if err != nil {
 						// Nothing was sent, so what was written comes back to send again.
 						if s.input.IsBlank() {
@@ -181,7 +179,7 @@ func (s *Chat) Key(key Key, view *View, fx *Fx) bool {
 					}
 					id := message.Get("id").Int()
 					app.offerUndo("the message", func(app *App) error {
-						if _, err := app.delete(fmt.Sprintf("/tools/%d/chat/messages/%d", tool, id)); err != nil {
+						if _, err := app.change("chat_delete", Args{"tool_id": tool, "message_id": id, "confirm": true}); err != nil {
 							return err
 						}
 						return reloadChat(app)
@@ -215,10 +213,10 @@ func (s *Chat) Key(key Key, view *View, fx *Fx) bool {
 			message := s.messages[len(s.messages)-1]
 			tool, id := s.tool.Get("id").Int(), message.Get("id").Int()
 			author := command.Poster(message, "someone")
-			path := fmt.Sprintf("/tools/%d/chat/messages/%d/reactions", tool, id)
+			react := Args{"tool_id": tool, "message_id": id, "emoji": "👍"}
 			already := reacted(message, "👍", view.me)
 			fx.job("Reacting", func(app *App) error {
-				if _, err := app.post(path, api.Object("emoji", "👍")); err != nil {
+				if _, err := app.change("chat_react", react); err != nil {
 					return err
 				}
 				if err := reloadChat(app); err != nil {
@@ -230,7 +228,7 @@ func (s *Chat) Key(key Key, view *View, fx *Fx) bool {
 					return nil
 				}
 				app.offerUndo("the 👍", func(app *App) error {
-					if _, err := app.delete(path + "/" + url.QueryEscape("👍")); err != nil {
+					if _, err := app.change("chat_react", Args{"tool_id": tool, "message_id": id, "emoji": "👍", "remove": true}); err != nil {
 						return err
 					}
 					return reloadChat(app)
@@ -376,11 +374,11 @@ func (s *Chat) lines(width int) []Line {
 
 // fetchChat is the newest page of messages, or the page before message before (when not 0).
 func fetchChat(app *App, tool api.Value, before int64) (api.Value, error) {
-	params := []api.Param{{Name: "limit", Value: strconv.Itoa(chatPage)}}
+	args := Args{"tool_id": tool.Get("id"), "limit": chatPage}
 	if before != 0 {
-		params = append(params, api.Param{Name: "before", Value: strconv.FormatInt(before, 10)})
+		args["before"] = before
 	}
-	return app.get(toolPath(tool)+"/chat", params...)
+	return app.read("chat_list", args)
 }
 
 func reloadChat(app *App) error {

@@ -33,7 +33,7 @@ type Mail struct {
 }
 
 func loadMail(app *App, tool api.Value, folder string) (*Mail, error) {
-	mailbox, err := app.get(toolPath(tool)+"/mails", api.Param{Name: "folder", Value: folder})
+	mailbox, err := app.read("mail_list", Args{"tool_id": tool.Get("id"), "folder": folder})
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +173,7 @@ func (s *Mail) Draw(b *Buffer, area Rect, view *View) {
 }
 
 func conversationDetail(app *App, tool, id int64) (*Detail, error) {
-	conversation, err := app.get(fmt.Sprintf("/tools/%d/mails/%d", tool, id))
+	conversation, err := app.read("mail_show", Args{"tool_id": tool, "mail_id": id})
 	if err != nil {
 		return nil, err
 	}
