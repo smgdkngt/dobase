@@ -36,6 +36,24 @@ module Mcp
         get "/notifications", unread: arg(:unread) ? "true" : nil, limit: arg(:limit)
       end
 
+      tool "notification_read", "Mark notifications read", "Marks one notification read, or all of them without an id.",
+        params: { notification_id: id("The notification's id") } do
+        arg(:notification_id) ? post("/notifications/#{arg(:notification_id)}/read") : post("/notification_reads")
+      end
+
+      tool "tool_create", "Add a tool",
+        "Adds a tool to the workspace. Boards start with three columns, todos with one list. Mail and calendar tools " \
+        "need their account connected in the browser.",
+        params: { name: text("Its name", required: true),
+                  type: choice(%w[boards todos docs chat files mail calendar room], "Its kind", required: true) } do
+        post "/tools", tool: { name: arg(:name), tool_type: arg(:type) }
+      end
+
+      tool "tool_rename", "Rename a tool", "Renames a tool. Owners only.",
+        params: { tool_id: id("The tool's id", required: true), name: text("Its new name", required: true) } do
+        patch "/tools/#{arg(:tool_id)}", tool: { name: arg(:name) }
+      end
+
       tool "event_list", "List events",
         "What happened in your tools, oldest first, by number: mail received, sent or moved, cards made, moved or " \
         "commented on, chat messages, files added, appointments. Without after or since you get only the cursor, the " \

@@ -56,6 +56,24 @@ module Mcp
       def tool_id(kind)
         id("The #{kind} tool's id (from tool_list)", required: true)
       end
+
+      def html_flag
+        flag("The text is HTML instead of plain text")
+      end
+
+      def due
+        text("Due date: YYYY-MM-DD, today, tomorrow, or none to clear it")
+      end
+
+      def assignee
+        text("me, none, or someone the tool is shared with by id, address or name")
+      end
+
+      def file_list(description, required: false)
+        list({ type: "object", additionalProperties: false, required: %w[name content_base64],
+               properties: { name: { type: "string" }, content_base64: { type: "string" }, content_type: { type: "string" } } },
+          "#{description}: each a name and its content in base64 (a few megabytes at most in all)", required:)
+      end
     end
   end
 end

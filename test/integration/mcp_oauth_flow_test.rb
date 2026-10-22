@@ -221,7 +221,7 @@ class McpOauthFlowTest < ActionDispatch::IntegrationTest
     post "/mcp", params: [ { jsonrpc: "2.0", id: 1, method: "ping" } ].to_json, headers: mcp_headers(token, session_id)
     assert_equal(-32_600, response.parsed_body.dig("error", "code"))
 
-    post "/mcp", params: { jsonrpc: "2.0", id: 2, method: "ping", params: { pad: "x" * 1.1.megabytes } }.to_json,
+    post "/mcp", params: { jsonrpc: "2.0", id: 2, method: "ping", params: { pad: "x" * 8.1.megabytes } }.to_json,
       headers: mcp_headers(token, session_id)
     assert_response :content_too_large
   end
