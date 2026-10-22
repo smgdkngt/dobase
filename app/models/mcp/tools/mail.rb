@@ -176,7 +176,7 @@ module Mcp
       tool "mail_draft", "Write a draft",
         "Saves a new mail as a draft, with files when given. Nothing is sent: mail_send sends it once the user agrees.",
         params: { tool_id: tool_id("mail") }.merge(draft_fields) do
-        fields = args(:to, :cc, :bcc, :subject)
+        fields = given_args(:to, :cc, :bcc, :subject)
         fields[:body] = rich(:body) if given?(:body)
         Mail.save_draft(self, fields)
       end
@@ -184,7 +184,7 @@ module Mcp
       tool "mail_update", "Change a draft",
         "Changes a draft's addresses, subject or text (each replaces what was there), and adds files to it.",
         params: { tool_id: tool_id("mail"), draft_id: id("The draft's id", required: true) }.merge(draft_fields).merge(quote_fields) do
-        fields = args(:to, :cc, :bcc, :subject).merge(Mail.quote(self))
+        fields = given_args(:to, :cc, :bcc, :subject).merge(Mail.quote(self))
         fields[:body] = rich(:body) if given?(:body)
         draft = fields.any? ? patch("/tools/#{arg(:tool_id)}/mails/drafts/#{arg(:draft_id)}", fields) : nil
         attachments = files(:files)

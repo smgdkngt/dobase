@@ -243,8 +243,10 @@ class McpWriteToolsTest < ActionDispatch::IntegrationTest
       files: [ base64_file("offer.txt", "the offer") ])
     assert draft["draft"] || draft.dig("messages", 0, "draft") || draft["id"]
     draft_id = draft["id"]
-    call!("mail_update", tool_id: mail.id, draft_id:, subject: "Hello again")
+    call!("mail_update", tool_id: mail.id, draft_id:, subject: "Hello again", cc: "bob@example.com")
     assert_equal "Hello again", Mails::Message.find(draft_id).subject
+    call!("mail_update", tool_id: mail.id, draft_id:, cc: "")
+    assert_empty Mails::Message.find(draft_id).cc_addresses_list, "an empty field clears it"
 
     original = mails_messages(:inbox_unread)
     reply = call!("mail_reply", tool_id: mail.id, mail_id: original.id, body: "Thanks!", all: true)

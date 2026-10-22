@@ -73,6 +73,11 @@ module Mcp
         @arguments.key?(name.to_s)
       end
 
+      # The arguments that were given, as they were: an empty one clears what it names
+      def given_args(*names)
+        names.select { given?(it) }.index_with { @arguments[it.to_s] }
+      end
+
       def get(...) = api.get(...)
       def post(...) = api.post(...)
       def patch(...) = api.patch(...)
