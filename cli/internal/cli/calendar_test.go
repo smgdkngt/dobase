@@ -40,18 +40,18 @@ func TestEventTimesAreSentAsWallClockTimes(t *testing.T) {
 		want string
 	}{
 		{[]string{"--start", "2026-10-01 14:30"},
-			`{"all_day":false,"end_time":"2026-10-01 15:30","start_time":"2026-10-01 14:30","summary":"Meet"}`},
+			`{"all_day":false,"ends":"2026-10-01 15:30","starts":"2026-10-01 14:30","title":"Meet","tool_id":22}`},
 		{[]string{"--start", "2026-10-01T9:05", "--duration", "1H30m"},
-			`{"all_day":false,"end_time":"2026-10-01 10:35","start_time":"2026-10-01 09:05","summary":"Meet"}`},
+			`{"all_day":false,"ends":"2026-10-01 10:35","starts":"2026-10-01 09:05","title":"Meet","tool_id":22}`},
 		// The night the clocks go back in Europe still has three hours in three hours.
 		{[]string{"--start", "2026-10-25 01:30", "--duration", "3h"},
-			`{"all_day":false,"end_time":"2026-10-25 04:30","start_time":"2026-10-25 01:30","summary":"Meet"}`},
+			`{"all_day":false,"ends":"2026-10-25 04:30","starts":"2026-10-25 01:30","title":"Meet","tool_id":22}`},
 		{[]string{"--start", "2026-10-31 23:30", "--end", "2026-11-01 00:15"},
-			`{"all_day":false,"end_time":"2026-11-01 00:15","start_time":"2026-10-31 23:30","summary":"Meet"}`},
+			`{"all_day":false,"ends":"2026-11-01 00:15","starts":"2026-10-31 23:30","title":"Meet","tool_id":22}`},
 		{[]string{"--start", "2026-10-01", "--all-day"},
-			`{"all_day":true,"end_time":"2026-10-01 23:59:59","start_time":"2026-10-01 00:00","summary":"Meet"}`},
+			`{"all_day":true,"ends":"2026-10-01 23:59:59","starts":"2026-10-01 00:00","title":"Meet","tool_id":22}`},
 		{[]string{"--start", "2026-12-30", "--end", "2027-01-02", "--all-day", "--calendar", "home"},
-			`{"all_day":true,"calendar_id":4,"end_time":"2027-01-02 23:59:59","start_time":"2026-12-30 00:00","summary":"Meet"}`},
+			`{"all_day":true,"calendar":"4","ends":"2027-01-02 23:59:59","starts":"2026-12-30 00:00","title":"Meet","tool_id":22}`},
 	} {
 		var sent []api.Value
 		ctx, _ := calendarCtx(&sent)
@@ -59,7 +59,7 @@ func TestEventTimesAreSentAsWallClockTimes(t *testing.T) {
 			t.Errorf("%v: %v", c.args, err)
 			continue
 		}
-		if got := sent[0].Get("calendars_event").JSON(); got != c.want {
+		if got := sent[0].JSON(); got != c.want {
 			t.Errorf("%v: sent %s", c.args, got)
 		}
 	}
@@ -71,18 +71,18 @@ func TestEventUpdatesKeepWhatIsNotGiven(t *testing.T) {
 		want string
 	}{
 		// A new start keeps the length; a new end or duration keeps the start.
-		{[]string{"22/5", "--start", "2026-10-02 11:00"}, `{"all_day":false,"end_time":"2026-10-02 11:45","start_time":"2026-10-02 11:00"}`},
-		{[]string{"22/5", "--duration", "2h"}, `{"all_day":false,"end_time":"2026-10-01 11:00"}`},
-		{[]string{"22/5", "--all-day"}, `{"all_day":true,"end_time":"2026-10-01 23:59:59","start_time":"2026-10-01 00:00"}`},
+		{[]string{"22/5", "--start", "2026-10-02 11:00"}, `{"all_day":false,"appointment_id":5,"ends":"2026-10-02 11:45","starts":"2026-10-02 11:00","tool_id":22}`},
+		{[]string{"22/5", "--duration", "2h"}, `{"all_day":false,"appointment_id":5,"ends":"2026-10-01 11:00","tool_id":22}`},
+		{[]string{"22/5", "--all-day"}, `{"all_day":true,"appointment_id":5,"ends":"2026-10-01 23:59:59","starts":"2026-10-01 00:00","tool_id":22}`},
 		// An all-day event stays all day when only dates are given, and keeps its days.
-		{[]string{"22/6", "--start", "2026-10-10"}, `{"all_day":true,"end_time":"2026-10-12 23:59:59","start_time":"2026-10-10 00:00"}`},
-		{[]string{"22/6", "--end", "2026-10-10"}, `{"all_day":true,"end_time":"2026-10-10 23:59:59"}`},
-		{[]string{"22/6", "--start", "2026-10-10 10:00"}, `{"all_day":false,"end_time":"2026-10-10 11:00","start_time":"2026-10-10 10:00"}`},
-		{[]string{"22/6", "--repeat-count", "4"}, `{"recurrence_count":4,"recurrence_end_type":"count"}`},
+		{[]string{"22/6", "--start", "2026-10-10"}, `{"all_day":true,"appointment_id":6,"ends":"2026-10-12 23:59:59","starts":"2026-10-10 00:00","tool_id":22}`},
+		{[]string{"22/6", "--end", "2026-10-10"}, `{"all_day":true,"appointment_id":6,"ends":"2026-10-10 23:59:59","tool_id":22}`},
+		{[]string{"22/6", "--start", "2026-10-10 10:00"}, `{"all_day":false,"appointment_id":6,"ends":"2026-10-10 11:00","starts":"2026-10-10 10:00","tool_id":22}`},
+		{[]string{"22/6", "--repeat-count", "4"}, `{"appointment_id":6,"repeat_count":4,"repeat_ends":"count","tool_id":22}`},
 		{[]string{"22/5", "--repeat", "weekly", "--repeat-until", "2026-12-01"},
-			`{"recurrence_end_type":"until","recurrence_frequency":"weekly","recurrence_until":"2026-12-01"}`},
-		{[]string{"22/5", "--repeat", "daily"}, `{"recurrence_end_type":"never","recurrence_frequency":"daily"}`},
-		{[]string{"22/6", "--repeat", "none"}, `{"recurrence_frequency":"none"}`},
+			`{"appointment_id":5,"repeat":"weekly","repeat_ends":"until","repeat_until":"2026-12-01","tool_id":22}`},
+		{[]string{"22/5", "--repeat", "daily"}, `{"appointment_id":5,"repeat":"daily","repeat_ends":"never","tool_id":22}`},
+		{[]string{"22/6", "--repeat", "none"}, `{"appointment_id":6,"repeat":"none","tool_id":22}`},
 	} {
 		var sent []api.Value
 		ctx, _ := calendarCtx(&sent)
@@ -90,7 +90,7 @@ func TestEventUpdatesKeepWhatIsNotGiven(t *testing.T) {
 			t.Errorf("%v: %v", c.args, err)
 			continue
 		}
-		if got := sent[0].Get("calendars_event").JSON(); got != c.want {
+		if got := sent[0].JSON(); got != c.want {
 			t.Errorf("%v: sent %s", c.args, got)
 		}
 	}
@@ -139,7 +139,7 @@ func TestDurationsAreHoursAndMinutes(t *testing.T) {
 		ctx, _ := calendarCtx(&sent)
 		if err := invoke(ctx, "event create", "22", "Meet", "--start", "2026-10-01 10:00", "--duration", duration); err != nil {
 			t.Errorf("%q: %v", duration, err)
-		} else if got := sent[0].Get("calendars_event", "end_time").S(); got != "2026-10-01 "+end {
+		} else if got := sent[0].Get("ends").S(); got != "2026-10-01 "+end {
 			t.Errorf("%q: ends %s", duration, got)
 		}
 	}

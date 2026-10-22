@@ -12,19 +12,19 @@ import (
 	"github.com/smgdkngt/dobase/cli/internal/config"
 )
 
-// themeAPI is the appearance endpoint: it remembers what was sent and answers
-// the way the server does.
+// themeAPI is appearance_show and appearance_update: it remembers what was
+// sent and answers the way the server does.
 type themeAPI struct {
 	fakeAPI
 	current api.Value
 }
 
-func (f *themeAPI) Request(method api.Method, path string, _ []api.Param, body any) (api.Value, error) {
-	if path != "/appearance" {
-		panic("unexpected path " + path)
+func (f *themeAPI) Call(tool string, args map[string]any) (api.Value, error) {
+	if tool != "appearance_show" && tool != "appearance_update" {
+		panic("unexpected tool " + tool)
 	}
-	if method == api.Patch {
-		sent := api.Of(body)
+	if tool == "appearance_update" {
+		sent := api.Of(args)
 		*f.sent = append(*f.sent, sent)
 		if sent.Has("typeface") {
 			f.current = f.current.With("typeface", sent.Get("typeface"))
