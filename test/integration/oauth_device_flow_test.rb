@@ -52,6 +52,16 @@ class OauthDeviceFlowTest < ActionDispatch::IntegrationTest
     assert_equal "invalid_grant", response.parsed_body["error"], "a device code connects once"
   end
 
+  test "the page's form sends the code back with a POST" do
+    record, = Oauth::DeviceCode.issue(@client)
+    sign_in_as @user
+    get "/oauth/device", params: { user_code: record.user_code }
+    assert_select "form[action='/oauth/device'][method=post]" do
+      assert_select "input[name=user_code][value=?]", record.user_code
+      assert_select "button[name=decision][value=allow]"
+    end
+  end
+
   test "no means no, and a code runs out" do
     record, device_code = Oauth::DeviceCode.issue(@client)
     sign_in_as @user

@@ -78,6 +78,8 @@ func Run(argv []string, out, errOut io.Writer) int {
 		ctx := command.NewCtx(&config.Config{}, out, json, userAgent())
 		ctx.Err = errOut
 		err = definition.Run(ctx, args)
+		// The command's session on the server ends with the command
+		ctx.Close()
 	}
 	if err == nil {
 		return 0

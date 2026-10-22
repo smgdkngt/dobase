@@ -57,6 +57,13 @@ func (c *Ctx) API() (api.API, error) {
 	return c.api, nil
 }
 
+// Close ends the session with the server, if one was started.
+func (c *Ctx) Close() {
+	if closer, ok := c.api.(interface{ Close() }); ok {
+		closer.Close()
+	}
+}
+
 // Call runs an MCP tool on the server.
 func (c *Ctx) Call(tool string, args map[string]any) (api.Value, error) {
 	server, err := c.API()

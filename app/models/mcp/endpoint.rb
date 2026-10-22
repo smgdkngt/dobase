@@ -14,7 +14,11 @@ module Mcp
   # Puma as a partial hijack: Puma writes the headers, gives the socket to the
   # SDK and goes on, so an open stream holds none of its three threads.
   class Endpoint
-    REQUESTS_PER_MINUTE = 120
+    # Ten a second: a script running the CLI makes a few calls per command, a runaway client far more
+    REQUESTS_PER_MINUTE = 600
+    # What is counted is what does work: tool calls and reads, not the
+    # protocol's own messages (starting a session, a ping, the stream)
+    COUNTED = %w[tools/call resources/read resources/subscribe].freeze
     MAX_BODY_BYTES = 8.megabytes # files come along as base64
     BUILDING = Monitor.new # reentrant: building the transport asks for the server
 
@@ -58,7 +62,7 @@ module Mcp
       token = request.authorization.to_s[/\ABearer (.+)\z/, 1]
       access_token = AccessToken.authenticate(token)
       return unauthorized(request) if access_token.nil?
-      return too_many_requests if over_the_limit?(access_token)
+      return too_many_requests if over_the_limit?(request, access_token)
 
       access_token.record_usage
       access_token.oauth_client&.touch_last_used
@@ -92,9 +96,17 @@ module Mcp
         [ { error: "invalid_token" }.to_json ] ]
     end
 
-    def over_the_limit?(access_token)
+    def over_the_limit?(request, access_token)
+      return false unless request.post? && COUNTED.include?(rpc_method(request))
+
       count = Rails.cache.increment("mcp:requests:#{access_token.user_id}:#{Time.current.to_i / 60}", 1, expires_in: 2.minutes)
       count.to_i > REQUESTS_PER_MINUTE
+    end
+
+    def rpc_method(request)
+      JSON.parse(request.raw_post)["method"] if request.content_length.to_i <= MAX_BODY_BYTES
+    rescue JSON::ParserError, TypeError
+      nil
     end
 
     def too_many_requests

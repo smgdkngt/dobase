@@ -48,8 +48,8 @@ Streamable HTTP, protocol version `2025-06-18` and later: `POST /mcp` with one
 JSON-RPC message (batches are refused), answered with JSON. `initialize` starts
 a session (`Mcp-Session-Id`), which belongs to the token that started it.
 Sessions live in the server's memory, so after a deploy a client gets `404` and
-starts a new one. `DELETE /mcp` ends a session. Requests are limited to 120 a
-minute per person and 8 MB each (files come along as base64).
+starts a new one. `DELETE /mcp` ends a session. Requests are limited to 600 a
+minute per person (tool calls and reads; starting a session or a ping doesn't count) and 8 MB each (files come along as base64).
 
 ## Live updates
 
