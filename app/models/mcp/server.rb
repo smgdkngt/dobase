@@ -28,11 +28,13 @@ module Mcp
       end
 
       # Who asks, as the SDK carries it to a tool: the token sent, its connection, where the request came from
-      def auth_info(access_token, token, host: Rails.application.config.x.app.host, https: Rails.env.production?, remote_ip: "127.0.0.1")
+      def auth_info(access_token, token, host: Rails.application.config.x.app.host, https: Rails.env.production?,
+        remote_ip: "127.0.0.1", session_id: nil)
         MCP::Server::OAuth::AccessToken.new(
           token:, subject: "user:#{access_token.user_id}", client_id: "token:#{access_token.id}",
           expires_at: access_token.expires_at&.to_i,
-          claims: { "access_token_id" => access_token.id, "host" => host, "https" => https, "remote_ip" => remote_ip }
+          claims: { "access_token_id" => access_token.id, "host" => host, "https" => https, "remote_ip" => remote_ip,
+                    "session_id" => session_id }
         )
       end
 
@@ -45,14 +47,33 @@ module Mcp
       def build
         MCP::Server.new(
           name: "dobase", title: Rails.application.config.x.app.name, version: VERSION, instructions: INSTRUCTIONS,
-          capabilities: { tools: {} },
+          capabilities: { tools: {}, resources: { subscribe: true } },
           tools: Tools.all.values.map { adapter(it) },
+          resources: [ MCP::Resource.new(uri: Live::EVENTS, name: "events", title: "Events",
+            description: "Subscribe to hear that there is a new event in your tools; event_list says what", mime_type: "application/json") ],
+          resource_templates: [ MCP::ResourceTemplate.new(uri_template: "dobase://tools/{tool_id}", name: "tool", title: "A tool",
+            description: "Subscribe to hear that something in this tool changed", mime_type: "application/json") ],
           configuration: MCP::Configuration.new(
             validate_tool_call_arguments: true,
             instrumentation_callback: method(:log_refusal),
             exception_reporter: ->(exception, context) { Rails.error.report(exception, handled: true, context: { mcp: context.class.name }) }
           )
-        )
+        ).tap { handle_resources(it) }
+      end
+
+      # What a resource is when read, and subscribing to one (Mcp::Live)
+      def handle_resources(server)
+        server.resources_read_handler do |params, server_context:|
+          new(server_context.auth_info).read(params[:uri], params)
+        end
+        server.resources_subscribe_handler do |params, server_context:|
+          new(server_context.auth_info).subscribe(params[:uri], params)
+          {}
+        end
+        server.resources_unsubscribe_handler do |params, server_context:|
+          new(server_context.auth_info).unsubscribe(params[:uri], params)
+          {}
+        end
       end
 
       # The SDK wants a class per tool
@@ -102,7 +123,47 @@ module Mcp
       MCP::Tool::Response.new([ { type: "text", text: "Something went wrong in #{tool.name} (#{error.class})." } ], error: true)
     end
 
+    # dobase://events reads as the cursor to ask event_list after; a tool as tool_show gives it
+    def read(uri, request)
+      data = connected(request) do
+        if uri == Live::EVENTS
+          api.get("/events")
+        elsif (id = uri.to_s[Live::TOOL, 1])
+          api.get("/tools/#{id}")
+        else
+          raise MCP::Server::RequestHandlerError.new("No resource #{uri}", request, error_type: :invalid_params)
+        end
+      end
+      [ { uri:, mimeType: "application/json", text: data.to_json } ]
+    rescue Api::Error => error
+      raise MCP::Server::RequestHandlerError.new(error.message, request, error_type: :invalid_params)
+    end
+
+    def subscribe(uri, request)
+      connected(request) { Endpoint.live.subscribe(session_id, uri, @access_token.user) }
+    rescue Live::Refused => error
+      raise MCP::Server::RequestHandlerError.new(error.message, request, error_type: :invalid_params)
+    end
+
+    def unsubscribe(uri, request)
+      connected(request) { Endpoint.live.unsubscribe(session_id, uri, @access_token.user) }
+    rescue Live::Refused => error
+      raise MCP::Server::RequestHandlerError.new(error.message, request, error_type: :invalid_params)
+    end
+
     private
+
+    def connected(request)
+      if @access_token.nil? || @access_token.expired?
+        raise MCP::Server::RequestHandlerError.new("The connection has ended. Connect again.", request, error_type: :invalid_request)
+      end
+
+      yield
+    end
+
+    def session_id
+      @auth_info.claims["session_id"]
+    end
 
     def api
       claims = @auth_info.claims
