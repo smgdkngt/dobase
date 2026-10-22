@@ -11,11 +11,16 @@ import (
 // there is a new event for this person (Mcp::Live on the server).
 const Resource = "dobase://events"
 
+// Stream is the server's MCP stream (api.MCP).
+type Stream interface {
+	ListenAlive(ctx context.Context, uris []string, opened func(), changed func(uri string), alive func()) error
+}
+
 // Line is the server's MCP stream, over which it says that there is a new
 // event. Nothing that is in a tool comes over it, only "there is something";
 // the listener then asks for the events with a call of its own.
 type Line struct {
-	Server *api.MCP
+	Server Stream
 	// Quiet is how long the stream may say nothing before it counts as dead.
 	// The server pings every thirty seconds.
 	Quiet time.Duration
