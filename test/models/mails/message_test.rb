@@ -10,14 +10,15 @@ module Mails
     end
 
     test "remembers when a message went to the trash, and forgets it on restore" do
-      freeze_time do
+      trashed_at = Time.current.change(usec: 0)
+      travel_to trashed_at do
         @message.update!(trashed: true)
-        assert_equal Time.current, @message.trashed_at
+        assert_equal trashed_at, @message.trashed_at
       end
 
-      travel 1.day do
+      travel_to trashed_at + 1.day do
         @message.update!(read: true)
-        assert_equal 1.day.ago, @message.reload.trashed_at
+        assert_equal trashed_at, @message.reload.trashed_at
       end
 
       @message.update!(trashed: false)

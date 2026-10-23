@@ -74,5 +74,5 @@ case ":$PATH:" in
 esac
 
 echo
-echo "Next, sign in with a token from Profile → API:"
+echo "Next, sign in; it shows a code to confirm in your browser:"
 echo "  dobase login https://your-dobase.example.com"
