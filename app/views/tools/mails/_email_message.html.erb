@@ -25,7 +25,8 @@
           <% if email_message.draft? %>
             <%= render "components/badge", text: "Draft", variant: :warning, size: :sm %>
           <% elsif email_message.from_name.present? && email_message.from_name != email_message.from_address %>
-            <span class="text-xs text-text-tertiary"><%= email_message.from_address %></span>
+            <%# Narrow: under the name, so the name and the date share the first line %>
+            <span class="text-xs text-text-tertiary narrow:order-last narrow:basis-full narrow:truncate"><%= email_message.from_address %></span>
           <% end %>
           <% if email_message.sending? %>
             <%= render "components/badge", text: "Sending…", variant: :muted, size: :sm %>
