@@ -214,7 +214,10 @@ module Tools
       @page = (params[:page] || 1).to_i.clamp(1, [ @total_pages, 1 ].max)
 
       threads = threads.slice((@page - 1) * PER_PAGE, PER_PAGE) || []
-      messages = scope.where(thread_id: threads.map(&:thread_id)).order(sent_at: :desc).select(*list_columns).group_by(&:thread_id)
+      # Sorted here: ordered by date in SQL, SQLite walks the whole folder by its date
+      # index and opens every row to find the threads on this page
+      messages = scope.where(thread_id: threads.map(&:thread_id)).select(*list_columns)
+        .sort_by { |message| message.sent_at || Time.at(0) }.reverse.group_by(&:thread_id)
 
       threads.filter_map do |thread|
         thread_messages = messages[thread.thread_id]
