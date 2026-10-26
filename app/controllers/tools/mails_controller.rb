@@ -214,7 +214,7 @@ module Tools
       @page = (params[:page] || 1).to_i.clamp(1, [ @total_pages, 1 ].max)
 
       threads = threads.slice((@page - 1) * PER_PAGE, PER_PAGE) || []
-      messages = scope.where(thread_id: threads.map(&:thread_id)).order(sent_at: :desc).group_by(&:thread_id)
+      messages = scope.where(thread_id: threads.map(&:thread_id)).order(sent_at: :desc).select(*list_columns).group_by(&:thread_id)
 
       threads.filter_map do |thread|
         thread_messages = messages[thread.thread_id]
@@ -238,6 +238,15 @@ module Tools
           participants: thread_messages.map { |message| [ message.from_name, message.from_address ] }.uniq.map { |name, address| name.presence || address }.first(3)
         }
       end
+    end
+
+    # What the list shows of a message: no bodies, which can be hundreds of kilobytes
+    # each, but the start of its text for the preview
+    def list_columns
+      [
+        *(::Mails::Message.column_names - %w[body_html body_plain quote_html]).map { |column| "mail_messages.#{column}" },
+        Arel.sql("substr(mail_messages.body_plain, 1, 1000) AS body_plain")
+      ]
     end
 
     ThreadSummary = Data.define(:thread_id, :latest_at, :count, :unread_count, :starred, :has_attachments)
