@@ -21,3 +21,46 @@
     background-color: var(--color-background-tertiary);
   }
 }
+
+/* Pulled down from the top of a page (services/pull_refresh.js): a ring that comes
+   down with the finger, is the accent once letting go would refresh, and turns
+   while the page is fetched */
+.pull-refresh {
+  position: fixed;
+  z-index: 60;
+  top: calc(var(--inset-top, 0px) - 2rem);
+  left: 50%;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  background: var(--color-surface);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.pull-refresh::before {
+  content: "";
+  position: absolute;
+  inset: 0.5rem;
+  border-radius: 9999px;
+  border: 2px solid var(--color-text-tertiary);
+  border-top-color: transparent;
+}
+
+.pull-refresh[data-armed]::before,
+.pull-refresh[data-refreshing]::before {
+  border-color: var(--color-accent-solid);
+  border-top-color: transparent;
+}
+
+.pull-refresh[data-refreshing]::before {
+  animation: pull-refresh-turn 700ms linear infinite;
+}
+
+@keyframes pull-refresh-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}

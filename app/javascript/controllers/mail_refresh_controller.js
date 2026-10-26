@@ -50,6 +50,13 @@ export default class extends Controller {
     return pageInUse() || Boolean(this.element.querySelector("[data-mail-bulk-target='checkbox']:checked"))
   }
 
+  // Pulled down on a phone (services/pull_refresh.js): new mail from the server, which
+  // draws the page again when it is in
+  pulled(event) {
+    event.preventDefault()
+    this.sync()
+  }
+
   async sync() {
     if (this.syncing || !this.urlValue || this.busy) return
     this.syncing = true

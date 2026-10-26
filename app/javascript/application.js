@@ -4,12 +4,17 @@ import "controllers"
 import { listen as listenForSounds } from "services/sound"
 import "services/keyboard_focus"
 import { listen as listenForSheetPulls } from "services/sheet"
+import { listen as listenForPullsToRefresh } from "services/pull_refresh"
 
 // What is marked data-sound in a view is heard (services/sound.js)
 listenForSounds()
 
 // A dialog on a phone is a sheet, pulled down to close (services/sheet.js)
 listenForSheetPulls(document)
+
+// A page on a touch screen pulled down from its top draws itself again: an app on the
+// home screen has no other way to (services/pull_refresh.js)
+listenForPullsToRefresh(document)
 
 // The bar at the top shows sooner than Turbo's half second: on a phone's network a
 // tap that seems to do nothing for that long gets tapped again
