@@ -627,6 +627,14 @@
     @apply border-b border-border-light;
   }
 
+  /* On a phone the formatting buttons wait until something is being written: the
+     screen is short, and half of it is the keyboard by then */
+  @media (max-width: 639px) {
+    .rich-text-input:not(:focus-within) rhino-editor::part(toolbar) {
+      @apply hidden;
+    }
+  }
+
 
   /* ── Rich text content (compact rendering for chat/comments) ─────── */
 

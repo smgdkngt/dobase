@@ -36,7 +36,7 @@
     </div>
   <% end %>
 
-  <div class="tool-scroll-area flex gap-4 flex-1 overflow-x-auto overflow-y-hidden p-4 items-stretch <%= 'reorder-mode' if reorder_mode %>"
+  <div class="board-columns tool-scroll-area flex gap-4 flex-1 overflow-x-auto overflow-y-hidden p-4 items-stretch <%= 'reorder-mode' if reorder_mode %>"
        <% if reorder_mode %>
        data-controller="sortable"
        data-sortable-url-value="<%= tool_board_positions_path(@tool) %>"

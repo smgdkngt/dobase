@@ -16,6 +16,18 @@
     transition: min-width 200ms var(--ease-out), max-width 200ms var(--ease-out);
   }
 
+  /* A phone shows one column at a time: a swipe comes to rest on the next one */
+  @media (max-width: 639px) {
+    .board-columns {
+      scroll-snap-type: x proximity;
+      scroll-padding-inline: 1rem;
+    }
+
+    .board-column {
+      scroll-snap-align: start;
+    }
+  }
+
   /* Collapsed columns */
   .board-column-collapsed-strip {
     @apply hidden;
