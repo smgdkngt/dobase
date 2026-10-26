@@ -5,7 +5,7 @@
 <div class="tool-layout @container h-full" data-controller="file-preview" data-file-preview-file-id-value="<%= @file.id %>" data-file-preview-tool-id-value="<%= @tool.id %>">
   <div class="grid grid-rows-[auto_1fr] grid-cols-1 @3xl:grid-cols-[1fr_280px] h-full overflow-hidden">
   <%# Header %>
-  <div class="col-span-full flex items-center gap-2 @min-[40rem]:gap-4 px-3 @min-[40rem]:px-6 py-3 border-b border-border-light">
+  <div class="file-page-header col-span-full flex items-center gap-2 @min-[40rem]:gap-4 px-3 @min-[40rem]:px-6 py-3 border-b border-border-light">
     <%= render "components/back_link", href: tool_files_path(@tool, folder_id: @file.folder_id) %>
 
     <h1 class="flex-1 text-lg font-semibold truncate"><%= @file.name %></h1>

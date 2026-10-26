@@ -43,3 +43,18 @@
     @apply absolute top-1/2 -translate-y-1/2;
   }
 }
+
+/* A file's page on a phone: its name has the room, the buttons beside it are icons
+   (their words stay for whoever can't see them) */
+@container (max-width: 40rem) {
+  .file-page-header > a > span,
+  .file-page-header .btn > span {
+    @apply sr-only;
+  }
+}
+
+@media (pointer: coarse) {
+  .file-page-header > a:first-child {
+    @apply min-w-11 min-h-11;
+  }
+}
