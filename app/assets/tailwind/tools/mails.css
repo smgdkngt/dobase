@@ -100,6 +100,19 @@
     @apply bg-background-tertiary;
   }
 
+  /* A file a mail being written carries, with its × inside the chip */
+  .compose-carried-attachment {
+    @apply inline-flex items-center rounded-md bg-background-secondary;
+  }
+
+  .compose-carried-attachment > .mail-attachment {
+    @apply bg-transparent;
+  }
+
+  .compose-carried-attachment > .compose-attachment-remove {
+    @apply ml-0 self-stretch px-2.5 rounded-r-md hover:bg-background-tertiary;
+  }
+
   .mail-attachment-name {
     @apply inline-flex items-center gap-2 pl-3 py-2 text-text-primary no-underline;
   }

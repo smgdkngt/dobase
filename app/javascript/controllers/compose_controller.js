@@ -186,6 +186,23 @@ export default class extends Controller {
     this.updateFileInput()
   }
 
+  // A file the mail carries (forwarded, or the draft's own) taken off: it no longer
+  // goes along, and a draft's own is removed from the draft when the form is sent
+  removeCarried(event) {
+    const button = event.currentTarget
+    const carried = button.closest("[data-compose-carried]")
+    if ("onDraft" in button.dataset) {
+      const removed = document.createElement("input")
+      removed.type = "hidden"
+      removed.name = "remove_attachment_ids[]"
+      removed.value = button.dataset.attachmentId
+      carried.closest("form").append(removed)
+    }
+    const list = carried.parentElement
+    carried.remove()
+    if (!list.children.length) list.remove()
+  }
+
   renderAttachments() {
     if (!this.hasAttachmentsListTarget) return
 

@@ -90,6 +90,12 @@ module Mails
       self.has_attachments = attachments.any?
     end
 
+    # Files of a saved draft taken off in the compose form (only its own)
+    def remove_attachments(ids)
+      attachments.where(id: ids).destroy_all
+      self.has_attachments = attachments.reload.any?
+    end
+
     # Files uploaded with the compose form
     def attach_uploads(files)
       files.each do |file|

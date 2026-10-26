@@ -356,6 +356,8 @@ module Tools
         draft.quoted_message = quoted_message_param
         draft.quote_html = params[:quote_html]
       end
+      # Files taken off in the form, before what is added (removing reloads the draft's files)
+      draft.remove_attachments(params[:remove_attachment_ids]) if draft.persisted? && params[:remove_attachment_ids].present?
       # Forwarded attachments, only from this account's own mail; a saved draft already has its
       # own, and the pictures in a quote's text go along with the quote
       forwarded = @mail_account.attachments.where(id: params[:forward_attachment_ids]).where.not(mail_message_id: draft.id)

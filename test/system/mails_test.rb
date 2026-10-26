@@ -727,6 +727,33 @@ class MailsTest < ApplicationSystemTestCase
     assert_db_change(-> { draft.reload.subject == "Plans for Friday" })
   end
 
+  test "a forward's files are taken off one by one, on the forward and on its draft" do
+    message = mails_messages(:inbox_read)
+    %w[keep.pdf drop.pdf later.pdf].each do |name|
+      message.attachments.create!(filename: name, content_type: "application/pdf", file_size: 6)
+        .file.attach(io: StringIO.new("%PDF-1"), filename: name, content_type: "application/pdf")
+    end
+
+    visit new_tool_mail_path(@tool, forward: message.id)
+    wait_for_compose_editor
+    assert_selector ".compose-carried-attachment", count: 3
+    click_on "Remove drop.pdf"
+    assert_selector ".compose-carried-attachment", count: 2
+    assert_no_text "drop.pdf"
+
+    click_on "Save Draft"
+    assert_text "Draft saved."
+    draft = @tool.mail_account.messages.drafts.order(:created_at).last
+    assert_equal %w[keep.pdf later.pdf], draft.attachments.map(&:filename).sort
+
+    # Opened again: the draft's own files come off it when it is saved
+    wait_for_compose_editor
+    click_on "Remove later.pdf"
+    click_on "Save Draft"
+    assert_text "Draft saved."
+    assert_equal %w[keep.pdf], draft.reload.attachments.map(&:filename)
+  end
+
   test "leaving a reply or forward only asks to discard it once it has been changed" do
     message = mails_messages(:inbox_read)
     visit new_tool_mail_path(@tool, reply_to: message.id)

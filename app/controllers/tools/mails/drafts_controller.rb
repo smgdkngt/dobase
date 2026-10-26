@@ -37,6 +37,8 @@ module Tools
       def update
         @draft.assign_attributes(draft_params)
         @draft.sent_at = Time.current
+        # Files taken off in the compose form
+        @draft.remove_attachments(params[:remove_attachment_ids]) if params[:remove_attachment_ids].present?
 
         if @draft.save
           SyncDraftJob.perform_later(@draft.id)

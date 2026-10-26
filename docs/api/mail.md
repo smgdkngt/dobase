@@ -253,6 +253,7 @@ server's Drafts folder in the background, quote and attachments included.
 `PATCH /tools/:tool_id/mails/drafts/:id` with any of the same fields changes
 only those and returns the draft. Its attachments, `in_reply_to` and the
 message it quotes stay as they are, and so does what was changed in the quote.
+`remove_attachment_ids` names attachments of the draft itself to take off it.
 `"quote_html": null` quotes the mail as it was written again, and so does
 naming `quoted_message_id` without `quote_html`; `"quoted_message_id": null`
 quotes nothing.

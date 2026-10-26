@@ -19,9 +19,6 @@
   <% if @in_reply_to.present? %>
     <%= hidden_field_tag :in_reply_to, @in_reply_to %>
   <% end %>
-  <% @forward_attachments&.each do |att| %>
-    <%= hidden_field_tag "forward_attachment_ids[]", att.id %>
-  <% end %>
 
   <div class="compose-header">
     <%= link_to folder_path, class: "compose-back", title: "Back", "aria-label": "Back" do %>
@@ -84,10 +81,19 @@
     <%# What the mail already carries (a draft's files, the ones it forwards): each opens
         in the viewer, to look at before it goes out. Apart from the files picked just
         now, which the script draws and draws again. %>
+    <%# Each can be taken off with its ×: what it forwards drops from the form, a file the
+        draft already holds is named to be removed from it (remove_attachment_ids) %>
     <% if @forward_attachments.present? %>
       <div class="compose-attachments">
         <% @forward_attachments.each do |attachment| %>
-          <%= render "tools/mails/attachment", attachment: attachment %>
+          <span class="compose-carried-attachment" data-compose-carried>
+            <%= hidden_field_tag "forward_attachment_ids[]", attachment.id, id: nil %>
+            <%= render "tools/mails/attachment", attachment: attachment %>
+            <%= tag.button "×", type: "button", class: "compose-attachment-remove touch-target",
+                  title: "Remove #{attachment.filename}", aria: { label: "Remove #{attachment.filename}" },
+                  data: { action: "click->compose#removeCarried", attachment_id: attachment.id,
+                          on_draft: (true if @draft && attachment.mail_message_id == @draft.id) } %>
+          </span>
         <% end %>
       </div>
     <% end %>

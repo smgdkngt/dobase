@@ -987,6 +987,48 @@ module Tools
       assert_response :success
       assert_select "input[type=hidden][name='forward_attachment_ids[]'][value=?]", attachment.id.to_s
       assert_select ".mail-attachment", text: /report\.pdf/
+      assert_select "button[data-action='click->compose#removeCarried'][data-on-draft][aria-label='Remove report.pdf']"
+    end
+
+    test "a forward's files each have a remove button, and one taken off doesn't go along" do
+      original = mails_messages(:inbox_read)
+      keep = attachment_on(original, "keep.pdf")
+      attachment_on(original, "drop.pdf")
+
+      get new_tool_mail_path(@tool, forward: original.id)
+      assert_select "button[aria-label='Remove drop.pdf']:not([data-on-draft])"
+
+      # The form as it is sent with the one taken off
+      post tool_mail_drafts_path(@tool), params: { to: "friend@example.com", subject: "Fwd: Files", body: "<p>FYI</p>", forward_attachment_ids: [ keep.id ] }
+      assert_equal [ "keep.pdf" ], @account.messages.drafts.find_by!(subject: "Fwd: Files").attachments.map(&:filename)
+    end
+
+    test "a file taken off a saved draft is removed from it when the draft is saved or sent" do
+      draft = mails_messages(:draft_message)
+      keep = attachment_on(draft, "keep.pdf")
+      drop = attachment_on(draft, "drop.pdf")
+
+      patch tool_mail_draft_path(@tool, draft), params: { subject: draft.subject, remove_attachment_ids: [ drop.id ] }
+      assert_equal [ "keep.pdf" ], draft.reload.attachments.map(&:filename)
+      assert draft.has_attachments
+
+      patch tool_mail_draft_path(@tool, draft), params: { subject: draft.subject, remove_attachment_ids: [ keep.id ] }
+      assert_empty draft.reload.attachments
+      assert_not draft.has_attachments
+    end
+
+    test "a file taken off a draft that is sent from the compose page doesn't go out" do
+      draft = mails_messages(:draft_message)
+      keep = attachment_on(draft, "keep.pdf")
+      drop = attachment_on(draft, "drop.pdf")
+
+      post tool_mails_path(@tool), params: {
+        draft_id: draft.id, to: "friend@example.com", subject: "Plans", body: "<p>Hi</p>",
+        forward_attachment_ids: [ keep.id ], remove_attachment_ids: [ drop.id ]
+      }
+
+      assert_equal [ "keep.pdf" ], draft.reload.attachments.map(&:filename)
+      assert_not ::Mails::Attachment.exists?(drop.id)
     end
 
     private
