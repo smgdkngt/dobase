@@ -14,3 +14,10 @@ form[aria-busy="true"] :is(button, input)[type="submit"] {
   opacity: 0.6;
   cursor: progress;
 }
+
+/* A button whose work is under way (an upload): dimmed, and it waits */
+.btn[aria-busy="true"] {
+  opacity: 0.7;
+  cursor: progress;
+  pointer-events: none;
+}

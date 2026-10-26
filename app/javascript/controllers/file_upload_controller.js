@@ -3,13 +3,14 @@ import { visitPage } from "services/tile"
 
 // Handles file uploads via form and drag-drop
 export default class extends Controller {
-  static targets = ["dropzone", "form", "input", "folderId"]
+  static targets = ["dropzone", "form", "input", "folderId", "button", "label"]
 
   // The page refreshes with a morph after the upload, which keeps this input and the
   // file picked in it: picking the same file again would change nothing, and nothing
   // would happen. The form has taken the files by the time requestSubmit returns.
   upload(event) {
     if (event.target.files.length > 0) {
+      this.#uploading(event.target.files.length)
       this.formTarget.requestSubmit()
       event.target.value = ""
     }
@@ -57,6 +58,7 @@ export default class extends Controller {
     const folderId = this.hasFolderIdTarget ? this.folderIdTarget.value : ""
 
     if (folderId) formData.append("folder_id", folderId)
+    this.#uploading(files.length)
     for (const file of files) formData.append("files[]", file)
 
     try {
@@ -73,13 +75,29 @@ export default class extends Controller {
       if (response.ok) {
         visitPage(this.element)
       } else {
+        this.#uploaded()
         const data = await response.json()
         alert(data.errors?.join(", ") || "Upload failed")
       }
     } catch (error) {
+      this.#uploaded()
       console.error("Upload error:", error)
       alert("Upload failed")
     }
+  }
+
+  // On a phone's network an upload takes a while: the button says it is under way
+  // until the page is drawn again with the files in it (which puts the button back)
+  #uploading(count) {
+    if (!this.hasLabelTarget) return
+    this.labelTarget.textContent = count > 1 ? `Uploading ${count} files…` : "Uploading…"
+    this.buttonTarget.setAttribute("aria-busy", "true")
+  }
+
+  #uploaded() {
+    if (!this.hasLabelTarget) return
+    this.labelTarget.textContent = "Upload"
+    this.buttonTarget.removeAttribute("aria-busy")
   }
 
   get #csrfToken() {

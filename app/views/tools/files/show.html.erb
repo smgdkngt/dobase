@@ -83,9 +83,9 @@
       <%= form_with url: tool_files_uploads_path(@tool), multipart: true, class: "inline",
           data: { file_upload_target: "form" } do %>
         <input type="hidden" name="folder_id" value="<%= @folder&.id %>" data-file-upload-target="folderId">
-        <label class="btn btn-sm btn-primary cursor-pointer" data-controller="hotkey" data-hotkey="u">
+        <label class="btn btn-sm btn-primary cursor-pointer" data-controller="hotkey" data-hotkey="u" data-file-upload-target="button">
           <%= render "shared/icon", name: "upload", size: 16 %>
-          <span>Upload</span>
+          <span data-file-upload-target="label">Upload</span>
           <input type="file" name="files[]" multiple class="hidden"
                  data-action="change->file-upload#upload" data-file-upload-target="input">
         </label>
