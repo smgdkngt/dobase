@@ -79,7 +79,7 @@
         </div>
       <% end %>
 
-      <div class="flex-1 overflow-y-auto">
+      <div class="mail-list-scroll flex-1 overflow-y-auto" data-controller="mail-swipe">
         <% if @conversations.any? %>
           <%= render partial: "tools/mails/conversation_item",
                   collection: @conversations, as: :conversation,

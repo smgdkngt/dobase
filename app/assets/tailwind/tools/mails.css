@@ -523,3 +523,46 @@ body:has(.mail-layout) .flash-toast {
   }
 }
 
+
+/* On a phone a conversation is swiped to the left to archive it (mail_swipe_controller.js):
+   the row moves with the finger and uncovers the colour of what letting go does */
+@media (max-width: 639px) {
+  .mail-list-scroll {
+    overflow-x: clip;
+  }
+
+  .mail-list-item[data-archive-url] {
+    @apply relative;
+    touch-action: pan-y;
+  }
+
+  .mail-list-item:is([data-swiping], [data-swiped-away]) {
+    @apply bg-surface;
+    transform: translateX(var(--swipe, 0));
+  }
+
+  .mail-list-item[data-swiping] {
+    transition: none;
+  }
+
+  .mail-list-item[data-swiped-away] {
+    transform: translateX(-100%);
+    transition: transform 180ms var(--ease-out), height 200ms var(--ease-out) 120ms, padding 200ms var(--ease-out) 120ms;
+  }
+
+  .mail-list-item[data-gone] {
+    @apply py-0 border-b-0;
+    height: 0;
+  }
+
+  .mail-list-item:is([data-swiping], [data-swiped-away])::after {
+    content: "Archive";
+    @apply absolute inset-y-0 left-full w-screen flex items-center pl-5 text-sm font-medium text-text-inverse;
+    background: color-mix(in srgb, var(--color-accent-solid) 70%, var(--color-surface));
+  }
+
+  .mail-list-item[data-swipe-armed]::after,
+  .mail-list-item[data-swiped-away]::after {
+    @apply bg-accent-solid;
+  }
+}

@@ -28,6 +28,7 @@
     "app/javascript/services/live.js",
     "app/javascript/services/zoom.js",
     "app/javascript/services/sheet.js",
+    "app/javascript/services/swipe.js",
     "test/javascript/**/*.mjs",
     "test/javascript/support/globals.d.ts"
   ]
