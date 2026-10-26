@@ -143,13 +143,17 @@ class MailsTest < ApplicationSystemTestCase
 
     assert_text "Welcome to Dobase! We hope you enjoy the platform.", wait: 5
 
-    click_with_retry("[title='Star (s)']") { message.reload.starred? }
+    # Pressed once each time: the star shows its new state at once, so a press tried
+    # again (click_with_retry) would take back the first
+    wait_for_stimulus "pressed"
+    find("[title='Star (s)']").click
     assert_selector "[title='Star (s)'][aria-pressed='true']"
+    assert_db_change(-> { message.reload.starred? }, timeout: 10)
 
     # Unstarred again, and drawn so at once
     find("[title='Star (s)']").click
     assert_selector "[title='Star (s)'][aria-pressed='false']"
-    assert 20.times.any? { message.reload.starred? ? sleep(0.25).nil? : true }, "the star was never taken off"
+    assert_db_change(-> { !message.reload.starred? }, timeout: 10)
   end
 
   test "starring an HTML email keeps its body visible" do
@@ -157,7 +161,9 @@ class MailsTest < ApplicationSystemTestCase
     visit tool_mail_path(@tool, message)
 
     assert_selector("iframe[data-email-frame-target=frame]") { |frame| frame.evaluate_script("this.offsetHeight") > 0 }
-    click_with_retry("[title='Star (s)']") { message.reload.starred? }
+    wait_for_stimulus "pressed"
+    find("[title='Star (s)']").click
+    assert_db_change(-> { message.reload.starred? }, timeout: 10)
 
     assert_selector "[title='Star (s)'][aria-pressed='true']"
     assert_selector("iframe[data-email-frame-target=frame]") { |frame| frame.evaluate_script("this.offsetHeight") > 0 }
