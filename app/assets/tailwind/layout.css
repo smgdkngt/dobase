@@ -514,6 +514,37 @@ body[data-workspace] {
   }
 }
 
+/* A phone: a dialog is a sheet that comes up from the bottom edge, where the thumb is,
+   the width of the screen, as a phone's own apps have it */
+@media (max-width: 639px) {
+  .modal-dialog {
+    @apply w-full! max-w-none! m-0! mt-auto! rounded-b-none! rounded-t-2xl max-h-[92dvh]!;
+    inset: auto 0 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    transform: translateY(2rem);
+  }
+
+  .modal-dialog[open] {
+    transform: translateY(0);
+  }
+
+  @starting-style {
+    .modal-dialog[open] {
+      transform: translateY(2rem);
+    }
+  }
+
+  /* The grabber: it is pulled down to close (services/sheet.js) */
+  .modal-dialog[open]::before {
+    content: "";
+    @apply shrink-0 self-center w-9 h-1 mt-2 -mb-1 rounded-full bg-border;
+  }
+
+  .modal-body {
+    @apply max-h-[calc(92dvh-60px)];
+  }
+}
+
 /* PWA standalone mode on desktop: top border to separate title bar from content */
 @media (display-mode: standalone) and (min-width: 1024px) {
   .sidebar {

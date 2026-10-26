@@ -3,9 +3,13 @@ import "@hotwired/turbo-rails"
 import "controllers"
 import { listen as listenForSounds } from "services/sound"
 import "services/keyboard_focus"
+import { listen as listenForSheetPulls } from "services/sheet"
 
 // What is marked data-sound in a view is heard (services/sound.js)
 listenForSounds()
+
+// A dialog on a phone is a sheet, pulled down to close (services/sheet.js)
+listenForSheetPulls(document)
 
 // Track Turbo navigation state for system test reliability
 document.addEventListener("turbo:load", () => {
