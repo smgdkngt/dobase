@@ -479,7 +479,33 @@ rhino-editor.compose-editor .trix-content {
 
 .mail-detail-header > div:last-child {
   @variant narrow {
-    @apply w-full order-2 flex-wrap;
+    @apply w-full order-2 flex-wrap justify-between;
+  }
+}
+
+/* An open conversation (or a mail being written) has the screen to itself: the
+   mailbox's title, search and folders are one tap back, under the back arrow */
+.mail-layout.mail-detail-open {
+  @variant narrow {
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+
+.mail-layout.mail-detail-open > .mail-topbar {
+  @variant narrow {
+    @apply hidden;
+  }
+}
+
+/* The way back is a finger's size on a touch screen, like the buttons beside it */
+@media (pointer: coarse) {
+  .mail-detail-back,
+  .compose-back {
+    @apply w-11 h-11;
+  }
+
+  .compose-field-toggle {
+    @apply min-h-11 px-2.5;
   }
 }
 

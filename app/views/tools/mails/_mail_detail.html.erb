@@ -9,11 +9,15 @@
 %>
 <div class="mail-detail-header bg-surface border-b border-border-light px-4 py-3 flex items-center justify-between gap-4">
   <%= link_to tool_mails_path(@tool, folder: @current_folder),
-      class: "hidden narrow:flex items-center justify-center w-8 h-8 -ml-1 rounded-lg hover:bg-background-tertiary transition-colors shrink-0" do %>
+      class: "mail-detail-back hidden narrow:flex items-center justify-center w-8 h-8 -ml-1 rounded-lg hover:bg-background-tertiary transition-colors shrink-0",
+      aria: { label: "Back to the list" } do %>
     <%= render "shared/icon", name: "arrow-left", size: 18, class: "text-text-secondary" %>
   <% end %>
   <h1 class="text-base font-semibold text-text-primary flex-1 min-w-0"><%= @selected_message.normalized_subject.presence || "(No subject)" %></h1>
   <div class="flex items-center gap-1 flex-shrink-0">
+    <%# Where the list and the conversation take turns, replying and forwarding are in the
+        bar under the conversation, so the rest fits a finger %>
+    <span class="flex items-center gap-1 narrow:hidden">
     <%= render "components/icon_button", icon: "reply", title: "Reply (r)",
         href: new_tool_mail_path(@tool, reply_to: last_message.id, folder: @current_folder),
         data: { controller: "hotkey", hotkey: "r" } %>
@@ -26,6 +30,7 @@
         href: new_tool_mail_path(@tool, forward: last_message.id, folder: @current_folder),
         data: { controller: "hotkey", hotkey: "f" } %>
     <span class="w-px h-4 bg-border-light mx-1"></span>
+    </span>
     <% if @current_folder == "trash" %>
       <%= render "components/icon_button", icon: "rotate-ccw", title: "Restore",
           href: tool_mail_trash_path(@tool, @selected_message), method: :delete,
@@ -46,11 +51,12 @@
     <% end %>
     <div class="relative">
       <button type="button"
-              class="icon-btn icon-btn-sm"
+              class="icon-btn"
               title="Move to folder"
+              aria-label="Move to folder"
               popovertarget="move-to-menu"
               style="anchor-name: --move-to-btn">
-        <%= render "shared/icon", name: "folder-input", size: 14 %>
+        <%= render "shared/icon", name: "folder-input", size: 16 %>
       </button>
       <div id="move-to-menu" popover="auto" class="popover-menu"
            style="position-anchor: --move-to-btn; position-area: block-end span-inline-start">
@@ -139,5 +145,9 @@
           variant: :secondary,
           href: new_tool_mail_path(@tool, reply_to: last_message.id, folder: @current_folder, reply_all: true) %>
     <% end %>
+    <span class="hidden narrow:flex">
+      <%= render "components/icon_button", icon: "forward", title: "Forward",
+          href: new_tool_mail_path(@tool, forward: last_message.id, folder: @current_folder) %>
+    </span>
   </div>
 </div>

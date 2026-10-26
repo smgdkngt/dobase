@@ -1,0 +1,10 @@
+/* A touch screen (unlayered, so it wins over the utilities in the views).
+
+   Tailwind only lets group-hover: through where something can hover, so on a phone
+   what a row shows under the pointer (a comment's delete, a file's menu in the grid)
+   never showed at all. Without a pointer it is simply there. */
+@media (hover: none) {
+  .group-hover\:opacity-100 {
+    opacity: 1;
+  }
+}

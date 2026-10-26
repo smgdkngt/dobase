@@ -46,6 +46,36 @@
     @apply bg-accent-solid text-text-inverse hover:bg-accent-solid-hover hover:text-text-inverse;
   }
 
+  /* A finger needs more room than a mouse: on a touch screen a button is a target of
+     about 44px, whatever it looks like with a pointer */
+  @media (pointer: coarse) {
+    .btn {
+      @apply min-h-11;
+    }
+
+    .btn-sm {
+      @apply min-h-10;
+    }
+
+    .icon-btn {
+      @apply w-11 h-11;
+    }
+
+    .icon-btn-sm {
+      @apply w-10 h-10;
+    }
+
+    /* A small control that isn't an icon button (a view switch, a row's menu) */
+    .touch-target {
+      @apply inline-flex items-center justify-center min-w-11 min-h-11;
+    }
+
+    /* Five of them share a row with a title on a phone, so a little less */
+    .nav-pill-btn {
+      @apply inline-flex items-center justify-center min-w-10 min-h-10;
+    }
+  }
+
   /* Grouped button modifiers - use with icon-btn */
   .icon-btn-group-left {
     @apply rounded-l-lg rounded-r-none;

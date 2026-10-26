@@ -59,6 +59,27 @@ class MailsTest < ApplicationSystemTestCase
     page.driver.browser.manage.window.resize_to(1400, 1400)
   end
 
+  test "in a narrow window an open conversation has the screen to itself, and replying and forwarding are under it" do
+    page.driver.browser.manage.window.resize_to(390, 844)
+    visit tool_mails_path(@tool)
+    assert_selector ".mail-topbar", visible: true
+    first(".mail-list-item a").click
+    assert_selector ".mail-detail-header h1"
+
+    # The mailbox's search and folders are a step back, not over the conversation
+    assert_no_selector ".mail-topbar", visible: true
+    assert_no_selector ".mail-detail-header a[title^='Reply']", visible: true
+    within ".mail-reply-bar" do
+      assert_selector "a", text: "Click to reply"
+      assert_selector "a[title='Forward']"
+    end
+
+    find(".mail-detail-back").click
+    assert_selector ".mail-topbar", visible: true
+  ensure
+    page.driver.browser.manage.window.resize_to(1400, 1400)
+  end
+
   test "a page that fills a home screen app is put back when something scrolled it" do
     visit tool_mails_path(@tool)
     wait_for_stimulus "standalone-scroll"

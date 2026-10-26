@@ -254,6 +254,21 @@
            text-text-secondary hover:text-text-primary hover:bg-sidebar-hover transition-colors;
   }
 
+  /* A finger's room for the small buttons of the sidebar, without making its rows taller */
+  @media (pointer: coarse) {
+    .sidebar-close-btn {
+      @apply w-11 h-11;
+    }
+
+    .sidebar-tool-menu-btn {
+      @apply w-10 h-10 -my-2.5 -mr-2.5;
+    }
+
+    .sidebar-context-btn {
+      @apply p-2.5 -m-2;
+    }
+  }
+
   /* ── Sidebar Reorder Mode (base in components.css) ── */
   .reorder-mode .sidebar-tool-menu-btn { @apply hidden; }
   .sidebar.reorder-mode .sidebar-reorder-hide { @apply hidden; }
