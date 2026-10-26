@@ -12,6 +12,11 @@
     @apply pr-4 mr-1 border-r border-border-light;
   }
 
+  /* Filled while starred, from the moment it is pressed (pressed_controller.js) */
+  .mail-star[aria-pressed="true"] svg {
+    @apply text-warning fill-warning;
+  }
+
   /* Folders as a column beside the list, on screens wide enough for it (below) */
   .mail-folder-rail {
     @apply hidden flex-col gap-0.5 py-2 bg-surface border-r border-border-light overflow-y-auto;

@@ -90,8 +90,9 @@
         title: "Star (s)",
         href: tool_mail_star_path(@tool, @selected_message),
         method: @selected_message.starred? ? :delete : :post,
-        icon_class: @selected_message.starred? ? "text-warning fill-warning" : nil,
-        data: { controller: "hotkey", hotkey: "s" } %>
+        class: "mail-star",
+        pressed: @selected_message.starred?,
+        data: { controller: "hotkey pressed", hotkey: "s", action: "click->pressed#flip" } %>
     <%= render "components/icon_button",
         icon: @selected_message.read? ? "mail" : "mail-open",
         title: @selected_message.read? ? "Mark unread (u)" : "Mark read",

@@ -144,6 +144,12 @@ class MailsTest < ApplicationSystemTestCase
     assert_text "Welcome to Dobase! We hope you enjoy the platform.", wait: 5
 
     click_with_retry("[title='Star (s)']") { message.reload.starred? }
+    assert_selector "[title='Star (s)'][aria-pressed='true']"
+
+    # Unstarred again, and drawn so at once
+    find("[title='Star (s)']").click
+    assert_selector "[title='Star (s)'][aria-pressed='false']"
+    assert 20.times.any? { message.reload.starred? ? sleep(0.25).nil? : true }, "the star was never taken off"
   end
 
   test "starring an HTML email keeps its body visible" do
@@ -153,7 +159,7 @@ class MailsTest < ApplicationSystemTestCase
     assert_selector("iframe[data-email-frame-target=frame]") { |frame| frame.evaluate_script("this.offsetHeight") > 0 }
     click_with_retry("[title='Star (s)']") { message.reload.starred? }
 
-    assert_selector "[title='Star (s)'] .fill-warning"
+    assert_selector "[title='Star (s)'][aria-pressed='true']"
     assert_selector("iframe[data-email-frame-target=frame]") { |frame| frame.evaluate_script("this.offsetHeight") > 0 }
   end
 

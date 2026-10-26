@@ -15,6 +15,7 @@
     class: Additional CSS classes
     icon_class: Additional CSS classes for the icon
     disabled: true to disable
+    pressed: true or false for a button that is on or off (aria-pressed)
     turbo_confirm: Confirmation message
     type: :button (default), :submit
     name: Input name for submit buttons
@@ -56,6 +57,8 @@
     class: classes,
     title: title,
     "aria-label": title,
+    "aria-pressed": (local_assigns[:pressed].to_s unless local_assigns[:pressed].nil?),
+    role: ("button" if local_assigns[:href] && !local_assigns[:pressed].nil?),
     data: data_attrs.presence
   }.compact
 %>
