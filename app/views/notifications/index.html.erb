@@ -5,12 +5,12 @@
       <div class="flex items-center gap-1">
         <% if @notifications.any?(&:unread?) %>
           <%= button_to notification_reads_path, method: :post,
-                class: "text-xs text-text-secondary hover:text-text-primary cursor-pointer bg-transparent border-none px-2 py-1 rounded hover:bg-background-tertiary transition-colors",
+                class: "text-xs text-text-secondary hover:text-text-primary touch-target cursor-pointer bg-transparent border-none px-2 py-1 rounded hover:bg-background-tertiary transition-colors",
                 data: { notifications_target: "markAllRead", action: "notifications#markAllRead" } do %>
             Mark all read
           <% end %>
         <% end %>
-        <button type="button" class="text-xs text-text-secondary hover:text-text-primary cursor-pointer bg-transparent border-none px-2 py-1 rounded hover:bg-background-tertiary transition-colors"
+        <button type="button" class="text-xs text-text-secondary hover:text-text-primary touch-target cursor-pointer bg-transparent border-none px-2 py-1 rounded hover:bg-background-tertiary transition-colors"
                 data-action="notifications#clearAll">
           Clear all
         </button>

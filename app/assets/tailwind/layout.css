@@ -543,6 +543,12 @@ body[data-workspace] {
   .modal-body {
     @apply max-h-[calc(92dvh-60px)];
   }
+
+  /* The notifications take the width of the screen above the bar, like the menu */
+  .sidebar-notifications-popover {
+    position-area: block-start;
+    @apply w-auto! max-w-none mx-2 max-h-[70dvh];
+  }
 }
 
 /* PWA standalone mode on desktop: top border to separate title bar from content */
