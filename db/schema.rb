@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_22_200000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_26_100000) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -486,8 +486,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_22_200000) do
     t.text "quote_html"
     t.index ["mail_account_id", "archived"], name: "index_mail_messages_on_mail_account_id_and_archived"
     t.index ["mail_account_id", "folder", "sent_at"], name: "index_mail_messages_on_mail_account_id_and_folder_and_sent_at"
+    t.index ["mail_account_id", "folder", "trashed", "draft", "archived", "thread_id", "sent_at", "read", "starred", "has_attachments", "message_id"], name: "index_mail_messages_for_the_list"
     t.index ["mail_account_id", "message_id", "folder"], name: "index_mail_messages_on_account_message_id_and_folder", unique: true
     t.index ["mail_account_id", "read"], name: "index_mail_messages_on_mail_account_id_and_read"
+    t.index ["mail_account_id", "thread_id", "folder", "trashed", "draft", "archived", "sent_at", "read", "starred", "has_attachments", "message_id"], name: "index_mail_messages_for_the_list_by_thread"
     t.index ["mail_account_id", "thread_id"], name: "index_mail_messages_on_mail_account_id_and_thread_id"
     t.index ["mail_account_id"], name: "index_mail_messages_on_mail_account_id"
     t.index ["trashed_at"], name: "index_mail_messages_on_trashed_at"
