@@ -74,6 +74,30 @@ class ChatTest < ApplicationSystemTestCase
     page.driver.browser.delete_network_conditions
   end
 
+  test "on a slow connection a message leaves the box at once and shows as being sent until it is in" do
+    visit tool_chat_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "chat"
+    wait_for_stimulus "rich-text-input"
+
+    editable = find("form rhino-editor .ProseMirror")
+    editable.click
+    editable.send_keys("On its way")
+    page.driver.browser.network_conditions = { offline: false, latency: 1500, throughput: 1_000_000 }
+    editable.send_keys(:enter)
+
+    # Before the server has answered: the box is empty, the message is where it goes
+    assert_no_selector "form rhino-editor .ProseMirror", text: "On its way", wait: 1
+    assert_selector ".chat-messages", text: "On its way", wait: 1
+
+    # Once it is in, the message itself stands there, once
+    assert_selector ".chat-messages [data-message-id]", text: "On its way", wait: 10
+    assert_no_selector "[data-chat-sending]", wait: 10
+    assert_equal 1, @tool.chat.messages.where(user: @user).count { |message| message.body.to_plain_text == "On its way" }
+  ensure
+    page.driver.browser.delete_network_conditions
+  end
+
   test "an empty message can't be sent" do
     visit tool_chat_path(@tool)
     wait_for_turbo

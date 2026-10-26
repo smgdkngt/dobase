@@ -121,3 +121,12 @@
     }
   }
 }
+
+/* A message on its way, where it will show once the server has it (chat_controller.js) */
+.chat-sending {
+  @apply flex items-baseline gap-2 py-1 pr-4 pl-14 text-sm text-text-secondary whitespace-pre-wrap break-words opacity-70;
+}
+
+.chat-sending-label {
+  @apply shrink-0 ml-auto text-xs text-text-tertiary;
+}

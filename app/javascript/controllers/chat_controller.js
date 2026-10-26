@@ -188,6 +188,7 @@ export default class extends Controller {
       // the newest message there, and leaves one who scrolled up to read where they are.
       const follow = this.atNewestMessage
       this.hearNewMessage(streamElement)
+      if (this.isOwnNewMessage(streamElement)) this.#sent()
       fallback(streamElement)
       if (follow) setTimeout(() => this.scrollToBottom(), 50)
     }
@@ -202,6 +203,12 @@ export default class extends Controller {
     if (message && Number(message.dataset.messageUserIdValue) !== this.userIdValue) {
       play("receive", { once: `message-${message.dataset.messageId}` })
     }
+  }
+
+  isOwnNewMessage(streamElement) {
+    if (streamElement.getAttribute("action") !== "append" || streamElement.getAttribute("target") !== this.partId("messages")) return false
+    const message = streamElement.templateContent.querySelector("[data-message-id]")
+    return Boolean(message) && Number(message.dataset.messageUserIdValue) === this.userIdValue
   }
 
   // The three streams a page of older messages arrives in: the messages
@@ -421,17 +428,55 @@ export default class extends Controller {
 
     this.stopTyping()
 
+    // The message leaves the box at once, and shows as being sent where it will be,
+    // instead of sitting in the box until the server answers (a phone's network).
+    // Only once Turbo has read the form: emptied before that, it would send nothing.
+    const html = editor?.getHTML()
+    const text = editor?.getText().trim()
+    event.target.addEventListener("turbo:submit-start", () => {
+      if (hasText) this.#richTextInput?.clear()
+      this.#showSending(text || "")
+    }, { once: true })
+
     event.target.addEventListener("turbo:submit-end", (e) => {
       if (e.detail.success) {
-        const richTextInput = this.element.querySelector("[data-controller='rich-text-input']")
-        const controller = this.application.getControllerForElementAndIdentifier(richTextInput, "rich-text-input")
-        if (controller) controller.clear()
         this.clearFiles()
         this.cancelReply()
         // Their own message always shows, wherever they were reading
         this.scrollToBottom()
+        // Normally the message itself has arrived by now and took its place
+        setTimeout(() => this.#sent(), 3000)
+      } else {
+        this.#sent()
+        if (hasText && html) this.#editor?.commands.setContent(html)
       }
     }, { once: true })
+  }
+
+  get #richTextInput() {
+    const element = this.element.querySelector("[data-controller='rich-text-input']")
+    return element && this.application.getControllerForElementAndIdentifier(element, "rich-text-input")
+  }
+
+  #showSending(text) {
+    this.#sent()
+    const list = this.element.querySelector(`#${this.partId("messages")}`)
+    if (!list) return
+    const sending = document.createElement("div")
+    sending.className = "chat-sending"
+    sending.dataset.chatSending = ""
+    sending.textContent = text || "Sending files…"
+    const label = document.createElement("span")
+    label.className = "chat-sending-label"
+    label.textContent = "Sending…"
+    sending.append(label)
+    list.append(sending)
+    this.scrollToBottom()
+  }
+
+  // The message being sent has arrived (or won't): what stood in for it goes
+  #sent() {
+    this.element.querySelectorAll("[data-chat-sending]").forEach((element) => element.remove())
   }
 
   // The TipTap editor instance, not the <rhino-editor> element itself — the
