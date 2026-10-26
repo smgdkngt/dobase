@@ -8,3 +8,16 @@
     opacity: 1;
   }
 }
+
+/* A tap on a row (a conversation, a card, a todo, a file, a tool in the menu) shows
+   where it landed while the finger is down, as a phone's own lists do, instead of
+   the browser's grey flash */
+@media (pointer: coarse) {
+  :is([data-arrow-keys-target~="item"], .sidebar-tool-item) {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :is([data-arrow-keys-target~="item"], .sidebar-tool-item):active {
+    background-color: var(--color-background-tertiary);
+  }
+}
