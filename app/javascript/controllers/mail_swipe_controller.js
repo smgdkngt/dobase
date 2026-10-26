@@ -3,6 +3,7 @@ import { api } from "services/api"
 import { showFlash } from "services/flash"
 import { play } from "services/sound"
 import { gesture, done, DOING_DISTANCE } from "services/swipe"
+import { visitPage } from "services/tile"
 
 // On a phone a conversation in the list is archived by swiping it to the left, as in a
 // phone's own mail app. The row goes at once; when the server refuses, it comes back.
@@ -21,6 +22,7 @@ export default class extends Controller {
   }
 
   disconnect() {
+    clearTimeout(this.catchingUp)
     this.element.removeEventListener("touchstart", this._start)
     this.element.removeEventListener("touchmove", this._move)
     this.element.removeEventListener("touchend", this._end)
@@ -69,6 +71,16 @@ export default class extends Controller {
     }
   }
 
+  // The folder's count and the page around the list follow once nothing is being
+  // swiped any more: a few rows swiped one after another are one drawing
+  catchUp() {
+    clearTimeout(this.catchingUp)
+    this.catchingUp = setTimeout(() => {
+      if (this.swipe || this.element.querySelector("[data-swiped-away]:not([data-gone])")) return this.catchUp()
+      visitPage(this.element)
+    }, 1200)
+  }
+
   swallowClick(event) {
     if (!this.swallowNextClick) return
     this.swallowNextClick = false
@@ -87,6 +99,7 @@ export default class extends Controller {
       row.dataset.gone = ""
       row.style.height = ""
       setTimeout(() => row.remove(), 450)
+      this.catchUp()
     } else {
       delete row.dataset.swipedAway
       row.style.removeProperty("--swipe")

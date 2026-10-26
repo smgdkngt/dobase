@@ -11,6 +11,10 @@ listenForSounds()
 // A dialog on a phone is a sheet, pulled down to close (services/sheet.js)
 listenForSheetPulls(document)
 
+// The bar at the top shows sooner than Turbo's half second: on a phone's network a
+// tap that seems to do nothing for that long gets tapped again
+Turbo.config.drive.progressBarDelay = 150
+
 // Track Turbo navigation state for system test reliability
 document.addEventListener("turbo:load", () => {
   document.documentElement.removeAttribute("data-turbo-not-loaded")

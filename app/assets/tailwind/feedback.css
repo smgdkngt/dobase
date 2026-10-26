@@ -1,0 +1,16 @@
+/* That something is on its way (unlayered: Turbo puts its own bar's style in the page).
+
+   Turbo's bar shows when a page takes a moment; it is the theme's accent, not
+   Turbo's own blue. */
+.turbo-progress-bar {
+  height: 2px;
+  background-color: var(--color-accent-solid);
+}
+
+/* A form that is being sent says so at once, where it was pressed: on a phone's
+   network the answer can take a moment, and a button that looks the same as
+   before invites a second press */
+form[aria-busy="true"] :is(button, input)[type="submit"] {
+  opacity: 0.6;
+  cursor: progress;
+}
