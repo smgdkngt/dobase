@@ -85,6 +85,13 @@
   }
 }
 
+/* A box a finger can hit */
+@media (pointer: coarse) {
+  .todo-checkbox {
+    @apply w-6 h-6 rounded-[0.3125rem];
+  }
+}
+
 /* Always show drag handle on touch devices */
 @media (hover: none) {
   .todo-drag-handle {
