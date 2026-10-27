@@ -93,7 +93,10 @@ export function reloadPage(element) {
  */
 export function visitPage(element, url = pageAddress(element)) {
   const tile = tileOf(element)
-  if (!tile) return void Turbo.visit(url.toString(), { action: "replace" })
+  if (!tile) {
+    if (sameAddress(url, window.location)) holdStill()
+    return void Turbo.visit(url.toString(), { action: "replace" })
+  }
 
   const to = new URL(url, window.location.origin)
   const path = to.pathname + to.search
@@ -101,4 +104,28 @@ export function visitPage(element, url = pageAddress(element)) {
   // (the same address again loads nothing by itself; the frame has it as a path or
   // in full, and a reload is what lays the new page over the old one)
   here.pathname + here.search === path ? /** @type {any} */ (tile).reload() : tile.setAttribute("src", path)
+}
+
+/**
+ * @param {URL | Location | string} one
+ * @param {URL | Location | string} other
+ * @returns {boolean}
+ */
+function sameAddress(one, other) {
+  const a = new URL(one.toString(), window.location.origin)
+  const b = new URL(other.toString(), window.location.origin)
+  return a.pathname + a.search === b.pathname + b.search
+}
+
+// A page drawn again where it is (a morph) goes without the view transition a visit
+// has: nothing moves, and while a transition runs every tap lands on the transition
+// instead of the page (a mail tapped just after another was swiped away was lost).
+// Turbo asks the page's head whether it wants one; the page it draws puts the tag back.
+function holdStill() {
+  const tag = document.head.querySelector('meta[name="view-transition"]')
+  if (!tag) return
+  tag.remove()
+  const putBack = () => { if (!document.head.querySelector('meta[name="view-transition"]')) document.head.append(tag) }
+  document.addEventListener("turbo:load", putBack, { once: true })
+  document.addEventListener("turbo:fetch-request-error", putBack, { once: true })
 }

@@ -50,6 +50,24 @@ class LiveUpdatesTest < ApplicationSystemTestCase
     assert_same_page
   end
 
+  test "a page drawn again where it is does so without a view transition, which would hold every tap" do
+    tool = tools(:my_todos)
+    open_live tool_todo_path(tool)
+    page.execute_script(<<~JS)
+      window.transitions = 0
+      const start = document.startViewTransition?.bind(document)
+      if (start) document.startViewTransition = (...args) => { window.transitions++; return start(...args) }
+    JS
+
+    created = through_the_api :post, todo_list_items_path(todo_lists(:main)), item: { title: "From a terminal" }
+    assert_selector "#todo-item-#{created["id"]}", text: "From a terminal"
+
+    assert_equal 0, page.evaluate_script("window.transitions")
+    assert page.evaluate_script("Boolean(document.head.querySelector('meta[name=\"view-transition\"]'))"),
+      "The next visit lost its view transition"
+    assert_same_page
+  end
+
   test "a files tool shows a folder that was made and a file that was renamed elsewhere" do
     tool = tools(:my_files)
     open_live tool_files_path(tool)
