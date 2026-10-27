@@ -52,9 +52,10 @@ export default class extends Controller {
 
   // Pulled down on a phone (services/pull_refresh.js): new mail from the server, which
   // draws the page again when it is in
-  pulled(event) {
+  async pulled(event) {
     event.preventDefault()
-    this.sync()
+    await this.sync()
+    this.dispatch("done", { prefix: "pull-to-refresh" })
   }
 
   async sync() {

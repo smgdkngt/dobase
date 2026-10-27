@@ -3,8 +3,9 @@
 // browser gesture for it: this is the one way to say "show me what is there now".
 //
 // What is pulled is told first (a cancelable "pull-to-refresh" event that bubbles):
-// the mailbox asks its server for new mail instead. Otherwise the page is drawn again
-// where it is (services/tile.js#visitPage, a morph).
+// the mailbox asks its server for new mail instead, and says "pull-to-refresh:done"
+// when it has its answer. Otherwise the page is drawn again where it is
+// (services/tile.js#visitPage, a morph).
 
 import { visitPage } from "services/tile"
 import { pullsDown } from "services/sheet"
@@ -93,6 +94,7 @@ export function listen(document) {
       const done = () => hide(indicatorShown)
       document.addEventListener("turbo:render", done, { once: true })
       document.addEventListener("turbo:frame-render", done, { once: true })
+      document.addEventListener("pull-to-refresh:done", done, { once: true })
       setTimeout(done, 4000)
     } else {
       hide(indicatorShown)
