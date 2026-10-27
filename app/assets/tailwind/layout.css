@@ -562,6 +562,22 @@ body[data-workspace] {
   }
 }
 
+/* Typing on a phone, the keyboard takes the bottom of the screen and the bottom bar would ride
+   on top of it: it steps aside until the field is left, so what is being written has the room.
+   Also while the form around the field has the keyboard: a tap on its Send button takes the focus
+   first, and a bar coming back under the finger would move the button away before the tap ends. */
+@media (max-width: 1023px) and (pointer: coarse) {
+  :root:has(:is(textarea, [contenteditable="true"], input:is(:not([type]), [type="text"], [type="search"], [type="email"], [type="url"], [type="password"], [type="number"], [type="tel"])):focus),
+  :root:has(form:focus-within :is(textarea, [contenteditable="true"], input:is(:not([type]), [type="text"], [type="search"], [type="email"], [type="url"], [type="password"], [type="number"], [type="tel"]))) {
+    --mobile-bar-clearance: env(safe-area-inset-bottom);
+
+    .mobile-bottom-bar,
+    .demo-banner {
+      @apply hidden!;
+    }
+  }
+}
+
 /* PWA standalone mode: flush bottom bar like native iOS tab bar */
 /* Use vh instead of dvh: on iOS, dvh and whatever is fixed to the bottom can stop the
    height of the status bar short of the screen (see body below); vh is the whole screen */

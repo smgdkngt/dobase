@@ -389,6 +389,28 @@ class ChatTest < ApplicationSystemTestCase
     sleep 0.3
   end
 
+  test "on a touch screen the bottom bar steps aside while a message is written, also while Send has the focus" do
+    page.driver.browser.manage.window.resize_to(500, 900)
+    page.driver.browser.execute_cdp("Emulation.setTouchEmulationEnabled", enabled: true, maxTouchPoints: 1)
+    visit tool_chat_path(@tool)
+    wait_for_stimulus "chat"
+    assert page.evaluate_script("matchMedia('(pointer: coarse)').matches"), "touch isn't emulated"
+    bar = "getComputedStyle(document.querySelector('.mobile-bottom-bar')).display"
+    assert_equal "flex", page.evaluate_script(bar)
+
+    find("form rhino-editor .ProseMirror").click
+    assert_equal "none", page.evaluate_script(bar)
+
+    page.execute_script("document.querySelector('form.chat-form button[type=submit], button[type=submit][title=\"Send message\"]').focus()")
+    assert_equal "none", page.evaluate_script(bar)
+
+    page.execute_script("document.activeElement.blur()")
+    assert_equal "flex", page.evaluate_script(bar)
+  ensure
+    page.driver.browser.execute_cdp("Emulation.setTouchEmulationEnabled", enabled: false)
+    page.driver.browser.manage.window.resize_to(1400, 1400)
+  end
+
   test "on a phone a message's text runs the width of the row, and a closed emoji picker takes no taps" do
     @tool.chat.messages.create!(user: @user, body: "<p>#{"A long enough message to wrap on a phone. " * 4}</p>")
     page.driver.browser.manage.window.resize_to(390, 844)
