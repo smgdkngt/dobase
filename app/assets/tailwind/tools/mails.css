@@ -525,6 +525,11 @@ rhino-editor.compose-editor .trix-content {
   .compose-field-toggle {
     @apply min-h-11 px-2.5;
   }
+
+  /* The subject takes a tap anywhere in its row, not only on its line of text */
+  .compose-subject {
+    @apply self-stretch -my-1.5;
+  }
 }
 
 /* The toast above the bottom bar of an open mail, as on wide screens */
