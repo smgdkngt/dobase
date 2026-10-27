@@ -4,7 +4,7 @@ json.id @attachment.id
 json.name @preview.name
 json.(@preview, :content_type, :byte_size)
 json.kind kind
-json.download_url rails_blob_url(@preview.blob, disposition: "attachment")
+json.download_url file_download_url(@tool, @attachment)
 
 # What the app reads out of the file itself; a picture, a pdf, sound and video are downloaded
 case kind

@@ -1,5 +1,5 @@
 <% content_for(:title) { "#{@preview.name} - #{@tool.name} - #{app_name}" } %>
-<% download_path = rails_blob_path(@preview.blob, disposition: "attachment") %>
+<% download_path = file_download_path(@tool, @attachment) %>
 
 <%# What the viewer over the page shows (shared/file_viewer): the frame is its whole contents %>
 <%= turbo_frame_tag "file_viewer", class: "file-viewer-frame" do %>

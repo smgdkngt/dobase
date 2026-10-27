@@ -19,7 +19,7 @@ class FilePreviewLinksTest < ActionDispatch::IntegrationTest
   # A link to the file in the viewer, and one that downloads it
   def assert_opens_and_downloads(tool, file)
     assert_select "a[href='#{tool_file_preview_path(tool, file.attachment)}'][data-turbo-frame='file_viewer']"
-    assert_select "a.file-download-link[download][href*='disposition=attachment']"
+    assert_select "a.file-download-link[download][href*='/file_downloads/']"
   end
 
   test "every page has the viewer" do
@@ -89,7 +89,7 @@ class FilePreviewLinksTest < ActionDispatch::IntegrationTest
     message.files.each do |file|
       assert_select "a[href='#{tool_file_preview_path(tool, file)}'][data-turbo-frame='file_viewer']"
     end
-    assert_select "a.file-download-link[download][href*='disposition=attachment']", 1
+    assert_select "a.file-download-link[download][href*='/file_downloads/']", 1
   end
 
   test "the API says where a file is read" do

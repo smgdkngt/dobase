@@ -35,7 +35,7 @@ class Tools::FilePreviewsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "turbo-frame#file_viewer" do
       assert_select "h2", "budget.xlsx"
-      assert_select "a[href*='disposition=attachment']", text: /Download/
+      assert_select "a[href='#{tool_file_download_path(tools(:my_mail), attachment)}']", text: /Download/
       assert_select ".sheet-preview-name", "Budget"
       assert_select "table.cell-table td", "2026-10-09"
       assert_select "table.cell-table td", "42.5"
@@ -313,7 +313,7 @@ class Tools::FilePreviewsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "table", body["kind"]
     assert_equal %w[Budget Notes], body["sheets"].map { |sheet| sheet["name"] }
     assert_equal [ "", "Total", "42.5" ], body["sheets"].first["rows"].last
-    assert_match %r{/rails/active_storage/}, body["download_url"]
+    assert_equal tool_file_download_url(tools(:my_mail), attachment), body["download_url"]
   end
 
   test "the API gives a document's blocks and a text file's text" do

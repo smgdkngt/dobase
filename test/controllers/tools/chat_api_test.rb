@@ -67,7 +67,7 @@ module Tools
       assert_equal "notes.txt", message.dig("files", 0, "filename")
       assert_equal "text/plain", message.dig("files", 0, "content_type")
       assert_equal 5, message.dig("files", 0, "byte_size")
-      assert message.dig("files", 0, "download_url").start_with?("http://www.example.com/rails/active_storage/")
+      assert message.dig("files", 0, "download_url").start_with?("http://www.example.com/tools/#{@tool.id}/file_downloads/")
     end
 
     test "chat pages back through older messages" do
@@ -225,7 +225,7 @@ module Tools
       assert_equal first.id, message.dig("reply_to", "id")
       assert_equal %w[front.png back.png], message["files"].map { |file| file["filename"] }
       assert_equal %w[image/png image/png], message["files"].map { |file| file["content_type"] }
-      assert message.dig("files", 0, "download_url").start_with?("http://www.example.com/rails/active_storage/")
+      assert message.dig("files", 0, "download_url").start_with?("http://www.example.com/tools/#{@tool.id}/file_downloads/")
       assert_equal @user, @chat.messages.find(message["id"]).user
     end
 

@@ -88,7 +88,7 @@
               <span class="text-sm text-text-primary"><%= file.filename.to_s %></span>
               <span class="text-xs text-text-tertiary"><%= human_file_size(file.byte_size) %></span>
             <% end %>
-            <%= render "components/file_download_link", file: file %>
+            <%= render "components/file_download_link", tool: tool, file: file %>
           </span>
         <% end %>
       </div>

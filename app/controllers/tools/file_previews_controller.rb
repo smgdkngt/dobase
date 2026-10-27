@@ -15,24 +15,10 @@ module Tools
 
     def show
       attachment = ActiveStorage::Attachment.includes(:blob).find(params[:id])
-      raise ActiveRecord::RecordNotFound, "File #{attachment.id} is not in this tool" unless tool_of(attachment.record) == @tool
+      raise ActiveRecord::RecordNotFound, "File #{attachment.id} is not in this tool" unless FileOfATool.tool_of(attachment.record) == @tool
 
       @attachment = attachment
       @preview = FilePreview.new(attachment.blob, name: (attachment.record.name if attachment.record.is_a?(::Files::Item)))
-    end
-
-    private
-
-    # The tool something with files belongs to. A kind of record that isn't listed here
-    # (someone's avatar, a document's pictures) is in no tool, so is never shown.
-    def tool_of(record)
-      case record
-      when ::Files::Item then record.tool
-      when ::Mails::Attachment then record.message.account.tool
-      when ::Boards::Attachment then record.card.column.board.tool
-      when ::Todos::Attachment then record.item.list.tool
-      when ::Chats::Message then record.chat.tool
-      end
     end
   end
 end

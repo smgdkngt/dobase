@@ -92,6 +92,8 @@ Rails.application.routes.draw do
       resource :visit, only: :create
       # A file of any tool shown in the app: the id is its Active Storage attachment's
       resources :file_previews, only: :show
+      # The same file downloaded, with the same check (Tools::FileDownloadsController)
+      resources :file_downloads, only: :show
 
       resource :board, only: :show do
         scope module: :boards do

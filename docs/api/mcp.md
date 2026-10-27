@@ -110,6 +110,6 @@ with; a column, list or calendar is its id or its name; a due date is
 
 Mail is written as a draft first and sent only by `mail_send`, so what goes out
 is always something that could be shown first. Downloading a file as it is
-stays a plain HTTP request (`download_url`).
+stays a plain HTTP request (`download_url`), with the same token.
 
 Reading mail, a chat or notifications through MCP doesn't mark them read.

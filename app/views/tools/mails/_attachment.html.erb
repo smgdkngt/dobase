@@ -11,5 +11,5 @@
     <span><%= attachment.filename.truncate(25) %></span>
     <span class="text-xs text-text-tertiary"><%= attachment.human_readable_size %></span>
   <% end %>
-  <%= render "components/file_download_link", file: attachment.file, name: attachment.filename %>
+  <%= render "components/file_download_link", tool: @tool, file: attachment.file, name: attachment.filename %>
 </span>

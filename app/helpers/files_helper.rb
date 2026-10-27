@@ -49,6 +49,15 @@ module FilesHelper
     tool_file_preview_url(tool, file.respond_to?(:attachment) ? file.attachment : file, **options)
   end
 
+  # Where it is downloaded, behind the same check (Tools::FileDownloadsController)
+  def file_download_path(tool, file)
+    tool_file_download_path(tool, file.respond_to?(:attachment) ? file.attachment : file)
+  end
+
+  def file_download_url(tool, file)
+    tool_file_download_url(tool, file.respond_to?(:attachment) ? file.attachment : file)
+  end
+
   # A link that opens a file in the viewer over the page (shared/file_viewer) instead of
   # going anywhere
   def link_to_file_preview(tool, file, **options, &block)
