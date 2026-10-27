@@ -45,7 +45,7 @@ module Chats
 
     scope :recent, -> { order(created_at: :desc, id: :desc) }
     scope :chronological, -> { order(created_at: :asc) }
-    scope :with_associations, -> { includes(:user, :rich_text_body, files_attachments: :blob, reactions: :user, reply_to: [ :user, :rich_text_body ]) }
+    scope :with_associations, -> { includes({ user: { avatar_attachment: :blob } }, :rich_text_body, files_attachments: :blob, reactions: :user, reply_to: [ :user, :rich_text_body ]) }
     # Messages sent before `message`, to page back through a chat.
     scope :before, ->(message) { where(created_at: ...message.created_at).or(where(created_at: message.created_at, id: ...message.id)) }
 

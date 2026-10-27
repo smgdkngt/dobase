@@ -177,4 +177,19 @@ class Tools::Chats::MessagesControllerTest < ActionDispatch::IntegrationTest
   def add_messages(count)
     count.times.map { |index| @chat.messages.create!(user: @user, body: "<p>Message #{index}</p>") }
   end
+
+  test "the chat page doesn't ask for the chat or a writer's picture once per message" do
+    8.times { |i| @chat.messages.create!(user: i.even? ? @user : users(:two), body: "<p>Message #{i}</p>") }
+
+    chats = avatars = 0
+    counter = ->(*, payload) do
+      chats += 1 if payload[:sql].include?('FROM "chats"')
+      avatars += 1 if payload[:sql].include?("'avatar'")
+    end
+    ActiveSupport::Notifications.subscribed(counter, "sql.active_record") { get tool_chat_path(@tool) }
+
+    assert_response :success
+    assert_operator chats, :<=, 2, "the chat was asked for #{chats} times"
+    assert_operator avatars, :<=, 6, "pictures were asked for #{avatars} times"
+  end
 end

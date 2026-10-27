@@ -12,7 +12,7 @@ module Tools
       respond_to do |format|
         format.html do
           set_page_of_messages
-          @participants = @chat.participants
+          @participants = @chat.participants.with_attached_avatar.to_a
           @chat.mark_as_read_for!(current_user)
           current_user.read_notifications_about!(records: [ @tool ], urls: [ tool_chat_path(@tool) ],
             types: %w[ChatMessageNotifier MentionNotifier])

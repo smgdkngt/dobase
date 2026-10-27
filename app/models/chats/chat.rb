@@ -16,7 +16,7 @@ module Chats
 
     belongs_to :tool
     has_many :read_receipts, class_name: "Chats::ReadReceipt", foreign_key: "chat_id", dependent: :destroy
-    has_many :messages, class_name: "Chats::Message", foreign_key: "chat_id", dependent: :destroy
+    has_many :messages, class_name: "Chats::Message", foreign_key: "chat_id", inverse_of: :chat, dependent: :destroy
 
     validates :tool_id, uniqueness: { message: "already has a chat" }
 

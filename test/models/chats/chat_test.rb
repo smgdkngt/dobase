@@ -62,5 +62,19 @@ module Chats
 
       assert_equal 1, @chat.unread_count_for(@user)
     end
+
+    test "a page of messages draws without asking for each message's chat, tool or writer's picture again" do
+      3.times { |i| @chat.messages.create!(user: i.even? ? @user : @other, body: "<p>Message #{i}</p>") }
+      chat = Chats::Chat.find(@chat.id)
+      chat.tool
+
+      messages, = chat.page_of_messages
+      assert_no_queries do
+        messages.each do |message|
+          message.chat.tool
+          message.user.avatar.attached?
+        end
+      end
+    end
   end
 end

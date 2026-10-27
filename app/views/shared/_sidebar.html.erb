@@ -71,6 +71,8 @@
            data-sortable-url-value="<%= sidebar_positions_path %>"
            data-sortable-param-name-value="group_ids"
            data-sortable-enabled-value="false">
+        <%# Asked once, not once a tool: the sidebar is on every page %>
+        <% accessible_tool_ids = current_user.collaborations.pluck(:tool_id).to_set %>
         <% current_user.sidebar_groups.ordered.includes(memberships: { tool: [:tool_type, :mail_account] }).each do |group| %>
           <div class="sidebar-group mt-2" data-sort-id="<%= group.id %>">
             <%# Group header %>
@@ -127,7 +129,7 @@
                  data-sortable-enabled-value="false">
               <% group.memberships.each do |membership| %>
                 <% instance = membership.tool %>
-                <% next unless instance&.accessible_by?(current_user) %>
+                <% next unless instance && accessible_tool_ids.include?(instance.id) %>
                 <%= render "shared/sidebar_tool_item", instance: instance, unread_tool_ids: unread_tool_ids %>
               <% end %>
             </div>
