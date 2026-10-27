@@ -264,14 +264,40 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
   end
 
   # On a host with a spam filter and webmail both, the filter's folder is the one mail lands in
-  test "a second spam folder beside the junk folder is one of the account's own, and synced" do
-    server = FakeImapServer.new(folders: [ "INBOX", "INBOX.Junk", "INBOX.spam" ])
+  test "of several junk folders the one with mail in it is Junk, and the empty others aren't listed" do
+    server = FakeImapServer.new(folders: [ "INBOX", "INBOX.Junk", "INBOX.spam" ], counts: { "INBOX.spam" => 3 })
+    connect_to_imap(server) { @service.sync_folders }
+    assert_equal %w[INBOX Junk], JSON.parse(@account.reload.synced_folders)
+
+    connect_to_imap(server) { ImapSyncService.new(@account).sync_folder("Junk") }
+    assert_equal [ "INBOX.spam" ], server.selected
+  end
+
+  # As a webhost's Dovecot has them: "Spam" and "Junk" marked, the spam filter's "INBOX.spam" not
+  test "of several empty junk folders the one the server marks is Junk, and one it won't open counts for nothing" do
+    folders = [ "INBOX", [ "Spam", :Junk ], "INBOX.spam", [ "Junk", :Junk ] ]
+    server = FakeImapServer.new(folders: folders, counts: { "Junk" => nil })
+    connect_to_imap(server) do
+      @service.sync_folders
+      @service.sync_folder("Junk")
+    end
+    assert_equal %w[INBOX Junk], JSON.parse(@account.reload.synced_folders)
+    assert_empty @account.custom_folders
+    assert_equal [ "Spam" ], server.selected
+
+    # Once the spam filter puts mail in its folder, that is the junk folder
+    server = FakeImapServer.new(folders: folders, counts: { "Junk" => nil, "INBOX.spam" => 2 })
+    connect_to_imap(server) { ImapSyncService.new(@account).sync_folder("Junk") }
+    assert_equal [ "INBOX.spam" ], server.selected
+  end
+
+  test "a second junk folder with mail in it stays one of the account's own" do
+    server = FakeImapServer.new(folders: [ "INBOX", [ "Junk", :Junk ], "INBOX.spam" ], counts: { "Junk" => 5, "INBOX.spam" => 2 })
 
     connect_to_imap(server) { @service.sync_folders }
 
-    assert_equal %w[INBOX INBOX.Junk Junk], JSON.parse(@account.reload.synced_folders)
-    assert_equal [ "INBOX.Junk" ], @account.custom_folders
-    assert_equal [ "INBOX.Junk", "Junk" ], @account.other_folders_to_sync
+    assert_equal %w[INBOX Junk INBOX.spam], JSON.parse(@account.reload.synced_folders)
+    assert_equal [ "INBOX.spam" ], @account.custom_folders
   end
 
   test "the trash and junk are synced by the server's names for them" do
