@@ -57,4 +57,9 @@
   .file-page-header > a:first-child {
     @apply min-w-11 min-h-11;
   }
+
+  /* The dots in a tile's corner: a finger's size to press, drawn where they were */
+  .file-grid-more {
+    @apply inline-flex items-center justify-center min-w-10 min-h-10 -m-2;
+  }
 }

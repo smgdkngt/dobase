@@ -90,6 +90,11 @@
   .todo-checkbox {
     @apply w-6 h-6 rounded-[0.3125rem];
   }
+
+  .todo-add-item > button,
+  .todo-completed-toggle {
+    @apply min-h-11;
+  }
 }
 
 /* Always show drag handle on touch devices */

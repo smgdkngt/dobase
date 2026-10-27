@@ -43,7 +43,7 @@
         <%= render "shared/icon", name: "link", size: 14, label: "Shared" %>
       </span>
     <% end %>
-    <button type="button" class="<%= 'touch-target' unless view_mode == 'grid' %> p-1 rounded text-text-tertiary hover:bg-background-tertiary hover:text-text-primary transition-all <%= 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100' if view_mode == 'grid' %>"
+    <button type="button" class="<%= view_mode == 'grid' ? 'file-grid-more' : 'touch-target' %> p-1 rounded text-text-tertiary hover:bg-background-tertiary hover:text-text-primary transition-all <%= 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100' if view_mode == 'grid' %>"
             aria-label="More actions for <%= folder.name %>"
             aria-haspopup="menu"
             data-action="click->file-selection#selectForMenu click->file-context-menu#showFromButton:stop">
