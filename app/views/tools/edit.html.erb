@@ -166,7 +166,7 @@
             <%# Account Details %>
             <div class="mb-5">
               <h3 class="text-sm font-semibold text-text-primary mb-3">Account Details</h3>
-              <div class="grid grid-cols-2 gap-3">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <%= f.label :email_address, "Email Address", class: "label" %>
                   <%= f.email_field :email_address, class: "input", required: true %>
@@ -181,7 +181,7 @@
             <%# Credentials %>
             <div class="mb-5">
               <h3 class="text-sm font-semibold text-text-primary mb-3">Credentials</h3>
-              <div class="grid grid-cols-2 gap-3">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <%= f.label :username, "Username", class: "label" %>
                   <%= f.text_field :username, class: "input", required: true %>
@@ -319,7 +319,7 @@
                   <label for="calendars_account_caldav_url" class="label">CalDAV URL</label>
                   <%= f.text_field :caldav_url, class: "input", required: true %>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label for="calendars_account_username" class="label">Username</label>
                     <%= f.text_field :username, class: "input", required: true %>
