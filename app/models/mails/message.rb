@@ -79,6 +79,18 @@ module Mails
       to_addresses_list + cc_addresses_list + bcc_addresses_list
     end
 
+    # A draft about something dropped on the mail tool (Dropped): its title, a link back
+    # to it with a few of its words, and its files
+    def take(dropped, base_url:)
+      self.subject = dropped.title
+      self.body_html = dropped.html(base_url)
+      dropped.blobs.each do |blob|
+        attachments.build(filename: blob.filename.to_s, content_type: blob.content_type, file_size: blob.byte_size).file.attach(blob)
+      end
+      self.has_attachments = attachments.any?
+      self
+    end
+
     # Attachments of other mail, like the one a draft forwards. The copies share the
     # stored file with the original.
     def copy_attachments(originals)

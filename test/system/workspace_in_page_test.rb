@@ -44,6 +44,17 @@ class WorkspaceInPageTest < ApplicationSystemTestCase
     assert page.evaluate_script("window.pageBefore === document.querySelector('.workspace-bar')"), "The page around the tiles was replaced"
   end
 
+  test "a todo's menu works in its tile, and the tile stays where it is" do
+    item = todo_items(:pending_one)
+
+    within(TODOS) { find("#todo-item-#{item.id}").right_click }
+    within(TODOS) { find(".context-menu [role=menuitem]", text: "Move to Backlog").click }
+
+    assert_db_change(-> { item.reload.list == todo_lists(:backlog) })
+    assert_selector "#{TODOS} #todo-item-#{item.id}"
+    assert_current_path workspace_path
+  end
+
   test "a todo is added from the tile, by its key too" do
     find(TODOS).click
     find("#{TODOS} .tile-page").send_keys("t")

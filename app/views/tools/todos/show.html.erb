@@ -57,7 +57,7 @@
              <% end %>>
           <%= render partial: "tools/todos/list",
                 collection: @lists, as: :list,
-                locals: { tool: @tool, reorder_mode: reorder_mode, assignee_filter: @assignee_filter } %>
+                locals: { tool: @tool, lists: @lists, reorder_mode: reorder_mode, assignee_filter: @assignee_filter } %>
         </div>
       </div>
     <% end %>

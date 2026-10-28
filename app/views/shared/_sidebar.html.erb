@@ -50,6 +50,7 @@
        <%= tag.attributes(data: { controller: "sidebar-presence", sidebar_presence_user_id_value: current_user.id }) if defined?(current_user) && current_user %>>
     <% if defined?(current_user) && current_user %>
       <% unread_tool_ids = Tool.unread_tool_ids_for(current_user) %>
+      <% muted_tool_ids = current_user.collaborations.where.not(muted_at: nil).pluck(:tool_id).to_set %>
       <%# ── Ungrouped Tools ── %>
       <% ungrouped = current_user.ungrouped_tools %>
       <% if ungrouped.any? || current_user.sidebar_groups.any? %>
@@ -60,7 +61,7 @@
              data-sortable-enabled-value="false"
              data-group-id="ungrouped">
           <% ungrouped.each do |instance| %>
-            <%= render "shared/sidebar_tool_item", instance: instance, unread_tool_ids: unread_tool_ids %>
+            <%= render "shared/sidebar_tool_item", instance: instance, unread_tool_ids: unread_tool_ids, muted_tool_ids: muted_tool_ids %>
           <% end %>
         </div>
       <% end %>
@@ -130,7 +131,7 @@
               <% group.memberships.each do |membership| %>
                 <% instance = membership.tool %>
                 <% next unless instance && accessible_tool_ids.include?(instance.id) %>
-                <%= render "shared/sidebar_tool_item", instance: instance, unread_tool_ids: unread_tool_ids %>
+                <%= render "shared/sidebar_tool_item", instance: instance, unread_tool_ids: unread_tool_ids, muted_tool_ids: muted_tool_ids %>
               <% end %>
             </div>
           </div>

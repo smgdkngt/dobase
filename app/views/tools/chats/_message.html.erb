@@ -32,7 +32,15 @@
      data-reactions-url-value="<%= tool_chat_message_reactions_path(tool, message) %>"
      data-message-id="<%= message.id %>"
      data-message-author="<%= poster_name(message) %>"
-     data-message-content="<%= truncate(message.body.to_plain_text, length: 100) %>">
+     data-message-content="<%= truncate(message.body.to_plain_text, length: 100) %>"
+     data-context-menu>
+  <%= render "components/context_menu", label: "Message from #{poster_name(message)}" do %>
+    <%= render "components/menu_item", text: "Reply", icon: "reply", data: { context_menu_press: "reply" } %>
+    <%= render "components/menu_item", text: "Add a reaction", icon: "smile-plus", data: { context_menu_press: "react" } %>
+    <%= render "components/menu_item", text: "Copy text", icon: "copy", data: { copy: message.body.to_plain_text } %>
+    <%= render "components/menu_item", text: "Edit", icon: "edit-2", data: { context_menu_press: "edit" } %>
+    <%= render "components/menu_item", text: "Delete", icon: "trash-2", variant: :danger, data: { context_menu_press: "delete" } %>
+  <% end %>
 
   <!-- Avatar column -->
   <div class="chat-message-avatar flex-shrink-0 w-9 sm:w-11">
@@ -105,6 +113,7 @@
               title="Add a reaction"
               aria-label="Add a reaction"
               popovertarget="<%= dom_id(message, :react) %>"
+              data-context-menu-action="react"
               style="anchor-name: --<%= dom_id(message, :react) %>">
         <%= render "shared/icon", name: "smile-plus", size: 16 %>
       </button>
@@ -112,14 +121,14 @@
             icon: "reply",
             title: "Reply",
             group: :middle,
-            data: { action: "click->chat#startReply", message_id: message.id } %>
+            data: { action: "click->chat#startReply", message_id: message.id, context_menu_action: "reply" } %>
       <div class="hidden" data-message-edit>
         <%= render "components/icon_button",
               icon: "edit-2",
               title: "Edit",
               group: :middle,
               href: edit_tool_chat_message_path(tool, message),
-              data: { turbo_frame: dom_id(message, :body) } %>
+              data: { turbo_frame: dom_id(message, :body), context_menu_action: "edit" } %>
       </div>
       <div class="hidden" data-message-delete>
         <%= render "components/icon_button",
@@ -130,7 +139,7 @@
               href: tool_chat_message_path(tool, message),
               method: :delete,
               turbo_confirm: "Delete this message?",
-              data: { turbo_confirm_button: "Delete" } %>
+              data: { turbo_confirm_button: "Delete", context_menu_action: "delete" } %>
       </div>
     </div>
   </div>

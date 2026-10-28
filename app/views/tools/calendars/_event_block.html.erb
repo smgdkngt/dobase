@@ -45,7 +45,10 @@
      tabindex="0"
      aria-label="<%= event.summary %>, <%= format_datetime(event.start_time) %>"
      data-arrow-keys-target="item"
+     data-context-menu
+     <%= tag.attributes(drag_attributes(event, tool: @tool)) %>
      data-action="click->calendar#showEvent">
+  <%= render "tools/calendars/event_menu", event: event %>
   <div class="<%= compact ? 'px-1.5 py-0.5' : 'p-1.5' %> h-full overflow-hidden">
     <% if compact %>
       <div class="text-xs truncate">

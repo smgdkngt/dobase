@@ -21,8 +21,9 @@ module Tools
           notify_card_moved if column != previous_column
 
           respond_to do |format|
-            # From the card's own column picker, inside its dialog: the card again
-            format.html { redirect_to tool_board_card_path(@tool, @card) }
+            # From the card's own column picker, inside its dialog: the card again.
+            # From its menu on the board: the board.
+            format.html { redirect_to params[:back] == "board" ? tool_board_path(@tool) : tool_board_card_path(@tool, @card) }
             format.json { render "tools/boards/cards/show" }
           end
         end

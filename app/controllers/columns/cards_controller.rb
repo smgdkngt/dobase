@@ -3,6 +3,7 @@
 module Columns
   class CardsController < ApplicationController
     include ToolAuthorization
+    include TakesDropped
 
     allow_access_tokens
 
@@ -12,7 +13,8 @@ module Columns
 
     def create
       position = @column.cards.maximum(:position).to_i + 1
-      @card = @column.cards.new(card_params.merge(position: position, created_by: current_user, updated_by: current_user))
+      @card = @column.cards.new((dropped ? {} : card_params).merge(position: position, created_by: current_user, updated_by: current_user))
+      @card.take(dropped, base_url: request.base_url) if dropped
 
       respond_to do |format|
         if @card.save

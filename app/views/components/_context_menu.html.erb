@@ -1,0 +1,22 @@
+<%#
+  Context menu component - what a right click on an item offers
+
+  The element it is rendered in says `data-context-menu`; context_menu_controller.js
+  (on <body>) shows this menu at the pointer on a right click, a long press, Shift+F10
+  or the menu key. Fill it with components/menu_item and components/menu_divider.
+  Nothing in it runs until it is shown: it is a <template>.
+
+  Required:
+    label: What the menu is about, for a screen reader ("Conversation", "Card")
+
+  Example (in the item's view):
+    tag.div data: { context_menu: true } do
+      ...
+      render "components/context_menu", label: "Card" do
+        render "components/menu_item", text: "Archive", icon: "archive", href: path, method: :post
+      end
+    end
+%>
+<%= tag.template data: { context_menu_items: true }, aria: { label: label } do %>
+  <%= yield %>
+<% end %>

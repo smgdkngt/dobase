@@ -4,6 +4,7 @@ module Tools
   module Mails
     class DraftsController < ApplicationController
       include ToolScoped
+      include TakesDropped
 
       allow_access_tokens
       before_action :set_mail_account
@@ -12,6 +13,8 @@ module Tools
       # POST /tools/:tool_id/mails/drafts
       def create
         @draft = @mail_account.new_draft(**draft_params)
+        # Something dragged onto the mail tool: a mail about it, its files attached
+        @draft.take(dropped, base_url: request.base_url) if dropped
         # A forward keeps the attachments of the mail it forwards, only from this account's own
         # mail. The pictures in a quote's text go along with the quote.
         if params[:forward_attachment_ids].present?

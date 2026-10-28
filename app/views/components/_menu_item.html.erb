@@ -1,0 +1,33 @@
+<%#
+  Menu item component - one entry of a menu (components/context_menu)
+
+  Required:
+    text: What it does
+
+  Options:
+    icon: Icon name
+    href: A link, or with method: a request (data-turbo-method)
+    method: :post, :patch, :delete
+    turbo_confirm: Asks first
+    variant: :danger
+    data: Data attributes; `copy:` copies that text instead of going anywhere
+    shortcut: The key that does the same, shown at the end ("e")
+%>
+<%
+  data = (local_assigns[:data] || {}).dup
+  data[:turbo_method] = local_assigns[:method] if local_assigns[:method]
+  data[:turbo_confirm] = turbo_confirm if local_assigns[:turbo_confirm]
+  data[:action] = [ data[:action], ("context-menu#copy" if data[:copy]) ].compact.join(" ").presence
+  classes = [ "dropdown-item context-menu-item", ("context-menu-item-danger" if local_assigns[:variant] == :danger) ].compact.join(" ")
+  html_options = { class: classes, role: "menuitem", aria: { keyshortcuts: local_assigns[:shortcut] }.compact.presence, data: data.compact }.compact
+  content = capture do
+%>
+  <%= render "shared/icon", name: icon, size: 15 if local_assigns[:icon] %>
+  <span class="flex-1 min-w-0 truncate"><%= text %></span>
+  <% if local_assigns[:shortcut] %><kbd class="context-menu-shortcut" aria-hidden="true"><%= shortcut %></kbd><% end %>
+<% end %>
+<% if local_assigns[:href] %>
+  <%= link_to content, href, **html_options %>
+<% else %>
+  <%= tag.button content, type: "button", **html_options %>
+<% end %>

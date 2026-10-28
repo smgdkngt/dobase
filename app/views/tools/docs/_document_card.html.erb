@@ -1,6 +1,7 @@
 <% if view_mode == "grid" %>
   <%# Grid card with preview %>
-  <div data-document-id="<%= document.id %>" data-presence-item="document:<%= document.id %>">
+  <div data-document-id="<%= document.id %>" data-presence-item="document:<%= document.id %>" data-context-menu <%= tag.attributes(drag_attributes(document, tool: document.tool)) %>>
+    <%= render "tools/docs/document_menu", document: document %>
     <%= link_to tool_docs_document_path(document.tool, document),
         data: { arrow_keys_target: "item" },
         class: "group flex flex-col h-full bg-surface border border-border-light rounded-lg overflow-hidden hover:border-accent hover:shadow-md hover:-translate-y-0.5 transition-all duration-150" do %>
@@ -35,7 +36,8 @@
   </div>
 <% else %>
   <%# List row %>
-  <div data-document-id="<%= document.id %>" data-presence-item="document:<%= document.id %>">
+  <div data-document-id="<%= document.id %>" data-presence-item="document:<%= document.id %>" data-context-menu <%= tag.attributes(drag_attributes(document, tool: document.tool)) %>>
+    <%= render "tools/docs/document_menu", document: document %>
     <%= link_to tool_docs_document_path(document.tool, document),
         data: { arrow_keys_target: "item" },
         class: "group flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-background-tertiary transition-colors duration-150" do %>

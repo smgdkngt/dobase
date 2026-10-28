@@ -90,6 +90,14 @@ module Chats
       files.reject { |f| f.content_type.start_with?("image/") && !f.content_type.include?("svg") }
     end
 
+
+    # A message about something dropped on the chat (Dropped): a link back to it with
+    # a few of its words, and its files
+    def take(dropped, base_url:)
+      self.body = dropped.html(base_url)
+      dropped.blobs.each { |blob| files.attach(blob) }
+      self
+    end
     private
 
     def strip_trailing_empty_paragraphs

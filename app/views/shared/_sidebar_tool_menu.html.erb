@@ -1,0 +1,9 @@
+<%# What a right click on a tool in the menu offers. Locals: instance, muted %>
+<%= render "components/context_menu", label: "Tool: #{instance.display_name}" do %>
+  <%= render "components/menu_item", text: "Open", icon: "eye", href: tool_path(instance) %>
+  <%= render "components/menu_item", text: "Settings", icon: "settings", data: { context_menu_press: "settings" } %>
+  <%= render "components/menu_item", text: muted ? "Unmute notifications" : "Mute notifications", icon: muted ? "bell" : "bell-off",
+        href: tool_mute_path(instance), method: muted ? :delete : :post %>
+  <%= render "components/menu_divider" %>
+  <%= render "components/menu_item", text: "Copy link", icon: "link", data: { copy: tool_url(instance) } %>
+<% end %>

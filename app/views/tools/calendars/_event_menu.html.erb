@@ -1,0 +1,10 @@
+<%# What a right click on an appointment offers. Locals: event %>
+<% tool = @tool || event.calendar.account.tool %>
+<%= render "components/context_menu", label: "Appointment: #{event.summary}" do %>
+  <%= render "components/menu_item", text: "Open", icon: "eye", href: tool_calendar_event_path(tool, event), data: { turbo_frame: "_top" } %>
+  <%= render "components/menu_item", text: "Edit", icon: "edit", href: edit_tool_calendar_event_path(tool, event), data: { turbo_frame: "_top" } %>
+  <%= render "components/menu_divider" %>
+  <%= render "components/menu_item", text: "Copy link", icon: "link", data: { copy: tool_calendar_event_url(tool, event) } %>
+  <%= render "components/menu_item", text: "Delete", icon: "trash-2", variant: :danger, href: tool_calendar_event_path(tool, event), method: :delete,
+        turbo_confirm: event.is_recurring? ? "Delete every time “#{event.summary}” repeats?" : "Delete “#{event.summary}”?", data: { turbo_confirm_button: "Delete", turbo_frame: "_top", sound: "trash" } %>
+<% end %>
