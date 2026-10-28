@@ -11,6 +11,7 @@
     <% current = @current_folder == folder[:key] %>
     <% nested = folder[:depth].to_i > 0 %>
     <%= link_to tool_mails_path(@tool, folder: folder[:key]),
+          **(current ? {} : mail_folder_drop_attributes(folder)),
           class: [ item_class, ("mail-folder-nested" if nested), ("text-accent font-medium" if current && !rail) ],
           style: ("--depth: #{folder[:depth]}" if nested),
           title: ((folder[:name] || folder[:key]) if folder[:label] != (folder[:name] || folder[:key])),

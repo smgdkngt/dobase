@@ -10,7 +10,10 @@
     a button inside an anchor is invalid HTML and unreachable by keyboard. %>
 <div class="sidebar-tool-item group/tool sidebar-item <%= is_active ? 'sidebar-item-active' : '' %>"
      data-sort-id="<%= instance.id %>"
-     data-tool-id="<%= instance.id %>">
+     data-tool-id="<%= instance.id %>"
+     <%= tag.attributes(tool_drop_attributes(instance)) %>
+     data-context-menu>
+  <%= render "shared/sidebar_tool_menu", instance: instance, muted: local_assigns[:muted_tool_ids]&.include?(instance.id) %>
   <a href="<%= tool_path(instance) %>"
      class="sidebar-tool-link"
      data-sidebar-tool-link
@@ -43,6 +46,7 @@
           data-arrow-keys-target="item"
           aria-label="Settings for <%= instance.display_name %>"
           data-action="click->sidebar#editTool"
+          data-context-menu-action="settings"
           data-tool-id="<%= instance.id %>">
     <%= render "shared/icon", name: "settings", size: 14 %>
   </button>

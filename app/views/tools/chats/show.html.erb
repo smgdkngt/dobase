@@ -21,7 +21,8 @@
      data-chat-chat-id-value="<%= @chat.id %>"
      data-chat-user-id-value="<%= current_user.id %>"
      data-chat-can-moderate-value="<%= @tool.owned_by?(current_user) %>"
-     data-chat-read-url-value="<%= tool_chat_read_path(@tool) %>">
+     data-chat-read-url-value="<%= tool_chat_read_path(@tool) %>"
+     <%= tag.attributes(drop_attributes(tool: @tool, url: tool_chat_messages_path(@tool), done: "Posted in #{@tool.display_name}")) %>>
   <button data-controller="hotkey" data-hotkey="/" data-action="click->chat#focusInput" hidden>Focus input</button>
 
   <%= render "components/tool_topbar", title: @tool.name, tool: @tool do %>

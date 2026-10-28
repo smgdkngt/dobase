@@ -1,0 +1,10 @@
+<%# What a right click on a document in the list offers. Locals: document %>
+<% tool = document.tool %>
+<%= render "components/context_menu", label: "Document: #{document.title}" do %>
+  <%= render "components/menu_item", text: "Open", icon: "eye", href: tool_docs_document_path(tool, document) %>
+  <%= render "components/menu_item", text: "Edit", icon: "edit", href: edit_tool_docs_document_path(tool, document) %>
+  <%= render "components/menu_divider" %>
+  <%= render "components/menu_item", text: "Copy link", icon: "link", data: { copy: tool_docs_document_url(tool, document) } %>
+  <%= render "components/menu_item", text: "Delete", icon: "trash-2", variant: :danger, href: tool_docs_document_path(tool, document), method: :delete,
+        turbo_confirm: "Delete “#{document.title}”?", data: { turbo_confirm_button: "Delete", turbo_frame: "_top", sound: "trash" } %>
+<% end %>

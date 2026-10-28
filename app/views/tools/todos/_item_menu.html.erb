@@ -1,0 +1,18 @@
+<%# What a right click on a todo offers. Locals: item, tool, lists %>
+<%= render "components/context_menu", label: "Todo: #{item.title}" do %>
+  <%= render "components/menu_item", text: "Open", icon: "eye", href: tool_todo_path(tool, item: item.id), data: { turbo_frame: "_top" } %>
+  <%= render "components/menu_item", text: item.completed? ? "Mark not done" : "Mark done", icon: item.completed? ? "rotate-ccw" : "check",
+        href: tool_todo_item_completion_path(tool, item), method: item.completed? ? :delete : :post, data: { turbo_frame: "_top", sound: ("done" unless item.completed?) } %>
+  <% other_lists = lists.reject { |list| list.id == item.todo_list_id } %>
+  <% if other_lists.any? %>
+    <%= render "components/menu_divider" %>
+    <% other_lists.each do |list| %>
+      <%= render "components/menu_item", text: "Move to #{list.title}", icon: "arrow-right",
+            href: tool_todo_item_position_path(tool, item, todo_list_id: list.id, back: "todo"), method: :patch, data: { turbo_frame: "_top", sound: "drop" } %>
+    <% end %>
+  <% end %>
+  <%= render "components/menu_divider" %>
+  <%= render "components/menu_item", text: "Copy link", icon: "link", data: { copy: tool_todo_url(tool, item: item.id) } %>
+  <%= render "components/menu_item", text: "Delete", icon: "trash-2", variant: :danger, href: tool_todo_item_path(tool, item), method: :delete,
+        turbo_confirm: "Delete “#{item.title}”?", data: { turbo_confirm_button: "Delete", turbo_frame: "_top", sound: "trash" } %>
+<% end %>

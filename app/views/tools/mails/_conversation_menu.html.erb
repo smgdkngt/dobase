@@ -1,0 +1,47 @@
+<%# What a right click on a conversation in the list offers: what the open mail's bar offers.
+    Locals: conversation, tool, current_folder %>
+<% id = conversation[:id] %>
+<%= render "components/context_menu", label: "Conversation: #{conversation[:subject].presence || '(no subject)'}" do %>
+  <% if conversation[:draft] %>
+    <%= render "components/menu_item", text: "Edit draft", icon: "pencil", href: new_tool_mail_path(tool, draft_id: id, folder: current_folder), data: { turbo_frame: "_top" } %>
+  <% else %>
+    <%= render "components/menu_item", text: "Reply", icon: "reply", shortcut: "r", href: new_tool_mail_path(tool, reply_to: id, folder: current_folder) %>
+    <%= render "components/menu_item", text: "Forward", icon: "forward", shortcut: "f", href: new_tool_mail_path(tool, forward: id, folder: current_folder) %>
+    <%= render "components/menu_divider" %>
+    <% case current_folder %>
+    <% when "trash" %>
+      <%= render "components/menu_item", text: "Restore", icon: "rotate-ccw", href: tool_mail_trash_path(tool, id), method: :delete, data: { turbo_frame: "_top" } %>
+    <% when "junk" %>
+      <%= render "components/menu_item", text: "Not junk", icon: "shield-check", href: tool_mail_junk_path(tool, id), method: :delete, data: { turbo_frame: "_top" } %>
+    <% when "archive" %>
+      <%= render "components/menu_item", text: "Unarchive", icon: "archive-restore", href: tool_mail_archive_path(tool, id), method: :delete, data: { turbo_frame: "_top" } %>
+    <% else %>
+      <%= render "components/menu_item", text: "Archive", icon: "archive", shortcut: "e", href: tool_mail_archive_path(tool, id, folder: current_folder), method: :post, data: { turbo_frame: "_top", sound: "tuck" } %>
+    <% end %>
+    <%= render "components/menu_item", text: conversation[:read] ? "Mark unread" : "Mark read", icon: conversation[:read] ? "mail" : "mail-open",
+          href: tool_mail_read_path(tool, id, folder: current_folder), method: conversation[:read] ? :delete : :post, data: { turbo_frame: "_top" } %>
+    <%= render "components/menu_item", text: conversation[:starred] ? "Unstar" : "Star", icon: "star",
+          href: tool_mail_star_path(tool, id), method: conversation[:starred] ? :delete : :post, data: { turbo_frame: "_top" } %>
+    <% unless current_folder == "trash" %>
+      <%= render "components/menu_divider" %>
+      <% move_folders = [ [ "INBOX", "inbox", "Inbox" ] ] + (@custom_folders || []).map { |folder| [ folder, "folder", mail_folder_name(folder) ] } %>
+      <%# The archive folder is what Archive does %>
+      <% move_folders.reject { |folder, _, _| folder.casecmp?(current_folder.to_s) || folder == tool.mail_account.archive_folder }.each do |folder, icon, label| %>
+        <%= render "components/menu_item", text: "Move to #{label}", icon: icon,
+              href: tool_mail_move_path(tool, id, folder: folder, current_folder: current_folder), method: :post, data: { turbo_frame: "_top" } %>
+      <% end %>
+      <% if tool.mail_account.junk_folder? && current_folder != "junk" %>
+        <%= render "components/menu_item", text: "Junk", icon: "shield-alert", href: tool_mail_junk_path(tool, id, folder: current_folder), method: :post, data: { turbo_frame: "_top" } %>
+      <% end %>
+    <% end %>
+  <% end %>
+  <%= render "components/menu_divider" %>
+  <%= render "components/menu_item", text: "Copy link", icon: "link", data: { copy: tool_mail_url(tool, id) } %>
+  <% if current_folder == "trash" %>
+    <%= render "components/menu_item", text: "Delete forever", icon: "trash-2", variant: :danger, href: tool_mail_path(tool, id, folder: current_folder), method: :delete,
+          turbo_confirm: "Permanently delete this email?", data: { turbo_confirm_button: "Delete forever", turbo_frame: "_top" } %>
+  <% else %>
+    <%= render "components/menu_item", text: "Delete", icon: "trash-2", shortcut: "#", variant: :danger, href: tool_mail_trash_path(tool, id, folder: current_folder), method: :post,
+          data: { turbo_frame: "_top", sound: "trash" } %>
+  <% end %>
+<% end %>

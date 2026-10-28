@@ -8,7 +8,10 @@
      id="todo-item-<%= item.id %>"
      data-sort-id="<%= item.id %>"
      data-item-id="<%= item.id %>"
-     data-presence-item="todo:<%= item.id %>">
+     data-presence-item="todo:<%= item.id %>"
+     <%= tag.attributes(drag_attributes(item, tool: tool).except(:draggable)) %>
+     data-context-menu>
+  <%= render "tools/todos/item_menu", item: item, tool: tool, lists: local_assigns[:lists] || tool.todo_lists %>
 
   <%# Checkbox %>
   <div class="todo-checkbox-wrapper" data-checkbox-wrapper>

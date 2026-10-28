@@ -1,0 +1,17 @@
+<%# What a right click on a card offers. Locals: card, tool, columns %>
+<%= render "components/context_menu", label: "Card: #{card.title}" do %>
+  <%= render "components/menu_item", text: "Open", icon: "eye", href: tool_board_path(tool, card: card.id), data: { turbo_frame: "_top" } %>
+  <% other_columns = columns.reject { |column| column.id == card.column_id } %>
+  <% if other_columns.any? %>
+    <%= render "components/menu_divider" %>
+    <% other_columns.each do |column| %>
+      <%= render "components/menu_item", text: "Move to #{column.name}", icon: "arrow-right",
+            href: tool_board_card_position_path(tool, card, column_id: column.id, back: "board"), method: :patch, data: { turbo_frame: "_top", sound: "drop" } %>
+    <% end %>
+  <% end %>
+  <%= render "components/menu_divider" %>
+  <%= render "components/menu_item", text: "Copy link", icon: "link", data: { copy: tool_board_url(tool, card: card.id) } %>
+  <%= render "components/menu_item", text: "Archive", icon: "archive", href: tool_board_card_archive_path(tool, card), method: :post, data: { turbo_frame: "_top", sound: "tuck" } %>
+  <%= render "components/menu_item", text: "Delete", icon: "trash-2", variant: :danger, href: tool_board_card_path(tool, card), method: :delete,
+        turbo_confirm: "Delete “#{card.title}”?", data: { turbo_confirm_button: "Delete", turbo_frame: "_top", sound: "trash" } %>
+<% end %>

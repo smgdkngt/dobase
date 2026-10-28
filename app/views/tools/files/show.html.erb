@@ -26,6 +26,7 @@
      data-controller="files file-selection file-context-menu file-upload file-drag gallery"
      data-files-tool-id-value="<%= @tool.id %>"
      data-file-drag-tool-id-value="<%= @tool.id %>"
+     <%= tag.attributes(drop_attributes(tool: @tool, url: tool_files_uploads_path(@tool, folder_id: @folder&.id), done: "Saved in #{@folder&.name || @tool.display_name}")) %>
      data-action="file-context-menu:action->files#handleContextAction file-selection:changed->file-drag#selectionChanged turbo:morph@document->file-selection#clear keydown.esc@document->file-context-menu#escape keydown.esc@document->file-selection#escape">
   <%# Topbar %>
   <div class="tool-topbar">

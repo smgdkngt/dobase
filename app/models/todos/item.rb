@@ -2,6 +2,7 @@
 
 module Todos
   class Item < ApplicationRecord
+    include MadeFromDropped
     include Trackable
     self.table_name = "todo_items"
 

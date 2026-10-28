@@ -35,8 +35,10 @@ class ChangesAnnouncedTest < ActionDispatch::IntegrationTest
     tools/rooms/activities#destroy
   ].freeze
 
-  # Nothing in the tool changes: a pass into a call, a notification to someone named
+  # Nothing in the tool changes: a pass into a call, a notification to someone named,
+  # something dropped on a tool in the menu (sent on to where it is made, which says so)
   NOTHING_IN_THE_TOOL = %w[
+    tools/drops#create
     tools/rooms/tokens#create
     tools/docs/documents/mentions#create
   ].freeze

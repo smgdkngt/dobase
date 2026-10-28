@@ -70,9 +70,10 @@
          data-controller="sortable"
          data-sortable-group-value="board-cards"
          data-sortable-url-value="<%= column_positions_path(column) %>"
-         data-sortable-param-name-value="card_ids">
+         data-sortable-param-name-value="card_ids"
+         <%= tag.attributes(drop_attributes(tool: column.board.tool, url: column_cards_path(column), done: "Card added to #{column.name}")) %>>
       <%= render partial: "tools/boards/card",
-            collection: active_cards, as: :card %>
+            collection: active_cards, as: :card, locals: { tool: local_assigns[:tool], columns: local_assigns[:columns] } %>
 
       <% if archived_count > 0 %>
         <button type="button"

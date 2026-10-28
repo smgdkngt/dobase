@@ -1199,3 +1199,44 @@
     @apply px-1 py-0.5 rounded bg-background-secondary font-mono text-[0.6875rem] text-text-primary;
   }
 }
+
+@layer components {
+  /* A right click's menu (context_menu_controller.js): at the pointer, laid out by the controller */
+  .context-menu[popover] {
+    position: fixed;
+  }
+
+  .context-menu-item {
+    @apply flex items-center gap-2.5 py-1.5;
+  }
+
+  .context-menu-item-danger {
+    @apply text-error;
+  }
+
+  .context-menu-shortcut {
+    @apply ml-4 text-xs text-text-tertiary font-sans;
+  }
+
+  /* The item whose menu is open */
+  [data-context-menu-open] {
+    @apply bg-background-tertiary;
+  }
+}
+
+@layer components {
+  @media (pointer: coarse) {
+    .context-menu-item {
+      @apply min-h-11;
+    }
+  }
+}
+
+@layer components {
+  /* A place something dragged can be dropped on, while it is over it (drag_drop_controller.js) */
+  [data-drop-over] {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -2px;
+    background-color: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  }
+}

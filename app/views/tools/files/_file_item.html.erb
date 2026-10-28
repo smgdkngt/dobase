@@ -19,6 +19,7 @@
      role="button"
      tabindex="0"
      data-arrow-keys-target="item"
+     <%= tag.attributes(drag_attributes(file, tool: @tool || file.tool).except(:draggable)) %>
      aria-label="File <%= file.name %>"
      data-action="keydown->files#openItemKey click->file-selection#select click->file-drag#recordClick dblclick->files#openItem contextmenu->file-selection#selectForMenu contextmenu->file-context-menu#show dragstart->file-drag#dragStart dragend->file-drag#dragEnd">
   <% if file.image? && file.file.attached? %>

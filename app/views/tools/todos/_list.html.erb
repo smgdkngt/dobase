@@ -53,12 +53,13 @@
        data-sortable-group-value="todo-items"
        data-sortable-handle-value=".todo-drag-handle"
        data-sortable-url-value="<%= todo_list_positions_path(list) %>"
-       data-sortable-param-name-value="item_ids">
+       data-sortable-param-name-value="item_ids"
+       <%= tag.attributes(drop_attributes(tool: tool, url: todo_list_items_path(list), done: "Todo added to #{list.title}")) %>>
     <% pending_items.each do |item| %>
-      <%= render "tools/todos/item", item: item, tool: tool %>
+      <%= render "tools/todos/item", item: item, tool: tool, lists: local_assigns[:lists] %>
     <% end %>
     <% recently_completed_items.each do |item| %>
-      <%= render "tools/todos/item", item: item, tool: tool %>
+      <%= render "tools/todos/item", item: item, tool: tool, lists: local_assigns[:lists] %>
     <% end %>
 
     <% if completed_hidden_count > 0 %>
@@ -73,7 +74,7 @@
       </button>
       <div class="hidden flex-col gap-0.5" data-todo-target="completedSection" data-list-id="<%= list.id %>">
         <% completed_hidden_items.each do |item| %>
-          <%= render "tools/todos/item", item: item, tool: tool %>
+          <%= render "tools/todos/item", item: item, tool: tool, lists: local_assigns[:lists] %>
         <% end %>
       </div>
     <% end %>

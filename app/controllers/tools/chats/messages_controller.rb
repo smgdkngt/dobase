@@ -8,6 +8,7 @@ module Tools
     # so the response keeps its Turbo Stream type.
     class MessagesController < ApplicationController
       include ToolScoped
+      include TakesDropped
       announces_no_change :create, :update, :destroy
 
       restrict_in_demo only: :create, if: -> { Array(params.dig(:message, :files)).compact_blank.any? }
@@ -49,8 +50,9 @@ module Tools
       end
 
       def create
-        @message = @tool.chat.messages.build(message_params)
+        @message = @tool.chat.messages.build(dropped ? {} : message_params)
         @message.user = current_user
+        @message.take(dropped, base_url: request.base_url) if dropped
 
         respond_to do |format|
           if @message.save

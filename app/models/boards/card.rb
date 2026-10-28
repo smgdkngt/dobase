@@ -2,6 +2,7 @@
 
 module Boards
   class Card < ApplicationRecord
+    include MadeFromDropped
     include Trackable
     self.table_name = "cards"
 

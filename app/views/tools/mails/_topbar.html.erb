@@ -19,6 +19,7 @@
               class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-background-tertiary transition-colors"
               aria-haspopup="menu"
               popovertarget="mail-folder-menu"
+              data-drop-opens
               style="anchor-name: --mail-folder-btn">
         <%= render "shared/icon", name: current_meta[:icon], size: 16, class: "text-text-secondary" %>
         <span><%= current_meta[:label] %></span>

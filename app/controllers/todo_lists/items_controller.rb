@@ -3,6 +3,7 @@
 module TodoLists
   class ItemsController < ApplicationController
     include ToolAuthorization
+    include TakesDropped
 
     allow_access_tokens
 
@@ -12,7 +13,8 @@ module TodoLists
 
     def create
       position = @list.items.maximum(:position).to_i + 1
-      @item = @list.items.new(item_params.merge(position: position, created_by: current_user, updated_by: current_user))
+      @item = @list.items.new((dropped ? {} : item_params).merge(position: position, created_by: current_user, updated_by: current_user))
+      @item.take(dropped, base_url: request.base_url) if dropped
 
       respond_to do |format|
         if @item.save
