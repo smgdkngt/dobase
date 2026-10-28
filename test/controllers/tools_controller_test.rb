@@ -57,6 +57,17 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     assert_labels_point_at_their_own_fields
   end
 
+  test "the settings are a page of their own when a link names their tab, and the tool otherwise" do
+    tool = mails_accounts(:primary).tool
+
+    get edit_tool_path(tool, tab: "email")
+    assert_response :success
+    assert_select "[data-tabs-target=panel][data-tab=email]"
+
+    get edit_tool_path(tool)
+    assert_redirected_to tool_path(tool)
+  end
+
   private
 
   # A label's `for` has to name exactly one field on the page: none means the label

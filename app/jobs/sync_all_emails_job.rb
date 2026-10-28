@@ -13,6 +13,7 @@ class SyncAllEmailsJob < ApplicationJob
     Mails::Account.find_each do |account|
       SyncEmailsJob.perform_later(account.id)
       report_stalled(account)
+      account.tell_owners_of_stall
     end
   end
 
