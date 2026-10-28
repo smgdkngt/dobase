@@ -22,7 +22,8 @@ class DragAndDropTest < ApplicationSystemTestCase
     visit tool_mails_path(tools(:my_mail))
     wait_for_stimulus "drag-drop"
 
-    find(".mail-list-item", text: "Welcome to Dobase").drag_to find(".mail-folder-link", text: "Receipts")
+    # The drag's own events: Capybara's drag of a row with a link in it ends in a click on the link
+    drag find(".mail-list-item", text: "Welcome to Dobase"), onto: find(".mail-folder-link", text: "Receipts")
 
     assert_db_change(-> { message.reload.folder == "Receipts" })
     assert_no_selector ".mail-list-item", text: "Welcome to Dobase"
@@ -87,9 +88,21 @@ class DragAndDropTest < ApplicationSystemTestCase
     column = board.board.columns.first
     assert_selector "turbo-frame.tile-frame #column-#{column.id}-cards"
 
-    find("turbo-frame.tile-frame .mail-list-item", text: "Welcome to Dobase").drag_to find("#column-#{column.id}-cards")
+    drag find("turbo-frame.tile-frame .mail-list-item", text: "Welcome to Dobase"), onto: find("#column-#{column.id}-cards")
 
     assert_selector "#column-#{column.id}-cards .board-card", text: "Welcome to Dobase"
     assert_current_path workspace_path
   end
+
+  private
+    def drag(item, onto:)
+      page.execute_script(<<~JS, item, onto)
+        const [ item, place ] = arguments
+        const transfer = new DataTransfer()
+        item.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: transfer }))
+        place.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: transfer }))
+        place.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: transfer }))
+        item.dispatchEvent(new DragEvent("dragend", { bubbles: true, dataTransfer: transfer }))
+      JS
+    end
 end
