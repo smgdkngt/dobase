@@ -4,6 +4,8 @@ module EncryptedPassword
   extend ActiveSupport::Concern
 
   SYNC_STATUSES = %w[pending syncing synced error].freeze
+  # How long the scheduled sync leaves an account alone after its server turned the login down
+  LOGIN_RETRY = 1.hour
 
   included do
     validates :sync_status, inclusion: { in: SYNC_STATUSES }
@@ -50,8 +52,17 @@ module EncryptedPassword
     update!(sync_status: "synced", last_synced_at: Time.current, sync_error: nil)
   end
 
+  # When it went wrong, also when it went wrong the same way as before (waiting_after_refused_login?)
   def mark_sync_error!(message)
-    update!(sync_status: "error", sync_error: message)
+    update!(sync_status: "error", sync_error: message, updated_at: Time.current)
+  end
+
+  # Trying the same credentials every few minutes could get an account locked, so after a
+  # login that was turned down the scheduled sync waits. Not for good: a server can turn a
+  # good login down for a moment (iCloud does), and then nobody would hear of new mail
+  # until someone asked for a sync by hand.
+  def waiting_after_refused_login?
+    authentication_failed? && updated_at > LOGIN_RETRY.ago
   end
 
   private

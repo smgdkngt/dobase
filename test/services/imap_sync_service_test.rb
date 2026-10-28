@@ -684,6 +684,14 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert @account.messages.exists?(folder: "Projects", uid: 7)
   end
 
+  test "a message that comes back without its UID is not saved" do
+    # What iCloud sent for two mails moved to the trash by another connection while a sync fetched them
+    envelope = Net::IMAP::Envelope.new(nil, nil, nil, nil, nil, nil, nil, nil, nil, "<moving@example.com>")
+    incoming_message.send(:save_email, Net::IMAP::FetchData.new(1, { "ENVELOPE" => envelope }), "INBOX")
+
+    assert_not @account.messages.exists?(message_id: "moving@example.com")
+  end
+
   test "a sender's name loses the quotes and escapes of the header" do
     incoming_message.send(:save_email, fetch_data(9, report_mail.to_s, from_name: '"Ann Example \\\\(Acme\\\\)"'), "INBOX")
 

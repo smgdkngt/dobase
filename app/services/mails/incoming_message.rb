@@ -52,11 +52,14 @@ module Mails
 
     def save_email(msg, folder_name)
       envelope = msg.attr["ENVELOPE"]
-      return unless envelope
+      uid = msg.attr["UID"]
+      # A message moved away by another connection while this one fetched it can come back
+      # from iCloud as a Message-ID and nothing else, without its UID: saved, that was an
+      # empty mail in the folder that no sync would ever remove
+      return unless envelope && uid
 
       # A message without a Message-ID, or with an empty one ("<>"), is known by its UID
       message_id = envelope.message_id.to_s.delete("<>").strip.presence || "#{msg.attr['UID']}@#{@account.imap_host}"
-      uid = msg.attr["UID"]
       flags = msg.attr["FLAGS"] || []
 
       from = envelope.from&.first

@@ -50,7 +50,7 @@ class SyncEmailsJobTest < ActiveJob::TestCase
     assert_equal "The mail server didn't accept the username or password", @account.sync_error
   end
 
-  test "an account whose login was turned down isn't synced again until someone asks" do
+  test "an account whose login was turned down waits an hour, unless someone asks" do
     @account.mark_sync_error!(Mails::Account::AUTHENTICATION_FAILED)
     server = ImapServerRejectingLogin.new
 
@@ -60,6 +60,22 @@ class SyncEmailsJobTest < ActiveJob::TestCase
     @account.mark_syncing!
     connect_to_imap(server) { SyncEmailsJob.perform_now(@account.id) }
     assert_equal 1, server.logins
+  end
+
+  test "a login turned down for a moment doesn't stop the mail for good" do
+    # iCloud turned a good login down once, and the account then waited a day and a half for a sync by hand
+    @account.mark_sync_error!(Mails::Account::AUTHENTICATION_FAILED)
+    server = ImapServerRejectingLogin.new
+
+    travel 61.minutes do
+      connect_to_imap(server) { SyncEmailsJob.perform_now(@account.id) }
+      assert_equal 1, server.logins
+
+      # Turned down again: the next hour is quiet again
+      travel 30.minutes
+      connect_to_imap(server) { SyncEmailsJob.perform_now(@account.id) }
+      assert_equal 1, server.logins
+    end
   end
 
   test "an account whose server couldn't be reached is synced again" do
