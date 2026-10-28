@@ -6,6 +6,8 @@ module EncryptedPassword
   SYNC_STATUSES = %w[pending syncing synced error].freeze
   # How long the scheduled sync leaves an account alone after its server turned the login down
   LOGIN_RETRY = 1.hour
+  # How long an account goes without a sync before its tool's owners hear of it
+  STALL_NOTICE = 24.hours
 
   included do
     validates :sync_status, inclusion: { in: SYNC_STATUSES }
@@ -63,6 +65,19 @@ module EncryptedPassword
   # until someone asked for a sync by hand.
   def waiting_after_refused_login?
     authentication_failed? && updated_at > LOGIN_RETRY.ago
+  end
+
+  # A failing sync shows on the tool's page, which nobody may open for days. After a day
+  # without one the tool's owners are told, once until it syncs again (SyncStalledNotifier).
+  # An account that never synced shows its error where it was set up.
+  def tell_owners_of_stall
+    return unless last_synced_at&.before?(STALL_NOTICE.ago)
+
+    since = last_synced_at.iso8601
+    return if tool.notification_events.where(type: "SyncStalledNotifier").any? { |event| event.params[:since] == since }
+
+    SyncStalledNotifier.with(account: self, tool: tool, since: since, error: sync_error)
+      .deliver(User.where(id: tool.collaborators.owners.select(:user_id)))
   end
 
   private

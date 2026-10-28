@@ -6,6 +6,7 @@ class SyncAllCalendarsJob < ApplicationJob
 
   def perform
     Calendars::Account.where.not(provider: "local").find_each do |account|
+      account.tell_owners_of_stall
       next if account.waiting_after_refused_login?
 
       SyncCalendarsJob.perform_later(account.id)

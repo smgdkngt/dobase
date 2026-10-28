@@ -51,8 +51,10 @@ class ToolsController < ApplicationController
     end
   end
 
+  # The settings open in a dialog over the tool. With a tab named (a notification's
+  # link to them) they are a page of their own.
   def edit
-    redirect_to @tool unless turbo_frame_request?
+    redirect_to @tool unless turbo_frame_request? || params[:tab].present?
   end
 
   def update
