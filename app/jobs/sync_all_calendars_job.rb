@@ -6,8 +6,7 @@ class SyncAllCalendarsJob < ApplicationJob
 
   def perform
     Calendars::Account.where.not(provider: "local").find_each do |account|
-      # A rejected login waits for new settings or a sync by hand
-      next if account.authentication_failed?
+      next if account.waiting_after_refused_login?
 
       SyncCalendarsJob.perform_later(account.id)
     end

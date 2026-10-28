@@ -232,8 +232,7 @@ module Mails
       messages.each(&:destroy)
     end
 
-    # Syncing again with the same credentials only gets turned down again, so the scheduled
-    # sync skips the account until its settings change or someone asks for a sync
+    # The last sync was turned down for the username or password (EncryptedPassword#waiting_after_refused_login?)
     def authentication_failed?
       sync_error? && sync_error == AUTHENTICATION_FAILED
     end

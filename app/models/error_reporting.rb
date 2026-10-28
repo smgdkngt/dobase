@@ -41,6 +41,12 @@ module ErrorReporting
       config.send_default_pii = false
       config.before_send = ->(event, _hint) { scrub(event) }
     end
+
+    # What the app reports itself with Rails.error.report: a message the sync couldn't save,
+    # a mailbox that stopped syncing. sentry-rails only subscribes to those when Sentry is
+    # running by the time its own setup runs, which is before this (config/initializers/error_reporting.rb).
+    require "sentry/rails/error_subscriber"
+    Rails.error.subscribe(Sentry::Rails::ErrorSubscriber.new)
   end
 
   # Rails already filters passwords and tokens out of its own logs; the same list

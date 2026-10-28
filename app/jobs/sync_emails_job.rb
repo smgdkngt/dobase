@@ -9,7 +9,7 @@ class SyncEmailsJob < ApplicationJob
 
   def perform(mail_account_id)
     mail_account = Mails::Account.find_by(id: mail_account_id)
-    return if mail_account.nil? || mail_account.authentication_failed?
+    return if mail_account.nil? || mail_account.waiting_after_refused_login?
 
     before = shown(mail_account)
     service = ::ImapSyncService.new(mail_account)
@@ -24,7 +24,7 @@ class SyncEmailsJob < ApplicationJob
     mail_account.broadcast_unread_mail
     synced = true
   # Every failure is shown on the account, or the mail page says "Syncing..." forever.
-  # A rejected login waits for new settings or a sync by hand, a server that can't be reached
+  # A rejected login is tried again after a while (EncryptedPassword#waiting_after_refused_login?), a server that can't be reached
   # is tried again on the next scheduled sync. Unexpected failures still fail the job, so they can be looked into.
   # A connection the server drops, while connecting or halfway, is a server that can't be reached too.
   rescue ::ImapSyncService::ConnectionError, ::ImapSyncService::AuthenticationError, *::ImapSyncService::UNREACHABLE => e
