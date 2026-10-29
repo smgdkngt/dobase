@@ -1,6 +1,7 @@
 require_relative "boot"
 
 require "rails/all"
+require_relative "../lib/middleware/without_client_ip"
 
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
@@ -14,7 +15,7 @@ module Dobase
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
-    config.autoload_lib(ignore: %w[assets tasks])
+    config.autoload_lib(ignore: %w[assets middleware tasks])
 
     # Configuration for the application, engines, and railties goes here.
     #
@@ -31,5 +32,7 @@ module Dobase
     # kept by someone who has since lost access to a tool, or fetched with an access token
     # that was revoked, stops working too. Pages generate fresh links whenever they render.
     config.active_storage.urls_expire_in = 1.day
+
+    config.middleware.insert_before ActionDispatch::RemoteIp, WithoutClientIp
   end
 end

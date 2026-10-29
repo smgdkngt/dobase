@@ -885,11 +885,12 @@ class WorkspaceTest < ApplicationSystemTestCase
     mail = tools(:my_mail)
     visit workspace_path(open: new_tool_mail_path(mail))
     wait_for_stimulus "workspace"
+    # The tile kept first, so nothing draws it again under what is typed
+    assert_kept { |state| state["tiles"].size == 2 }
     within_tile(1) do
       find("rhino-editor [contenteditable]").send_keys("Not sent yet")
       assert_selector "rhino-editor [contenteditable]", text: "Not sent yet"
     end
-    assert_kept { |state| state["tiles"].size == 2 }
 
     elsewhere do
       # Nothing was written there: it closes without a question
