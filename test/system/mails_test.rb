@@ -156,6 +156,24 @@ class MailsTest < ApplicationSystemTestCase
     assert_db_change(-> { !message.reload.starred? }, timeout: 10)
   end
 
+  test "two quick presses of the star end as the second one left it" do
+    message = mails_messages(:inbox_unread)
+    visit tool_mail_path(@tool, message)
+    assert_text "Welcome to Dobase! We hope you enjoy the platform.", wait: 5
+    wait_for_stimulus "pressed"
+
+    # The second press while the first is still on its way: neither is lost or drawn over the other
+    star = find("[title='Star (s)']")
+    execute_script(<<~JS, star)
+      addEventListener("turbo:render", () => document.documentElement.dataset.drawn = "", { once: true })
+      arguments[0].click(); arguments[0].click()
+    JS
+
+    assert_selector "html[data-drawn]", visible: :all, wait: 10
+    assert_selector "[title='Star (s)'][aria-pressed='false']"
+    assert_not message.reload.starred?
+  end
+
   test "starring an HTML email keeps its body visible" do
     message = mails_messages(:inbox_unread)
     visit tool_mail_path(@tool, message)
