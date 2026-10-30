@@ -55,6 +55,25 @@ class WorkspaceInPageTest < ApplicationSystemTestCase
     assert_current_path workspace_path
   end
 
+  test "a right click in a tile that isn't the one in use keeps its menu open" do
+    page.execute_script("window.dispatchEvent(new CustomEvent('workspace:open', { detail: { url: arguments[0] } }))", tool_path(tools(:my_mail)))
+    assert_selector TILE, count: 2
+    row = find("#{TILE} .mail-list-item", text: "Welcome to Dobase")
+    find("#{TODOS} .tile-page h1", text: @todos.name).click
+
+    rect = row.evaluate_script("this.getBoundingClientRect().toJSON()")
+    x, y = rect["left"] + rect["width"] / 2, rect["top"] + rect["height"] / 2
+    # As Chrome on a Mac or Linux does it: the menu is asked for with the button down
+    mouse = ->(type, **more) { page.driver.browser.execute_cdp("Input.dispatchMouseEvent", type:, x:, y:, **more) }
+    mouse.("mouseMoved")
+    mouse.("mousePressed", button: "right", buttons: 2, clickCount: 1)
+    mouse.("mouseReleased", button: "right", buttons: 0, clickCount: 1)
+
+    assert_selector "#{TILE} .context-menu [role=menuitem]", text: "Reply"
+    sleep 0.3
+    assert_selector "#{TILE} .context-menu [role=menuitem]", text: "Reply"
+  end
+
   test "a todo is added from the tile, by its key too" do
     find(TODOS).click
     find("#{TODOS} .tile-page").send_keys("t")
