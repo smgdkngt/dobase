@@ -15,14 +15,37 @@ export default class extends Controller {
   connect() {
     this.opened = this.opened.bind(this)
     this.keyed = this.keyed.bind(this)
+    this.pressed = this.pressed.bind(this)
+    this.released = this.released.bind(this)
     document.addEventListener("contextmenu", this.opened)
     document.addEventListener("keydown", this.keyed)
+    document.addEventListener("pointerdown", this.pressed, true)
+    document.addEventListener("pointerup", this.released, true)
+    document.addEventListener("pointercancel", this.released, true)
   }
 
   disconnect() {
     document.removeEventListener("contextmenu", this.opened)
     document.removeEventListener("keydown", this.keyed)
+    document.removeEventListener("pointerdown", this.pressed, true)
+    document.removeEventListener("pointerup", this.released, true)
+    document.removeEventListener("pointercancel", this.released, true)
     this.close()
+  }
+
+  // On a Mac and on Linux the menu is asked for as the button goes down, and on a
+  // touch screen while the finger is still on it. A popover shown then is closed by
+  // the button or finger coming up (it was pressed outside any popover), so the menu
+  // waits for that.
+  pressed() {
+    this.down = true
+  }
+
+  released() {
+    this.down = false
+    const waiting = this.waiting
+    this.waiting = null
+    if (waiting) setTimeout(waiting)
   }
 
   opened(event) {
@@ -34,7 +57,8 @@ export default class extends Controller {
 
     event.preventDefault()
     // A long press on a touch screen has no pointer to put the menu at: under the finger
-    this.open(item, event.clientX, event.clientY)
+    const show = () => this.open(item, event.clientX, event.clientY)
+    this.down ? this.waiting = show : show()
   }
 
   keyed(event) {
