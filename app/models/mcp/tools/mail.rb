@@ -83,14 +83,29 @@ module Mcp
       end
 
       tool "mail_list", "List mail",
-        "The conversations in a mail folder, newest first, 30 a page, with the folder's counts and the account's folders.",
+        "The conversations in a mail folder, newest first, 30 a page, with the folder's counts and the account's folders. " \
+          "To find mail wherever it is, use mail_search.",
         params: {
           tool_id: tool_id("mail"),
           folder: text("The folder: #{FOLDERS}"),
-          query: text("Only mail whose subject, sender or text contains this"),
+          query: text("Only mail in this folder with these words in its subject, people, text or file names"),
           page: number("Page number, from 1")
         }, read_only: true do
-        get "/tools/#{arg(:tool_id)}/mails", folder: arg(:folder), q: arg(:query), page: arg(:page)
+        get "/tools/#{arg(:tool_id)}/mails", folder: arg(:folder), q: arg(:query), in: (arg(:folder).presence || "inbox" if arg(:query).present?), page: arg(:page)
+      end
+
+      tool "mail_search", "Search mail",
+        "Finds conversations in every folder of a mailbox (not the trash or junk unless folder says so), best match first, " \
+          "30 a page. Every word must be in a message's subject, sender or recipients, text or file names, as a word or " \
+          "the start of one; \"quoted words\" as they stand. Each conversation says the folder it is in.",
+        params: {
+          tool_id: tool_id("mail"),
+          query: text("What to look for", required: true),
+          folder: text("Only this folder: #{FOLDERS}"),
+          sort: text("relevance (default) or date (newest first)"),
+          page: number("Page number, from 1")
+        }, read_only: true do
+        get "/tools/#{arg(:tool_id)}/mails", q: arg(:query), in: arg(:folder), sort: arg(:sort), page: arg(:page)
       end
 
       tool "mail_show", "Show a conversation",

@@ -67,8 +67,10 @@ module Tools
 
       private
 
+      # A search over every folder ("all") has its conversations each in its own folder
       def conversations_of(messages, folder)
-        @mail_account.messages.where(id: with_their_conversations(messages, folder: folder).map(&:id))
+        by_folder = folder == "all" ? messages.group_by { |message| @mail_account.view_of(message) } : { folder => messages }
+        @mail_account.messages.where(id: by_folder.flat_map { |each_folder, its| with_their_conversations(its, folder: each_folder).map(&:id) })
       end
     end
   end

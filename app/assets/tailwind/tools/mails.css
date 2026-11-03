@@ -37,6 +37,30 @@
     margin-inline-start: calc(var(--depth) * 1.25rem);
   }
 
+  /* Over a search's results: where it looks, picked from a menu, and in which order */
+  .mail-search-pick {
+    @apply inline-flex items-center gap-1 max-w-48 px-1.5 py-0.5 rounded-md text-xs font-medium text-accent
+           hover:bg-surface/60 transition-colors;
+  }
+
+  .mail-search-sort {
+    @apply inline-flex items-center rounded-md bg-surface/60 p-0.5 text-xs;
+  }
+
+  .mail-search-sort a {
+    @apply px-1.5 py-0.5 rounded text-text-secondary hover:text-text-primary;
+  }
+
+  .mail-search-sort a[aria-current] {
+    @apply bg-surface text-accent font-medium shadow-sm;
+  }
+
+  /* The folder a search result is in */
+  .mail-list-folder {
+    @apply inline-flex items-center gap-1 max-w-32 shrink-0 px-1.5 rounded text-[0.6875rem] leading-4
+           text-text-secondary bg-background-tertiary;
+  }
+
   .mail-folder-divider {
     @apply my-1.5 mx-3 border-t border-border-light;
   }

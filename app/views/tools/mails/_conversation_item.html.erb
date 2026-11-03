@@ -1,4 +1,6 @@
-<%# Locals: conversation, tool, current_folder, selected_message %>
+<%# Locals: conversation, tool, current_folder, selected_message, searching %>
+<%# A search's result is where it is: its folder shows, and what is done to it is done there %>
+<% current_folder = conversation[:folder] if local_assigns[:searching] && conversation[:folder] %>
 <% is_selected = selected_message&.thread_id == conversation[:thread_id] %>
 <%# On a phone a conversation that can be archived is swiped to the left for it (mail_swipe_controller.js) %>
 <% archive_url = tool_mail_archive_path(tool, conversation[:id], folder: current_folder) unless conversation[:draft] || %w[archive trash junk].include?(current_folder) %>
@@ -46,7 +48,12 @@
         <span class="text-xs text-text-tertiary"><%= format_date(conversation[:sent_at]) %></span>
       </div>
     </div>
-    <div class="mail-list-subject text-sm text-text-secondary truncate mb-0.5 <%= 'text-text-primary font-medium' unless conversation[:read] %>"><%= conversation[:subject] %></div>
+    <div class="mail-list-subject flex items-center gap-1.5 text-sm text-text-secondary mb-0.5 <%= 'text-text-primary font-medium' unless conversation[:read] %>">
+      <span class="truncate"><%= conversation[:subject] %></span>
+      <% if local_assigns[:searching] %>
+        <span class="mail-list-folder ml-auto" title="In <%= mail_folder_name(current_folder) %>"><%= render "shared/icon", name: mail_view_icon(current_folder), size: 11 %><span class="truncate"><%= mail_view_name(current_folder) %></span></span>
+      <% end %>
+    </div>
     <div class="mail-list-preview text-xs text-text-tertiary truncate"><%= conversation[:preview] %></div>
   <% end %>
 <% end %>

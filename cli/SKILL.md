@@ -187,7 +187,8 @@ A mail tool is a real mailbox. Flags, archiving and moves are copied to the mail
 server, and sending sends real email.
 
 ```bash
-dobase mail list inbox                   # --folder sent|starred|archive|drafts|junk|NAME, --search Q, --page N
+dobase mail list inbox                   # --folder sent|starred|archive|drafts|junk|NAME, --search Q (in that folder), --page N
+dobase mail search inbox harbour fees    # every folder at once (not trash/junk), best match first, each with its folder; --folder F, --newest
 dobase mail show 8/310                   # the whole conversation as text; --html for bodies
 dobase mail archive 8/310                # also: read, unread, star, unstar, unarchive
 dobase mail move 8/310 Receipts          # INBOX, Sent or a custom folder

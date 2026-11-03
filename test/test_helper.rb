@@ -56,6 +56,9 @@ module ActiveSupport
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
 
+    # Fixtures skip the callbacks that write a message into the mail search index
+    setup { Mails::SearchIndex.rebuild }
+
     # Add more helper methods to be used by all tests here...
   end
 end

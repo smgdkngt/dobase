@@ -189,25 +189,22 @@ module Tools
       @drafts_count = @mail_account.messages.drafts.count
       @custom_folders = @mail_account.custom_folders
 
-      base_scope = case @current_folder
-      when "sent"    then @mail_account.messages.sent.not_archived
-      when "starred" then @mail_account.messages.starred
-      when "trash"   then @mail_account.messages.trashed
-      when "junk"    then @mail_account.messages.junk
-      when "drafts"  then @mail_account.messages.drafts
-      when "archive" then @mail_account.archived_messages
-      when "inbox"   then @mail_account.messages.inbox.not_archived
-      else                @mail_account.messages.where(folder: @current_folder).not_archived.not_trashed.not_draft
+      if params[:q].present?
+        # A search looks in every folder but the trash and junk, unless it is told one (`in`)
+        @searching_in = params[:in].presence || "all"
+        @sort = params[:sort] == "date" ? "date" : "relevance"
+        scope = @searching_in == "all" ? @mail_account.messages.not_trashed.not_draft.where.not(folder: ::Mails::Account::JUNK) : mail_folder_scope(@searching_in)
+        @conversations = fetch_conversations(scope.search(params[:q]), ranked: @sort == "relevance")
+      else
+        @conversations = fetch_conversations(mail_folder_scope(@current_folder))
       end
-
-      base_scope = base_scope.search(params[:q]) if params[:q].present?
-      @conversations = fetch_conversations(base_scope)
     end
 
     # A page of conversations. The folder's threads are summed up in one query and
-    # paginated, and only the messages of the threads on the page are loaded.
-    def fetch_conversations(scope)
-      threads = thread_summaries(scope)
+    # paginated, and only the messages of the threads on the page are loaded. Search
+    # results come best match first when `ranked`.
+    def fetch_conversations(scope, ranked: false)
+      threads = thread_summaries(scope, ranked: ranked)
 
       @total_count = threads.size
       @total_pages = (@total_count / PER_PAGE.to_f).ceil
@@ -238,6 +235,7 @@ module Tools
           count: thread.count,
           unread_count: thread.unread_count,
           draft: latest.draft? && !latest.trashed?,
+          folder: @mail_account.view_of(latest),
           participants: thread_messages.map { |message| [ message.from_name, message.from_address ] }.uniq.map { |name, address| name.presence || address }.first(3)
         }
       end
@@ -252,11 +250,11 @@ module Tools
       ]
     end
 
-    ThreadSummary = Data.define(:thread_id, :latest_at, :count, :unread_count, :starred, :has_attachments)
+    ThreadSummary = Data.define(:thread_id, :latest_at, :count, :unread_count, :starred, :has_attachments, :score)
 
     # One row per thread in the folder, newest first. The flags match the
     # unread, starred and with_attachments scopes.
-    def thread_summaries(scope)
+    def thread_summaries(scope, ranked: false)
       rows = scope.group(:thread_id).pluck(
         :thread_id,
         Arel.sql("MAX(mail_messages.sent_at)"),
@@ -264,11 +262,14 @@ module Tools
         Arel.sql("COUNT(DISTINCT mail_messages.message_id)"),
         Arel.sql("SUM(CASE WHEN mail_messages.read = 0 THEN 1 ELSE 0 END)"),
         Arel.sql("MAX(CASE WHEN mail_messages.starred = 1 AND mail_messages.trashed = 0 AND mail_messages.draft = 0 THEN 1 ELSE 0 END)"),
-        Arel.sql("MAX(CASE WHEN mail_messages.has_attachments = 1 THEN 1 ELSE 0 END)")
+        Arel.sql("MAX(CASE WHEN mail_messages.has_attachments = 1 THEN 1 ELSE 0 END)"),
+        # How well its best message matched a search (lower is better), nothing otherwise
+        Arel.sql(ranked ? "MIN(mail_hits.hit_score)" : "NULL")
       )
 
-      rows.map { |thread_id, latest_at, count, unread, starred, attachments| ThreadSummary.new(thread_id, latest_at, count, unread.to_i, starred == 1, attachments == 1) }
+      threads = rows.map { |thread_id, latest_at, count, unread, starred, attachments, score| ThreadSummary.new(thread_id, latest_at, count, unread.to_i, starred == 1, attachments == 1, score) }
         .sort_by { |thread| thread.latest_at.to_s }.reverse
+      ranked ? threads.sort_by.with_index { |thread, newest| [ thread.score, newest ] } : threads
     end
 
     def build_compose_defaults

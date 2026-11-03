@@ -259,6 +259,7 @@ var readTools = map[string]func(a api.Value) string{
 	},
 	"chat_list":        func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/chat" },
 	"mail_list":        func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/mails" },
+	"mail_search":      func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/mails" },
 	"mail_show":        func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/mails/" + a.Get("mail_id").S() },
 	"mail_contacts":    func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/mails_contacts" },
 	"mail_sync_status": func(a api.Value) string { return "/tools/" + a.Get("tool_id").S() + "/sync" },

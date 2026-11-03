@@ -78,6 +78,16 @@ class McpReadToolsTest < ActionDispatch::IntegrationTest
     assert_kind_of Array, mcp_call(@token, @session, "mail_contacts", tool_id: mail.id, query: "a")["items"]
   end
 
+  test "mail is searched in every folder, or in the one a listing names" do
+    mail = tools(:my_mail)
+    found = mcp_call(@token, @session, "mail_search", tool_id: mail.id, query: "welcome")
+    assert_equal [ [ mails_messages(:inbox_unread).id, "inbox" ] ], found["conversations"].pluck("id", "folder")
+    assert_equal "all", found.dig("search", "in")
+
+    assert_empty mcp_call(@token, @session, "mail_list", tool_id: mail.id, folder: "sent", query: "welcome")["conversations"]
+    assert_empty mcp_call(@token, @session, "mail_search", tool_id: mail.id, query: "welcome", folder: "sent")["conversations"]
+  end
+
   test "calendar" do
     calendar = tools(:my_calendar)
     event = calendars_events(:meeting)
