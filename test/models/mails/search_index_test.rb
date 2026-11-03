@@ -28,6 +28,14 @@ module Mails
       assert_nothing_raised { found(%(NEAR( "x" ) AND -y ^z)) }
     end
 
+    test "a message saved again in the transaction that made it is found" do
+      message = Message.transaction do
+        @account.messages.create!(message_id: "<twice@example.com>", folder: "INBOX", subject: "Lighthouse", sent_at: Time.current).tap { it.update!(uid: 77) }
+      end
+
+      assert_includes @account.messages.search("lighthouse").to_a, message
+    end
+
     test "accents don't matter" do
       message = @account.messages.create!(message_id: "<cafe@example.com>", folder: "INBOX", subject: "Koffie in het café", sent_at: Time.current)
 

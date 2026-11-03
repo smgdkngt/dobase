@@ -46,7 +46,9 @@ module Mails
 
     # What the search index holds of a message
     SEARCHED = %w[subject from_name from_address to_addresses cc_addresses bcc_addresses body_plain].freeze
-    after_save_commit -> { SearchIndex.write(id) }, if: -> { saved_changes.keys.intersect?(SEARCHED) }
+    # Every new message, also one saved again in the same transaction (its last changes are then those)
+    after_create_commit -> { SearchIndex.write(id) }
+    after_update_commit -> { SearchIndex.write(id) }, if: -> { saved_changes.keys.intersect?(SEARCHED) }
     after_destroy_commit -> { SearchIndex.remove(id) }
 
     def to_addresses_list
