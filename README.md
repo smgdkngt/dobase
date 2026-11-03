@@ -229,6 +229,10 @@ Then add to the web service environment:
 
 All data lives in `/rails/storage` (SQLite database + uploaded files). Back up this volume regularly.
 
+## One-Click Deploy
+
+[![Deploy on RepoCloud](https://d16t0pc4846x52.cloudfront.net/deploylobe.svg)](https://repocloud.io/details/Dobase/)
+
 ## Development
 
 ### Requirements
