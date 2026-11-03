@@ -267,6 +267,9 @@ func (a *App) makeBundle(archive string, picture image.Image) error {
 	if err := os.WriteFile(listPath, list, 0o644); err != nil {
 		return api.PathError(listPath, err)
 	}
+	if err := a.nameHelpers(bundle); err != nil {
+		return err
+	}
 
 	if err := os.RemoveAll(a.Path); err != nil {
 		return api.PathError(a.Path, err)
@@ -280,6 +283,38 @@ func (a *App) makeBundle(archive string, picture image.Image) error {
 	// is enough for a program that was made here.
 	if err := run("codesign", "--force", "--deep", "--sign", "-", a.Path); err != nil {
 		return api.Failf("Could not sign %s: %v", a.Path, err)
+	}
+	return nil
+}
+
+// nameHelpers gives Electron's helpers (Contents/Frameworks/Electron Helper*.app:
+// the one that plays a call's sound, the pages', the GPU's) the app's identity:
+// co.dobase.app.helper and "Dobase Helper (Renderer)". A Mac program that records
+// one app's sound (MacWhisper) counts a process as the app's by that, and heard
+// nothing of a call: its sound comes from a helper that was still Electron's.
+// Their files keep Electron's names, which Electron finds them by.
+func (a *App) nameHelpers(bundle string) error {
+	helpers, _ := filepath.Glob(filepath.Join(bundle, "Contents", "Frameworks", "Electron Helper*.app"))
+	for _, helper := range helpers {
+		listPath := filepath.Join(helper, "Contents", "Info.plist")
+		list, err := os.ReadFile(listPath)
+		if err != nil {
+			return api.PathError(listPath, err)
+		}
+		// "Electron Helper (Renderer).app" is the helper for pages: .renderer, "Renderer"
+		kind := strings.TrimSuffix(strings.TrimPrefix(filepath.Base(helper), "Electron Helper"), ".app")
+		kind = strings.Trim(strings.TrimSpace(kind), "()")
+		id, name := bundleID+".helper", a.Name+" Helper"
+		if kind != "" {
+			id += "." + strings.ToLower(strings.ReplaceAll(kind, " ", "-"))
+			name += " (" + kind + ")"
+		}
+		for key, value := range map[string]string{"CFBundleIdentifier": id, "CFBundleName": name, "CFBundleDisplayName": name} {
+			list = plistSet(list, key, value)
+		}
+		if err := os.WriteFile(listPath, list, 0o644); err != nil {
+			return api.PathError(listPath, err)
+		}
 	}
 	return nil
 }

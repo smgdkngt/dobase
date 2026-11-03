@@ -127,7 +127,18 @@ func macElectron(t *testing.T, version string) []byte {
 		packed{name: "Electron.app/Contents/Resources/electron.icns", contents: "Electron's own icon"},
 		packed{name: framework + "Versions/A/Electron Framework", contents: "the browser", runs: true},
 		packed{name: framework + "Electron Framework", link: "Versions/A/Electron Framework"},
+		packed{name: "Electron.app/Contents/Frameworks/Electron Helper.app/Contents/Info.plist", contents: helperList("")},
+		packed{name: "Electron.app/Contents/Frameworks/Electron Helper (Renderer).app/Contents/Info.plist", contents: helperList(" (Renderer)")},
+		packed{name: "Electron.app/Contents/Frameworks/Electron Helper (GPU).app/Contents/Info.plist", contents: helperList(" (GPU)")},
 	)
+}
+
+// A helper's Info.plist as Electron's releases have it
+func helperList(kind string) string {
+	return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<plist version=\"1.0\">\n<dict>\n" +
+		"\t<key>CFBundleExecutable</key>\n\t<string>Electron Helper" + kind + "</string>\n" +
+		"\t<key>CFBundleIdentifier</key>\n\t<string>com.github.Electron.helper</string>\n" +
+		"\t<key>CFBundleName</key>\n\t<string>Electron Helper" + kind + "</string>\n</dict>\n</plist>\n"
 }
 
 func linuxElectron(t *testing.T, version string) []byte {
@@ -262,6 +273,20 @@ func TestInstallAppMakesAMacAppOfElectronWithTheServersNameAndIcon(t *testing.T)
 	} {
 		if !strings.Contains(list, has) {
 			t.Errorf("Info.plist lacks %s:\n%s", has, list)
+		}
+	}
+	// Its helpers too: a call's sound comes from one, and a recording of the app's sound goes by these
+	for kind, id := range map[string]string{"": "co.dobase.app.helper", " (Renderer)": "co.dobase.app.helper.renderer", " (GPU)": "co.dobase.app.helper.gpu"} {
+		helper := read(t, bundle, "Contents", "Frameworks", "Electron Helper"+kind+".app", "Contents", "Info.plist")
+		for _, has := range []string{
+			"<key>CFBundleIdentifier</key>\n\t<string>" + id + "</string>",
+			"<key>CFBundleName</key>\n\t<string>Our Tools Helper" + kind + "</string>",
+			"<key>CFBundleDisplayName</key>\n\t<string>Our Tools Helper" + kind + "</string>",
+			"<key>CFBundleExecutable</key>\n\t<string>Electron Helper" + kind + "</string>",
+		} {
+			if !strings.Contains(helper, has) {
+				t.Errorf("helper%s lacks %s:\n%s", kind, has, helper)
+			}
 		}
 	}
 	if !strings.HasSuffix(strings.TrimSpace(list), "</dict>\n</plist>") {
