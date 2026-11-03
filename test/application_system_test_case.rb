@@ -72,14 +72,24 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   def sign_in_as(user)
     visit new_session_path
     page.driver.browser.manage.add_cookie(name: "workspace", value: "off")
-    fill_in "Email", with: user.email_address
-    fill_in "Password", with: "password"
-    click_on "Sign In"
-    assert_selector ".sidebar", wait: 15
+    submit_sign_in(user)
+    # A page the test before left can still be going somewhere when this one is drawn, and
+    # draw the form again over what was typed: the form went off empty and came back
+    # (CI, 2026-11-03). Still on the form then, it is filled in once more.
+    unless page.has_selector?(".sidebar", wait: 15)
+      submit_sign_in(user) if page.has_button?("Sign In", wait: 0)
+      assert_selector ".sidebar", wait: 15
+    end
     # What a test before this one left in the browser (the tiles of a workspace, where
     # the arrow keys were) is not this test's: a page that is left writes it down as
     # it goes, which can be after the browser was wiped
     page.execute_script("try { localStorage.clear(); sessionStorage.clear() } catch (error) {}")
+  end
+
+  def submit_sign_in(user)
+    fill_in "Email", with: user.email_address
+    fill_in "Password", with: "password"
+    click_on "Sign In"
   end
 
   # Poll database until condition is met (replaces fragile sleep + assert)
