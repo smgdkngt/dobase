@@ -94,6 +94,44 @@ func TestMailIsListedSyncedAndSearchedWithTheToolsArguments(t *testing.T) {
 	}
 }
 
+func TestMailIsSearchedInEveryFolderAndSaysWhereEachOneIs(t *testing.T) {
+	var sent []api.Value
+	var out bytes.Buffer
+	fake := &askedFake{fakeAPI: newFakeAPI(`{
+		"/tools": [{ "id": 8, "name": "Inbox", "type": "mail" }],
+		"/tools/8/mails": { "account": { "email_address": "me@example.com" }, "page": 1, "total_pages": 2, "total_count": 31,
+			"search": { "query": "harbour fees", "in": "all", "sort": "relevance" },
+			"conversations": [
+				{ "id": 41, "subject": "Harbour fees", "from": "Port", "folder": "Receipts/2026", "messages_count": 1, "read": true },
+				{ "id": 42, "subject": "Re: fees", "from": "Me", "folder": "sent", "messages_count": 1, "read": true }
+			] }
+	}`, &sent)}
+	ctx := command.NewCtx(&config.Config{}, &out, false, "test")
+	ctx.SetAPI(fake)
+
+	if err := invoke(ctx, "mail search", "8", "harbour", "fees"); err != nil {
+		t.Fatal(err)
+	}
+	if err := invoke(ctx, "mail search", "8", "fees", "--folder", "sent", "--newest", "--page", "2"); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{
+		`tool_list {}`, `mail_search {"query":"harbour fees","tool_id":8}`,
+		`mail_search {"folder":"sent","page":2,"query":"fees","sort":"date","tool_id":8}`,
+	}
+	if !slices.Equal(fake.asked, want) {
+		t.Errorf("asked %v", fake.asked)
+	}
+	for _, line := range []string{`"harbour fees" in every folder: 31 conversations`, "Receipts/2026", "Sent", `More: dobase mail search 8 harbour\ fees --page 2`, `"fees" in Sent`} {
+		if !strings.Contains(out.String(), line) {
+			t.Errorf("no %q in %q", line, out.String())
+		}
+	}
+	if err := invoke(ctx, "mail search", "8"); err == nil {
+		t.Error("a search without words went through")
+	}
+}
+
 // mailCtx is a context on fake, whose browser records the URLs it opens.
 func mailCtx(out *bytes.Buffer, json bool, fake api.API, opened *[]string) *command.Ctx {
 	ctx := command.NewCtx(&config.Config{}, out, json, "test")

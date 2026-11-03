@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_26_110000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_03_100000) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -839,4 +839,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_26_110000) do
   add_foreign_key "tools", "tool_types"
   add_foreign_key "tools", "users", column: "owner_id"
   add_foreign_key "workspace_layouts", "users"
+
+  # Virtual tables defined in this database.
+  # Note that virtual tables may not work with other database engines. Be careful if changing database.
+  create_virtual_table "mail_search", "fts5", ["subject", "people", "body", "attachments", "tokenize='unicode61 remove_diacritics 2'"]
 end

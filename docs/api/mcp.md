@@ -93,7 +93,7 @@ it is called with `confirm: true`.
 | `todo_list`, `todo_show`, `todo_create`, `todo_update`, `todo_finish`, `todo_reopen`, `todo_move`, `todo_delete`\*, `todo_comment`, `todo_uncomment`\*, `todo_attach`, `todolist_create`, `todolist_rename`, `todolist_delete`\* | Todos | [Todos](todos.md) |
 | `doc_list`, `doc_show`, `doc_create`, `doc_update`, `doc_delete`\* | Documents | [Docs](docs.md) |
 | `chat_list`, `chat_post`, `chat_edit`, `chat_delete`\*, `chat_react`, `chat_read` | Chat | [Chat](chat.md) |
-| `mail_list`, `mail_show`, `mail_contacts`, `mail_sync`, `mail_sync_status` | Conversations (`mail_show` leaves out the HTML unless `include_html`), people to mail, fetching new mail | [Mail](mail.md) |
+| `mail_list`, `mail_search`, `mail_show`, `mail_contacts`, `mail_sync`, `mail_sync_status` | Conversations in a folder, or found in every folder (`mail_search`; `mail_show` leaves out the HTML unless `include_html`), people to mail, fetching new mail | [Mail](mail.md) |
 | `mail_read`, `mail_unread`, `mail_star`, `mail_unstar`, `mail_archive`, `mail_unarchive`, `mail_move`, `mail_trash`, `mail_restore`, `mail_junk`, `mail_not_junk` | Flags and folders; trashing is a move, undone by `mail_restore` | [Mail](mail.md#flags-archive-and-folders) |
 | `mail_draft`, `mail_update`, `mail_reply`, `mail_forward`, `mail_discard`, `mail_send`\* | Writing mail. Every one but `mail_send` saves a draft; `mail_send` sends a saved draft as it is | [Mail](mail.md#drafts) |
 | `appointment_list`, `appointment_show`, `appointment_create`, `appointment_update`, `appointment_delete`\*, `calendar_sync` | Calendars | [Calendar](calendar.md) |

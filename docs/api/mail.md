@@ -21,7 +21,7 @@ mail to the trash when the mail server has a trash folder, see
 
 - `folder`: `inbox` (default), `drafts`, `starred`, `sent`, `archive`, `junk`,
   `trash`, or one of the `custom_folders`
-- `q`: only messages whose subject, sender address or text contains this
+- `q`: search instead of listing a folder (see [Search](#search))
 - `page`: page number, from 1
 
 ```json
@@ -51,6 +51,7 @@ mail to the trash when the mail server has a trash folder, see
       "has_attachments": false,
       "unread_count": 1,
       "participants": ["Rachel Kim"],
+      "folder": "inbox",
       "messages_count": 1,
       "url": "https://dobase.example.com/tools/8/mails/4?folder=inbox"
     }
@@ -59,7 +60,29 @@ mail to the trash when the mail server has a trash folder, see
 ```
 
 A conversation's `id` is its newest message in this folder, and its counts only
-include messages in this folder. Use the `id` to show the conversation.
+include messages in this folder. Use the `id` to show the conversation. Its
+`folder` is where that message is listed: one of `folders` or `custom_folders`.
+
+### Search
+
+`GET /tools/:tool_id/mails?q=harbour fees` looks through every folder at once
+(the inbox, sent mail, the archive, drafts aside, and the account's own folders
+and their subfolders; not the trash or junk), in each message's subject, its
+sender and recipients (names and addresses), its text and the names of its
+files. Every word must be there, as a word or the start of one ("harb" finds
+"harbour"); words in double quotes are looked for as they stand, one after the
+other. Accents don't matter. Optional parameters besides `q` and `page`:
+
+- `in`: look in one folder only (a `folder` value, `trash` and `junk` too)
+- `sort`: `relevance` (default: a match in the subject or the people counts
+  most, then the files, then the text) or `date` (newest first)
+
+The answer is the list's, with each conversation's `folder` saying where it
+is, its counts only of the messages that matched, and what was searched:
+
+```json
+"search": { "query": "harbour fees", "in": "all", "sort": "relevance" }
+```
 
 ### Show
 

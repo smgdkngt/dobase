@@ -25,11 +25,11 @@ module Mails
     scope :not_archived, -> { where(archived: false) }
     scope :with_attachments, -> { where(has_attachments: true) }
 
+    # Mail with every word of the query in its subject, people, text or file names
+    # (Mails::SearchIndex), with how well it matched as `mail_hits.hit_score`
     scope :search, ->(query) {
-      where(
-        "subject LIKE :q OR from_address LIKE :q OR body_plain LIKE :q",
-        q: "%#{query}%"
-      )
+      fts = SearchIndex.query(query)
+      fts ? joins(sanitize_sql_array([ "JOIN #{SearchIndex::HITS} ON mail_hits.hit_id = mail_messages.id", fts ])) : none
     }
 
     scope :not_draft, -> { where(draft: false) }
@@ -43,6 +43,11 @@ module Mails
     scope :in_thread, ->(thread_id) { where(thread_id: thread_id).order(sent_at: :asc) }
 
     before_save :set_thread_id
+
+    # What the search index holds of a message
+    SEARCHED = %w[subject from_name from_address to_addresses cc_addresses bcc_addresses body_plain].freeze
+    after_save_commit -> { SearchIndex.write(id) }, if: -> { saved_changes.keys.intersect?(SEARCHED) }
+    after_destroy_commit -> { SearchIndex.remove(id) }
 
     def to_addresses_list
       return [] if to_addresses.blank?

@@ -11,6 +11,10 @@ module Mails
 
     validates :filename, presence: true
 
+    # Its name is found by a search for its message (Mails::SearchIndex)
+    after_create_commit -> { SearchIndex.write(mail_message_id) }
+    after_destroy_commit -> { SearchIndex.write(mail_message_id) }
+
     alias_method :human_readable_size, :human_file_size
 
     # The pictures a mail can show in its text: the ones sanitizing lets through as data: URLs

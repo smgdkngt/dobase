@@ -14,30 +14,25 @@
     <% end %>
 
     <% if params[:q].present? %>
-      <div class="px-3 py-2 bg-accent-light border-b border-accent/20">
-        <div class="flex items-center justify-between">
-          <span class="text-xs text-accent">Search results for "<%= params[:q] %>"</span>
-          <%= link_to tool_mails_path(@tool, folder: @current_folder), class: "text-xs text-accent hover:underline" do %>
-            Clear search
-          <% end %>
-        </div>
-      </div>
+      <%= render "tools/mails/search_header" %>
     <% end %>
 
     <%= form_with url: tool_bulk_path(@tool), method: :post, id: "bulk-form", data: { controller: "mail-bulk" } do %>
-      <input type="hidden" name="folder" value="<%= @current_folder %>">
+      <%# A search over every folder acts on each conversation where it is %>
+      <% listed = @searching_in || @current_folder %>
+      <input type="hidden" name="folder" value="<%= listed %>">
 
       <% if @conversations.any? %>
         <div class="flex items-center px-3 py-0.5 min-h-9 border-b border-border-light bg-background-secondary gap-3">
           <input type="checkbox" class="w-4 h-4 rounded accent-accent ml-[2px]" aria-label="Select all conversations" data-mail-bulk-target="selectAll" data-action="change->mail-bulk#toggleAll">
           <div class="flex items-center gap-1 hidden" data-mail-bulk-target="actions">
-            <% if @current_folder == "trash" %>
+            <% if listed == "trash" %>
               <%= render "components/icon_button", icon: "trash-2", title: "Delete forever", type: :submit, name: "action_type", value: "delete", size: :sm %>
               <%= render "components/icon_button", icon: "rotate-ccw", title: "Restore", type: :submit, name: "action_type", value: "restore", size: :sm %>
             <% else %>
-              <% if @current_folder == "junk" %>
+              <% if listed == "junk" %>
                 <%= render "components/icon_button", icon: "shield-check", title: "Not junk (e)", type: :submit, name: "action_type", value: "not_junk", size: :sm %>
-              <% elsif @current_folder != "archive" %>
+              <% elsif listed != "archive" %>
                 <%= render "components/icon_button", icon: "archive", title: "Archive (e)", type: :submit, name: "action_type", value: "archive", size: :sm, data: { sound: "tuck" } %>
               <% end %>
               <%= render "components/icon_button", icon: "trash-2", title: "Delete (#)", type: :submit, name: "action_type", value: "trash", size: :sm, data: { sound: "trash" } %>
@@ -62,7 +57,7 @@
                       <span><%= label %></span>
                     </button>
                   <% end %>
-                  <% if @mail_account.junk_folder? && @current_folder != "junk" %>
+                  <% if @mail_account.junk_folder? && listed != "junk" %>
                     <div class="dropdown-divider"></div>
                     <button type="submit" class="dropdown-item flex items-center gap-2" name="action_type" value="junk">
                       <%= render "shared/icon", name: "shield-alert", size: 16 %>
@@ -83,7 +78,7 @@
         <% if @conversations.any? %>
           <%= render partial: "tools/mails/conversation_item",
                   collection: @conversations, as: :conversation,
-                  locals: { tool: @tool, current_folder: @current_folder, selected_message: @selected_message || @composing_from || @draft } %>
+                  locals: { tool: @tool, current_folder: @current_folder, selected_message: @selected_message || @composing_from || @draft, searching: params[:q].present? } %>
 
           <% if @total_pages > 1 %>
             <div class="p-3 flex items-center justify-center gap-2 border-t border-border-light">
@@ -91,14 +86,14 @@
                 <%= render "components/icon_button",
                     icon: "chevron-left",
                     title: "Previous page",
-                    href: tool_mails_path(@tool, folder: @current_folder, page: @page - 1, q: params[:q]) %>
+                    href: tool_mails_path(@tool, folder: @current_folder, page: @page - 1, **mail_search_params) %>
               <% end %>
               <span class="text-xs text-text-tertiary"><%= @page %> / <%= @total_pages %></span>
               <% if @page < @total_pages %>
                 <%= render "components/icon_button",
                     icon: "chevron-right",
                     title: "Next page",
-                    href: tool_mails_path(@tool, folder: @current_folder, page: @page + 1, q: params[:q]) %>
+                    href: tool_mails_path(@tool, folder: @current_folder, page: @page + 1, **mail_search_params) %>
               <% end %>
             </div>
           <% end %>
@@ -108,7 +103,7 @@
             folder_descriptions = { "inbox" => "Your inbox is empty", "drafts" => "No drafts", "starred" => "No starred messages", "sent" => "No sent messages", "archive" => "No archived messages", "junk" => "No junk mail", "trash" => "Trash is empty" }
             empty_icon = folder_icons[@current_folder] || "folder"
             empty_title = params[:q].present? ? "No results found" : "No messages"
-            empty_description = params[:q].present? ? "Try a different search term" : (folder_descriptions[@current_folder] || "No messages in #{mail_folder_name(@current_folder)}")
+            empty_description = params[:q].present? ? (@searching_in == "all" ? "Nothing in any folder matches. Trash and junk aren't searched unless you pick them." : "Try a different search term, or search all folders") : (folder_descriptions[@current_folder] || "No messages in #{mail_folder_name(@current_folder)}")
           %>
           <%= render "components/empty_state",
               icon: empty_icon,

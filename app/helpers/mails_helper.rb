@@ -63,6 +63,28 @@ module MailsHelper
   # where "Büro" is "B&APw-ro" and "&" is "&-", and some servers have it inside the inbox,
   # as "INBOX.Büro". That stays the folder's name for the server and in links; this is the
   # name to show.
+  # A search's query, where it looks and its order, for a link that keeps them; `changes`
+  # replace one (nil for the default: every folder, best match first)
+  def mail_search_params(**changes)
+    return {} if params[:q].blank?
+
+    { q: params[:q], in: (@searching_in unless @searching_in == "all"), sort: (@sort if @sort == "date") }.merge(changes).compact
+  end
+
+  VIEW_LABELS = { "inbox" => [ "Inbox", "inbox" ], "drafts" => [ "Drafts", "file-pen" ], "starred" => [ "Starred", "star" ],
+                  "sent" => [ "Sent", "send" ], "archive" => [ "Archive", "archive" ], "junk" => [ "Junk", "shield-alert" ],
+                  "trash" => [ "Trash", "trash-2" ] }.freeze
+
+  # A view of the mail page or one of the account's own folders, by its shown name (a
+  # subfolder by its own part) and its icon
+  def mail_view_name(view)
+    VIEW_LABELS.dig(view, 0) || mail_folder_name(view).split("/").last
+  end
+
+  def mail_view_icon(view)
+    VIEW_LABELS.dig(view, 1) || "folder"
+  end
+
   def mail_folder_name(folder, account: @tool&.mail_account)
     name = account ? account.folder_without_prefix(folder) : folder.to_s
     Net::IMAP.decode_utf7(name).scrub

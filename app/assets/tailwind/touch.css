@@ -64,3 +64,13 @@
     transform: rotate(360deg);
   }
 }
+
+/* Over a mail search's results: where it looks, its order and Clear, a finger's size */
+@media (pointer: coarse) {
+  :is(.mail-search-pick, .mail-search-sort a, .mail-search-clear) {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.5rem;
+    padding-inline: 0.625rem;
+  }
+}

@@ -38,9 +38,15 @@ func mail() []*Definition {
 		New("mail list", "List the conversations in a folder (inbox unless --folder)", []string{"TOOL"},
 			[]Flag{
 				F("folder", "FOLDER", strings.Join(views, ", ")+" or a custom folder"),
-				F("search", "QUERY", "Only conversations whose subject, sender or text matches"),
+				F("search", "QUERY", "Only conversations in this folder that match (mail search looks in every folder)"),
 				F("page", "N", "Page (30 conversations per page)"),
 			}, listMail),
+		New("mail search", "Find conversations in every folder (not the trash or junk unless --folder), best match first", []string{"TOOL", "QUERY..."},
+			[]Flag{
+				F("folder", "FOLDER", "Only this folder: "+strings.Join(views, ", ")+" or a custom folder"),
+				Switch("newest", "Newest first instead of best match first"),
+				F("page", "N", "Page (30 conversations per page)"),
+			}, searchMail),
 		New("mail show", "Show a conversation: every message in it, oldest first", []string{"TOOL/MESSAGE"},
 			[]Flag{Switch("html", "Print the HTML of each message instead of its text")}, showMail),
 		New("mail read", "Mark a message as read, here and on the mail server", []string{"TOOL/MESSAGE"}, nil, readMail),
@@ -208,6 +214,95 @@ func listMail(ctx *Ctx, args *Args) error {
 		ctx.Sayf("Folders: %s", mailFolderSummary(mailbox))
 		return nil
 	})
+}
+
+func searchMail(ctx *Ctx, args *Args) error {
+	tool, err := ctx.Tool(args.At(0), "mail")
+	if err != nil {
+		return err
+	}
+	query := strings.TrimSpace(strings.Join(args.Rest(1), " "))
+	if query == "" {
+		return fmt.Errorf("Say what to look for: dobase mail search %s WORDS", args.At(0))
+	}
+	folder, hasFolder := args.Flag("folder")
+	page, hasPage := args.Flag("page")
+	newest := args.On("newest")
+
+	params := map[string]any{"tool_id": tool.Get("id"), "query": query}
+	if hasFolder {
+		params["folder"] = folder
+	}
+	if newest {
+		params["sort"] = "date"
+	}
+	if hasPage {
+		if n, err := strconv.ParseInt(strings.TrimSpace(page), 10, 64); err == nil {
+			params["page"] = n
+		} else {
+			params["page"] = page
+		}
+	}
+	found, err := ctx.Call("mail_search", params)
+	if err != nil {
+		return err
+	}
+
+	return ctx.Output(found, func() error {
+		ctx.Sayf("%s (mail %s) %s", tool.Get("name").S(), tool.Get("id").S(), found.Get("account", "email_address").S())
+		where := "every folder"
+		if hasFolder {
+			where = mailViewName(folder)
+		}
+		ctx.Sayf("%s in %s: %s, page %s of %d", Quoted(query), where, Count(found.Get("total_count").Int(), "conversation"),
+			found.Get("page").S(), max(found.Get("total_pages").Int(), 1))
+		ctx.Blank()
+
+		conversations := found.Get("conversations").Items()
+		if len(conversations) == 0 {
+			ctx.Say("  (nothing found)")
+		}
+		var rows [][]string
+		for _, conversation := range conversations {
+			from := conversation.Get("from").S()
+			if conversation.Get("draft").Truthy() {
+				from = "Draft"
+			}
+			rows = append(rows, []string{
+				tool.Get("id").S() + "/" + conversation.Get("id").S(),
+				Moment(conversation.Get("sent_at")),
+				mailViewName(conversation.Get("folder").S()),
+				from,
+				conversation.Get("subject").S(),
+				mailConversationSummary(conversation),
+			})
+		}
+		ctx.Table(rows, 2)
+
+		if found.Get("page").Int() < found.Get("total_pages").Int() {
+			ctx.Blank()
+			options := []string{shellEscape(query)}
+			if hasFolder {
+				options = append(options, "--folder "+shellEscape(folder))
+			}
+			if newest {
+				options = append(options, "--newest")
+			}
+			options = append(options, "--page "+strconv.FormatInt(found.Get("page").Int()+1, 10))
+			ctx.Sayf("More: dobase mail search %s %s", tool.Get("id").S(), strings.Join(options, " "))
+		}
+		return nil
+	})
+}
+
+// A view by the name the mail page gives it (inbox is Inbox), a folder of the account's own as it is
+func mailViewName(view string) string {
+	for _, known := range mailViews {
+		if known[0] == view {
+			return known[1]
+		}
+	}
+	return view
 }
 
 func showMail(ctx *Ctx, args *Args) error {

@@ -108,6 +108,18 @@ module Mails
       archive_folder.present? ? archived.or(messages.not_trashed.not_draft.where(folder: archive_folder)) : archived
     end
 
+    # The view of the mail page a message is listed in: one of VIEWS, or the account's own folder
+    def view_of(message)
+      if message.trashed? then "trash"
+      elsif message.draft? then "drafts"
+      elsif message.archived? || in_archive_folder?(message) then "archive"
+      elsif message.folder == JUNK then "junk"
+      elsif message.folder == "Sent" then "sent"
+      elsif message.folder.blank? || message.folder == "INBOX" then "inbox"
+      else message.folder
+      end
+    end
+
     def in_archive_folder?(message)
       archive_folder.present? && message.folder == archive_folder
     end

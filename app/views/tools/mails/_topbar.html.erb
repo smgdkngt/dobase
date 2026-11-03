@@ -5,8 +5,8 @@
     <%= render "components/search",
         url: tool_mails_path(@tool),
         value: params[:q],
-        placeholder: "Search emails... (/)",
-        hidden_fields: { folder: @current_folder },
+        placeholder: "Search all mail... (/)",
+        hidden_fields: { folder: @current_folder, **mail_search_params.except(:q) },
         data: { turbo_frame: "_top" },
         input_data: { "controller": "hotkey", "hotkey": "/", "mail-keyboard-target": "search" } %>
 

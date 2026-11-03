@@ -38,9 +38,10 @@ module NextMailNavigation
     when "starred" then account.messages.starred
     when "trash"   then account.messages.trashed
     when "junk"    then account.messages.junk
+    when "drafts"  then account.messages.drafts
     when "archive" then account.archived_messages
     when "inbox"   then account.messages.inbox.not_archived
-    else                account.messages.where(folder: folder).not_archived.not_trashed
+    else                account.messages.where(folder: folder).not_archived.not_trashed.not_draft
     end
   end
 end

@@ -1,0 +1,39 @@
+<%# Over a search's results: what was looked for, where (every folder unless one is picked), and in which order %>
+<%
+  views = mail_folders(inbox_unread: nil, drafts_count: nil, trash_count: nil, junk_unread: (0 if @mail_account.junk_folder?))
+  where = [ { key: "all", label: "All folders", icon: "layers" }, *views, *mail_folder_tree(@custom_folders) ]
+  picked = where.find { |folder| folder[:key] == @searching_in } || { key: @searching_in, label: mail_folder_name(@searching_in), icon: "folder" }
+  menu_id = "mail-search-in-#{@tool.id}"
+%>
+<div class="mail-search-header flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 bg-accent-light border-b border-accent/20">
+  <span class="text-xs text-accent min-w-0 truncate">Results for "<%= params[:q] %>" in</span>
+  <button type="button" class="mail-search-pick" popovertarget="<%= menu_id %>" aria-haspopup="menu"
+          style="anchor-name: --<%= menu_id %>">
+    <%= render "shared/icon", name: picked[:icon], size: 13 %>
+    <span class="truncate"><%= picked[:label] %></span>
+    <%= render "shared/icon", name: "chevron-down", size: 12 %>
+  </button>
+  <div id="<%= menu_id %>" popover="auto" class="popover-menu" role="menu"
+       style="position-anchor: --<%= menu_id %>; position-area: block-end span-inline-end">
+    <% where.each_with_index do |folder, index| %>
+      <% if index == 1 || (index == views.size + 1 && @custom_folders.any?) %><div class="dropdown-divider"></div><% end %>
+      <%= link_to tool_mails_path(@tool, folder: @current_folder, **mail_search_params(in: (folder[:key] unless folder[:key] == "all"))),
+            class: [ "dropdown-item flex items-center gap-2", ("mail-folder-nested" if folder[:depth].to_i > 0), ("text-accent font-medium" if folder[:key] == @searching_in) ],
+            style: ("--depth: #{folder[:depth]}" if folder[:depth].to_i > 0),
+            role: "menuitem", aria: { current: (true if folder[:key] == @searching_in) } do %>
+        <%= render "shared/icon", name: folder[:icon], size: 16 %>
+        <span class="flex-1 truncate"><%= folder[:label] %></span>
+        <% if folder[:key] == @searching_in %><%= render "shared/icon", name: "check", size: 14, class: "text-accent" %><% end %>
+      <% end %>
+    <% end %>
+  </div>
+
+  <nav class="mail-search-sort" aria-label="Order">
+    <% { "relevance" => "Best match", "date" => "Newest" }.each do |sort, label| %>
+      <%= link_to label, tool_mails_path(@tool, folder: @current_folder, **mail_search_params(sort: (sort if sort == "date"))),
+            aria: { current: (true if sort == @sort) } %>
+    <% end %>
+  </nav>
+
+  <%= link_to "Clear", tool_mails_path(@tool, folder: @current_folder), class: "mail-search-clear ml-auto text-xs text-accent hover:underline" %>
+</div>
