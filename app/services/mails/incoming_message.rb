@@ -54,9 +54,10 @@ module Mails
       envelope = msg.attr["ENVELOPE"]
       uid = msg.attr["UID"]
       # A message moved away by another connection while this one fetched it can come back
-      # from iCloud as a Message-ID and nothing else, without its UID: saved, that was an
-      # empty mail in the folder that no sync would ever remove
-      return unless envelope && uid
+      # from iCloud as a Message-ID and nothing else, with or without its UID and never with
+      # the message itself: saved, that was an empty mail in the folder, and over a mail
+      # saved before it emptied that one. The next sync fetches it again if it is still there.
+      return unless envelope && uid && msg.attr["BODY[]"]
 
       # A message without a Message-ID, or with an empty one ("<>"), is known by its UID
       message_id = envelope.message_id.to_s.delete("<>").strip.presence || "#{msg.attr['UID']}@#{@account.imap_host}"

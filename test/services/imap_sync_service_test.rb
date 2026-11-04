@@ -692,6 +692,25 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_not @account.messages.exists?(message_id: "moving@example.com")
   end
 
+  test "a message that comes back with its UID but without the message is not saved" do
+    # What iCloud sent for a mail in the inbox that another mail program had just moved to the trash
+    envelope = Net::IMAP::Envelope.new(nil, nil, nil, nil, nil, nil, nil, nil, nil, "<moving@example.com>")
+    incoming_message.send(:save_email, Net::IMAP::FetchData.new(1, { "UID" => 31, "ENVELOPE" => envelope, "FLAGS" => [] }), "INBOX")
+
+    assert_not @account.messages.exists?(message_id: "moving@example.com")
+  end
+
+  test "a mail already saved is not emptied by a fetch that comes back without the message" do
+    raw = Mail.new(from: "ann@example.com", to: "me@example.com", subject: "Report", body: "The numbers", message_id: "<report@example.com>").to_s
+    incoming_message.send(:save_email, fetch_data(32, raw), "INBOX")
+    envelope = Net::IMAP::Envelope.new(nil, nil, nil, nil, nil, nil, nil, nil, nil, "<report@example.com>")
+    incoming_message.send(:save_email, Net::IMAP::FetchData.new(1, { "UID" => 32, "ENVELOPE" => envelope, "FLAGS" => [] }), "INBOX")
+
+    message = @account.messages.find_by!(message_id: "report@example.com", folder: "INBOX")
+    assert_equal "Report", message.subject
+    assert_includes message.body_plain, "The numbers"
+  end
+
   test "a sender's name loses the quotes and escapes of the header" do
     incoming_message.send(:save_email, fetch_data(9, report_mail.to_s, from_name: '"Ann Example \\\\(Acme\\\\)"'), "INBOX")
 
