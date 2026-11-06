@@ -23,11 +23,11 @@
   <% if @folders.any? || @files.any? %>
     <div class="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
       <% @folders.each do |folder| %>
-        <div class="flex flex-col items-center p-6 rounded-xl transition-colors hover:bg-background-tertiary">
+        <div class="min-w-0 flex flex-col items-center p-6 rounded-xl transition-colors hover:bg-background-tertiary">
           <div class="mb-3 text-accent">
             <%= render "shared/icon", name: "folder", size: 32 %>
           </div>
-          <span class="text-sm text-center line-clamp-2 break-words"><%= folder.name %></span>
+          <span class="w-full text-sm text-center line-clamp-2 wrap-anywhere"><%= folder.name %></span>
           <span class="text-xs text-text-tertiary mt-1">Folder</span>
         </div>
       <% end %>
@@ -36,21 +36,21 @@
       <% @files.each do |file| %>
         <% if file.image? %>
           <a href="<%= share_file_path(@share.token, file) %>"
-             class="flex flex-col items-center p-6 rounded-xl transition-colors hover:bg-background-tertiary"
+             class="min-w-0 flex flex-col items-center p-6 rounded-xl transition-colors hover:bg-background-tertiary"
              data-action="click->gallery#open"
              data-index="<%= image_indices[file.id] %>">
             <div class="w-20 h-20 mb-3 rounded-lg overflow-hidden">
               <%= image_tag url_for(file.thumbnail), alt: file.name, class: "w-full h-full object-cover", loading: "lazy", decoding: "async" %>
             </div>
-            <span class="text-sm text-center line-clamp-2 break-words"><%= file.name %></span>
+            <span class="w-full text-sm text-center line-clamp-2 wrap-anywhere"><%= file.name %></span>
             <span class="text-xs text-text-tertiary mt-1"><%= file.human_file_size %></span>
           </a>
         <% else %>
-          <a href="<%= share_file_path(@share.token, file) %>" class="flex flex-col items-center p-6 rounded-xl transition-colors hover:bg-background-tertiary">
+          <a href="<%= share_file_path(@share.token, file) %>" class="min-w-0 flex flex-col items-center p-6 rounded-xl transition-colors hover:bg-background-tertiary">
             <div class="mb-3 text-text-tertiary">
               <%= render "shared/icon", name: file.icon_name, size: 32 %>
             </div>
-            <span class="text-sm text-center line-clamp-2 break-words"><%= file.name %></span>
+            <span class="w-full text-sm text-center line-clamp-2 wrap-anywhere"><%= file.name %></span>
             <span class="text-xs text-text-tertiary mt-1"><%= file.human_file_size %></span>
           </a>
         <% end %>

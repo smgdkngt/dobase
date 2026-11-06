@@ -34,6 +34,34 @@ class FilesTest < ApplicationSystemTestCase
     assert_text "readme.txt"
   end
 
+  test "on a phone a long name without spaces stays inside its tile, in two lines at most" do
+    page.driver.browser.manage.window.resize_to(390, 844)
+    file_items(:readme).update!(name: "com.tappytaps.android.babymonitor3g.trial_6.5.5-192_minAPI21(arm64-v8a,armeabi-v7a,x86,x86_64).apk")
+    file_folders(:documents).update!(name: "Globalwire-20261012T112734Z-export-of-everything")
+
+    visit tool_files_path(@tool, view: "grid")
+    assert_selector "[data-item-name]", text: "com.tappytaps"
+
+    tiles = page.evaluate_script(<<~JS)
+      [...document.querySelectorAll("[data-item-type]")].map(tile => {
+        const name = tile.querySelector("[data-item-name]")
+        const box = tile.getBoundingClientRect(), text = name.getBoundingClientRect()
+        const lines = Math.round(text.height / parseFloat(getComputedStyle(name).lineHeight))
+        return { name: name.textContent.trim(), inside: text.left >= box.left - 0.5 && text.right <= box.right + 0.5,
+                 fits: name.scrollWidth <= name.clientWidth, lines }
+      })
+    JS
+
+    assert tiles.any?
+    tiles.each do |tile|
+      assert tile["inside"], "#{tile["name"]} reaches outside its tile"
+      assert tile["fits"], "#{tile["name"]} is wider than its tile"
+      assert_operator tile["lines"], :<=, 2, "#{tile["name"]} takes more than two lines"
+    end
+  ensure
+    page.driver.browser.manage.window.resize_to(1400, 1400)
+  end
+
   test "creating a new folder via dialog" do
     visit tool_files_path(@tool)
 

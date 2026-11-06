@@ -32,7 +32,7 @@
     </div>
   <% end %>
   <% if view_mode == "grid" %>
-    <span data-item-name class=" text-sm text-center line-clamp-2 break-words"><%= file.name %></span>
+    <span data-item-name class="w-full text-sm text-center line-clamp-2 wrap-anywhere"><%= file.name %></span>
   <% else %>
     <div class="flex items-center gap-4 @min-[40rem]:gap-8 flex-1 min-w-0">
       <span data-item-name class=" flex-1 min-w-0 truncate text-sm @min-[40rem]:text-base"><%= file.name %></span>
