@@ -5,8 +5,8 @@ import { tileOf } from "services/tile"
 const FILE_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>'
 
 export default class extends Controller {
-  static targets = ["to", "ccField", "bccField", "fileInput", "attachmentsList", "quote", "quotedMessage", "quoteFrame"]
-  static values = { unsent: Boolean }
+  static targets = ["to", "ccField", "bccField", "fileInput", "attachmentsList", "quote", "quotedMessage", "quoteFrame", "gone"]
+  static values = { unsent: Boolean, draftUrl: String }
 
   connect() {
     this.files = []
@@ -50,9 +50,17 @@ export default class extends Controller {
     document.addEventListener("click", this._frameClick, true)
 
     this.element.addEventListener("submit", () => { this._submitting = true })
+
+    // The draft can be sent or deleted elsewhere (another window, the CLI) while it is
+    // open here. The mailbox hears that something changed; then this form looks whether
+    // its draft is still a draft, so it isn't sent a second time from here.
+    this._presence = this.element.closest("[data-controller~='presence']")
+    this._changed = () => this._checkDraft()
+    this._presence?.addEventListener("presence:changed", this._changed)
   }
 
   disconnect() {
+    this._presence?.removeEventListener("presence:changed", this._changed)
     this._tile?.removeEventListener("tile:leaving", this._tileLeaving)
     window.removeEventListener("beforeunload", this._beforeUnload)
     document.removeEventListener("turbo:before-visit", this._beforeVisit)
@@ -69,6 +77,27 @@ export default class extends Controller {
   // A send that failed comes back to this same form (a morph), which still holds the message
   submitEnded(event) {
     if (!event.detail.success) this._submitting = false
+  }
+
+  async _checkDraft() {
+    if (!this.draftUrlValue || this._submitting || !this.hasGoneTarget || !this.goneTarget.hidden) return
+
+    let gone
+    try {
+      const response = await fetch(this.draftUrlValue, { headers: { Accept: "application/json" } })
+      if (response.status === 404) {
+        gone = true
+      } else if (response.ok) {
+        const message = await response.json()
+        gone = !message.draft || message.trashed
+      }
+    } catch {
+      return
+    }
+    if (!gone || this._submitting) return
+
+    this.goneTarget.hidden = false
+    this.element.querySelectorAll("button[type='submit']").forEach(button => { button.disabled = true })
   }
 
   // A form that came back from a failed send holds a message that hasn't gone out

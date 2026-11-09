@@ -26,6 +26,22 @@ class ThemesTest < ApplicationSystemTestCase
     assert_equal "#1a1b26", css_variable("--color-background")
   end
 
+  test "code in a mail being written is readable in a dark theme, the app's dark look and its light one" do
+    draft = mails_messages(:draft_message)
+    draft.update!(body_html: "<p>The dumps are in <code>/var/backups/postgres</code>, as <code>bo-postgres-public.sql.gz</code>.</p><pre><code>gunzip bo-postgres-public.sql.gz</code></pre>")
+
+    @user.choose_theme("tokyo-night")
+    assert_code_readable draft, "html[data-theme='tokyo-night']"
+
+    @user.choose_theme(nil)
+    assert_code_readable draft, "html:not([data-theme])"
+
+    emulate_scheme "dark"
+    assert_code_readable draft, "html:not([data-theme])"
+  ensure
+    emulate_scheme nil
+  end
+
   test "the app's own look takes a theme off again" do
     @user.choose_theme("gruvbox")
     visit edit_profile_path(tab: "appearance")
@@ -136,5 +152,44 @@ class ThemesTest < ApplicationSystemTestCase
   def emulate_scheme(scheme)
     features = scheme ? [ { name: "prefers-color-scheme", value: scheme } ] : []
     page.driver.browser.execute_cdp("Emulation.setEmulatedMedia", features: features)
+  end
+
+  # Text in inline code and in a code block stands out from what it is on by at least
+  # WCAG AA's 4.5 to 1, in the editor of a draft
+  def assert_code_readable(draft, html)
+    visit new_tool_mail_path(tools(:my_mail), draft_id: draft.id)
+    assert_selector html
+    assert_selector "rhino-editor .trix-content code", text: "/var/backups/postgres"
+
+    contrasts = page.evaluate_script(<<~JS)
+      (() => {
+        const rgb = value => {
+          const canvas = document.createElement("canvas").getContext("2d")
+          canvas.fillStyle = value
+          canvas.fillRect(0, 0, 1, 1)
+          return [...canvas.getImageData(0, 0, 1, 1).data]
+        }
+        const luminance = ([r, g, b]) => [r, g, b]
+          .map(c => c / 255).map(c => c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
+          .reduce((sum, c, i) => sum + c * [0.2126, 0.7152, 0.0722][i], 0)
+        // What an element is drawn on: its own background, else the nearest one behind it
+        const ground = element => {
+          for (let at = element; at; at = at.parentElement) {
+            const colour = rgb(getComputedStyle(at).backgroundColor)
+            if (colour[3] > 0) return colour
+          }
+          return rgb(getComputedStyle(document.body).backgroundColor)
+        }
+        const contrast = element => {
+          const [a, b] = [luminance(rgb(getComputedStyle(element).color)), luminance(ground(element))]
+          return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+        }
+        const editor = document.querySelector("rhino-editor .trix-content")
+        return [...editor.querySelectorAll("p code, pre")].map(element => [element.textContent, contrast(element)])
+      })()
+    JS
+
+    assert_equal 3, contrasts.size
+    contrasts.each { |text, ratio| assert_operator ratio, :>=, 4.5, "#{text} is hard to read under #{html} (#{ratio.round(2)} to 1)" }
   end
 end

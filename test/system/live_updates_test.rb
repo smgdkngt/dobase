@@ -195,6 +195,28 @@ class LiveUpdatesTest < ApplicationSystemTestCase
     assert_no_selector "main[data-controller~='live']"
   end
 
+  test "a draft sent elsewhere while it is open here says so, and can't be sent from here again" do
+    tool = tools(:my_mail)
+    draft = mails_messages(:draft_message)
+    visit new_tool_mail_path(tool, draft_id: draft.id)
+    wait_for_stimulus "compose"
+    wait_for_stimulus "presence", "main"
+    page.document.synchronize do
+      raise Capybara::ExpectationNotMet unless page.evaluate_script(
+        "Stimulus.getControllerForElementAndIdentifier(document.querySelector('main'), 'presence').listening === true")
+    end
+    assert_no_text "sent or deleted elsewhere"
+    assert_button "Send", disabled: false
+
+    # What `dobase mail send --draft` does: the draft goes, and the mailbox is told
+    draft.destroy!
+    tool.announce_change
+
+    assert_text "This draft was sent or deleted elsewhere"
+    assert_button "Send", disabled: true
+    assert_button "Save Draft", disabled: true
+  end
+
   test "a document that is open, and a form, are not such pages" do
     visit tool_docs_document_path(tools(:my_docs), docs_documents(:meeting_notes))
     wait_for_stimulus "presence", "main"

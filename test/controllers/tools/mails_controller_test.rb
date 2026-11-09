@@ -827,6 +827,26 @@ module Tools
       assert_select ".compose-quote, .compose-answered", count: 0
     end
 
+    test "a draft sent elsewhere while its form was open isn't sent again from that form" do
+      draft = mails_messages(:draft_message)
+      get new_tool_mail_path(@tool, draft_id: draft.id)
+      assert_select "[data-compose-target=gone][hidden]"
+      assert_select "form[data-compose-draft-url-value=?]", tool_mail_path(@tool, draft, format: :json)
+      # Sent from the CLI in the meantime
+      draft.destroy!
+
+      assert_no_enqueued_jobs(only: SendMailJob) do
+        post tool_mails_path(@tool), params: { draft_id: draft.id, to: "friend@example.com", subject: "Plans", body: "<p>Hi</p>" }
+      end
+
+      assert_response :unprocessable_entity
+      assert_select ".flash-alert", text: Tools::MailsController::DRAFT_GONE
+      # The text is still there, now as new mail: sending it once more is a choice made knowingly
+      assert_select "input[name=subject][value=Plans]"
+      assert_select "input[name=draft_id]", count: 0
+      assert_not ::Mails::Message.exists?(subject: "Plans")
+    end
+
     test "mail sent off has left Drafts and opens as sent mail, marked until it has gone out in the background" do
       draft = mails_messages(:draft_message)
       draft.update!(uid: 9)

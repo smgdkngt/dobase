@@ -1043,6 +1043,20 @@
   }
 }
 
+/* Code in rich text (every editor, and rich text as it is shown): rhino-editor.css gives
+   it a fixed light grey (#eee) under text in the theme's colour, which in a dark theme
+   was light on light. Unlayered and with its selectors, so it wins over that sheet. */
+.trix-content :not(pre) code {
+  background-color: var(--color-background-tertiary);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.trix-content pre {
+  background-color: var(--color-background-tertiary);
+  color: var(--color-text-primary);
+}
+
 @keyframes wiggle {
   0%, 100% { transform: rotate(-0.4deg); }
   50% { transform: rotate(0.4deg); }

@@ -13,6 +13,7 @@ module Tools
     before_action :build_compose_defaults, only: [ :new ]
 
     PER_PAGE = 30
+    DRAFT_GONE = "This draft was already sent or deleted elsewhere, so it wasn't sent again. Send it once more to send it as new mail."
 
     def index
       @mail_account = @tool.mail_account
@@ -85,6 +86,13 @@ module Tools
 
       if invalid.any?
         render_send_error "Invalid email address: #{invalid.first.address}"
+        return
+      end
+
+      # A draft sent or deleted elsewhere (another window, the CLI) while this form was open
+      # isn't sent a second time: the form comes back, without the draft, to send as new mail
+      if params[:draft_id].present? && !@mail_account.messages.drafts.exists?(id: params[:draft_id])
+        render_send_error DRAFT_GONE
         return
       end
 

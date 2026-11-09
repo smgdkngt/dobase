@@ -593,6 +593,19 @@ module Tools
       assert_not ::Mails::Message.exists?(draft.id)
     end
 
+    test "a draft that was sent already isn't sent a second time" do
+      draft = mails_messages(:draft_message)
+      params = { to: "recipient@example.com", subject: "Draft email", body: "<p>This is a draft message.</p>", draft_id: draft.id }
+      post tool_mails_path(@tool), headers: @headers, as: :json, params: params
+      assert_response :created
+
+      post tool_mails_path(@tool), headers: @headers, as: :json, params: params
+
+      assert_response :unprocessable_entity
+      assert_equal [ Tools::MailsController::DRAFT_GONE ], response.parsed_body["errors"]
+      assert_equal 1, @smtp.sent.size
+    end
+
     test "send refuses invalid addresses without sending anything" do
       post tool_mails_path(@tool), params: { to: "friend@example.com", bcc: "not-an-address", subject: "Hi", body: "<p>Hi</p>" },
         headers: @headers, as: :json
@@ -749,10 +762,11 @@ module Tools
       post tool_mail_trash_path(other, message), headers: @headers, as: :json
       assert_response :not_found
 
-      # A draft from another tool is left alone (sending still goes through that tool's own account).
+      # A draft from another tool is no draft of this one: nothing is sent, and the draft is left alone
       post tool_mails_path(other), params: { to: "friend@example.com", subject: "Hi", body: "<p>Hi</p>", draft_id: mails_messages(:draft_message).id },
         headers: @headers, as: :json
-      assert_response :created
+      assert_response :unprocessable_entity
+      assert_empty @smtp.sent
       assert ::Mails::Message.exists?(mails_messages(:draft_message).id)
 
       assert_not message.reload.starred

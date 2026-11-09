@@ -328,7 +328,9 @@ fields in the request, not from what the draft holds, so send a reply draft's
 that names the draft's `quoted_message_id` without `quote_html` sends the quote
 as the draft has it, never the mail as it was written.
 
-An invalid address returns `422` without sending anything. A mail server that
+An invalid address returns `422` without sending anything, and so does a `draft_id`
+that is no draft of this account (any more): a draft that was sent or deleted is
+never sent a second time. A mail server that
 refuses the email or can't be reached returns `422` too:
 
 ```json

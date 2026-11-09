@@ -7,6 +7,7 @@
       data: {
         controller: "compose",
         compose_unsent_value: @unsent,
+        compose_draft_url_value: (tool_mail_path(@tool, @draft, format: :json) if @draft),
         action: "pointerdown->compose#startEditing:capture keydown->compose#startEditing:capture " \
                 "beforeinput->compose#startEditing:capture dragenter->compose#startEditing:capture " \
                 "turbo:submit-end->compose#submitEnded formdata->compose#addQuote"
@@ -99,6 +100,13 @@
     <% end %>
     <div class="compose-attachments" data-compose-target="attachmentsList"></div>
 
+    <% if @draft %>
+      <%# Shown when the draft is sent or deleted elsewhere while this form is open (compose_controller.js) %>
+      <p class="flash flash-alert" role="alert" hidden data-compose-target="gone">
+        <%= render "shared/icon", name: "alert-circle", size: 16 %>
+        <span>This draft was sent or deleted elsewhere, so it can't be sent from here again.</span>
+      </p>
+    <% end %>
     <div class="compose-actions">
       <%= render "components/button", text: "Send", icon: "send", type: :submit %>
       <% if @draft %>
