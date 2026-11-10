@@ -217,6 +217,27 @@ class LiveUpdatesTest < ApplicationSystemTestCase
     assert_button "Save Draft", disabled: true
   end
 
+  test "a draft made and changed through the API stays sendable here while the mailbox changes" do
+    tool = tools(:my_mail)
+    created = through_the_api :post, tool_mail_drafts_path(tool), to: "ann@example.com", subject: "From a terminal", body: "<p>Hello</p>"
+    visit new_tool_mail_path(tool, draft_id: created["id"])
+    wait_for_stimulus "compose"
+    wait_for_stimulus "presence", "main"
+    page.document.synchronize do
+      raise Capybara::ExpectationNotMet unless page.evaluate_script(
+        "Stimulus.getControllerForElementAndIdentifier(document.querySelector('main'), 'presence').listening === true")
+    end
+
+    # Changed elsewhere, and other mail in the box too: each is announced to this page
+    through_the_api :patch, tool_mail_draft_path(tool, created["id"]), subject: "From a terminal, again"
+    wait_for_draft_check
+    through_the_api :post, tool_mail_star_path(tool, mails_messages(:inbox_unread))
+    wait_for_draft_check
+
+    assert_no_text "sent or deleted elsewhere"
+    assert_button "Send", disabled: false
+  end
+
   test "a document that is open, and a form, are not such pages" do
     visit tool_docs_document_path(tools(:my_docs), docs_documents(:meeting_notes))
     wait_for_stimulus "presence", "main"
@@ -379,6 +400,15 @@ class LiveUpdatesTest < ApplicationSystemTestCase
       end
       sleep 0.6
       assert page.evaluate_script(BEHIND % "main"), "The page drew itself again while it was in use"
+    end
+
+    # The compose page heard of a change and asked whether its draft is still there
+    def wait_for_draft_check
+      compose = "Stimulus.getControllerForElementAndIdentifier(document.querySelector('[data-controller~=\"compose\"]'), 'compose')"
+      page.document.synchronize do
+        raise Capybara::ExpectationNotMet, "The draft wasn't checked" unless page.evaluate_script("#{compose}.draftChecked !== undefined")
+      end
+      page.evaluate_async_script("#{compose}.draftChecked.then(() => { #{compose}.draftChecked = undefined; arguments[0]() })")
     end
 
     # What the CLI does: a request to the JSON API with an access token

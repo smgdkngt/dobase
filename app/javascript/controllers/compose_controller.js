@@ -79,7 +79,13 @@ export default class extends Controller {
     if (!event.detail.success) this._submitting = false
   }
 
-  async _checkDraft() {
+  _checkDraft() {
+    // Kept for tests, which wait for the check a change started
+    this.draftChecked = this._askAfterDraft()
+    return this.draftChecked
+  }
+
+  async _askAfterDraft() {
     if (!this.draftUrlValue || this._submitting || !this.hasGoneTarget || !this.goneTarget.hidden) return
 
     let gone
@@ -88,8 +94,10 @@ export default class extends Controller {
       if (response.status === 404) {
         gone = true
       } else if (response.ok) {
-        const message = await response.json()
-        gone = !message.draft || message.trashed
+        // The answer is the draft's conversation: the draft is one of its messages
+        const conversation = await response.json()
+        const draft = conversation.messages?.find(message => message.id === conversation.id)
+        gone = !draft || !draft.draft || draft.trashed
       }
     } catch {
       return
