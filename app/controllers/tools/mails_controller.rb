@@ -258,6 +258,9 @@ module Tools
       ]
     end
 
+    # A message by its Message-ID, so its copies in other folders are one; mail without one by its row
+    MESSAGE = "COALESCE(mail_messages.message_id, 'row-' || mail_messages.id)"
+
     ThreadSummary = Data.define(:thread_id, :latest_at, :count, :unread_count, :starred, :has_attachments, :score)
 
     # One row per thread in the folder, newest first. The flags match the
@@ -268,7 +271,9 @@ module Tools
         Arel.sql("MAX(mail_messages.sent_at)"),
         # A message in two folders on the server, like the archive's, counts once
         Arel.sql("COUNT(DISTINCT mail_messages.message_id)"),
-        Arel.sql("SUM(CASE WHEN mail_messages.read = 0 THEN 1 ELSE 0 END)"),
+        # Unread is a message none of whose copies is read: mail archived here and read
+        # since has an older, unread copy in the archive folder, which isn't shown
+        Arel.sql("COUNT(DISTINCT #{MESSAGE}) - COUNT(DISTINCT CASE WHEN mail_messages.read = 1 THEN #{MESSAGE} END)"),
         Arel.sql("MAX(CASE WHEN mail_messages.starred = 1 AND mail_messages.trashed = 0 AND mail_messages.draft = 0 THEN 1 ELSE 0 END)"),
         Arel.sql("MAX(CASE WHEN mail_messages.has_attachments = 1 THEN 1 ELSE 0 END)"),
         # How well its best message matched a search (lower is better), nothing otherwise

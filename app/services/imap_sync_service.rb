@@ -122,6 +122,15 @@ class ImapSyncService
     end
   end
 
+  # A flag ("Seen", "Flagged") on mail that was moved, like archived mail, found by its Message-ID
+  def set_flag_by_message_id(message_id, flag, on, folder:)
+    changing_server("#{on ? "set" : "clear"} #{flag} on #{message_id} in #{folder}") do |imap|
+      select_folder(imap, folder)
+      uids = find_by_message_id(imap, message_id)
+      imap.uid_store(uids, on ? "+FLAGS" : "-FLAGS", [ flag.to_sym ]) if uids.any?
+    end
+  end
+
   # Makes the folder where the server keeps its folders ("Receipts" is "INBOX.Receipts" on
   # a server that has them inside the inbox), and answers the name it has there
   def create_folder(folder_name)

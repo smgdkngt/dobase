@@ -212,26 +212,28 @@ module Mails
       !junk? && account.shows_images_from?(from_address)
     end
 
+    # Read and starred are the message's, whichever copy of it is changed: mail archived here
+    # is also in the server's archive folder, which the sync keeps as a copy of its own
     def mark_as_read!
-      update!(read: true)
-      sync_read_flag_to_imap(true)
+      change_flag!(:read, true)
       account.broadcast_unread_mail
     end
 
     def mark_as_unread!
-      update!(read: false)
-      sync_read_flag_to_imap(false)
+      change_flag!(:read, false)
       account.broadcast_unread_mail
     end
 
     def toggle_starred!
-      update!(starred: !starred)
-      sync_starred_flag_to_imap
+      set_starred!(!starred)
+    end
+
+    def set_starred!(on)
+      change_flag!(:starred, on)
     end
 
     def toggle_read!
-      update!(read: !read)
-      sync_read_flag_to_imap(read)
+      change_flag!(:read, !read)
     end
 
     def conversation
@@ -331,14 +333,33 @@ module Mails
       CGI.unescapeURIComponent(url[4..]).downcase
     end
 
-    def sync_read_flag_to_imap(is_read)
-      return unless uid.present? && account.present?
-      ImapSyncJob.perform_later(account.id, "mark_as_#{is_read ? 'read' : 'unread'}", uid, folder || "INBOX")
+    IMAP_FLAGS = { read: "Seen", starred: "Flagged" }.freeze
+
+    def change_flag!(flag, on)
+      update!(flag => on)
+      copies.update_all(flag => on)
+      sync_flag_to_imap(flag, on)
     end
 
-    def sync_starred_flag_to_imap
-      return unless uid.present? && account.present?
-      ImapSyncJob.perform_later(account.id, "set_starred", uid, folder || "INBOX", starred)
+    # The same mail in another folder here (the archive's copy of mail archived here, or the
+    # other way round)
+    def copies
+      return account.messages.none if message_id.blank?
+      account.messages.where(message_id: message_id).where.not(id: id)
+    end
+
+    # Mail archived here keeps the UID it had in its old folder, where the server has it no
+    # longer: in the archive folder it's found by its Message-ID
+    def sync_flag_to_imap(flag, on)
+      return unless account.present?
+
+      if account.archived_on_server?(self)
+        ImapSyncJob.perform_later(account.id, "set_flag_by_message_id", nil, account.archive_folder, IMAP_FLAGS.fetch(flag), on, message_id)
+      elsif uid.present? && flag == :read
+        ImapSyncJob.perform_later(account.id, "mark_as_#{on ? 'read' : 'unread'}", uid, folder || "INBOX")
+      elsif uid.present?
+        ImapSyncJob.perform_later(account.id, "set_starred", uid, folder || "INBOX", on)
+      end
     end
 
     def set_thread_id
