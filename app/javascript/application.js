@@ -40,6 +40,8 @@ document.addEventListener("turbo:submit-end", (event) => {
 
 // Rich text editor (Rhino Editor — TipTap-based, ActionText compatible)
 import "rhino-editor"
+// An address typed or pasted stays one link, querystring and all
+import "services/rhino_links"
 
 // Close open dialogs and popovers before Turbo morphs them
 // (morph preserves top-layer state, so they'd stay stuck open)

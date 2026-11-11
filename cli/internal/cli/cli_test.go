@@ -172,7 +172,8 @@ func TestPlainTextBecomesEscapedParagraphs(t *testing.T) {
 
 func TestPlainTextLinksURLs(t *testing.T) {
 	for text, want := range map[string]string{
-		"see https://example.com":                                                     `<p>see <a href="https://example.com">https://example.com</a></p>`,
+		"see https://example.com": `<p>see <a href="https://example.com">https://example.com</a></p>`,
+		"So: https://bo.example.com/feeds/feed-3ff8.csv?token=AbC123&x=1 done":        `<p>So: <a href="https://bo.example.com/feeds/feed-3ff8.csv?token=AbC123&amp;x=1">https://bo.example.com/feeds/feed-3ff8.csv?token=AbC123&amp;x=1</a> done</p>`,
 		"Done: https://example.com/a?x=1&y=<2>.":                                      `<p>Done: <a href="https://example.com/a?x=1&amp;y=">https://example.com/a?x=1&amp;y=</a>&lt;2&gt;.</p>`,
 		"(https://example.com/wiki/Go_(game)), then":                                  `<p>(<a href="https://example.com/wiki/Go_(game)">https://example.com/wiki/Go_(game)</a>), then</p>`,
 		"HTTP://Example.com/x; and http://a.b:8080/c":                                 `<p><a href="HTTP://Example.com/x">HTTP://Example.com/x</a>; and <a href="http://a.b:8080/c">http://a.b:8080/c</a></p>`,

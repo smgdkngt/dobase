@@ -9,11 +9,14 @@ module Mails
       figure figcaption details summary dl dt dd table thead tbody tfoot tr td th caption form fieldset
     ].freeze
 
-    def self.from_html(html)
-      new(html).to_s
+    # With `links: true` (mail that goes out) a link on words of its own is followed
+    # by where it goes, as Mail.app writes it: "the feed <https://example.com/feed>"
+    def self.from_html(html, links: false)
+      new(html, links:).to_s
     end
 
-    def initialize(html)
+    def initialize(html, links: false)
+      @links = links
       @fragment = Loofah.html5_fragment(html.to_s)
       @fragment.css("style, script, title, head").each(&:remove)
     end
@@ -77,7 +80,8 @@ module Mails
       elsif node.element? && node.name == "br"
         "\n"
       elsif node.element?
-        node.children.map { |child| node_text(child) }.join
+        text = node.children.map { |child| node_text(child) }.join
+        node.name == "a" ? text + address_after(node, text) : text
       else
         ""
       end
@@ -86,6 +90,16 @@ module Mails
     # A block inside inline content, like a <div> in a <span>, still starts a line
     def node_text(node)
       node.element? && block?(node) ? "\n#{blocks(node.children).join("\n")}\n" : inline_text(node)
+    end
+
+    def address_after(link, text)
+      href = link["href"].to_s.strip
+      return "" unless @links && href.match?(%r{\A(https?://|mailto:)}i)
+
+      shown = text.strip
+      return "" if [ href, href.delete_prefix("mailto:") ].include?(shown) || href.sub(%r{\Ahttps?://}i, "") == shown
+
+      " <#{href}>"
     end
 
     def squish(text)

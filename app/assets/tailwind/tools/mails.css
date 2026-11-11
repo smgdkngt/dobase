@@ -1,6 +1,12 @@
 /* Mail tool - only what can't be done in ERB with Tailwind */
 
 @layer components {
+  /* Addresses in a mail that came as text only */
+  .mail-plain-text a {
+    @apply text-accent underline;
+    overflow-wrap: anywhere;
+  }
+
   /* Grid layouts - no Tailwind equivalent for explicit track definitions */
   .mail-layout {
     @apply grid h-screen overflow-hidden;

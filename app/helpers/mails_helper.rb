@@ -3,6 +3,12 @@
 require "net/imap"
 
 module MailsHelper
+  # A mail that came as text only, with its addresses as links (querystring and all,
+  # the way the CLI and the API make them); they open in another tab
+  def mail_plain_text(text)
+    Mcp::Text.link(text.to_s, attributes: ' target="_blank" rel="noopener noreferrer"').html_safe # Text.link escapes everything it does not write itself
+  end
+
   # Emails are designed for a light page, so they keep one in dark mode too (like other
   # mail clients); the host page frames them on a light surface instead of recoloring them.
   MAIL_FRAME_STYLES = <<~CSS

@@ -52,8 +52,8 @@
     </div>
   </div>
 <% elsif message.body_plain.present? %>
-  <div class="whitespace-pre-wrap text-text-primary text-sm"><%=
-    message.body_plain
+  <div class="mail-plain-text whitespace-pre-wrap text-text-primary text-sm"><%=
+    mail_plain_text(message.body_plain)
   %></div>
 <% else %>
   <p class="text-text-tertiary italic text-sm">No content</p>

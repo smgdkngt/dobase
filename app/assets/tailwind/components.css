@@ -1057,6 +1057,13 @@
   color: var(--color-text-primary);
 }
 
+/* A link in an editor looks like one, as it does once it's read: Tailwind's reset gives
+   it the colour of the text around it, so where a link ended couldn't be seen */
+rhino-editor .trix-content a[href] {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
 @keyframes wiggle {
   0%, 100% { transform: rotate(-0.4deg); }
   50% { transform: rotate(0.4deg); }

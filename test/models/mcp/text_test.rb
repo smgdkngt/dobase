@@ -21,6 +21,12 @@ class Mcp::TextTest < ActiveSupport::TestCase
       Mcp::Text.paragraphs("https://en.wikipedia.org/wiki/Rails_(software)")
   end
 
+  test "a querystring goes along whole, up to the first space or <" do
+    feed = "https://bo.example.com/feeds/feed-3ff8.csv?token=AbC123&x=1"
+    assert_equal %(<p>So: <a href="#{feed.gsub("&", "&amp;")}">#{feed.gsub("&", "&amp;")}</a> done</p>), Mcp::Text.paragraphs("So: #{feed} done")
+    assert_equal %(<p><a href="#{feed.gsub("&", "&amp;")}">#{feed.gsub("&", "&amp;")}</a>&lt;br&gt;</p>), Mcp::Text.paragraphs("#{feed}<br>")
+  end
+
   test "nothing gives nothing" do
     assert_equal "", Mcp::Text.paragraphs("\n\n")
   end

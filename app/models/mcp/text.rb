@@ -16,7 +16,8 @@ module Mcp
         .join
     end
 
-    def self.link(line)
+    # `attributes` go on every link besides its href (a mail read here opens them elsewhere)
+    def self.link(line, attributes: "")
       html = +""
       rest = 0
       line.to_enum(:scan, URL).map { Regexp.last_match }.each do |match|
@@ -24,7 +25,7 @@ module Mcp
         next if url.end_with?("://")
 
         html << ERB::Util.html_escape(line[rest...match.begin(0)])
-        html << %(<a href="#{ERB::Util.html_escape(url)}">#{ERB::Util.html_escape(url)}</a>)
+        html << %(<a#{attributes} href="#{ERB::Util.html_escape(url)}">#{ERB::Util.html_escape(url)}</a>)
         rest = match.begin(0) + url.length
       end
       html << ERB::Util.html_escape(line[rest..])

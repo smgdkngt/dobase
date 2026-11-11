@@ -3,6 +3,16 @@
 require "test_helper"
 
 class MailsHelperTest < ActionView::TestCase
+  test "a mail in text only has its addresses as links, querystring and all, and nothing else as markup" do
+    html = mail_plain_text("So: https://bo.example.com/feeds/feed-3ff8.csv?token=AbC123&x=1.\n<b>Sem</b>")
+
+    link = Nokogiri::HTML5.fragment(html).at_css("a")
+    assert_equal "https://bo.example.com/feeds/feed-3ff8.csv?token=AbC123&x=1", link["href"]
+    assert_equal "https://bo.example.com/feeds/feed-3ff8.csv?token=AbC123&x=1", link.text
+    assert_equal "_blank", link["target"]
+    assert_includes html, ".\n&lt;b&gt;Sem&lt;/b&gt;"
+  end
+
   test "folders are shown as the server nests them, in alphabetical order" do
     folders = [ "Notes", "sem archive/Invoices", "DectDirect.nl", "sem archive", "Notes/Archive", "INBOX.Clients", "INBOX.Clients.Acme" ]
 

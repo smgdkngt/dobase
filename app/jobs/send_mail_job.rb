@@ -21,7 +21,7 @@ class SendMailJob < ApplicationJob
       body_html = message.outgoing_html
       SmtpSendService.new(message.account).send_email(
         to: message.to_addresses_list, cc: message.cc_addresses_list.presence, bcc: message.bcc_addresses_list.presence,
-        subject: message.subject, body: Mails::PlainText.from_html(body_html), body_html: body_html,
+        subject: message.subject, body: Mails::PlainText.from_html(body_html, links: true), body_html: body_html,
         attachments: message.attachments.filter_map { |attachment| attachment.file.blob if attachment.file.attached? }.presence,
         inline_images: Mails::Quote.of(message)&.inline_images.presence, in_reply_to: message.in_reply_to,
         sent_copy: message, quoted: message.quoted_message, sender: sender

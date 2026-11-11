@@ -29,6 +29,15 @@ module Mails
       assert_equal "Fish & chips here", PlainText.from_html(html)
     end
 
+    test "mail that goes out says where a link on words of its own goes" do
+      html = %(<p>The <a href="https://example.com/feed?token=AbC&amp;x=1">feed</a>, <a href="https://example.com/a">https://example.com/a</a>, ) +
+        %(<a href="mailto:ann@example.com">ann@example.com</a> and <a href="https://www.example.com">www.example.com</a></p>)
+
+      assert_equal "The feed <https://example.com/feed?token=AbC&x=1>, https://example.com/a, ann@example.com and www.example.com",
+        PlainText.from_html(html, links: true)
+      assert_equal "The feed, https://example.com/a, ann@example.com and www.example.com", PlainText.from_html(html)
+    end
+
     test "blank html is empty text" do
       assert_equal "", PlainText.from_html(nil)
       assert_equal "", PlainText.from_html("<p> </p><p><br></p>")

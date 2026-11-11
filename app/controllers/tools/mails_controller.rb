@@ -340,7 +340,7 @@ module Tools
 
       SmtpSendService.new(@mail_account).send_email(
         to: to, cc: cc, bcc: bcc, subject: params[:subject],
-        body: ::Mails::PlainText.from_html(body_html), body_html: body_html,
+        body: ::Mails::PlainText.from_html(body_html, links: true), body_html: body_html,
         attachments: attachments.presence, inline_images: quote&.inline_images.presence, in_reply_to: params[:in_reply_to].presence,
         quoted: message.quoted_message
       )

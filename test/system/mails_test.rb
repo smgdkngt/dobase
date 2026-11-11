@@ -522,6 +522,82 @@ class MailsTest < ApplicationSystemTestCase
     assert_equal [ "friend@example.com", "ann@example.com" ], deliveries.sole[:recipients]
   end
 
+  test "an address pasted and finished by typing is one link, querystring and all, and goes out so" do
+    feed = "https://bo.example.com/feeds/feed-3ff8.csv"
+    visit new_tool_mail_path(@tool)
+    wait_for_compose_editor
+    add_recipient "shelley@example.com"
+    find("input[name='subject']").set("The feed")
+
+    # The address pasted, its token typed after it, a word after that
+    editor = find("rhino-editor [contenteditable]")
+    editor.send_keys("So: ")
+    paste_into_editor feed
+    editor.send_keys("?token=AbC123&x=1 done")
+
+    link = find("rhino-editor [contenteditable] a")
+    assert_equal "#{feed}?token=AbC123&x=1", link[:href]
+    assert_equal "#{feed}?token=AbC123&x=1", link.text
+    # It looks like a link, so where it ends can be seen
+    assert_not_equal link.evaluate_script("getComputedStyle(this).color"), link.evaluate_script("getComputedStyle(this.parentElement).color")
+    assert_equal "underline", link.evaluate_script("getComputedStyle(this).textDecorationLine")
+
+    # Pasted with its token cut off, and the token pasted after it
+    editor.send_keys(" ")
+    paste_into_editor "#{feed}?token="
+    paste_into_editor "Zz9"
+    editor.send_keys(".")
+    assert_equal [ "#{feed}?token=AbC123&x=1", "#{feed}?token=Zz9" ], all("rhino-editor [contenteditable] a").map { it[:href] }
+
+    deliveries = capture_smtp_deliveries do
+      perform_enqueued_jobs(only: SendMailJob) do
+        click_on "Send"
+        assert_selector ".mail-detail-header"
+      end
+    end
+
+    sent = Mail.new(deliveries.sole[:message])
+    links = Nokogiri::HTML5.fragment(sent.html_part.decoded).css("a").map { [ it["href"], it.text ] }
+    assert_equal [ [ "#{feed}?token=AbC123&x=1", "#{feed}?token=AbC123&x=1" ], [ "#{feed}?token=Zz9", "#{feed}?token=Zz9" ] ], links
+    assert_includes sent.text_part.decoded, "So: #{feed}?token=AbC123&x=1 done #{feed}?token=Zz9."
+  end
+
+  test "a link put on words with the keyboard goes where it was given, and the mail's text says where" do
+    visit new_tool_mail_path(@tool)
+    wait_for_compose_editor
+    add_recipient "shelley@example.com"
+    find("input[name='subject']").set("The feed")
+
+    editor = find("rhino-editor [contenteditable]")
+    editor.send_keys("See the feed here")
+    page.execute_script("document.querySelector('rhino-editor').editor.commands.setTextSelection({ from: 9, to: 13 })")
+    editor.send_keys([ :control, "k" ])
+    find("rhino-editor").shadow_root.find("#link-dialog__input").send_keys("https://bo.example.com/feed.csv?token=AbC123&x=1", :enter)
+
+    link = find("rhino-editor [contenteditable] a", text: "feed")
+    assert_equal "https://bo.example.com/feed.csv?token=AbC123&x=1", link[:href]
+    editor.send_keys(:end, " now")
+    assert_equal "https://bo.example.com/feed.csv?token=AbC123&x=1", find("rhino-editor [contenteditable] a", text: "feed")[:href]
+
+    deliveries = capture_smtp_deliveries do
+      perform_enqueued_jobs(only: SendMailJob) do
+        click_on "Send"
+        assert_selector ".mail-detail-header"
+      end
+    end
+    assert_includes Mail.new(deliveries.sole[:message]).text_part.decoded, "See the feed <https://bo.example.com/feed.csv?token=AbC123&x=1> here now"
+  end
+
+  test "a mail that came as text only shows its addresses as links, querystring and all" do
+    message = mails_messages(:inbox_read)
+    message.update!(body_html: nil, body_plain: "So: https://bo.example.com/feeds/feed-3ff8.csv?token=AbC123&x=1.\nSem", sent_at: Time.current)
+    visit tool_mail_path(@tool, message)
+
+    link = find(".mail-plain-text a", text: "feed-3ff8.csv")
+    assert_equal "https://bo.example.com/feeds/feed-3ff8.csv?token=AbC123&x=1", link[:href]
+    assert_equal "_blank", link[:target]
+  end
+
   test "an address typed and saved at once is in the draft" do
     visit new_tool_mail_path(@tool)
     wait_for_stimulus "recipients"
@@ -1189,6 +1265,15 @@ class MailsTest < ApplicationSystemTestCase
 
   # The editor takes the prefilled body, and typing, once it has started. Headless Chrome
   # can drop input that arrives before the page has shown a frame, so wait for two.
+  # What pasting does, without the system's clipboard
+  def paste_into_editor(text)
+    page.execute_script(<<~JS, text)
+      const data = new DataTransfer()
+      data.setData("text/plain", arguments[0])
+      document.querySelector("rhino-editor [contenteditable]").dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true }))
+    JS
+  end
+
   def wait_for_compose_editor
     wait_for_stimulus "compose"
     page.document.synchronize do
