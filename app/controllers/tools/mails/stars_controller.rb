@@ -10,15 +10,13 @@ module Tools
 
       # POST /tools/:tool_id/mails/:mail_id/star
       def create
-        @message.update!(starred: true)
-        sync_starred(true)
+        @message.set_starred!(true)
         respond_with_message
       end
 
       # DELETE /tools/:tool_id/mails/:mail_id/star
       def destroy
-        @message.update!(starred: false)
-        sync_starred(false)
+        @message.set_starred!(false)
         respond_with_message
       end
 
@@ -26,11 +24,6 @@ module Tools
 
       def set_message
         @message = ::Mails::Message.where(account: @tool.mail_account).find(params[:mail_id])
-      end
-
-      def sync_starred(starred)
-        return unless @message.uid.present?
-        ImapSyncJob.perform_later(@tool.mail_account.id, "set_starred", @message.uid, @message.folder || "INBOX", starred)
       end
 
       def respond_with_message

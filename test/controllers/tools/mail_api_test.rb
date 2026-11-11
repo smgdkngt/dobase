@@ -151,6 +151,40 @@ module Tools
       assert_equal [ "Welcome to Dobase" ], response.parsed_body["conversations"].map { |conversation| conversation["subject"] }
     end
 
+    test "a search in a folder finds the mail in that folder only, archived mail too, read as it was read" do
+      @account.update!(archive_folder: "Archive")
+      archived = mails_messages(:inbox_unread)
+      post tool_mail_archive_path(@tool, archived), headers: @headers
+      assert_response :success
+      # The sync found it in the server's archive folder, as it was there: unread
+      @account.messages.create!(archived.attributes.except("id", "created_at", "updated_at").merge("folder" => "Archive", "uid" => 31, "archived" => false))
+      # And it was read since
+      post tool_mail_read_path(@tool, archived), headers: @headers
+
+      get tool_mails_path(@tool, q: "welcome", in: "inbox"), headers: @headers
+      assert_empty response.parsed_body["conversations"]
+
+      get tool_mails_path(@tool, q: "welcome", in: "archive"), headers: @headers
+      found = response.parsed_body["conversations"].sole
+      assert_equal [ "archive", true, 0 ], found.values_at("folder", "read", "unread_count")
+
+      # The folder's own list says the same
+      get tool_mails_path(@tool, folder: "archive"), headers: @headers
+      listed = response.parsed_body["conversations"].find { it["thread_id"] == archived.thread_id }
+      assert_equal [ true, 0 ], listed.values_at("read", "unread_count")
+    end
+
+    test "a message that is unread in no copy of it counts as read in the list" do
+      @account.update!(archive_folder: "Archive")
+      read_here = mails_messages(:inbox_read)
+      read_here.update!(archived: true)
+      @account.messages.create!(read_here.attributes.except("id", "created_at", "updated_at").merge("folder" => "Archive", "uid" => 31, "archived" => false, "read" => false))
+
+      get tool_mails_path(@tool, folder: "archive"), headers: @headers
+      listed = response.parsed_body["conversations"].find { it["thread_id"] == read_here.thread_id }
+      assert_equal [ true, 0 ], listed.values_at("read", "unread_count")
+    end
+
     test "index pages through conversations" do
       30.times do |index|
         @account.messages.create!(message_id: "<bulk-#{index}@example.com>", subject: "Bulk #{index}", from_address: "bulk@example.com",

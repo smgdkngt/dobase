@@ -184,7 +184,13 @@ has one, and otherwise only marks it read on the server. Unarchiving moves it
 from the archive folder back to the folder it was archived from, or marks it
 unread when there's no archive folder. Mail that another mail program put in
 the archive folder is listed under `archive` too; archiving it changes nothing,
-and unarchiving moves it to the inbox.
+and unarchiving moves it to the inbox. A message archived here keeps the
+`folder` it was archived from (where unarchiving returns it), while the server
+has it in the archive folder; once the archive folder has synced, it is there
+as a copy too, which the conversation leaves out. Reading or starring either
+one does the same to the other, and to the message in the server's archive
+folder. A conversation in a list is unread when one of its messages is unread
+in every copy.
 
 Archive and move act on the whole conversation in the folder you're looking
 at, the way the list shows it: pass that folder as `folder` when archiving and

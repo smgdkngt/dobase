@@ -39,6 +39,32 @@ module Tools
         assert_nil msg.uid, "the next inbox sync fills in the new UID"
       end
 
+      test "mail archived here is read and starred where the server has it, the archive folder, and so is its copy here" do
+        @tool.mail_account.update!(archive_folder: "Archive")
+        msg = mails_messages(:archived_message)
+        msg.update!(read: false)
+        copy = archive_folder_copy_of(msg, uid: 12)
+        # Its UID in the inbox (106) is gone there: on the server it's found by its Message-ID
+        server = FakeImapServer.new(folders: [ "INBOX", "Archive" ], message_ids: { [ "Archive", msg.message_id ] => [ 12 ] })
+
+        connect_to_imap(server) do
+          perform_enqueued_jobs(only: ImapSyncJob) do
+            post tool_mail_read_path(@tool, msg)
+            post tool_mail_star_path(@tool, msg)
+          end
+        end
+
+        assert_equal [ [ [ 12 ], "+FLAGS", [ :Seen ] ], [ [ 12 ], "+FLAGS", [ :Flagged ] ] ], server.stored
+        assert_equal [ "Archive", "Archive" ], server.selected.last(2)
+        assert copy.reload.read?
+        assert copy.starred?
+
+        # And unread again, from the copy: the mail archived here follows
+        connect_to_imap(server) { perform_enqueued_jobs(only: ImapSyncJob) { delete tool_mail_read_path(@tool, copy) } }
+        assert_equal [ 12, "-FLAGS", [ :Seen ] ], server.stored.last, "the copy by its own UID there"
+        assert_not msg.reload.read?
+      end
+
       test "archiving a message archives its conversation in the folder, and unarchiving brings it back" do
         older, newer = create_mail_thread
 

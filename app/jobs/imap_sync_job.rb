@@ -24,6 +24,9 @@ class ImapSyncJob < ApplicationJob
     when "set_starred"
       starred = args.first
       service.set_starred(uid, starred, folder: folder)
+    when "set_flag_by_message_id"
+      flag, on, message_id = args
+      service.set_flag_by_message_id(message_id, flag, on, folder: folder)
     when "move_to_folder"
       destination = args.first
       service.move_to_folder(uid, source_folder: folder, destination_folder: destination)
