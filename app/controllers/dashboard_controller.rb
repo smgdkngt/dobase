@@ -14,7 +14,7 @@ class DashboardController < ApplicationController
     # can still reach. Skip download endpoints — a stale one would otherwise
     # bounce the user straight into a file download on every visit.
     last_path = current_user.last_visited_path
-    if last_path&.start_with?("/tools") && !last_path.match?(%r{/download\z})
+    if User.page_to_return_to?(last_path)
       tool_id = last_path[/\/tools\/(\d+)/, 1]
       if tool_id && current_user.accessible_tools.exists?(id: tool_id)
         redirect_to last_path and return

@@ -44,7 +44,7 @@ class WorkspacesController < ApplicationController
   def start_path
     last = current_user.last_visited_path
     tool_id = last.to_s[%r{\A/tools/(\d+)}, 1]
-    return last if tool_id && current_user.accessible_tools.exists?(id: tool_id) && !last.match?(%r{/download\z})
+    return last if tool_id && User.page_to_return_to?(last) && current_user.accessible_tools.exists?(id: tool_id)
 
     tool = current_user.ungrouped_tools.first || current_user.accessible_tools.first
     tool_path(tool) if tool

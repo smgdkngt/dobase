@@ -99,6 +99,12 @@ class User < ApplicationRecord
   end
 
   # The same colours and shape for the same key every time: a person, or an address in mail
+  # Whether a stored last visited path is a tool's page to open again: not a
+  # download, and not an answer in another format (a draft's JSON, asked for by a script)
+  def self.page_to_return_to?(path)
+    path.to_s.start_with?("/tools/") && !path.match?(%r{/download\z}) && !path.match?(%r{\.\w+\z})
+  end
+
   def self.look_for(key)
     seed = Zlib.crc32(key.to_s)
     hue = seed % AVATAR_HUES.size

@@ -139,6 +139,8 @@ class ApplicationController < ActionController::Base
     # API clients reading a tool shouldn't clear the user's activity dots.
     return if Current.access_token
     return unless request.get? && response.successful?
+    # Only a page: a script asking for JSON (a draft looked up) isn't somewhere to go back to
+    return unless request.format.html? && response.media_type == "text/html"
     return if request.xhr? || turbo_frame_request?
     return unless request.path.start_with?("/tools")
     return if request.path.match?(%r{/sync\b})

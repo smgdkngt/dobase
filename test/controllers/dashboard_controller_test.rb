@@ -55,4 +55,26 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     follow_redirect!
     assert_no_match %r{/documents/#{document.id}\z}, response.location.to_s
   end
+
+  test "a draft's JSON asked for by the compose page is never the page to come back to" do
+    tool = tools(:my_mail)
+    draft = mails_messages(:draft_message)
+    get tool_files_path(@tool)
+
+    get tool_mail_path(tool, draft, format: :json), headers: { "Accept" => "application/json" }
+    assert_response :success
+
+    assert_equal tool_files_path(@tool), @user.reload.last_visited_path
+  end
+
+  test "does not redirect to a stored JSON path, which it clears" do
+    json_path = "/tools/#{@tool.id}/mails/26322.json"
+    @user.update_column(:last_visited_path, json_path)
+
+    get root_path
+
+    assert_response :redirect
+    refute_equal json_path, response.location.sub(%r{\Ahttps?://[^/]+}, "")
+    assert_nil @user.reload.last_visited_path
+  end
 end
