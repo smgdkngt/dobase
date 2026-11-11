@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Deploys the image GitHub built for this commit, instead of building one here.
+#
+#   bin/deploy dobase demo     # each destination in turn (config/deploy.<destination>.yml)
+#
+# The publish-image workflow builds every commit on main natively for amd64 and arm64
+# (ghcr.io/smgdkngt/dobase:sha-<commit>-amd64). Building that image on another
+# architecture means emulating it, and the Tailwind binary hangs under QEMU since
+# tailwindcss-ruby 4.3.4. So the image is pulled, given the label Kamal looks for (the
+# destination's service name), pushed to the destination's registry under this commit,
+# and deployed with `kamal deploy --skip-push`.
+#
+# Only a commit that is on origin/main and whose CI went green is deployed.
+# IMAGE overrides where the image comes from; PLATFORM the server's architecture.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+IMAGE="${IMAGE:-ghcr.io/smgdkngt/dobase}"
+PLATFORM="${PLATFORM:-linux/amd64}"
+export LANG="${LANG:-C.UTF-8}"
+
+if [ $# -eq 0 ]; then
+  echo "Usage: bin/deploy DESTINATION..." >&2
+  exit 64
+fi
+
+version=$(git rev-parse HEAD)
+short=${version:0:7}
+
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+  echo "There are uncommitted changes; the image is the commit's, without them." >&2
+  exit 1
+fi
+
+git fetch -q origin main
+if ! git merge-base --is-ancestor "$version" origin/main; then
+  echo "$short is not on origin/main: GitHub builds images of main only." >&2
+  exit 1
+fi
+
+ci=$(gh run list --commit "$version" --workflow CI --json conclusion --jq 'map(.conclusion) | join(" ")')
+if [[ " $ci " != *" success "* ]]; then
+  echo "CI is not green for $short (${ci:-not run yet}); deploy when it is." >&2
+  exit 1
+fi
+
+source_image="$IMAGE:sha-$short-${PLATFORM#*/}"
+echo "Pulling $source_image..."
+if ! docker pull -q --platform "$PLATFORM" "$source_image" >/dev/null; then
+  echo "No image for $short yet: wait for the publish-image workflow to finish." >&2
+  exit 1
+fi
+
+for destination in "$@"; do
+  config=$(bin/kamal config -d "$destination")
+  repository=$(sed -n 's/^:repository: //p' <<<"$config")
+  service=$(sed -n "s/^:service_with_version: \(.*\)-$version\$/\1/p" <<<"$config")
+  if [ -z "$repository" ] || [ -z "$service" ]; then
+    echo "Can't read the repository and service of $destination from its Kamal config." >&2
+    exit 1
+  fi
+
+  echo "Deploying $short to $destination ($service)..."
+  printf 'FROM %s\nLABEL service="%s"\n' "$source_image" "$service" |
+    docker build -q --platform "$PLATFORM" -t "$repository:$version" -t "$repository:latest-$destination" - >/dev/null
+  docker push -q "$repository:$version" >/dev/null
+  docker push -q "$repository:latest-$destination" >/dev/null
+  bin/kamal deploy -d "$destination" --skip-push --skip-hooks
+done

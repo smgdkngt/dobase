@@ -43,10 +43,13 @@ bin/screenshots take before   # A picture of every scene; `compare before after`
 ## Deployment
 
 ```bash
-kamal deploy -d dobase     # Deploy to production (requires -d dobase destination flag)
+bin/deploy dobase demo     # Deploy production and the demo: the image GitHub built for this commit (main, CI green)
+kamal deploy -d dobase     # Build here and deploy to production (requires -d dobase destination flag)
 kamal console -d dobase    # Rails console on production
 kamal logs -d dobase       # Tail production logs
 ```
+
+`bin/deploy` is the way to deploy: it pulls `ghcr.io/smgdkngt/dobase:sha-<commit>-amd64`, which the publish-image workflow built natively, labels it with the destination's service name for Kamal, pushes it to the destination's registry and runs `kamal deploy --skip-push`. Building the image on another architecture (an arm64 machine for an amd64 server) runs it under QEMU, where the Tailwind binary hangs since tailwindcss-ruby 4.3.4. It deploys only a commit on `origin/main` whose CI is green.
 
 The `config/deploy.yml` contains open-source placeholder values. Real production config lives in `config/deploy.dobase.yml` (the Kamal destination file). Always use `-d dobase` when deploying.
 
