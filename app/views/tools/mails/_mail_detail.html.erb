@@ -136,7 +136,7 @@
       <div class="w-7 h-7 rounded-full bg-accent-light flex items-center justify-center">
         <span class="text-[0.6875rem] font-semibold text-accent"><%= current_user.first_name[0]&.upcase %></span>
       </div>
-      <span class="text-[0.8125rem] text-text-tertiary"><%= reply_draft ? "Continue your reply…" : "Click to reply..." %></span>
+      <span class="text-[0.8125rem] text-text-tertiary"><%= reply_draft ? "Continue your reply…" : "Reply…" %></span>
     <% end %>
     <% if has_multiple_recipients %>
       <%= render "components/button",

@@ -555,7 +555,7 @@ module Tools
       get tool_mail_path(@tool, original)
 
       assert_select ".badge", text: "Draft", count: 0
-      assert_select "a[href=?]", new_tool_mail_path(@tool, reply_to: original.id, folder: "inbox"), text: /Click to reply/
+      assert_select "a[href=?]", new_tool_mail_path(@tool, reply_to: original.id, folder: "inbox"), text: /Reply…/
 
       get tool_mail_path(@tool, draft, folder: "trash")
 

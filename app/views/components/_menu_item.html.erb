@@ -24,7 +24,7 @@
 %>
   <%= render "shared/icon", name: icon, size: 15 if local_assigns[:icon] %>
   <span class="flex-1 min-w-0 truncate"><%= text %></span>
-  <% if local_assigns[:shortcut] %><kbd class="context-menu-shortcut" aria-hidden="true"><%= shortcut %></kbd><% end %>
+  <% if local_assigns[:shortcut] %><kbd class="context-menu-shortcut keyboard-hint" aria-hidden="true"><%= shortcut %></kbd><% end %>
 <% end %>
 <% if local_assigns[:href] %>
   <%= link_to content, href, **html_options %>

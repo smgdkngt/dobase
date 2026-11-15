@@ -74,3 +74,11 @@
     padding-inline: 0.625rem;
   }
 }
+
+/* A hint at a key (Ctrl+K beside the search, the key beside a menu entry, "j/k to
+   navigate") says nothing to a finger */
+@media (pointer: coarse) {
+  .keyboard-hint {
+    display: none;
+  }
+}

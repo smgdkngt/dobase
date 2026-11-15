@@ -70,7 +70,7 @@ class MailsTest < ApplicationSystemTestCase
     assert_no_selector ".mail-topbar", visible: true
     assert_no_selector ".mail-detail-header a[title^='Reply']", visible: true
     within ".mail-reply-bar" do
-      assert_selector "a", text: "Click to reply"
+      assert_selector "a", text: "Reply…"
       assert_selector "a[title='Forward']"
     end
 
@@ -98,6 +98,23 @@ class MailsTest < ApplicationSystemTestCase
     page.document.synchronize do
       raise Capybara::ExpectationNotMet, "the page stayed scrolled" unless page.evaluate_script("window.scrollY").zero?
     end
+  end
+
+  test "a touch screen gets no hints at keys" do
+    visit tool_mails_path(@tool)
+    assert_selector ".sidebar-jump-pill-kbd", visible: true
+    assert_selector ".empty-state .keyboard-hint", text: "to navigate", visible: true
+
+    page.driver.browser.execute_cdp("Emulation.setTouchEmulationEnabled", enabled: true, maxTouchPoints: 1)
+    visit tool_mails_path(@tool)
+    assert page.evaluate_script("matchMedia('(pointer: coarse)').matches"), "the browser isn't a touch screen"
+
+    assert_selector ".empty-state", text: "Select a message"
+    assert_no_selector ".sidebar-jump-pill-kbd", visible: true
+    assert_no_selector ".empty-state .keyboard-hint", visible: true
+    assert_equal "Search all mail…", find(".mail-topbar input[name=q]")[:placeholder]
+  ensure
+    page.driver.browser.execute_cdp("Emulation.setTouchEmulationEnabled", enabled: false)
   end
 
   test "navigating to starred folder" do
