@@ -42,11 +42,17 @@ class ToolsController < ApplicationController
         format.html { redirect_to @tool, notice: "#{@tool.name} created successfully." }
         format.json { render :show, status: :created }
       else
+        format.json { render json: { errors: @tool.errors.full_messages }, status: :unprocessable_entity }
+        # The Add Tool dialog: the form comes back in its place, saying why, and the
+        # page it was opened on (the workspace) stays as it was
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace("new-tool-form", partial: "tools/new_tool_form", locals: { tool: @tool }),
+            status: :unprocessable_entity
+        end
         format.html do
           @tool_types = ToolType.enabled.order(:name)
           render :new, status: :unprocessable_entity
         end
-        format.json { render json: { errors: @tool.errors.full_messages }, status: :unprocessable_entity }
       end
     end
   end

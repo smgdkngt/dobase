@@ -83,4 +83,22 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
     ids = css_select("input[id], select[id], textarea[id]").map { |field| field["id"] }
     assert_equal ids.uniq, ids, "the page has fields sharing an id"
   end
+
+  test "adding a tool without a type says so in the dialog, and the page it was opened on stays" do
+    assert_no_difference -> { Tool.count } do
+      post tools_path, params: { tool: { name: "Groceries" } }, as: :turbo_stream
+    end
+
+    assert_response :unprocessable_entity
+    assert_select "turbo-stream[action=replace][target=new-tool-form] template" do
+      assert_select ".flash-error", text: /Tool type must exist/
+      assert_select "input[name='tool[name]'][value=Groceries]"
+    end
+  end
+
+  test "the type of a tool to add is asked for before the form goes" do
+    get tools_path
+
+    assert_select "#new-tool-modal input[type=radio][name='tool[tool_type_id]'][required]", count: ToolType.enabled.count
+  end
 end
