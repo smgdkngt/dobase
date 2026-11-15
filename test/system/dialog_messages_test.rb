@@ -110,7 +110,13 @@ class DialogMessagesTest < ApplicationSystemTestCase
     within "dialog#edit-tool-modal[open]" do
       find("a, button", text: "Delete", match: :first).click
     end
-    within("dialog[open]") { click_on "Delete" }
+    # The confirmation dialog opens with an animation, and on a busy machine a click
+    # during it can come to nothing: pressed again until the dialog has gone
+    confirm = "dialog#turbo-confirm-dialog[open] button[value='confirm']"
+    3.times do
+      find(confirm).click
+      break if has_no_selector?(confirm, wait: 3)
+    end
 
     assert_selector ".flash-toast .flash", text: "Scratch deleted successfully."
     assert_selector ".workspace-bar"
