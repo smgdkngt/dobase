@@ -151,6 +151,57 @@ class WorkspaceInPageBoardTest < ApplicationSystemTestCase
     assert_operator seen.compact.uniq.size, :>=, 3, "The arrows only reached #{seen.compact.uniq}"
   end
 
+  test "a card moved with Shift and the arrows stays on its own board, beside another board" do
+    other = tools(:shared_board)
+    %w[Backlog Doing].each_with_index { |name, i| boards(:shared).columns.create!(name: name, position: i) }
+    open_beside other
+    assert_selector "#{BOARD} .tile-page h1", text: other.name
+
+    card = cards(:completed_task)
+    left = find("#{BOARD}#tile-#{tile_id_of(@board)}")
+    within(left) { find("#board-card-#{card.id}") }
+    page.execute_script("document.querySelector(arguments[0]).focus()", "##{left[:id]} #board-card-#{card.id}")
+    page.send_keys([ :shift, :arrow_right ])
+
+    # Done is the last column of its board: there is nowhere to go to the right
+    sleep 0.5
+    assert_selector "##{left[:id]} #column-#{columns(:done).id}-cards #board-card-#{card.id}"
+    assert_equal columns(:done).id, card.reload.column_id
+
+    page.send_keys([ :shift, :arrow_left ])
+    assert_selector "##{left[:id]} #column-#{columns(:in_progress).id}-cards #board-card-#{card.id}"
+    assert_db_change -> { card.reload.column_id == columns(:in_progress).id }
+  end
+
+  # Dropped on another board, a card makes a card there that links back (drag_drop_controller.js).
+  # The card itself stays where it was: it is never moved there as if it were that board's.
+  test "a card dragged with the mouse onto another board stays on its own" do
+    other = tools(:shared_board)
+    backlog = boards(:shared).columns.create!(name: "Backlog", position: 0)
+    open_beside other
+    assert_selector "#{BOARD} .tile-page h1", text: other.name
+
+    card = cards(:completed_task)
+    left = "#tile-#{tile_id_of(@board)}"
+    dragged = find("#{left} #board-card-#{card.id}").native
+    onto = find("#tile-#{tile_id_of(other)} #column-#{backlog.id}-cards").native
+    # The other board draws itself again once the server refused the card: watch whether
+    # it was ever taken in, not only where it ends up
+    page.execute_script(<<~JS, "#column-#{backlog.id}-cards", card.id.to_s)
+      const [list, id] = [document.querySelector(arguments[0]), arguments[1]]
+      window.takenIn = false
+      new MutationObserver(() => { if (list.querySelector(`[data-card-id='${id}']`)) window.takenIn = true })
+        .observe(list, { childList: true, subtree: true })
+    JS
+    page.driver.browser.action.click_and_hold(dragged).move_by(10, 5).move_by(20, 5)
+      .move_to(onto, 0, -200).move_by(0, 10).move_by(0, 10).move_by(0, 10).release.perform
+
+    assert_selector "#column-#{backlog.id}-cards .board-card", text: card.title
+    assert_not page.evaluate_script("window.takenIn"), "The card itself was moved to the other board"
+    assert_selector "#{left} #column-#{columns(:done).id}-cards #board-card-#{card.id}"
+    assert_equal columns(:done).id, card.reload.column_id
+  end
+
   private
 
   def open_beside(tool)

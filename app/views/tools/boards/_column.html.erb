@@ -68,7 +68,7 @@
     <div class="board-column-cards flex-1 overflow-y-auto px-2 pb-2 flex flex-col gap-2 min-h-[4rem] rounded-md transition-colors"
          id="column-<%= column.id %>-cards"
          data-controller="sortable"
-         data-sortable-group-value="board-cards"
+         data-sortable-group-value="board-cards-<%= column.board.tool_id %>"
          data-sortable-url-value="<%= column_positions_path(column) %>"
          data-sortable-param-name-value="card_ids"
          <%= tag.attributes(drop_attributes(tool: column.board.tool, url: column_cards_path(column), done: "Card added to #{column.name}")) %>>

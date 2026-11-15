@@ -50,7 +50,7 @@
   <div class="todo-list-items px-2 pb-2 flex flex-col gap-0.5 min-h-[2rem] rounded-md transition-colors"
        id="list-<%= list.id %>-items"
        data-controller="sortable"
-       data-sortable-group-value="todo-items"
+       data-sortable-group-value="todo-items-<%= tool.id %>"
        data-sortable-handle-value=".todo-drag-handle"
        data-sortable-url-value="<%= todo_list_positions_path(list) %>"
        data-sortable-param-name-value="item_ids"

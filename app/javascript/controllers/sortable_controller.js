@@ -2,6 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import Sortable from "sortablejs"
 import { apiPatch } from "services/api"
 import { play } from "services/sound"
+import { tileOf } from "services/tile"
 
 let dragInProgress = false
 
@@ -130,12 +131,15 @@ export default class extends Controller {
     return true
   }
 
-  // The nearest list of the same group to the left or the right of this one
+  // The nearest list of the same group to the left or the right of this one, on its own
+  // page: in the workspace a tile of another board can lie beside this one, and a card
+  // moved there would be one the server refuses
   _listBeside(side) {
     if (!this.hasGroupValue) return null
 
+    const page = tileOf(this.element) || this.element.closest("main") || document
     const here = this.element.getBoundingClientRect()
-    return Array.from(document.querySelectorAll(`[data-controller~='sortable'][data-sortable-group-value='${this.groupValue}']`))
+    return Array.from(page.querySelectorAll(`[data-controller~='sortable'][data-sortable-group-value='${this.groupValue}']`))
       .filter((list) => list !== this.element && list.getClientRects().length > 0)
       .map((list) => ({ list, rect: list.getBoundingClientRect() }))
       .filter(({ rect }) => side === "left" ? rect.left < here.left : rect.left > here.left)
