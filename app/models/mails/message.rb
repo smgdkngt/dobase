@@ -146,6 +146,17 @@ module Mails
       body_plain.gsub(/\s+/, " ").strip.truncate(120)
     end
 
+    # What a closed message in its conversation starts with: its own words on one line,
+    # without the mail it quotes at its end
+    def snippet
+      text = if body_html.present? && (body_plain.blank? || draft?)
+        PlainText.from_html(TrailingQuote.strip_html(body_html))
+      else
+        TrailingQuote.split_text(body_plain.to_s).first
+      end
+      text.squish.truncate(200, separator: " ")
+    end
+
     # The attachments the HTML shows as pictures (<img src="cid:...">), by the ID it uses
     def inline_images
       @inline_images ||= body_html.to_s.scan(CONTENT_ID_URL).map { |url| content_id_of(url) }.uniq.filter_map do |id|

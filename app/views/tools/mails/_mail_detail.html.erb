@@ -121,11 +121,14 @@
   </div>
 </div>
 
-<div class="mail-message-in overflow-y-auto p-4 narrow:px-1" data-mail-keyboard-target="reader">
+<%# What was unread when the conversation was opened is open, and the last message; it
+    starts on the first of those (mail_conversation_controller.js) %>
+<div class="mail-message-in overflow-y-auto p-4 narrow:px-1" data-mail-keyboard-target="reader" data-controller="mail-conversation">
+  <% unread_ids = @unread_message_ids || [] %>
   <% @conversation_messages.each_with_index do |msg, index| %>
     <%= render "tools/mails/email_message",
           email_message: msg,
-          is_last: index == @conversation_messages.length - 1,
+          open: index == @conversation_messages.length - 1 || unread_ids.include?(msg.id),
           names: recipient_names %>
   <% end %>
 </div>

@@ -156,14 +156,54 @@ module Tools
         assert_select "dd:nth-of-type(3) .mail-recipient", text: "boss@example.com"
       end
 
-      # The mail it answers is closed: a line of names, and all eleven people ready for when it is opened
-      assert_select "[data-collapse-target=preview]:not(.hidden)", count: 1, text: /\ATo: Test User, Ann Lee, guest1@example\.com, .*guest9@example\.com · Cc: boss@example\.com\z/
+      # The mail it answers is closed: one line that starts on what it says, and all eleven people ready for when it is opened
+      assert_select "[data-collapse-target=preview]:not(.hidden)", count: 1, text: received.snippet
       assert_select ".mail-recipients.hidden[data-collapse-target=content]", count: 1 do
         assert_select "dd:nth-of-type(1) .mail-recipient", count: 11
         assert_select "dd:nth-of-type(1) .mail-recipient", text: /\ATest User\s+testuser@example\.com,\z/
         assert_select "dd:nth-of-type(1) .mail-recipient", text: "guest9@example.com"
         assert_select "dd:nth-of-type(2) .mail-recipient", text: "boss@example.com"
         assert_select "dt", text: "Bcc", count: 0
+      end
+    end
+
+    test "a conversation opens every message that was unread, and the last one; the others are a line that starts on their text" do
+      messages = create_long_conversation
+
+      get tool_mail_path(@tool, messages.last)
+
+      open = messages.values_at(2, 3, 5)
+      closed = messages.values_at(0, 1, 4)
+      open.each { |message| assert_select "#mail-message-#{message.id}[data-collapse-open-value=true]" }
+      closed.each do |message|
+        assert_select "#mail-message-#{message.id}[data-collapse-open-value=false]" do
+          assert_select "[data-collapse-target=preview]:not(.hidden)", text: message.snippet
+          assert_select "[data-collapse-target=content].hidden", minimum: 1
+        end
+      end
+      # Opened is read, and opened again only the last one is open
+      assert messages.all? { |message| message.reload.read? }
+      get tool_mail_path(@tool, messages.last)
+      assert_select "[data-collapse-open-value=true]", count: 1
+      # The first one that opened is where the conversation starts reading
+      assert_select ".mail-message-in[data-controller~=mail-conversation]"
+    end
+
+    test "what a message quotes at its end is folded away behind a button, in HTML and in text" do
+      messages = create_long_conversation
+
+      get tool_mail_path(@tool, messages.last)
+
+      # Gmail's quote and Apple Mail's, inside the frame the mail is shown in (which runs no scripts)
+      assert_select "#mail-message-#{messages[3].id} iframe[srcdoc*='mail-quote']"
+      assert_select "#mail-message-#{messages[5].id} iframe[srcdoc*='mail-quote']"
+      # A mail of text only: its "> " lines
+      assert_select "#mail-message-#{messages[2].id} .mail-plain-text" do |text|
+        assert_includes text.text, "They came back to me"
+        assert_select "details.mail-quote:not([open])" do
+          assert_select "summary[title='Show the quoted text']"
+          assert_select "*", text: /On Monday, Ann Lee wrote:/
+        end
       end
     end
 

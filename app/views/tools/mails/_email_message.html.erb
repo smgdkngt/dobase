@@ -1,8 +1,14 @@
-<%# Locals: email_message, is_last, names (what the conversation's people are known by: Mails::Account#names_in) %>
+<%# Locals: email_message, open (shown open: the last message, and what was unread when the
+    conversation was opened), names (what the conversation's people are known by: Mails::Account#names_in) %>
 <% attachments = email_message.listed_attachments %>
 <% recipients = mail_recipients(email_message, names) %>
-<%# Mail sent off from the compose page shows here while it's on its way to the mail server %>
-<div class="border-b border-border-light last:border-b-0" data-controller="collapse<%= " mail-sending" if email_message.sending? %>" data-collapse-open-value="<%= is_last %>">
+<%# Closed, a message is one line: who wrote it, how it starts and when. Open, the sender's
+    address and everyone it went to are under that line, and the mail under them. What the
+    reader opened and closed stays so when the page draws itself again (keep). Mail sent off
+    from the compose page shows here while it's on its way to the mail server. %>
+<%= tag.div id: "mail-message-#{email_message.id}", class: "mail-message",
+      data: { controller: [ "collapse", ("mail-sending" if email_message.sending?) ].compact.join(" "),
+              collapse_open_value: open, collapse_keep_value: true, mail_conversation_target: "message" } do %>
   <%# The sender's face beside the line that opens and closes the message and, once it is open,
       everyone it went to. Those are text to read and to copy, so they are no part of the button. %>
   <div class="mail-message-head">
@@ -13,45 +19,44 @@
           <%= render "shared/icon", name: "file-pen", size: 16 %>
         </div>
       <% else %>
-        <div class="w-10 h-10 rounded-full bg-accent-light flex items-center justify-center flex-shrink-0">
-          <span class="text-sm font-semibold text-accent"><%= email_message.display_from.to_s[0]&.upcase %></span>
-        </div>
+        <div class="mail-message-avatar"><%= email_message.display_from.to_s[0]&.upcase %></div>
       <% end %>
     </div>
     <button type="button" class="mail-message-toggle" data-action="click->collapse#toggle">
-      <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2 flex-wrap">
-          <span class="text-sm font-semibold text-text-primary"><%= email_message.display_from %></span>
+      <span class="mail-message-line">
+        <span class="mail-message-from"><%= email_message.display_from %></span>
+        <% if email_message.draft? %>
+          <%= render "components/badge", text: "Draft", variant: :warning, size: :sm %>
+        <% elsif email_message.from_name.present? && email_message.from_name != email_message.from_address %>
+          <%= tag.span email_message.from_address, class: [ "mail-message-address", ("hidden" unless open) ], data: { collapse_target: "content" } %>
+        <% end %>
+        <% if email_message.sending? %>
+          <%= render "components/badge", text: "Sending…", variant: :muted, size: :sm %>
+        <% end %>
+        <%# Closed: how it starts, as far as the line has room %>
+        <%= tag.span email_message.snippet, class: [ "mail-message-snippet", ("hidden" if open) ], data: { collapse_target: "preview" } %>
+        <span class="mail-message-date">
+          <% if attachments.any? %>
+            <%= tag.span(title: pluralize(attachments.size, "attachment")) { render "shared/icon", name: "paperclip", size: 12, label: pluralize(attachments.size, "attachment") } %>
+          <% end %>
           <% if email_message.draft? %>
-            <%= render "components/badge", text: "Draft", variant: :warning, size: :sm %>
-          <% elsif email_message.from_name.present? && email_message.from_name != email_message.from_address %>
-            <%# Narrow: under the name, so the name and the date share the first line %>
-            <span class="text-xs text-text-tertiary narrow:order-last narrow:basis-full narrow:truncate"><%= email_message.from_address %></span>
+            <%= "Saved #{format_datetime(email_message.sent_at)}" %>
+          <% else %>
+            <%# Closed, as short as in the list; open, in full %>
+            <%= tag.span mail_list_date(email_message.sent_at), class: ("hidden" if open), title: format_datetime(email_message.sent_at), data: { collapse_target: "preview" } %>
+            <%= tag.span format_datetime(email_message.sent_at), class: ("hidden" unless open), data: { collapse_target: "content" } %>
           <% end %>
-          <% if email_message.sending? %>
-            <%= render "components/badge", text: "Sending…", variant: :muted, size: :sm %>
-          <% end %>
-          <span class="text-xs text-text-tertiary ml-auto inline-flex items-center gap-1.5">
-            <% if attachments.any? %>
-              <%= tag.span(title: pluralize(attachments.size, "attachment")) { render "shared/icon", name: "paperclip", size: 12, label: pluralize(attachments.size, "attachment") } %>
-            <% end %>
-            <%= email_message.draft? ? "Saved #{format_datetime(email_message.sent_at)}" : format_datetime(email_message.sent_at) %>
-          </span>
-        </div>
-        <%# Closed: who it went to in one line, as far as it fits %>
-        <div class="text-xs text-text-tertiary mt-0.5 truncate <%= 'hidden' if is_last %>" data-collapse-target="preview">
-          <%= mail_recipients_line(recipients) %>
-        </div>
-      </div>
-      <div class="text-text-tertiary transition-transform <%= 'rotate-180' if is_last %>" data-collapse-target="icon">
+        </span>
+      </span>
+      <%= tag.span class: [ "mail-message-chevron", ("rotate-180" if open) ], data: { collapse_target: "icon" } do %>
         <%= render "shared/icon", name: "chevron-down", size: 14 %>
-      </div>
+      <% end %>
     </button>
     <% if recipients.any? %>
-      <%= render "tools/mails/message_recipients", recipients: recipients, hidden: !is_last %>
+      <%= render "tools/mails/message_recipients", recipients: recipients, hidden: !open %>
     <% end %>
   </div>
-  <div data-collapse-target="content" class="<%= is_last ? '' : 'hidden' %>">
+  <%= tag.div class: ("hidden" unless open), data: { collapse_target: "content" } do %>
     <%# Beside the sender's face in a wide window; in a narrow one (a phone, a tile) the width is the message's %>
     <div class="px-4 pb-4 pl-[4.25rem] narrow:px-2 narrow:pl-2">
       <% if email_message.draft? && !email_message.trashed? %>
@@ -73,7 +78,7 @@
         </div>
       <% end %>
 
-      <%= render "tools/mails/email_body", message: email_message %>
+      <%= render "tools/mails/email_body", message: email_message, fold_quote: true %>
 
       <% if attachments.any? %>
         <div class="mt-4 pt-4 border-t border-border-light">
@@ -97,5 +102,5 @@
         </div>
       <% end %>
     </div>
-  </div>
-</div>
+  <% end %>
+<% end %>

@@ -34,6 +34,17 @@ module MailsHelper
       border-left: 3px solid #d2d2d7;
       color: #6e6e73;
     }
+    /* What a mail quotes at its end, folded behind three dots (Mails::TrailingQuote) */
+    details.mail-quote { margin: 0.75em 0 0; }
+    details.mail-quote > summary {
+      display: inline-flex; align-items: center; justify-content: center;
+      height: 20px; padding: 0 8px; border-radius: 999px;
+      background: #ededf0; color: #6e6e73; cursor: pointer; list-style: none;
+    }
+    details.mail-quote > summary::-webkit-details-marker { display: none; }
+    details.mail-quote > summary:hover { background: #e2e2e6; color: #1d1d1f; }
+    details.mail-quote > summary:focus-visible { outline: 2px solid #0071e3; outline-offset: 2px; }
+    details.mail-quote[open] > summary { margin-bottom: 0.75em; }
   CSS
 
   # Until the reader asks for images, nothing loads from outside the email. CSS url()s in
@@ -43,6 +54,15 @@ module MailsHelper
   # The page a mail is in its frame (srcdoc), which runs no scripts
   def mail_frame_document(body, remote_content: false, styles: nil)
     "<!DOCTYPE html><html><head><meta charset=\"utf-8\">#{MAIL_FRAME_POLICY unless remote_content}<base target=\"_blank\"><style>#{MAIL_FRAME_STYLES}#{styles}</style></head><body>#{body}</body></html>"
+  end
+
+  # A mail of text's quote at its end, behind a button of three dots (Mails::TrailingQuote)
+  def mail_quote_fold(quote)
+    tag.details(class: "mail-quote") do
+      tag.summary(render("shared/icon", name: "more-horizontal", size: 14), class: "mail-quote-toggle",
+        title: Mails::TrailingQuote::LABEL, aria: { label: Mails::TrailingQuote::LABEL }) +
+        tag.div(mail_plain_text(quote), class: "mail-quote-text")
+    end
   end
 
   # The built-in folders to switch between, with the counts that show as a badge. Junk
@@ -131,11 +151,6 @@ module MailsHelper
       end
       [ header, people ] if people.any?
     end.to_h
-  end
-
-  # The same in one line, by name: what a closed message says
-  def mail_recipients_line(recipients)
-    recipients.map { |header, people| "#{header}: #{people.map { |person| person.name.presence || person.address }.join(', ')}" }.join(" · ")
   end
 
   # What a screen reader hears after a recipient's name

@@ -34,6 +34,8 @@ module Tools
             # A discarded draft is out of its conversation: it only shows when it's opened from the trash
             @conversation_messages = @message.conversation_without_copies.reject { |message| message.draft? && message.trashed? && message != @message }
             unread = @message.conversation.unread.to_a
+            # What was unread opens, beside the last message: read now, it would be closed
+            @unread_message_ids = unread.map(&:id)
             unread.each(&:mark_as_read!)
             # Read here is read in every window that has this mailbox open
             announce_a_change if unread.any?

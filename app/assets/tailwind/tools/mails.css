@@ -179,11 +179,11 @@
   .compose-quote {
     @apply mx-4 mb-4;
   }
-  .compose-quote-toggle {
+  .compose-quote-toggle, .mail-quote-toggle {
     @apply inline-flex items-center justify-center h-5 px-2 rounded-full bg-background-tertiary text-text-secondary cursor-pointer list-none
            hover:bg-border-light;
   }
-  .compose-quote-toggle::-webkit-details-marker {
+  .compose-quote-toggle::-webkit-details-marker, .mail-quote-toggle::-webkit-details-marker {
     display: none;
   }
   .compose-quote-content {
@@ -253,13 +253,91 @@
     @apply bg-background-tertiary;
   }
 
+  .mail-message {
+    @apply border-b border-border-light;
+  }
+
+  .mail-message:last-child {
+    @apply border-b-0;
+  }
+
   /* (the room around the face is the face's, so the line opens and closes from its very start) */
   .mail-message-face {
     @apply row-span-2 self-start py-4 pl-4 pr-3;
   }
 
+  .mail-message-avatar {
+    @apply w-10 h-10 rounded-full bg-accent-light flex items-center justify-center shrink-0 text-sm font-semibold text-accent;
+  }
+
   .mail-message-toggle {
     @apply row-span-2 flex items-start gap-3 py-4 pr-4 bg-transparent border-none cursor-pointer text-left;
+  }
+
+  /* Who wrote it and when; closed, how it starts between them */
+  .mail-message-line {
+    @apply flex flex-1 min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5;
+  }
+
+  .mail-message-from {
+    @apply text-sm font-semibold text-text-primary;
+  }
+
+  .mail-message-address {
+    @apply text-xs text-text-tertiary;
+
+    /* Narrow: under the name, so the name and the date share the first line */
+    @variant narrow {
+      @apply order-last basis-full truncate;
+    }
+  }
+
+  .mail-message-snippet {
+    @apply basis-0 grow min-w-0 truncate text-sm text-text-tertiary;
+  }
+
+  .mail-message-date {
+    @apply ml-auto shrink-0 inline-flex items-center gap-1.5 text-xs text-text-tertiary whitespace-nowrap;
+  }
+
+  .mail-message-chevron {
+    @apply self-center text-text-tertiary transition-transform;
+  }
+
+  /* Closed, a message is a line: a smaller face on the axis of the open ones, and its
+     name, how it starts and when side by side, as far as the line has room */
+  .mail-message[data-collapse-open-value="false"] .mail-message-face {
+    @apply py-2.5 pl-[1.375rem] pr-[1.125rem];
+  }
+
+  .mail-message[data-collapse-open-value="false"] :is(.mail-message-avatar, .mail-draft-avatar) {
+    @apply w-7 h-7 text-xs;
+  }
+
+  .mail-message[data-collapse-open-value="false"] .mail-message-toggle {
+    @apply items-center py-2.5;
+  }
+
+  .mail-message[data-collapse-open-value="false"] .mail-message-line {
+    @apply flex-nowrap;
+  }
+
+  .mail-message[data-collapse-open-value="false"] .mail-message-from {
+    @apply shrink-0 max-w-[45%] truncate font-medium;
+  }
+
+  /* What a mail of text quotes at its end, behind three dots as in compose (an HTML
+     mail's is the same, drawn in its frame: MailsHelper::MAIL_FRAME_STYLES) */
+  .mail-quote {
+    @apply mt-3 whitespace-normal;
+  }
+
+  .mail-quote[open] > .mail-quote-toggle {
+    @apply mb-3;
+  }
+
+  .mail-quote-text {
+    @apply whitespace-pre-wrap text-text-secondary;
   }
 
   /* The keyboard on that line: the ring is around all it opens and closes, drawn inside

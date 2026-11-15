@@ -1,9 +1,13 @@
 <%# Locals: message, trust_actions (true: the buttons that trust a sender with images are forms
-    of their own, so a page that shows a mail inside a form says false) %>
+    of their own, so a page that shows a mail inside a form says false), fold_quote (true: what
+    the mail quotes at its end is behind a button, as in a conversation, which shows what it quotes) %>
+<% fold_quote = local_assigns.fetch(:fold_quote, false) %>
 <% if message.body_html.present? %>
   <%
     # Only the attributes Mails::ReadableHtml allows are left: no event handlers
     sanitized = Mails::ReadableHtml.from(message)
+    # The quote folds by itself (<details>): the frame runs no scripts
+    sanitized = Mails::TrailingQuote.fold_html(sanitized) if fold_quote
 
     # Strip remote images: replace src with blank, track if any were found
     has_remote_images = sanitized.match?(/<img\b[^>]*?\bsrc\s*=\s*["']https?:\/\//i) || sanitized.match?(/url\(\s*["']?\s*https?:/i) ||
@@ -52,9 +56,10 @@
     </div>
   </div>
 <% elsif message.body_plain.present? %>
+  <% text, quote = fold_quote ? Mails::TrailingQuote.split_text(message.body_plain) : [ message.body_plain, nil ] %>
   <div class="mail-plain-text whitespace-pre-wrap text-text-primary text-sm"><%=
-    mail_plain_text(message.body_plain)
-  %></div>
+    mail_plain_text(text)
+  %><%= mail_quote_fold(quote) if quote %></div>
 <% else %>
   <p class="text-text-tertiary italic text-sm">No content</p>
 <% end %>

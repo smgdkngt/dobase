@@ -1243,19 +1243,19 @@ class MailsTest < ApplicationSystemTestCase
     assert_selector "details.compose-answered:not([open])"
   end
 
-  test "an open message says everyone it went to under its sender, a closed one in a line" do
+  test "an open message says everyone it went to under its sender, a closed one is a line that starts on its text" do
     mails_messages(:inbox_read).update!(cc_addresses: [ "boss@example.com" ].to_json)
     visit tool_mail_path(@tool, mails_messages(:sent_message))
     wait_for_stimulus "collapse"
 
     # The last message is open, the one it answers closed
     assert_selector ".mail-recipients", text: /To\s+Reports Bot reports@example\.com/
-    assert_selector "[data-collapse-target=preview]", text: "To: Test User · Cc: boss@example.com"
+    assert_selector ".mail-message-snippet", text: "Here is your weekly report summary."
     assert_no_selector ".mail-recipients", text: "boss@example.com"
 
     find("button[data-action='click->collapse#toggle']", text: "Reports Bot").click
     assert_selector ".mail-recipients", text: /To\s+Test User testuser@example\.com\s+Cc\s+boss@example\.com/
-    assert_no_selector "[data-collapse-target=preview]", text: "boss@example.com"
+    assert_no_selector ".mail-message-snippet", text: "Here is your weekly report"
 
     # They are text to read and to copy, not the button: a click on one leaves the message open,
     # and they stand under the sender's name, beside the face
@@ -1266,7 +1266,7 @@ class MailsTest < ApplicationSystemTestCase
 
     find("button[data-action='click->collapse#toggle']", text: "Reports Bot").click
     assert_no_selector ".mail-recipients", text: "boss@example.com"
-    assert_selector "[data-collapse-target=preview]", text: "To: Test User · Cc: boss@example.com"
+    assert_selector ".mail-message-snippet", text: "Here is your weekly report summary."
   end
 
   test "at a phone's width everyone an open message went to has the width, and a long address breaks" do
@@ -1287,7 +1287,7 @@ class MailsTest < ApplicationSystemTestCase
     assert_operator people["right"], :<=, reader["right"], "the people run out of the window"
     assert all(".mail-recipient").all? { |person| person.evaluate_script("this.getBoundingClientRect().right") <= people["right"] }, "an address runs out of the window"
     # The closed message keeps to one line
-    assert_in_delta 16, find("[data-collapse-target=preview]").evaluate_script("this.getBoundingClientRect().height"), 2
+    assert_in_delta 20, find(".mail-message-snippet").evaluate_script("this.getBoundingClientRect().height"), 2
   ensure
     page.driver.browser.execute_cdp("Emulation.clearDeviceMetricsOverride")
   end

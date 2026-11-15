@@ -96,5 +96,19 @@ module Mails
       assert_nil draft.reload.quoted_message
       assert_equal draft.body_html, draft.outgoing_html
     end
+
+    test "the start of a message is its own words on one line, without the mail it quotes" do
+      account = mails_accounts(:primary)
+      plain = account.messages.new(body_plain: "Booked for Thursday.\n\nAnn\n\nOn Monday, Test User wrote:\n> Can you book it?")
+      assert_equal "Booked for Thursday. Ann", plain.snippet
+
+      html = account.messages.new(body_html: %(<p>See you <b>there</b>.</p><div class="gmail_quote"><div class="gmail_attr">On Mon, Ann wrote:</div><blockquote class="gmail_quote">Shall we meet?</blockquote></div>))
+      assert_equal "See you there.", html.snippet
+
+      long = account.messages.new(body_plain: "word " * 200)
+      assert_operator long.snippet.length, :<=, 200
+
+      assert_equal "", account.messages.new.snippet
+    end
   end
 end
