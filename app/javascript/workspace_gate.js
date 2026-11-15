@@ -7,6 +7,8 @@
 //   data-narrow: where a window too narrow for tiles goes instead (the workspace
 //                hands over to the tool you were on there, kept under data-storage-key,
 //                when it is still one of yours: their ids are in data-tools)
+//   data-flash:  what the page would have said (its flash): kept for the page the
+//                window goes to, which says it (flash_controller.js)
 //
 // Turbo runs it again for a page it brings in, which an inline script would not
 // survive: its nonce is the page's, and the policy is the first page's.
@@ -14,10 +16,18 @@
   const gate = document.currentScript
   if (!gate || window.self !== window.top) return
 
-  const { wide, narrow, storageKey, tools = "" } = gate.dataset
+  const { wide, narrow, storageKey, tools = "", flash } = gate.dataset
   const tiles = window.matchMedia("(min-width: 1024px)").matches
+  const go = (to) => {
+    try {
+      if (flash) sessionStorage.setItem("dobase:flash", flash)
+    } catch {
+      // No storage: the message is lost, the page isn't
+    }
+    window.location.replace(to)
+  }
 
-  if (wide && tiles) return window.location.replace(wide)
+  if (wide && tiles) return go(wide)
   if (!narrow || tiles) return
 
   // A tile's page can be gone (its tool deleted, or no longer yours): that page sends
@@ -46,5 +56,5 @@
   } catch {
     // Nothing kept, or nothing readable: the start page for one tool at a time
   }
-  window.location.replace(to)
+  go(to)
 })()

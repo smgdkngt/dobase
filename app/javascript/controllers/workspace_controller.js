@@ -1251,6 +1251,12 @@ export default class extends Controller {
       if (!fresh.querySelector("[data-controller~='workspace']") || tracked(fresh) !== tracked(document)) return
       if (!(evenIfBusy || this.calm)) return
 
+      // A message the page is showing (a tool deleted, which closed the menu and so
+      // brought this here at once) isn't the fresh page's to take away: it goes when
+      // its time is up
+      const toast = document.getElementById("flash")
+      if (toast) fresh.getElementById("flash")?.prepend(...Array.from(toast.children, (message) => message.cloneNode(true)))
+
       Turbo.morphBodyElements(document.body, fresh.body)
       this.freshenedAt = performance.now()
     } catch {

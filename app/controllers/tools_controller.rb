@@ -16,7 +16,8 @@ class ToolsController < ApplicationController
 
   def show
     respond_to do |format|
-      format.html { redirect_to_tool_interface }
+      # (what was said on the way here is said on the tool's page)
+      format.html { flash.keep; redirect_to_tool_interface }
       format.json
     end
   end

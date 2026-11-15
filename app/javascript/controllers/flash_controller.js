@@ -1,5 +1,9 @@
 import { Controller } from "@hotwired/stimulus"
 import { play } from "services/sound"
+import { showFlash } from "services/flash"
+
+// What a page said that the window left before drawing it (workspace_gate.js)
+const CARRIED = "dobase:flash"
 
 export default class extends Controller {
   static targets = ["message"]
@@ -10,6 +14,7 @@ export default class extends Controller {
   }
 
   connect() {
+    if (this.toastValue) this.sayCarried()
     if (this.autoDismissValue) {
       this.messageTargets.forEach((message, index) => {
         setTimeout(() => {
@@ -17,6 +22,17 @@ export default class extends Controller {
         }, this.dismissAfterValue + (index * 200))
       })
     }
+  }
+
+  sayCarried() {
+    let carried = []
+    try {
+      carried = JSON.parse(sessionStorage.getItem(CARRIED)) || []
+      sessionStorage.removeItem(CARRIED)
+    } catch {
+      // Nothing kept, or nothing readable
+    }
+    for (const [ kind, message ] of carried) showFlash(message, kind)
   }
 
   // A message that says something went wrong is heard too

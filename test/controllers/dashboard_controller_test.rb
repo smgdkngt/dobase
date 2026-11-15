@@ -77,4 +77,38 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     refute_equal json_path, response.location.sub(%r{\Ahttps?://[^/]+}, "")
     assert_nil @user.reload.last_visited_path
   end
+
+  test "a message for the start page reaches the page it sends you on to" do
+    tool = Tool.create!(name: "Scratch", tool_type: tool_types(:docs), owner: @user)
+
+    delete tool_path(tool)
+    follow_redirect! while response.redirect?
+
+    assert_response :success
+    assert_select "#flash .flash", text: /Scratch deleted successfully/
+  end
+
+  test "a message for the start page reaches the workspace" do
+    cookies[:workspace] = "on"
+
+    get invitation_acceptance_path(token: "no-such-token")
+    follow_redirect! while response.redirect?
+
+    assert_equal workspace_path, path
+    assert_select "#flash .flash", text: /Invalid invitation link/
+  end
+
+  test "a message on a tool's page goes along when a wide window takes that page to the workspace" do
+    cookies[:workspace] = "on"
+    invitation = tools(:shared_board).invitations.create!(email: "newcomer@example.com", invited_by: users(:two))
+    newcomer = User.create!(first_name: "New", last_name: "Comer", email_address: "newcomer@example.com", password: "password")
+    sign_in_as newcomer
+
+    post invitation_acceptance_path(token: invitation.token)
+    follow_redirect! while response.redirect?
+
+    assert_select "script[data-wide][data-flash]" do |scripts|
+      assert_includes scripts.first["data-flash"], "You are now a collaborator on"
+    end
+  end
 end

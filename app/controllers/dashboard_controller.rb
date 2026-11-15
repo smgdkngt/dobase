@@ -8,7 +8,7 @@ class DashboardController < ApplicationController
 
     # A wide window works in the tiling workspace. A phone never does, and neither
     # does a window the workspace itself found too narrow (it says so with ?one).
-    return redirect_to workspace_path if workspace_wanted? && !phone? && params[:one].blank?
+    return redirect_onwards(workspace_path) if workspace_wanted? && !phone? && params[:one].blank?
 
     # Redirect to last visited tool path if it's a navigational page the user
     # can still reach. Skip download endpoints — a stale one would otherwise
@@ -17,7 +17,7 @@ class DashboardController < ApplicationController
     if User.page_to_return_to?(last_path)
       tool_id = last_path[/\/tools\/(\d+)/, 1]
       if tool_id && current_user.accessible_tools.exists?(id: tool_id)
-        redirect_to last_path and return
+        return redirect_onwards(last_path)
       else
         current_user.update_column(:last_visited_path, nil)
       end
@@ -30,9 +30,18 @@ class DashboardController < ApplicationController
       current_user.accessible_tools.first
 
     if first_tool
-      redirect_to tool_path(first_tool) and return
+      redirect_onwards(tool_path(first_tool))
     end
 
     # No tools — show empty state
+  end
+
+  private
+
+  # Nobody stays on this page: what was said on the way here (a tool deleted, an
+  # invitation declined, a page that isn't yours) is said on the page it sends you on to
+  def redirect_onwards(path)
+    flash.keep
+    redirect_to path
   end
 end

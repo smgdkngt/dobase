@@ -87,6 +87,17 @@ module ApplicationHelper
     request.user_agent.to_s.match?(/Macintosh|Mac OS X/)
   end
 
+  # What this page says (its flash), for workspace_gate.js to take along when it sends
+  # the window elsewhere before the page is drawn: [kind, message] pairs, as services/flash
+  # shows them. Nil when there is nothing to say.
+  def flash_to_carry
+    messages = flash.filter_map do |type, message|
+      kind = { "notice" => "notice", "success" => "notice", "alert" => "alert", "error" => "alert", "warning" => "alert" }[type.to_s]
+      [ kind, message.to_s ] if kind && message.present?
+    end
+    messages.to_json if messages.any?
+  end
+
   def absolute_url(path)
     return path if path.start_with?("http")
     "#{root_url.chomp('/')}#{path}"
