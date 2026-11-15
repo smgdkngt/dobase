@@ -5,6 +5,13 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   # machine and not on a busy one, where the whole suite (and everything else) runs.
   Capybara.default_max_wait_time = 5
 
+  # A worker here is a Chrome and an app server, which keep about two processors busy. A
+  # worker per processor starves the browsers: on a machine of twenty, pages went seconds
+  # without drawing a frame, and Turbo, which draws a visit on the next frame, left the page
+  # as it was (Send went out and its conversation never showed, 2026-11-15). Half the
+  # processors, never fewer than four. PARALLEL_WORKERS still decides when it is set.
+  parallelize(workers: [ (Concurrent.available_processor_count || Concurrent.processor_count).floor / 2, 4 ].max)
+
   # Chrome warns that the fixtures' password, "password", was found in a data breach. After the
   # first sign-in in a new browser, that warning takes the keyboard and keys never reach the page.
   driven_by :selenium, using: :headless_chrome, screen_size: [ 1400, 1400 ] do |options|

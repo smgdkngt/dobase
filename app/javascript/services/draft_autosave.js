@@ -5,6 +5,9 @@
 export const AUTOSAVE_DELAY = 3000
 // A save that didn't go through is tried again after this long, while nothing else is typed
 export const RETRY_DELAY = 15000
+// Send (or Save Draft) pressed while a save is on its way waits for that save this long
+// at most: a save that hangs (a server that doesn't answer) never holds the mail back
+export const SEND_WAIT = 3000
 // A request that outlives its page (keepalive) may carry this much at most, all of them
 // together; under it, with room for the multipart boundaries
 const KEEPALIVE_LIMIT = 60000
@@ -50,4 +53,18 @@ export function fitsKeepalive(entries) {
  */
 export function savedAt(date, locales) {
   return `Saved ${date.toLocaleTimeString(locales, { hour: "numeric", minute: "2-digit" })}`
+}
+
+/**
+ * Whether the promise settles, either way, within this many milliseconds
+ * @param {Promise<unknown>} promise
+ * @param {number} ms
+ * @returns {Promise<boolean>}
+ */
+export function settlesWithin(promise, ms) {
+  return new Promise(resolve => {
+    const timer = setTimeout(() => resolve(false), ms)
+    const settled = () => { clearTimeout(timer); resolve(true) }
+    promise.then(settled, settled)
+  })
 }

@@ -132,6 +132,89 @@ class MailAutosaveTest < ApplicationSystemTestCase
     slow_save&.remove_method(:update)
   end
 
+  test "Send pressed while a save hangs goes out after a few seconds anyway, and the save changes nothing" do
+    compose
+    add_recipient "friend@example.com"
+    find("input[name='subject']").set("Plans")
+    write "Shall we meet on Friday?"
+    assert_selector "[data-compose-target='saveStatus']", text: "Saved", wait: 10
+    draft = @account.messages.drafts.find_by!(subject: "Plans")
+
+    happened = Queue.new
+    hanging_save = Module.new do
+      define_method(:update) do
+        return super() unless params[:autosave]
+
+        happened << :save_started
+        sleep 6
+        # It finds its draft sent and is refused (RecordNotFound)
+        begin
+          super()
+        ensure
+          happened << :save_done
+        end
+      end
+    end
+    sent = ->(*, payload) { happened << :send if payload[:controller] == "Tools::MailsController" && payload[:action] == "create" }
+    Tools::Mails::DraftsController.prepend(hanging_save)
+
+    ActiveSupport::Notifications.subscribed(sent, "start_processing.action_controller") do
+      write " Or Saturday."
+      assert_equal :save_started, happened.pop(timeout: 10)
+      deliveries = capture_smtp_deliveries do
+        perform_enqueued_jobs(only: SendMailJob) do
+          click_on "Send"
+          assert_selector ".mail-detail-header h1", text: "Plans", wait: 15
+        end
+      end
+
+      # Sent while the save was still on its way, with what the form held
+      assert_equal [ :send, :save_done ], Array.new(2) { happened.pop(timeout: 15) }
+      assert_match "Or Saturday.", deliveries.sole[:message]
+    end
+    assert_not draft.reload.draft?
+    assert_match "Or Saturday.", draft.body_html
+  ensure
+    hanging_save&.remove_method(:update)
+  end
+
+  test "Send pressed while the first save hangs goes out without it, and the draft that save makes is deleted" do
+    compose
+    add_recipient "friend@example.com"
+    find("input[name='subject']").set("Plans")
+
+    happened = Queue.new
+    hanging_save = Module.new do
+      define_method(:create) do
+        return super() unless params[:autosave]
+
+        happened << :save_started
+        sleep 6
+        super().tap { happened << :save_done }
+      end
+    end
+    sent = ->(*, payload) { happened << :send if payload[:controller] == "Tools::MailsController" && payload[:action] == "create" }
+    Tools::Mails::DraftsController.prepend(hanging_save)
+
+    ActiveSupport::Notifications.subscribed(sent, "start_processing.action_controller") do
+      write "Shall we meet on Friday?"
+      assert_equal :save_started, happened.pop(timeout: 10)
+      deliveries = capture_smtp_deliveries do
+        perform_enqueued_jobs(only: SendMailJob) do
+          click_on "Send"
+          assert_selector ".mail-detail-header h1", text: "Plans", wait: 15
+        end
+      end
+      assert_match "Shall we meet on Friday?", deliveries.sole[:message]
+
+      assert_equal [ :send, :save_done ], Array.new(2) { happened.pop(timeout: 15) }
+    end
+    assert_db_change(-> { !@account.messages.drafts.exists?(subject: "Plans") }, timeout: 10)
+    assert_equal 1, @account.messages.where(subject: "Plans").count
+  ensure
+    hanging_save&.remove_method(:create)
+  end
+
   test "discarded while its first save is on its way, the draft that save makes is deleted" do
     compose
     happened = Queue.new

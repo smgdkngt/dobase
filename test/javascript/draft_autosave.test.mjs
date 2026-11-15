@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { hasUnsaved, fitsKeepalive, savedAt } from "services/draft_autosave"
+import { hasUnsaved, fitsKeepalive, savedAt, settlesWithin } from "services/draft_autosave"
 
 test("a form nobody reached for has nothing to save", () => {
   assert.equal(hasUnsaved({ current: "a", untouched: null, saved: null }), false)
@@ -33,4 +33,16 @@ test("a short message can outlive its page, a long one can't", () => {
 test("a save says when it was", () => {
   assert.equal(savedAt(new Date(2026, 10, 15, 12, 4), "en-GB"), "Saved 12:04")
   assert.match(savedAt(new Date(2026, 10, 15, 18, 5), "en-US"), /^Saved 6:05\sPM$/)
+})
+
+test("a save that comes back in time is waited for, whether it went through or not", async () => {
+  assert.equal(await settlesWithin(Promise.resolve(), 50), true)
+  assert.equal(await settlesWithin(Promise.reject(new Error("refused")), 50), true)
+  assert.equal(await settlesWithin(new Promise(resolve => setTimeout(resolve, 10)), 200), true)
+})
+
+test("a save that hangs is waited for no longer than the time given", async () => {
+  const started = Date.now()
+  assert.equal(await settlesWithin(new Promise(() => {}), 30), false)
+  assert.ok(Date.now() - started < 1000)
 })

@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import { formatFileSize } from "services/file_size"
 import { tileOf } from "services/tile"
 import { csrfToken } from "services/api"
-import { AUTOSAVE_DELAY, RETRY_DELAY, hasUnsaved, fitsKeepalive, savedAt } from "services/draft_autosave"
+import { AUTOSAVE_DELAY, RETRY_DELAY, SEND_WAIT, hasUnsaved, fitsKeepalive, savedAt, settlesWithin } from "services/draft_autosave"
 
 const FILE_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>'
 
@@ -22,6 +22,7 @@ export default class extends Controller {
     this._saving = null
     this._saveTimer = null
     this._waitingToSubmit = false
+    this._doneWaiting = false
     this._discarded = false
 
     // Leaving the page: what isn't saved yet goes now, in a request that outlives the
@@ -78,16 +79,29 @@ export default class extends Controller {
     this.element.addEventListener("submit", (event) => {
       // Sent (or saved) while a save is on its way, it waits for that save: the first one
       // makes the draft the form would otherwise make a second time, and any of them could
-      // land after Send and be refused, or write over what Send took
-      if (this._saving || this._waitingToSubmit) {
+      // land after Send and be refused, or write over what Send took. It waits a few
+      // seconds at most, so a save that hangs never holds the mail back.
+      if (!this._doneWaiting && (this._saving || this._waitingToSubmit)) {
         event.preventDefault()
         if (this._waitingToSubmit) return
 
         this._waitingToSubmit = true
         const submitter = event.submitter
-        this._saving.then(() => {
+        settlesWithin(this._saving, SEND_WAIT).then((settled) => {
           this._waitingToSubmit = false
-          this.element.requestSubmit(submitter)
+          // Still on its way, the save is left behind. A first save makes a draft of its
+          // own when it lands, which is deleted then (_send); a later one finds its draft
+          // sent and changes nothing (Tools::Mails::DraftsController#update).
+          if (!settled && !this._draftId()) this._discarded = true
+          // A draft found sent or deleted elsewhere meanwhile has its buttons switched off
+          if (submitter && (!submitter.isConnected || submitter.disabled)) return
+
+          this._doneWaiting = true
+          try {
+            this.element.requestSubmit(submitter)
+          } finally {
+            this._doneWaiting = false
+          }
         })
         return
       }
@@ -144,7 +158,10 @@ export default class extends Controller {
 
   // A send that failed comes back to this same form (a morph), which still holds the message
   submitEnded(event) {
-    if (!event.detail.success) this._submitting = false
+    if (event.detail.success) return
+    this._submitting = false
+    // A save left behind by Send that lands from now on is this form's draft again
+    this._discarded = false
   }
 
   // The form saved as its draft, to the address Save Draft sends it to, as JSON: a new
