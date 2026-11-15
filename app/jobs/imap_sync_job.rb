@@ -3,6 +3,15 @@
 class ImapSyncJob < ApplicationJob
   queue_as :default
   skip_in_demo
+
+  # Changes to one account's mail on its server are made one at a time, in the order they
+  # were asked for: an undo moves mail back by its Message-ID, which finds nothing while
+  # the move it undoes hasn't been made yet. Solid Queue holds a job back while another
+  # of the account's runs and lets the held ones go in turn. A job tried again is queued
+  # anew, behind the ones held meanwhile. SyncDraftJob takes its turn among these.
+  # duration: how long a job that never finished (a process killed) holds the others up.
+  ONE_ACCOUNT_AT_A_TIME = { group: "mail_server", duration: 5.minutes }.freeze
+  limits_concurrency to: 1, key: ->(mail_account_id, *) { mail_account_id }, **ONE_ACCOUNT_AT_A_TIME
   # Tried again for a few minutes while the mail server can't be reached. After that the
   # change stays unmade there. The waits are the same for every change, so changes to the
   # same mail (trashed, then restored) are tried again in the order they were made.

@@ -276,6 +276,26 @@ class ImapSyncJobTest < ActiveJob::TestCase
     assert_equal [ [ 201 ] ], server.expunged
   end
 
+  # Undo moves mail back by its Message-ID: that must not look before the move it undoes
+  # is made. Solid Queue holds back a job whose key is taken, and lets the held ones go
+  # in the order they were queued.
+  test "changes to one account's mail on its server are made one at a time, in turn, drafts included" do
+    other = mails_accounts(:other)
+    draft = mails_messages(:draft_message)
+    keys = [
+      ImapSyncJob.new(@account.id, "move_to_folder", 102, "INBOX", "Archive"),
+      ImapSyncJob.new(@account.id, "move_to_folder_by_message_id", nil, "Archive", "INBOX", "msg-002@example.com"),
+      SyncDraftJob.new(draft.id, version: draft.sync_version)
+    ].map(&:concurrency_key)
+
+    assert_equal 1, keys.uniq.size
+    assert_not_nil keys.first
+    assert_not_equal keys.first, ImapSyncJob.new(other.id, "mark_as_read", 1, "INBOX").concurrency_key
+    [ ImapSyncJob, SyncDraftJob ].each do |job|
+      assert_equal [ 1, :block ], [ job.concurrency_limit, job.concurrency_on_conflict ], job.name
+    end
+  end
+
   private
 
   # A mail server that refuses the connection while unreachable returns true

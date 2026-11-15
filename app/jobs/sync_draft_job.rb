@@ -9,6 +9,9 @@ class SyncDraftJob < ApplicationJob
 
   queue_as :default
   skip_in_demo
+  # In turn with the other changes to its account's mail on the server (ImapSyncJob)
+  limits_concurrency to: 1, key: ->(draft_id, *) { Mails::Message.where(id: draft_id).pick(:mail_account_id) || "draft-#{draft_id}" },
+    **ImapSyncJob::ONE_ACCOUNT_AT_A_TIME
   # Tried again for a few minutes while the mail server can't be reached. The draft is
   # saved here either way.
   retry_on ImapSyncService::Unreachable, wait: :polynomially_longer, attempts: 5 do |job, error|
