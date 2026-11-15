@@ -7,6 +7,7 @@
 #   format_time(time)            # => "6:05 PM"
 #   format_date(date)            # => "Sep 16" (this year) / "Sep 16, 2025"
 #   format_datetime(time)        # => "Sep 16, 6:05 PM" / "Sep 16, 2025, 6:05 PM"
+#   mail_list_date(time)         # => "6:05 PM" (today) / "Sep 16" / "Sep 16, 2025"
 #   local_time_tag(time)         # => <time> with "6:05 PM", redrawn in the viewer's zone
 module FormattingHelper
   def human_file_size(bytes)
@@ -30,6 +31,13 @@ module FormattingHelper
     return if time.nil?
 
     "#{format_date(time.in_time_zone)}, #{format_time(time)}"
+  end
+
+  # When mail came, as a list of it says it: today's by its time, older by its day
+  def mail_list_date(time)
+    return if time.nil?
+
+    time.in_time_zone.to_date == Time.zone.today ? format_time(time) : format_date(time)
   end
 
   # A time in HTML that other people may see too, like a chat message broadcast from the

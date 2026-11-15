@@ -55,4 +55,18 @@ class FormattingHelperTest < ActionView::TestCase
     end
     assert_nil local_time_tag(nil)
   end
+
+  test "mail_list_date gives today's mail its time, this year's its day, and older mail its year, in the viewer's zone" do
+    Time.use_zone("Europe/Amsterdam") do
+      travel_to Time.utc(2026, 11, 15, 15, 0) do
+        assert_equal "3:50 PM", mail_list_date(Time.utc(2026, 11, 15, 14, 50))
+        assert_equal "7:00 AM", mail_list_date(Time.utc(2026, 11, 15, 6, 0))
+        # Just after midnight here is today, though it was yesterday in UTC
+        assert_equal "12:30 AM", mail_list_date(Time.utc(2026, 11, 14, 23, 30))
+        assert_equal "Nov 14", mail_list_date(Time.utc(2026, 11, 14, 22, 30))
+        assert_equal "Nov 14, 2025", mail_list_date(Time.utc(2025, 11, 14, 12, 0))
+      end
+    end
+    assert_nil mail_list_date(nil)
+  end
 end

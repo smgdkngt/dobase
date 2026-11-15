@@ -45,7 +45,7 @@
         <% if conversation[:starred] %>
           <%= render "shared/icon", name: "star", size: 12, class: "text-warning fill-warning" %>
         <% end %>
-        <span class="text-xs text-text-tertiary"><%= format_date(conversation[:sent_at]) %></span>
+        <%= tag.span mail_list_date(conversation[:sent_at]), class: "text-xs text-text-tertiary whitespace-nowrap", title: format_datetime(conversation[:sent_at]) %>
       </div>
     </div>
     <div class="mail-list-subject flex items-center gap-1.5 text-sm text-text-secondary mb-0.5 <%= 'text-text-primary font-medium' unless conversation[:read] %>">
