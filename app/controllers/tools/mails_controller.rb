@@ -73,6 +73,9 @@ module Tools
         @forward_attachments = @draft.attachments.select { |attachment| attachment.file.attached? }
         @quoted_message = @draft.quoted_message
         @quote_html = @draft.quote_html
+      elsif @body.blank?
+        # Fresh mail, a reply or a forward starts with the signature; a draft already has its own
+        @body = @mail_account.compose_start_html.to_s
       end
 
       render_compose

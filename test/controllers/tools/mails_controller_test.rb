@@ -300,6 +300,46 @@ module Tools
       end
     end
 
+    test "new mail, a reply and a forward start with the account's signature under an empty line" do
+      @account.update!(signature: "Ann Lee\nAcme & Sons <sales>")
+      message = mails_messages(:inbox_read)
+      expected = "<p></p><p>Ann Lee<br>Acme &amp; Sons &lt;sales&gt;</p>"
+
+      [ new_tool_mail_path(@tool), new_tool_mail_path(@tool, reply_to: message.id), new_tool_mail_path(@tool, forward: message.id) ].each do |path|
+        get path
+
+        assert_select "input[type=hidden][name=body][value=?]", expected
+      end
+    end
+
+    test "a draft that is opened again doesn't get the signature a second time" do
+      @account.update!(signature: "Ann Lee")
+      draft = mails_messages(:draft_message)
+      draft.update!(body_html: "<p>Hello</p><p>Ann Lee</p>")
+
+      get new_tool_mail_path(@tool, draft_id: draft.id)
+
+      assert_select "input[type=hidden][name=body][value=?]", "<p>Hello</p><p>Ann Lee</p>"
+    end
+
+    test "a reply that continues its draft doesn't get the signature a second time" do
+      @account.update!(signature: "Ann Lee")
+      original = mails_messages(:inbox_read)
+      mails_messages(:draft_message).update!(in_reply_to: original.message_id, body_html: "<p>Half a reply</p>")
+
+      get new_tool_mail_path(@tool, reply_to: original.id)
+
+      assert_select "input[type=hidden][name=body][value=?]", "<p>Half a reply</p>"
+    end
+
+    test "without a signature new mail starts empty" do
+      @account.update!(signature: "  ")
+
+      get new_tool_mail_path(@tool)
+
+      assert_select "input[type=hidden][name=body][value=?]", ""
+    end
+
     test "the compose form sits next to the folder it was started from, which doesn't refresh under it" do
       message = mails_messages(:inbox_read)
       get new_tool_mail_path(@tool, reply_to: message.id, folder: "inbox")

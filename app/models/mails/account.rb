@@ -262,6 +262,15 @@ module Mails
         from_address: email_address, from_name: display_name, read: true, sent_at: Time.current, **attributes)
     end
 
+    # What a new message starts with in the editor: an empty line to write on, then the
+    # signature as it was typed in the settings (plain text, its lines kept). Nil without one.
+    def compose_start_html
+      return if signature.blank?
+
+      lines = signature.strip.lines.map { |line| ERB::Util.html_escape(line.chomp) }
+      "<p></p><p>#{lines.join("<br>")}</p>"
+    end
+
     def record_contact(email, name = nil)
       contact = contacts.find_or_initialize_by(email_address: email.downcase.strip)
       contact.name = name if name.present?
