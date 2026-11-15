@@ -22,6 +22,18 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   # browser somewhere else is offered its zone on every page (shared/time_zone_notice)
   setup do
     use_browser_time_zone("UTC")
+    @sessions_in_utc = [ Capybara.session_name ]
+  end
+
+  # A second person's browser (using_session) is put in UTC too, the first time
+  def using_session(name, &block)
+    super(name) do
+      unless @sessions_in_utc.include?(name)
+        use_browser_time_zone("UTC")
+        @sessions_in_utc << name
+      end
+      block.call
+    end
   end
 
   # The app server runs in this process, so the sockets of the last test outlive
