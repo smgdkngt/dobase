@@ -208,7 +208,7 @@ class ChangesAnnouncedTest < ActionDispatch::IntegrationTest
       announced(tool) { delete tool_empty_trash_path(tool) },
       announced(tool) { connect_to_imap(FakeImapServer.new(folders: [ "INBOX" ])) { post tool_folder_path(tool), params: { folder_name: "Clients" } } },
       announced(tool) { patch tool_mails_account_path(tool), params: { mails_account: { signature: "Best, Sem" } } },
-      announced(unconnected) { post tool_mails_account_path(unconnected), params: { mails_account: account } }
+      announced(unconnected) { with_mail_servers { post tool_mails_account_path(unconnected), params: { mails_account: account } } }
     ]
 
     assert_empty writes_of("tools/mails") - tried, "These change a mailbox and aren't tried here"

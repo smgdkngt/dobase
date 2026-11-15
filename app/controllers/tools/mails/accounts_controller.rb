@@ -14,10 +14,12 @@ module Tools
         @mail_account = @tool.build_mail_account
       end
 
+      # The login is tried before anything is saved: a password the server turns down
+      # is said here, not as an empty inbox later
       def create
         @mail_account = @tool.build_mail_account(mail_account_params)
 
-        if @mail_account.save
+        if connects? && @mail_account.save
           SyncEmailsJob.perform_later(@mail_account.id)
           redirect_to tool_mails_path(@tool), notice: "Mail account connected successfully."
         else
@@ -26,7 +28,8 @@ module Tools
       end
 
       def update
-        if @mail_account.update(mail_account_params)
+        @mail_account.assign_attributes(mail_account_params)
+        if connects? && @mail_account.save
           if @mail_account.saved_changes.keys.intersect?(::Mails::Account::CONNECTION_SETTINGS)
             @mail_account.mark_syncing!
             SyncEmailsJob.perform_later(@mail_account.id)
@@ -39,6 +42,16 @@ module Tools
       end
 
       private
+
+      # Valid, and a login both servers take when the settings for it are new or changed
+      def connects?
+        return false unless @mail_account.valid?
+        return true if @mail_account.persisted? && !@mail_account.changed.intersect?(::Mails::ConnectionCheck::SETTINGS)
+
+        problem = ::Mails::ConnectionCheck.new(@mail_account).problem
+        @mail_account.errors.add(:base, problem) if problem
+        problem.nil?
+      end
 
       def set_tool
         @tool = Tool.find(params[:tool_id])

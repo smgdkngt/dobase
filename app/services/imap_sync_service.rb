@@ -240,6 +240,12 @@ class ImapSyncService
     end
   end
 
+  # Logs in and out again, for an account that isn't saved yet (Mails::ConnectionCheck).
+  # Raises what connecting raises: AuthenticationError for a login the server turns down.
+  def check_login(timeout:)
+    connect(open_timeout: timeout) { true }
+  end
+
   private
 
   def incoming_message
@@ -269,7 +275,8 @@ class ImapSyncService
     @unrepeatable = true
   end
 
-  def connect
+  # open_timeout: how long to wait for the server to take the connection (Net::IMAP's own default is 30 seconds)
+  def connect(open_timeout: nil)
     begin
       RemoteHost.verify!(@account.imap_host)
     rescue RemoteHost::LookupFailed => e
@@ -289,7 +296,8 @@ class ImapSyncService
     imap = Net::IMAP.new(
       @account.imap_host,
       port: @account.imap_port,
-      ssl: ssl_options
+      ssl: ssl_options,
+      **{ open_timeout: open_timeout }.compact
     )
 
     begin

@@ -1,4 +1,22 @@
   <div class="tool-scroll-area mail-list-panel bg-surface border-r border-border-light overflow-y-auto flex flex-col" data-mail-keyboard-target="list">
+    <%# A sync that went wrong would otherwise look like a quiet inbox %>
+    <% if @mail_account.sync_error? %>
+      <div class="mail-sync-problem" role="alert">
+        <%= render "shared/icon", name: "alert-circle", size: 16, class: "shrink-0 mt-0.5" %>
+        <div class="min-w-0 flex-1">
+          <p class="mail-sync-problem-text"><%= mail_sync_problem(@mail_account) %></p>
+          <div class="mail-sync-problem-actions">
+            <%= render "components/button", text: "Try again", icon: "refresh-cw", size: :sm, variant: :secondary,
+                  href: tool_sync_path(@tool), method: :post %>
+            <% if @tool.owned_by?(current_user) %>
+              <%= render "components/button", text: "Settings", icon: "settings", size: :sm, variant: :ghost,
+                    href: edit_tool_path(@tool, tab: "email") %>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
     <% if @current_folder == "trash" && @trash_count > 0 %>
       <div class="flex items-center justify-between px-3 py-2 bg-warning-light border-b border-warning text-[0.8125rem] text-warning">
         <span>Messages in Trash are deleted forever after 30 days</span>

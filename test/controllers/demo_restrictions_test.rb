@@ -18,7 +18,7 @@ class DemoRestrictionsTest < ActionDispatch::IntegrationTest
     assert_refused_in_demo
     assert_nil tool.reload.mail_account
 
-    post tool_mails_account_path(tool), params: params
+    with_mail_servers { post tool_mails_account_path(tool), params: params }
     assert tool.reload.mail_account
   end
 

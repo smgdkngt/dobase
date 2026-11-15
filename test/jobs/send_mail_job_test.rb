@@ -113,13 +113,4 @@ class SendMailJobTest < ActiveJob::TestCase
     with_smtp(smtp) { yield }
     smtp.deliveries
   end
-
-  def with_smtp(smtp)
-    SmtpSendService.singleton_class.define_method(:new) do |*args|
-      super(*args).tap { |service| service.define_singleton_method(:build_smtp) { smtp } }
-    end
-    yield
-  ensure
-    SmtpSendService.singleton_class.remove_method(:new)
-  end
 end

@@ -78,6 +78,15 @@ class SmtpSendService
     true
   end
 
+  # Logs in and out again, for an account that isn't saved yet (Mails::ConnectionCheck).
+  # Raises what Net::SMTP raises: Net::SMTPAuthenticationError for a login the server turns down.
+  def check_login(timeout:)
+    smtp = build_smtp
+    smtp.open_timeout = timeout
+    smtp.read_timeout = timeout
+    smtp.start(@account.smtp_host, @account.username, @account.password, @account.smtp_auth.to_sym) { true }
+  end
+
   private
 
   # The conversation up to the answered message, as far as it's known here, so mail

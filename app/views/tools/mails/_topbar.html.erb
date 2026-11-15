@@ -79,6 +79,11 @@
             data: { sync_status_target: "button", action: "click->sync-status#sync" } %>
       </div>
 
+      <% if @tool.owned_by?(current_user) %>
+        <%= render "components/icon_button", icon: "settings", title: "Mailbox settings", size: :sm,
+              href: edit_tool_path(@tool, tab: "email") %>
+      <% end %>
+
       <%= render "components/button",
           text: "Compose",
           icon: "edit",

@@ -166,4 +166,15 @@ module MailsHelper
     words = [ suggestion.address ] if words.empty?
     (words.size > 1 ? words.first[0] + words.last[0] : words.first[0]).upcase
   end
+
+  # Why a mailbox isn't updated, in a line above its list: since when, and why in words
+  def mail_sync_problem(account)
+    since = account.last_synced_at
+    lead = if since.nil? then "Couldn't get mail"
+    elsif since.in_time_zone.to_date == Time.zone.today then "Not updated since #{format_time(since)}"
+    else "Not updated since #{format_datetime(since)}"
+    end
+
+    "#{lead}: #{Mails::ConnectionProblem.in_words(account.sync_error)}"
+  end
 end

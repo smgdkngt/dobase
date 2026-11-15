@@ -27,6 +27,65 @@ module Tools
       assert_includes response.body, "The mail server didn&#39;t accept the username or password"
     end
 
+    test "a sync that went wrong says so above the list, in words, with a way to try again and to the settings" do
+      @account.update!(last_synced_at: Time.zone.parse("2026-11-15 09:41"))
+      @account.mark_sync_error!(::Mails::Account::AUTHENTICATION_FAILED)
+
+      travel_to Time.zone.parse("2026-11-15 10:30") do
+        get tool_mails_path(@tool)
+      end
+
+      assert_select ".mail-sync-problem[role='alert']" do
+        assert_select ".mail-sync-problem-text", text: "Not updated since 9:41 AM: the mail server didn't accept the username or password."
+        assert_select "a[href='#{tool_sync_path(@tool)}'][data-turbo-method='post']", text: "Try again"
+        assert_select "a[href='#{edit_tool_path(@tool, tab: "email")}']", text: "Settings"
+      end
+    end
+
+    test "the reasons a sync stops are said in words" do
+      {
+        "Couldn't reach imap.example.com: execution expired" => "the mail server didn't answer in time.",
+        "Connection refused - connect(2) for \"imap.example.com\" port 993" => "the mail server refused the connection. Check the server name and port.",
+        "imap.example.com could not be found" => "imap.example.com could not be found. Check the server name.",
+        "SSL_connect returned=1 errno=0 state=error: certificate verify failed" => "no secure connection could be made. Check the port and the SSL setting.",
+        "Something nobody expected" => "the mail server said: Something nobody expected"
+      }.each do |error, words|
+        @account.mark_sync_error!(error)
+        get tool_mails_path(@tool)
+        assert_select ".mail-sync-problem-text", text: /: #{Regexp.escape(words)}\z/
+      end
+    end
+
+    test "an account that never synced says it couldn't" do
+      @account.update!(last_synced_at: nil)
+      @account.mark_sync_error!("execution expired")
+
+      get tool_mails_path(@tool)
+
+      assert_select ".mail-sync-problem-text", text: "Couldn't get mail: the mail server didn't answer in time."
+    end
+
+    test "collaborators see the sync problem but not the settings" do
+      @tool.collaborators.create!(user: users(:two), role: "collaborator")
+      @account.mark_sync_error!(::Mails::Account::AUTHENTICATION_FAILED)
+      sign_in_as users(:two)
+
+      get tool_mails_path(@tool)
+
+      assert_select ".mail-sync-problem" do
+        assert_select "a", text: "Try again"
+        assert_select "a", text: "Settings", count: 0
+      end
+      assert_select ".mail-topbar a[href='#{edit_tool_path(@tool, tab: "email")}']", count: 0
+    end
+
+    test "a mailbox that syncs has no strip, and its owners reach the settings from its top bar" do
+      get tool_mails_path(@tool)
+
+      assert_select ".mail-sync-problem", count: 0
+      assert_select ".mail-topbar a[href='#{edit_tool_path(@tool, tab: "email")}'][title='Mailbox settings']"
+    end
+
     test "index with folder=starred shows starred messages" do
       get tool_mails_path(@tool, folder: "starred")
       assert_response :success

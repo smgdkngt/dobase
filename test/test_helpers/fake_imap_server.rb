@@ -5,14 +5,18 @@ require "net/imap"
 # An IMAP server for tests. It lists its folders, finds messages by Message-ID
 # and records what it's asked to do. `connect_to_imap` sends connections to it.
 class FakeImapServer
-  attr_reader :selected, :searched, :stored, :copied, :appended, :appended_messages, :expunged, :lists, :created
+  attr_reader :tried_logins, :selected, :searched, :stored, :copied, :appended, :appended_messages, :expunged, :lists, :created
 
   # folders: names, or [name, *attributes] for folders with SPECIAL-USE attributes like :Drafts
   # message_ids: { [folder, "<message-id>"] => [uid, ...] }
   # messages: { [folder, uid] => raw message }, for fetching them
   # namespace: what the server keeps the account's own folders under, like "INBOX."; it says so when it has NAMESPACE
   # counts: { folder => how many messages STATUS says it has }, nil for one it won't open; others have none
-  def initialize(folders: [ "INBOX" ], message_ids: {}, messages: {}, capabilities: %w[IMAP4REV1 UIDPLUS], namespace: "", delimiter: "/", counts: {})
+  # refuses_login: what the server answers a login with, when it turns every login down
+  def initialize(folders: [ "INBOX" ], message_ids: {}, messages: {}, capabilities: %w[IMAP4REV1 UIDPLUS], namespace: "", delimiter: "/", counts: {},
+                 refuses_login: nil)
+    @refuses_login = refuses_login
+    @tried_logins = []
     @folders = folders
     @counts = counts
     @namespace = namespace
@@ -23,7 +27,11 @@ class FakeImapServer
     @selected, @searched, @stored, @copied, @appended, @appended_messages, @expunged, @lists, @created = [], [], [], [], [], [], [], 0, []
   end
 
-  def login(_username, _password) = nil
+  def login(username, password)
+    @tried_logins << [ username, password ]
+    raise Net::IMAP::NoResponseError, Net::IMAP::TaggedResponse.new("A1", "NO", Net::IMAP::ResponseText.new(nil, @refuses_login), "") if @refuses_login
+  end
+
   def logout = nil
   def disconnect = nil
 
@@ -87,6 +95,11 @@ module FakeImapServerHelper
     yield
   ensure
     Net::IMAP.singleton_class.remove_method(:new)
+  end
+
+  # The IMAP and SMTP servers an account connects to in the block, e.g. to try its login
+  def with_mail_servers(imap: FakeImapServer.new, smtp: SmtpTestHelper::FakeSmtp.new, &block)
+    connect_to_imap(imap) { with_smtp(smtp, &block) }
   end
 end
 

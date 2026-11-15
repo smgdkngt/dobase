@@ -3,13 +3,19 @@
 # Stands in for the SMTP server, so no test sends real email.
 module SmtpTestHelper
   class FakeSmtp
-    attr_reader :deliveries
+    attr_reader :deliveries, :logins
+    attr_accessor :open_timeout, :read_timeout
 
-    def initialize
+    # refuses_login: the error the server answers a login with, like Net::SMTPAuthenticationError
+    def initialize(refuses_login: nil)
       @deliveries = []
+      @logins = []
+      @refuses_login = refuses_login
     end
 
-    def start(*)
+    def start(_host, username = nil, password = nil, _auth = nil)
+      @logins << [ username, password ]
+      raise @refuses_login if @refuses_login
       yield self
     end
 
@@ -27,6 +33,16 @@ module SmtpTestHelper
     end
     yield
     smtp.deliveries
+  ensure
+    SmtpSendService.singleton_class.remove_method(:new)
+  end
+
+  # Every SmtpSendService in the block talks to smtp
+  def with_smtp(smtp)
+    SmtpSendService.singleton_class.define_method(:new) do |*args|
+      super(*args).tap { |service| service.define_singleton_method(:build_smtp) { smtp } }
+    end
+    yield
   ensure
     SmtpSendService.singleton_class.remove_method(:new)
   end

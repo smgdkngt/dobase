@@ -26,6 +26,7 @@
     turbo_confirm: Confirmation message
     commandfor: ID of dialog element to control (for native dialog commands)
     command: Dialog command (show-modal, close)
+    pressed: true or false for a button that is on or off (aria-pressed)
 
   Examples:
     render "components/button", text: "Save", variant: :primary
@@ -76,6 +77,7 @@
     class: classes,
     title: local_assigns[:title],
     "aria-label": accessible_name,
+    "aria-pressed": (local_assigns[:pressed].to_s unless local_assigns[:pressed].nil?),
     data: data_attrs.presence
   }.compact
 

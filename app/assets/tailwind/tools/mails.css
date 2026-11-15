@@ -697,3 +697,59 @@ body:has(.mail-layout) .flash-toast {
     @apply bg-accent-solid;
   }
 }
+
+/* Connecting a mail account (accounts/new) and a sync that stopped (_list_panel) */
+@layer components {
+  .mail-provider-choices {
+    @apply flex flex-wrap gap-2;
+  }
+
+  /* The service picked: in the accent colour, the others stay plain */
+  .mail-provider-choice[aria-pressed="true"] {
+    @apply border-accent text-accent;
+    background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+  }
+
+  .mail-provider-hint {
+    @apply flex gap-2.5 mt-3 p-3 rounded-lg text-sm text-text-secondary bg-background-secondary;
+  }
+
+  .mail-provider-hint[hidden] {
+    display: none;
+  }
+
+  .mail-connect-servers {
+    @apply border-t border-border-light pt-4;
+  }
+
+  .mail-connect-servers-summary {
+    @apply flex items-center gap-2 text-sm font-semibold text-text-primary cursor-pointer select-none list-none min-w-0;
+  }
+
+  .mail-connect-servers-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .mail-connect-servers-chevron {
+    @apply shrink-0 text-text-tertiary transition-transform;
+  }
+
+  .mail-connect-servers[open] .mail-connect-servers-chevron {
+    transform: rotate(90deg);
+  }
+
+  /* Above the list: the mailbox isn't being updated, why, and what to do about it */
+  .mail-sync-problem {
+    @apply flex items-start gap-2.5 px-3 py-2.5 border-b text-[0.8125rem] text-error;
+    border-color: color-mix(in srgb, var(--color-error) 35%, transparent);
+    background: var(--color-error-light);
+  }
+
+  .mail-sync-problem-text {
+    @apply text-text-primary;
+  }
+
+  .mail-sync-problem-actions {
+    @apply flex items-center gap-2 mt-2;
+  }
+}

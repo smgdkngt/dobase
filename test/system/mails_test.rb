@@ -1302,9 +1302,10 @@ class MailsTest < ApplicationSystemTestCase
 
     assert_text "IMAP server can't be blank"
     fill_in "IMAP Server", with: "imap.fixed.example.com"
-    click_on "Save Changes"
-
-    assert_text "Mail account updated successfully."
+    with_mail_servers do
+      click_on "Save Changes"
+      assert_text "Mail account updated successfully."
+    end
     assert_equal "imap.fixed.example.com", @tool.mail_account.reload.imap_host
   end
 
