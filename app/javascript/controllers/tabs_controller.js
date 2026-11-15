@@ -2,7 +2,9 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["tab", "panel"]
-  static values = { default: String }
+  // open: the tab a form was sent from, drawn again with what it said (a refusal):
+  // that one, whatever an address asks for
+  static values = { default: String, open: String }
 
   connect() {
     // Check turbo frame src URL first, then page URL
@@ -10,7 +12,7 @@ export default class extends Controller {
     const frameSrc = frame?.getAttribute("src")
     const tabFromFrame = frameSrc ? new URL(frameSrc, window.location.origin).searchParams.get("tab") : null
     const tabFromUrl = new URL(window.location.href).searchParams.get("tab")
-    const defaultTab = tabFromFrame || tabFromUrl || this.defaultValue || this.tabTargets[0]?.dataset.tab
+    const defaultTab = this.openValue || tabFromFrame || tabFromUrl || this.defaultValue || this.tabTargets[0]?.dataset.tab
     if (defaultTab) this.show(defaultTab)
 
     // A morph refresh (a form here redirecting back to this page) puts the server's

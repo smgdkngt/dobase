@@ -120,6 +120,45 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "less than 5MB"
   end
 
+  test "a wrong current password is said in the dialog, on the tab it was typed in" do
+    patch profile_path, params: { tab: "security", dialog: "1", user: { password: "brand-new-secret", password_confirmation: "brand-new-secret", current_password: "wrong" } }, as: :turbo_stream
+
+    assert_response :unprocessable_entity
+    assert_select "turbo-stream[action=update][target=profile-form] template" do
+      assert_select "[data-controller=tabs][data-tabs-open-value=security]"
+      assert_select ".flash-alert", text: /Your current password is incorrect/
+    end
+  end
+
+  test "a new password that is too short is said on the security tab, not on a hidden one" do
+    patch profile_path, params: { tab: "security", dialog: "1", user: { password: "short", password_confirmation: "short", current_password: "password" } }, as: :turbo_stream
+
+    assert_response :unprocessable_entity
+    assert_select "turbo-stream[action=update][target=profile-form] template" do
+      assert_select "[data-tabs-open-value=security]"
+      assert_select ".flash-error", text: /too short/
+    end
+    assert @user.reload.authenticate("password")
+  end
+
+  test "a profile that doesn't save is said on its own tab" do
+    patch profile_path, params: { tab: "profile", dialog: "1", user: { first_name: "" } }, as: :turbo_stream
+
+    assert_response :unprocessable_entity
+    assert_select "turbo-stream[action=update][target=profile-form] template" do
+      assert_select "[data-tabs-open-value=profile]"
+      assert_select ".flash-error", text: /First name/
+    end
+  end
+
+  test "every form in the profile says which tab it is on" do
+    get edit_profile_path, headers: { "Turbo-Frame" => "profile-form" }
+
+    assert_select "form[action='#{profile_path}']" do |forms|
+      forms.each { |form| assert_select form, "input[type=hidden][name=tab]" }
+    end
+  end
+
   private
 
   def profile_params(**overrides)

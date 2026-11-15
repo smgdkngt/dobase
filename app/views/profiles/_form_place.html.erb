@@ -1,0 +1,4 @@
+<%# Where a profile form was sent from: its tab, and whether it was in the dialog, so a
+    refusal comes back to that tab, in the dialog's size %>
+<%= hidden_field_tag :tab, tab, id: nil %>
+<%= hidden_field_tag :dialog, "1", id: nil if in_dialog %>

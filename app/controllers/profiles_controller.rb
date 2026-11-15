@@ -43,11 +43,25 @@ class ProfilesController < ApplicationController
 
   private
 
+  TABS = %w[profile notifications security].freeze
+
+  # The form that was sent comes back on the tab it was sent from, saying why. From
+  # the profile dialog it comes back into the dialog (a stream), so the page the
+  # dialog is over (the workspace) stays as it was.
   def refuse_update(alert = nil)
     flash.now[:alert] = alert if alert
     @sessions = current_user.sessions.order(created_at: :desc)
     @access_tokens = current_user.access_tokens.newest_first
-    render :edit, status: :unprocessable_entity
+    @open_tab = params[:tab].presence_in(TABS) || "profile"
+
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.update("profile-form", partial: "profiles/settings",
+          locals: { user: @user, in_dialog: params[:dialog].present?, tab: @open_tab, open_tab: @open_tab }),
+          status: :unprocessable_entity
+      end
+      format.html { render :edit, status: :unprocessable_entity }
+    end
   end
 
   def profile_params
