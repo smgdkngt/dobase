@@ -36,7 +36,8 @@ module Mails
       return unless payload.is_a?(Hash) && payload["tool"] == account.tool_id && payload["user"] == user.id && payload["kind"].in?(KINDS)
 
       places = payload["places"].flat_map do |where, ids|
-        folder, archived = where.split("|", 2)
+        # A folder's name may have a bar in it, the mark after the last one never does
+        folder, _, archived = where.rpartition("|")
         Array(ids).map { |id| [ id, folder.presence, archived == "1" ] }
       end
       new(account, payload["kind"], places, user: user)

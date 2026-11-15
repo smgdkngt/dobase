@@ -24,6 +24,16 @@ module Mails
       assert_equal "mail.unarchived", Event.order(:id).last.kind
     end
 
+    test "mail is put back in a folder whose name has a bar in it" do
+      @account.update!(synced_folders: [ "INBOX", "Sent", "Clients|Old", "Trash" ].to_json)
+      @message.update!(folder: "Clients|Old")
+
+      token = record(:put_back) { @account.trash(_1) }.token
+      find(token).apply
+
+      assert_equal [ "Clients|Old", false ], @message.reload.values_at(:folder, :trashed)
+    end
+
     test "trashed mail is back in the folder it was trashed from" do
       @account.update!(synced_folders: %w[INBOX Sent Archive Receipts Trash].to_json)
       @message.update!(folder: "Receipts")

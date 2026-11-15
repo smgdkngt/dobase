@@ -36,6 +36,15 @@ module Tools
         assert @draft.reload.draft?
       end
 
+      test "a mail tool without an account has nothing to take back" do
+        tool = Tool.create!(name: "New mail", tool_type: tool_types(:mail), owner: users(:one))
+
+        delete tool_mail_sending_path(tool, @draft, folder: "inbox")
+
+        assert_redirected_to tool_mails_path(tool)
+        assert_equal [ "Drafts", true ], @draft.reload.values_at(:folder, :draft)
+      end
+
       test "once the job has it, it's too late, and it goes out" do
         @draft.start_sending!
         assert @draft.claim_for_sending!

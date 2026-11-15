@@ -70,6 +70,9 @@ module Tools
       # the draft here is current at once, its copy on the server waits for a pause in the writing
       def sync_to_server
         if params[:autosave].present?
+          # Every few seconds while someone writes, and no other page shows a draft as it
+          # changes: the other open mailboxes aren't told to draw themselves again
+          announce_no_change
           SyncDraftJob.after_autosave(@draft)
         else
           SyncDraftJob.perform_later(@draft.id)

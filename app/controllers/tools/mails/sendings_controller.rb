@@ -10,7 +10,13 @@ module Tools
 
       # DELETE /tools/:tool_id/mails/:mail_id/sending
       def destroy
-        message = @tool.mail_account.messages.find(params[:mail_id])
+        account = @tool.mail_account
+        unless account
+          redirect_to tool_mails_path(@tool), alert: "That can't be undone any more."
+          return
+        end
+
+        message = account.messages.find(params[:mail_id])
         folder = params[:folder].presence || "inbox"
 
         if message.take_back!

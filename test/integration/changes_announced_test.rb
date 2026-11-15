@@ -288,6 +288,20 @@ class ChangesAnnouncedTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # The compose page saves itself every few seconds while someone writes: no page but
+  # the one being written in shows a draft as it changes, and every other open mailbox
+  # would draw itself again every few seconds. Save Draft and Send are announced.
+  test "a message saving itself while it is written is nobody else's to hear of" do
+    tool, draft = tools(:my_mail), mails_messages(:draft_message)
+
+    assert_no_broadcasts(stream(tool)) do
+      post tool_mail_drafts_path(tool), params: { subject: "Plans", body: "<p>Hi</p>", autosave: "1" }, as: :json
+      assert_response :created
+      patch tool_mail_draft_path(tool, draft), params: { subject: "Other plans", autosave: "1" }, as: :json
+      assert_response :ok
+    end
+  end
+
   test "what you have seen or read is your own" do
     assert_no_broadcasts(stream(tools(:project_board))) do
       post tool_visit_path(tools(:project_board))
