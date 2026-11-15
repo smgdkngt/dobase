@@ -41,6 +41,14 @@ class Profiles::TimeZonesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".time-zone-notice", { count: 0 }, "a zone was chosen"
   end
 
+  test "a demo visitor isn't asked: the account is gone within the day" do
+    cookies[:browser_time_zone] = "Europe/Amsterdam"
+
+    in_demo_mode { get edit_profile_path }
+
+    assert_select ".time-zone-notice", count: 0
+  end
+
   test "waved away in one zone, it asks again in another" do
     cookies[:browser_time_zone] = "America/New_York"
     cookies[:time_zone_dismissed] = "Europe/Amsterdam"

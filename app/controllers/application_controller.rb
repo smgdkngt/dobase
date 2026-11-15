@@ -92,6 +92,9 @@ class ApplicationController < ActionController::Base
   def suggested_time_zone
     return @suggested_time_zone if defined?(@suggested_time_zone)
 
+    # A demo visitor's account lasts a day: not worth a question
+    return @suggested_time_zone = nil if Demo.enabled?
+
     @suggested_time_zone = begin
       browser = cookies[:browser_time_zone].to_s
       zone = User.time_zone_for(browser) if current_user && current_user.timezone.in?([ nil, "", "UTC" ])
