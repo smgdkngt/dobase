@@ -22,6 +22,7 @@ export default class extends Controller {
     this._saving = null
     this._saveTimer = null
     this._waitingToSubmit = false
+    this._discarded = false
 
     // Leaving the page: what isn't saved yet goes now, in a request that outlives the
     // page, and the browser still asks, since it may not get there
@@ -197,7 +198,11 @@ export default class extends Controller {
       }
       if (!response.ok) throw new Error(`Draft not saved: ${response.status}`)
 
-      this._adopt(await response.json())
+      const draft = await response.json()
+      // Discarded while this save made the draft: the draft goes too
+      if (this._discarded) return this._deleteDraft(draft)
+
+      this._adopt(draft)
       this._savedSnapshot = snapshot
       this._showStatus(savedAt(new Date()))
     } catch {
@@ -326,6 +331,20 @@ export default class extends Controller {
   discard() {
     this._submitting = true // skip confirmation, and saving
     clearTimeout(this._saveTimer)
+    // Before the form has a draft, the trash only leaves the page. A first save on its
+    // way would make a draft nobody sees: that one is deleted once it is there (_send).
+    if (!this._draftId()) this._discarded = true
+  }
+
+  // As the trash deletes a draft (Tools::MailsController#destroy). Left alone, the page
+  // may be gone by the time it is answered.
+  _deleteDraft(draft) {
+    return Turbo.fetch(`${this.mailsUrlValue}/${draft.id}`, {
+      method: "DELETE",
+      headers: { Accept: "application/json", "X-CSRF-Token": csrfToken() },
+      redirect: "manual",
+      keepalive: true
+    }).catch(() => {})
   }
 
   // The reply goes out without the mail it answers

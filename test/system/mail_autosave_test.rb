@@ -132,6 +132,29 @@ class MailAutosaveTest < ApplicationSystemTestCase
     slow_save&.remove_method(:update)
   end
 
+  test "discarded while its first save is on its way, the draft that save makes is deleted" do
+    compose
+    happened = Queue.new
+    slow_save = Module.new do
+      define_method(:create) do
+        happened << :save_started
+        sleep 1.5
+        super().tap { happened << :save_done }
+      end
+    end
+    Tools::Mails::DraftsController.prepend(slow_save)
+
+    find("input[name='subject']").set("Plans")
+    write "Never mind"
+    assert_equal :save_started, happened.pop(timeout: 10)
+    click_on "Discard"
+    assert_equal :save_done, happened.pop(timeout: 10)
+
+    assert_db_change(-> { !@account.messages.drafts.exists?(subject: "Plans") }, timeout: 10)
+  ensure
+    slow_save&.remove_method(:create)
+  end
+
   test "a reply nobody wrote in saves nothing" do
     visit new_tool_mail_path(@tool, reply_to: mails_messages(:inbox_read).id)
     wait_for_compose_editor
