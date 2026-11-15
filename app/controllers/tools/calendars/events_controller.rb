@@ -128,21 +128,32 @@ module Tools
       # from when the event is in it (or is gone, or is a series, which runs through many
       # weeks), and otherwise the event's own week. It used to be the week on the page every
       # time, which hid an event made for next month behind its own success notice.
+      #
+      # A tile in the workspace's page always names its week: without one the calendar
+      # answers with a stream that refreshes the window, which is the workspace, and the
+      # tile would stay as it was (CalendarsController#show).
       def calendar_path_after_change
         asked, viewed = viewed_week
         stay = @event.destroyed? || (@event.is_recurring? && !@event.previously_new_record?) ||
           (@event.first_day..@event.last_day).overlap?(viewed..viewed + 6)
+        stay_on = asked || (viewed.iso8601 if in_a_tile_of_the_workspace?)
 
-        tool_calendar_path(@tool, week_start: stay ? asked : @event.first_day.beginning_of_week(:monday))
+        tool_calendar_path(@tool, week_start: stay ? stay_on : @event.first_day.beginning_of_week(:monday))
       end
 
       # The week of the calendar page the request came from: as its address names it
-      # (not at all for this week), and its Monday
+      # (not at all for this week), and its Monday. A tile in the workspace's page sends
+      # its forms from the workspace, and says in X-Tile-Address where it is.
       def viewed_week
-        asked = Rack::Utils.parse_query(URI.parse(request.referer.to_s).query)["week_start"].presence
+        address = in_a_tile_of_the_workspace? ? tile_address : request.referer
+        asked = Rack::Utils.parse_query(URI.parse(address.to_s).query)["week_start"].presence
         [ asked, (asked ? Date.parse(asked) : Date.current).beginning_of_week(:monday) ]
       rescue URI::InvalidURIError, Date::Error
         [ nil, Date.current.beginning_of_week(:monday) ]
+      end
+
+      def in_a_tile_of_the_workspace?
+        tile? && sent_from_the_workspace?
       end
 
       def writable_calendars

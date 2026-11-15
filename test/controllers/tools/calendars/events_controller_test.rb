@@ -113,6 +113,33 @@ module Tools
         assert_redirected_to tool_calendar_path(@tool, week_start: "2030-01-07")
       end
 
+      # A calendar that is a tile of the workspace's page sends its forms from the workspace's
+      # address and says where it is in X-Tile-Address. A stream that refreshes "the page"
+      # would refresh the workspace and leave the tile as it was, so a tile always goes
+      # back to a week by name, which is drawn into the tile.
+      test "a change in a tile goes back to the tile's week, this week too" do
+        this_week = Date.current.beginning_of_week(:monday)
+        tile = { "Referer" => workspace_url, "X-Tile" => "1", "Turbo-Frame" => "tile-abc123",
+                 "X-Tile-Address" => tool_calendar_path(@tool) }
+        noon = Time.zone.now.change(hour: 12)
+
+        post tool_calendar_events_path(@tool), params: { calendars_event: {
+          summary: "Lunch", start_time: noon.iso8601, end_time: (noon + 1.hour).iso8601
+        } }, headers: tile
+        assert_redirected_to tool_calendar_path(@tool, week_start: this_week.iso8601)
+
+        lunch = @tool.calendar_account.events.find_by!(summary: "Lunch")
+        patch tool_calendar_event_path(@tool, lunch), params: { calendars_event: { summary: "Long lunch" } }, headers: tile
+        assert_redirected_to tool_calendar_path(@tool, week_start: this_week.iso8601)
+
+        # A tile looking at another week stays on it while the event shows there
+        trip = calendars_calendars(:personal).events.create!(uid: "trip@dobase", summary: "Trip",
+          starts_at: Time.utc(2030, 1, 8, 9), ends_at: Time.utc(2030, 1, 8, 17))
+        patch tool_calendar_event_path(@tool, trip), params: { calendars_event: { summary: "Long trip" } },
+          headers: tile.merge("X-Tile-Address" => tool_calendar_path(@tool, week_start: "2030-01-07"))
+        assert_redirected_to tool_calendar_path(@tool, week_start: "2030-01-07")
+      end
+
       test "the edit form shows the times of an event, and the days of an all-day event" do
         users(:one).update!(timezone: "Eastern Time (US & Canada)")
         holiday = calendars_calendars(:personal).events.create!(uid: "holiday@dobase", summary: "Holiday", all_day: true,

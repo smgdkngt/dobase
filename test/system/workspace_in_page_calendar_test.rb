@@ -77,6 +77,38 @@ class WorkspaceInPageCalendarTest < ApplicationSystemTestCase
     end
   end
 
+  # This week's address names no week, and a form's answer for it used to be a stream that
+  # refreshed the window: the workspace, around a tile that stayed as it was
+  test "an event made and renamed in this week shows in the tile" do
+    page.execute_script("Turbo.visit(arguments[0])", tool_calendar_path(@tool))
+    assert_selector "#{CALENDAR}:not([src*='week_start']) .week-column.today"
+    wait_for_stimulus "calendar"
+
+    slot = "#{CALENDAR} .week-column.today .hour-slot[data-hour='10']"
+    find(slot).execute_script("this.scrollIntoView({ block: 'center' })")
+    find(slot).click
+    within("dialog#new-event-modal[open]") do
+      fill_in "calendars_event[summary]", with: "Lunch"
+      click_on "Create"
+    end
+
+    assert_selector "#flash", text: "Event created successfully."
+    assert_selector "#{CALENDAR} [data-event-id]", text: "Lunch"
+    lunch = @tool.calendar_account.events.find_by!(summary: "Lunch")
+
+    within(CALENDAR) { find("[data-event-id='#{lunch.id}']").click }
+    within("dialog#event-details-modal[open]") do
+      click_on "Edit"
+      fill_in "calendars_event[summary]", with: "Long lunch"
+      click_on "Save Changes"
+    end
+
+    assert_selector "#{CALENDAR} [data-event-id='#{lunch.id}']", text: "Long lunch"
+    assert_equal "Long lunch", lunch.reload.summary
+    assert_current_path workspace_path
+    assert_selector CALENDAR, count: 1
+  end
+
   test "a link to an event opens it in the tile that is there" do
     page.execute_script("Turbo.visit(arguments[0])", tool_calendar_path(@tool, event: @event.id, week_start: "2030-01-07"))
 
