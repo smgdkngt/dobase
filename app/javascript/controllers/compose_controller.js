@@ -21,6 +21,7 @@ export default class extends Controller {
     this._savedSnapshot = null
     this._saving = null
     this._saveTimer = null
+    this._waitingToSubmit = false
 
     // Leaving the page: what isn't saved yet goes now, in a request that outlives the
     // page, and the browser still asks, since it may not get there
@@ -74,12 +75,19 @@ export default class extends Controller {
     document.addEventListener("click", this._frameClick, true)
 
     this.element.addEventListener("submit", (event) => {
-      // Sent while its first save is on its way, the form would make a second draft: it
-      // waits for the draft that save makes
-      if (this._saving && !this._draftId()) {
+      // Sent (or saved) while a save is on its way, it waits for that save: the first one
+      // makes the draft the form would otherwise make a second time, and any of them could
+      // land after Send and be refused, or write over what Send took
+      if (this._saving || this._waitingToSubmit) {
         event.preventDefault()
+        if (this._waitingToSubmit) return
+
+        this._waitingToSubmit = true
         const submitter = event.submitter
-        this._saving.then(() => this.element.requestSubmit(submitter))
+        this._saving.then(() => {
+          this._waitingToSubmit = false
+          this.element.requestSubmit(submitter)
+        })
         return
       }
       this._submitting = true

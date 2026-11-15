@@ -95,6 +95,43 @@ class MailAutosaveTest < ApplicationSystemTestCase
     assert_nothing_raised { perform_enqueued_jobs(only: SyncDraftJob) }
   end
 
+  test "Send pressed while a save is on its way waits for that save, and the mail goes out as written" do
+    compose
+    add_recipient "friend@example.com"
+    find("input[name='subject']").set("Plans")
+    write "Shall we meet on Friday?"
+    assert_selector "[data-compose-target='saveStatus']", text: "Saved", wait: 10
+
+    happened = Queue.new
+    slow_save = Module.new do
+      define_method(:update) do
+        return super() unless params[:autosave]
+
+        happened << :save_started
+        sleep 1.5
+        super().tap { happened << :save_done }
+      end
+    end
+    sent = ->(*, payload) { happened << :send if payload[:controller] == "Tools::MailsController" && payload[:action] == "create" }
+    Tools::Mails::DraftsController.prepend(slow_save)
+
+    ActiveSupport::Notifications.subscribed(sent, "start_processing.action_controller") do
+      write " Or Saturday."
+      assert_equal :save_started, happened.pop(timeout: 10)
+      deliveries = capture_smtp_deliveries do
+        perform_enqueued_jobs(only: SendMailJob) do
+          click_on "Send"
+          assert_selector ".mail-detail-header h1", text: "Plans", wait: 10
+        end
+      end
+
+      assert_equal [ :save_done, :send ], Array.new(2) { happened.pop(timeout: 10) }
+      assert_match "Or Saturday.", deliveries.sole[:message]
+    end
+  ensure
+    slow_save&.remove_method(:update)
+  end
+
   test "a reply nobody wrote in saves nothing" do
     visit new_tool_mail_path(@tool, reply_to: mails_messages(:inbox_read).id)
     wait_for_compose_editor

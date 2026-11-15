@@ -81,6 +81,24 @@ module Tools
         assert_no_enqueued_jobs only: SyncDraftJob
       end
 
+      # An autosave on its way while Send is pressed: Send makes the row the mail in Sent
+      # after this save looked the draft up, before it wrote
+      test "an autosave that finds its draft sent by the time it writes leaves the sent mail alone" do
+        draft = mails_messages(:draft_message)
+        sent_meanwhile = Module.new do
+          define_method(:set_draft) { super().tap { ::Mails::Message.find(@draft.id).start_sending! } }
+        end
+        DraftsController.prepend(sent_meanwhile)
+
+        patch tool_mail_draft_path(@tool, draft), params: { subject: "Changed", autosave: "1" }, headers: { "Accept" => "application/json" }
+
+        assert_response :not_found
+        assert_equal [ "Draft email", "Sent", false, true ], draft.reload.values_at(:subject, :folder, :draft, :sending)
+        assert_no_enqueued_jobs only: SyncDraftJob
+      ensure
+        sent_meanwhile.remove_method(:set_draft)
+      end
+
       test "Save Draft still copies the draft to the server right away" do
         draft = mails_messages(:draft_message)
 

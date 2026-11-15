@@ -38,12 +38,19 @@ module Tools
 
       # PATCH /tools/:tool_id/mails/drafts/:id
       def update
-        @draft.assign_attributes(draft_params)
-        @draft.sent_at = Time.current
-        # Files taken off in the compose form
-        @draft.remove_attachments(params[:remove_attachment_ids]) if params[:remove_attachment_ids].present?
+        saved = @draft.with_lock do
+          # Sent or deleted since it was looked up (Send pressed while a save from the compose
+          # page was on its way): it isn't a draft to write to any more
+          raise ActiveRecord::RecordNotFound unless @draft.draft? && !@draft.trashed?
 
-        if @draft.save
+          @draft.assign_attributes(draft_params)
+          @draft.sent_at = Time.current
+          # Files taken off in the compose form
+          @draft.remove_attachments(params[:remove_attachment_ids]) if params[:remove_attachment_ids].present?
+          @draft.save
+        end
+
+        if saved
           sync_to_server
           respond_to do |format|
             format.html { redirect_to new_tool_mail_path(@tool, draft_id: @draft.id), notice: "Draft saved.", status: :see_other }
