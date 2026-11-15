@@ -4,6 +4,9 @@ require "test_helper"
 
 module Tools
   class CollaboratorsControllerTest < ActionDispatch::IntegrationTest
+    # The settings dialog the invitation form is in
+    SETTINGS = { "Turbo-Frame" => "edit-tool-form" }.freeze
+
     setup do
       @tool = tools(:shared_board)
       @card = boards(:shared).columns.create!(name: "Doing", position: 0).cards.create!(title: "Secret launch plan", position: 0)
@@ -46,11 +49,46 @@ module Tools
       expired.update_column(:expires_at, 1.day.ago)
       sign_in_as users(:one)
 
-      post tool_collaborators_path(@tool), params: { email: "newcomer@example.com" }
+      post tool_collaborators_path(@tool), params: { email: "newcomer@example.com" }, headers: SETTINGS
 
-      assert_redirected_to edit_tool_path(@tool, tab: "collaborators")
-      assert_equal "Invitation sent to newcomer@example.com.", flash[:notice]
+      assert_response :success
+      assert_select "[data-tab=collaborators] .flash", text: "Invitation sent to newcomer@example.com."
       assert @tool.invitations.active.exists?(email: "newcomer@example.com")
+    end
+
+    test "an invitation sent says so in the settings, on the collaborators tab" do
+      sign_in_as users(:one)
+
+      post tool_collaborators_path(@tool), params: { email: "friend@example.com" }, headers: SETTINGS
+
+      assert_response :success
+      assert_select "turbo-frame#edit-tool-form [data-tabs-open-value=collaborators]"
+      assert_select "[data-tab=collaborators] .flash-notice", text: "Invitation sent to friend@example.com."
+      assert_select "[data-tab=collaborators] input[name=email]:not([value])"
+    end
+
+    test "inviting yourself says why nothing went, and keeps the address" do
+      sign_in_as users(:one)
+
+      assert_no_difference -> { Invitation.count } do
+        post tool_collaborators_path(@tool), params: { email: users(:one).email_address }, headers: SETTINGS
+      end
+
+      assert_response :unprocessable_entity
+      assert_select "[data-tabs-open-value=collaborators]"
+      assert_select "[data-tab=collaborators] .flash-alert", text: "You cannot invite yourself."
+      assert_select "[data-tab=collaborators] input[name=email][value='#{users(:one).email_address}']"
+    end
+
+    test "inviting someone twice says the first invitation is still pending" do
+      @tool.invitations.create!(email: "newcomer@example.com", invited_by: users(:one))
+      sign_in_as users(:one)
+
+      post tool_collaborators_path(@tool), params: { email: "newcomer@example.com" }, headers: SETTINGS
+
+      assert_response :unprocessable_entity
+      assert_select "[data-tab=collaborators] .flash-alert", text: "Invitation already pending."
+      assert_select "[data-tab=collaborators] input[name=email][value='newcomer@example.com']"
     end
 
     test "reinviting from a stale declined row says so instead of erroring" do

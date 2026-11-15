@@ -26,19 +26,13 @@ module Tools
       redirect_to root_path, notice: "You left #{@tool.name}."
     end
 
+    # Said in the settings dialog the form is in, on the collaborators tab: drawn
+    # again in its frame with how it went, keeping an address that was refused
     def create
       email = params[:email]&.downcase&.strip
 
-      if email == current_user.email_address
-        redirect_to edit_tool_path(@tool, tab: "collaborators"), alert: "You cannot invite yourself."
-        return
-      end
-
-      existing = @tool.invitations.active.find_by(email: email)
-      if existing
-        redirect_to edit_tool_path(@tool, tab: "collaborators"), alert: "Invitation already pending."
-        return
-      end
+      return refuse_invitation(email, "You cannot invite yourself.") if email == current_user.email_address
+      return refuse_invitation(email, "Invitation already pending.") if @tool.invitations.active.exists?(email: email)
 
       # Any earlier invitation for this address is spent — declined, accepted or
       # expired — since an active one returned above. Clear it out: the database
@@ -50,9 +44,9 @@ module Tools
       if invitation.save
         CollaboratorMailer.invitation(invitation).deliver_later
         notify_invitation(invitation, email)
-        redirect_to edit_tool_path(@tool, tab: "collaborators"), notice: "Invitation sent to #{email}."
+        show_collaborators notice: "Invitation sent to #{email}."
       else
-        redirect_to edit_tool_path(@tool, tab: "collaborators"), alert: invitation.errors.full_messages.first
+        refuse_invitation(email, invitation.errors.full_messages.first)
       end
     end
 
@@ -73,6 +67,17 @@ module Tools
     end
 
     private
+
+    def refuse_invitation(email, alert)
+      @email = email
+      show_collaborators alert: alert, status: :unprocessable_entity
+    end
+
+    def show_collaborators(status: :ok, **message)
+      message.each { |type, text| flash.now[type] = text }
+      @open_tab = "collaborators"
+      render "tools/edit", status: status, formats: :html
+    end
 
     def set_tool
       @tool = Tool.find(params[:tool_id])
