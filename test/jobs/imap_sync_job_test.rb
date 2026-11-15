@@ -260,6 +260,22 @@ class ImapSyncJobTest < ActiveJob::TestCase
     assert_empty server.appended
   end
 
+  # Sent while its copy was being saved: Send gives it Sent, no UID and a new Message-ID
+  test "a draft sent while its copy was being saved keeps no UID from the drafts, and the copy is taken off again" do
+    draft = mails_messages(:draft_message)
+    server = FakeImapServer.new(folders: [ "INBOX", "Drafts" ])
+    append = server.method(:append)
+    server.define_singleton_method(:append) do |*args|
+      append.call(*args).tap { Mails::Message.find(draft.id).start_sending! }
+    end
+
+    connect_to_imap(server) { perform_enqueued_jobs(only: SyncDraftJob) { SyncDraftJob.perform_later(draft.id) } }
+
+    assert_equal [ "Sent", nil ], draft.reload.values_at(:folder, :uid)
+    assert_equal [ [ [ 201 ], "+FLAGS", [ :Deleted ] ] ], server.stored
+    assert_equal [ [ 201 ] ], server.expunged
+  end
+
   private
 
   # A mail server that refuses the connection while unreachable returns true

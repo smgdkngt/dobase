@@ -164,7 +164,17 @@ class ImapSyncService
         # Get the UID of the just-appended message
         imap.select(drafts_folder)
         uids = imap.uid_search([ "HEADER", "Message-ID", message.message_id ])
-        message.update_column(:uid, uids.last) if uids.any?
+        next if uids.empty?
+
+        # Sent meanwhile (Mails::Message#start_sending!: in Sent, without a UID, under a new
+        # Message-ID): the Drafts UID isn't the sent mail's, and the copy has no place in Drafts
+        copy = Mails::Message.where(id: message.id, draft: true, message_id: message.message_id)
+        if copy.update_all(uid: uids.last).zero?
+          remove_from_folder(imap, [ uids.last ])
+        else
+          message.uid = uids.last
+          message.clear_attribute_change(:uid)
+        end
       end
     end
   end
