@@ -224,7 +224,7 @@ class DocumentSyncChannel < ApplicationCable::Channel
       .where("locked_by_id IS NULL OR locked_at < ? OR locked_by_id = ?", Docs::Document::LOCK_TIMEOUT.ago, current_user.id)
       .update_all(locked_by_id: current_user.id, locked_at: Time.current)
 
-    announce_editing(current_user.name) if taken.positive? && !@holding
+    announce_editing(current_user) if taken.positive? && !@holding
     @holding = taken.positive?
     @held_at = Time.current
   end
@@ -242,7 +242,7 @@ class DocumentSyncChannel < ApplicationCable::Channel
     heir = User.find_by(id: DocumentPresence.others(@document.id, current_user.id).first)
 
     if heir
-      announce_editing(heir.name) if held.update_all(locked_by_id: heir.id, locked_at: Time.current).positive?
+      announce_editing(heir) if held.update_all(locked_by_id: heir.id, locked_at: Time.current).positive?
     elsif held.update_all(locked_by_id: nil, locked_at: nil).positive?
       announce_editing(nil)
     end
@@ -250,8 +250,8 @@ class DocumentSyncChannel < ApplicationCable::Channel
 
   # Two audiences: whoever is reading this document (DocumentChannel) and the
   # documents list, where a card says who is writing (DocsChannel).
-  def announce_editing(user_name)
-    payload = { type: user_name ? "locked" : "unlocked", user_name: user_name }.compact
+  def announce_editing(user)
+    payload = { type: user ? "locked" : "unlocked", user_name: user&.name, user_id: user&.id }.compact
 
     DocumentChannel.broadcast_to(@document, payload)
     DocsChannel.broadcast_to(@document.tool, payload.merge(document_id: @document.id))

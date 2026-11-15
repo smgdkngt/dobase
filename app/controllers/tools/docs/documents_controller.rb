@@ -11,7 +11,8 @@ module Tools
       before_action :refuse_while_someone_else_is_editing, only: %i[update destroy]
 
       def show
-        @locked_by = @document.locked? ? @document.locked_by : nil
+        # Someone else with the editor open; your own editor in another tab is nobody else
+        @editing_user = @document.locked_by if @document.locked? && @document.locked_by_id != current_user.id
         @presence_context = "document:#{@document.id}"
         # A token fetching the document is not its owner having read it
         current_user.read_notifications_about!(records: [ @document ], urls: [ tool_docs_document_path(@tool, @document) ]) if request.format.html?
@@ -49,6 +50,10 @@ module Tools
 
       def update
         @document.assign_attributes(document_params)
+        # A save of what is there already (an editor opened and left alone,
+        # a second page sending what the first one saved) is nobody's edit
+        return respond_unchanged unless @document.edited?
+
         @document.updated_by = current_user
         @document.last_edited_at = Time.current
 
@@ -80,6 +85,14 @@ module Tools
       end
 
       private
+
+      def respond_unchanged
+        announce_no_change
+        respond_to do |format|
+          format.html { redirect_to edit_tool_docs_document_path(@tool, @document) }
+          format.json { render :show }
+        end
+      end
 
       def set_document
         @document = @tool.documents.find(params[:id])

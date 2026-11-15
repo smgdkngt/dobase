@@ -19,13 +19,14 @@ const SEND_EVERY_MS = 250
 const STILL_HERE_EVERY_MS = 60000
 
 export class DocumentSync {
-  constructor(documentId, { onSynced, onRefused, onReplaced } = {}) {
+  constructor(documentId, { onSynced, onRefused, onReplaced, onLocalChange } = {}) {
     this.doc = new Y.Doc()
     this.awareness = new Awareness(this.doc)
     this.origin = Math.random().toString(36).slice(2)
     this.onSynced = onSynced
     this.onRefused = onRefused
     this.onReplaced = onReplaced
+    this.onLocalChange = onLocalChange
     this.synced = false
     this.replaced = false
     // The newest copy this page has heard of; the one it joined is `generation`
@@ -36,6 +37,7 @@ export class DocumentSync {
       // A change that arrived from someone else is not ours to send back
       if (origin === this) return
       this.queue(update)
+      this.onLocalChange?.()
     })
 
     this.awareness.on("update", ({ added, updated, removed }, origin) => {

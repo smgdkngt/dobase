@@ -3,7 +3,8 @@
 <%# A container: what a narrow page leaves out goes by the width this page has %>
 <div class="tool-layout @container flex flex-col h-full"
      data-controller="document-viewer"
-     data-document-viewer-document-id-value="<%= @document.id %>">
+     data-document-viewer-document-id-value="<%= @document.id %>"
+     data-document-viewer-user-id-value="<%= current_user.id %>">
 
   <% title_html = capture do %>
     <h1 class="text-base @min-[40rem]:text-lg font-semibold text-text-primary truncate" data-document-viewer-target="title"><%= @document.title %></h1>
@@ -11,16 +12,18 @@
 
   <%= render "components/tool_topbar", tool: @document.tool, back_path: tool_docs_path(@document.tool), title_html: title_html do %>
     <div class="flex items-center gap-2 @min-[40rem]:gap-3">
-      <span class="flex items-center gap-1.5 text-sm text-warning <%= 'hidden' unless @locked_by %>"
+      <%# Who else has the editor open. Several people can write at once, so this
+          is only news: Edit stays open to join them. %>
+      <span class="flex items-center gap-1.5 text-sm text-text-secondary <%= 'hidden' unless @editing_user %>"
             data-document-viewer-target="lockStatus"
             role="status"
             aria-live="polite">
         <span class="w-2 h-2 bg-warning rounded-full animate-pulse" aria-hidden="true"></span>
-        <%= @locked_by&.name %> is editing
+        <span><span data-document-viewer-target="editorName"><%= @editing_user&.name %></span> is editing</span>
       </span>
 
       <% show_edited = @document.updated_by && @document.updated_by != current_user %>
-      <span class="hidden @min-[40rem]:inline text-sm text-text-tertiary <%= 'hidden' if @locked_by || !show_edited %>"
+      <span class="hidden @min-[40rem]:inline text-sm text-text-tertiary <%= 'hidden' if @editing_user || !show_edited %>"
             data-document-viewer-target="editedStatus">
         <% if show_edited %>
           Edited <%= time_ago_in_words(@document.edited_at) %> ago
@@ -29,14 +32,8 @@
       </span>
 
       <a href="<%= edit_tool_docs_document_path(@tool, @document) %>"
-         class="btn btn-sm <%= @locked_by ? 'btn-secondary opacity-50 pointer-events-none' : 'btn-primary' %>"
-         data-controller="hotkey" data-hotkey="e"
-         data-document-viewer-target="editButton"
-         data-action="click->document-viewer#edit"
-         <% if @locked_by %>
-           aria-disabled="true"
-           title="<%= @locked_by.name %> is currently editing"
-         <% end %>>
+         class="btn btn-sm btn-primary"
+         data-controller="hotkey" data-hotkey="e">
         <%= render "shared/icon", name: "edit", size: 16 %>
         Edit
       </a>

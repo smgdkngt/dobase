@@ -2,8 +2,8 @@ import { Controller } from "@hotwired/stimulus"
 import consumer from "channels/consumer"
 
 export default class extends Controller {
-  static targets = ["title", "content", "lockStatus", "editedStatus", "editButton"]
-  static values = { documentId: Number }
+  static targets = ["title", "content", "lockStatus", "editorName", "editedStatus"]
+  static values = { documentId: Number, userId: Number }
 
   connect() {
     this.setupChannel()
@@ -11,12 +11,6 @@ export default class extends Controller {
 
   disconnect() {
     this.channel?.unsubscribe()
-  }
-
-  // While someone else is editing, the Edit link takes no clicks (pointer-events),
-  // but its key still gets through to it
-  edit(event) {
-    if (this.editButtonTarget.getAttribute("aria-disabled") === "true") event.preventDefault()
   }
 
   setupChannel() {
@@ -34,10 +28,15 @@ export default class extends Controller {
         this.updateContent(data)
         break
       case "locked":
-        this.showLocked(data.user_name)
+        // Your own editor, in another tab, is nobody else editing
+        if (data.user_id === this.userIdValue) {
+          this.showUnlocked()
+        } else {
+          this.showLocked(data.user_name)
+        }
         break
       case "unlocked":
-        this.showUnlocked(data.user_name)
+        this.showUnlocked()
         break
     }
   }
@@ -56,52 +55,19 @@ export default class extends Controller {
     }
   }
 
-  // Built with DOM APIs rather than a template string: userName comes from
-  // another collaborator and must never be parsed as markup, even though CSP
-  // already stops it from executing as a script.
+  // Several people can write in a document at once, so someone else in the
+  // editor is only news: Edit stays open to join them. The name comes from
+  // another collaborator and goes in as text, never as markup.
   showLocked(userName) {
-    if (this.hasLockStatusTarget) {
-      this.lockStatusTarget.replaceChildren()
-
-      const dot = document.createElement("span")
-      dot.className = "w-2 h-2 bg-warning rounded-full animate-pulse"
-      dot.setAttribute("aria-hidden", "true")
-
-      this.lockStatusTarget.append(dot, document.createTextNode(` ${userName} is editing`))
-      this.lockStatusTarget.classList.remove("hidden")
-    }
-
-    if (this.hasEditedStatusTarget) {
-      this.editedStatusTarget.classList.add("hidden")
-    }
-
-    if (this.hasEditButtonTarget) {
-      this.editButtonTarget.classList.add("opacity-50", "pointer-events-none")
-      this.editButtonTarget.classList.remove("btn-primary")
-      this.editButtonTarget.classList.add("btn-secondary")
-      this.editButtonTarget.setAttribute("aria-disabled", "true")
-      this.editButtonTarget.setAttribute("title", `${userName} is currently editing`)
-    }
+    if (this.hasEditorNameTarget) this.editorNameTarget.textContent = userName
+    if (this.hasLockStatusTarget) this.lockStatusTarget.classList.remove("hidden")
+    if (this.hasEditedStatusTarget) this.editedStatusTarget.classList.add("hidden")
   }
 
-  showUnlocked(userName) {
-    if (this.hasLockStatusTarget) {
-      this.lockStatusTarget.classList.add("hidden")
-    }
-
-    if (this.hasEditedStatusTarget) {
-      if (userName) {
-        this.editedStatusTarget.textContent = `Edited just now by ${userName}`
-      }
+  showUnlocked() {
+    if (this.hasLockStatusTarget) this.lockStatusTarget.classList.add("hidden")
+    if (this.hasEditedStatusTarget && this.editedStatusTarget.textContent.trim()) {
       this.editedStatusTarget.classList.remove("hidden")
-    }
-
-    if (this.hasEditButtonTarget) {
-      this.editButtonTarget.classList.remove("opacity-50", "pointer-events-none")
-      this.editButtonTarget.classList.remove("btn-secondary")
-      this.editButtonTarget.classList.add("btn-primary")
-      this.editButtonTarget.removeAttribute("aria-disabled")
-      this.editButtonTarget.removeAttribute("title")
     }
   }
 }

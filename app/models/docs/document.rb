@@ -48,6 +48,15 @@ module Docs
       DocumentSyncChannel.broadcast_to(self, { type: "replaced", generation: current })
     end
 
+    # Whether what was assigned differs from what is saved: the title, or the
+    # text (an empty text for a document that never had one is no change)
+    def edited?
+      return true if title_changed?
+      return false unless rich_text_content&.changed?
+
+      !(rich_text_content.new_record? && rich_text_content.body.blank?)
+    end
+
     # When the content was last changed. Taking the edit lock touches updated_at too.
     def edited_at
       last_edited_at || updated_at

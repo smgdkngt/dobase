@@ -62,6 +62,8 @@ Both are optional: without a title the document is called "Untitled". Returns
 `docs_document`. The content replaces the whole document, so to change part of
 it, fetch `content_html`, edit that and send all of it back. Returns the
 document. Anyone reading it in the browser sees the change straight away.
+An update that changes nothing (the same title and text) returns the document
+as it is, without making you its last editor.
 
 While someone else has the document open in the editor, updates answer `409`,
 because their editor would save over your change:

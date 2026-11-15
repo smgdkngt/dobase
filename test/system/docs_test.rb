@@ -309,6 +309,44 @@ class DocsTest < ApplicationSystemTestCase
     assert_eventually { document.reload.locked_by.nil? }
   end
 
+  test "opening a document and typing nothing leaves it as it was saved" do
+    document = docs_documents(:shared_notes)
+    document.update!(content: "<p>Notes nobody touches</p>")
+    yesterday = 1.day.ago.change(usec: 0)
+    document.update_columns(updated_by_id: users(:two).id, last_edited_at: yesterday)
+
+    # The first to open it builds the shared copy, the next one joins it
+    2.times do
+      open_editor document
+      assert_selector ".ProseMirror", text: "Notes nobody touches"
+      # Longer than the autosave waits
+      sleep 3
+      assert_selector "[data-document-editor-target='saveIndicator']", text: "Saved"
+      assert_equal [ users(:two), yesterday ], [ document.reload.updated_by, document.last_edited_at ]
+
+      page.execute_script("Turbo.visit('#{tools_path}')")
+      assert_current_path tools_path
+      assert_equal [ users(:two), yesterday ], [ document.reload.updated_by, document.last_edited_at ]
+    end
+  end
+
+  test "what someone else types is saved by them, not by everyone who has the document open" do
+    document = docs_documents(:shared_notes)
+    open_editor document
+
+    using_session("colleague") do
+      sign_in_as users(:two)
+      assert_selector "aside.sidebar"
+      open_editor document
+      editor.send_keys(:end, "Two writes here.")
+      assert_eventually { document.reload.content.to_plain_text.include?("Two writes here.") }
+    end
+
+    assert_selector ".ProseMirror", text: "Two writes here."
+    sleep 3
+    assert_equal users(:two), document.reload.updated_by
+  end
+
   test "a page with the document open says so without anything being typed" do
     document = docs_documents(:shared_notes)
     open_editor document

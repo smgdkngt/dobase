@@ -22,6 +22,8 @@ export default class extends Controller {
     this.isSaving = false
     this.pendingSave = false
     this.lastSavedTitle = this.titleTarget.value
+    // Whether the text was written in on this page since it was last saved
+    this.contentChanged = false
     this.loaded = false
     this.startingOver = false
 
@@ -52,7 +54,8 @@ export default class extends Controller {
       onSynced: ({ seed, compact }) => this.onSynced(seed, compact),
       // The others don't have that change, so saying "Saved" would be wrong
       onRefused: (reason) => this.showSaveIndicator(reason, true),
-      onReplaced: () => this.startOver()
+      onReplaced: () => this.startOver(),
+      onLocalChange: () => this._writtenHere()
     })
     this.sync.describeMe({ name: this.userNameValue, color: this.userColorValue })
     this.sync.awareness.on("change", (changes, origin) => this._showNamesOfMoved(changes, origin))
@@ -124,6 +127,16 @@ export default class extends Controller {
         })
       })
     })
+  }
+
+  // Only what is written on this page is this page's to save. The text filling
+  // the editor as it opens is no edit, and what the others write is saved by
+  // their own pages: saving it here too would put this person's name on it.
+  _writtenHere() {
+    if (!this.loaded || this.startingOver) return
+
+    this.contentChanged = true
+    this.scheduleAutoSave()
   }
 
   // The first page to open a document since this was built fills the shared copy
@@ -206,16 +219,26 @@ export default class extends Controller {
       return
     }
 
+    // Opening a document, or leaving the title as it was, is nothing to save
+    const title = this.titleTarget.value
+    const sendsContent = this.contentChanged && this.loaded
+    if (title === this.lastSavedTitle && !sendsContent) {
+      this.showSaveIndicator("Saved")
+      return
+    }
+
     this.isSaving = true
     this.pendingSave = false
+    this.contentChanged = false
     this.showSaveIndicator("Saving...")
 
     try {
       const formData = new FormData(this.formTarget)
-      formData.set("docs_document[title]", this.titleTarget.value)
-      // Until the shared copy has arrived the editor is empty and the document
-      // isn't. A new title can be saved by then; the text stays as it is.
-      if (!this.loaded) formData.delete("docs_document[content]")
+      formData.set("docs_document[title]", title)
+      // Only text written here goes along. Until the shared copy has arrived
+      // the editor is empty and the document isn't: a new title can be saved
+      // by then, and the text stays as it is.
+      if (!sendsContent) formData.delete("docs_document[content]")
 
       const response = await fetch(this.saveUrlValue, {
         method: "PATCH",
@@ -228,12 +251,14 @@ export default class extends Controller {
       })
 
       if (response.ok) {
-        this.lastSavedTitle = this.titleTarget.value
+        this.lastSavedTitle = title
         this.showSaveIndicator("Saved")
       } else {
+        this.contentChanged ||= sendsContent
         this.showSaveIndicator("Save failed", true)
       }
     } catch {
+      this.contentChanged ||= sendsContent
       this.showSaveIndicator("Save failed", true)
     } finally {
       this.isSaving = false

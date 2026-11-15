@@ -259,7 +259,7 @@ class DocumentSyncChannelTest < ActionCable::Channel::TestCase
     subscribe document_id: document.id
     assert_equal users(:one), document.reload.locked_by
 
-    assert_broadcast_on(DocumentChannel.broadcasting_for(document), type: "locked", user_name: users(:two).name) do
+    assert_broadcast_on(DocumentChannel.broadcasting_for(document), type: "locked", user_name: users(:two).name, user_id: users(:two).id) do
       first.unsubscribe_from_channel
     end
 
