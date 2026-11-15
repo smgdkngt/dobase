@@ -5,7 +5,7 @@ import { tileOf } from "services/tile"
 const FILE_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>'
 
 export default class extends Controller {
-  static targets = ["to", "ccField", "bccField", "fileInput", "attachmentsList", "quote", "quotedMessage", "quoteFrame", "gone"]
+  static targets = ["to", "ccField", "bccField", "fileInput", "attachmentsList", "quote", "quotedMessage", "quoteFrame", "gone", "send"]
   static values = { unsent: Boolean, draftUrl: String }
 
   connect() {
@@ -72,6 +72,15 @@ export default class extends Controller {
   // putting that body in its own HTML once it has started.
   startEditing() {
     this._snapshot ??= this._formSnapshot()
+  }
+
+  // Cmd+Enter (Ctrl+Enter elsewhere) sends, from wherever the keyboard is in the form. Heard
+  // before the editor, which would make it a line break; @github/hotkey skips the editor.
+  sendWithKeys(event) {
+    if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey || event.isComposing) return
+    event.preventDefault()
+    event.stopPropagation()
+    if (this.hasSendTarget && !this.sendTarget.disabled) this.element.requestSubmit(this.sendTarget)
   }
 
   // A send that failed comes back to this same form (a morph), which still holds the message
@@ -177,6 +186,8 @@ export default class extends Controller {
       page.addEventListener("focusout", () => frame.toggleAttribute("data-has-keyboard", false))
       // Escape lets go of it, as of any field: the keyboard is the page's again
       page.addEventListener("keydown", (event) => { if (event.key === "Escape") frame.blur() })
+      // Cmd+Enter sends from the quote too
+      page.addEventListener("keydown", (event) => page.compose.sendWithKeys(event), true)
     }
     page.compose = this
   }

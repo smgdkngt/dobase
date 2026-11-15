@@ -10,7 +10,7 @@
         compose_draft_url_value: (tool_mail_path(@tool, @draft, format: :json) if @draft),
         action: "pointerdown->compose#startEditing:capture keydown->compose#startEditing:capture " \
                 "beforeinput->compose#startEditing:capture dragenter->compose#startEditing:capture " \
-                "turbo:submit-end->compose#submitEnded formdata->compose#addQuote"
+                "keydown->compose#sendWithKeys:capture turbo:submit-end->compose#submitEnded formdata->compose#addQuote"
       } do %>
   <%# Where the page goes back to once the mail is on its way %>
   <%= hidden_field_tag :folder, @current_folder %>
@@ -108,7 +108,7 @@
       </p>
     <% end %>
     <div class="compose-actions">
-      <%= render "components/button", text: "Send", icon: "send", type: :submit %>
+      <%= render "components/button", text: "Send", icon: "send", type: :submit, title: "Send (#{mod_key("Enter")})", data: { compose_target: "send" } %>
       <% if @draft %>
         <%= render "components/button", text: "Save Draft", variant: :ghost, type: :submit,
               formaction: tool_mail_draft_path(@tool, @draft), name: "_method", value: "patch" %>

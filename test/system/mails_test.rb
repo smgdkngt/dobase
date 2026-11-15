@@ -522,6 +522,45 @@ class MailsTest < ApplicationSystemTestCase
     assert_equal [ "friend@example.com", "ann@example.com" ], deliveries.sole[:recipients]
   end
 
+  test "Ctrl+Enter in the message sends it, signature and all, without a line break added" do
+    mails_accounts(:primary).update!(signature: "Ann Lee\nAcme")
+    visit new_tool_mail_path(@tool)
+    wait_for_compose_editor
+    add_recipient "friend@example.com"
+    find("input[name='subject']").set("Quick one")
+
+    editor = find("rhino-editor [contenteditable]")
+    assert_equal "Ann Lee\nAcme", editor.find("p:nth-child(2)").text
+    editor.click
+    editor.send_keys([ :control, :home ], "See you there")
+
+    deliveries = capture_smtp_deliveries do
+      perform_enqueued_jobs(only: SendMailJob) do
+        editor.send_keys([ :control, :enter ])
+        assert_selector ".mail-detail-header"
+      end
+    end
+
+    html = Mail.new(deliveries.sole[:message]).html_part.decoded
+    assert_match %r{See you there</p>}, html
+    assert_match %r{Ann Lee<br[^>]*>Acme}, html
+  end
+
+  test "Ctrl+Enter in the subject sends the mail too" do
+    visit new_tool_mail_path(@tool)
+    wait_for_compose_editor
+    add_recipient "friend@example.com"
+
+    deliveries = capture_smtp_deliveries do
+      perform_enqueued_jobs(only: SendMailJob) do
+        find("input[name='subject']").send_keys("Hello", [ :control, :enter ])
+        assert_selector ".mail-detail-header"
+      end
+    end
+
+    assert_equal "Hello", Mail.new(deliveries.sole[:message]).subject
+  end
+
   test "an address pasted and finished by typing is one link, querystring and all, and goes out so" do
     feed = "https://bo.example.com/feeds/feed-3ff8.csv"
     visit new_tool_mail_path(@tool)
