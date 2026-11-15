@@ -2,6 +2,7 @@
     comes back into the dialog in its place (ToolsController#create), so the page the
     dialog was opened on stays as it was. %>
 <%= form_with model: tool, url: tools_path, id: "new-tool-form" do |f| %>
+  <%= hidden_field_tag :dialog, "1", id: nil %>
   <%= render "shared/error_flash", object: tool %>
 
   <fieldset class="mb-6" data-controller="tool-type-select">

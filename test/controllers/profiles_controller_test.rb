@@ -120,6 +120,15 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "less than 5MB"
   end
 
+  test "a wrong current password on the profile page is said on that page" do
+    patch profile_path, params: { tab: "security", user: { password: "brand-new-secret", password_confirmation: "brand-new-secret", current_password: "wrong" } },
+      headers: { "Accept" => "text/vnd.turbo-stream.html, text/html, application/xhtml+xml" }
+
+    assert_response :unprocessable_entity
+    assert_equal "text/html", response.media_type
+    assert_includes response.body, "Your current password is incorrect"
+  end
+
   test "a wrong current password is said in the dialog, on the tab it was typed in" do
     patch profile_path, params: { tab: "security", dialog: "1", user: { password: "brand-new-secret", password_confirmation: "brand-new-secret", current_password: "wrong" } }, as: :turbo_stream
 

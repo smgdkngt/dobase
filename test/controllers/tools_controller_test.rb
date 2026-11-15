@@ -86,7 +86,7 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
 
   test "adding a tool without a type says so in the dialog, and the page it was opened on stays" do
     assert_no_difference -> { Tool.count } do
-      post tools_path, params: { tool: { name: "Groceries" } }, as: :turbo_stream
+      post tools_path, params: { dialog: "1", tool: { name: "Groceries" } }, as: :turbo_stream
     end
 
     assert_response :unprocessable_entity
@@ -94,6 +94,15 @@ class ToolsControllerTest < ActionDispatch::IntegrationTest
       assert_select ".flash-error", text: /Tool type must exist/
       assert_select "input[name='tool[name]'][value=Groceries]"
     end
+  end
+
+  test "adding a tool without a type on the page of its own says so on that page" do
+    post tools_path, params: { tool: { name: "Groceries" } },
+      headers: { "Accept" => "text/vnd.turbo-stream.html, text/html, application/xhtml+xml" }
+
+    assert_response :unprocessable_entity
+    assert_equal "text/html", response.media_type
+    assert_includes response.body, "Tool type must exist"
   end
 
   test "the type of a tool to add is asked for before the form goes" do

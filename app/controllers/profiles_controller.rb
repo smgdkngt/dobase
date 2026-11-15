@@ -55,10 +55,14 @@ class ProfilesController < ApplicationController
     @open_tab = params[:tab].presence_in(TABS) || "profile"
 
     respond_to do |format|
-      format.turbo_stream do
-        render turbo_stream: turbo_stream.update("profile-form", partial: "profiles/settings",
-          locals: { user: @user, in_dialog: params[:dialog].present?, tab: @open_tab, open_tab: @open_tab }),
-          status: :unprocessable_entity
+      # Only from the dialog: the profile page has a frame of that name too, after the
+      # sidebar's dialog, and a stream goes to the first one
+      if params[:dialog].present?
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.update("profile-form", partial: "profiles/settings",
+            locals: { user: @user, in_dialog: true, tab: @open_tab, open_tab: @open_tab }),
+            status: :unprocessable_entity
+        end
       end
       format.html { render :edit, status: :unprocessable_entity }
     end
