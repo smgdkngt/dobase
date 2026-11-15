@@ -98,6 +98,33 @@ class ChatTest < ApplicationSystemTestCase
     page.driver.browser.delete_network_conditions
   end
 
+  test "Enter on the list of people to mention picks one and sends nothing" do
+    colleague = users(:two)
+    @tool.collaborators.create!(user: colleague, role: "collaborator")
+    visit tool_chat_path(@tool)
+    wait_for_turbo
+    wait_for_stimulus "chat"
+    wait_for_stimulus "rich-text-input"
+
+    editable = find("form rhino-editor .ProseMirror")
+    editable.click
+    editable.send_keys("hey @#{colleague.name.first(3)}")
+    assert_selector ".mention-suggestion-item", text: colleague.name
+    editable.send_keys(:enter)
+
+    assert_selector "form rhino-editor .ProseMirror .mention", text: "@#{colleague.name}"
+    assert_no_selector ".mention-suggestion"
+    sleep 1
+    assert_selector "form rhino-editor .ProseMirror", text: "hey @#{colleague.name}"
+    assert_no_selector ".chat-messages [data-message-id]"
+    assert_equal 0, @tool.chat.messages.count
+
+    # The next Enter is the message's
+    editable.send_keys("are you there?", :enter)
+    assert_selector ".chat-messages [data-message-id]", text: "hey @#{colleague.name} are you there?"
+    assert_equal 1, @tool.chat.messages.count
+  end
+
   test "an empty message can't be sent" do
     visit tool_chat_path(@tool)
     wait_for_turbo

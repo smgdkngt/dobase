@@ -17,6 +17,7 @@ export default class extends Controller {
     this.editorTarget.addEventListener("rhino-change", this._onInput)
 
     if (this.submitOnEnterValue) {
+      this.editorTarget.addEventListener("keydown", this._noteMentionKey, true)
       this.editorTarget.addEventListener("keydown", this._onKeydown)
     }
 
@@ -36,6 +37,7 @@ export default class extends Controller {
 
   disconnect() {
     this.editorTarget.removeEventListener("rhino-change", this._onInput)
+    this.editorTarget.removeEventListener("keydown", this._noteMentionKey, true)
     this.editorTarget.removeEventListener("keydown", this._onKeydown)
   }
 
@@ -51,10 +53,18 @@ export default class extends Controller {
     this.dispatch("input")
   }
 
+  // The editor hears a key before this controller does (it is inside it), and an Enter
+  // that picks someone from the mention list closes the list on the way. So whether the
+  // list was open is noted on the way in, before the editor has the key.
+  _noteMentionKey = (event) => {
+    if (this.mentionActive) this._mentionKey = event
+  }
+
   _onKeydown = (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
-      // Let the mention dropdown claim Enter to pick a candidate.
-      if (this.mentionActive) return
+      // Let the mention dropdown claim Enter to pick a candidate. (Not by defaultPrevented:
+      // the editor prevents the default of every Enter it handles, a new line too.)
+      if (this.mentionActive || event === this._mentionKey) return
 
       const toolbar = this.editorTarget.querySelector("[role='toolbar']")
       if (toolbar?.querySelector("[popover]:popover-open, dialog[open]")) return
