@@ -7,6 +7,8 @@
 # goes wrong does so before the mail server gets the mail, and is reported.
 class SendMailJob < ApplicationJob
   queue_as :default
+  # How long Send can be undone
+  UNDO_TIME = 10.seconds
   skip_in_demo
   # Thrown away before it went out
   discard_on ActiveJob::DeserializationError
@@ -15,8 +17,13 @@ class SendMailJob < ApplicationJob
   end
 
   def perform(message, sender)
+    # Sent off from the compose page, it waits a moment, in which Send can be undone
+    # (Mails::Message#take_back!). Taken back, it's a draft again and isn't sent. Once it
+    # is taken here it can't be taken back; a try again after the mail server couldn't be
+    # reached has it already.
+    return unless executions > 1 ? message.reload.sending? : message.claim_for_sending!
+
     begin
-      message.start_sending! if message.draft?
 
       body_html = message.outgoing_html
       SmtpSendService.new(message.account).send_email(

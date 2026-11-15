@@ -205,12 +205,38 @@ module Mails
       ImapSyncJob.perform_later(account.id, "delete_draft", uid, "Drafts") if uid
       # Mail that starts a conversation is its thread
       self.thread_id = nil if thread_id == message_id
-      update!(draft: false, sending: true, folder: "Sent", uid: nil, message_id: "#{SecureRandom.uuid}@#{account.smtp_host}")
+      update!(draft: false, sending: true, send_started_at: nil, folder: "Sent", uid: nil, message_id: "#{SecureRandom.uuid}@#{account.smtp_host}")
     end
 
     # The mail server didn't take it: a draft again, to change or send once more
     def back_to_drafts!
-      update!(draft: true, sending: false, folder: "Drafts", trashed: false, archived: false)
+      update!(draft: true, sending: false, send_started_at: nil, folder: "Drafts", trashed: false, archived: false)
+    end
+
+    # Taking back and sending each go through one conditional update, of the same row
+    # (SQLite has one writer at a time): whichever comes first, the other finds nothing.
+    WAITING_TO_BE_SENT = { sending: true, draft: false, send_started_at: nil }.freeze
+
+    # Undo after Send: a draft again, as long as SendMailJob hasn't taken it yet. False
+    # when it has: then it's on its way.
+    def take_back!
+      transaction do
+        # Nothing between the two writes is seen elsewhere, so no sync takes it for sent mail
+        raise ActiveRecord::Rollback unless self.class.where(id: id, **WAITING_TO_BE_SENT).update_all(sending: false) == 1
+
+        reload.back_to_drafts!
+        true
+      end || false
+    end
+
+    # SendMailJob's, before it sends: from here on it can't be taken back. False when it was.
+    def claim_for_sending!
+      self.class.where(id: id, **WAITING_TO_BE_SENT).update_all(send_started_at: Time.current) == 1
+    end
+
+    # Still sent off, not taken back, and not taken by a job yet: Undo can take it back
+    def can_be_taken_back?
+      sending? && !draft? && send_started_at.nil?
     end
 
     def junk?
@@ -271,7 +297,13 @@ module Mails
       update!(folder: target_folder, archived: false, trashed: false, uid: nil)
       return unless on_server
 
-      ImapSyncJob.perform_later(account.id, "move_to_folder", source_uid, source_folder, target_folder) if source_uid
+      if source_uid
+        ImapSyncJob.perform_later(account.id, "move_to_folder", source_uid, source_folder, target_folder)
+      elsif !in_archive && !draft? && message_id.present?
+        # Moved here a moment ago (an undo puts it back), before a sync gave it its UID in
+        # that folder: there it's found by its Message-ID
+        ImapSyncJob.perform_later(account.id, "move_to_folder_by_message_id", nil, source_folder, target_folder, message_id)
+      end
       # Archived here, the server has it in the archive folder, under another UID
       ImapSyncJob.perform_later(account.id, "move_to_folder_by_message_id", nil, account.archive_folder, target_folder, message_id) if in_archive
     end

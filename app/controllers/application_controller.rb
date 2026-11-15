@@ -22,6 +22,12 @@ class ApplicationController < ActionController::Base
 
   private
 
+  # An Undo button on the notice this request leaves (shared/flash): it sends `params`
+  # to `url` with `method`, and `z` presses it while it shows
+  def offer_undo(url, method: :post, params: {})
+    flash[:undo] = { "url" => url, "method" => method.to_s, "params" => params.stringify_keys }
+  end
+
   # The tiling workspace is how a wide window works; a narrow one (a phone) shows one
   # tool at a time. There is no choosing between them. The cookie is the system
   # tests' own: they try every tool as a page of its own, in a wide window.

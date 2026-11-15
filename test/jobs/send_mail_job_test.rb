@@ -8,6 +8,8 @@ class SendMailJobTest < ActiveJob::TestCase
   setup do
     @draft = mails_messages(:draft_message)
     @sender = users(:one)
+    # Sent off from the compose page, as Tools::MailsController#create does
+    @draft.start_sending!
   end
 
   test "every window that shows the mailbox hears that the mail has gone out" do
@@ -98,6 +100,49 @@ class SendMailJobTest < ActiveJob::TestCase
     assert_enqueued_with(job: SyncDraftJob, args: [ @draft.id ])
     assert_equal "Couldn't send “Draft email”, it's in your drafts: Something went wrong before it reached the mail server",
       @sender.notifications.order(:created_at).last.message
+  end
+
+  test "mail taken back before the job got to it isn't sent, and nobody is told it wasn't" do
+    assert @draft.take_back!
+
+    deliveries = assert_no_difference(-> { @sender.notifications.count }) do
+      with_mail_server(-> { false }) do
+        perform_enqueued_jobs(only: SendMailJob) { SendMailJob.perform_later(@draft, @sender) }
+      end
+    end
+
+    assert_empty deliveries
+    assert_equal [ "Drafts", true, false ], @draft.reload.values_at(:folder, :draft, :sending)
+  end
+
+  test "mail taken back after the job loaded it, before it started, isn't sent" do
+    loaded = Mails::Message.find(@draft.id)
+    assert @draft.take_back!
+
+    deliveries = with_mail_server(-> { false }) { SendMailJob.perform_now(loaded, @sender) }
+
+    assert_empty deliveries
+    assert @draft.reload.draft?
+  end
+
+  test "once the job has started on it, it can't be taken back" do
+    taken_back = nil
+    deliveries = with_mail_server(-> { taken_back = Mails::Message.find(@draft.id).take_back!; false }) do
+      SendMailJob.perform_now(@draft, @sender)
+    end
+
+    assert_equal false, taken_back
+    assert_equal [ "recipient@example.com" ], deliveries.sole[:recipients]
+    assert_equal [ "Sent", false, false ], @draft.reload.values_at(:folder, :draft, :sending)
+  end
+
+  test "taken back and sent again, it goes out the second time" do
+    assert @draft.take_back!
+    @draft.reload.start_sending!
+
+    deliveries = with_mail_server(-> { false }) { SendMailJob.perform_now(@draft, @sender) }
+
+    assert_equal 1, deliveries.size
   end
 
   private

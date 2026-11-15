@@ -3,6 +3,7 @@ import { pathOf, toolIdOf, toolFrame, pageFrame, inPage, frameAddress, sendFrame
 import { workspaceCommand, renameWorkspaceKeys, workspaceKey } from "services/workspace_keys"
 import { apiPost, csrfToken } from "services/api"
 import { typing } from "services/typing"
+import { showFlashesOf } from "services/flash"
 import {
   GAP, MIN_TILE, DESKS, DESK_NAME_LENGTH, NOTHING_OPEN,
   deskAt, insert, remove, place, neighbour, cleaned, withChanges, parsed, deskOf, leaves, find, parentOf, deskName
@@ -109,8 +110,16 @@ export default class extends Controller {
     // When a form on this page was sent, and which tool it was about (its settings), if any
     this.listen(document, "turbo:submit-end", (event) => {
       // (and from which tile, when the form was in one that is part of this page)
-      const tile = this.tileFrameOf(event.target)?.closest("[data-tile-id]")?.dataset.tileId
+      const frame = this.tileFrameOf(event.target)
+      const tile = frame?.closest("[data-tile-id]")?.dataset.tileId
       this.submitted = { at: performance.now(), toolId: toolIdOf(pathOf(event.target.action)), tile }
+      // A form Turbo made of a tile's link: the page it led to is fetched, and what it
+      // says (an archived mail's notice, with its Undo) is said here, since the tile
+      // goes there by a visit of its own (visiting), which says nothing
+      const { fetchResponse, success } = event.detail
+      if (frame && success && fetchResponse?.redirected && !frame.contains(event.target)) {
+        fetchResponse.responseHTML.then((html) => showFlashesOf(html, { frame: frame.id }))
+      }
     })
     this.listen(document, "turbo:morph", () => this.refreshed())
     // The keyboard arrived on a tile itself, however it got there: that is the level it is at

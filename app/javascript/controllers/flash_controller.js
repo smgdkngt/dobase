@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { play } from "services/sound"
-import { showFlash } from "services/flash"
+import { showFlash, dismissLater, SHOWN_FOR_WITH_UNDO } from "services/flash"
 
 // What a page said that the window left before drawing it (workspace_gate.js)
 const CARRIED = "dobase:flash"
@@ -17,9 +17,8 @@ export default class extends Controller {
     if (this.toastValue) this.sayCarried()
     if (this.autoDismissValue) {
       this.messageTargets.forEach((message, index) => {
-        setTimeout(() => {
-          this.dismissMessage(message)
-        }, this.dismissAfterValue + (index * 200))
+        const shownFor = message.querySelector("[data-flash-undo]") ? SHOWN_FOR_WITH_UNDO : this.dismissAfterValue
+        dismissLater(message, shownFor + (index * 200), () => this.dismissMessage(message))
       })
     }
   }
@@ -41,6 +40,9 @@ export default class extends Controller {
   }
 
   dismiss(event) {
+    // The Undo button is pressed, not the message
+    if (event.target.closest("[data-flash-undo]")) return
+
     const message = event.target.closest("[data-flash-target='message']")
     if (message) {
       this.dismissMessage(message)

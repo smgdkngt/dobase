@@ -11,7 +11,11 @@
     <template data-tile-frame-target="shortcuts"><%= content_for(:keyboard_shortcuts) %></template>
     <template data-tile-frame-target="actions"><%= content_for(:command_palette_actions) %></template>
     <% flash.each do |kind, message| %>
-      <%= tag.template message, data: { tile_frame_target: "flash", kind: kind } %>
+      <% next if kind.to_s == "undo" %>
+      <%= tag.template data: { tile_frame_target: "flash", kind: kind } do %>
+        <%= message %>
+        <%= render "shared/flash_undo", undo: flash[:undo] if kind.to_s == "notice" && flash[:undo].is_a?(Hash) %>
+      <% end %>
     <% end %>
   <% end %>
 <% end %>

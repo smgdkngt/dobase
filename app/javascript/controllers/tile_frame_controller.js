@@ -85,7 +85,13 @@ export default class extends Controller {
   // What the page has to tell after a form (a notice, what went wrong) is shown the
   // way the page around the tiles shows its own
   flashTargetConnected(message) {
-    showFlash(message.content.textContent.trim(), message.dataset.kind === "notice" ? "notice" : "alert")
+    // Its Undo button undoes in this tile, which the answer is drawn in
+    const undo = message.content.querySelector("[data-flash-undo]")
+    if (undo instanceof HTMLFormElement) {
+      undo.remove()
+      undo.dataset.turboFrame = this.frame.id
+    }
+    showFlash(message.content.textContent.trim(), message.dataset.kind === "notice" ? "notice" : "alert", { undo })
     message.remove()
   }
 

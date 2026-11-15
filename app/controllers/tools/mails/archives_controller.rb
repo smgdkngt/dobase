@@ -13,7 +13,7 @@ module Tools
       def create
         folder = params[:folder] || "inbox"
         next_msg = find_next_message(@message, folder)
-        account.archive(with_their_conversations([ @message ], folder: folder))
+        undoable(:unarchive, with_their_conversations([ @message ], folder: folder)) { account.archive(_1) }
 
         respond_to do |format|
           format.html { redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Email archived.") }

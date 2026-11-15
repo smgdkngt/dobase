@@ -32,7 +32,8 @@
       <%# data-turbo-temporary: not kept in the copy of the page Turbo shows on Back, where it would show again %>
       <div class="flash <%= cfg[:css] %>" data-flash-target="message" data-flash-kind="<%= cfg[:css].delete_prefix("flash-") %>" data-turbo-temporary <% if dismissable %>data-action="click->flash#dismiss"<% end %> role="alert">
         <%= render "shared/icon", name: cfg[:icon], size: 18 %>
-        <span class="flex-1"><%= message %></span>
+        <span class="flex-1" data-flash-text><%= message %></span>
+        <%= render "shared/flash_undo", undo: flash[:undo] if type.to_s == "notice" && flash[:undo].is_a?(Hash) %>
         <% if dismissable %>
           <button type="button" class="ml-2 opacity-70 hover:opacity-100" aria-label="Dismiss message" data-action="click->flash#dismiss">
             <%= render "shared/icon", name: "x", size: 16 %>

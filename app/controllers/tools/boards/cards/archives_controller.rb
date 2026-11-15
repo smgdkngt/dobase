@@ -12,7 +12,14 @@ module Tools
         # POST /tools/:tool_id/board/cards/:card_id/archive
         def create
           @card.update!(archived_at: Time.current)
-          respond_with_card
+          respond_to do |format|
+            format.html do
+              # Undo is this card's own way back (destroy)
+              offer_undo(tool_board_card_archive_path(@tool, @card), method: :delete)
+              redirect_to tool_board_path(@tool), notice: "Card archived."
+            end
+            format.json { render "tools/boards/cards/show" }
+          end
         end
 
         # DELETE /tools/:tool_id/board/cards/:card_id/archive

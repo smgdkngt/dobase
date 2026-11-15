@@ -15,7 +15,7 @@ module Tools
       def create
         folder = params[:folder] || "inbox"
         next_msg = find_next_message(@message, folder)
-        @tool.mail_account.mark_as_junk(with_their_conversations([ @message ], folder: folder))
+        undoable(:put_back, with_their_conversations([ @message ], folder: folder)) { @tool.mail_account.mark_as_junk(_1) }
 
         respond_to do |format|
           format.html { redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Moved to Junk.") }
@@ -26,7 +26,7 @@ module Tools
       # DELETE /tools/:tool_id/mails/:mail_id/junk
       def destroy
         next_msg = find_next_message(@message, "junk")
-        @tool.mail_account.not_junk(with_their_conversations([ @message ], folder: "junk"))
+        undoable(:put_back, with_their_conversations([ @message ], folder: "junk")) { @tool.mail_account.not_junk(_1) }
 
         respond_to do |format|
           format.html { redirect_to_next_mail_or_fallback(next_msg, folder: "junk", notice: "Moved to the inbox.") }

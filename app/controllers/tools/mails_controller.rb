@@ -115,7 +115,8 @@ module Tools
       else
         message = outgoing_draft(to: to, cc: cc, bcc: bcc)
         message.start_sending!
-        SendMailJob.perform_later(message, Current.user)
+        # A moment to take it back in (Tools::Mails::SendingsController)
+        SendMailJob.set(wait: SendMailJob::UNDO_TIME).perform_later(message, Current.user)
         folder = params[:folder].presence || "inbox"
         redirect_to tool_mail_path(@tool, opened_in_folder(message, folder), folder: folder)
       end
@@ -136,7 +137,7 @@ module Tools
         @tool.mail_account.delete_for_good(with_their_conversations([ @message ], folder: "trash"))
         redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Email permanently deleted.")
       else
-        @tool.mail_account.trash(with_their_conversations([ @message ], folder: folder))
+        undoable(:put_back, with_their_conversations([ @message ], folder: folder)) { @tool.mail_account.trash(_1) }
         redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Email moved to trash.")
       end
     end

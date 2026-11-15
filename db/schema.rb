@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_03_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_15_100000) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -484,6 +484,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_100000) do
     t.integer "quoted_message_id"
     t.boolean "sending", default: false, null: false
     t.text "quote_html"
+    t.datetime "send_started_at"
     t.index ["mail_account_id", "archived"], name: "index_mail_messages_on_mail_account_id_and_archived"
     t.index ["mail_account_id", "folder", "sent_at"], name: "index_mail_messages_on_mail_account_id_and_folder_and_sent_at"
     t.index ["mail_account_id", "folder", "trashed", "draft", "archived", "thread_id", "sent_at", "read", "starred", "has_attachments", "message_id"], name: "index_mail_messages_for_the_list"

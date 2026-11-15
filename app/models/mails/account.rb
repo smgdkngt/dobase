@@ -216,12 +216,13 @@ module Mails
       draft.record_discarded
     end
 
-    # Mail in the server's trash goes back to the inbox, a draft to the drafts. Mail deleted
+    # Mail in the server's trash goes back to the inbox, a draft to the drafts, or to the
+    # folder `folders` names for it (by id: an undo puts it back where it was). Mail deleted
     # on the server before (it had no trash) can only come back here.
-    def restore(messages)
+    def restore(messages, folders: {})
       messages.select(&:trashed?).each do |message|
         if message.folder == TRASH
-          folder = message.draft? ? "Drafts" : "INBOX"
+          folder = folders[message.id] || (message.draft? ? "Drafts" : "INBOX")
           # The trash gave it a new UID, so it's found by its Message-ID; the inbox's next sync gives it its UID there
           ImapSyncJob.perform_later(id, "move_to_folder_by_message_id", nil, TRASH, folder, message.message_id)
           message.move_to_folder!(folder, on_server: false)

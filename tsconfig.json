@@ -33,6 +33,7 @@
     "app/javascript/services/pull_refresh.js",
     "app/javascript/services/now_line.js",
     "app/javascript/services/mail_providers.js",
+    "app/javascript/services/flash.js",
     "test/javascript/**/*.mjs",
     "test/javascript/support/globals.d.ts"
   ]

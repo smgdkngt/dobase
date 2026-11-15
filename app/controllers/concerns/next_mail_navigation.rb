@@ -3,6 +3,15 @@
 module NextMailNavigation
   private
 
+  # What `yield` does to the messages (it answers the ones it acted on), undone by the
+  # notice's Undo button (Mails::Undo). Only a page gets a notice to put it on.
+  def undoable(kind, messages, &)
+    undo = ::Mails::Undo.record(@tool.mail_account, kind, messages, user: Current.user, &)
+    token = undo.token if request.format.html?
+    offer_undo(tool_undo_path(@tool), params: { undo: token }) if token
+    undo.places
+  end
+
   def redirect_to_next_mail_or_fallback(next_msg, folder:, notice:)
     if next_msg
       redirect_to tool_mail_path(@tool, next_msg, folder: folder), notice: notice

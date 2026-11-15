@@ -16,7 +16,7 @@ module Tools
         folder = params[:folder] || "inbox"
         next_msg = find_next_message(@message, folder)
         # A draft is discarded by itself: the conversation it answers stays where it is
-        @tool.mail_account.trash(@message.draft? ? [ @message ] : with_their_conversations([ @message ], folder: folder))
+        undoable(:put_back, @message.draft? ? [ @message ] : with_their_conversations([ @message ], folder: folder)) { @tool.mail_account.trash(_1) }
 
         respond_to do |format|
           format.html { redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Email moved to trash.") }

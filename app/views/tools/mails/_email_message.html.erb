@@ -59,6 +59,15 @@
   <%= tag.div class: ("hidden" unless open), data: { collapse_target: "content" } do %>
     <%# Beside the sender's face in a wide window; in a narrow one (a phone, a tile) the width is the message's %>
     <div class="px-4 pb-4 pl-[4.25rem] narrow:px-2 narrow:pl-2">
+      <%# Sent off a moment ago and still waiting to go out (SendMailJob::UNDO_TIME): it can be taken back %>
+      <% if email_message.can_be_taken_back? %>
+        <div class="mail-sending-note">
+          <span class="flex-1">Sending in a moment.</span>
+          <%= render "components/button", text: "Undo", icon: "undo-2", variant: :secondary, size: :sm, title: "Undo Send (z)",
+                href: tool_mail_sending_path(@tool, email_message, folder: @current_folder), method: :delete,
+                data: { turbo_frame: "_top", controller: "hotkey", hotkey: "z" } %>
+        </div>
+      <% end %>
       <% if email_message.draft? && !email_message.trashed? %>
         <div class="mail-draft-note">
           <span class="flex-1">Not sent yet.</span>

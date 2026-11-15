@@ -25,19 +25,19 @@ module Tools
 
         notice = case action
         when "trash"
-          count = @mail_account.trash(conversations_of(messages, folder).to_a).size
+          count = undoable(:put_back, conversations_of(messages, folder)) { @mail_account.trash(_1) }.size
           "#{count} email(s) moved to trash."
         when "restore"
           count = @mail_account.restore(conversations_of(messages, "trash").to_a).size
           "#{count} email(s) restored."
         when "archive"
-          count = @mail_account.archive(conversations_of(messages, folder).to_a).size
+          count = undoable(:unarchive, conversations_of(messages, folder)) { @mail_account.archive(_1) }.size
           "#{count} email(s) archived."
         when "junk"
-          count = @mail_account.mark_as_junk(conversations_of(messages, folder).not_draft.to_a).size
+          count = undoable(:put_back, conversations_of(messages, folder).not_draft) { @mail_account.mark_as_junk(_1) }.size
           "#{count} email(s) moved to Junk."
         when "not_junk"
-          count = @mail_account.not_junk(conversations_of(messages, "junk").to_a).size
+          count = undoable(:put_back, conversations_of(messages, "junk")) { @mail_account.not_junk(_1) }.size
           "#{count} email(s) moved to the inbox."
         when "mark_read", "mark_unread"
           read = action == "mark_read"
@@ -50,7 +50,7 @@ module Tools
         when "move_to_folder"
           target_folder = @mail_account.folder_to_move_to(params[:target_folder])
           if target_folder
-            moved = @mail_account.move(conversations_of(messages, folder).to_a, target_folder)
+            moved = undoable(:put_back, conversations_of(messages, folder)) { @mail_account.move(_1, target_folder) }
             "#{moved.size} email(s) moved to #{helpers.mail_folder_name(target_folder)}."
           else
             "Invalid folder name."

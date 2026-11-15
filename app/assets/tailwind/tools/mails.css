@@ -397,6 +397,12 @@
     background: color-mix(in srgb, var(--color-warning) 10%, var(--color-surface));
   }
 
+  /* Sent off a moment ago, and can still be taken back */
+  .mail-sending-note {
+    @apply flex items-center gap-2 px-3 py-2 mb-3 rounded-md text-sm text-text-secondary;
+    background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface));
+  }
+
   .email-images-action {
     @apply font-medium text-accent hover:underline bg-transparent border-none cursor-pointer p-0 text-xs;
   }

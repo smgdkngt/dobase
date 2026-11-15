@@ -1,0 +1,15 @@
+<%#
+  The Undo button on a notice (ApplicationController#offer_undo): what was just done,
+  undone. `z` presses it while it shows; in the workspace a tile's notice is shown by
+  the page around the tiles, which sends this to the tile (tile_frame_controller.js).
+
+  Locals:
+    undo: { "url", "method", "params" } as offer_undo left it in the flash
+%>
+<%= form_with url: undo["url"], method: undo["method"], class: "flash-undo", data: { flash_undo: true } do %>
+  <% Hash(undo["params"]).each do |name, value| %>
+    <%= hidden_field_tag name, value, id: nil %>
+  <% end %>
+  <%= render "components/button", text: "Undo", variant: :ghost, size: :sm, title: "Undo (z)",
+        data: { controller: "hotkey", hotkey: "z" } %>
+<% end %>

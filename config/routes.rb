@@ -166,6 +166,8 @@ Rails.application.routes.draw do
       scope module: :mails do
         resource :sync, only: %i[show create], controller: "syncs"
         resource :bulk, only: :create, controller: "bulk_actions"
+        # What was just archived, trashed or moved, back where it was (Mails::Undo)
+        resource :undo, only: :create, controller: "undos"
         resource :folder, only: :create, controller: "folders"
         delete "trash", to: "trashes#destroy_all", as: :empty_trash
       end
@@ -179,6 +181,8 @@ Rails.application.routes.draw do
           resource :junk, only: %i[create destroy]
           resource :move, only: :create
           resource :trusted_sender, only: %i[create destroy]
+          # Mail that is being sent, taken back before it went out: a draft again
+          resource :sending, only: :destroy
         end
       end
 
