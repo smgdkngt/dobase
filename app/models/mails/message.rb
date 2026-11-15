@@ -235,9 +235,12 @@ module Mails
       end || false
     end
 
-    # SendMailJob's, before it sends: from here on it can't be taken back. False when it was.
-    def claim_for_sending!
-      self.class.where(id: id, **WAITING_TO_BE_SENT).update_all(send_started_at: Time.current) == 1
+    # SendMailJob's, before it sends: from here on it can't be taken back. False when it was,
+    # and when it has been sent off again since under another Message-ID (sent_as).
+    def claim_for_sending!(sent_as = nil)
+      waiting = self.class.where(id: id, **WAITING_TO_BE_SENT)
+      waiting = waiting.where(message_id: sent_as) if sent_as
+      waiting.update_all(send_started_at: Time.current) == 1
     end
 
     # Still sent off, not taken back, and not taken by a job yet: Undo can take it back

@@ -993,7 +993,7 @@ module Tools
       post tool_mails_path(@tool), params: { draft_id: draft.id, folder: "drafts", to: "friend@example.com", bcc: "me@example.com", subject: "Plans", body: "<p>Hi</p>" }
 
       assert_redirected_to tool_mail_path(@tool, draft, folder: "drafts")
-      assert_enqueued_with(job: SendMailJob, args: [ draft, users(:one) ])
+      assert_enqueued_with(job: SendMailJob, args: [ draft, users(:one), { sending: draft.reload.message_id } ])
       assert_enqueued_with(job: ImapSyncJob, args: [ @account.id, "delete_draft", 9, "Drafts" ])
       assert_equal [ [ "friend@example.com" ], [ "me@example.com" ], "Plans" ], [ draft.reload.to_addresses_list, draft.bcc_addresses_list, draft.subject ]
       assert_equal [ "Sent", false, true, nil ], draft.values_at(:folder, :draft, :sending, :uid)

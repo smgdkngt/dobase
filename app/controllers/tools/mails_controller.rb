@@ -116,7 +116,7 @@ module Tools
         message = outgoing_draft(to: to, cc: cc, bcc: bcc)
         message.start_sending!
         # A moment to take it back in (Tools::Mails::SendingsController)
-        SendMailJob.set(wait: SendMailJob::UNDO_TIME).perform_later(message, Current.user)
+        SendMailJob.set(wait: SendMailJob::UNDO_TIME).perform_later(message, Current.user, sending: message.message_id)
         folder = params[:folder].presence || "inbox"
         redirect_to tool_mail_path(@tool, opened_in_folder(message, folder), folder: folder)
       end

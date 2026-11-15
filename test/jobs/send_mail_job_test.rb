@@ -145,6 +145,21 @@ class SendMailJobTest < ActiveJob::TestCase
     assert_equal 1, deliveries.size
   end
 
+  # Undo, then Send again within the first send's ten seconds: the first job finds the
+  # mail waiting to be sent again, which isn't its to send
+  test "taken back and sent again, the first send's job leaves it to the second's" do
+    first = @draft.message_id
+    assert @draft.take_back!
+    @draft.reload.start_sending!
+
+    deliveries = with_mail_server(-> { false }) { SendMailJob.perform_now(@draft, @sender, sending: first) }
+    assert_empty deliveries
+    assert @draft.reload.can_be_taken_back?
+
+    deliveries = with_mail_server(-> { false }) { SendMailJob.perform_now(@draft, @sender, sending: @draft.message_id) }
+    assert_equal 1, deliveries.size
+  end
+
   private
 
   # A mail server whose name can't be looked up while unreachable returns true

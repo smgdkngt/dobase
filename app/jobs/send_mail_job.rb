@@ -13,15 +13,18 @@ class SendMailJob < ApplicationJob
   # Thrown away before it went out
   discard_on ActiveJob::DeserializationError
   retry_on SmtpSendService::Unreachable, wait: :polynomially_longer, attempts: 5 do |job, error|
-    job.send(:not_sent, *job.arguments, error.message)
+    job.send(:not_sent, *job.arguments.first(2), error.message)
   end
 
-  def perform(message, sender)
+  # sending: the Message-ID the mail was given when it was sent off (Mails::Message#start_sending!),
+  # which it gets anew every time. Taken back and sent again, it's the second send's job that
+  # sends it, not this one, which would send it before its own moment to undo is over.
+  def perform(message, sender, sending: nil)
     # Sent off from the compose page, it waits a moment, in which Send can be undone
     # (Mails::Message#take_back!). Taken back, it's a draft again and isn't sent. Once it
     # is taken here it can't be taken back; a try again after the mail server couldn't be
     # reached has it already.
-    return unless executions > 1 ? message.reload.sending? : message.claim_for_sending!
+    return unless executions > 1 ? message.reload.sending? : message.claim_for_sending!(sending)
 
     begin
 
