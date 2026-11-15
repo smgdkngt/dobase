@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	// The zones a profile can name, on a computer that has no zone files (Windows)
+	_ "time/tzdata"
 	"unicode"
 	"unicode/utf8"
 
@@ -339,14 +341,47 @@ func splitLines(text string) []string {
 
 // -- Times --------------------------------------------------------------------------
 
-// local is a server timestamp in this computer's time zone.
+// zone is the time zone times are shown in: the signed-in person's, as the web app
+// and the CLI's commands show them, never this computer's. App.Start sets it from the
+// profile. Nil when the server doesn't say (one from before it did): then a time
+// stays on the clock the server wrote it in, which is the profile's too.
+var zone *time.Location
+
+// profileZone is the zone a profile names, or nil.
+func profileZone(me api.Value) *time.Location {
+	name := me.Get("timezone_identifier").S()
+	if name == "" {
+		return nil
+	}
+	location, err := time.LoadLocation(name)
+	if err != nil {
+		return nil
+	}
+	return location
+}
+
+// local is a server timestamp in the profile's time zone.
 func local(value api.Value) (time.Time, bool) {
 	t, err := time.Parse(time.RFC3339Nano, value.S())
 	if err != nil {
 		return time.Time{}, false
 	}
-	return t.In(time.Local), true
+	if zone != nil {
+		t = t.In(zone)
+	}
+	return t, true
 }
+
+// now is the time on the profile's clock.
+func now() time.Time {
+	if zone != nil {
+		return time.Now().In(zone)
+	}
+	return time.Now()
+}
+
+// today is the date on the profile's clock, as midnight UTC like command.Today.
+func today() time.Time { return civil(now()) }
 
 // civil is the calendar date of t, as midnight UTC.
 func civil(t time.Time) time.Time {
@@ -360,7 +395,7 @@ func ago(value api.Value) string {
 	if !ok {
 		return command.Moment(value)
 	}
-	now := time.Now()
+	now := now()
 	minutes := int64(now.Sub(then).Seconds()) / 60
 	days := int(civil(now).Sub(civil(then)).Hours() / 24)
 	switch {
@@ -384,7 +419,7 @@ func ago(value api.Value) string {
 // next one), +3 (days from now), 2026-10-01, or none to clear it (nil).
 func dueDate(text string) (*time.Time, error) {
 	text = strings.ToLower(strings.TrimSpace(text))
-	today := command.Today()
+	today := today()
 	days := func(count int64) *time.Time {
 		date := today.AddDate(0, 0, int(count))
 		return &date

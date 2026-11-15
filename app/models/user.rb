@@ -113,6 +113,53 @@ class User < ApplicationRecord
     { hue: AVATAR_HUES[hue], second: AVATAR_HUES[second], pattern: (seed / 64) % AVATAR_PATTERNS + 1 }
   end
 
+  # Browsers name some zones as the time zone database did years ago (Chrome says
+  # "Asia/Calcutta"), and a server without the database's old names (Debian's and
+  # Ubuntu's leave them out) doesn't know those
+  BROWSER_ZONE_NAMES = {
+    "Asia/Calcutta" => "Asia/Kolkata",
+    "Asia/Saigon" => "Asia/Ho_Chi_Minh",
+    "Asia/Katmandu" => "Asia/Kathmandu",
+    "Asia/Rangoon" => "Asia/Yangon",
+    "Europe/Kiev" => "Europe/Kyiv",
+    "America/Buenos_Aires" => "America/Argentina/Buenos_Aires",
+    "America/Indianapolis" => "America/Indiana/Indianapolis",
+    "America/Louisville" => "America/Kentucky/Louisville",
+    "America/Godthab" => "America/Nuuk",
+    "Atlantic/Faeroe" => "Atlantic/Faroe",
+    "Pacific/Enderbury" => "Pacific/Kanton"
+  }.freeze
+
+  # The app's name for a time zone that a browser or a program names: one of the
+  # app's own names ("Amsterdam") as it is, an IANA one ("Europe/Amsterdam", or an
+  # older name like "Asia/Calcutta") as the zone that is the same place, and failing
+  # that, one that keeps the same time all year ("America/Detroit" is Eastern Time).
+  # Nothing for a name nobody knows.
+  def self.time_zone_for(identifier)
+    identifier = identifier.to_s.strip
+    return if identifier.empty? || identifier.length > 64
+
+    zones = ActiveSupport::TimeZone.all
+    return identifier if zones.any? { |zone| zone.name == identifier }
+
+    named = TZInfo::Timezone.get(BROWSER_ZONE_NAMES.fetch(identifier, identifier))
+    same_place = zones.select { |zone| zone.tzinfo.canonical_identifier == named.canonical_identifier }
+    city = named.canonical_identifier.split("/").last.tr("_", " ")
+    zone = same_place.find { |candidate| candidate.name == city } || same_place.first
+    return zone.name if zone
+
+    same_time = zones.select { |candidate| same_time_all_year?(candidate.tzinfo, named) }
+    (same_time.find { |candidate| candidate.name == "UTC" } || same_time.first)&.name
+  rescue TZInfo::InvalidTimezoneIdentifier
+    nil
+  end
+
+  def self.same_time_all_year?(one, other)
+    year = Time.current.year
+    (1..12).all? { |month| one.utc_offset(Time.utc(year, month, 15)) == other.utc_offset(Time.utc(year, month, 15)) }
+  end
+  private_class_method :same_time_all_year?
+
   validates :password, length: { minimum: 8 }, allow_nil: true
   validates :timezone, inclusion: { in: ActiveSupport::TimeZone.all.map(&:name) }, allow_nil: true
   validates :notification_digest, inclusion: { in: NOTIFICATION_DIGEST_OPTIONS }

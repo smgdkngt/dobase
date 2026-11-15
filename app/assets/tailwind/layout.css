@@ -343,6 +343,20 @@
   .demo-together-name {
     @apply flex-1 min-w-0 truncate text-text-primary;
   }
+
+  /* ── Time zone offer: one small line in the bottom-left corner of the page,
+        clear of the toasts on the right (shared/time_zone_notice) ── */
+  .time-zone-notice {
+    @apply fixed z-40 flex items-center gap-2 py-1.5 pl-3 pr-1.5 max-w-[calc(100vw-2rem)]
+           rounded-lg border border-border-light shadow-lg text-sm text-text-secondary;
+    left: calc(var(--sidebar-width) + 1.5rem);
+    bottom: calc(1.5rem + var(--demo-banner-height));
+    background: var(--color-surface);
+  }
+
+  .time-zone-notice-text {
+    @apply min-w-0;
+  }
 }
 
 /* The demo banner takes its height from the bottom of the page. Without one it's nothing. */
@@ -372,6 +386,16 @@ body[data-workspace] {
 @media (max-width: 1023px) {
   :root {
     --mobile-bar-clearance: calc(var(--mobile-bottom-bar-height) + 1.5rem + env(safe-area-inset-bottom) + var(--demo-banner-height));
+  }
+
+  /* The time zone offer too, the width of the page */
+  .time-zone-notice {
+    @apply left-4 right-4;
+    bottom: var(--mobile-bar-clearance);
+  }
+
+  .time-zone-notice-text {
+    @apply flex-1;
   }
 
   /* The demo banner sits just above the bottom bar */

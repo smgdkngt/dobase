@@ -321,7 +321,7 @@ func (s *Chat) lines(width int) []Line {
 	var previousAuthor string
 	var previousAt time.Time
 	hasPrevious := false
-	today := civil(time.Now())
+	today := today()
 	for _, message := range s.messages {
 		created, ok := local(message.Get("created_at"))
 		if !ok {

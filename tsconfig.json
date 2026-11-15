@@ -31,6 +31,7 @@
     "app/javascript/services/link_text.js",
     "app/javascript/services/swipe.js",
     "app/javascript/services/pull_refresh.js",
+    "app/javascript/services/now_line.js",
     "test/javascript/**/*.mjs",
     "test/javascript/support/globals.d.ts"
   ]

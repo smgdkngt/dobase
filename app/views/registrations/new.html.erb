@@ -12,6 +12,8 @@
       <%= render "shared/flash", position: :inline %>
       <%= form_with model: @user, url: signup_path, method: :post do |f| %>
         <%= render "shared/error_flash", object: @user %>
+        <%# Filled with the browser's time zone (time_zone_controller.js on <body>) %>
+        <%= hidden_field_tag :time_zone, params[:time_zone], id: nil, data: { time_zone_target: "field" } %>
 
         <div class="grid grid-cols-2 gap-3 mb-4">
           <div>

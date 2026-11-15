@@ -202,14 +202,14 @@
                 columns: columns %>
           <% end %>
 
-          <!-- Current time indicator (only for today) -->
+          <!-- Current time indicator (only for today), moved on by calendar_controller.js -->
           <% if is_today %>
             <%
               current_hour = Time.current.hour
               current_minute = Time.current.min
               top_position = (current_hour * 60 + current_minute) / (24.0 * 60) * 100
             %>
-            <div class="absolute left-0 right-0 z-20 pointer-events-none" style="top: <%= top_position %>%">
+            <div class="absolute left-0 right-0 z-20 pointer-events-none" style="top: <%= top_position %>%" data-calendar-target="now">
               <div class="absolute left-0 w-2 h-2 rounded-full bg-error -translate-x-1/2 -translate-y-1/2"></div>
               <div class="h-0.5 bg-error"></div>
             </div>

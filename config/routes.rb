@@ -34,6 +34,7 @@ Rails.application.routes.draw do
     scope module: :profiles do
       resources :access_tokens, only: %i[create update destroy]
       resource :mcp_access, only: :update
+      resource :time_zone, only: :update
     end
   end
   # MCP for Claude and the dobase CLI (Mcp::Endpoint), and OAuth 2.1 for the clients that connect to it

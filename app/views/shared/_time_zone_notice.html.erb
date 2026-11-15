@@ -1,0 +1,18 @@
+<%# Times are shown in UTC and the browser is somewhere else
+    (ApplicationController#suggested_time_zone): one line offering its zone. The
+    switch is an ordinary form, not Turbo's: every time on the page, the tiles of the
+    workspace too, is drawn again in the new zone. Waved away, it stays away for
+    that zone in this browser (time_zone_controller.js). %>
+<% suggestion = suggested_time_zone %>
+<%= tag.aside class: "time-zone-notice", aria: { label: "Time zone" }, data: { time_zone_target: "notice" } do %>
+  <%= render "shared/icon", name: "clock", size: 16 %>
+  <span class="time-zone-notice-text">
+    Times are shown in UTC. Use <%= suggestion[:browser] %>?
+  </span>
+  <%= form_with url: profile_time_zone_path, method: :patch, data: { turbo: false } do %>
+    <%= hidden_field_tag :time_zone, suggestion[:zone], id: nil %>
+    <%= render "components/button", text: "Switch", size: :sm %>
+  <% end %>
+  <%= render "components/icon_button", icon: "x", title: "Keep UTC", size: :sm,
+        data: { action: "time-zone#dismiss" } %>
+<% end %>

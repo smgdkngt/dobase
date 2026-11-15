@@ -74,7 +74,7 @@
 
   <%# data-workspace on the body, not on <html>: Turbo brings a new body with every
       visit and leaves <html> as the first page had it %>
-  <body class="bg-background-secondary text-text-primary" data-controller="keyboard-shortcuts theme arrow-keys context-menu drag-drop" data-arrow-keys-over-value="true"
+  <body class="bg-background-secondary text-text-primary" data-controller="keyboard-shortcuts theme arrow-keys context-menu drag-drop time-zone" data-arrow-keys-over-value="true"
         data-theme-version-value="<%= theme_version %>"<%= " data-workspace" if @workspace %>>
     <%# data-turbo="false" so the browser handles the fragment itself and moves
         focus into <main>; a Turbo anchor visit only scrolls. %>
@@ -159,6 +159,7 @@
 
         <div id="persistent-room" data-turbo-permanent hidden></div>
         <%= render "shared/demo_banner" if Demo.enabled? %>
+        <%= render "shared/time_zone_notice" if suggested_time_zone %>
       </div>
       <button data-controller="hotkey" data-hotkey="Mod+k" data-action="click->keyboard-shortcuts#openCommandPalette" hidden>Command palette</button>
       <%# In the workspace it is the top of the menu (shared/sidebar) %>

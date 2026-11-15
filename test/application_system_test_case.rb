@@ -18,6 +18,12 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
       source: "navigator.serviceWorker.register = () => Promise.resolve()")
   end
 
+  # The browser is in UTC, as the fixtures' people are, wherever the machine is: a
+  # browser somewhere else is offered its zone on every page (shared/time_zone_notice)
+  setup do
+    use_browser_time_zone("UTC")
+  end
+
   # The app server runs in this process, so the sockets of the last test outlive
   # it: the browser is torn down by loading a blank page, which leaves them to
   # time out rather than unsubscribe. One closing halfway through the next test
@@ -35,6 +41,18 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   end
 
   private
+
+  # The zone the browser says it is in (Intl), for this tab until it is set again.
+  # Chrome refuses a second override while one is on, so the one before goes first.
+  def use_browser_time_zone(zone)
+    browser = page.driver.browser
+    begin
+      browser.execute_cdp("Emulation.setTimezoneOverride", timezoneId: "")
+    rescue Selenium::WebDriver::Error::WebDriverError
+      # none was on
+    end
+    browser.execute_cdp("Emulation.setTimezoneOverride", timezoneId: zone)
+  end
 
   # Controllers register asynchronously after Turbo has loaded the page (each one is a
   # separate module import), so on a slow machine a click can land before its action is

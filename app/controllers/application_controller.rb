@@ -85,6 +85,23 @@ class ApplicationController < ActionController::Base
     Time.use_zone(timezone, &block)
   end
 
+  # Times shown in UTC, which is where every account starts, while the browser says
+  # it is somewhere else (time_zone_controller.js keeps a cookie): the zone to offer,
+  # as the browser names it and as the app does. Nothing once it was waved away for
+  # that zone in this browser.
+  def suggested_time_zone
+    return @suggested_time_zone if defined?(@suggested_time_zone)
+
+    @suggested_time_zone = begin
+      browser = cookies[:browser_time_zone].to_s
+      zone = User.time_zone_for(browser) if current_user && current_user.timezone.in?([ nil, "", "UTC" ])
+      if zone && zone != "UTC" && cookies[:time_zone_dismissed] != browser
+        { browser: browser.tr("_", " "), zone: zone }
+      end
+    end
+  end
+  helper_method :suggested_time_zone
+
   # Whether this browser's system is light or dark, as it said last (services/theme.js
   # keeps a cookie): which of someone's two themes a page is drawn in. Nothing when
   # it never said.

@@ -467,7 +467,7 @@ func cardLines(card api.Value, width int) []Line {
 	var meta []Span
 	if due := card.Get("due_date"); !due.IsNull() {
 		style := dim()
-		if due.S() < command.Today().Format(command.DateLayout) {
+		if due.S() < today().Format(command.DateLayout) {
 			style = Style{}.Fg(danger())
 		}
 		meta = append(meta, Styled("📅 "+shortDate(due.S())+" ", style))

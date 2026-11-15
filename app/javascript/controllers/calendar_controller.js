@@ -1,8 +1,9 @@
 import { Controller } from "@hotwired/stimulus"
 import { pageAddress, visitPage, tileOf, drawnScale, onWholePixel } from "services/tile"
+import { minutesIntoDay, nowLineTop } from "services/now_line"
 
 export default class extends Controller {
-  static targets = ["grid", "hours", "today", "eventModal", "eventDetailDialog", "newEventDialog", "newEventModal", "weekInput", "startTimeInput", "endTimeInput"]
+  static targets = ["grid", "hours", "today", "now", "eventModal", "eventDetailDialog", "newEventDialog", "newEventModal", "weekInput", "startTimeInput", "endTimeInput"]
   static values = {
     toolId: Number,
     weekStart: String
@@ -19,6 +20,29 @@ export default class extends Controller {
 
   disconnect() {
     this.teardownScrollPreservation()
+    this.stopNowLine()
+  }
+
+  // The line for now moves with the clock while the page stays open: a little every
+  // minute, on the clock of the zone the page is drawn in
+  nowTargetConnected() {
+    this.moveNowLine()
+    this.nowTimer ||= setInterval(() => this.moveNowLine(), 30_000)
+  }
+
+  nowTargetDisconnected() {
+    if (!this.hasNowTarget) this.stopNowLine()
+  }
+
+  moveNowLine() {
+    const timeZone = document.querySelector('meta[name="time-zone"]')?.getAttribute("content") || undefined
+    const top = nowLineTop(minutesIntoDay(new Date(), timeZone))
+    this.nowTargets.forEach(line => { line.style.top = top })
+  }
+
+  stopNowLine() {
+    clearInterval(this.nowTimer)
+    this.nowTimer = null
   }
 
   // Before the page is drawn again: the window's page, or the tile's when the

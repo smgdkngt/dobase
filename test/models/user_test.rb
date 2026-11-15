@@ -120,4 +120,23 @@ class UserTest < ActiveSupport::TestCase
     user.follow_system(false, seen_in: "light")
     assert_equal "catppuccin-latte", user.theme("dark").name
   end
+
+  test "a zone a browser names is the app's zone that keeps the same time" do
+    assert_equal "Amsterdam", User.time_zone_for("Europe/Amsterdam")
+    assert_equal "London", User.time_zone_for("Europe/London")
+    assert_equal "Eastern Time (US & Canada)", User.time_zone_for("America/New_York")
+    assert_equal "Kolkata", User.time_zone_for("Asia/Calcutta"), "an older name of a zone"
+    assert_equal "Eastern Time (US & Canada)", User.time_zone_for("America/Detroit"), "a zone the app has no name for keeps the time of one it has"
+    assert_equal "UTC", User.time_zone_for("UTC")
+    assert_equal "UTC", User.time_zone_for("Etc/GMT"), "UTC by another name"
+    assert_equal "Amsterdam", User.time_zone_for("Amsterdam"), "the app's own names stay as they are"
+  end
+
+  test "a zone nobody knows is no zone" do
+    assert_nil User.time_zone_for("Mars/Olympus_Mons")
+    assert_nil User.time_zone_for("")
+    assert_nil User.time_zone_for(nil)
+    assert_nil User.time_zone_for("../../etc/passwd")
+    assert_nil User.time_zone_for("Europe/" + "x" * 500)
+  end
 end

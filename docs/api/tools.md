@@ -12,9 +12,13 @@
   "first_name": "Sophie",
   "last_name": "Chen",
   "timezone": "Amsterdam",
+  "timezone_identifier": "Europe/Amsterdam",
   "access_token": { "name": "Claude", "permission": "write", "created_at": "2026-09-14T15:16:02.000+02:00" }
 }
 ```
+
+Times in every answer are in the zone of `timezone` (the app's name for it);
+`timezone_identifier` is the same zone as programs know it (IANA).
 
 ## List tools
 

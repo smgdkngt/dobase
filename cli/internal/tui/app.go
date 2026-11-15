@@ -250,6 +250,7 @@ func (a *App) Start() error {
 		return err
 	}
 	a.me = me
+	zone = profileZone(me)
 	if err := a.loadTools(); err != nil {
 		return err
 	}

@@ -322,7 +322,7 @@ func itemLine(item api.Value, width int) ListItem {
 
 	if due := item.Get("due_date"); !due.IsNull() && !done {
 		style := dim()
-		if due.S() < command.Today().Format(command.DateLayout) {
+		if due.S() < today().Format(command.DateLayout) {
 			style = Style{}.Fg(danger())
 		}
 		spans = append(spans, Styled("  📅 "+shortDate(due.S()), style))

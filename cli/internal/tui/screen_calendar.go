@@ -39,7 +39,7 @@ type agendaRow struct {
 }
 
 func loadCalendar(app *App, tool api.Value) (*Calendar, error) {
-	return loadCalendarFrom(app, tool, command.Today())
+	return loadCalendarFrom(app, tool, today())
 }
 
 func loadCalendarFrom(app *App, tool api.Value, start time.Time) (*Calendar, error) {
@@ -64,7 +64,7 @@ func (s *Calendar) Key(key Key, view *View, fx *Fx) bool {
 	case key.Is('l') || key.Code == KeyRight:
 		fx.job("Going ahead a week", shiftCalendar(s.tool, s.start, 7))
 	case key.Is('t'):
-		fx.job("Back to today", shiftCalendar(s.tool, command.Today(), 0))
+		fx.job("Back to today", shiftCalendar(s.tool, today(), 0))
 	default:
 		return moveSelection(&s.selected, len(s.rows()), key)
 	}
@@ -74,7 +74,7 @@ func (s *Calendar) Key(key Key, view *View, fx *Fx) bool {
 // rows are day headers and events, in order.
 func (s *Calendar) rows() []agendaRow {
 	var rows []agendaRow
-	today := command.Today()
+	today := today()
 	for offset := range calendarDays {
 		day := s.start.AddDate(0, 0, offset)
 		var events []*api.Value
@@ -98,8 +98,8 @@ func (s *Calendar) Draw(b *Buffer, area Rect, view *View) {
 	end := s.start.AddDate(0, 0, calendarDays-1)
 	title := toolIcon("calendar") + " " + s.tool.Get("name").S() + " · " + s.start.Format("2 Jan") + " – " + end.Format("2 Jan")
 	rows := s.rows()
-	now := time.Now()
-	today := command.Today()
+	now := now()
+	today := today()
 
 	items := make([]ListItem, len(rows))
 	for i, row := range rows {

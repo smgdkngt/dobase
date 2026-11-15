@@ -75,6 +75,36 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     reload_registrations_controller!
   end
 
+  test "sign-up keeps the time zone the browser said, in the app's name for it" do
+    get invitation_acceptance_path(token: @invitation.token)
+    get signup_path
+    assert_select "input[type=hidden][name=time_zone][data-time-zone-target=field]"
+
+    post signup_path, params: { user: new_user_params, time_zone: "Europe/Amsterdam", altcha: altcha_payload }
+
+    assert_equal "Amsterdam", User.find_by!(email_address: "newcomer@example.com").timezone
+  end
+
+  test "sign-up with a time zone nobody knows keeps the default" do
+    get invitation_acceptance_path(token: @invitation.token)
+
+    post signup_path, params: { user: new_user_params, time_zone: "Mars/Olympus_Mons", altcha: altcha_payload }
+
+    assert_equal "UTC", User.find_by!(email_address: "newcomer@example.com").timezone
+  end
+
+  test "the first person, who sets the app up, gets their browser's time zone too" do
+    # Nobody yet: the test's transaction is rolled back before any key is checked
+    ActiveRecord::Base.connection.disable_referential_integrity { User.delete_all }
+
+    get signup_path
+    assert_select "input[type=hidden][name=time_zone]"
+
+    post signup_path, params: { user: new_user_params(email_address: "first@example.com"), time_zone: "America/New_York" }
+
+    assert_equal "Eastern Time (US & Canada)", User.find_by!(email_address: "first@example.com").timezone
+  end
+
   test "the sign-up page sends an already signed-in user home" do
     sign_in_as users(:one)
 

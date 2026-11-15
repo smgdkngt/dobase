@@ -350,6 +350,17 @@
     @apply hidden;
   }
 
+  /* The offer of a time zone (shared/time_zone_notice): in the window's corner, there
+     being no sidebar, and above the hint while that is there */
+  body[data-workspace] .time-zone-notice {
+    left: 1rem;
+    bottom: 1rem;
+  }
+
+  body[data-workspace]:has(.workspace-hint:not([hidden])) .time-zone-notice {
+    bottom: 4.5rem;
+  }
+
   /* In the shortcuts dialog: what the workspace's keys go with */
   .workspace-keys-choice {
     @apply flex items-center justify-between gap-4 mt-3 pt-3 border-t border-border-light;

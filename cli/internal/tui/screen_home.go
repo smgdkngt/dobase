@@ -7,7 +7,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/smgdkngt/dobase/cli/internal/api"
 )
@@ -139,7 +138,7 @@ func (h *Home) Draw(b *Buffer, area Rect, view *View) {
 		summary = fmt.Sprintf("%d tools · %d new notifications", len(view.tools), unread)
 	}
 	Paragraph{Lines: []Line{
-		StyledLine(greeting(time.Now().Hour(), firstName), bold()),
+		StyledLine(greeting(now().Hour(), firstName), bold()),
 		StyledLine(summary, dim()),
 	}, Align: AlignCenter}.Render(b, helloArea)
 

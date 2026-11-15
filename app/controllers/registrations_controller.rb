@@ -30,6 +30,8 @@ class RegistrationsController < ApplicationController
     @user = User.new(user_params)
     # An invitation is for its address, so signing up through one uses that address
     @user.email_address = pending_invitation.email if pending_invitation
+    # The zone the browser is in (time_zone_controller.js), so times are right from the start
+    @user.timezone = User.time_zone_for(params[:time_zone]) || @user.timezone
 
     if @user.save
       start_new_session_for(@user)
