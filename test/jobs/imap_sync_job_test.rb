@@ -222,6 +222,44 @@ class ImapSyncJobTest < ActiveJob::TestCase
     assert_equal 1, appends
   end
 
+  # The compose page saves while someone writes; the server's copy waits for a pause
+  test "a draft saved again since its copy was asked for is left to the copy that save asked for" do
+    draft = mails_messages(:draft_message)
+    server = FakeImapServer.new(folders: [ "INBOX", "Drafts" ])
+    version = draft.sync_version
+
+    travel 1.second
+    draft.update!(subject: "Written on")
+    connect_to_imap(server) { perform_enqueued_jobs(only: SyncDraftJob) { SyncDraftJob.perform_later(draft.id, version: version) } }
+    assert_empty server.appended
+
+    connect_to_imap(server) { perform_enqueued_jobs(only: SyncDraftJob) { SyncDraftJob.perform_later(draft.id, version: draft.reload.sync_version) } }
+    assert_equal [ [ "Drafts", [ :Draft, :Seen ] ] ], server.appended
+  end
+
+  test "a draft whose copy was saved on the server meanwhile is still the save that asked for it" do
+    draft = mails_messages(:draft_message)
+    server = FakeImapServer.new(folders: [ "INBOX", "Drafts" ])
+    version = draft.sync_version
+    # Its server copy's UID is written without changing the draft
+    draft.update_column(:uid, 99)
+
+    connect_to_imap(server) { perform_enqueued_jobs(only: SyncDraftJob) { SyncDraftJob.perform_later(draft.reload.id, version: version) } }
+
+    assert_equal [ [ "Drafts", [ :Draft, :Seen ] ] ], server.appended
+  end
+
+  test "a draft sent before its copy's turn came stays off the server's drafts" do
+    draft = mails_messages(:draft_message)
+    server = FakeImapServer.new(folders: [ "INBOX", "Drafts" ])
+    version = draft.sync_version
+    draft.update!(draft: false, folder: "Sent", sending: true)
+
+    connect_to_imap(server) { perform_enqueued_jobs(only: SyncDraftJob) { SyncDraftJob.perform_later(draft.id, version: version) } }
+
+    assert_empty server.appended
+  end
+
   private
 
   # A mail server that refuses the connection while unreachable returns true

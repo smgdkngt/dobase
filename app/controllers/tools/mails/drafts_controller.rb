@@ -23,7 +23,7 @@ module Tools
         end
 
         if @draft.save
-          SyncDraftJob.perform_later(@draft.id)
+          sync_to_server
           respond_to do |format|
             format.html { redirect_to new_tool_mail_path(@tool, draft_id: @draft.id), notice: "Draft saved.", status: :see_other }
             format.json { render :show, status: :created }
@@ -44,7 +44,7 @@ module Tools
         @draft.remove_attachments(params[:remove_attachment_ids]) if params[:remove_attachment_ids].present?
 
         if @draft.save
-          SyncDraftJob.perform_later(@draft.id)
+          sync_to_server
           respond_to do |format|
             format.html { redirect_to new_tool_mail_path(@tool, draft_id: @draft.id), notice: "Draft saved.", status: :see_other }
             format.json { render :show }
@@ -58,6 +58,16 @@ module Tools
       end
 
       private
+
+      # The compose page saves by itself while someone writes (autosave, compose_controller.js):
+      # the draft here is current at once, its copy on the server waits for a pause in the writing
+      def sync_to_server
+        if params[:autosave].present?
+          SyncDraftJob.after_autosave(@draft)
+        else
+          SyncDraftJob.perform_later(@draft.id)
+        end
+      end
 
       def set_mail_account
         @mail_account = @tool.mail_account

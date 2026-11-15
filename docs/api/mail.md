@@ -288,6 +288,10 @@ message it quotes stay as they are, and so does what was changed in the quote.
 naming `quoted_message_id` without `quote_html`; `"quoted_message_id": null`
 quotes nothing.
 
+Both take `autosave: 1`, which the compose page sends when it saves a draft by
+itself while someone writes: the draft is saved at once, and its copy in the
+server's Drafts folder waits until it hasn't been saved again for 30 seconds.
+
 `POST /tools/:tool_id/mails/drafts/:id/attachments` attaches files to a draft:
 a `multipart/form-data` request with one or more `files[]` parts. They are
 added to the attachments the draft has, which can be 25 MB together. Returns

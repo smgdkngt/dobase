@@ -150,6 +150,10 @@
   .compose-actions {
     @apply flex items-center gap-1.5;
   }
+  /* "Saved 12:04": quiet, beside the button that saves by hand */
+  .compose-save-status {
+    @apply text-xs text-text-tertiary whitespace-nowrap;
+  }
 
   /* The message scrolls under the fields, the quoted mail below it; its formatting bar
      stays at the bottom while the text scrolls */

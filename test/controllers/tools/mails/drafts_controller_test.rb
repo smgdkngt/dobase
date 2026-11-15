@@ -43,6 +43,51 @@ module Tools
         assert_equal [ [ "other@example.com" ], [ "team@example.com" ], "Changed", "<p>New</p>" ],
           [ draft.to_addresses_list, draft.cc_addresses_list, draft.subject, draft.body_html ]
       end
+
+      # What the compose page saves by itself while someone writes: the draft here is current
+      # at once, the server's copy follows when the writing has paused
+      test "an autosave answers with the draft and copies it to the server a while later" do
+        freeze_time do
+          post tool_mail_drafts_path(@tool), params: { to: "friend@example.com", subject: "Plans", body: "<p>Hi</p>", autosave: "1" },
+            headers: { "Accept" => "application/json" }
+
+          assert_response :created
+          draft = ::Mails::Message.drafts.find(response.parsed_body["id"])
+          assert_equal "Plans", draft.subject
+          assert_enqueued_with job: SyncDraftJob, args: [ draft.id, { version: draft.sync_version } ], at: SyncDraftJob::AUTOSAVE_WAIT.from_now
+        end
+      end
+
+      test "an autosave of a draft keeps it current and puts off its copy to the server" do
+        draft = mails_messages(:draft_message)
+
+        freeze_time do
+          patch tool_mail_draft_path(@tool, draft), params: { subject: "Changed", body: "<p>New</p>", autosave: "1" },
+            headers: { "Accept" => "application/json" }
+
+          assert_response :ok
+          assert_equal [ draft.id, "Changed" ], [ response.parsed_body["id"], draft.reload.subject ]
+          assert_enqueued_with job: SyncDraftJob, args: [ draft.id, { version: draft.sync_version } ], at: SyncDraftJob::AUTOSAVE_WAIT.from_now
+        end
+      end
+
+      test "an autosave of a draft that was sent or deleted elsewhere is not found" do
+        draft = mails_messages(:draft_message)
+        draft.update!(draft: false, folder: "Sent")
+
+        patch tool_mail_draft_path(@tool, draft), params: { subject: "Changed", autosave: "1" }, headers: { "Accept" => "application/json" }
+
+        assert_response :not_found
+        assert_no_enqueued_jobs only: SyncDraftJob
+      end
+
+      test "Save Draft still copies the draft to the server right away" do
+        draft = mails_messages(:draft_message)
+
+        patch tool_mail_draft_path(@tool, draft), params: { subject: "Changed" }
+
+        assert_enqueued_with job: SyncDraftJob, args: [ draft.id ]
+      end
     end
   end
 end

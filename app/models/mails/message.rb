@@ -208,6 +208,12 @@ module Mails
       update!(draft: false, sending: true, send_started_at: nil, folder: "Sent", uid: nil, message_id: "#{SecureRandom.uuid}@#{account.smtp_host}")
     end
 
+    # Which save of a draft this is, for SyncDraftJob: every save changes it (the compose
+    # form gives sent_at a new time), the UID its server copy gets doesn't (update_column)
+    def sync_version
+      updated_at && ((updated_at.to_i * 1_000_000) + updated_at.usec)
+    end
+
     # The mail server didn't take it: a draft again, to change or send once more
     def back_to_drafts!
       update!(draft: true, sending: false, send_started_at: nil, folder: "Drafts", trashed: false, archived: false)

@@ -1,29 +1,46 @@
 import { Controller } from "@hotwired/stimulus"
 import { formatFileSize } from "services/file_size"
 import { tileOf } from "services/tile"
+import { csrfToken } from "services/api"
+import { AUTOSAVE_DELAY, RETRY_DELAY, hasUnsaved, fitsKeepalive, savedAt } from "services/draft_autosave"
 
 const FILE_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>'
 
 export default class extends Controller {
-  static targets = ["to", "ccField", "bccField", "fileInput", "attachmentsList", "quote", "quotedMessage", "quoteFrame", "gone", "send"]
-  static values = { unsent: Boolean, draftUrl: String }
+  static targets = ["to", "ccField", "bccField", "fileInput", "attachmentsList", "quote", "quotedMessage", "quoteFrame", "gone", "send",
+    "draftId", "saveDraft", "discard", "saveStatus"]
+  // draftsUrl and mailsUrl: where a draft is saved (Tools::Mails::DraftsController) and
+  // deleted, a draft's id appended
+  static values = { unsent: Boolean, draftUrl: String, draftsUrl: String, mailsUrl: String, autosaveDelay: { type: Number, default: AUTOSAVE_DELAY } }
 
   connect() {
     this.files = []
     this._submitting = false
     this._snapshot = null
+    // What the draft holds of this form, as of its last save from here
+    this._savedSnapshot = null
+    this._saving = null
+    this._saveTimer = null
+
+    // Leaving the page: what isn't saved yet goes now, in a request that outlives the
+    // page, and the browser still asks, since it may not get there
     this._beforeUnload = (e) => {
-      if (this._hasChanges() && !this._submitting) {
+      if (this._mustAsk()) {
+        this._save()
         e.preventDefault()
         e.returnValue = ""
       }
     }
+    // A tab put away, a phone locked: it may never come back (a tab closed from the
+    // task switcher, a battery that runs out), so the draft is saved now
+    this._hidden = () => { if (document.visibilityState === "hidden") this._save() }
+    this._pageHide = () => this._save()
     // In a tile that is part of the workspace's page, a visit of the window is not
     // this form's leaving: the tile is asked instead (tile:leaving, below)
     this._tile = tileOf(this.element)
     this._beforeVisit = (e) => {
       if (this._tile) return
-      if (this._hasChanges() && !this._submitting) {
+      if (this._mustAsk()) {
         if (!confirm("You have an unsent message. Discard it?")) {
           e.preventDefault()
         }
@@ -37,19 +54,37 @@ export default class extends Controller {
         ? e.target.closest?.("a[href]:not([data-turbo-frame='_top'], [data-turbo-frame='file_viewer'], [target='_blank'], [download])")
         : e.target.closest?.("a[data-turbo-frame]:not([data-turbo-frame='_top'], [data-turbo-frame='file_viewer'])")
       if (!link || this.element.contains(link)) return
-      if (this._hasChanges() && !this._submitting && !confirm("You have an unsent message. Discard it?")) {
+      if (this._mustAsk() && !confirm("You have an unsent message. Discard it?")) {
         e.preventDefault()
         e.stopImmediatePropagation()
       }
     }
-    // What the workspace asks a tile before it closes it or sends it elsewhere
-    this._tileLeaving = (e) => { if (this._hasChanges() && !this._submitting) e.preventDefault() }
+    // What the workspace asks a tile before it closes it or sends it elsewhere. What isn't
+    // saved yet is sent on its way, as a document being written sends its last words.
+    this._tileLeaving = (e) => {
+      if (!this._mustAsk()) return
+      this._save()
+      e.preventDefault()
+    }
     this._tile?.addEventListener("tile:leaving", this._tileLeaving)
     window.addEventListener("beforeunload", this._beforeUnload)
+    window.addEventListener("pagehide", this._pageHide)
+    document.addEventListener("visibilitychange", this._hidden)
     document.addEventListener("turbo:before-visit", this._beforeVisit)
     document.addEventListener("click", this._frameClick, true)
 
-    this.element.addEventListener("submit", () => { this._submitting = true })
+    this.element.addEventListener("submit", (event) => {
+      // Sent while its first save is on its way, the form would make a second draft: it
+      // waits for the draft that save makes
+      if (this._saving && !this._draftId()) {
+        event.preventDefault()
+        const submitter = event.submitter
+        this._saving.then(() => this.element.requestSubmit(submitter))
+        return
+      }
+      this._submitting = true
+      clearTimeout(this._saveTimer)
+    })
 
     // The draft can be sent or deleted elsewhere (another window, the CLI) while it is
     // open here. The mailbox hears that something changed; then this form looks whether
@@ -57,12 +92,18 @@ export default class extends Controller {
     this._presence = this.element.closest("[data-controller~='presence']")
     this._changed = () => this._checkDraft()
     this._presence?.addEventListener("presence:changed", this._changed)
+
+    // Back from a failed send, the message is saved nowhere yet
+    if (this.unsentValue) this.changed()
   }
 
   disconnect() {
+    clearTimeout(this._saveTimer)
     this._presence?.removeEventListener("presence:changed", this._changed)
     this._tile?.removeEventListener("tile:leaving", this._tileLeaving)
     window.removeEventListener("beforeunload", this._beforeUnload)
+    window.removeEventListener("pagehide", this._pageHide)
+    document.removeEventListener("visibilitychange", this._hidden)
     document.removeEventListener("turbo:before-visit", this._beforeVisit)
     document.removeEventListener("click", this._frameClick, true)
   }
@@ -72,6 +113,15 @@ export default class extends Controller {
   // putting that body in its own HTML once it has started.
   startEditing() {
     this._snapshot ??= this._formSnapshot()
+  }
+
+  // Something may have changed in the form (typed, a recipient added or dragged, a file
+  // taken off, the quote changed in its frame): the draft is saved once that has rested
+  // a few seconds. Whether there is anything to save is looked at then.
+  changed() {
+    if (this._submitting || this._isGone()) return
+    clearTimeout(this._saveTimer)
+    this._saveTimer = setTimeout(() => this._save(), this.autosaveDelayValue)
   }
 
   // Cmd+Enter (Ctrl+Enter elsewhere) sends, from wherever the keyboard is in the form. Heard
@@ -88,6 +138,136 @@ export default class extends Controller {
     if (!event.detail.success) this._submitting = false
   }
 
+  // The form saved as its draft, to the address Save Draft sends it to, as JSON: a new
+  // draft the first time, that same draft from then on. Files picked in the form aren't
+  // sent along (they go with Send, or with Save Draft), and the draft's copy on the mail
+  // server follows a while later (autosave, SyncDraftJob).
+  _save() {
+    clearTimeout(this._saveTimer)
+    if (this._submitting || this._isGone() || !this.draftsUrlValue) return this._saving
+    // One at a time: what changes meanwhile is saved after it
+    if (this._saving) {
+      this._saveAgain = true
+      return this._saving
+    }
+
+    const form = new FormData(this.element)
+    const snapshot = this._formSnapshot(form)
+    if (!this._hasUnsaved(snapshot)) return null
+
+    form.delete("attachments[]")
+    form.delete("_method")
+    form.set("autosave", "1")
+    const id = this._draftId()
+
+    this._showStatus("Saving…")
+    this._saving = this._send(id ? `${this.draftsUrlValue}/${id}` : this.draftsUrlValue, id ? "PATCH" : "POST", form, snapshot)
+      .finally(() => {
+        this._saving = null
+        if (this._saveAgain) {
+          this._saveAgain = false
+          this.changed()
+        }
+      })
+    return this._saving
+  }
+
+  async _send(url, method, form, snapshot) {
+    try {
+      // Through Turbo, so the mailbox knows the change it hears of for its own (services/api.js)
+      const response = await Turbo.fetch(url, {
+        method,
+        body: form,
+        headers: { Accept: "application/json", "X-CSRF-Token": csrfToken() },
+        // A save on the way out of the page goes on after the page is gone
+        keepalive: fitsKeepalive(form)
+      })
+      // The draft was sent or deleted elsewhere meanwhile
+      if (response.status === 404) {
+        if (!this._submitting) this._showGone()
+        return
+      }
+      if (!response.ok) throw new Error(`Draft not saved: ${response.status}`)
+
+      this._adopt(await response.json())
+      this._savedSnapshot = snapshot
+      this._showStatus(savedAt(new Date()))
+    } catch {
+      this._showStatus("Not saved")
+      if (!this._submitting) this._saveTimer = setTimeout(() => this._save(), RETRY_DELAY)
+    }
+  }
+
+  // The form is this draft's from now on, as if it had been opened as the draft: Save Draft
+  // and Send go to it, the trash deletes it, and the check above asks after it
+  _adopt(draft) {
+    if (this._draftId()) return
+
+    const field = document.createElement("input")
+    field.type = "hidden"
+    field.name = "draft_id"
+    field.value = draft.id
+    field.dataset.composeTarget = "draftId"
+    this.element.prepend(field)
+    this.draftUrlValue = `${this.mailsUrlValue}/${draft.id}.json`
+
+    if (this.hasSaveDraftTarget) {
+      this.saveDraftTarget.formAction = `${this.draftsUrlValue}/${draft.id}`
+      this.saveDraftTarget.name = "_method"
+      this.saveDraftTarget.value = "patch"
+    }
+    if (this.hasDiscardTarget) {
+      const trash = this.discardTarget
+      trash.href = `${this.mailsUrlValue}/${draft.id}`
+      trash.dataset.turboMethod = "delete"
+      trash.dataset.turboConfirm = "Delete this draft?"
+      trash.title = "Delete draft"
+      trash.setAttribute("aria-label", "Delete draft")
+    }
+    this._carryOnDraft(draft.attachments || [])
+  }
+
+  // The files a forward carries were copied onto the new draft. From now on the form names
+  // the draft's copies, as it does for a draft that was opened: taken off, a copy is removed
+  // from the draft, and Send doesn't copy them a second time.
+  _carryOnDraft(attachments) {
+    const claimed = new Set()
+    for (const carried of this.element.querySelectorAll("[data-compose-carried]")) {
+      const button = carried.querySelector("[data-attachment-id]")
+      const field = carried.querySelector("input[name='forward_attachment_ids[]']")
+      if (!button || !field || "onDraft" in button.dataset) continue
+
+      const copy = attachments.find(attachment => !claimed.has(attachment.id) &&
+        attachment.filename === carried.dataset.filename && String(attachment.file_size) === carried.dataset.fileSize)
+      if (!copy) continue
+
+      claimed.add(copy.id)
+      field.value = copy.id
+      button.dataset.attachmentId = copy.id
+      button.dataset.onDraft = "true"
+    }
+  }
+
+  _draftId() {
+    return this.hasDraftIdTarget ? this.draftIdTarget.value : null
+  }
+
+  _showStatus(text) {
+    if (this.hasSaveStatusTarget) this.saveStatusTarget.textContent = text
+  }
+
+  _isGone() {
+    return this.hasGoneTarget && !this.goneTarget.hidden
+  }
+
+  _showGone() {
+    clearTimeout(this._saveTimer)
+    this._showStatus("")
+    if (!this.hasGoneTarget) return
+    this.goneTarget.hidden = false
+    this.element.querySelectorAll("button[type='submit']").forEach(button => { button.disabled = true })
+  }
+
   _checkDraft() {
     // Kept for tests, which wait for the check a change started
     this.draftChecked = this._askAfterDraft()
@@ -95,7 +275,7 @@ export default class extends Controller {
   }
 
   async _askAfterDraft() {
-    if (!this.draftUrlValue || this._submitting || !this.hasGoneTarget || !this.goneTarget.hidden) return
+    if (!this.draftUrlValue || this._submitting || this._isGone()) return
 
     let gone
     try {
@@ -113,31 +293,38 @@ export default class extends Controller {
     }
     if (!gone || this._submitting) return
 
-    this.goneTarget.hidden = false
-    this.element.querySelectorAll("button[type='submit']").forEach(button => { button.disabled = true })
+    this._showGone()
   }
 
-  // A form that came back from a failed send holds a message that hasn't gone out
-  _hasChanges() {
-    if (this.unsentValue) return true
-    return this._snapshot !== null && this._formSnapshot() !== this._snapshot
+  // Whether leaving would lose something: what isn't saved in the draft yet, and files
+  // picked in the form, which only Send and Save Draft take along
+  _mustAsk() {
+    if (this._submitting) return false
+    return this.files.length > 0 || this._hasUnsaved(this._formSnapshot())
   }
 
-  _formSnapshot() {
-    const form = new FormData(this.element)
+  _hasUnsaved(snapshot) {
+    return hasUnsaved({ current: snapshot, untouched: this._snapshot, saved: this._savedSnapshot, unsent: this.unsentValue })
+  }
+
+  // What the form would save. Reading it takes the quote from its frame (addQuote). The
+  // files a forward carries count by their number: their ids become the draft's copies'
+  // once it is saved (_carryOnDraft), which changes nothing in the mail.
+  _formSnapshot(form = new FormData(this.element)) {
     const fields = ["to", "cc", "bcc", "subject", "body", "quoted_message_id", "quote_html"].map(name => form.get(name))
-    const files = form.getAll("attachments[]").map(file => file.name)
-    return JSON.stringify([...fields, ...files])
+    return JSON.stringify([...fields, form.getAll("forward_attachment_ids[]").length, form.getAll("remove_attachment_ids[]")])
   }
 
   discard() {
-    this._submitting = true // skip confirmation
+    this._submitting = true // skip confirmation, and saving
+    clearTimeout(this._saveTimer)
   }
 
   // The reply goes out without the mail it answers
   removeQuote() {
     this.quotedMessageTarget.value = ""
     this.quoteTarget.remove()
+    this.changed()
   }
 
   // The quoted mail is changed where it shows: in its frame, which runs no scripts of its
@@ -182,6 +369,8 @@ export default class extends Controller {
       for (const type of ["pointerdown", "keydown", "beforeinput"]) {
         page.addEventListener(type, () => page.compose.startEditing(), true)
       }
+      // Changed in its frame: the form is saved a moment later, as for any change
+      page.addEventListener("input", () => page.compose.changed())
       page.addEventListener("focusin", () => frame.toggleAttribute("data-has-keyboard", true))
       page.addEventListener("focusout", () => frame.toggleAttribute("data-has-keyboard", false))
       // Escape lets go of it, as of any field: the keyboard is the page's again
@@ -249,6 +438,7 @@ export default class extends Controller {
     const list = carried.parentElement
     carried.remove()
     if (!list.children.length) list.remove()
+    this.changed()
   }
 
   renderAttachments() {

@@ -50,4 +50,9 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
+
+  # The compose form saves itself a few seconds after the last change. Browser tests that
+  # aren't about that would have a draft appear under them on a slow machine, so it waits
+  # an hour here; test/system/mail_autosave_test.rb gives it its few seconds back.
+  config.x.mail_autosave_delay = 1.hour
 end

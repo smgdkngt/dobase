@@ -133,6 +133,23 @@ class WorkspaceInPageMailTest < ApplicationSystemTestCase
     end
     assert_selector "#{MAIL} input[name='subject']"
     assert_equal "Half a thought", find("#{MAIL} input[name='subject']").value
+    # Asked about, what was written was saved on its way: it would be there if the tile went
+    assert_db_change(-> { @tool.mail_account.messages.drafts.exists?(subject: "Half a thought") })
+  end
+
+  test "a message that saved itself in the tile is closed without a question, and stays a draft" do
+    find("#{MAIL} .tile-page").execute_script("this.focus()")
+    page.send_keys("c")
+    assert_selector "#{MAIL} form[data-controller~='compose']"
+    wait_for_stimulus "compose"
+    find("#{MAIL} form[data-controller~='compose']").execute_script("this.dataset.composeAutosaveDelayValue = '3000'")
+    find("#{MAIL} input[name='subject']").set("A whole thought")
+    within(MAIL) { assert_selector "[data-compose-target='saveStatus']", text: "Saved", wait: 10 }
+
+    find(MAIL).find(:xpath, "..").find("button[title^='Close this tile']", visible: :all).execute_script("this.click()")
+    assert_no_selector MAIL
+    assert_no_selector "dialog#turbo-confirm-dialog[open]"
+    assert_equal 1, @tool.mail_account.messages.drafts.where(subject: "A whole thought").count
   end
 
   test "a message written in the tile is sent, and its conversation opens there" do
