@@ -20,6 +20,13 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
 
   # The browser is in UTC, as the fixtures' people are, wherever the machine is: a
   # browser somewhere else is offered its zone on every page (shared/time_zone_notice)
+  # Every test starts at the window size above: a test that tries a phone's width and
+  # fails (or forgets) before putting it back would leave the next test on a phone
+  setup do
+    window = page.driver.browser.manage.window
+    window.resize_to(1400, 1400) unless window.size.width == 1400 && window.size.height == 1400
+  end
+
   setup do
     use_browser_time_zone("UTC")
     @sessions_in_utc = [ Capybara.session_name ]
