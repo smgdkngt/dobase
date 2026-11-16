@@ -700,6 +700,41 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_not @account.messages.exists?(message_id: "moving@example.com")
   end
 
+  test "a message that comes back as nothing at all is not saved" do
+    # What came for two mails from Amazon SES (2026-11-16): a Message-ID, a UID, and an empty message
+    envelope = Net::IMAP::Envelope.new(nil, nil, nil, nil, nil, nil, nil, nil, nil, "<ses@us-west-2.amazonses.com>")
+    incoming_message.send(:save_email, Net::IMAP::FetchData.new(1, { "UID" => 33, "ENVELOPE" => envelope, "FLAGS" => [], "BODY[]" => "" }), "INBOX")
+
+    assert_not @account.messages.exists?(message_id: "ses@us-west-2.amazonses.com")
+  end
+
+  test "an empty row saved before is let go of, and the mail fetched again as the server has it" do
+    empty = @account.messages.create!(message_id: "ses@us-west-2.amazonses.com", folder: "INBOX", uid: 33, read: false)
+    raw = Mail.new(from: "noreply@example.com", to: "me@example.com", subject: "Your receipt", body: "Thanks", message_id: "<ses@us-west-2.amazonses.com>").to_s
+    imap = Object.new
+    imap.define_singleton_method(:uid_search) { |*| [ 33 ] }
+    fetched = fetch_data(33, raw)
+    imap.define_singleton_method(:uid_fetch) { |uids, *| uids.include?(33) ? [ fetched ] : [] }
+
+    @service.send(:fetch_recent_emails, imap, "INBOX", 50)
+
+    assert_not Mails::Message.exists?(empty.id)
+    message = @account.messages.find_by!(message_id: "ses@us-west-2.amazonses.com", folder: "INBOX")
+    assert_equal [ "Your receipt", "ann@example.com", 33 ], [ message.subject, message.from_address, message.uid ]
+  end
+
+  test "an empty row whose mail still comes back empty is gone, and stays gone" do
+    @account.messages.create!(message_id: "ses@us-west-2.amazonses.com", folder: "INBOX", uid: 33, read: false)
+    envelope = Net::IMAP::Envelope.new(nil, nil, nil, nil, nil, nil, nil, nil, nil, "<ses@us-west-2.amazonses.com>")
+    imap = Object.new
+    imap.define_singleton_method(:uid_search) { |*| [ 33 ] }
+    imap.define_singleton_method(:uid_fetch) { |*| [ Net::IMAP::FetchData.new(1, { "UID" => 33, "ENVELOPE" => envelope, "FLAGS" => [], "BODY[]" => "" }) ] }
+
+    @service.send(:fetch_recent_emails, imap, "INBOX", 50)
+
+    assert_not @account.messages.exists?(message_id: "ses@us-west-2.amazonses.com")
+  end
+
   test "a mail already saved is not emptied by a fetch that comes back without the message" do
     raw = Mail.new(from: "ann@example.com", to: "me@example.com", subject: "Report", body: "The numbers", message_id: "<report@example.com>").to_s
     incoming_message.send(:save_email, fetch_data(32, raw), "INBOX")

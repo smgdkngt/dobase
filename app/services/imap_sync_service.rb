@@ -330,6 +330,7 @@ class ImapSyncService
     server_uids = (imap.uid_search([ "ALL" ]) || []).sort
     sync_events.syncing(folder_name)
     reconcile_local_messages(folder_name, server_uids)
+    forget_empty_copies(folder_name)
 
     existing_uids = @account.messages.where(folder: folder_name).where.not(uid: nil).pluck(:uid)
     new_uids = all_new = server_uids - existing_uids
@@ -348,6 +349,16 @@ class ImapSyncService
       messages = imap.uid_fetch(slice, [ "UID", "ENVELOPE", "FLAGS", "INTERNALDATE", "BODY.PEEK[]" ])
       Array(messages).each { |msg| save_message(msg, folder_name) }
     end
+  end
+
+  # A fetch that came back without the message once saved an empty row for it: no
+  # sender, no subject, no date, no text (Mails::IncomingMessage no longer does). Such
+  # a row is let go of, so its UID is new again and the mail is fetched as it is now:
+  # whole when the server has it, or not at all.
+  def forget_empty_copies(folder_name)
+    @account.messages.where(folder: folder_name, draft: false, sending: false, sent_at: nil, from_address: nil, subject: nil)
+      .where.not(uid: nil).where("COALESCE(body_plain, '') = '' AND COALESCE(body_html, '') = ''")
+      .find_each(&:destroy)
   end
 
   # A message that can't be saved shouldn't keep the rest of its folder, and after the inbox

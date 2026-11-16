@@ -57,7 +57,9 @@ module Mails
       # from iCloud as a Message-ID and nothing else, with or without its UID and never with
       # the message itself: saved, that was an empty mail in the folder, and over a mail
       # saved before it emptied that one. The next sync fetches it again if it is still there.
-      return unless envelope && uid && msg.attr["BODY[]"]
+      # Or with the message as nothing at all (""): mail from Amazon SES came so into the
+      # inbox, two rows without a sender, subject or date (2026-11-16).
+      return unless envelope && uid && msg.attr["BODY[]"].present?
 
       # A message without a Message-ID, or with an empty one ("<>"), is known by its UID
       message_id = envelope.message_id.to_s.delete("<>").strip.presence || "#{msg.attr['UID']}@#{@account.imap_host}"
