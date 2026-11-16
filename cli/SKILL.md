@@ -48,11 +48,14 @@ token. Tell them; don't look for a way around it.
 
 ```bash
 dobase search launch plan                # cards, todos, docs, files, chat, events, mail across every tool
+dobase search --kind card launch plan    # every card that matches, not just the first five
 ```
 
 When the user asks where something is, or refers to a card, doc or message
 without naming its tool, search first instead of listing tools one by one. The
 url in each result opens it; the tool name tells you which TOOL to pass on.
+Every word must be in a result, in any order and in any part of it (a card's
+description, comments and column count, archived cards too); fewer words find more.
 
 ## Boards
 

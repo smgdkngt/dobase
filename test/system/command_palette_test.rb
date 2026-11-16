@@ -47,4 +47,26 @@ class CommandPaletteTest < ApplicationSystemTestCase
     assert_current_path tool_board_path(tools(:project_board)), ignore_query: true
     assert_selector "dialog[open] h2", text: "First task"
   end
+
+  test "a kind with more results shows them all, and the keyboard stays in the field" do
+    7.times { |i| columns(:todo).cards.create!(title: "Lemur #{i}", position: 10 + i) }
+    visit tool_mails_path(tools(:my_mail))
+    wait_for_turbo
+
+    find(".sidebar-jump-pill").click
+    within("dialog[data-controller='command-palette']") do
+      fill_in "Jump to a tool, or search everything...", with: "lemur"
+      assert_selector "a[data-search-result]", count: 5
+      assert_selector "mark", text: "Lemur", count: 5
+      click_on "Show all 7 cards"
+      assert_selector "a[data-search-result]", count: 7
+      assert_selector "a[data-search-result].selected", text: "Lemur"
+      assert page.evaluate_script("document.activeElement.matches(\"input[data-command-palette-target='input']\")"),
+        "The keyboard went to #{page.evaluate_script('document.activeElement.outerHTML.slice(0, 80)')}"
+      find("input[data-command-palette-target='input']").send_keys(:arrow_down, :enter)
+    end
+
+    assert_current_path tool_board_path(tools(:project_board)), ignore_query: true
+    assert_selector "dialog[open] h2", text: "Lemur"
+  end
 end

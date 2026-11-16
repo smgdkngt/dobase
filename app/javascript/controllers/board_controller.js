@@ -66,7 +66,9 @@ export default class extends Controller {
   }
 
   openCard(event) {
-    const cardId = event.currentTarget.dataset.cardId
+    // An archived card says it with a param: it is no data-card-id, which the
+    // board drags and counts
+    const cardId = event.params.cardId || event.currentTarget.dataset.cardId
     this.#openCardById(cardId)
   }
 

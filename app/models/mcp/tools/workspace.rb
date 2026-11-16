@@ -25,9 +25,13 @@ module Mcp
       end
 
       tool "search", "Search everything",
-        "Search every tool for cards, todos, documents, chat messages, mail, files and appointments that match.",
-        params: { query: text("What to look for", required: true) }, read_only: true do
-        get "/search", q: arg(:query)
+        "Search every tool for cards (archived ones too), todos, documents, chat messages, mail, files and appointments " \
+        "that have every word, in any order and in any part (a card's title, description, comments or column). " \
+        "A few of each kind, with `totals` saying how many there are; name a `kind` for all of that kind.",
+        params: { query: text("What to look for", required: true),
+                  kind: choice(WorkspaceSearch::KINDS.map(&:to_s), "Every result of this kind (up to 50) instead of a few of each") },
+        read_only: true do
+        get "/search", q: arg(:query), kind: arg(:kind)
       end
 
       tool "notification_list", "List notifications", "Your latest notifications, newest first. Reading them doesn't mark them read.",
