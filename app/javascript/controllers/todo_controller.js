@@ -5,6 +5,10 @@ import { reportPresence } from "services/presence"
 import { pageInUse } from "services/page_in_use"
 import { play } from "services/sound"
 import { pageAddress, visitPage, tileOf } from "services/tile"
+import { addAgainLater, forgetAddAgain, takeAddAgain } from "services/add_again"
+
+// What a drawing of the page after adding a todo ends with, whichever way it came
+const DRAWN = [ "turbo:load", "turbo:morph", "turbo:frame-render" ]
 
 export default class extends Controller {
   static targets = ["itemModal", "itemDetailDialog", "addItemForm", "addItemInput", "addItemBtn", "completedSection", "completedToggle", "completedToggleLabel"]
@@ -13,6 +17,14 @@ export default class extends Controller {
   // ── Item detail modal ──
 
   connect() {
+    this._adding = this._noteAdding.bind(this)
+    this._added = this._noteAdded.bind(this)
+    this._addAgain = this._openAddAgain.bind(this)
+    this.element.addEventListener("turbo:submit-start", this._adding)
+    this.element.addEventListener("turbo:submit-end", this._added)
+    DRAWN.forEach((name) => document.addEventListener(name, this._addAgain))
+    this._openAddAgain()
+
     if (this.hasItemDetailDialogTarget) {
       this._onModalClose = () => {
         reportPresence(null)
@@ -49,6 +61,10 @@ export default class extends Controller {
   }
 
   disconnect() {
+    this.element.removeEventListener("turbo:submit-start", this._adding)
+    this.element.removeEventListener("turbo:submit-end", this._added)
+    DRAWN.forEach((name) => document.removeEventListener(name, this._addAgain))
+
     if (this.hasItemDetailDialogTarget && this._onModalClose) {
       this.itemDetailDialogTarget.removeEventListener("close", this._onModalClose)
       document.removeEventListener("turbo:before-render", this._onBeforeRender)
@@ -272,6 +288,36 @@ export default class extends Controller {
     if (event.key === "Escape") {
       this._hideAddItemForm(event.currentTarget.dataset.listId)
     }
+  }
+
+  // A todo added from a list's field: the page drawn after it opens that field again,
+  // so the next todo is typed straight away
+  _noteAdding(event) {
+    const form = this.addItemFormTargets.find((add) => add.contains(event.target))
+    if (form) addAgainLater(`todos-${this.toolIdValue}`, form.dataset.listId)
+  }
+
+  _noteAdded(event) {
+    const form = this.addItemFormTargets.find((add) => add.contains(event.target))
+    if (form && !event.detail.success) forgetAddAgain()
+  }
+
+  _openAddAgain() {
+    // Not drawn again yet (another tile was): the field it went from is still open
+    if (this.addItemFormTargets.some((form) => form.classList.contains("active"))) return
+
+    const listId = takeAddAgain(`todos-${this.toolIdValue}`)
+    if (!listId) return
+
+    const form = this.addItemFormTargets.find(f => f.dataset.listId === listId)
+    const input = this.addItemInputTargets.find(i => i.dataset.listId === listId)
+    const button = this.addItemBtnTargets.find(b => b.dataset.listId === listId)
+    if (!form || !input) return
+
+    button?.classList.add("hidden")
+    form.classList.add("active")
+    input.value = ""
+    input.focus()
   }
 
   // ── Private ──

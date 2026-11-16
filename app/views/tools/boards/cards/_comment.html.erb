@@ -6,25 +6,5 @@
     card    — the card it belongs to
     tool    — the board tool, for the delete path and the ownership check
 %>
-<div class="flex gap-2.5 group" id="<%= dom_id(comment) %>">
-  <%= render "shared/avatar", user: comment.user, agent: comment.agent?, size: :sm %>
-  <div class="flex-1 min-w-0">
-    <div class="flex items-baseline gap-2 mb-0.5">
-      <%= render "shared/posted_by", record: comment %>
-      <span class="text-xs text-text-tertiary"><%= time_ago_in_words(comment.created_at) %> ago</span>
-    </div>
-    <div class="text-sm text-text-primary leading-snug rich-text-content"><%= comment.body %></div>
-  </div>
-  <% if comment.user_id == current_user.id || tool.owned_by?(current_user) %>
-    <%= render "components/icon_button",
-          icon: "x",
-          title: "Delete comment",
-          size: :sm,
-          variant: :danger,
-          class: "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity",
-          href: tool_board_card_comment_path(tool, card, comment),
-          method: :delete,
-          turbo_confirm: "Delete this comment?",
-          data: { turbo_confirm_button: "Delete", turbo_frame: "card-detail-content" } %>
-  <% end %>
-</div>
+<%= render "shared/comment", comment: comment, frame: "card-detail-content",
+      delete_path: (tool_board_card_comment_path(tool, card, comment) if comment.user_id == current_user.id || tool.owned_by?(current_user)) %>

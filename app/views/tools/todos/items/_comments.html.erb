@@ -8,14 +8,10 @@
             <% end %>
           </h3>
 
-          <% if item.comments.any? %>
-            <div class="space-y-4 mb-4">
-              <%= render partial: "tools/todos/items/comments/comment",
-                    collection: item.comments.includes(:user, :rich_text_body).order(created_at: :asc),
-                    as: :comment,
-                    locals: { item: item, tool: tool } %>
-            </div>
-          <% end %>
+          <%= render "shared/comment_list",
+                comments: item.comments.includes(:user, :rich_text_body).order(created_at: :asc).to_a,
+                partial: "tools/todos/items/comments/comment",
+                locals: { item: item, tool: tool } %>
 
           <%# Comment form %>
           <%# Someone else writing here right now; filled in by presence_controller.js %>
@@ -24,7 +20,7 @@
             <div class="flex gap-2.5">
               <%= render "shared/avatar", user: current_user, size: :sm %>
               <div class="flex-1" data-action="keydown->presence#typing" data-presence-context-param="todo:<%= item.id %>">
-                <%= render "components/rich_text_input", name: "body", placeholder: "Write a comment...", mentions: @collaborators.where.not(id: current_user.id) do %>
+                <%= render "components/rich_text_input", name: "body", placeholder: "Write a comment...", draft: "todo-#{item.id}-comment", mentions: @collaborators.where.not(id: current_user.id) do %>
                   <%= render "components/icon_button",
                         icon: "send",
                         title: "Post comment",

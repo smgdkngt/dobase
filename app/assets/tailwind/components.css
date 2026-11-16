@@ -457,18 +457,116 @@
     @apply px-5 py-4;
   }
 
-  /* Card / todo detail modal: content + metadata side by side; stacked in one
-     scroll area on phones so neither part gets squeezed */
+  /* Card / todo detail modal: content + metadata side by side. Measured by the
+     dialog (a container), not the window, so a phone and a narrow tile are alike. */
+  .detail-modal-frame {
+    container: detail / inline-size;
+  }
+
   .detail-modal-body {
-    @apply flex flex-1 flex-col min-h-0 overflow-y-auto sm:flex-row sm:overflow-hidden;
+    @apply flex flex-1 flex-row min-h-0 overflow-hidden;
   }
 
   .detail-modal-main {
-    @apply flex flex-1 flex-col min-w-0 shrink-0 sm:shrink sm:overflow-y-auto;
+    @apply flex flex-1 flex-col min-w-0 overflow-y-auto;
   }
 
   .detail-modal-aside {
-    @apply shrink-0 border-t border-border-light bg-background-secondary/50 sm:w-56 sm:border-t-0 sm:border-l sm:overflow-y-auto;
+    @apply shrink-0 w-56 border-l border-border-light bg-background-secondary/50 overflow-y-auto;
+  }
+
+  /* A field beside the discussion: its name over a control as wide as the column */
+  .detail-field {
+    @apply p-3;
+  }
+
+  .detail-field-label {
+    @apply block text-xs font-medium text-text-tertiary px-1 mb-1;
+  }
+
+  .detail-field-control {
+    @apply flex items-center gap-2 w-full px-2 py-1.5 rounded-md cursor-pointer select-none transition-colors hover:bg-background-tertiary;
+  }
+
+  .detail-field-select {
+    @apply py-1.5;
+  }
+
+  .detail-field-divider {
+    @apply h-px bg-border-light;
+  }
+
+  /* A long discussion shows its last comments; the earlier ones open above them */
+  .comments-earlier-toggle {
+    @apply inline-flex items-center gap-1.5 rounded-md px-2 py-1 -mx-2 text-sm text-text-tertiary cursor-pointer select-none list-none transition-colors hover:bg-background-tertiary hover:text-text-primary;
+  }
+
+  .comments-earlier-toggle::-webkit-details-marker {
+    @apply hidden;
+  }
+
+  .comments-earlier:not([open]) .comments-earlier-hide,
+  .comments-earlier[open] .comments-earlier-show {
+    @apply hidden;
+  }
+
+  .comments-earlier[open] .comments-earlier-icon {
+    @apply rotate-180;
+  }
+
+  /* Narrow (a phone, a narrow tile): one scroll area, with the fields as a row of
+     chips under the title, so moving or assigning never means scrolling past the
+     discussion. Attachments take a line of their own after them. */
+  @container detail (width < 40rem) {
+    .detail-modal-body {
+      @apply flex-col overflow-y-auto;
+    }
+
+    .detail-modal-main {
+      @apply shrink-0 overflow-visible;
+    }
+
+    .detail-modal-aside {
+      @apply order-first w-auto border-l-0 border-b overflow-visible;
+    }
+
+    .detail-modal-fields {
+      @apply flex flex-wrap items-center gap-1.5 px-4 py-2.5;
+    }
+
+    .detail-field {
+      @apply p-0 min-w-0;
+    }
+
+    .detail-field-label {
+      @apply sr-only;
+    }
+
+    .detail-field-control,
+    .detail-field-select {
+      @apply w-auto max-w-full gap-1.5 rounded-full border border-border-light bg-surface px-2.5 py-1;
+    }
+
+    .detail-field-select {
+      @apply pr-8 text-sm;
+    }
+
+    .detail-field .popover-menu {
+      position-try-fallbacks: flip-inline;
+    }
+
+    .detail-field-divider {
+      @apply hidden;
+    }
+
+    .detail-field-wide {
+      @apply order-last basis-full pt-1;
+    }
+
+    /* "No attachments yet" says nothing the empty row doesn't */
+    .detail-field-empty {
+      @apply hidden;
+    }
   }
 
   /* Flash messages */

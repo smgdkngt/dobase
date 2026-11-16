@@ -18,7 +18,7 @@
 
     <%# Right column: Metadata sidebar %>
     <div class="detail-modal-aside">
-      <div>
+      <div class="detail-modal-fields">
 
         <%= render "tools/boards/cards/column", card: @card, tool: @tool unless @card.archived? %>
         <%= render "tools/boards/cards/assignee", card: @card, tool: @tool %>

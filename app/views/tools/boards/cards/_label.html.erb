@@ -1,9 +1,9 @@
         <%# ── Label / Color ──────────────────────────────────────────── %>
-        <div class="p-3">
-          <p class="text-xs font-medium text-text-tertiary px-1 mb-1">Label</p>
+        <div class="detail-field">
+          <p class="detail-field-label">Label</p>
           <div class="relative">
             <button type="button"
-                    class="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-background-tertiary transition-colors select-none group w-full"
+                    class="detail-field-control group"
                     commandfor="card-color-menu"
                     command="toggle-popover"
                     style="anchor-name: --card-color">
@@ -43,5 +43,5 @@
           </div>
         </div>
 
-        <div class="h-px bg-border-light"></div>
+        <div class="detail-field-divider"></div>
 

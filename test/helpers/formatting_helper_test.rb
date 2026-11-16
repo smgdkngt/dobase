@@ -43,6 +43,22 @@ class FormattingHelperTest < ActionView::TestCase
     end
     assert_nil format_datetime(nil)
   end
+  test "posted_at_tag says how long ago for today and the day and time before, with the whole moment in its title" do
+    travel_to Time.utc(2026, 9, 17, 12) do
+      Time.use_zone("Europe/Amsterdam") do
+        today = Nokogiri::HTML5.fragment(posted_at_tag(10.minutes.ago)).at("time")
+        assert_equal "10 minutes ago", today.text
+        assert_equal "Sep 17, 2026, 1:50 PM", today["title"]
+
+        older = Nokogiri::HTML5.fragment(posted_at_tag(Time.utc(2026, 8, 10, 9, 5))).at("time")
+        assert_equal "Aug 10, 11:05 AM", older.text
+        assert_equal "Aug 10, 2026, 11:05 AM", older["title"]
+        assert_equal "2026-08-10T09:05:00Z", older["datetime"]
+      end
+    end
+    assert_nil posted_at_tag(nil)
+  end
+
   test "local_time_tag writes the time for the browser to redraw in the viewer's zone" do
     Time.use_zone("America/New_York") do
       tag = Nokogiri::HTML5.fragment(local_time_tag(Time.utc(2026, 9, 16, 3, 30))).at("time")

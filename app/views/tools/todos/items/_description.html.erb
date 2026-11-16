@@ -19,16 +19,16 @@
             </div>
           <% end %>
 
-          <div class="hidden" data-todo-item-target="descriptionEdit">
+          <div class="hidden" data-todo-item-target="descriptionEdit" data-action="rich-text-input:restored->todo-item#editDescription">
             <%= form_with url: tool_todo_item_path(tool, item), method: :patch, data: { turbo_frame: "item-detail-content" } do |f| %>
-              <%= render "components/rich_text_input", name: "item[description]", value: item.description do %>
+              <%= render "components/rich_text_input", name: "item[description]", value: item.description, draft: "todo-#{item.id}-description" do %>
                 <%= render "components/icon_button",
                       icon: "x",
                       title: "Cancel",
                       size: :sm,
                       class: "rounded",
                       type: :button,
-                      data: { action: "click->todo-item#cancelDescription" } %>
+                      data: { action: "click->rich-text-input#discardDraft click->todo-item#cancelDescription" } %>
                 <%= render "components/icon_button",
                       icon: "check",
                       title: "Save",
