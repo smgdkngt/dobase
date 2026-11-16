@@ -183,7 +183,7 @@ class WorkspaceSearch
         next unless all_words?(text)
 
         hit(:message, message.user&.name || "Someone", message,
-          routes.tool_chat_path(message.found_in, anchor: ActionView::RecordIdentifier.dom_id(message)),
+          routes.tool_chat_path(message.found_in, message: message.id),
           excerpt: excerpt_of(text), date: message.created_at)
       end
   end

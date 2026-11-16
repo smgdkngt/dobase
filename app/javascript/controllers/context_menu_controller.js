@@ -117,7 +117,8 @@ export default class extends Controller {
   }
 
   copy(event) {
-    const text = event.currentTarget.dataset.copy
+    const { copy, copyLink } = event.currentTarget.dataset
+    const text = copyLink ? new URL(copyLink, location.origin).href : copy
     navigator.clipboard?.writeText(text).then(() => showFlash("Copied", "notice"), () => showFlash("Couldn't copy"))
   }
 

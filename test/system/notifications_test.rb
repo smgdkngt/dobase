@@ -61,4 +61,52 @@ class NotificationsTest < ApplicationSystemTestCase
     assert_selector "[data-notifications-target='list']", text: "sent a message", visible: :all
     assert_no_text "Gotcha"
   end
+
+  test "the bell shows all with the unread first, or only the unread, and leads to its page" do
+    card = boards(:shared).columns.create!(name: "Doing", position: 0).cards.create!(title: "Seen card", position: 0)
+    CardAssignmentNotifier.with(card: card, assigner: users(:two), tool: tools(:shared_board)).deliver(users(:one))
+    users(:one).notifications.update_all(read_at: Time.current)
+    other = boards(:shared).columns.first.cards.create!(title: "New card", position: 1)
+    CardAssignmentNotifier.with(card: other, assigner: users(:two), tool: tools(:shared_board)).deliver(users(:one))
+
+    sign_in_as(users(:one))
+    visit tools_path
+    wait_for_stimulus "notifications", "[data-controller~='notifications']"
+    find("button.sidebar-add-btn[data-notifications-target='trigger']", visible: :all).click
+
+    within("#sidebar-notifications") do
+      assert_selector ".notification-row", count: 2
+      assert_selector ".notification-row:first-child.notification-row-unread", text: "New card"
+      assert_no_text "Clear all"
+
+      click_on "Unread"
+      assert_selector ".notification-row", count: 1
+      assert_selector ".notification-row", text: "New card"
+
+      click_on "All"
+      assert_selector ".notification-row", count: 2
+
+      click_on "View all"
+    end
+
+    assert_current_path notifications_path
+    assert_selector "h1", text: "Notifications"
+    assert_selector "main .notification-row", count: 2
+  end
+
+  test "the notifications page clears them all, after asking" do
+    card = boards(:shared).columns.create!(name: "Doing", position: 0).cards.create!(title: "A card", position: 0)
+    CardAssignmentNotifier.with(card: card, assigner: users(:two), tool: tools(:shared_board)).deliver(users(:one))
+
+    sign_in_as(users(:one))
+    visit notifications_path
+    assert_selector "main .notification-row", text: "A card"
+
+    click_on "Clear all"
+    within("dialog#turbo-confirm-dialog[open]") { click_on "Clear all" }
+
+    assert_text "Notifications cleared."
+    assert_text "No notifications"
+    assert_equal 0, users(:one).notifications.count
+  end
 end

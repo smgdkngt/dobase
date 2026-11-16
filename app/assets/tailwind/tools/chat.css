@@ -130,3 +130,19 @@
 .chat-sending-label {
   @apply shrink-0 ml-auto text-xs text-text-tertiary;
 }
+
+/* The message a mention or a search hit led to (?message=): lit for a moment, so the
+   eye finds it among the others. An animation, so it wins over the row's hover. */
+.chat-message[data-found] {
+  animation: chat-message-found 2.4s var(--ease-out) both;
+}
+
+@keyframes chat-message-found {
+  0%, 40% { background-color: color-mix(in oklab, var(--color-accent) 16%, transparent); }
+  100% { background-color: transparent; }
+}
+
+/* Under messages that end before the newest (a message from long ago): back to now */
+.chat-jump-newest {
+  @apply flex justify-center border-t border-border-light bg-background-secondary/60 py-1.5;
+}

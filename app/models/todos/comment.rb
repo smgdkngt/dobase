@@ -34,6 +34,7 @@ module Todos
       if mentioned.any?
         MentionNotifier.with(
           mentioner: user, byline: (byline if agent?), tool: tool, context: "a comment on #{item.title}",
+          comment: self, item: item,
           url: Rails.application.routes.url_helpers.tool_todo_path(tool, item: item.id)
         ).deliver(mentioned)
       end

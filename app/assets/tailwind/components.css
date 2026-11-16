@@ -984,6 +984,28 @@
     .mention { @apply text-accent bg-accent-light rounded px-1 py-px font-medium no-underline; }
   }
 
+  /* The bell's list: its title and Mark all read, All or Unread, and View all under it */
+  .notifications-head {
+    @apply flex items-center justify-between gap-2 px-4 pt-3 pb-2;
+  }
+
+  .notifications-head-action {
+    @apply text-xs text-text-secondary hover:text-text-primary cursor-pointer bg-transparent border-none
+           px-2 py-1 rounded hover:bg-background-tertiary transition-colors;
+  }
+
+  .notifications-filter {
+    @apply px-3 pb-2 border-b border-border-light;
+  }
+
+  .notifications-filter .tab {
+    @apply px-2.5 py-1 text-xs;
+  }
+
+  .notifications-foot {
+    @apply flex justify-center px-4 py-1.5 border-t border-border-light;
+  }
+
   /* The notifications list: who, what, what they said, where and when */
   .notification-row {
     @apply flex items-start gap-3 px-4 py-3 border-b border-border-light last:border-b-0 hover:bg-background-tertiary transition-colors;

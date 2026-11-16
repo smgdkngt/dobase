@@ -35,6 +35,7 @@ module Boards
       if mentioned.any?
         MentionNotifier.with(
           mentioner: user, byline: (byline if agent?), tool: tool, context: "a comment on #{card.title}",
+          comment: self, card: card,
           url: Rails.application.routes.url_helpers.tool_board_path(tool, card: card.id)
         ).deliver(mentioned)
       end

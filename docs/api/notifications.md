@@ -10,7 +10,7 @@
     "id": 77,
     "type": "ChatMessageNotifier",
     "message": "Marcus Rivera sent a message in Team Chat",
-    "url": "https://dobase.example.com/tools/2/chat",
+    "url": "https://dobase.example.com/tools/2/chat?message=19",
     "tool_id": 2,
     "read": false,
     "read_at": null,
@@ -30,9 +30,17 @@
 ```
 
 - `limit` sets how many you get, up to 100. Dobase keeps your latest 100.
+- `page` (from 1) goes further back, `limit` at a time: `GET /notifications?page=2`.
 - `unread=true` leaves out the ones you have read.
 - `url` is the page the notification is about, and `tool_id` the tool it
-  happened in.
+  happened in. A chat message, and a mention in one, lead to the message itself
+  (`?message=`, see [Chat](chat.md#around-one-message)); a mention in a comment to
+  its card or todo.
+
+Nobody gets notifications they asked not to hear: someone whose profile says
+"Mentions and assignments" gets only mentions, assignments and invitations, and
+"Nothing" none at all. A mail that couldn't be sent, and a mail or calendar account
+that stopped syncing, are said whatever the setting.
 
 `type` is one of `CardAssignmentNotifier`, `CardCommentNotifier`,
 `CardMovedNotifier`, `ChatMessageNotifier`, `MentionNotifier`,
@@ -46,4 +54,5 @@ and `ToolInvitationNotifier`.
 - `POST /notification_reads` marks all of them read and returns how many were
   unread: `{"marked_as_read": 3}`.
 
-Clearing all notifications is only possible in the browser.
+Clearing all notifications is only possible in the browser, on the
+notifications page (`/notifications`).

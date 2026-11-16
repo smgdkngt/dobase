@@ -22,6 +22,15 @@ class User < ApplicationRecord
   NOTIFICATION_LIMIT = 100
   NOTIFICATION_DIGEST_OPTIONS = %w[off 1_hour 2_hours 4_hours daily].freeze
 
+  # How much someone hears, in the bell and in the digest alike: everything, only what
+  # is meant for them, or nothing
+  NOTIFICATION_LEVELS = %w[all mentions nothing].freeze
+  # What is meant for you: someone named you, gave you something to do, or asked you in
+  NOTIFIERS_FOR_YOU = %w[MentionNotifier CardAssignmentNotifier TodoAssignmentNotifier ToolInvitationNotifier].freeze
+  # What tells you something of yours went wrong (a mail that wasn't sent, an account
+  # that stopped syncing), which nobody else will tell you: heard at every level
+  NOTIFIERS_ALWAYS = %w[MailNotSentNotifier SyncStalledNotifier].freeze
+
   has_one_attached :avatar
 
   validates :email_address, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
@@ -163,6 +172,7 @@ class User < ApplicationRecord
   validates :password, length: { minimum: 8 }, allow_nil: true
   validates :timezone, inclusion: { in: ActiveSupport::TimeZone.all.map(&:name) }, allow_nil: true
   validates :notification_digest, inclusion: { in: NOTIFICATION_DIGEST_OPTIONS }
+  validates :notification_level, inclusion: { in: NOTIFICATION_LEVELS }
   validate :acceptable_avatar
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
@@ -204,6 +214,17 @@ class User < ApplicationRecord
   # Unread mail in the inboxes of the user's mail tools, counted like the sidebar counts it
   def unread_mail_count
     Mails::Message.inbox.not_archived.unread.joins(:account).where(mail_accounts: { tool_id: collaborations.select(:tool_id) }).count
+  end
+
+  # Whether a notification of this kind (a notifier's class name) reaches this person
+  def wants_notification?(kind)
+    return true if NOTIFIERS_ALWAYS.include?(kind.to_s)
+
+    case notification_level
+    when "nothing" then false
+    when "mentions" then NOTIFIERS_FOR_YOU.include?(kind.to_s)
+    else true
+    end
   end
 
   def prune_notifications!

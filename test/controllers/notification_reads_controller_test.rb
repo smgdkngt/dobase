@@ -19,7 +19,7 @@ class NotificationReadsControllerTest < ActionDispatch::IntegrationTest
 
     post notification_reads_path
 
-    assert_response :success
+    assert_redirected_to notifications_path
     assert_equal 0, @user.notifications.unread.count
   end
 

@@ -38,6 +38,7 @@
     <%= render "components/menu_item", text: "Reply", icon: "reply", data: { context_menu_press: "reply" } %>
     <%= render "components/menu_item", text: "Add a reaction", icon: "smile-plus", data: { context_menu_press: "react" } %>
     <%= render "components/menu_item", text: "Copy text", icon: "copy", data: { copy: message.body.to_plain_text } %>
+    <%= render "components/menu_item", text: "Copy link", icon: "link", data: { copy_link: tool_chat_path(tool, message: message.id) } %>
     <%= render "components/menu_item", text: "Edit", icon: "edit-2", data: { context_menu_press: "edit" } %>
     <%= render "components/menu_item", text: "Delete", icon: "trash-2", variant: :danger, data: { context_menu_press: "delete" } %>
   <% end %>

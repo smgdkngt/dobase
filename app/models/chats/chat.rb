@@ -31,6 +31,16 @@ module Chats
       [ page.first(limit).reverse, page.size > limit ]
     end
 
+    # The messages around one (a mention, a search hit): a few before it, and after it
+    # as far as the newest, up to a page's worth. Answers the messages, whether there
+    # are older ones, and whether there are newer ones than the page shows.
+    def page_around(message, before: 25, after: MAX_MESSAGES_PER_PAGE)
+      older = messages.with_associations.recent.before(message).limit(before + 1).to_a
+      newer = messages.with_associations.chronological.after(message).limit(after + 1).to_a
+
+      [ older.first(before).reverse + [ message ] + newer.first(after), older.size > before, newer.size > after ]
+    end
+
     def participants
       User.where(id: tool.collaborators.select(:user_id))
     end

@@ -27,6 +27,21 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "how much to hear is chosen on the notifications tab, beside the tools that are muted" do
+    tools(:shared_board).collaborators.find_by!(user: @user).mute!
+
+    get edit_profile_path
+
+    assert_select "select[name='user[notification_level]'] option[selected]", text: "Everything"
+    assert_select "ul[aria-label='Muted tools'] li", text: /#{tools(:shared_board).name}/
+    assert_select "ul[aria-label='Muted tools'] a[href='#{tool_mute_path(tools(:shared_board))}'][data-turbo-method='delete']", text: "Unmute"
+
+    patch profile_path, params: { tab: "notifications", user: { notification_level: "mentions" } }
+
+    assert_redirected_to root_path
+    assert_equal "mentions", @user.reload.notification_level
+  end
+
   test "update profile details without password" do
     patch profile_path, params: { user: { first_name: "Updated", last_name: "Name", email_address: @user.email_address, password: "", password_confirmation: "" } }
     assert_redirected_to root_path

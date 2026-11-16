@@ -25,3 +25,19 @@ module KeepNotificationParamsThatStillExist
 end
 
 Noticed::Coder.singleton_class.prepend(KeepNotificationParamsThatStillExist)
+
+# Someone who asked to hear less (User#notification_level) is left out of a
+# notification here, the one place every notifier goes through, so that no way of
+# sending one can forget it. What isn't sent shows in neither the bell nor the digest.
+module DeliverOnlyToWhoWantsIt
+  def deliver(recipients = nil, **options)
+    recipients ||= evaluate_recipients
+    wanted = Array.wrap(recipients).select { |recipient| !recipient.respond_to?(:wants_notification?) || recipient.wants_notification?(self.class.name) }
+    return self if wanted.empty? && Array.wrap(recipients).any?
+
+    super(wanted, **options)
+  end
+end
+
+# (Noticed::Event is the engine's model, there once the app has loaded)
+Rails.application.config.to_prepare { Noticed::Event.prepend(DeliverOnlyToWhoWantsIt) }

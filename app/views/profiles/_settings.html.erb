@@ -126,11 +126,26 @@
 
     <%# Notifications panel %>
     <div data-tabs-target="panel" data-tab="notifications" class="hidden">
-      <h3 class="text-sm font-semibold text-text-primary mb-1">Email digest</h3>
-      <p class="text-xs text-text-tertiary mb-4">Unread notifications are combined into a single email. If you've already seen them in the app, no email is sent.</p>
-
       <%= form_with model: user, url: profile_path, method: :patch, data: { turbo_frame: "_top" } do |f| %>
         <%= render "profiles/form_place", tab: "notifications", in_dialog: in_dialog %>
+
+        <%# User#wants_notification?: the bell and the digest both go by it %>
+        <h3 class="text-sm font-semibold text-text-primary mb-1">Notify me about</h3>
+        <p class="text-xs text-text-tertiary mb-4">What you hear in the app and in the digest. A mail that couldn't be sent, or an account that stopped syncing, is always said.</p>
+        <div class="form-field mb-6">
+          <label for="user_notification_level" class="label">Notifications</label>
+          <%= f.select :notification_level,
+            options_for_select([
+              ["Everything", "all"],
+              ["Mentions and assignments", "mentions"],
+              ["Nothing", "nothing"]
+            ], user.notification_level),
+            {},
+            class: "input" %>
+        </div>
+
+        <h3 class="text-sm font-semibold text-text-primary mb-1">Email digest</h3>
+        <p class="text-xs text-text-tertiary mb-4">Unread notifications are combined into a single email. If you've already seen them in the app, no email is sent.</p>
         <div class="form-field mb-4">
           <label for="user_notification_digest" class="label">Frequency</label>
           <%= f.select :notification_digest,
@@ -147,6 +162,25 @@
 
         <div class="flex justify-end">
           <%= render "components/button", text: "Save" %>
+        </div>
+      <% end %>
+
+      <%# Tools muted in their own settings (Tools::MutesController), to be found again %>
+      <% muted = user.collaborations.muted.includes(:tool).map(&:tool).compact.sort_by(&:name) %>
+      <% if muted.any? %>
+        <div class="mt-6 pt-6 border-t border-border-light">
+          <h3 class="text-sm font-semibold text-text-primary mb-1">Muted tools</h3>
+          <p class="text-xs text-text-tertiary mb-3">Nothing from these reaches you, not even a mention.</p>
+          <ul class="divide-y divide-border-light" aria-label="Muted tools">
+            <% muted.each do |tool| %>
+              <li class="flex items-center gap-3 py-2">
+                <%= render "shared/icon", name: tool.tool_type.icon, size: 16, class: "text-text-secondary" %>
+                <span class="flex-1 min-w-0 truncate text-sm text-text-primary"><%= tool.name %></span>
+                <%= render "components/button", text: "Unmute", icon: "bell", variant: :secondary, size: :sm,
+                      href: tool_mute_path(tool), method: :delete %>
+              </li>
+            <% end %>
+          </ul>
         </div>
       <% end %>
 

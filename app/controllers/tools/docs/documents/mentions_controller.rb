@@ -21,7 +21,7 @@ module Tools
 
           if mentioned
             MentionNotifier.with(
-              mentioner: current_user, tool: @tool, context: @document.title,
+              mentioner: current_user, tool: @tool, context: @document.title, document: @document,
               url: tool_docs_document_path(@tool, @document)
             ).deliver(mentioned)
             mentioned.prune_notifications!
