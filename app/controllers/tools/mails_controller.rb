@@ -94,6 +94,13 @@ module Tools
         return
       end
 
+      # Nobody to send it to: the form comes back to add someone (the page says so before it
+      # sends, compose_controller.js; this is for whatever didn't ask the page)
+      if recipients.values.flatten.empty?
+        render_send_error SmtpSendService::NO_RECIPIENTS
+        return
+      end
+
       # A draft sent or deleted elsewhere (another window, the CLI) while this form was open
       # isn't sent a second time: the form comes back, without the draft, to send as new mail
       if params[:draft_id].present? && !@mail_account.messages.drafts.exists?(id: params[:draft_id])

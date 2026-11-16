@@ -2,9 +2,13 @@ import { Controller } from "@hotwired/stimulus"
 import { formatFileSize } from "services/file_size"
 import { tileOf } from "services/tile"
 import { csrfToken } from "services/api"
+import { showFlash } from "services/flash"
 import { AUTOSAVE_DELAY, RETRY_DELAY, SEND_WAIT, hasUnsaved, fitsKeepalive, savedAt, settlesWithin } from "services/draft_autosave"
 
 const FILE_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>'
+
+// What the server says too (SmtpSendService::NO_RECIPIENTS)
+const NO_RECIPIENTS = "Add a recipient: To, Cc or Bcc is empty."
 
 export default class extends Controller {
   static targets = ["to", "ccField", "bccField", "fileInput", "attachmentsList", "quote", "quotedMessage", "quoteFrame", "gone", "send",
@@ -77,6 +81,14 @@ export default class extends Controller {
     document.addEventListener("click", this._frameClick, true)
 
     this.element.addEventListener("submit", (event) => {
+      // Send with nobody to send it to says so, and stays (Save Draft goes elsewhere and
+      // may: a draft can wait for its recipients). The server refuses it too.
+      if (this._sendsToNobody(event.submitter)) {
+        event.preventDefault()
+        showFlash(NO_RECIPIENTS, "alert")
+        if (this.hasToTarget) this.toTarget.focus()
+        return
+      }
       // Sent (or saved) while a save is on its way, it waits for that save: the first one
       // makes the draft the form would otherwise make a second time, and any of them could
       // land after Send and be refused, or write over what Send took. It waits a few
@@ -156,7 +168,16 @@ export default class extends Controller {
     if (this.hasSendTarget && !this.sendTarget.disabled) this.element.requestSubmit(this.sendTarget)
   }
 
-  // A send that failed comes back to this same form (a morph), which still holds the message
+  // Send pressed (or Mod+Enter) while To, Cc and Bcc hold nothing: no token, and nothing
+  // typed that would become one (the recipient fields make tokens of it as the form goes)
+  _sendsToNobody(submitter) {
+    if (submitter && (submitter.hasAttribute("formaction") || !(this.hasSendTarget && submitter === this.sendTarget))) return false
+
+    const fields = this.element.querySelectorAll("input[type='hidden'][name='to'], input[type='hidden'][name='cc'], input[type='hidden'][name='bcc'], [data-recipients-target='input']")
+    return Array.from(fields).every((field) => !(field instanceof HTMLInputElement) || field.value.trim() === "")
+  }
+
+    // A send that failed comes back to this same form (a morph), which still holds the message
   submitEnded(event) {
     if (event.detail.success) return
     this._submitting = false

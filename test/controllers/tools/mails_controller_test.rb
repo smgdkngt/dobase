@@ -535,6 +535,33 @@ module Tools
       assert_select "h4", text: "(No title)"
     end
 
+    test "create with nobody in To, Cc or Bcc sends nothing and shows the compose form again" do
+      assert_no_enqueued_jobs only: SendMailJob do
+        assert_no_difference -> { @account.messages.count } do
+          post tool_mails_path(@tool), params: { to: "", cc: " ", bcc: "", subject: "Hi", body: "<p>Hi</p>" }
+        end
+      end
+
+      assert_response :unprocessable_entity
+      assert_includes response.body, "Add a recipient: To, Cc or Bcc is empty."
+    end
+
+    test "create from a draft with nobody to send it to leaves the draft a draft" do
+      draft = mails_messages(:draft_message)
+      post tool_mails_path(@tool), params: { to: "", subject: "Hi", body: "<p>Hi</p>", draft_id: draft.id }
+
+      assert_response :unprocessable_entity
+      assert draft.reload.draft?
+      assert_not draft.sending?
+    end
+
+    test "create with Bcc only is sent" do
+      assert_enqueued_jobs 1, only: SendMailJob do
+        post tool_mails_path(@tool), params: { to: "", bcc: "friend@example.com", subject: "Hi", body: "<p>Hi</p>" }
+      end
+      assert_response :redirect
+    end
+
     test "create with an invalid address shows the compose form again" do
       post tool_mails_path(@tool), params: { to: "not-an-address", subject: "Hi", body: "<p>Hi</p>" }
       assert_response :unprocessable_entity

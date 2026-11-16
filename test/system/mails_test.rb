@@ -977,6 +977,23 @@ class MailsTest < ApplicationSystemTestCase
     assert gaps.drop(1).all?(&:positive?), "Blocks sit right under each other: #{gaps}"
   end
 
+  test "Send with nobody to send it to says so and sends nothing, by the button and by the keys" do
+    visit new_tool_mail_path(@tool)
+    wait_for_compose_editor
+    fill_in "Subject", with: "To nobody"
+
+    assert_no_enqueued_jobs only: SendMailJob do
+      click_on "Send"
+      assert_selector ".flash", text: "Add a recipient: To, Cc or Bcc is empty."
+
+      page.execute_script("document.querySelectorAll('.flash').forEach((flash) => flash.remove())")
+      find("input[name='subject']").send_keys([ :control, :enter ])
+      assert_selector ".flash", text: "Add a recipient: To, Cc or Bcc is empty."
+    end
+    assert_selector "input[name='subject']"
+    assert_not @tool.mail_account.messages.where(subject: "To nobody").where(draft: false).exists?
+  end
+
   test "leaving a message that failed to send asks to discard it" do
     visit new_tool_mail_path(@tool)
     wait_for_compose_editor

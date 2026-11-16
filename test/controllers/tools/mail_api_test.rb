@@ -603,6 +603,14 @@ module Tools
       assert_nil email[:in_reply_to]
     end
 
+    test "send to nobody is refused" do
+      post tool_mails_path(@tool), headers: @headers, as: :json, params: { to: "", subject: "Hello", body: "<p>Hi</p>" }
+
+      assert_response :unprocessable_entity
+      assert_equal [ "Add a recipient: To, Cc or Bcc is empty." ], response.parsed_body["errors"]
+      assert_empty @smtp.sent
+    end
+
     test "send replies to the message whose message_id is in_reply_to" do
       post tool_mails_path(@tool), headers: @headers, as: :json, params: {
         to: "reports@example.com", subject: "Re: Your weekly report", body: "<p>Thanks</p>", in_reply_to: mails_messages(:inbox_read).message_id

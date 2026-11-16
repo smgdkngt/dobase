@@ -32,6 +32,21 @@ class SmtpSendServiceTest < ActiveSupport::TestCase
     assert_equal "<p>Hi</p><p>Thursday</p>", @account.messages.find_by!(subject: "Plans").body_html
   end
 
+  test "mail to nobody is refused before the mail server is asked" do
+    [ [], [ "" ], nil ].each do |nobody|
+      error = assert_raises(SmtpSendService::SendError) do
+        @service.send_email(to: nobody, cc: [ " " ], bcc: nil, subject: "Plans", body: "Hi")
+      end
+      assert_equal SmtpSendService::NO_RECIPIENTS, error.message
+    end
+    assert_empty @smtp.deliveries
+    assert_not @account.messages.exists?(subject: "Plans")
+
+    # Bcc alone is someone
+    @service.send_email(to: [], bcc: [ "friend@example.com" ], subject: "Plans", body: "Hi")
+    assert_equal [ "friend@example.com" ], @smtp.deliveries.sole[:recipients]
+  end
+
   test "sending delivers the email and keeps a copy in Sent" do
     assert_difference -> { @account.messages.sent.count }, 1 do
       @service.send_email(to: [ "friend@example.com" ], cc: [ "colleague@example.com" ], subject: "Hello",

@@ -7,6 +7,9 @@ class SmtpSendService
   # The mail server wasn't reached, so nothing went out and sending again is safe
   class Unreachable < SendError; end
 
+  # Mail to nobody: what every way of sending says when To, Cc and Bcc hold no address
+  NO_RECIPIENTS = "Add a recipient: To, Cc or Bcc is empty."
+
   # Failures to find or connect to the mail server, which may pass
   UNREACHABLE = [ RemoteHost::LookupFailed, SocketError, Net::OpenTimeout, Errno::ECONNREFUSED,
                   Errno::EHOSTUNREACH, Errno::ENETUNREACH, Errno::ETIMEDOUT ].freeze
@@ -65,8 +68,15 @@ class SmtpSendService
   # which shows in its conversation while it's sent): it goes out under its Message-ID.
   # quoted is the mail a reply or forward quotes, and sender who sent it (a job has
   # nobody asking): both only for the event that says the mail went out.
+  def self.recipients?(*fields)
+    fields.flatten.compact.any? { |address| address.to_s.strip.present? }
+  end
+
   def send_email(to:, subject:, body:, body_html: nil, cc: nil, bcc: nil, attachments: nil, inline_images: nil, in_reply_to: nil,
                  sent_copy: nil, quoted: nil, sender: Current.user)
+    # The last stop before the mail server, whichever way it came (the compose page's job, the API)
+    raise SendError, NO_RECIPIENTS unless self.class.recipients?(to, cc, bcc)
+
     in_reply_to = in_reply_to.presence
     email = { to: to, subject: subject, body: body, body_html: body_html, cc: cc, bcc: bcc, attachments: attachments,
               inline_images: inline_images, in_reply_to: in_reply_to, references: references_for(in_reply_to),
