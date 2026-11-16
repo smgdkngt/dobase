@@ -3,7 +3,7 @@ import { formatFileSize } from "services/file_size"
 import { api } from "services/api"
 import consumer from "channels/consumer"
 import { play, unseen } from "services/sound"
-import { drawnScale } from "services/tile"
+import { drawnScale, forgetInAddress } from "services/tile"
 
 export default class extends Controller {
   static targets = ["messages", "typingIndicator", "fileInput", "filePreview", "form", "replyPreview", "replyToId", "replyAuthor", "replyContent", "onlineIndicator", "imagePreviewTemplate", "filePreviewTemplate", "olderMessages", "olderMessagesTrigger", "olderMessagesPlaceholder"]
@@ -288,6 +288,8 @@ export default class extends Controller {
     message.setAttribute("data-found", "")
     message.addEventListener("animationend", () => message.removeAttribute("data-found"), { once: true })
     this.holdingFound = setTimeout(() => { this.found = null }, 1500)
+    // Found once: opened again (a reload, the tile in another browser), the chat is at its newest
+    forgetInAddress(this.element, "message")
   }
 
   scrollToFound() {

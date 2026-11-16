@@ -34,7 +34,7 @@
       rich_text_input_submit_on_enter_value: submit_on_enter,
       rich_text_input_buttons_value: buttons.to_json,
       rich_text_input_mentions_value: mention_data.to_json,
-      rich_text_input_draft_value: local_assigns[:draft]
+      rich_text_input_draft_value: (local_assigns[:draft] && Current.user && "u#{Current.user.id}-#{local_assigns[:draft]}")
     }.compact.merge(extra_data) do %>
   <%= hidden_field_tag name, value&.try(:to_trix_html) || value, id: input_id %>
   <rhino-editor input="<%= input_id %>"

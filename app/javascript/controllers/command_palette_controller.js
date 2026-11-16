@@ -96,6 +96,8 @@ export default class extends Controller {
   // typing goes on in the field once they are in
   keepTyping() {
     this._showingMore = true
+    // A search typed just before, still on its way, would come in over these
+    clearTimeout(this.searchTimer)
   }
 
   // Hide a section's header (and, for actions, the divider after it) once
@@ -206,10 +208,12 @@ export default class extends Controller {
     return this.itemTargets.find(item => item.classList.contains("selected"))
   }
 
+  // (never the way back from "Show all" when there are results to go to)
   #selectFirst() {
     const visible = this.#visibleItems
+    const first = visible.find(item => !item.dataset.searchBack) || visible[0]
     this.itemTargets.forEach(item => item.classList.remove("selected"))
-    if (visible[0]) visible[0].classList.add("selected")
+    if (first) first.classList.add("selected")
   }
 
   #moveSelection(direction) {

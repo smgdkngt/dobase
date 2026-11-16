@@ -12,7 +12,7 @@
     <% if @search.kind %>
       <%= button_to search_path, method: :get, params: { q: @search.query },
             class: "command-palette-item w-full text-left text-text-secondary",
-            data: { command_palette_target: "item", search_result: true, action: "click->command-palette#keepTyping", name: "", type: "search" } do %>
+            data: { command_palette_target: "item", search_result: true, search_back: true, action: "click->command-palette#keepTyping", name: "", type: "search" } do %>
         <%= render "shared/icon", name: "arrow-left", size: 16, class: "text-text-tertiary shrink-0" %>
         <span class="flex-1">Back to everything found</span>
       <% end %>

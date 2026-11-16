@@ -35,6 +35,8 @@ class ChatFoundMessageTest < ApplicationSystemTestCase
     message = "[data-message-id='#{@found.id}']"
     assert_selector "#{message}[data-found]"
     assert in_sight?(message), "the message is in sight"
+    # Found once: a reload opens the chat at its newest
+    assert_current_path tool_chat_path(@tool)
     assert_no_text "Newest of all"
     # The light goes out again
     assert_no_selector "#{message}[data-found]", wait: 5
@@ -61,6 +63,16 @@ class ChatFoundMessageTest < ApplicationSystemTestCase
     assert_selector TILE, count: 1
     assert in_sight?("#{CHAT} [data-message-id='#{@found.id}']"), "the message is in sight in the tile"
     assert_current_path workspace_path, ignore_query: true
+
+    # The tile's address is the chat's own again: kept, it opens at the newest next time
+    assert_db_change -> {
+      urls = WorkspaceLayout.find_by(user: @user)&.state.to_h.fetch("tiles", {}).values.map { |tile| tile["url"] }
+      urls.include?(tool_chat_path(@tool)) && urls.none? { |url| url.include?("message=") }
+    }
+    visit workspace_path
+    wait_for_stimulus "workspace"
+    assert_selector "#{CHAT} .chat-messages", text: "Newest of all"
+    assert_no_selector "#{CHAT} [data-found]"
   end
 
   private

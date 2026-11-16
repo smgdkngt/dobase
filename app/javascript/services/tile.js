@@ -34,6 +34,32 @@ export function openPage(element, url) {
 }
 
 /**
+ * Takes a parameter out of the page's address without loading anything: something
+ * that was for the first drawing only (a chat's ?message=, which opened it at that
+ * message), and that would otherwise come back with every opening of the tile, in
+ * every browser (the tile's address is kept: WorkspaceLayout)
+ * @param {Element} element
+ * @param {string} name
+ */
+export function forgetInAddress(element, name) {
+  const address = pageAddress(element)
+  if (!address.searchParams.has(name)) return
+
+  address.searchParams.delete(name)
+  const path = address.pathname + address.search + address.hash
+  const tile = tileOf(element)
+  if (tile) {
+    // As Turbo does for a frame that went on (tile_frame_controller.js#wentOn): the
+    // address changes, nothing is loaded
+    const delegate = /** @type {any} */ (tile).delegate
+    if (delegate && "sourceURL" in delegate) delegate.sourceURL = path
+    tile.dispatchEvent(new CustomEvent("tile:address", { bubbles: true }))
+  } else {
+    history.replaceState(history.state, "", path)
+  }
+}
+
+/**
  * How much smaller an element is drawn than it is laid out: a tile in the
  * workspace's page is drawn at seven eighths (workspace.css, --tile-zoom). Where an
  * element is on the screen (getBoundingClientRect) is measured as drawn, how far it

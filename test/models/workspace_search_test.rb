@@ -154,6 +154,33 @@ class WorkspaceSearchTest < ActiveSupport::TestCase
     assert_not all.more?(:card)
   end
 
+  test "a word with a capital outside A to Z finds it written either way" do
+    column = columns(:todo)
+    column.cards.create!(title: "Über the hill", position: 20)
+    column.cards.create!(title: "über alles", position: 21)
+
+    titles = search(users(:one), "Über").select { |hit| hit.kind == :card }.map(&:title)
+    assert_equal [ "Über the hill", "über alles" ].sort, titles.sort
+  end
+
+  test "a query of hundreds of words is cut to a few, and still answers" do
+    query = Array.new(1500) { |i| "w#{i}" }.join(" ")
+    search = WorkspaceSearch.new(users(:one), query)
+
+    assert_operator search.words.size, :<=, WorkspaceSearch::MOST_WORDS
+    assert_equal [], search.hits
+    assert_equal({}, search.totals)
+  end
+
+  test "mail is shown without reading its whole text" do
+    mail = mails_messages(:inbox_unread)
+    mail.update!(body_plain: "Kestrel #{"x " * 5000}")
+    hit = search(users(:one), "kestrel").find { |found| found.kind == :mail }
+
+    assert_equal mail.subject, hit.title
+    assert_match(/Kestrel/, hit.excerpt)
+  end
+
   test "every result has a date" do
     assert search(users(:one), "First task").all?(&:date)
   end

@@ -33,6 +33,8 @@ export default class extends Controller {
     document.addEventListener("keydown", (event) => this.keyed(event), options)
     this.element.addEventListener("click", (event) => this.clicked(event), { ...options, capture: true })
     this.element.addEventListener("turbo:frame-load", (event) => this.wentOn(event), options)
+    // The page took something out of its address (services/tile.js#forgetInAddress)
+    this.frame.addEventListener("tile:address", () => this.report(), options)
     this.frame.addEventListener("turbo:frame-render", () => this.keepAddressesHere(), options)
     this.keepAddressesHere()
     // The keyboard was put in this tile before its page was there

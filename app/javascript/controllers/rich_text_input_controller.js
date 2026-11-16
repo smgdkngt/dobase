@@ -85,7 +85,7 @@ export default class extends Controller {
   _restoreDraft = () => {
     this._initial = this.editorTarget.serialize()
     this._initiallyEmpty = !!this.editorTarget.editor?.isEmpty
-    const draft = readDraft(this.draftValue)
+    const draft = readDraft(this.draftValue, this._initial)
     if (draft === null || draft === this._initial) return
 
     this.editorTarget.editor?.commands.setContent(draft)
