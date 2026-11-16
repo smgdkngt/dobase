@@ -38,6 +38,9 @@ class WorkspaceInPageBoardTest < ApplicationSystemTestCase
     assert Boards::Card.exists?(title: "Ship it", column: columns(:todo))
     assert_current_path workspace_path
 
+    # The field is open again in the same column, for the next card
+    assert_selector "#{BOARD} #board-column-#{columns(:todo).id} textarea[aria-label='Card title']:focus"
+
     # The form went with the page that was drawn again: the keyboard is still the board's
     4.times do
       page.send_keys(:arrow_down)
@@ -60,6 +63,29 @@ class WorkspaceInPageBoardTest < ApplicationSystemTestCase
     assert_no_selector "dialog#card-detail-modal[open]"
     assert_selector "#{BOARD}:not([src*='card='])"
     assert_selector "#{BOARD} [data-card-id='#{card.id}']"
+  end
+
+  test "a half-written comment on a card is there again when it opens again in the tile, and the newest comments show" do
+    card = cards(:first_task)
+    8.times { |n| card.comments.create!(user: users(:one), body: "Tile remark #{n + 1}", created_at: (10 - n).days.ago) }
+
+    within(BOARD) { find("[data-card-id='#{card.id}']").click }
+    within("dialog#card-detail-modal[open]") do
+      assert_text "Tile remark 8"
+      assert_no_text "Tile remark 3"
+      assert_selector "summary", text: "Show 3 earlier comments"
+      editable = find("form[action$='/comments'] .ProseMirror")
+      editable.click
+      editable.send_keys("Waiting on review")
+    end
+    # Closing draws the board again: the card is opened once that is done
+    page.execute_script("window.boardDrawn = false; document.querySelector(arguments[0]).addEventListener('turbo:frame-load', () => { window.boardDrawn = true }, { once: true })", BOARD)
+    find("dialog#card-detail-modal [aria-label='Close']").click
+    assert_no_selector "dialog#card-detail-modal[open]"
+    page.document.synchronize(10) { raise Capybara::ExpectationNotMet, "The board wasn't drawn again" unless page.evaluate_script("window.boardDrawn") }
+
+    within(BOARD) { find("[data-card-id='#{card.id}']").click }
+    assert_selector "dialog#card-detail-modal[open] form[action$='/comments'] .ProseMirror", text: "Waiting on review"
   end
 
   test "a card is dragged to another column" do

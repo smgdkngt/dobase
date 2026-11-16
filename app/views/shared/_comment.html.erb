@@ -1,0 +1,34 @@
+<%#
+  One comment in a card's or a todo's discussion.
+
+  Locals:
+    comment     — Boards::Comment or Todos::Comment
+    delete_path — where it is deleted, or nil when this person may not delete it
+    frame       — the frame the dialog is drawn in, which deleting draws again
+
+  Deleting is in the comment's menu (a right click, a long press, or the ⋯ button),
+  not a red × on every comment.
+%>
+<%= tag.div class: "flex gap-2.5 group", id: dom_id(comment), data: { context_menu: (true if delete_path) } do %>
+  <%= render "shared/avatar", user: comment.user, agent: comment.agent?, size: :sm %>
+  <div class="flex-1 min-w-0">
+    <div class="flex items-baseline gap-2 mb-0.5">
+      <%= render "shared/posted_by", record: comment %>
+      <%= posted_at_tag comment.created_at, class: "text-xs text-text-tertiary" %>
+    </div>
+    <div class="text-sm text-text-primary leading-snug rich-text-content"><%= comment.body %></div>
+  </div>
+  <% if delete_path %>
+    <%= render "components/icon_button",
+          icon: "more-horizontal",
+          title: "Comment actions",
+          size: :sm,
+          class: "self-start opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity",
+          data: { action: "context-menu#show" } %>
+    <%= render "components/context_menu", label: "Comment" do %>
+      <%= render "components/menu_item", text: "Delete comment", icon: "trash-2", variant: :danger,
+            href: delete_path, method: :delete, turbo_confirm: "Delete this comment?",
+            data: { turbo_confirm_button: "Delete", turbo_frame: frame } %>
+    <% end %>
+  <% end %>
+<% end %>

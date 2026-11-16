@@ -2,15 +2,20 @@ import { Controller } from "@hotwired/stimulus"
 import { Mention } from "rhino-editor"
 import { createMentionSuggestion } from "services/mention_suggestion"
 import { applyPlaceholder } from "services/rhino_placeholder"
+import { readDraft, keepDraft, dropDraft } from "services/drafts"
 
 // Wraps a <rhino-editor> with form helpers:
 // enter-to-submit, typing event dispatch, toolbar configuration, mentions, and clearing after submit.
+// With a draft name it keeps what is typed in this tab until it is sent or cancelled, and
+// puts it back when the field is drawn again (a card's dialog closed and opened), saying
+// "rich-text-input:restored" so a view can show the field it is in.
 export default class extends Controller {
   static targets = ["editor"]
   static values = {
     submitOnEnter: { type: Boolean, default: false },
     buttons: { type: Array, default: [] },
-    mentions: { type: Array, default: [] }
+    mentions: { type: Array, default: [] },
+    draft: String
   }
 
   connect() {
@@ -31,6 +36,13 @@ export default class extends Controller {
 
     applyPlaceholder(this.editorTarget)
 
+    if (this.draftValue) {
+      this.editorTarget.addEventListener("rhino-initialize", this._restoreDraft)
+      this._form = this.element.closest("form")
+      this._form?.addEventListener("turbo:submit-start", this._sending)
+      this._form?.addEventListener("turbo:submit-end", this._sent)
+    }
+
     // Start the deferred editor after options are set
     this.editorTarget.startEditor()
   }
@@ -39,6 +51,21 @@ export default class extends Controller {
     this.editorTarget.removeEventListener("rhino-change", this._onInput)
     this.editorTarget.removeEventListener("keydown", this._noteMentionKey, true)
     this.editorTarget.removeEventListener("keydown", this._onKeydown)
+    this.editorTarget.removeEventListener("rhino-initialize", this._restoreDraft)
+    this._form?.removeEventListener("turbo:submit-start", this._sending)
+    this._form?.removeEventListener("turbo:submit-end", this._sent)
+  }
+
+  // Cancelled: what was typed is let go of, and the field shows what it had
+  discardDraft() {
+    if (!this.draftValue) return
+
+    dropDraft(this.draftValue)
+    const editor = this.editorTarget.editor
+    if (editor && this._initial !== undefined) {
+      editor.commands.setContent(this._initial)
+      this.editorTarget.updateInputElementValue()
+    }
   }
 
   clear() {
@@ -51,6 +78,41 @@ export default class extends Controller {
 
   _onInput = () => {
     this.dispatch("input")
+    this._keepDraft()
+  }
+
+  // The editor is up with what the server drew: that is what a draft differs from
+  _restoreDraft = () => {
+    this._initial = this.editorTarget.serialize()
+    this._initiallyEmpty = !!this.editorTarget.editor?.isEmpty
+    const draft = readDraft(this.draftValue)
+    if (draft === null || draft === this._initial) return
+
+    this.editorTarget.editor?.commands.setContent(draft)
+    this.editorTarget.updateInputElementValue()
+    this.dispatch("restored")
+  }
+
+  _keepDraft() {
+    if (!this.draftValue || this._initial === undefined || this._sendingText !== undefined) return
+
+    const editor = this.editorTarget.editor
+    if (!editor) return
+    if (editor.isEmpty && this._initiallyEmpty) dropDraft(this.draftValue)
+    else keepDraft(this.draftValue, editor.isEmpty ? "" : this.editorTarget.serialize(), this._initial)
+  }
+
+  // Let go of as it goes, so the field drawn with the answer starts empty; kept again
+  // when it didn't go through
+  _sending = () => {
+    this._sendingText = this.editorTarget.serialize()
+    dropDraft(this.draftValue)
+  }
+
+  _sent = (event) => {
+    const text = this._sendingText
+    this._sendingText = undefined
+    if (!event.detail.success && text !== undefined) keepDraft(this.draftValue, text, this._initial ?? "")
   }
 
   // The editor hears a key before this controller does (it is inside it), and an Enter

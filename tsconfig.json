@@ -35,6 +35,8 @@
     "app/javascript/services/mail_providers.js",
     "app/javascript/services/flash.js",
     "app/javascript/services/draft_autosave.js",
+    "app/javascript/services/drafts.js",
+    "app/javascript/services/add_again.js",
     "test/javascript/**/*.mjs",
     "test/javascript/support/globals.d.ts"
   ]

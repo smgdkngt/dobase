@@ -1,7 +1,7 @@
         <%# ── Due Date ────────────────────────────────────────────────── %>
-        <div class="p-3">
-          <p class="text-xs font-medium text-text-tertiary px-1 mb-1">Due date</p>
-          <label class="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-background-tertiary transition-colors">
+        <div class="detail-field">
+          <p class="detail-field-label">Due date</p>
+          <label class="detail-field-control">
             <div class="w-6 h-6 rounded-md bg-background-tertiary flex items-center justify-center flex-shrink-0">
               <%= render "shared/icon", name: "calendar", size: 13, class: "text-text-tertiary" %>
             </div>
@@ -13,5 +13,5 @@
           </label>
         </div>
 
-        <div class="h-px bg-border-light"></div>
+        <div class="detail-field-divider"></div>
 

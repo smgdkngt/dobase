@@ -11,6 +11,8 @@
     buttons:         Toolbar buttons to keep (default: bold, italic, code)
     mentions:        Array of users to offer as @-mention candidates (default: none).
                      Each must respond to #id and #name.
+    draft:           A name to keep what is typed under while it isn't sent (sessionStorage),
+                     so closing a dialog loses nothing: "card-12-comment" (default: none)
     data:            Additional data attributes for the wrapper
 
   Examples:
@@ -31,8 +33,9 @@
       controller: "rich-text-input",
       rich_text_input_submit_on_enter_value: submit_on_enter,
       rich_text_input_buttons_value: buttons.to_json,
-      rich_text_input_mentions_value: mention_data.to_json
-    }.merge(extra_data) do %>
+      rich_text_input_mentions_value: mention_data.to_json,
+      rich_text_input_draft_value: local_assigns[:draft]
+    }.compact.merge(extra_data) do %>
   <%= hidden_field_tag name, value&.try(:to_trix_html) || value, id: input_id %>
   <rhino-editor input="<%= input_id %>"
     placeholder="<%= placeholder %>"

@@ -21,7 +21,7 @@
 
     <%# Right column: Metadata sidebar %>
     <div class="detail-modal-aside">
-      <div>
+      <div class="detail-modal-fields">
 
         <% lists = @tool.todo_lists.order(:position) %>
         <%= render "tools/todos/items/list", item: @item, tool: @tool, lists: lists if lists.size > 1 %>

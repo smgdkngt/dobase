@@ -4,6 +4,10 @@ import { showFlash } from "services/flash"
 import { reportPresence } from "services/presence"
 import { pageInUse } from "services/page_in_use"
 import { pageAddress, visitPage, tileOf } from "services/tile"
+import { addAgainLater, forgetAddAgain, takeAddAgain } from "services/add_again"
+
+// What a drawing of the page after adding a card ends with, whichever way it came
+const DRAWN = [ "turbo:load", "turbo:morph", "turbo:frame-render" ]
 
 export default class extends Controller {
   static targets = ["cardModal", "cardDetailDialog", "addCardForm", "addCardInput", "addCardBtn", "archivedSection", "archivedToggle", "archivedToggleLabel"]
@@ -12,6 +16,14 @@ export default class extends Controller {
   // ── Card detail modal ──
 
   connect() {
+    this._adding = this._noteAdding.bind(this)
+    this._added = this._noteAdded.bind(this)
+    this._addAgain = this._openAddAgain.bind(this)
+    this.element.addEventListener("turbo:submit-start", this._adding)
+    this.element.addEventListener("turbo:submit-end", this._added)
+    DRAWN.forEach((name) => document.addEventListener(name, this._addAgain))
+    this._openAddAgain()
+
     if (this.hasCardDetailDialogTarget) {
       this._onModalClose = () => {
         reportPresence(null)
@@ -48,6 +60,10 @@ export default class extends Controller {
   }
 
   disconnect() {
+    this.element.removeEventListener("turbo:submit-start", this._adding)
+    this.element.removeEventListener("turbo:submit-end", this._added)
+    DRAWN.forEach((name) => document.removeEventListener(name, this._addAgain))
+
     if (this.hasCardDetailDialogTarget && this._onModalClose) {
       this.cardDetailDialogTarget.removeEventListener("close", this._onModalClose)
       document.removeEventListener("turbo:before-render", this._onBeforeRender)
@@ -272,6 +288,36 @@ export default class extends Controller {
     if (event.key === "Escape") {
       this._hideAddCardForm(event.currentTarget.dataset.columnId)
     }
+  }
+
+  // A card added from a column's field: the page drawn after it opens that field again,
+  // so the next card is typed straight away
+  _noteAdding(event) {
+    const form = this.addCardFormTargets.find((add) => add.contains(event.target))
+    if (form) addAgainLater(`board-${this.toolIdValue}`, form.dataset.columnId)
+  }
+
+  _noteAdded(event) {
+    const form = this.addCardFormTargets.find((add) => add.contains(event.target))
+    if (form && !event.detail.success) forgetAddAgain()
+  }
+
+  _openAddAgain() {
+    // Not drawn again yet (another tile was): the field it went from is still open
+    if (this.addCardFormTargets.some((form) => form.classList.contains("active"))) return
+
+    const columnId = takeAddAgain(`board-${this.toolIdValue}`)
+    if (!columnId) return
+
+    const form = this.addCardFormTargets.find(f => f.dataset.columnId === columnId)
+    const input = this.addCardInputTargets.find(i => i.dataset.columnId === columnId)
+    const button = this.addCardBtnTargets.find(b => b.dataset.columnId === columnId)
+    if (!form || !input) return
+
+    button?.classList.add("hidden")
+    form.classList.add("active")
+    input.value = ""
+    input.focus()
   }
 
   // ── Private ──

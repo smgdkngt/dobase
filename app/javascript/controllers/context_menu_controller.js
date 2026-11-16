@@ -72,6 +72,17 @@ export default class extends Controller {
     this.open(item, rect.left + 16, rect.top + Math.min(rect.height, 32), { keyboard: true })
   }
 
+  // A button on the item that says `data-action="context-menu#show"` (a comment's ⋯):
+  // the same menu, under the button
+  show(event) {
+    const item = itemOf(event.currentTarget)
+    if (!item) return
+
+    event.preventDefault()
+    const rect = event.currentTarget.getBoundingClientRect()
+    this.open(item, rect.left, rect.bottom, { keyboard: event.detail === 0 })
+  }
+
   open(item, x, y, { keyboard = false } = {}) {
     this.close()
     const template = templateOf(item)
@@ -89,7 +100,8 @@ export default class extends Controller {
     menu.addEventListener("click", (event) => this.chose(event))
     menu.addEventListener("toggle", (event) => { if (event.newState === "closed") this.closed(menu) })
 
-    ;(item.closest(".tile-page") || item.closest("main") || document.body).append(menu)
+    // In an open dialog it goes into the dialog: what lies outside a modal one can't be pressed
+    ;(item.closest("dialog[open]") || item.closest(".tile-page") || item.closest("main") || document.body).append(menu)
     menu.showPopover()
     place(menu, x, y)
 

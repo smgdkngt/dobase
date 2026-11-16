@@ -84,6 +84,29 @@ class WorkspaceInPageTest < ApplicationSystemTestCase
     end
     assert Todos::Item.exists?(title: "Water the plants")
     assert_current_path workspace_path
+
+    # The field is open again for the next one, in the tile drawn again
+    within(TODOS) do
+      find("textarea[aria-label='Todo title']:focus").send_keys("Feed the cat", :enter)
+      assert_selector ".todo-item", text: "Feed the cat"
+    end
+    assert Todos::Item.exists?(title: "Feed the cat")
+  end
+
+  test "a half-written comment in a todo's details is there again when it opens again in the tile" do
+    item = todo_items(:pending_one)
+    within(TODOS) { find("[aria-label='Open #{item.title}']").click }
+    editable = find("dialog#item-detail-modal[open] form[action$='/comments'] .ProseMirror")
+    editable.click
+    editable.send_keys("Ask about the date")
+    # Closing draws the todos again: the todo is opened once that is done
+    page.execute_script("window.todosDrawn = false; document.querySelector(arguments[0]).addEventListener('turbo:frame-load', () => { window.todosDrawn = true }, { once: true })", TODOS)
+    find("dialog#item-detail-modal [aria-label='Close']").click
+    assert_no_selector "dialog#item-detail-modal[open]"
+    page.document.synchronize(10) { raise Capybara::ExpectationNotMet, "The todos weren't drawn again" unless page.evaluate_script("window.todosDrawn") }
+
+    within(TODOS) { find("[aria-label='Open #{item.title}']").click }
+    assert_selector "dialog#item-detail-modal[open] form[action$='/comments'] .ProseMirror", text: "Ask about the date"
   end
 
   test "a todo's details open over the whole window" do

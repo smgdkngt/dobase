@@ -1,0 +1,26 @@
+<%#
+  A card's or a todo's comments, oldest first. A long discussion shows its last few,
+  with the box to write in right under them; the earlier ones open above them.
+
+  Locals:
+    comments — the comments, oldest first (an Array)
+    partial  — the partial that draws one, given `comment:`
+    locals   — what else that partial takes
+%>
+<% shown = 5 %>
+<% if comments.any? %>
+  <div class="space-y-4 mb-4">
+    <% if comments.size > shown %>
+      <% earlier = comments.size - shown %>
+      <details class="comments-earlier space-y-4">
+        <summary class="comments-earlier-toggle">
+          <%= render "shared/icon", name: "chevron-up", size: 14, class: "comments-earlier-icon" %>
+          <span class="comments-earlier-show">Show <%= pluralize(earlier, "earlier comment") %></span>
+          <span class="comments-earlier-hide">Hide earlier comments</span>
+        </summary>
+        <%= render partial: partial, collection: comments.first(earlier), as: :comment, locals: locals %>
+      </details>
+    <% end %>
+    <%= render partial: partial, collection: comments.last(shown), as: :comment, locals: locals %>
+  </div>
+<% end %>

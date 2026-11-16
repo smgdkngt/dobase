@@ -8,15 +8,10 @@
             <% end %>
           </h3>
 
-          <%# Comments list first (newest comments visible without scrolling past the form) %>
-          <% if card.comments.any? %>
-            <div class="space-y-4 mb-4">
-              <%= render partial: "tools/boards/cards/comment",
-                    collection: card.comments.includes(:user, :rich_text_body).order(created_at: :asc),
-                    as: :comment,
-                    locals: { card: card, tool: tool } %>
-            </div>
-          <% end %>
+          <%= render "shared/comment_list",
+                comments: card.comments.includes(:user, :rich_text_body).order(created_at: :asc).to_a,
+                partial: "tools/boards/cards/comment",
+                locals: { card: card, tool: tool } %>
 
           <%# Comment form at the bottom %>
           <%# Someone else writing here right now; filled in by presence_controller.js %>
@@ -25,7 +20,7 @@
             <div class="flex gap-2.5">
               <%= render "shared/avatar", user: current_user, size: :sm %>
               <div class="flex-1" data-action="keydown->presence#typing" data-presence-context-param="card:<%= card.id %>">
-                <%= render "components/rich_text_input", name: "body", placeholder: "Write a comment...", mentions: @collaborators.where.not(id: current_user.id) do %>
+                <%= render "components/rich_text_input", name: "body", placeholder: "Write a comment...", draft: "card-#{card.id}-comment", mentions: @collaborators.where.not(id: current_user.id) do %>
                   <%= render "components/icon_button",
                         icon: "send",
                         title: "Post comment",

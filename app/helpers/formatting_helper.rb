@@ -9,6 +9,7 @@
 #   format_datetime(time)        # => "Sep 16, 6:05 PM" / "Sep 16, 2025, 6:05 PM"
 #   mail_list_date(time)         # => "6:05 PM" (today) / "Sep 16" / "Sep 16, 2025"
 #   local_time_tag(time)         # => <time> with "6:05 PM", redrawn in the viewer's zone
+#   posted_at_tag(time)          # => <time> "5 minutes ago" (today) / "Sep 16, 6:05 PM"
 module FormattingHelper
   def human_file_size(bytes)
     HumanFileSize.format(bytes)
@@ -20,17 +21,18 @@ module FormattingHelper
     time.in_time_zone.strftime("%-I:%M %p")
   end
 
-  def format_date(date)
+  # year: true says the year this year too, where the date stands alone (a title)
+  def format_date(date, year: false)
     return if date.nil?
 
     date = date.in_time_zone.to_date if date.respond_to?(:in_time_zone) && !date.is_a?(Date)
-    date.year == Time.zone.today.year ? date.strftime("%b %-d") : date.strftime("%b %-d, %Y")
+    date.year == Time.zone.today.year && !year ? date.strftime("%b %-d") : date.strftime("%b %-d, %Y")
   end
 
-  def format_datetime(time)
+  def format_datetime(time, year: false)
     return if time.nil?
 
-    "#{format_date(time.in_time_zone)}, #{format_time(time)}"
+    "#{format_date(time.in_time_zone, year: year)}, #{format_time(time)}"
   end
 
   # When mail came, as a list of it says it: today's by its time, older by its day
@@ -49,5 +51,14 @@ module FormattingHelper
     text = period ? format_time(time) : time.in_time_zone.strftime("%-I:%M")
     tag.time(text, datetime: time.utc.iso8601, **options.except(:data),
       data: { controller: "local-time", local_time_period_value: period, **options.fetch(:data, {}) })
+  end
+
+  # When a comment was written: today's as how long ago, older ones by their day and time,
+  # which a relative "about 1 month ago" never said. The full moment is in the title.
+  def posted_at_tag(time, **options)
+    return if time.nil?
+
+    text = time.in_time_zone.to_date == Time.zone.today ? "#{time_ago_in_words(time)} ago" : format_datetime(time)
+    tag.time(text, datetime: time.utc.iso8601, title: format_datetime(time, year: true), **options)
   end
 end
