@@ -498,7 +498,7 @@ module Tools
       assert_select "h3", text: "Calendar Invitation", count: 0
     end
 
-    test "show links an accepted invite to its week in the calendar" do
+    test "show says where an accepted invite went, and links to its event" do
       msg = mails_messages(:inbox_unread)
       msg.calendar_invites.create!(uid: "planning@example.com", method: "REQUEST", summary: "Quarterly planning", status: "accepted",
                                    starts_at: Time.utc(2026, 10, 1, 9), ends_at: Time.utc(2026, 10, 1, 10),
@@ -506,7 +506,8 @@ module Tools
 
       get tool_mail_path(@tool, msg)
 
-      assert_select "a[href=?]", tool_calendar_path(tools(:my_calendar), week_start: "2026-10-01"), text: "View in Calendar"
+      assert_select ".invite-added", text: /In\s+Personal: Thu Oct 1(, 2026)?, 9:00 AM/
+      assert_select "a[href=?]", tool_calendar_event_path(tools(:my_calendar), calendars_events(:meeting)), text: "Open in Calendar"
       assert_select "select[name=calendar_id]", count: 0
     end
 
@@ -521,7 +522,7 @@ module Tools
 
       assert_select "p", text: /Thursday, October 1, 2026\s+– Friday, October 2, 2026/
       assert_not_includes response.body, "September 30"
-      assert_select "a[href=?]", tool_calendar_path(tools(:my_calendar), week_start: "2026-10-01"), text: "View in Calendar"
+      assert_select ".invite-added", text: /Thu Oct 1(, 2026)?, all day/
     end
 
     test "show still renders a message whose invite has no title or times" do

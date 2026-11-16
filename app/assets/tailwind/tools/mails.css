@@ -763,3 +763,23 @@ body:has(.mail-layout) .flash-toast {
     @apply flex items-center gap-2 mt-2;
   }
 }
+
+/* An invitation that was added to a calendar says where, for as long as it is there
+   (tools/mails/_calendar_invite) */
+@layer components {
+  .invite-added {
+    @apply flex flex-wrap items-center gap-3 px-4 py-3 border-t border-border-light bg-background-secondary text-sm text-text-secondary;
+  }
+
+  .invite-added-icon {
+    @apply text-success shrink-0;
+  }
+
+  .invite-added-text {
+    @apply flex-1 min-w-0;
+  }
+
+  .invite-added-pending {
+    @apply text-xs text-text-tertiary;
+  }
+}

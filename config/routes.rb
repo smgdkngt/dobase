@@ -216,6 +216,7 @@ Rails.application.routes.draw do
           resource :sync, only: %i[show create]
           resources :events, only: %i[show new create edit update destroy]
           resources :invites, only: %i[create destroy]
+          resources :invite_acceptances, only: :destroy
         end
       end
       post   "invitations/:id/resend", to: "invitations#resend", as: :resend_invitation

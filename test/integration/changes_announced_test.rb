@@ -162,6 +162,9 @@ class ChangesAnnouncedTest < ActionDispatch::IntegrationTest
         starts_at: 2.days.from_now, ends_at: 2.days.from_now + 1.hour, status: "pending")
     end
     unconnected = Tool.create!(name: "Team Calendar", tool_type: tool_types(:calendar), owner: @user)
+    # The Undo on an invitation just added, as its notice has it
+    post tool_calendar_invites_path(tool), params: { invite_id: invite.call("Tasting").id, calendar_id: calendars_calendars(:personal).id }
+    undo = flash[:undo]
 
     tried = [
       announced(tool) { post tool_calendar_events_path(tool), params: { calendars_event: { summary: "New", start_time: "2030-01-08T14:00", end_time: "2030-01-08T15:00" } }, as: :json },
@@ -169,6 +172,7 @@ class ChangesAnnouncedTest < ActionDispatch::IntegrationTest
       announced(tool) { delete tool_calendar_event_path(tool, event), as: :json },
       announced(tool) { post tool_calendar_invites_path(tool), params: { invite_id: invite.call("Planning").id, calendar_id: calendars_calendars(:personal).id } },
       announced(tool) { delete tool_calendar_invite_path(tool, invite.call("Board meeting")) },
+      announced(tool) { delete undo["url"], params: undo["params"] },
       announced(tool) { patch tool_calendar_account_path(tool), params: { calendars_account: { calendars_attributes: [ { id: calendars_calendars(:work).id, enabled: "0" } ] } } },
       announced(unconnected) { post tool_calendar_account_path(unconnected), params: { calendars_account: { provider: "local" } } }
     ]

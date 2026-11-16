@@ -67,6 +67,14 @@ module CalendarsHelper
     Time.zone.today.in_time_zone.change(hour: hour).strftime("%-l %p")
   end
 
+  # When an invitation is, in a few words: "Mon Nov 23, 2:00 PM", "Mon Nov 23, all day"
+  def invite_when(invite)
+    return unless invite.starts_at
+
+    day = invite.all_day? ? invite.first_day : invite.starts_at.in_time_zone
+    "#{day.strftime("%a")} #{format_date(day)}, #{invite.all_day? ? "all day" : format_time(invite.starts_at)}"
+  end
+
   # Calendars a mail invite can be added to: enabled, writable, and in a calendar tool the user can access
   def invite_target_calendars
     @invite_target_calendars ||= Calendars::Calendar.enabled.writable

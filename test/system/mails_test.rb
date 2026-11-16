@@ -319,11 +319,12 @@ class MailsTest < ApplicationSystemTestCase
     select "Team Calendar - Launches", from: "Add to calendar"
     click_on "Add to Calendar"
 
-    assert_text "Invite accepted and added to calendar."
+    assert_text "Added to Launches:"
     assert_equal launches, invite.reload.added_to_calendar
+    assert_selector ".invite-added", text: "In Launches"
 
-    click_on "View in Calendar"
-    assert_current_path tool_calendar_path(team_tool, week_start: starts_at.to_date)
+    click_on "Open in Calendar"
+    assert_current_path tool_calendar_event_path(team_tool, invite.created_event)
     assert_text "Tasting session"
   end
 

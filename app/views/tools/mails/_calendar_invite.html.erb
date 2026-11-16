@@ -113,6 +113,8 @@
                       method: :post,
                       class: "space-y-3",
                       data: {
+                        # The whole page, not the conversation's frame: what it says (the notice, its Undo) is the page's
+                        turbo_frame: "_top",
                         controller: "calendar-invite-form",
                         calendar_invite_form_calendar_map_value: calendar_to_tool_map.to_json,
                         calendar_invite_form_invite_id_value: invite.id
@@ -150,7 +152,7 @@
                 size: :sm,
                 href: tool_calendar_invite_path(default_calendar_tool, invite),
                 method: :delete,
-                data: { turbo_confirm: "Decline this invitation?", turbo_confirm_button: "Decline" } %>
+                data: { turbo_confirm: "Decline this invitation?", turbo_confirm_button: "Decline", turbo_frame: "_top" } %>
           </div>
         <% end %>
       </div>
@@ -172,18 +174,28 @@
             icon: "external-link",
             variant: :secondary,
             size: :sm,
-            href: tool_calendar_path(calendar_tool, week_start: accepted.first_day) %>
+            href: tool_calendar_path(calendar_tool, week_start: accepted.first_day),
+            data: { turbo_frame: "_top" } %>
       <% end %>
     </div>
-  <% elsif invite.accepted? && invite.created_event_id && (calendar_tool = invite.added_to_calendar&.account&.tool) %>
-    <!-- Link to the event's week in the calendar -->
-    <div class="px-4 py-3 bg-background-secondary border-t border-border-light">
+  <% elsif invite.accepted? && (event = invite.created_event) && (calendar = invite.added_to_calendar) %>
+    <%# Where the invitation went, for as long as it is there: whoever opens this mail again, anywhere, sees it %>
+    <div class="invite-added">
+      <%= render "shared/icon", name: "calendar-check", size: 16, class: "invite-added-icon" %>
+      <div class="invite-added-text">
+        <p>In <span class="font-medium text-text-primary"><%= calendar.name %></span>: <%= invite_when(invite) %></p>
+        <%# Pushed within moments of adding (PushEventJob); still without the server's address a minute on, it wasn't taken %>
+        <% if event.remote_href.blank? && !calendar.account.local? && event.updated_at < 1.minute.ago %>
+          <p class="invite-added-pending">Not on the calendar server yet</p>
+        <% end %>
+      </div>
       <%= render "components/button",
-          text: "View in Calendar",
+          text: "Open in Calendar",
           icon: "external-link",
           variant: :secondary,
           size: :sm,
-          href: tool_calendar_path(calendar_tool, week_start: invite.first_day) %>
+          href: tool_calendar_event_path(calendar.account.tool, event),
+          data: { turbo_frame: "_top" } %>
     </div>
   <% end %>
 </div>

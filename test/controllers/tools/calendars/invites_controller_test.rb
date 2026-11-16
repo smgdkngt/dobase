@@ -174,6 +174,59 @@ module Tools
         assert_equal "pending", @foreign_invite.reload.status
       end
 
+      test "an invitation added from the workspace goes back to its mail, which is another tool's" do
+        post tool_calendar_invites_path(@calendar_tool), params: { invite_id: @own_invite.id, calendar_id: calendars_calendars(:personal).id },
+          headers: { "HTTP_REFERER" => workspace_url, "X-Tile" => "1", "X-Tile-Address" => tool_mail_path(tools(:my_mail), mails_messages(:inbox_unread)) }
+
+        assert_redirected_to tool_mail_url(tools(:my_mail), mails_messages(:inbox_unread))
+        assert_match(/\AAdded to Personal: \w{3} \w{3} \d+, \d+:\d\d [AP]M\.\z/, flash[:notice])
+        assert flash[:undo].present?
+      end
+
+      test "undoing an invitation that was added takes the event it made out of the calendar" do
+        calendar = calendars_calendars(:personal)
+        post tool_calendar_invites_path(@calendar_tool), params: { invite_id: @own_invite.id, calendar_id: calendar.id }
+        event = @own_invite.reload.created_event
+        undo = flash[:undo]
+
+        assert_difference -> { calendar.events.count }, -1 do
+          delete undo["url"], params: undo["params"]
+        end
+
+        assert_redirected_to tool_mail_url(tools(:my_mail), mails_messages(:inbox_unread))
+        assert_equal "Taken out of the calendar again.", flash[:notice]
+        assert_equal [ "pending", nil, nil ], [ @own_invite.reload.status, @own_invite.added_to_calendar, @own_invite.created_event ]
+        assert_not ::Calendars::Event.exists?(event.id)
+        assert_enqueued_with job: DeleteCalendarEventJob
+      end
+
+      test "undoing leaves an event that was in the calendar before the invitation" do
+        calendar = calendars_calendars(:personal)
+        server_copy = calendar.events.create!(uid: @own_invite.uid, summary: "Planning session", starts_at: @own_invite.starts_at, ends_at: @own_invite.ends_at)
+        post tool_calendar_invites_path(@calendar_tool), params: { invite_id: @own_invite.id, calendar_id: calendar.id }
+        undo = flash[:undo]
+
+        delete undo["url"], params: undo["params"]
+
+        assert_equal "The invitation is open again.", flash[:notice]
+        assert ::Calendars::Event.exists?(server_copy.id)
+        assert_equal "pending", @own_invite.reload.status
+      end
+
+      test "an undo is someone's own, and only for the adding it was made for" do
+        post tool_calendar_invites_path(@calendar_tool), params: { invite_id: @own_invite.id, calendar_id: calendars_calendars(:personal).id }
+        undo = flash[:undo]
+
+        delete undo["url"], params: { token: "forged" }
+        assert_equal "That can't be undone any more.", flash[:alert]
+        assert_equal "accepted", @own_invite.reload.status
+
+        # Declined since: that stays
+        @own_invite.update!(status: "declined")
+        delete undo["url"], params: undo["params"]
+        assert_equal "declined", @own_invite.reload.status
+      end
+
       private
 
       def invite_for(message, summary:)

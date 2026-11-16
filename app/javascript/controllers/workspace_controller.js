@@ -113,11 +113,13 @@ export default class extends Controller {
       const frame = this.tileFrameOf(event.target)
       const tile = frame?.closest("[data-tile-id]")?.dataset.tileId
       this.submitted = { at: performance.now(), toolId: toolIdOf(pathOf(event.target.action)), tile }
-      // A form Turbo made of a tile's link: the page it led to is fetched, and what it
+      // A form Turbo made of a tile's link, or a form in a tile sent to the whole page
+      // (an invitation added to a calendar): the page it led to is fetched, and what it
       // says (an archived mail's notice, with its Undo) is said here, since the tile
       // goes there by a visit of its own (visiting), which says nothing
       const { fetchResponse, success } = event.detail
-      if (frame && success && fetchResponse?.redirected && !frame.contains(event.target)) {
+      const toTheWholePage = !frame?.contains(event.target) || sentToTop(event.target)
+      if (frame && success && fetchResponse?.redirected && toTheWholePage) {
         fetchResponse.responseHTML.then((html) => showFlashesOf(html, { frame: frame.id }))
       }
     })
@@ -1139,8 +1141,8 @@ export default class extends Controller {
       // is there already
       const path = address.pathname + address.search
       frameAddress(this.frameOf(from)) === path ? this.refresh(from) : this.send(from, path)
-    } else if (submitted?.toolId === toolId) {
-      // Its settings, not a wish to go there: you stay where you are
+    } else if (submitted?.toolId === toolId && !submitted.tile) {
+      // Its settings (in the menu, not in a tile), not a wish to go there: you stay where you are
       for (const [ id, tile ] of Object.entries(this.state.tiles)) {
         if (toolIdOf(tile.url) === toolId && this.elements.has(id)) this.refresh(id)
       }
@@ -1633,6 +1635,11 @@ function note(text, className = "workspace-desk-card-note") {
   words.className = className
   words.textContent = text
   return words
+}
+
+// A form that says it goes to the whole page, not to the frame it is in
+function sentToTop(form) {
+  return form instanceof HTMLElement && form.closest("[data-turbo-frame]")?.getAttribute("data-turbo-frame") === "_top"
 }
 
 function px(rect) {

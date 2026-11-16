@@ -23,6 +23,7 @@ module Tools
         end
         @event.assign_attributes(invite_attributes) if push
 
+        created = @event.new_record?
         if @event.save
           @invite.update!(
             status: "accepted",
@@ -31,11 +32,13 @@ module Tools
           )
 
           PushEventJob.perform_later(@event.id, push) if push
-          # Back to the email, like declining. The calendar answers Turbo form redirects with a refresh stream,
-          # which would refresh the mail page anyway instead of navigating to the calendar.
-          redirect_back fallback_location: tool_calendar_path(@tool, week_start: @event.first_day), notice: "Invite accepted and added to calendar."
+          # Back to the mail the invitation came in, which now says where it went. Not "back where you came
+          # from": in the workspace that is the mail's tile, which is another tool than this calendar
+          offer_undo tool_calendar_invite_acceptance_path(@tool, @invite), method: :delete,
+            params: { token: ::Calendars::InviteAcceptance.token_for(@invite, created: created, user: current_user) }
+          redirect_to invite_mail_path, notice: "Added to #{@calendar.name}: #{helpers.invite_when(@invite)}."
         else
-          redirect_back fallback_location: tool_calendar_path(@tool), alert: "Failed to create event: #{@event.errors.full_messages.join(', ')}"
+          redirect_to invite_mail_path, alert: "Couldn't add it to #{@calendar.name}: #{@event.errors.full_messages.to_sentence}"
         end
       end
 
@@ -43,7 +46,7 @@ module Tools
       # Decline an invite
       def destroy
         @invite.update!(status: "declined")
-        redirect_back fallback_location: tool_calendar_path(@tool), notice: "Invite declined."
+        redirect_to invite_mail_path, notice: "Invite declined."
       end
 
       private
@@ -62,6 +65,11 @@ module Tools
       def accessible_invites
         ::Calendars::Invite.joins(mail_message: :account)
           .where(mail_accounts: { tool_id: current_user.accessible_tools.select(:id) })
+      end
+
+      def invite_mail_path
+        message = @invite.mail_message
+        tool_mail_path(message.account.tool, message)
       end
 
       def invite_attributes
