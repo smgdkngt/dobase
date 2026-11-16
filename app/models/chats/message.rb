@@ -44,10 +44,12 @@ module Chats
     validate :validate_reply_to_belongs_to_same_chat
 
     scope :recent, -> { order(created_at: :desc, id: :desc) }
-    scope :chronological, -> { order(created_at: :asc) }
+    scope :chronological, -> { order(created_at: :asc, id: :asc) }
     scope :with_associations, -> { includes({ user: { avatar_attachment: :blob } }, :rich_text_body, files_attachments: :blob, reactions: :user, reply_to: [ :user, :rich_text_body ]) }
     # Messages sent before `message`, to page back through a chat.
     scope :before, ->(message) { where(created_at: ...message.created_at).or(where(created_at: message.created_at, id: ...message.id)) }
+    # Messages sent after `message`
+    scope :after, ->(message) { where(arel_table[:created_at].gt(message.created_at)).or(where(created_at: message.created_at, id: message.id.next..)) }
 
     def has_files?
       files.attached?
@@ -121,8 +123,8 @@ module Chats
 
       if mentioned.any?
         MentionNotifier.with(
-          mentioner: user, byline: (byline if agent?), tool: tool, context: "a chat message",
-          url: Rails.application.routes.url_helpers.tool_chat_path(tool)
+          mentioner: user, byline: (byline if agent?), tool: tool, context: "a chat message", message: self,
+          url: Rails.application.routes.url_helpers.tool_chat_path(tool, message: id)
         ).deliver(mentioned)
       end
 

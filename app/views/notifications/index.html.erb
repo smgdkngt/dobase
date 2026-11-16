@@ -1,42 +1,49 @@
-<%= turbo_frame_tag "notifications" do %>
-  <div class="flex items-center justify-between px-4 py-3 border-b border-border-light">
-    <h3 class="text-sm font-semibold text-text-primary">Notifications</h3>
-    <% if @notifications.any? %>
-      <div class="flex items-center gap-1">
-        <% if @notifications.any?(&:unread?) %>
-          <%= button_to notification_reads_path, method: :post,
-                class: "text-xs text-text-secondary hover:text-text-primary touch-target cursor-pointer bg-transparent border-none px-2 py-1 rounded hover:bg-background-tertiary transition-colors",
-                data: { notifications_target: "markAllRead", action: "notifications#markAllRead" } do %>
-            Mark all read
+<%# Every notification that is kept (User::NOTIFICATION_LIMIT), a page at a time, newest
+    first, a busy chat folded as in the bell. Clearing them all is here, not in the bell. %>
+<% content_for :title, "Notifications - #{app_name}" %>
+<% content_for :page_title, "Notifications" %>
+
+<div class="p-6">
+  <div class="max-w-2xl mx-auto">
+    <div class="flex items-center justify-between gap-4 mb-6">
+      <h1 class="text-xl font-semibold text-text-primary">Notifications</h1>
+      <% if @notifications.any? || @page > 1 %>
+        <div class="flex items-center gap-2">
+          <% if current_user.notifications.unread.exists? %>
+            <%= render "components/button", text: "Mark all read", icon: "check", variant: :secondary, size: :sm,
+                  href: notification_reads_path(page: (@page if @page > 1)), method: :post %>
           <% end %>
-        <% end %>
-        <button type="button" class="text-xs text-text-secondary hover:text-text-primary touch-target cursor-pointer bg-transparent border-none px-2 py-1 rounded hover:bg-background-tertiary transition-colors"
-                data-action="notifications#clearAll">
-          Clear all
-        </button>
-      </div>
-    <% end %>
-  </div>
-
-  <%# Shown by notifications_controller.js while the browser hasn't been asked yet %>
-  <div class="notification-desktop-offer" hidden data-notifications-target="desktopOffer">
-    <%= render "shared/icon", name: "bell", size: 14 %>
-    <span>Get a desktop notification when <%= app_name %> is in another tab.</span>
-    <button type="button" class="notification-desktop-offer-button" data-action="notifications#enableDesktop">Turn on</button>
-  </div>
-
-  <% if @notifications.any? %>
-    <div class="max-h-[min(70vh,32rem)] overflow-y-auto scrollbar-thin" data-notifications-target="list">
-      <% NotificationFeed.new(@notifications).entries.each do |entry| %>
-        <%= render "notifications/entry", entry: entry %>
+          <%= render "components/button", text: "Clear all", icon: "trash-2", variant: :ghost, size: :sm,
+                href: notification_clears_path, method: :post, data: { turbo_confirm_button: "Clear all" },
+                turbo_confirm: "Clear all notifications? They can't be brought back." %>
+        </div>
       <% end %>
     </div>
-  <% else %>
-    <div class="px-4 py-8 text-center">
-      <div class="text-text-tertiary mb-1">
-        <%= render "shared/icon", name: "bell", size: 24, class: "mx-auto text-text-tertiary" %>
+
+    <% if @notifications.any? %>
+      <div class="card overflow-hidden">
+        <% NotificationFeed.new(@notifications).entries.each do |entry| %>
+          <%= render "notifications/entry", entry: entry, in_bell: false %>
+        <% end %>
       </div>
-      <p class="text-sm text-text-secondary">No notifications</p>
-    </div>
-  <% end %>
-<% end %>
+
+      <% if @page > 1 || @has_more %>
+        <nav class="flex items-center justify-between mt-4" aria-label="Pages">
+          <% if @page > 1 %>
+            <%= render "components/button", text: "Newer", icon: "chevron-left", variant: :secondary, size: :sm,
+                  href: notifications_path(page: (@page - 1 if @page > 2)) %>
+          <% else %>
+            <span></span>
+          <% end %>
+          <% if @has_more %>
+            <%= render "components/button", text: "Older", icon: "chevron-right", variant: :secondary, size: :sm,
+                  href: notifications_path(page: @page + 1) %>
+          <% end %>
+        </nav>
+      <% end %>
+    <% else %>
+      <%= render "components/empty_state", title: "No notifications", icon: "bell",
+            description: "Mentions, comments and what happens in your tools show up here." %>
+    <% end %>
+  </div>
+</div>

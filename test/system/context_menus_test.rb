@@ -86,6 +86,23 @@ class ContextMenusTest < ApplicationSystemTestCase
     assert_no_selector "##{ActionView::RecordIdentifier.dom_id(mine)}"
   end
 
+  test "a chat message's menu copies a link to it, as a whole address" do
+    chat_type = ToolType.find_or_create_by!(slug: "chat") { |t| t.name = "Chat"; t.icon = "message-circle"; t.enabled = true }
+    tool = Tool.create!(name: "Team Chat", tool_type: chat_type, owner: @user)
+    message = tool.chat.messages.create!(user: @user, body: "Look here")
+    visit tool_chat_path(tool)
+    page.execute_script(<<~JS)
+      window.__copied = null
+      Object.defineProperty(navigator, "clipboard", { value: { writeText: (text) => { window.__copied = text; return Promise.resolve() } }, configurable: true })
+    JS
+
+    find("##{ActionView::RecordIdentifier.dom_id(message)}").right_click
+    find(".context-menu [role=menuitem]", text: "Copy link").click
+
+    assert_text "Copied"
+    assert_equal "#{page.evaluate_script("location.origin")}#{tool_chat_path(tool, message: message.id)}", page.evaluate_script("window.__copied")
+  end
+
   test "a tool's menu in the sidebar mutes its notifications" do
     tool = tools(:my_todos)
     visit tool_todo_path(tool)

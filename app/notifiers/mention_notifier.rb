@@ -1,7 +1,10 @@
 # frozen_string_literal: true
 
 class MentionNotifier < Noticed::Event
-  # Optional: byline, when an agent did the mentioning ("Claude for Sem")
+  # Optional: byline, when an agent did the mentioning ("Claude for Sem"), and what
+  # the mention is in: `message` (a chat message) or `comment` (on a card or a todo),
+  # whose words the bell and the digest quote, and `card`, `item` or `document`, which
+  # opening reads it by. Any of them can have been deleted since, and reads as nil.
   required_params :mentioner, :tool, :url, :context
 
   deliver_by :custom_action_cable,

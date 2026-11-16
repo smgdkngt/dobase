@@ -3,10 +3,11 @@ import { formatFileSize } from "services/file_size"
 import { api } from "services/api"
 import consumer from "channels/consumer"
 import { play, unseen } from "services/sound"
+import { drawnScale } from "services/tile"
 
 export default class extends Controller {
   static targets = ["messages", "typingIndicator", "fileInput", "filePreview", "form", "replyPreview", "replyToId", "replyAuthor", "replyContent", "onlineIndicator", "imagePreviewTemplate", "filePreviewTemplate", "olderMessages", "olderMessagesTrigger", "olderMessagesPlaceholder"]
-  static values = { chatId: Number, userId: Number, readUrl: String, canModerate: Boolean }
+  static values = { chatId: Number, userId: Number, readUrl: String, canModerate: Boolean, found: Number }
 
   connect() {
     this.selectedFiles = []
@@ -28,6 +29,7 @@ export default class extends Controller {
     this.setupActionCable()
     this.scrollToBottom()
     this.stayAtNewestMessage()
+    if (this.foundValue) this.showFound()
     this.markAsRead()
   }
 
@@ -39,6 +41,7 @@ export default class extends Controller {
     this.topObserver?.disconnect()
     this.topObserver = null
     this.settling?.disconnect()
+    clearTimeout(this.holdingFound)
     if (this.hasMessagesTarget) this.messagesTarget.removeEventListener("scroll", this.boundScrolled)
     if (this.typingTimeout) clearTimeout(this.typingTimeout)
   }
@@ -264,9 +267,37 @@ export default class extends Controller {
     }
     this.messagesTarget.addEventListener("scroll", this.boundScrolled, { passive: true })
 
-    this.settling = new ResizeObserver(() => { if (this.followsNewest) this.scrollToBottom() })
+    this.settling = new ResizeObserver(() => {
+      if (this.found) this.scrollToFound()
+      else if (this.followsNewest) this.scrollToBottom()
+    })
     this.settling.observe(this.messagesTarget)
     Array.from(this.messagesTarget.children).forEach((part) => this.settling.observe(part))
+  }
+
+  // The page was asked for a message (?message=: a mention, a search hit): it opens on
+  // that one, in the middle of the list, and lights it up for a moment. It is held
+  // there while the rest settles (pictures above it get their height), then left.
+  showFound() {
+    const message = this.messagesTarget?.querySelector(`[data-message-id="${this.foundValue}"]`)
+    if (!message) return
+
+    this.found = message
+    this.followsNewest = false
+    this.scrollToFound()
+    message.setAttribute("data-found", "")
+    message.addEventListener("animationend", () => message.removeAttribute("data-found"), { once: true })
+    this.holdingFound = setTimeout(() => { this.found = null }, 1500)
+  }
+
+  scrollToFound() {
+    if (!this.found?.isConnected || !this.hasMessagesTarget) return
+
+    const list = this.messagesTarget
+    // Measured as drawn, scrolled as laid out: a tile is drawn smaller (services/tile.js)
+    const above = (this.found.getBoundingClientRect().top - list.getBoundingClientRect().top) / drawnScale(list)
+    list.scrollTop += above - Math.max(0, (list.clientHeight - this.found.offsetHeight) / 2)
+    this.lastTop = list.scrollTop
   }
 
   async markAsRead() {

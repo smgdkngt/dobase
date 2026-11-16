@@ -88,7 +88,7 @@ class WorkspaceSearch
       .select { |message| mentions?(message.body&.to_plain_text) }
       .map do |message|
         hit(:message, message.user&.name || "Someone", message,
-          routes.tool_chat_path(message.found_in, anchor: ActionView::RecordIdentifier.dom_id(message)),
+          routes.tool_chat_path(message.found_in, message: message.id),
           excerpt_of(message.body&.to_plain_text))
       end
   end

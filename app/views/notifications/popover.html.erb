@@ -1,0 +1,48 @@
+<%# The bell's list: what you haven't seen first (NotificationFeed), or only that.
+    Everything that is kept, and clearing it, is on the notifications page. %>
+<%= turbo_frame_tag "notifications" do %>
+  <div class="notifications-head">
+    <h3 class="text-sm font-semibold text-text-primary">Notifications</h3>
+    <% if @any_unread %>
+      <%= button_to notification_reads_path, method: :post, params: { filter: @filter },
+            class: "notifications-head-action touch-target",
+            data: { notifications_target: "markAllRead", action: "notifications#markAllRead" } do %>
+        Mark all read
+      <% end %>
+    <% end %>
+  </div>
+
+  <div class="notifications-filter">
+    <%= render "components/tabs", label: "Show",
+          tabs: [
+            { label: "All", href: notifications_path, active: @filter == "all" },
+            { label: "Unread", href: notifications_path(filter: "unread"), active: @filter == "unread" }
+          ] %>
+  </div>
+
+  <%# Shown by notifications_controller.js while the browser hasn't been asked yet %>
+  <div class="notification-desktop-offer" hidden data-notifications-target="desktopOffer">
+    <%= render "shared/icon", name: "bell", size: 14 %>
+    <span>Get a desktop notification when <%= app_name %> is in another tab.</span>
+    <button type="button" class="notification-desktop-offer-button" data-action="notifications#enableDesktop">Turn on</button>
+  </div>
+
+  <% if @notifications.any? %>
+    <div class="max-h-[min(70vh,32rem)] overflow-y-auto scrollbar-thin" data-notifications-target="list">
+      <% NotificationFeed.new(@notifications, unread_first: true).entries.each do |entry| %>
+        <%= render "notifications/entry", entry: entry %>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="px-4 py-8 text-center">
+      <div class="text-text-tertiary mb-1">
+        <%= render "shared/icon", name: @filter == "unread" ? "check" : "bell", size: 24, class: "mx-auto text-text-tertiary" %>
+      </div>
+      <p class="text-sm text-text-secondary"><%= @filter == "unread" ? "Nothing unread" : "No notifications" %></p>
+    </div>
+  <% end %>
+
+  <div class="notifications-foot">
+    <%= link_to "View all", notifications_path, class: "notifications-head-action touch-target", data: { turbo_frame: "_top" } %>
+  </div>
+<% end %>

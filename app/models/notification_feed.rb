@@ -4,9 +4,13 @@
 # it and what they said, and a busy chat folded into one line.
 #
 # Five messages in the same chat are one thing to catch up on, not five, so
-# unread chat messages are grouped per chat: "Marcus and Priya sent 5
-# messages in Team Chat". Everything else stays one line each. The JSON API
-# keeps the plain list; this is only how the page reads it.
+# chat messages are grouped per chat: "Marcus and Priya sent 5 messages in Team
+# Chat". The unread ones are one line and the read ones another, so a chat you
+# have read never hides what you haven't, and ten old messages never push the
+# rest out of sight. Everything else stays one line each. The JSON API keeps the
+# plain list; this is only how the page reads it.
+#
+# `unread_first: true` (the bell) puts what you haven't seen above what you have.
 class NotificationFeed
   # Who did it, by the parameter each notifier names them with
   ACTOR_PARAMS = %i[sender commenter mentioner assigner mover creator uploader completer invited_by].freeze
@@ -19,26 +23,29 @@ class NotificationFeed
     def grouped? = notifications.size > 1
   end
 
-  def initialize(notifications)
+  def initialize(notifications, unread_first: false)
     @notifications = notifications.to_a
+    @unread_first = unread_first
   end
 
   def entries
-    grouped = @notifications.select { |n| foldable?(n) }.group_by { |n| params(n)[:tool].id }
+    grouped = @notifications.select { |n| foldable?(n) }.group_by { |n| fold_key(n) }
     seen_groups = Set.new
 
-    @notifications.filter_map do |notification|
+    list = @notifications.filter_map do |notification|
       if foldable?(notification)
-        tool_id = params(notification)[:tool].id
-        next if seen_groups.include?(tool_id)
+        key = fold_key(notification)
+        next if seen_groups.include?(key)
 
-        seen_groups << tool_id
-        group = grouped[tool_id]
+        seen_groups << key
+        group = grouped[key]
         group.size > 1 ? chat_group(group) : single(notification)
       else
         single(notification)
       end
     end
+
+    @unread_first ? list.partition(&:unread?).flatten : list
   end
 
   private
@@ -66,7 +73,8 @@ class NotificationFeed
       notifications: notifications,
       actors: actors,
       tool: tool,
-      url: notifications.first.url,
+      # The first of them, so the chat opens where there is something to catch up on
+      url: notifications.last.url,
       icon: notifications.first.icon_name,
       message: "#{who} sent #{notifications.size} messages in #{tool&.name || 'a chat'}",
       excerpt: excerpt_of(notifications.first),
@@ -78,10 +86,15 @@ class NotificationFeed
     notification.event&.type == "ChatMessageNotifier"
   end
 
-  # An unread message in a chat that's still there. Without the chat there is
-  # nothing to say they have in common, so those stay a line each.
+  # A message in a chat that's still there. Without the chat there is nothing to
+  # say they have in common, so those stay a line each.
   def foldable?(notification)
-    chat_message?(notification) && notification.unread? && params(notification)[:tool].present?
+    chat_message?(notification) && params(notification)[:tool].present?
+  end
+
+  # One line per chat for what is unread, and one for what was read
+  def fold_key(notification)
+    [ params(notification)[:tool].id, notification.unread? ]
   end
 
   def params(notification)

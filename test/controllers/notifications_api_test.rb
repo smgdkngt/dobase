@@ -62,6 +62,14 @@ class NotificationsApiTest < ActionDispatch::IntegrationTest
     assert_equal 20, response.parsed_body.size
   end
 
+  test "index goes further back by page" do
+    7.times { |index| notify(ChatMessageNotifier, at: (7 - index).minutes.ago, message: nil, sender: @other_user, tool: @tool) }
+
+    get notifications_path(limit: 5, page: 2), headers: @headers
+
+    assert_equal 2, response.parsed_body.size
+  end
+
   test "index only lists your own notifications" do
     notify(ChatMessageNotifier, recipient: @other_user, message: nil, sender: @user, tool: @tool)
 

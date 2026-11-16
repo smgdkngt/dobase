@@ -10,14 +10,16 @@
     method: :post, :patch, :delete
     turbo_confirm: Asks first
     variant: :danger
-    data: Data attributes; `copy:` copies that text instead of going anywhere
+    data: Data attributes; `copy:` copies that text instead of going anywhere, `copy_link:`
+          a path on this site as a whole address (the server that draws a broadcast
+          doesn't know the address it is reached by; the browser does)
     shortcut: The key that does the same, shown at the end ("e")
 %>
 <%
   data = (local_assigns[:data] || {}).dup
   data[:turbo_method] = local_assigns[:method] if local_assigns[:method]
   data[:turbo_confirm] = turbo_confirm if local_assigns[:turbo_confirm]
-  data[:action] = [ data[:action], ("context-menu#copy" if data[:copy]) ].compact.join(" ").presence
+  data[:action] = [ data[:action], ("context-menu#copy" if data[:copy] || data[:copy_link]) ].compact.join(" ").presence
   classes = [ "dropdown-item context-menu-item", ("context-menu-item-danger" if local_assigns[:variant] == :danger) ].compact.join(" ")
   html_options = { class: classes, role: "menuitem", aria: { keyshortcuts: local_assigns[:shortcut] }.compact.presence, data: data.compact }.compact
   content = capture do

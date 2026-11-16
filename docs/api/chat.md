@@ -46,13 +46,15 @@ scroll up):
       "created_at": "..."
     }
   ],
-  "has_more": true
+  "has_more": true,
+  "has_newer": false
 }
 ```
 
 - `limit` sets how many messages you get, up to 200.
 - `has_more` is true when there are older messages. To page back, pass the
   first message's id as `before`: `GET /tools/2/chat?before=19`.
+- `has_newer` is false here; see [around one message](#around-one-message).
 - `via` is the name of the access token that posted the message, and `agent`
   whether it posted as itself on the user's behalf (see
   [Authentication](README.md#authentication)). `reply_to.user_name` is then the
@@ -66,6 +68,17 @@ scroll up):
   only for someone in the chat: it answers with a redirect to the file itself, a
   storage link that lasts five minutes. A file's `preview_url` gives what can be
   read out of it (see [Files](files.md#what-is-in-a-file)).
+
+### Around one message
+
+`GET /tools/:tool_id/chat?message=19` returns the messages around message 19
+instead of the latest: up to 25 before it, the message itself, and after it as
+far as the newest, up to 200. `has_more` says there are older messages than the
+first, and `has_newer` that there are newer ones than the last (without
+`message`, `has_newer` is always false). A message that isn't in this chat (or no
+longer exists) gives the latest messages. In the browser that address opens the
+chat on that message and lights it up; it is what a mention, a search hit and a
+message's "Copy link" lead to.
 
 Reading the chat doesn't mark it read. [Mark it read](#mark-as-read) when you
 have dealt with the messages.

@@ -183,31 +183,10 @@ export default class extends Controller {
     this.updateBadge()
   }
 
-  markAllRead(event) {
-    // Let the form submit normally, then update the UI
+  // The form goes through by itself, and the list follows its answer back into the frame
+  markAllRead() {
     this.unreadCountValue = 0
     this.updateBadge()
-
-    // Reload the frame after a short delay to reflect changes
-    setTimeout(() => {
-      const frame = this.popoverTarget.querySelector("turbo-frame")
-      if (frame) frame.reload()
-    }, 300)
-  }
-
-  clearAll() {
-    fetch("/notification_clears", {
-      method: "POST",
-      headers: {
-        "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content,
-        "Accept": "application/json"
-      }
-    }).then(() => {
-      this.unreadCountValue = 0
-      this.updateBadge()
-      const frame = this.popoverTarget.querySelector("turbo-frame")
-      if (frame) frame.reload()
-    })
   }
 
   // A Turbo morph refresh brings the server's counts along

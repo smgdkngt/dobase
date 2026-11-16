@@ -17,7 +17,11 @@ class ChatMessageNotifier < Noticed::Event
 
     def url
       tool = event.params[:tool]
-      tool ? tool_chat_path(tool) : root_path
+      return root_path unless tool
+
+      # At the message itself, while it is there
+      message = event.params[:message]
+      tool_chat_path(tool, message: (message.id if message.is_a?(Chats::Message)))
     end
 
     def icon_name

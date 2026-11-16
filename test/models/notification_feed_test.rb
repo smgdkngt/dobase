@@ -36,11 +36,56 @@ class NotificationFeedTest < ActiveSupport::TestCase
     assert_equal @writer, entry.actor
   end
 
-  test "read chat messages are no longer folded together" do
-    2.times { |i| deliver_chat_message("Message #{i}") }
+  test "read chat messages fold too, in a line of their own beside the unread ones" do
+    first = deliver_chat_message("Message 0")
+    deliver_chat_message("Message 1")
+    @reader.notifications.each(&:mark_as_read!)
+    3.times { |i| deliver_chat_message("New #{i}") }
+
+    entries = feed.entries
+
+    assert_equal 2, entries.size
+    unread, read = entries
+    assert unread.unread?
+    assert_equal 3, unread.ids.size
+    assert_not read.unread?
+    assert_equal 2, read.ids.size
+    assert_equal "User sent 2 messages in Team Chat", read.message
+    # The group opens at the first of its messages
+    assert_equal "/tools/#{@chat_tool.id}/chat?message=#{first.id}", read.url
+  end
+
+  test "ten read chat messages don't push a card below them out of the bell" do
+    card = boards(:shared).columns.create!(name: "Doing", position: 0).cards.create!(title: "Shared card", position: 0)
+    Boards::Comment.create!(card: card, user: @writer, body: "<p>Looks good</p>")
+    10.times { |i| deliver_chat_message("Message #{i}") }
     @reader.notifications.each(&:mark_as_read!)
 
-    assert_equal 2, feed.entries.size
+    assert_equal [ "User sent 10 messages in Team Chat", "#{@writer.name} commented on Shared card" ], feed.entries.map(&:message)
+  end
+
+  test "the bell puts what is unread first" do
+    card = boards(:shared).columns.create!(name: "Doing", position: 0).cards.create!(title: "Shared card", position: 0)
+    Boards::Comment.create!(card: card, user: @writer, body: "<p>Looks good</p>")
+    deliver_chat_message("Seen already")
+    @reader.notifications.joins(:event).where(noticed_events: { type: "ChatMessageNotifier" }).each(&:mark_as_read!)
+
+    entries = NotificationFeed.new(@reader.notifications.includes(:event).newest_first, unread_first: true).entries
+
+    assert_equal [ true, false ], entries.map(&:unread?)
+    assert_equal "#{@writer.name} commented on Shared card", entries.first.message
+    assert_equal [ false, true ], feed.entries.map(&:unread?)
+  end
+
+  test "a mention quotes what was said and leads to the message" do
+    message = @chat_tool.chat.messages.create!(user: @writer, body: mention_of(@reader, "look at this"))
+
+    entry = feed.entries.find { |e| e.icon == "at-sign" }
+
+    assert_equal "#{@writer.name} mentioned you in a chat message", entry.message
+    assert_equal "/tools/#{@chat_tool.id}/chat?message=#{message.id}", entry.url
+    assert_match "look at this", entry.excerpt
+    assert_equal @writer, entry.actor
   end
 
   test "a notification with nobody behind it still reads" do
@@ -99,7 +144,7 @@ class NotificationFeedTest < ActiveSupport::TestCase
     entry = feed.entries.sole
 
     assert_equal "Someone sent a message in Team Chat", entry.message
-    assert_equal "/tools/#{@chat_tool.id}/chat", entry.url
+    assert_equal "/tools/#{@chat_tool.id}/chat?message=#{@chat_tool.chat.messages.last.id}", entry.url
     assert_equal "Bye all", entry.excerpt
   end
 
@@ -117,6 +162,10 @@ class NotificationFeedTest < ActiveSupport::TestCase
   def deliver_chat_message(text)
     # A chat message tells the others itself
     @chat_tool.chat.messages.create!(user: @writer, body: "<p>#{text}</p>")
+  end
+
+  def mention_of(user, text)
+    %(<p>Hey <span data-id="#{user.id}" class="mention">@#{user.first_name}</span> #{text}</p>)
   end
 
   def feed

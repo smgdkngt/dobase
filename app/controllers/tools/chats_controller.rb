@@ -24,12 +24,21 @@ module Tools
 
     private
 
-    # The latest messages (before params[:before], when paging back), oldest first.
+    # The latest messages (before params[:before], when paging back), oldest first. With
+    # params[:message], the messages around that one: what a mention or a search hit
+    # leads to. A message that is gone (or another chat's) is the chat as it is now.
     def set_page_of_messages
-      limit = (Integer(params[:limit], exception: false) || ::Chats::Chat::MESSAGES_PER_PAGE)
-        .clamp(1, ::Chats::Chat::MAX_MESSAGES_PER_PAGE)
+      @focus = @chat.messages.with_associations.find_by(id: params[:message]) if params[:message].present?
 
-      @messages, @has_more = @chat.page_of_messages(before: params[:before], limit: limit)
+      if @focus
+        @messages, @has_more, @has_newer = @chat.page_around(@focus)
+      else
+        limit = (Integer(params[:limit], exception: false) || ::Chats::Chat::MESSAGES_PER_PAGE)
+          .clamp(1, ::Chats::Chat::MAX_MESSAGES_PER_PAGE)
+
+        @messages, @has_more = @chat.page_of_messages(before: params[:before], limit: limit)
+        @has_newer = false
+      end
     end
   end
 end

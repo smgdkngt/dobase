@@ -22,6 +22,8 @@
      data-chat-user-id-value="<%= current_user.id %>"
      data-chat-can-moderate-value="<%= @tool.owned_by?(current_user) %>"
      data-chat-read-url-value="<%= tool_chat_read_path(@tool) %>"
+     <%# A mention or a search hit: the page opens on that message, not the newest %>
+     <% if @focus %>data-chat-found-value="<%= @focus.id %>"<% end %>
      <%= tag.attributes(drop_attributes(tool: @tool, url: tool_chat_messages_path(@tool), done: "Posted in #{@tool.display_name}")) %>>
   <button data-controller="hotkey" data-hotkey="/" data-action="click->chat#focusInput" hidden>Focus input</button>
 
@@ -126,6 +128,13 @@
           </div>
         </div>
       </div>
+
+      <% if @has_newer %>
+        <div class="chat-jump-newest">
+          <%= render "components/button", text: "Jump to newest", icon: "arrow-down", variant: :secondary, size: :sm,
+                href: tool_chat_path(@tool) %>
+        </div>
+      <% end %>
 
       <!-- Message input -->
       <div class="flex flex-col border-t border-border-light bg-surface px-2 sm:px-4 py-2 sm:py-3">
