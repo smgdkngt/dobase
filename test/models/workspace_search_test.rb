@@ -74,10 +74,88 @@ class WorkspaceSearchTest < ActiveSupport::TestCase
     assert_empty search(users(:one), "a")
   end
 
-  test "an archived card stays out of the results" do
-    cards(:first_task).update!(archived_at: Time.current)
+  test "an archived card is found, marked archived and dated when it was archived" do
+    cards(:first_task).update!(archived_at: 2.days.ago)
 
-    assert_not_includes search(users(:one), "First task").map(&:title), "First task"
+    hit = search(users(:one), "First task").find { |h| h.kind == :card }
+
+    assert hit.archived
+    assert_equal 2.days.ago.to_date, hit.date.to_date
+    assert_equal "/tools/#{tools(:project_board).id}/board?card=#{cards(:first_task).id}", hit.path
+  end
+
+  test "open cards come before archived ones" do
+    column = columns(:todo)
+    column.cards.create!(title: "Walrus archived", position: 5, archived_at: 1.day.ago)
+    column.cards.create!(title: "Walrus open", position: 6)
+
+    assert_equal [ "Walrus open", "Walrus archived" ], search(users(:one), "walrus").map(&:title)
+  end
+
+  test "every word is looked for, in any order" do
+    columns(:todo).cards.create!(title: "Bake cookie dough", position: 5)
+
+    assert_equal [ "Bake cookie dough" ], search(users(:one), "dough cookie").map(&:title)
+    assert_empty search(users(:one), "dough biscuit")
+  end
+
+  test "the words may be in different parts of a card: title, description, column" do
+    columns(:in_progress).cards.create!(title: "Ferret food", description: "<p>Order from the <strong>pet shop</strong> downtown</p>", position: 5)
+
+    hit = search(users(:one), "ferret downtown").sole
+
+    assert_equal "Ferret food", hit.title
+    assert_includes hit.excerpt, "downtown"
+    assert_equal [ "Ferret food" ], search(users(:one), "ferret progress").map(&:title)
+    assert_empty search(users(:one), "ferret strong"), "a word only in the HTML isn't a match"
+  end
+
+  test "a card is found by what its comments say" do
+    card = columns(:todo).cards.create!(title: "Quarterly numbers", position: 5)
+    card.comments.create!(user: users(:one), body: "<p>The okapi figures are in</p>")
+
+    hit = search(users(:one), "okapi").sole
+
+    assert_equal "Quarterly numbers", hit.title
+    assert_includes hit.excerpt, "okapi figures"
+  end
+
+  test "a todo is found by its list's name, its description and its comments" do
+    list = todo_lists(:main)
+    list.update!(title: "Groceries")
+    item = list.items.create!(title: "Basil", description: "<p>The <em>genovese</em> kind</p>", position: 9)
+    item.comments.create!(user: users(:one), body: "<p>From the narwhal market</p>")
+
+    assert_includes search(users(:one), "groceries basil").map(&:title), "Basil"
+    assert_equal [ "Basil" ], search(users(:one), "genovese").map(&:title)
+    assert_equal [ "Basil" ], search(users(:one), "narwhal").map(&:title)
+  end
+
+  test "mail is found by what it says, not only its subject" do
+    hit = search(users(:one), "summary weekly").find { |h| h.kind == :mail }
+
+    assert_equal "Your weekly report", hit.title
+    assert_includes hit.excerpt, "summary"
+    assert hit.date
+  end
+
+  test "a few of each kind are shown, and how many there are" do
+    column = columns(:todo)
+    7.times { |i| column.cards.create!(title: "Lemur #{i}", position: 10 + i) }
+
+    search = WorkspaceSearch.new(users(:one), "lemur")
+
+    assert_equal WorkspaceSearch::PER_KIND, search.hits.size
+    assert_equal({ card: 7 }, search.totals)
+    assert search.more?(:card)
+
+    all = WorkspaceSearch.new(users(:one), "lemur", kind: "card")
+    assert_equal 7, all.hits.size
+    assert_not all.more?(:card)
+  end
+
+  test "every result has a date" do
+    assert search(users(:one), "First task").all?(&:date)
   end
 
   test "open todos come before finished ones" do

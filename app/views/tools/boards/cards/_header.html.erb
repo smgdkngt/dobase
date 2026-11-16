@@ -15,6 +15,12 @@
           in
           <span class="font-medium text-text-secondary"><%= card.column.name %></span>
         </span>
+        <% if card.archived? %>
+          <span class="inline-flex items-center gap-1 text-xs text-text-tertiary" data-card-archived>
+            <%= render "shared/icon", name: "archive", size: 12 %>
+            Archived <%= format_datetime(card.archived_at) %>
+          </span>
+        <% end %>
         <%# Who else has this open right now; filled in by presence_controller.js %>
         <span class="presence-watchers" hidden aria-live="polite" data-presence-target="watchers" data-presence-for="card:<%= card.id %>"></span>
       </div>

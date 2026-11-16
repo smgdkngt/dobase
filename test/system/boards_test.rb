@@ -219,6 +219,31 @@ class BoardsTest < ApplicationSystemTestCase
     page.driver.browser.execute_cdp("Emulation.setTouchEmulationEnabled", enabled: false)
   end
 
+  test "an archived card opens from its column, newest first, with when it was archived, and is restored from there" do
+    older = cards(:first_task)
+    older.update!(archived_at: 3.days.ago)
+    newer = cards(:second_task)
+    newer.update!(title: "A long title that the column cuts off, but the dialog shows from its first word to its last", archived_at: 1.hour.ago, column: older.column)
+    visit tool_board_path(@tool)
+    wait_for_stimulus "board"
+
+    within("#board-column-#{older.column_id}") do
+      click_on "2 archived"
+      rows = all("[data-archived-card]").map { |row| row["data-archived-card"].to_i }
+      assert_equal [ newer.id, older.id ], rows
+      find("[data-archived-card='#{newer.id}'] .board-card-archived-open").click
+    end
+
+    within("dialog#card-detail-modal[open]") do
+      assert_selector "h2", text: newer.title
+      assert_selector "[data-card-archived]", text: "Archived"
+      click_on "Restore card"
+    end
+
+    assert_selector "[data-card-id='#{newer.id}']", text: newer.title
+    assert_not newer.reload.archived?
+  end
+
   private
 
   # Saving the tool's settings comes back to the board with a notice

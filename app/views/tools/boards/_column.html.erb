@@ -3,7 +3,8 @@
   # Split the loaded cards in Ruby, so a preloaded column needs no queries of its own
   cards = column.cards.to_a
   active_cards = filter_by_assignee(cards.reject(&:archived?), assignee_filter)
-  archived_cards = cards.select(&:archived?)
+  # The last archived first, as a pile of them is looked through
+  archived_cards = cards.select(&:archived?).sort_by(&:archived_at).reverse
   active_count = active_cards.size
   archived_count = archived_cards.size
   # Deleting the column deletes every card in it: the archived ones, and the
@@ -87,9 +88,17 @@
         </button>
         <div class="hidden flex-col gap-2" data-board-target="archivedSection" data-column-id="<%= column.id %>">
           <% archived_cards.each do |card| %>
-            <div class="board-card-archived bg-surface border border-border-light rounded-md p-3 relative">
-              <div class="flex items-center justify-between gap-2">
-                <span class="text-sm text-text-secondary truncate"><%= card.title %></span>
+            <%# A click opens the card as any card opens, to read it and restore it from there %>
+            <div class="board-card-archived bg-surface border border-border-light rounded-md p-3 relative" data-archived-card="<%= card.id %>">
+              <div class="flex items-start justify-between gap-2">
+                <button type="button"
+                        class="board-card-archived-open"
+                        data-arrow-keys-target="item"
+                        data-action="board#openCard"
+                        data-board-card-id-param="<%= card.id %>">
+                  <span class="block text-sm text-text-secondary line-clamp-2"><%= card.title %></span>
+                  <span class="block text-xs text-text-tertiary mt-0.5">Archived <%= format_date(card.archived_at) %></span>
+                </button>
                 <%= link_to tool_board_card_archive_path(tool, card),
                     class: "inline-flex items-center gap-1 text-xs text-text-tertiary hover:text-accent transition-colors flex-shrink-0",
                     data: { turbo_method: :delete, turbo_frame: "_top" } do %>

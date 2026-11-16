@@ -86,7 +86,7 @@ it is called with `confirm: true`.
 |------|--------------|-----|
 | `whoami` | You, and the token in use | [Tools](tools.md#who-am-i) |
 | `tool_list`, `tool_show`, `tool_create`, `tool_rename` | Your tools | [Tools](tools.md) |
-| `search` | Every tool at once | [Search](search.md) |
+| `search` | Every tool at once (`kind` for all of one kind) | [Search](search.md) |
 | `notification_list`, `notification_read` | Your notifications | [Notifications](notifications.md) |
 | `event_list` | What happened, by number | [Events](events.md) |
 | `card_list`, `card_show`, `card_create`, `card_update`, `card_move`, `card_archive`, `card_unarchive`, `card_delete`\*, `card_comment`, `card_uncomment`\*, `card_attach`, `column_create`, `column_rename`, `column_delete`\* | Boards | [Boards](boards.md) |

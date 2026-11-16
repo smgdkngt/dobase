@@ -86,6 +86,25 @@ class WorkspaceInPageBoardTest < ApplicationSystemTestCase
     assert_selector BOARD, count: 1
   end
 
+  test "an archived card opens from its column in the tile" do
+    card = cards(:second_task)
+    card.update!(archived_at: 1.day.ago)
+    visit workspace_path(open: tool_path(@board))
+    wait_for_stimulus "workspace"
+
+    within(BOARD) do
+      click_on "1 archived"
+      find("[data-archived-card='#{card.id}'] .board-card-archived-open").click
+    end
+
+    within("dialog#card-detail-modal[open]") do
+      assert_selector "h2", text: card.title
+      assert_selector "[data-card-archived]", text: "Archived"
+      assert_link "Restore card"
+    end
+    assert_current_path workspace_path
+  end
+
   test "a column is added by its key, collapsed and opened again" do
     find(BOARD).click
     find("#{BOARD} .tile-page").send_keys("n")

@@ -996,6 +996,10 @@
   .command-palette-item.hidden {
     @apply hidden;
   }
+  /* The searched words in a result: in the accent, not the browser's yellow */
+  .command-palette-item mark {
+    @apply bg-accent/15 text-inherit font-medium rounded-xs;
+  }
 
   /* What Enter does, under the results */
   .command-palette-hint {

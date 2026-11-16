@@ -60,7 +60,13 @@
 
   /* Archived cards */
   .board-card-archived {
-    @apply opacity-50;
+    @apply opacity-60 transition-opacity;
+  }
+  .board-card-archived:hover, .board-card-archived:focus-within {
+    @apply opacity-100;
+  }
+  .board-card-archived-open {
+    @apply flex-1 min-w-0 text-left cursor-pointer rounded-sm;
   }
 
   /* Card hover lift — a physical sense of picking something up */

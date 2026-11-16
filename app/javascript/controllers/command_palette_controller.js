@@ -77,7 +77,25 @@ export default class extends Controller {
 
   // The results arrived; if nothing above them matched, the first one is selected
   searched() {
+    if (this._showingMore) {
+      // "Show all" or "Back" was pressed: the keyboard goes back to the field, on the first result
+      this._showingMore = false
+      this.inputTarget.focus()
+      const first = this.#visibleItems.find(item => item.dataset.searchResult && item.matches("a"))
+      if (first) {
+        this.itemTargets.forEach(item => item.classList.remove("selected"))
+        first.classList.add("selected")
+        first.scrollIntoView({ block: "nearest" })
+        return
+      }
+    }
     if (!this.#selectedItem || this.#selectedItem.classList.contains("hidden")) this.#selectFirst()
+  }
+
+  // A button among the results loads other results into their frame ("Show all");
+  // typing goes on in the field once they are in
+  keepTyping() {
+    this._showingMore = true
   }
 
   // Hide a section's header (and, for actions, the divider after it) once
