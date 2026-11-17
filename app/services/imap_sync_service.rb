@@ -354,10 +354,11 @@ class ImapSyncService
   # A fetch that came back without the message once saved an empty row for it: no
   # sender, no subject, no date, no text (Mails::IncomingMessage no longer does). Such
   # a row is let go of, so its UID is new again and the mail is fetched as it is now:
-  # whole when the server has it, or not at all.
+  # whole when the server has it, or not at all. One without a UID goes as well: two such
+  # rows stayed in the inbox when their mail was trashed here while a sync fetched it (2026-11-17).
   def forget_empty_copies(folder_name)
-    @account.messages.where(folder: folder_name, draft: false, sending: false, sent_at: nil, from_address: nil, subject: nil)
-      .where.not(uid: nil).where("COALESCE(body_plain, '') = '' AND COALESCE(body_html, '') = ''")
+    @account.messages.where(folder: folder_name, draft: false, sending: false, sent_at: nil, from_address: nil, subject: nil, has_attachments: false)
+      .where("TRIM(COALESCE(body_plain, '')) = '' AND TRIM(COALESCE(body_html, '')) = ''")
       .find_each(&:destroy)
   end
 

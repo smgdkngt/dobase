@@ -735,6 +735,31 @@ class ImapSyncServiceTest < ActiveSupport::TestCase
     assert_not @account.messages.exists?(message_id: "ses@us-west-2.amazonses.com")
   end
 
+  test "a message that comes back as only its Message-ID is not saved, and doesn't empty one saved before" do
+    # What iCloud sent for two GitHub mails trashed here while a sync fetched the inbox (2026-11-17)
+    envelope = Net::IMAP::Envelope.new(nil, nil, nil, nil, nil, nil, nil, nil, nil, "<pull/1001/c69@github.com>")
+    stub = ->(uid) { Net::IMAP::FetchData.new(1, { "UID" => uid, "ENVELOPE" => envelope, "FLAGS" => [], "BODY[]" => "Message-ID: <pull/1001/c69@github.com>\r\n\r\n" }) }
+    incoming_message.send(:save_email, stub.(40), "INBOX")
+    assert_not @account.messages.exists?(message_id: "pull/1001/c69@github.com")
+
+    raw = Mail.new(from: "ann@example.com", to: "me@example.com", subject: "Review", body: "Looks good", message_id: "<pull/1001/c69@github.com>").to_s
+    incoming_message.send(:save_email, fetch_data(41, raw), "INBOX")
+    incoming_message.send(:save_email, stub.(41), "INBOX")
+    assert_equal "Review", @account.messages.find_by!(message_id: "pull/1001/c69@github.com").subject
+  end
+
+  test "an empty row without a UID is let go of too, and mail without one that has something in it stays" do
+    empty = @account.messages.create!(message_id: "pull/1001@github.com", folder: "INBOX", uid: nil, read: false, body_plain: "")
+    moving = @account.messages.create!(message_id: "moving@example.com", folder: "INBOX", uid: nil, subject: "Just restored", from_address: "ann@example.com")
+    imap = Object.new
+    imap.define_singleton_method(:uid_search) { |*| [] }
+
+    @service.send(:fetch_recent_emails, imap, "INBOX", 50)
+
+    assert_not Mails::Message.exists?(empty.id)
+    assert Mails::Message.exists?(moving.id)
+  end
+
   test "a mail already saved is not emptied by a fetch that comes back without the message" do
     raw = Mail.new(from: "ann@example.com", to: "me@example.com", subject: "Report", body: "The numbers", message_id: "<report@example.com>").to_s
     incoming_message.send(:save_email, fetch_data(32, raw), "INBOX")

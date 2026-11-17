@@ -91,6 +91,10 @@ module Mails
 
       attachment_parts = parsed_mail ? attachment_parts_of(parsed_mail) : []
       has_attachments = attachment_parts.any?
+      # Or with a message that is only its Message-ID: no sender, no subject, no date, no text.
+      # Two GitHub mails came so into the inbox (2026-11-17), fetched while they were being
+      # trashed here. That is no mail, and never takes the place of one saved before.
+      return if nothing_but_an_id?(envelope, from, parsed, has_attachments)
 
       # A draft discarded here is in the server's trash as the mail it would go out as, quote
       # and all. It stays as it was written, to be a draft again when it's restored. Drafts
@@ -137,6 +141,11 @@ module Mails
 
       # Detect and create calendar invites for new emails
       detect_calendar_invite(email, calendar_data_of(parsed_mail)) if is_new_email
+    end
+
+    def nothing_but_an_id?(envelope, from, parsed, has_attachments)
+      from.nil? && envelope.subject.blank? && envelope.date.blank? && !has_attachments &&
+        parsed[:plain].to_s.strip.empty? && parsed[:html].to_s.strip.empty?
     end
 
     # A group among the recipients ("undisclosed-recipients:;") is listed as a start and an

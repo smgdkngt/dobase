@@ -181,6 +181,33 @@
     @apply min-w-0 max-w-[40vw] truncate text-center text-xs text-text-tertiary;
   }
 
+  /* A toast lies in the middle of the bar, over the title: the one place in the window
+     where it covers nothing to press. At the bottom or the top right it lay over a tile's
+     own buttons (a mailbox's Compose and close, a chat's Send), and Undo is near at hand
+     there too. More than one go on downwards. */
+  :root body[data-workspace] .flash-toast {
+    top: calc((max(2.25rem, env(titlebar-area-height, 0px)) - 1.75rem) / 2);
+    bottom: auto;
+    left: 50%;
+    right: auto;
+    width: max-content;
+    max-width: 36vw;
+    transform: translateX(-50%);
+    @apply gap-1;
+  }
+
+  :root body[data-workspace] .flash-toast > .flash {
+    @apply min-h-7 py-0 pl-2.5 pr-1 gap-2 rounded-md text-xs;
+  }
+
+  :root body[data-workspace] .flash-toast [data-flash-text] {
+    @apply min-w-0 truncate;
+  }
+
+  :root body[data-workspace] .flash-toast :is(.flash-undo .btn, button) {
+    @apply h-6 ml-0;
+  }
+
   /* The room the tiles share. They are placed in it by the controller. */
   .workspace-room {
     @apply relative flex-1 min-h-0;
