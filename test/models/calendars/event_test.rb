@@ -471,6 +471,29 @@ module Calendars
       assert_not event.recurrence_editable?
     end
 
+    test "alerts are read against the start they are saved with, blanks left out, each once and in order" do
+      event = Time.use_zone("Amsterdam") do
+        build_event(reminders: [ "", "1d@17:00", "75m", "75" ], starts_at: Time.zone.local(2026, 12, 1, 10), ends_at: Time.zone.local(2026, 12, 1, 11)).tap(&:save!)
+      end
+
+      assert_equal [ 75, 1020 ], event.reload.reminders
+      assert_equal [ { minutes: 75, label: "1 hour 15 minutes before" }, { minutes: 1020, label: "The day before at 5:00 PM" } ],
+        Time.use_zone("Amsterdam") { event.reminder_list }
+
+      event.update!(reminders: [ "" ])
+      assert_equal [], event.reload.reminders
+    end
+
+    test "an alert that can't be read, or one too many, is an error" do
+      event = build_event(reminders: [ "soon" ])
+      assert_not event.valid?
+      assert_match "isn't an alert", event.errors[:reminders].first
+
+      event = build_event(reminders: (1..11).map { "#{it}m" })
+      assert_not event.valid?
+      assert_includes event.errors[:reminders], "are more than 10"
+    end
+
     private
 
     def build_event(overrides = {})

@@ -198,6 +198,21 @@
     </div>
   </div>
 
+  <!-- Alerts: a select per alert, and one more to add one. The calendar's server keeps them and
+       the calendar app on a phone or computer gives them (Calendars::Reminder) -->
+  <div class="mb-4">
+    <span class="label" id="<%= ids %>_reminders_label">Alerts</span>
+    <%= hidden_field_tag "calendars_event[reminders][]", "", id: nil %>
+    <div class="space-y-2">
+      <% (event.reminders + [ nil ]).each_with_index do |minutes, index| %>
+        <%= select_tag "calendars_event[reminders][]",
+          options_for_select(reminder_options(event, minutes), minutes.nil? ? "" : minutes.to_s),
+          id: "#{ids}_reminder_#{index}", class: "input", "aria-labelledby": "#{ids}_reminders_label" %>
+      <% end %>
+    </div>
+    <p class="text-xs text-text-tertiary mt-1">The calendar app on your phone or computer gives the alert.</p>
+  </div>
+
   <!-- Location -->
   <div class="mb-4">
     <%= f.label :location, class: "label" %>

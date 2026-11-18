@@ -174,6 +174,10 @@ class McpWriteToolsTest < ActionDispatch::IntegrationTest
 
     call!("appointment_update", tool_id: calendar.id, appointment_id: record.id, title: "Flavor lab 2", repeat: "none")
     assert_equal "Flavor lab 2", record.reload.summary
+    updated = call!("appointment_update", tool_id: calendar.id, appointment_id: record.id, reminders: [ "1h", "15m" ])
+    assert_equal [ 15, 60 ], updated["reminders"].map { it["minutes"] }
+    call!("appointment_update", tool_id: calendar.id, appointment_id: record.id, reminders: [])
+    assert_equal [], record.reload.reminders
     call!("appointment_delete", tool_id: calendar.id, appointment_id: record.id, confirm: true)
     assert_not Calendars::Event.exists?(record.id)
     assert call!("calendar_sync", tool_id: calendar.id).key?("status")

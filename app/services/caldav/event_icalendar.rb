@@ -57,11 +57,37 @@ module Caldav
           { "cn" => attendee["name"].presence, "partstat" => attendee["status"].presence&.upcase || "NEEDS-ACTION" }.compact)
       end
 
+      add_alarms(vevent, event)
       vevent.dtstamp = utc_value(Time.current)
 
       cal.add_event(vevent)
       keep_exceptions(cal, vevent, event) if event.is_recurring? && event.rrule.present?
       cal.to_ical
+    end
+
+    # The event's alerts as VALARMs. One the server had already for the same moment goes back as it
+    # came (its UID, whether it was acknowledged, what Apple marks on it), and one that is no alert
+    # Dobase shows (ACTION:NONE, an e-mail) goes back untouched: those are the calendar app's.
+    def add_alarms(vevent, event)
+      kept = original_alarms(event)
+      by_minutes = kept.each_with_object({}) do |alarm, found|
+        minutes = Calendars::Reminder.minutes_of_alarm(alarm, starts_at: event.starts_at, ends_at: event.ends_at)
+        minutes.nil? ? vevent.alarms << alarm : found[minutes] ||= alarm
+      end
+      event.reminders.each do |minutes|
+        vevent.alarms << (by_minutes[minutes] || Calendars::Reminder.alarm(minutes, event.summary))
+      end
+    end
+
+    def original_alarms(event)
+      return [] if event.raw_icalendar.blank?
+
+      original = Icalendar::Calendar.parse(event.raw_icalendar.to_s).first
+      series = original&.events&.find { |component| component.uid.to_s == event.uid && component.recurrence_id.nil? }
+      series ? series.alarms : []
+    rescue Icalendar::Parser::ParseError, ArgumentError => e
+      Rails.logger.warn("Couldn't read the alerts of event #{event.uid}: #{e.message}")
+      []
     end
 
     def utc_value(time)

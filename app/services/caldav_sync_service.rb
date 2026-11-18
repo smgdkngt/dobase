@@ -576,6 +576,7 @@ class CaldavSyncService
       rrule: event_data[:rrule],
       recurrence_schedule: event_data[:recurrence_schedule],
       recurrence_overrides: event_data[:recurrence_overrides],
+      reminders: event_data[:reminders] || [],
       etag: event_data[:etag],
       remote_href: event_data[:remote_url],
       raw_icalendar: event_data[:raw_icalendar]

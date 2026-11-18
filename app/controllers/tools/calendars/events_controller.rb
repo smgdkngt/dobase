@@ -208,7 +208,8 @@ module Tools
           :recurrence_end_type,
           :recurrence_count,
           :recurrence_until,
-          recurrence_days_of_week: []
+          recurrence_days_of_week: [],
+          reminders: []
         )
       end
 

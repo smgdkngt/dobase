@@ -100,6 +100,10 @@ server carry an `organizer` and `attendees`, whose `status` is their reply
   "occurrence": false,
   "recurrence": null,
   "rrule": null,
+  "reminders": [
+    { "minutes": 1020, "label": "The day before at 11:00 PM" },
+    { "minutes": 15, "label": "15 minutes before" }
+  ],
   "organizer": { "name": "Rachel Kim", "email": "rachel@northstar.vc" },
   "attendees": [
     { "name": "Rachel Kim", "email": "rachel@northstar.vc", "status": "accepted" },
@@ -154,6 +158,25 @@ Add these fields to make an event repeat:
 returns, among the other fields,
 `"recurrence": "Weekly on Monday, Friday, until Oct 31, 2026"` and
 `"rrule": "FREQ=WEEKLY;BYDAY=MO,FR;UNTIL=20261031T235959Z"`.
+
+### Alerts
+
+`reminders` are the event's alerts, each a number of `minutes` before its start
+with a `label` in words. They are the event's VALARMs on the CalDAV server: the
+calendar app on your phone or computer gives the alert, Dobase doesn't. Alerts
+set in another calendar app show here, and stay when the event is changed here.
+In a calendar that lives only in Dobase they are kept and nothing alerts.
+
+Send `reminders` as a list, which replaces the alerts the event had (`[""]`
+takes them all away). Each is minutes (`75`), a span (`45m`, `2h`, `1d`, `1w`),
+or a time on a day before the start in your time zone: `1d@17:00` is the day
+before at 17:00, `@08:45` the same day. An all-day event counts back from
+midnight at its start, so `1d@09:00` is 09:00 the day before and `@09:00` 09:00
+on the day (`-540` minutes). At most 10, and none more than 4 weeks before.
+
+```json
+{ "calendars_event": { "reminders": ["1d@17:00", "75m"] } }
+```
 
 ### Update
 

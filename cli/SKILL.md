@@ -266,6 +266,7 @@ dobase event show 9/77
 dobase event create agenda "Dentist" --start "2026-09-18 14:30" --duration 45m --location "Main St 1"
 dobase event create agenda "Offsite" --start 2026-10-02 --all-day
 dobase event update 9/77 --start "2026-09-18 15:00"  # keeps the length; --end or --duration to change it
+dobase event update 9/77 --reminder 1d@17:00 --reminder 75m  # alerts (replace the ones it had); the calendar app on the phone gives them
 dobase event create agenda "Standup" --start "2026-09-21 09:00" --duration 15m --repeat weekly --repeat-count 10
 dobase calendar list agenda              # which calendars exist and which are writable
 ```

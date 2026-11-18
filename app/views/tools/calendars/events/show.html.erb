@@ -34,6 +34,16 @@
     </div>
   <% end %>
 
+  <!-- Alerts, given by the calendar app on someone's devices -->
+  <% if @event.reminders.any? %>
+    <div class="mb-4">
+      <div class="flex items-start gap-2 text-sm">
+        <%= render "shared/icon", name: "bell", size: 16, class: "text-text-tertiary mt-0.5" %>
+        <span class="text-text-primary"><%= @event.reminder_list.map { |reminder| reminder[:label] }.join(" · ") %></span>
+      </div>
+    </div>
+  <% end %>
+
   <!-- Location -->
   <% if @event.location.present? %>
     <div class="mb-4">

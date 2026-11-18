@@ -43,8 +43,12 @@ func eventFlags(updating bool) []Flag {
 		F("repeat", "FREQUENCY", fmt.Sprintf("Repeat %s, or none to stop repeating", strings.Join(frequencies, ", "))),
 		F("repeat-until", "DATE", "Repeat until this date (YYYY-MM-DD)"),
 		F("repeat-count", "N", "Repeat N times"))
+	flags = append(flags,
+		Each("reminder", "WHEN", "An alert before the start, as often as needed: 45m, 2h, 1d, 1w, or 1d@17:00 (the day before at 17:00), @08:45 (that day). The calendar app on your devices gives it"))
 	if updating {
-		flags = append(flags, F("title", "TEXT", "New title"))
+		flags = append(flags,
+			Switch("no-reminders", "Take every alert away (--reminder replaces them all)"),
+			F("title", "TEXT", "New title"))
 	}
 	return flags
 }
@@ -174,6 +178,7 @@ func showEvent(ctx *Ctx, args *Args) error {
 		ctx.Sayf("%s (event %s/%s)", event.Get("summary").S(), tool.Get("id").S(), event.Get("id").S())
 		ctx.Field("When", eventSpan(event))
 		ctx.Field("Repeats", event.Get("recurrence").S())
+		ctx.Field("Alerts", reminderLabels(event))
 		ctx.Field("Calendar", event.Get("calendar", "name").S())
 		ctx.Field("Location", event.Get("location").S())
 		ctx.Field("Status", event.Get("status").S())
@@ -226,6 +231,7 @@ func createEvent(ctx *Ctx, args *Args) error {
 		ctx.Sayf("Created event %s/%s %s in %s: %s", tool.Get("id").S(), event.Get("id").S(), Quoted(event.Get("summary").S()),
 			event.Get("calendar", "name").S(), eventSpan(event))
 		ctx.Field("Repeats", event.Get("recurrence").S())
+		ctx.Field("Alerts", reminderLabels(event))
 		return nil
 	})
 }
@@ -271,6 +277,7 @@ func updateEvent(ctx *Ctx, args *Args) error {
 		ctx.Sayf("Updated event %s/%s %s in %s: %s", tool.Get("id").S(), event.Get("id").S(), Quoted(event.Get("summary").S()),
 			event.Get("calendar", "name").S(), eventSpan(event))
 		ctx.Field("Repeats", event.Get("recurrence").S())
+		ctx.Field("Alerts", reminderLabels(event))
 		return nil
 	})
 }
@@ -365,6 +372,15 @@ func dayArgs(tool api.Value, first, last string) map[string]any {
 	return args
 }
 
+// reminderLabels says an event's alerts in one line: "The day before at 5:00 PM, 1 hour 15 minutes before".
+func reminderLabels(event api.Value) string {
+	var labels []string
+	for _, reminder := range event.Get("reminders").Items() {
+		labels = append(labels, reminder.Get("label").S())
+	}
+	return strings.Join(labels, ", ")
+}
+
 // appointmentNames are the tools' names for the API's event attributes the CLI builds.
 var appointmentNames = map[string]string{
 	"summary": "title", "start_time": "starts", "end_time": "ends", "calendar_id": "calendar",
@@ -424,6 +440,11 @@ func eventAttributes(ctx *Ctx, tool api.Value, args *Args, current *api.Value, c
 	}
 	for key, value := range recurrence {
 		attributes[key] = value
+	}
+	if reminders := args.All("reminder"); len(reminders) > 0 {
+		attributes["reminders"] = reminders
+	} else if args.On("no-reminders") {
+		attributes["reminders"] = []string{}
 	}
 	return attributes, nil
 }

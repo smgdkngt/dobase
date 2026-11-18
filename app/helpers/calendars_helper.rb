@@ -1,6 +1,20 @@
 # frozen_string_literal: true
 
 module CalendarsHelper
+  # The choices of one alert's select: none, the alerts the form offers, and the event's own
+  # alert when it is none of those (one set in another calendar app). A choice that comes to the
+  # chosen alert's minutes for this event is sent as those minutes, so it shows as chosen.
+  def reminder_options(event, chosen)
+    choices = Calendars::Reminder::CHOICES.map do |label, value|
+      minutes = Calendars::Reminder.parse(value, starts_at: event.starts_at, all_day: event.all_day?) rescue nil
+      [ label, minutes && minutes == chosen ? chosen.to_s : value ]
+    end
+    unless chosen.nil? || choices.any? { |_, value| value == chosen.to_s }
+      choices.unshift([ Calendars::Reminder.label(chosen, starts_at: event.starts_at, all_day: event.all_day?), chosen.to_s ])
+    end
+    [ [ chosen.nil? ? "Add an alert" : "None", "" ] ] + choices
+  end
+
   def navigate_date(date, direction)
     case direction.to_sym
     when :prev

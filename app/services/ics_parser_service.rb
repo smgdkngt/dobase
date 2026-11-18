@@ -41,6 +41,7 @@ class IcsParserService
       recurrence_schedule: build_schedule(event, overrides),
       recurrence_overrides: event.rrule.present? ? parse_overrides(overrides) : [],
       status: event.status&.to_s&.downcase,
+      reminders: parse_reminders(event),
       raw_icalendar: @ics_data
     }
   rescue Icalendar::Parser::ParseError, StandardError => e
@@ -49,6 +50,14 @@ class IcsParserService
   end
 
   private
+
+  # The event's alerts (VALARM) as minutes before its start; one that is no alert to show
+  # (ACTION:NONE, an e-mail) is left out here and kept on the server (Caldav::EventIcalendar)
+  def parse_reminders(event)
+    starts_at = parse_datetime(event.dtstart)
+    ends_at = parse_end_datetime(event)
+    event.alarms.filter_map { |alarm| Calendars::Reminder.minutes_of_alarm(alarm, starts_at: starts_at, ends_at: ends_at) }.uniq.sort
+  end
 
   def empty_result
     {
@@ -67,6 +76,7 @@ class IcsParserService
       recurrence_schedule: nil,
       recurrence_overrides: [],
       status: nil,
+      reminders: [],
       raw_icalendar: @ics_data
     }
   end

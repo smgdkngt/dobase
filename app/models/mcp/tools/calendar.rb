@@ -27,7 +27,11 @@ module Mcp
           repeat_monthly_by: choice(%w[day_of_month day_of_week], "Monthly: on the same date, or the same weekday (the 3rd Friday)"),
           repeat_ends: choice(%w[never count until], "When the repeating stops"),
           repeat_count: number("With repeat_ends count: how many times"),
-          repeat_until: date("With repeat_ends until: the last day")
+          repeat_until: date("With repeat_ends until: the last day"),
+          reminders: list({ type: "string" },
+            "Alerts, each before the start: 45m, 2h, 1d, 1w, or a time on a day before, 1d@17:00 (the day before at " \
+            "17:00) or @08:45 (that day), in your time zone. They are written to the calendar's server and the calendar " \
+            "app on the person's devices gives them. Replaces the alerts it had; an empty list takes them all away")
         }
       end
 
@@ -36,6 +40,8 @@ module Mcp
           attributes = { summary: arg(:title), start_time: arg(:starts), end_time: arg(:ends) }.compact
           FIELDS.each { attributes[it] = arg(it) if given?(it) }
           RECURRENCE.each { |name, field| attributes[field] = arg(name) if given?(name) }
+          # A blank is none: an empty list would not reach the controller as a list
+          attributes[:reminders] = Array(arg(:reminders)).presence || [ "" ] if given?(:reminders)
           if arg(:calendar)
             calendars = get("/tools/#{arg(:tool_id)}/calendar")["calendars"]
             attributes[:calendar_id] = named(calendars, arg(:calendar), "name", "calendar")["id"]

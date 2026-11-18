@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_16_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_18_120000) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -136,6 +136,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_16_100000) do
     t.string "uid"
     t.datetime "updated_at", null: false
     t.integer "updated_by_id"
+    t.text "reminders"
     t.index ["calendar_id", "ends_at"], name: "index_calendar_events_on_calendar_id_and_ends_at"
     t.index ["calendar_id", "starts_at"], name: "index_calendar_events_on_calendar_id_and_starts_at"
     t.index ["calendar_id", "uid"], name: "index_calendar_events_on_calendar_id_and_uid"

@@ -691,6 +691,93 @@ class CaldavSyncServiceTest < ActiveSupport::TestCase
 
   # ICS generation tests
 
+  test "alerts set in another calendar app are read from their VALARMs, and go back to the server as they came" do
+    ics = <<~ICS
+      BEGIN:VCALENDAR
+      VERSION:2.0
+      PRODID:-//Apple Inc.//iPhone OS 26.1//EN
+      BEGIN:VEVENT
+      UID:dentist@example.com
+      DTSTART:20301201T090000Z
+      DTEND:20301201T100000Z
+      SUMMARY:Dentist
+      BEGIN:VALARM
+      UID:A1B2
+      X-WR-ALARMUID:A1B2
+      TRIGGER:-PT17H
+      ACTION:DISPLAY
+      DESCRIPTION:Reminder
+      ACKNOWLEDGED:20301130T160000Z
+      END:VALARM
+      BEGIN:VALARM
+      TRIGGER;RELATED=END:-PT2H
+      ACTION:AUDIO
+      END:VALARM
+      BEGIN:VALARM
+      TRIGGER;VALUE=DATE-TIME:19760401T005545Z
+      ACTION:NONE
+      END:VALARM
+      END:VEVENT
+      END:VCALENDAR
+    ICS
+    calendar = calendars_calendars(:personal)
+    service = CaldavSyncService.new(calendar.account)
+
+    service.send(:save_event, calendar, IcsParserService.new(ics).parse.merge(etag: "1", remote_url: "#{calendar.remote_url}dentist.ics"))
+    event = calendar.events.find_by!(uid: "dentist@example.com")
+    # Two hours before the end of an hour is an hour before the start; ACTION:NONE is no alert
+    assert_equal [ 60, 1020 ], event.reminders
+
+    event.update!(reminders: [ "1020", "75m" ])
+    sent = Icalendar::Calendar.parse(Caldav::EventIcalendar.new(event).to_ical).sole.events.sole
+
+    kept = sent.alarms.find { |alarm| alarm.custom_property("x_wr_alarmuid").first.to_s == "A1B2" }
+    assert_equal "-PT17H", kept.trigger.value_ical
+    assert_equal Time.utc(2030, 11, 30, 16), kept.acknowledged.to_time
+    assert_equal [ "NONE" ], sent.alarms.select { |alarm| alarm.action.to_s == "NONE" }.map { |alarm| alarm.action.to_s }
+    assert_equal "-PT1H15M", sent.alarms.find { |alarm| alarm.action.to_s == "DISPLAY" && alarm != kept }.trigger.value_ical
+    assert_equal 3, sent.alarms.size, "the alert an hour before was taken away"
+    assert_equal [ 75, 1020 ], IcsParserService.new(Caldav::EventIcalendar.new(event).to_ical).parse[:reminders]
+  end
+
+  test "an event synced before alerts were kept reads them from what the server sent, and keeps them when changed here" do
+    event = calendars_calendars(:personal).events.create!(uid: "old@example.com", summary: "Old", starts_at: Time.utc(2030, 12, 1, 9),
+      ends_at: Time.utc(2030, 12, 1, 10), raw_icalendar: <<~ICS)
+        BEGIN:VCALENDAR
+        VERSION:2.0
+        BEGIN:VEVENT
+        UID:old@example.com
+        DTSTART:20301201T090000Z
+        DTEND:20301201T100000Z
+        SUMMARY:Old
+        BEGIN:VALARM
+        TRIGGER:-PT30M
+        ACTION:DISPLAY
+        DESCRIPTION:Reminder
+        END:VALARM
+        END:VEVENT
+        END:VCALENDAR
+      ICS
+    event.update_column(:reminders, nil)
+
+    event = Calendars::Event.find(event.id)
+    assert_equal [ 30 ], event.reminders
+    event.update!(summary: "Old, renamed")
+
+    assert_includes Caldav::EventIcalendar.new(event).to_ical, "TRIGGER:-PT30M"
+  end
+
+  test "an all-day event's alerts count from its midnight, and one on the day is after it" do
+    event = calendars_calendars(:personal).events.create!(uid: "offsite@dobase", summary: "Offsite", all_day: true,
+      starts_at: Time.utc(2030, 12, 2), ends_at: Time.utc(2030, 12, 3), reminders: [ "1d@09:00", "@08:00" ])
+
+    ics = Caldav::EventIcalendar.new(event).to_ical
+
+    assert_includes ics, "TRIGGER:-PT15H"
+    assert_includes ics, "TRIGGER:PT8H"
+    assert_equal [ -480, 900 ], IcsParserService.new(ics).parse[:reminders]
+  end
+
   test "builds valid icalendar for timed event" do
     event = calendars_events(:meeting)
 

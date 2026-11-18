@@ -66,6 +66,21 @@ module Tools
         assert_select ".card .event-edit-form"
       end
 
+      test "alerts are chosen in the form, one select each and one more to add one, and shown with the event" do
+        Time.use_zone(users(:one).timezone || "UTC") { @meeting.update!(reminders: [ 15, 75 ]) }
+
+        get edit_tool_calendar_event_path(@tool, @meeting)
+        assert_select "select[name='calendars_event[reminders][]']", count: 3
+        assert_select "select[name='calendars_event[reminders][]'] option[selected][value='15']", text: "15 minutes before"
+        assert_select "select[name='calendars_event[reminders][]'] option[selected][value='75']", text: "1 hour 15 minutes before"
+
+        patch tool_calendar_event_path(@tool, @meeting), params: { calendars_event: { reminders: [ "", "15", "", "1d" ] } }
+        assert_equal [ 15, 1440 ], @meeting.reload.reminders
+
+        get tool_calendar_event_path(@tool, @meeting)
+        assert_select ".event-details", text: /15 minutes before · 1 day before/
+      end
+
       test "update can't move an event to a calendar of another tool" do
         foreign_calendar = calendars_accounts(:pending_account).calendars.create!(name: "Theirs", remote_id: "/theirs/")
 

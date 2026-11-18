@@ -20,6 +20,7 @@ json.recurring event.is_recurring?
 json.occurrence event.occurrence?
 json.recurrence event.recurrence_description
 json.rrule event.rrule
+json.reminders event.reminder_list
 
 if event.organizer_email.present? || event.organizer_name.present?
   json.organizer do

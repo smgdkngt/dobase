@@ -83,6 +83,9 @@ func TestEventUpdatesKeepWhatIsNotGiven(t *testing.T) {
 			`{"appointment_id":5,"repeat":"weekly","repeat_ends":"until","repeat_until":"2026-12-01","tool_id":22}`},
 		{[]string{"22/5", "--repeat", "daily"}, `{"appointment_id":5,"repeat":"daily","repeat_ends":"never","tool_id":22}`},
 		{[]string{"22/6", "--repeat", "none"}, `{"appointment_id":6,"repeat":"none","tool_id":22}`},
+		// Alerts are sent as they were written, for the server to read against the start; none takes them away.
+		{[]string{"22/5", "--reminder", "1d@17:00", "--reminder", "75m"}, `{"appointment_id":5,"reminders":["1d@17:00","75m"],"tool_id":22}`},
+		{[]string{"22/5", "--no-reminders"}, `{"appointment_id":5,"reminders":[],"tool_id":22}`},
 	} {
 		var sent []api.Value
 		ctx, _ := calendarCtx(&sent)

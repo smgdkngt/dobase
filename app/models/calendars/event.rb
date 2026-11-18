@@ -29,7 +29,12 @@ module Calendars
     TOLD_CHANGES = { "summary" => "title", "starts_at" => "starts_at", "ends_at" => "ends_at", "all_day" => "all_day",
                      "location" => "location", "calendar_id" => "calendar" }.freeze
 
+    # Alerts, as minutes before the start (Calendars::Reminder): written to the calendar's server
+    # as VALARMs, given by the calendar app on someone's phone or computer
+    serialize :reminders, coder: JSON
+
     before_validation :pin_all_day_to_dates, if: :all_day_times_to_pin?
+    before_validation :resolve_reminders
     before_validation :build_recurrence_from_form, if: :recurrence_frequency_provided?
 
     # Made, changed or removed here, through the API or by a sync: each is an event, unless
@@ -46,6 +51,7 @@ module Calendars
     validates :starts_at, presence: true
     validates :ends_at, presence: true
     validate :ends_at_after_starts_at
+    validate :reminders_readable
 
     scope :in_range, ->(start_date, end_date) {
       where("starts_at < ? AND ends_at > ?", end_date, start_date)
@@ -62,6 +68,27 @@ module Calendars
     STATUSES = %w[tentative confirmed cancelled].freeze
 
     validates :status, inclusion: { in: STATUSES }, allow_nil: true
+
+    # Nil until they were read or set: an event synced before Dobase kept alerts has them only in
+    # what the server sent, and is changed here with those, not without them.
+    def reminders
+      stored = super
+      return stored if stored
+      return [] unless raw_icalendar.to_s.include?("BEGIN:VALARM")
+
+      @reminders_from_server ||= IcsParserService.new(raw_icalendar).parse[:reminders]
+    end
+
+    # What someone wrote (75, "45m", "1d@17:00", blanks for none) is read when the event is
+    # validated, once its start is known: a time on a day before counts from that start.
+    def reminders=(values)
+      @reminders_written = values.nil? ? [] : Array(values)
+      super(@reminders_written)
+    end
+
+    def reminder_list
+      reminders.map { |minutes| { minutes: minutes, label: Calendars::Reminder.label(minutes, starts_at: starts_at, all_day: all_day?) } }
+    end
 
     # Populate virtual attributes from existing RRULE for editing
     def load_recurrence_for_form
@@ -375,6 +402,26 @@ module Calendars
       else
         byday
       end
+    end
+
+    def resolve_reminders
+      return unless @reminders_written
+
+      written, @reminders_written = @reminders_written, nil
+      @reminder_errors = []
+      minutes = written.reject { |value| value.to_s.strip.in?([ "", "none" ]) }.filter_map do |value|
+        Calendars::Reminder.parse(value, starts_at: starts_at, all_day: all_day?)
+      rescue Calendars::Reminder::Invalid => e
+        @reminder_errors << e.message
+        nil
+      end
+      self.reminders = minutes.uniq.sort
+      @reminders_written = nil
+    end
+
+    def reminders_readable
+      Array(@reminder_errors).each { |message| errors.add(:reminders, message) }
+      errors.add(:reminders, "are more than #{Calendars::Reminder::LIMIT}") if reminders.size > Calendars::Reminder::LIMIT
     end
 
     def ends_at_after_starts_at

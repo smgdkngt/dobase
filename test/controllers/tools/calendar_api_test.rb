@@ -503,5 +503,24 @@ module Tools
           starts_at: Time.zone.parse(starts_at), ends_at: Time.zone.parse(ends_at), **attributes)
       end
     end
+
+    test "alerts are set as written, read against the start, and taken away with an empty list" do
+      post tool_calendar_events_path(@tool), headers: @headers, as: :json, params: {
+        calendars_event: { summary: "Dentist", start_time: "2030-12-03 10:00", end_time: "2030-12-03 11:00", reminders: [ "1d@17:00", "@08:45" ] }
+      }
+      assert_response :created
+      assert_equal [ { "minutes" => 75, "label" => "1 hour 15 minutes before" }, { "minutes" => 1020, "label" => "The day before at 5:00 PM" } ],
+        response.parsed_body["reminders"]
+      event = ::Calendars::Event.find(response.parsed_body["id"])
+
+      patch tool_calendar_event_path(@tool, event), headers: @headers, as: :json, params: { calendars_event: { reminders: [ "later" ] } }
+      assert_response :unprocessable_entity
+      assert_match "isn't an alert", response.parsed_body["errors"].sole
+
+      patch tool_calendar_event_path(@tool, event), headers: @headers, as: :json, params: { calendars_event: { reminders: [] } }
+      assert_response :success
+      assert_equal [], response.parsed_body["reminders"]
+      assert_enqueued_with job: PushEventJob, args: [ event.id, :update ]
+    end
   end
 end
