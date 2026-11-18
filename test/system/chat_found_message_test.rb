@@ -43,7 +43,9 @@ class ChatFoundMessageTest < ApplicationSystemTestCase
 
     click_on "Jump to newest"
 
-    assert_text "Newest of all"
+    # A page of 200 messages drawn again: on a busy CI runner that took longer than the
+    # usual wait once, while the page was right (its screenshot had the newest in sight)
+    assert_text "Newest of all", wait: 15
     assert_no_selector message
     assert_no_selector ".chat-jump-newest"
   end
@@ -59,7 +61,8 @@ class ChatFoundMessageTest < ApplicationSystemTestCase
     # As a notification or the menu's search does: a visit from the workspace's page
     page.execute_script("Turbo.visit(arguments[0])", tool_chat_path(@tool, message: @found.id))
 
-    assert_selector "#{CHAT} [data-message-id='#{@found.id}'][data-found]"
+    # The tile loads the chat around the message first; slow on a busy runner (see above)
+    assert_selector "#{CHAT} [data-message-id='#{@found.id}'][data-found]", wait: 15
     assert_selector TILE, count: 1
     assert in_sight?("#{CHAT} [data-message-id='#{@found.id}']"), "the message is in sight in the tile"
     assert_current_path workspace_path, ignore_query: true
