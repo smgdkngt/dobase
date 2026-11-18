@@ -782,8 +782,10 @@ class WorkspaceTest < ApplicationSystemTestCase
       assert_equal 2, tiles.size
       # The tiles slide in from the side, and are out of sight for a moment
       assert_no_selector ".workspace-tile[data-sliding]"
-      within_tile(0) { assert_selector "h1", text: @board.name }
-      within_tile(1) { assert_selector "h1", text: @files.name }
+      # Both tiles, in whatever order this browser made their elements: a desktop's
+      # tiles are made when it is first gone to (once on CI, the files' came first)
+      assert_selector "#{SHOWING_TILE} h1", text: @board.name
+      assert_selector "#{SHOWING_TILE} h1", text: @files.name
     end
   end
 
