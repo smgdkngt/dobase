@@ -129,8 +129,8 @@ class FilesTest < ApplicationSystemTestCase
       find("button[value='confirm']").click
     end
 
-    sleep 0.5
-    assert_nil file.reload.share, "Expected share to be removed"
+    # The request may still be on its way after the click
+    assert_db_change -> { file.reload.share.nil? }
   end
 
   test "the file page's Share button updates to Shared after creating a link" do
