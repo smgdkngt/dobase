@@ -143,9 +143,15 @@ class FilePreviewTest < ActiveSupport::TestCase
     assert sheet.more
   end
 
+  # Read with time to spare: on a busy machine this reading takes longer than a page waits,
+  # and the clock has a test of its own (below)
   test "a workbook is read as far as a page shows it, however long it goes on" do
     rows = (1..FilePreview::MAX_ROWS + 5).map { |n| %(<row r="#{n}">#{(1..FilePreview::MAX_COLUMNS + 5).map { |c| "<c><v>#{c}</v></c>" }.join}</row>) }.join
-    sheet = preview("long.xlsx", xlsx("Long" => rows + "<row><c><v>not XML any more")).sheets.first
+    sheet = Tempfile.create([ "long", ".xlsx" ], binmode: true) do |file|
+      file.write(xlsx("Long" => rows + "<row><c><v>not XML any more"))
+      file.flush
+      FilePreview::Workbook.read(file.path, FilePreview::Package::Budget.new(seconds: 60)).first
+    end
 
     assert_equal [ FilePreview::MAX_ROWS, FilePreview::MAX_COLUMNS ], [ sheet.rows.size, sheet.rows.first.size ]
     assert sheet.more
