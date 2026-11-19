@@ -5,7 +5,8 @@
 <% if message.body_html.present? %>
   <%
     # Only the attributes Mails::ReadableHtml allows are left: no event handlers
-    sanitized = Mails::ReadableHtml.from(message)
+    # Its pictures are fetched by the frame, behind the same check as their download arrow
+    sanitized = Mails::ReadableHtml.from(message) { |image| file_download_path(message.account.tool, image.file) }
     # The quote folds by itself (<details>): the frame runs no scripts
     sanitized = Mails::TrailingQuote.fold_html(sanitized) if fold_quote
 
@@ -14,7 +15,7 @@
       sanitized.match?(/\bbackground\s*=\s*["']?\s*https?:/i)
     images_stripped = sanitized.gsub(/(<img\b[^>]*?)\bsrc\s*=\s*["']https?:\/\/[^"']*["']/i, '\1data-blocked-src=""')
 
-    safe_srcdoc = mail_frame_document(images_stripped)
+    safe_srcdoc = mail_frame_document(images_stripped, images_from: mail_images_from(message.account.tool))
     full_srcdoc = mail_frame_document(sanitized, remote_content: true)
     images_trusted = has_remote_images && message.shows_images?
     # Junk can say it's from anyone: images from its sender are shown one mail at a time

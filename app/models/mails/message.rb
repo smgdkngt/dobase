@@ -170,22 +170,10 @@ module Mails
       attachments.to_a - inline_images.values
     end
 
-    # The HTML with its pictures in it, so they show without loading anything
-    def body_html_with_inline_images
-      data_urls = inline_images.filter_map do |id, image|
-        [ id, "data:#{image.content_type};base64,#{Base64.strict_encode64(image.file.download)}" ]
-      rescue ActiveStorage::FileNotFoundError
-        # A picture whose file is gone from storage is left out; the message still opens
-        Rails.logger.warn("Inline image #{image.id} of mail #{self.id} has no file in storage")
-        nil
-      end.to_h
-
-      body_html.to_s.gsub(CONTENT_ID_URL) { |url| data_urls.fetch(content_id_of(url), url) }
-    end
-
-    # The HTML with each picture's cid: link as the block gives it
-    def body_html_with_image_urls
-      body_html.to_s.gsub(CONTENT_ID_URL) { |url| (image = inline_images[content_id_of(url)]) ? yield(image) : url }
+    # The HTML (the message's own, or what was made of it) with each picture's cid: link
+    # as the block gives it
+    def body_html_with_image_urls(html = body_html)
+      html.to_s.gsub(CONTENT_ID_URL) { |url| (image = inline_images[content_id_of(url)]) ? yield(image) : url }
     end
 
     # The quote as someone changed it, kept the way mail is shown (Mails::ReadableHtml).

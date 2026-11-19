@@ -2,7 +2,7 @@
 
 module Mails
   # The HTML of a mail as the reading pane shows it, in a sandboxed frame that runs no
-  # scripts, with its pictures in it (Message#body_html_with_inline_images); and as a quote
+  # scripts, with its pictures linked from it (ReadableHtml.from); and as a quote
   # carries it along (Mails::Quote). Only elements and attributes that lay out text are kept.
   class ReadableHtml
     TAGS = %w[
@@ -51,8 +51,11 @@ module Mails
       end
     end
 
-    def self.from(message)
-      new(message.body_html_with_inline_images).to_s
+    # Cleaned with its cid: links, which the block then turns into the address of each
+    # picture. Never the pictures themselves: a thread of replies carries every screenshot
+    # again, and as data: URLs they made a page of 20 MB that took six seconds to draw.
+    def self.from(message, &image_url)
+      message.body_html_with_image_urls(new(message.body_html).to_s, &image_url)
     end
 
     def initialize(html)

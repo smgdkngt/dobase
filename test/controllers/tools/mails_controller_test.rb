@@ -307,7 +307,7 @@ module Tools
 
       assert_includes response.body, "Images are hidden"
       shown = css_select("iframe[data-email-frame-target='frame']").first["srcdoc"]
-      assert_includes shown, %(content="default-src 'none'; img-src data: cid:;)
+      assert_includes shown, %(content="default-src 'none'; img-src data: cid: http://www.example.com/tools/#{@tool.id}/file_downloads/;)
       assert_not_includes shown, "https://tracker.example/pixel.gif"
 
       on_request = css_select("[data-email-frame-full-srcdoc-value]").first["data-email-frame-full-srcdoc-value"]
@@ -353,7 +353,8 @@ module Tools
       get tool_mail_path(@tool, msg)
 
       shown = css_select("iframe[data-email-frame-target='frame']").first["srcdoc"]
-      assert_includes shown, %(src="data:image/png;base64,#{Base64.strict_encode64("PNG")}")
+      assert_includes shown, %(src="#{tool_file_download_path(@tool, logo.file.attachment)}")
+      assert_not_includes response.body, Base64.strict_encode64("PNG"), "the picture is linked, never put in the page"
       assert_includes response.body, "1 attachment"
       assert_includes response.body, "report.pdf"
       assert_not_includes response.body, "logo.png"

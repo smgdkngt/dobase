@@ -48,12 +48,21 @@ module MailsHelper
   CSS
 
   # Until the reader asks for images, nothing loads from outside the email. CSS url()s in
-  # <style> survive sanitizing and would otherwise still work as tracking pixels.
-  MAIL_FRAME_POLICY = %(<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: cid:; style-src 'unsafe-inline'; font-src data:">)
+  # <style> survive sanitizing and would otherwise still work as tracking pixels. The
+  # pictures a mail carries come from its tool's downloads (`images_from`), and from
+  # nowhere else on this server: a mail can't point a picture at a page that does something.
+  def mail_frame_policy(images_from = nil)
+    %(<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: cid:#{" #{images_from}" if images_from}; style-src 'unsafe-inline'; font-src data:">)
+  end
+
+  # Where a tool's files are downloaded from, as the frame's policy names it
+  def mail_images_from(tool)
+    "#{request.base_url}#{tool_path(tool)}/file_downloads/"
+  end
 
   # The page a mail is in its frame (srcdoc), which runs no scripts
-  def mail_frame_document(body, remote_content: false, styles: nil)
-    "<!DOCTYPE html><html><head><meta charset=\"utf-8\">#{MAIL_FRAME_POLICY unless remote_content}<base target=\"_blank\"><style>#{MAIL_FRAME_STYLES}#{styles}</style></head><body>#{body}</body></html>"
+  def mail_frame_document(body, remote_content: false, styles: nil, images_from: nil)
+    "<!DOCTYPE html><html><head><meta charset=\"utf-8\">#{mail_frame_policy(images_from) unless remote_content}<base target=\"_blank\"><style>#{MAIL_FRAME_STYLES}#{styles}</style></head><body>#{body}</body></html>"
   end
 
   # A mail of text's quote at its end, behind a button of three dots (Mails::TrailingQuote)

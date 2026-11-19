@@ -37,6 +37,20 @@ class MailsTest < ApplicationSystemTestCase
     assert_text "Welcome to Dobase! We hope you enjoy the platform.", wait: 5
   end
 
+  test "a picture a mail carries shows in it, fetched by the frame and not put in the page" do
+    message = mails_messages(:inbox_unread)
+    message.update!(body_html: %(<p>Our logo</p><img src="cid:logo@example.com" alt="Logo">))
+    logo = message.attachments.create!(filename: "logo.png", content_type: "image/png", file_size: file_fixture("sample.png").size, content_id: "logo@example.com")
+    logo.file.attach(io: file_fixture("sample.png").open, filename: "logo.png", content_type: "image/png")
+
+    visit tool_mails_path(@tool)
+    find(".mail-list-item", text: "Welcome to Dobase").click
+
+    within_frame(find(".mail-message-in iframe")) do
+      assert_selector("img[alt='Logo']") { |img| img.evaluate_script("this.complete && this.naturalWidth > 0") }
+    end
+  end
+
   test "in a narrow window an open conversation has the next and the previous one a button away, and the message has the width" do
     page.driver.browser.manage.window.resize_to(390, 844)
     visit tool_mails_path(@tool)

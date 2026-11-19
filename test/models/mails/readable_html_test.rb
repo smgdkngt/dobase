@@ -61,7 +61,7 @@ module Mails
     private
 
     def readable(body_html)
-      ReadableHtml.from(Message.new(body_html: body_html))
+      ReadableHtml.from(Message.new(body_html: body_html)) { |image| "/#{image.id}" }
     end
   end
 end

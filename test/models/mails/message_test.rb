@@ -41,17 +41,17 @@ module Mails
       logo.file.attach(io: StringIO.new("PNG"), filename: "image001.png", content_type: "image/png")
 
       assert_equal({ "image001.png@01dd4ffc.8e9c6530" => logo }, @message.inline_images)
-      assert_equal %(<img src="data:image/png;base64,UE5H"><img src="cid:missing@example.com">), @message.body_html_with_inline_images
+      assert_equal %(<img src="/image001.png"><img src="cid:missing@example.com">), @message.body_html_with_image_urls { |image| "/#{image.filename}" }
       assert_empty @message.listed_attachments
     end
 
-    test "a picture whose file is gone from storage is left out, and the message still shows" do
+    test "a picture is linked without reading its file, so one gone from storage doesn't stop the message" do
       @message.update!(body_html: %(<p>Hello</p><img src="cid:logo@example.com">))
       logo = @message.attachments.create!(filename: "logo.png", content_type: "image/png", file_size: 3, content_id: "logo@example.com")
       logo.file.attach(io: StringIO.new("PNG"), filename: "logo.png", content_type: "image/png")
       logo.file.blob.service.delete(logo.file.blob.key)
 
-      assert_equal %(<p>Hello</p><img src="cid:logo@example.com">), @message.body_html_with_inline_images
+      assert_equal %(<p>Hello</p><img src="/logo.png">), @message.body_html_with_image_urls { |image| "/#{image.filename}" }
     end
 
     test "reading a message tells its tool's people how much unread mail they have left" do
