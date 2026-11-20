@@ -43,7 +43,6 @@ export default class extends Controller {
     if (this.hasBannerTarget) this.bannerTarget.hidden = true
   }
 
-  // Frame runs no scripts, so poll until srcdoc is parsed rather than waiting on images
   _waitForDocument(iframe, previousDoc = null) {
     this._stopWaiting()
     this._previousDoc = previousDoc

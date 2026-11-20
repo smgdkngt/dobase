@@ -428,7 +428,6 @@
     @apply bg-white p-4 overflow-hidden;
   }
 
-  /* Quiet placeholder while a mail's frame has not yet been sized */
   .email-frame:not(.compose-quote *, .compose-answered *):has(> iframe[style*="height: 0"]) {
     min-height: 6rem;
   }
