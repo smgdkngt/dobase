@@ -16,14 +16,11 @@ export default class extends Controller {
   frameTargetConnected(iframe) {
     this.loadHandler = () => this.resize(iframe)
     iframe.addEventListener("load", this.loadHandler)
-
-    // srcdoc may already be loaded by the time Stimulus connects
-    if (iframe.contentDocument && iframe.contentDocument.body) {
-      this.resize(iframe)
-    }
+    this._waitForDocument(iframe)
   }
 
   frameTargetDisconnected(iframe) {
+    this._stopWaiting()
     if (this.loadHandler) {
       iframe.removeEventListener("load", this.loadHandler)
     }
@@ -38,10 +35,35 @@ export default class extends Controller {
   showImages() {
     if (!this.fullSrcdocValue) return
 
+    const previousDoc = this.frameTarget.contentDocument
     this.frameTarget.srcdoc = this.fullSrcdocValue
     this._shown = this.fullSrcdocValue
+    this._waitForDocument(this.frameTarget, previousDoc)
 
     if (this.hasBannerTarget) this.bannerTarget.hidden = true
+  }
+
+  // Frame runs no scripts, so poll until srcdoc is parsed rather than waiting on images
+  _waitForDocument(iframe, previousDoc = null) {
+    this._stopWaiting()
+    this._previousDoc = previousDoc
+    const check = () => {
+      const doc = iframe.contentDocument
+      if (doc && doc !== this._previousDoc && doc.URL === "about:srcdoc" && doc.readyState !== "loading" && doc.body) {
+        this.resize(iframe)
+        return
+      }
+      this._pollId = requestAnimationFrame(check)
+    }
+    check()
+  }
+
+  _stopWaiting() {
+    if (this._pollId != null) {
+      cancelAnimationFrame(this._pollId)
+      this._pollId = null
+    }
+    this._previousDoc = null
   }
 
   // Only for the same email: after a refresh this frame can hold another message of the
@@ -97,6 +119,7 @@ export default class extends Controller {
     try {
       const doc = iframe.contentDocument
       if (!doc || !doc.body) return
+      if (doc !== this._previousDoc) this._stopWaiting()
 
       // The frame is as high as its mail, so the mail never scrolls down in it: the page
       // around it does. Left to itself the frame would get a scrollbar down its side now
@@ -122,6 +145,7 @@ export default class extends Controller {
       this.observer = new ResizeObserver(update)
       this.observer.observe(doc.body)
     } catch (e) {
+      this._stopWaiting()
       iframe.style.height = "400px"
     }
   }

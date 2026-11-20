@@ -428,6 +428,38 @@
     @apply bg-white p-4 overflow-hidden;
   }
 
+  /* Quiet placeholder while a mail's frame has not yet been sized */
+  .email-frame:not(.compose-quote *, .compose-answered *):has(> iframe[style*="height: 0"]) {
+    min-height: 6rem;
+  }
+
+  .email-frame:not(.compose-quote *, .compose-answered *):has(> iframe[style*="height: 0"])::before {
+    content: "";
+    display: block;
+    height: 4.5rem;
+    max-width: 34rem;
+    background-repeat: no-repeat;
+    background-image:
+      linear-gradient(var(--color-background-tertiary), var(--color-background-tertiary)),
+      linear-gradient(var(--color-background-tertiary), var(--color-background-tertiary)),
+      linear-gradient(var(--color-background-tertiary), var(--color-background-tertiary)),
+      linear-gradient(var(--color-background-tertiary), var(--color-background-tertiary));
+    background-size: 92% 0.625rem, 100% 0.625rem, 84% 0.625rem, 56% 0.625rem;
+    background-position: 0 0, 0 1.25rem, 0 2.5rem, 0 3.75rem;
+    animation: email-frame-pulse 1.6s ease-in-out infinite;
+  }
+
+  @keyframes email-frame-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .email-frame:not(.compose-quote *, .compose-answered *):has(> iframe[style*="height: 0"])::before {
+      animation: none;
+    }
+  }
+
   /* Selected state with color-mix - no Tailwind equivalent */
   .mail-list-item.selected {
     @apply border-l-accent;
