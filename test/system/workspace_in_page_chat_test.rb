@@ -42,7 +42,8 @@ class WorkspaceInPageChatTest < ApplicationSystemTestCase
     editable.send_keys("On my way", :enter)
 
     assert_selector "#{CHAT} .chat-messages", text: "On my way"
-    assert_equal "On my way", @tool.chat.messages.last.body.to_plain_text
+    # (the page shows a message as being sent before the server has it)
+    assert_db_change -> { @tool.chat.messages.last.body.to_plain_text == "On my way" }
     assert_current_path workspace_path
     assert_selector "#{CHAT} form rhino-editor .ProseMirror:focus"
     assert_equal "", find("#{CHAT} form rhino-editor .ProseMirror").text
