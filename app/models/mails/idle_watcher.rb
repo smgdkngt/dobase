@@ -83,18 +83,21 @@ module Mails
 
       def idle(imap)
         changed = false
+        exists = nil
         imap.idle(@pending ? FOLLOW_UP : RENEW) do |response|
           next unless response.is_a?(Net::IMAP::UntaggedResponse) && CHANGES.include?(response.name)
 
           changed = true
+          exists = response.data if response.name == "EXISTS"
           imap.idle_done
         end
         return if stopped?
 
         if changed
           rest(@debounce)
-          @pending = { uid: last_uid(imap), follow_ups: 0 }
           sync
+          uid = uid_of(imap, exists) if exists
+          @pending = { uid: uid, follow_ups: 0 } if uid
         elsif @pending
           follow_up
         end
@@ -110,8 +113,10 @@ module Mails
         end
       end
 
-      def last_uid(imap)
-        imap.uid_fetch("*", [ "UID" ])&.last&.attr&.fetch("UID", nil)
+      def uid_of(imap, sequence_number)
+        imap.fetch(sequence_number, [ "UID" ])&.last&.attr&.fetch("UID", nil)
+      rescue Net::IMAP::NoResponseError, Net::IMAP::BadResponseError
+        nil
       end
 
       def sync

@@ -21,8 +21,10 @@ class Mails::IdleWatcherTest < ActiveJob::TestCase
     def capable?(capability) = @capabilities.include?(capability)
     def select(folder) = @selected << folder
 
-    def uid_fetch(uids, _attrs)
-      [ Net::IMAP::FetchData.new(1, { "UID" => @last_uid }) ] if uids == "*"
+    def fetch(sequence_number, _attrs)
+      raise Net::IMAP::BadResponseError, Net::IMAP::TaggedResponse.new("A1", "BAD", Net::IMAP::ResponseText.new(nil, "Parse Error"), "") if @last_uid == :refused
+
+      [ Net::IMAP::FetchData.new(sequence_number, { "UID" => @last_uid }) ]
     end
 
     def idle(timeout, &block)
@@ -77,6 +79,19 @@ class Mails::IdleWatcherTest < ActiveJob::TestCase
     connect_to_imap(server) { @watcher.run }
 
     assert_enqueued_jobs 1, only: SyncEmailsJob
+  end
+
+  test "new mail is synced also when the server won't say its UID" do
+    server = IdlingServer.new([
+      ->(heard) { heard.call(Net::IMAP::UntaggedResponse.new("EXISTS", 12, "")) },
+      ->(_) { @watcher.stop }
+    ], last_uid: :refused)
+
+    connect_to_imap(server) { @watcher.run }
+
+    assert_enqueued_jobs 2, only: SyncEmailsJob
+    assert_equal [ 10.minutes, 10.minutes ], server.timeouts
+    assert_equal [ 0 ], @rests
   end
 
   test "a server without IDLE is left to the scheduled sync" do
