@@ -22,6 +22,25 @@ class SyncEmailsJobTest < ActiveJob::TestCase
     assert_broadcasts(pages, 1) { sync_that { mails_messages(:inbox_unread).update!(read: true) } }
   end
 
+  test "new mail in the inbox is shown before the other folders are synced" do
+    heard = nil
+    fresh = mails_messages(:inbox_read).dup
+    test = self
+    service = Object.new
+    service.define_singleton_method(:sync_folders) { }
+    service.define_singleton_method(:sync_inbox) { |**| fresh.update!(message_id: "early@example.com", uid: 4712) }
+    service.define_singleton_method(:sync_sent) { |**| heard = test.broadcasts(test.send(:pages)).size }
+    service.define_singleton_method(:sync_folder) { |*, **| }
+    service.define_singleton_method(:record_events) { |**| }
+    ImapSyncService.singleton_class.define_method(:new) { |*| service }
+    SyncEmailsJob.perform_now(@account.id)
+
+    assert_equal 1, heard
+    assert_equal 1, broadcasts(pages).size
+  ensure
+    ImapSyncService.singleton_class.remove_method(:new)
+  end
+
   test "a sync that brought nothing says nothing" do
     assert_no_broadcasts(pages) { sync_that { } }
   end

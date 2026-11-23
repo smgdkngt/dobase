@@ -55,7 +55,7 @@ class Mails::IdleWatcherTest < ActiveJob::TestCase
     connect_to_imap(server) { @watcher.run }
 
     assert_equal [ "INBOX" ], server.selected
-    assert_enqueued_jobs 3, only: SyncEmailsJob
+    assert_enqueued_jobs 3, only: SyncInboxJob
     assert_equal [ 10.minutes, 20.seconds, 20.seconds, 10.minutes ], server.timeouts
   end
 
@@ -67,7 +67,7 @@ class Mails::IdleWatcherTest < ActiveJob::TestCase
 
     connect_to_imap(server) { @watcher.run }
 
-    assert_enqueued_jobs 2, only: SyncEmailsJob
+    assert_enqueued_jobs 2, only: SyncInboxJob
   end
 
   test "what else the server says while idling is no reason to sync" do
@@ -78,7 +78,7 @@ class Mails::IdleWatcherTest < ActiveJob::TestCase
 
     connect_to_imap(server) { @watcher.run }
 
-    assert_enqueued_jobs 1, only: SyncEmailsJob
+    assert_enqueued_jobs 1, only: SyncInboxJob
   end
 
   test "new mail is synced also when the server won't say its UID" do
@@ -89,7 +89,7 @@ class Mails::IdleWatcherTest < ActiveJob::TestCase
 
     connect_to_imap(server) { @watcher.run }
 
-    assert_enqueued_jobs 2, only: SyncEmailsJob
+    assert_enqueued_jobs 2, only: SyncInboxJob
     assert_equal [ 10.minutes, 10.minutes ], server.timeouts
     assert_equal [ 0 ], @rests
   end
@@ -100,14 +100,14 @@ class Mails::IdleWatcherTest < ActiveJob::TestCase
     connect_to_imap(server) { @watcher.run }
 
     assert_empty server.timeouts
-    assert_no_enqueued_jobs only: SyncEmailsJob
+    assert_no_enqueued_jobs only: SyncInboxJob
     assert_equal [ 1.hour ], @rests
   end
 
   test "a refused login is not tried again before the scheduled sync would" do
     connect_to_imap(FakeImapServer.new(refuses_login: "[AUTHENTICATIONFAILED] Invalid credentials")) { @watcher.run }
 
-    assert_no_enqueued_jobs only: SyncEmailsJob
+    assert_no_enqueued_jobs only: SyncInboxJob
     assert_equal [ EncryptedPassword::LOGIN_RETRY ], @rests
   end
 

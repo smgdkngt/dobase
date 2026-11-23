@@ -120,7 +120,7 @@ module Mails
       end
 
       def sync
-        in_app { SyncEmailsJob.perform_later(account_id) }
+        in_app { SyncInboxJob.perform_later(account_id) }
       end
 
       def backoff

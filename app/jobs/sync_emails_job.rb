@@ -5,7 +5,9 @@ class SyncEmailsJob < ApplicationJob
   skip_in_demo
 
   # The mail page asks for a sync every minute in every open tab. One sync per account at a time is enough.
-  limits_concurrency key: ->(mail_account_id) { mail_account_id }, duration: 15.minutes, on_conflict: :discard
+  GROUP = "MailSync"
+
+  limits_concurrency key: ->(mail_account_id) { mail_account_id }, group: GROUP, duration: 15.minutes, on_conflict: :discard
 
   def perform(mail_account_id)
     mail_account = Mails::Account.find_by(id: mail_account_id)
@@ -15,6 +17,7 @@ class SyncEmailsJob < ApplicationJob
     service = ::ImapSyncService.new(mail_account)
     service.sync_folders
     service.sync_inbox(limit: 50)
+    before = announce_if_changed(mail_account, before)
     service.sync_sent(limit: 50)
 
     mail_account.other_folders_to_sync.each do |folder|
@@ -41,7 +44,20 @@ class SyncEmailsJob < ApplicationJob
     mail_account.tool.announce_change if before && shown(mail_account) != before
   end
 
+  # What a mailbox's page shows of an account, as far as a sync changes it: its mail,
+  # its folders, and that the last sync went wrong
+  def self.shown(mail_account)
+    [ mail_account.messages.pick(Arel.sql("COUNT(*)"), Arel.sql("MAX(updated_at)")),
+      mail_account.reload.slice(:synced_folders, :archive_folder, :folder_prefix, :sync_error) ]
+  end
+
   private
+    def announce_if_changed(mail_account, before)
+      now = shown(mail_account)
+      mail_account.tool.announce_change if now != before
+      now
+    end
+
     # Writing down what the run saw never hides how the run itself went
     def record_events(service, complete:)
       service&.record_events(complete: complete)
@@ -51,10 +67,5 @@ class SyncEmailsJob < ApplicationJob
       Rails.error.report(error, handled: true)
     end
 
-    # What a mailbox's page shows of an account, as far as a sync changes it: its mail,
-    # its folders, and that the last sync went wrong
-    def shown(mail_account)
-      [ mail_account.messages.pick(Arel.sql("COUNT(*)"), Arel.sql("MAX(updated_at)")),
-        mail_account.reload.slice(:synced_folders, :archive_folder, :folder_prefix, :sync_error) ]
-    end
+    def shown(mail_account) = self.class.shown(mail_account)
 end
