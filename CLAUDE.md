@@ -222,6 +222,8 @@ Solid Queue (database-backed). Recurring jobs defined in `config/recurring.yml`:
 - `SyncAllCalendarsJob` — every 15 minutes, syncs all CalDAV accounts
 - `NotificationDigestJob` — every hour, sends digest emails to users with unread notifications
 
+New mail doesn't wait for the five minutes: the Puma process that runs the jobs keeps an IMAP IDLE connection on the inbox of every mail account whose tool someone used in the last day (`Mails::Idle`, started by `lib/puma/plugin/mail_idle.rb`; at most 10 per server and 50 in all, `MAIL_IDLE_PER_HOST`, `MAIL_IDLE_MAX`, off with `MAIL_IDLE=false` and in the demo). A watcher (`Mails::IdleWatcher`) queues `SyncEmailsJob` when the server says something changed, and again every 20 seconds until the newest UID it was told of is in, since a sync already running discards the next. A refused login rests for `LOGIN_RETRY`, a server without IDLE for an hour, a dropped line from 10 seconds up to 5 minutes.
+
 Key jobs: `ImapSyncJob` (individual IMAP actions), `SyncEmailsJob`, `SyncCalendarsJob`, `PushEventJob` (CalDAV push), `SyncDraftJob` (draft IMAP sync).
 
 ### Notifications (Noticed gem)

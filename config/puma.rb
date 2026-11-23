@@ -39,6 +39,12 @@ plugin :tmp_restart
 # in a container of their own, set SOLID_QUEUE_IN_PUMA=false on the web one.
 plugin :solid_queue if %w[true 1].include?(ENV["SOLID_QUEUE_IN_PUMA"])
 
+# Mail servers tell the app about new mail at once (IMAP IDLE, Mails::Idle), in the process that runs the jobs
+if %w[true 1].include?(ENV["SOLID_QUEUE_IN_PUMA"])
+  require_relative "../lib/puma/plugin/mail_idle"
+  plugin :mail_idle
+end
+
 # Specify the PID file. Defaults to tmp/pids/server.pid in development.
 # In other environments, only set the PID file if requested.
 pidfile ENV["PIDFILE"] if ENV["PIDFILE"]

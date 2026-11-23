@@ -48,6 +48,10 @@ class ImapSyncService
     end
   end
 
+  def with_connection(&block)
+    connect(open_timeout: 15, &block)
+  end
+
   def sync_inbox(limit: 50)
     @account.mark_syncing!
 
