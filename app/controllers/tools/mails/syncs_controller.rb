@@ -20,7 +20,7 @@ module Tools
         end
 
         @tool.mail_account.mark_syncing!
-        SyncEmailsJob.perform_later(@tool.mail_account.id)
+        (params[:inbox].present? ? SyncInboxJob : SyncEmailsJob).perform_later(@tool.mail_account.id)
 
         respond_to do |format|
           format.turbo_stream { head :ok }

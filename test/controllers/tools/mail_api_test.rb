@@ -708,6 +708,14 @@ module Tools
       assert_equal "hello", attachment.reload.file.download
     end
 
+    test "the open mailbox's minute refresh syncs only the inbox" do
+      post tool_sync_path(@tool, inbox: 1), headers: @headers, as: :json
+
+      assert_response :success
+      assert_enqueued_with job: SyncInboxJob, args: [ @account.id ]
+      assert_no_enqueued_jobs only: SyncEmailsJob
+    end
+
     test "sync starts a sync and reports its status" do
       post tool_sync_path(@tool), headers: @headers, as: :json
 

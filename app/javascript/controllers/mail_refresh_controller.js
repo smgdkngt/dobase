@@ -33,7 +33,7 @@ export default class extends Controller {
   // An interval of 0 means auto-refresh is disabled
   startTimer() {
     if (this.timer || this.intervalValue <= 0) return
-    this.timer = setInterval(() => this.sync(), this.intervalValue * 1000)
+    this.timer = setInterval(() => this.sync({ inbox: true }), this.intervalValue * 1000)
   }
 
   stopTimer() {
@@ -58,13 +58,15 @@ export default class extends Controller {
     this.dispatch("done", { prefix: "pull-to-refresh" })
   }
 
-  async sync() {
+  async sync({ inbox = false } = {}) {
     if (this.syncing || !this.urlValue || this.busy) return
     this.syncing = true
     if (this.hasIndicatorTarget) this.indicatorTarget.classList.remove("hidden")
 
     try {
-      const res = await fetch(this.urlValue, {
+      const url = new URL(this.urlValue, window.location.href)
+      if (inbox) url.searchParams.set("inbox", "1")
+      const res = await fetch(url, {
         method: "POST",
         headers: { "X-CSRF-Token": csrfToken(), "Accept": "application/json" },
         credentials: "same-origin"
