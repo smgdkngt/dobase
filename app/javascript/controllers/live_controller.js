@@ -91,7 +91,13 @@ export default class extends Controller {
   }
 
   get inFlight() {
-    return Boolean(this.tile ? this.tile.hasAttribute("busy") : document.documentElement.hasAttribute("aria-busy"))
+    const busy = this.tile ? this.tile.hasAttribute("busy") : document.documentElement.hasAttribute("aria-busy")
+    if (!busy) {
+      this.busySince = null
+      return false
+    }
+    this.busySince ??= Date.now()
+    return Date.now() - this.busySince < DRAWING_TAKES_AT_MOST_MS
   }
 
   get busy() {
