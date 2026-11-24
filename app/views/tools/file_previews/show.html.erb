@@ -8,9 +8,9 @@
     <span class="file-viewer-size"><%= @preview.human_file_size %></span>
     <%= link_to download_path, class: "btn btn-sm btn-primary", download: @preview.name, data: { turbo: false } do %>
       <%= render "shared/icon", name: "download", size: 16 %>
-      <span>Download</span>
+      <span><%= _("Download") %></span>
     <% end %>
-    <%= render "components/icon_button", icon: "x", title: "Close", size: :sm, data: { action: "file-viewer#close" } %>
+    <%= render "components/icon_button", icon: "x", title: _("Close"), size: :sm, data: { action: "file-viewer#close" } %>
   </header>
 
   <%# Zoomed in on with the buttons at its foot, the wheel or two fingers (zoom_controller.js) %>

@@ -3,7 +3,7 @@
             keyboard too. It lands at the bottom of the column, and the
             dialog shows the card again; the board catches up when it closes. %>
         <div class="detail-field">
-          <label for="card-column-<%= card.id %>" class="detail-field-label">Column</label>
+          <label for="card-column-<%= card.id %>" class="detail-field-label"><%= _("Column") %></label>
           <%= form_with url: tool_board_card_position_path(tool, card), method: :patch, data: { turbo_frame: "card-detail-content" } do %>
             <%= select_tag :column_id,
                   options_from_collection_for_select(card.column.board.columns.order(:position), :id, :name, card.column_id),

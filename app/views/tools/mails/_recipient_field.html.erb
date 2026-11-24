@@ -7,7 +7,7 @@
   # (ids carry the tool's: two mail tools can be in one document)
   menu_id = "recipient-menu-#{@tool.id}-#{name}"
   options_id = "recipient-options-#{@tool.id}-#{name}"
-  fields = { "to" => "To", "cc" => "Cc", "bcc" => "Bcc" }
+  fields = { "to" => _("To"), "cc" => _("Cc"), "bcc" => _("Bcc") }
 %>
 <%= tag.div class: [ "compose-field recipients", ("hidden" if local_assigns[:hidden]) ],
       data: { compose_target: local_assigns[:field_target], controller: "recipients",
@@ -35,7 +35,7 @@
   <% end %>
 
   <%# Who the account knows for what is typed (Tools::Mails::ContactsController) %>
-  <%= turbo_frame_tag options_id, class: "recipient-options", role: "listbox", hidden: true, aria: { label: "Suggestions for #{label}" },
+  <%= turbo_frame_tag options_id, class: "recipient-options", role: "listbox", hidden: true, aria: { label: _("Suggestions for %{label}", label: label) },
         data: { recipients_target: "options", action: "turbo:frame-load->recipients#offered" } %>
 
   <%= tag.div id: menu_id, popover: "auto", class: "popover-menu recipient-menu",
@@ -43,18 +43,18 @@
         data: { recipients_target: "menu" } do %>
     <p class="recipient-menu-address" data-recipients-target="menuAddress"></p>
     <button type="button" class="dropdown-item flex items-center gap-2" data-action="recipients#copy">
-      <%= render "shared/icon", name: "copy", size: 16 %><span>Copy address</span>
+      <%= render "shared/icon", name: "copy", size: 16 %><span><%= _("Copy address") %></span>
     </button>
     <button type="button" class="dropdown-item flex items-center gap-2" data-action="recipients#edit">
-      <%= render "shared/icon", name: "edit", size: 16 %><span>Edit address</span>
+      <%= render "shared/icon", name: "edit", size: 16 %><span><%= _("Edit address") %></span>
     </button>
     <% fields.except(name).each do |field, text| %>
       <button type="button" class="dropdown-item flex items-center gap-2" data-action="recipients#moveTo" data-recipients-field-param="<%= field %>">
-        <%= render "shared/icon", name: "arrow-right", size: 16 %><span>Move to <%= text %></span>
+        <%= render "shared/icon", name: "arrow-right", size: 16 %><span><%= _("Move to %{text}", text: text) %></span>
       </button>
     <% end %>
     <button type="button" class="dropdown-item flex items-center gap-2" data-action="recipients#remove">
-      <%= render "shared/icon", name: "x", size: 16 %><span>Remove</span>
+      <%= render "shared/icon", name: "x", size: 16 %><span><%= _("Remove") %></span>
     </button>
   <% end %>
 

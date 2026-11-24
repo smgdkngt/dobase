@@ -10,15 +10,15 @@
     <%= render "components/rich_text_input",
           name: "message[body]",
           value: message.body,
-          placeholder: "Edit this message...",
+          placeholder: _("Edit this message..."),
           submit_on_enter: true,
           buttons: %w[bold italic code] do %>
       <%= render "components/button",
-            text: "Cancel",
+            text: _("Cancel"),
             variant: :ghost,
             size: :sm,
             href: tool_chat_message_path(message.chat.tool, message) %>
-      <%= render "components/button", text: "Save", size: :sm, type: :submit %>
+      <%= render "components/button", text: _("Save"), size: :sm, type: :submit %>
     <% end %>
   <% end %>
 <% end %>

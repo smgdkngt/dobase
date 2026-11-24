@@ -115,12 +115,12 @@ module Tools
       end
 
       def ensure_author
-        forbid "Only the author can edit this message" unless @message.user == current_user
+        forbid _("Only the author can edit this message") unless @message.user == current_user
       end
 
       def ensure_author_or_owner
         unless @message.user == current_user || @tool.owned_by?(current_user)
-          forbid "Only the author or an owner can delete this message"
+          forbid _("Only the author or an owner can delete this message")
         end
       end
 

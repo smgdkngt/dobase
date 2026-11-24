@@ -13,7 +13,7 @@ module Tools
       def create
         unless @tool.mail_account
           respond_to do |format|
-            format.html { redirect_to new_tool_mails_account_path(@tool), alert: "Please configure your mail account first." }
+            format.html { redirect_to new_tool_mails_account_path(@tool), alert: _("Please configure your mail account first.") }
             format.json { render json: { error: "Mail account not configured" }, status: :not_found }
           end
           return

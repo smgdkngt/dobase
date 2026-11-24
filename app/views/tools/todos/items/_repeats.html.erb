@@ -1,6 +1,6 @@
         <%# ── Repeats ─────────────────────────────────────────────────── %>
         <div class="detail-field">
-          <p class="detail-field-label">Repeats</p>
+          <p class="detail-field-label"><%= _("Repeats") %></p>
           <div class="relative">
             <button type="button"
                     class="detail-field-control group"
@@ -10,16 +10,16 @@
               <div class="w-6 h-6 rounded-md bg-background-tertiary flex items-center justify-center flex-shrink-0">
                 <%= render "shared/icon", name: "repeat", size: 13, class: item.recurring? ? 'text-accent' : 'text-text-tertiary' %>
               </div>
-              <span class="text-sm flex-1 text-left <%= item.recurring? ? 'text-text-primary font-medium' : 'text-text-tertiary' %>"
-                    data-todo-item-target="recurrenceLabel"><%= item.recurrence_description || "Never" %></span>
+              <span class="text-sm flex-1 text-start <%= item.recurring? ? 'text-text-primary font-medium' : 'text-text-tertiary' %>"
+                    data-todo-item-target="recurrenceLabel"><%= item.recurrence_description || _("Never") %></span>
               <%= render "shared/icon", name: "chevron-down", size: 12, class: "text-text-tertiary flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" %>
             </button>
             <div id="item-recurrence-menu" popover="auto"
                  class="popover-menu"
-                 style="position-anchor: --item-recurrence; top: anchor(bottom); left: anchor(left); width: anchor-size(width);">
-              <% [["", "Never"], ["daily", "Daily"], ["weekly", "Weekly"], ["monthly", "Monthly"]].each do |value, label| %>
+                 style="position-anchor: --item-recurrence; top: anchor(bottom); inset-inline-start: anchor(start); width: anchor-size(width);">
+              <% [["", _("Never")], ["daily", _("Daily")], ["weekly", _("Weekly")], ["monthly", _("Monthly")]].each do |value, label| %>
                 <button type="button"
-                        class="flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-left hover:bg-background-tertiary transition-colors"
+                        class="flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-start hover:bg-background-tertiary transition-colors"
                         data-action="click->todo-item#setRecurrence"
                         data-recurrence-rule="<%= value %>"
                         data-recurrence-label="<%= label %>"

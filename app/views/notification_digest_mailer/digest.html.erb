@@ -1,11 +1,11 @@
 <% grouped = @notifications.group_by { |n| n.event.params[:tool]&.name } %>
 <% show_groups = grouped.keys.compact.size > 1 %>
-<% count_label = "#{@notifications.size} new #{"notification".pluralize(@notifications.size)}" %>
+<% count_label = n_("%{count} new notification", "%{count} new notifications", @notifications.size) %>
 
 <% content_for :title, count_label %>
 <% content_for :preheader, @notifications.first&.message.to_s %>
 <% content_for :footer_note do %>
-  <%= link_to "Change how often you get these", absolute_url("/profile/edit?tab=notifications") %>
+  <%= link_to _("Change how often you get these"), absolute_url("/profile/edit?tab=notifications") %>
 <% end %>
 
 <h1 class="email-heading" style="margin: 0 0 20px; font-size: 19px; font-weight: 600; color: <%= mail_color(:text) %>;"><%= count_label %></h1>
@@ -35,7 +35,7 @@
           <% if preview.present? %>
             <p class="muted-text" style="margin: 6px 0 0; font-size: 13px; color: <%= mail_color(:quiet) %>; font-style: italic;">&ldquo;<%= preview %>&rdquo;</p>
           <% end %>
-          <a href="<%= absolute_url(notification.url) %>" style="display: inline-block; margin-top: 8px; font-size: 12px; font-weight: 600; color: <%= mail_color(:link) %>; text-decoration: none;">View &rarr;</a>
+          <a href="<%= absolute_url(notification.url) %>" style="display: inline-block; margin-top: 8px; font-size: 12px; font-weight: 600; color: <%= mail_color(:link) %>; text-decoration: none;"><%= _("View →") %></a>
         </td>
       </tr>
     </table>

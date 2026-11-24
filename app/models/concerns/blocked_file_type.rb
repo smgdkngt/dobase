@@ -36,9 +36,9 @@ module BlockedFileType
 
   def file_type_allowed
     if (extension = BlockedFileType.blocked_extension(file.filename))
-      errors.add(:file, "type .#{extension} is not allowed for security reasons")
+      errors.add(:file, _("type .%{extension} is not allowed for security reasons", extension: extension))
     elsif CONTENT_TYPES.any? { |type| file.blob.content_type.to_s.include?(type) }
-      errors.add(:file, "type is not allowed for security reasons")
+      errors.add(:file, _("type is not allowed for security reasons"))
     end
   end
 end

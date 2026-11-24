@@ -21,7 +21,7 @@ module Tools
 
         if connects? && @mail_account.save
           SyncEmailsJob.perform_later(@mail_account.id)
-          redirect_to tool_mails_path(@tool), notice: "Mail account connected successfully."
+          redirect_to tool_mails_path(@tool), notice: _("Mail account connected successfully.")
         else
           render :new, status: :unprocessable_entity
         end
@@ -34,7 +34,7 @@ module Tools
             @mail_account.mark_syncing!
             SyncEmailsJob.perform_later(@mail_account.id)
           end
-          redirect_to tool_mails_path(@tool), notice: "Mail account updated successfully."
+          redirect_to tool_mails_path(@tool), notice: _("Mail account updated successfully.")
         else
           # The mail account is edited in the tool's settings
           render "tools/edit", status: :unprocessable_entity
@@ -59,7 +59,7 @@ module Tools
 
       def set_mail_account
         @mail_account = @tool.mail_account
-        redirect_to @tool, alert: "No mail account configured." unless @mail_account
+        redirect_to @tool, alert: _("No mail account configured.") unless @mail_account
       end
 
       def mail_account_params

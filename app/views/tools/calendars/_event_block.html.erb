@@ -39,7 +39,7 @@
 %>
 
 <div class="event-block-in absolute rounded-md shadow-sm cursor-pointer overflow-hidden border border-white/20 transition-all duration-150 hover:shadow-md hover:brightness-105 hover:z-10 min-h-5"
-     style="top: <%= top_position %>%; height: <%= height %>%; left: calc(<%= left %>% + 2px); width: calc(<%= width %>% - 4px); <%= event_color_style(calendar) %>"
+     style="top: <%= top_position %>%; height: <%= height %>%; inset-inline-start: calc(<%= left %>% + 2px); width: calc(<%= width %>% - 4px); <%= event_color_style(calendar) %>"
      data-event-id="<%= event.id %>"
      role="button"
      tabindex="0"
@@ -62,7 +62,7 @@
         </div>
       <% end %>
       <div class="text-xs font-semibold truncate">
-        <% if event.is_recurring? %><%= render "shared/icon", name: "repeat", size: 10, class: "inline-block mr-0.5 opacity-75" %><% end %><%= event.summary %>
+        <% if event.is_recurring? %><%= render "shared/icon", name: "repeat", size: 10, class: "inline-block me-0.5 opacity-75" %><% end %><%= event.summary %>
       </div>
       <% if event.location.present? && is_start_day %>
         <div class="text-[0.625rem] mt-0.5 truncate opacity-90">

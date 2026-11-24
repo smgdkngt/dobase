@@ -18,7 +18,7 @@
             action: "click->chat#loadingOlderMessages"
           } do %>
       <%= render "shared/icon", name: "chevron-up", size: 14 %>
-      <span>Load older messages</span>
+      <span><%= _("Load older messages") %></span>
     <% end %>
 
     <div class="chat-older-placeholder" data-chat-target="olderMessagesPlaceholder" hidden>

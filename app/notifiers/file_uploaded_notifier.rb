@@ -6,13 +6,13 @@ class FileUploadedNotifier < Noticed::Event
   deliver_by :custom_action_cable,
     class: "Noticed::DeliveryMethods::CustomActionCable",
     stream: -> { "notifications:#{recipient.id}" },
-    message: -> { notification_data }
+    message: -> { I18n.with_locale(Translation.supported(recipient.try(:locale)) || I18n.default_locale) { notification_data } }
 
   notification_methods do
     def message
       uploader = event.params[:uploader]
       file = event.params[:file]
-      "#{uploader&.name || 'Someone'} uploaded #{file&.name || 'a file'}"
+      _("%{person} uploaded %{file}", person: uploader&.name || _("Someone"), file: file&.name || _("a file"))
     end
 
     def url

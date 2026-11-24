@@ -12,11 +12,11 @@
   active_user  = current_id ? collaborators.find { |u| u.id == current_id } : nil
 
   label, trigger_avatar = case current_str
-  when nil, ""      then [ "All assignees", nil ]
+  when nil, ""      then [ _("All assignees"), nil ]
   when "me"         then [ "Me",            current_user ]
-  when "unassigned" then [ "Unassigned",    nil ]
+  when "unassigned" then [ _("Unassigned"),    nil ]
   else
-    active_user ? [ active_user.name, active_user ] : [ "All assignees", nil ]
+    active_user ? [ active_user.name, active_user ] : [ _("All assignees"), nil ]
   end
 
   is_filtered = current_str.present?
@@ -43,22 +43,22 @@
 
   <div id="<%= menu_id %>" popover="auto"
        class="popover-menu max-h-72 overflow-y-auto"
-       style="position-anchor: <%= anchor %>; top: anchor(bottom); left: anchor(left); min-width: anchor-size(width);">
+       style="position-anchor: <%= anchor %>; top: anchor(bottom); inset-inline-start: anchor(start); min-width: anchor-size(width);">
     <%= render "tools/assignee_filter_item",
           href: url_for(assignee: nil),
-          label: "All assignees",
+          label: _("All assignees"),
           icon: "users",
           selected: current_str.blank? %>
 
     <%= render "tools/assignee_filter_item",
           href: url_for(assignee: "me"),
-          label: "Me",
+          label: _("Me"),
           user: current_user,
           selected: current_str == "me" %>
 
     <%= render "tools/assignee_filter_item",
           href: url_for(assignee: "unassigned"),
-          label: "Unassigned",
+          label: _("Unassigned"),
           icon: "user",
           selected: current_str == "unassigned" %>
 

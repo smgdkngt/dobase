@@ -6,13 +6,13 @@ class ChatMessageNotifier < Noticed::Event
   deliver_by :custom_action_cable,
     class: "Noticed::DeliveryMethods::CustomActionCable",
     stream: -> { "notifications:#{recipient.id}" },
-    message: -> { notification_data }
+    message: -> { I18n.with_locale(Translation.supported(recipient.try(:locale)) || I18n.default_locale) { notification_data } }
 
   notification_methods do
     def message
       sender = event.params[:sender]
       tool = event.params[:tool]
-      "#{event.params[:message].try(:byline) || sender&.name || 'Someone'} sent a message in #{tool&.name || 'a chat'}"
+      _("%{person} sent a message in %{chat}", person: event.params[:message].try(:byline) || sender&.name || _("Someone"), chat: tool&.name || _("a chat"))
     end
 
     def url

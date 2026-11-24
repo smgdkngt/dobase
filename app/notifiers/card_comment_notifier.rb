@@ -6,13 +6,13 @@ class CardCommentNotifier < Noticed::Event
   deliver_by :custom_action_cable,
     class: "Noticed::DeliveryMethods::CustomActionCable",
     stream: -> { "notifications:#{recipient.id}" },
-    message: -> { notification_data }
+    message: -> { I18n.with_locale(Translation.supported(recipient.try(:locale)) || I18n.default_locale) { notification_data } }
 
   notification_methods do
     def message
       commenter = event.params[:commenter]
       card = event.params[:card]
-      "#{event.params[:comment].try(:byline) || commenter&.name || 'Someone'} commented on #{card&.title || 'a card'}"
+      _("%{person} commented on %{item}", person: event.params[:comment].try(:byline) || commenter&.name || _("Someone"), item: card&.title || _("a card"))
     end
 
     def url

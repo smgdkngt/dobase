@@ -9,9 +9,12 @@ class NotificationDigestMailer < ApplicationMailer
     @notifications = user.notifications.where(id: notification_ids).includes(:event).newest_first.to_a
     return if @notifications.empty?
 
-    mail(
-      to: @user.email_address,
-      subject: "#{@notifications.size} new #{"notification".pluralize(@notifications.size)} from #{Rails.application.config.x.app.name}"
-    )
+    in_language_of(user) do
+      mail(
+        to: @user.email_address,
+        subject: n_("%{count} new notification from %{app_name}", "%{count} new notifications from %{app_name}",
+          @notifications.size, app_name: Rails.application.config.x.app.name)
+      )
+    end
   end
 end

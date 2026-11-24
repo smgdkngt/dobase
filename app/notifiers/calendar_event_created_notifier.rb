@@ -6,14 +6,14 @@ class CalendarEventCreatedNotifier < Noticed::Event
   deliver_by :custom_action_cable,
     class: "Noticed::DeliveryMethods::CustomActionCable",
     stream: -> { "notifications:#{recipient.id}" },
-    message: -> { notification_data }
+    message: -> { I18n.with_locale(Translation.supported(recipient.try(:locale)) || I18n.default_locale) { notification_data } }
 
   notification_methods do
     def message
       creator = event.params[:creator]
       cal_event = event.params[:event]
-      date = cal_event&.first_day&.strftime("%b %-d") || "a date"
-      "#{creator&.name || 'Someone'} created #{cal_event&.summary || 'an event'} on #{date}"
+      date = cal_event&.first_day ? ApplicationController.helpers.format_date(cal_event.first_day) : _("a date")
+      _("%{person} created %{event} on %{date}", person: creator&.name || _("Someone"), event: cal_event&.summary || _("an event"), date: date)
     end
 
     def url

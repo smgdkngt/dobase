@@ -2,6 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import consumer from "channels/consumer"
 import { applyTheme, refreshTheme } from "services/theme"
 import { play } from "services/sound"
+import { _ } from "services/i18n"
 
 export default class extends Controller {
   static targets = ["badge", "badgeStatus", "trigger", "popover", "list", "markAllRead", "desktopOffer"]
@@ -225,7 +226,7 @@ export default class extends Controller {
       const count = this.unreadCountValue
       this.badgeStatusTarget.textContent =
         count === 0
-          ? "No unread notifications"
+          ? _("No unread notifications")
           : `${count} unread notification${count === 1 ? "" : "s"}`
     }
   }

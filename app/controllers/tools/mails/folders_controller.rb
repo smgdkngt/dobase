@@ -13,14 +13,14 @@ module Tools
         folder_name = params[:folder_name].to_s.strip
 
         unless valid_folder_name?(folder_name)
-          redirect_to tool_mails_path(@tool), alert: "Invalid folder name."
+          redirect_to tool_mails_path(@tool), alert: _("Invalid folder name.")
           return
         end
 
         created = ImapSyncService.new(@tool.mail_account).create_folder(folder_name)
-        redirect_to tool_mails_path(@tool, folder: created), notice: "Folder \"#{folder_name}\" created."
+        redirect_to tool_mails_path(@tool, folder: created), notice: _("Folder \"%{folder_name}\" created.", folder_name: folder_name)
       rescue StandardError => e
-        redirect_to tool_mails_path(@tool), alert: "Could not create folder: #{e.message}"
+        redirect_to tool_mails_path(@tool), alert: _("Could not create folder: %{message}", message: e.message)
       end
     end
   end

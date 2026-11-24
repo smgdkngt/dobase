@@ -39,7 +39,7 @@ module DragDropHelper
   def tool_drop_attributes(tool)
     return {} unless DROPPABLE.key?(tool.tool_type.slug)
 
-    drop_attributes(tool: tool, url: tool_drops_path(tool), done: "Added to #{tool.display_name}",
+    drop_attributes(tool: tool, url: tool_drops_path(tool), done: _("Added to %{name}", name: tool.display_name),
       open: (new_tool_mail_path(tool, draft_id: ":id") if tool.tool_type.slug == "mail"))
   end
 
@@ -48,13 +48,13 @@ module DragDropHelper
   def mail_folder_drop_attributes(folder)
     name = folder[:label]
     case folder[:key]
-    when "inbox" then drop_action_attributes(tool: @tool, action: "move", params: { folder: "INBOX" }, done: "Moved to #{name}")
-    when "archive" then drop_action_attributes(tool: @tool, action: "archive", done: "Archived")
-    when "trash" then drop_action_attributes(tool: @tool, action: "trash", done: "Moved to the trash")
-    when "junk" then drop_action_attributes(tool: @tool, action: "junk", done: "Marked as junk")
-    when "starred" then drop_action_attributes(tool: @tool, action: "star", done: "Starred")
+    when "inbox" then drop_action_attributes(tool: @tool, action: "move", params: { folder: "INBOX" }, done: _("Moved to %{name}", name: name))
+    when "archive" then drop_action_attributes(tool: @tool, action: "archive", done: _("Archived"))
+    when "trash" then drop_action_attributes(tool: @tool, action: "trash", done: _("Moved to the trash"))
+    when "junk" then drop_action_attributes(tool: @tool, action: "junk", done: _("Marked as junk"))
+    when "starred" then drop_action_attributes(tool: @tool, action: "star", done: _("Starred"))
     when "drafts", "sent" then {}
-    else drop_action_attributes(tool: @tool, action: "move", params: { folder: folder[:key] }, done: "Moved to #{name}")
+    else drop_action_attributes(tool: @tool, action: "move", params: { folder: folder[:key] }, done: _("Moved to %{name}", name: name))
     end
   end
 end

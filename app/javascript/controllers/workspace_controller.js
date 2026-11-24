@@ -4,6 +4,7 @@ import { workspaceCommand, renameWorkspaceKeys, workspaceKey } from "services/wo
 import { apiPost, csrfToken } from "services/api"
 import { typing } from "services/typing"
 import { showFlashesOf } from "services/flash"
+import { _ } from "services/i18n"
 import {
   GAP, MIN_TILE, DESKS, DESK_NAME_LENGTH, NOTHING_OPEN,
   deskAt, insert, remove, place, neighbour, cleaned, withChanges, parsed, deskOf, leaves, find, parentOf, deskName
@@ -431,7 +432,7 @@ export default class extends Controller {
   // What a tile shows, by the name its page gave it, or its tool's name in the menu
   nameOf(id) {
     const tile = this.state.tiles[id]
-    return tile?.title || this.menuLinkFor(tile?.url)?.dataset.toolName || "Tool"
+    return tile?.title || this.menuLinkFor(tile?.url)?.dataset.toolName || _("Tool")
   }
 
   // A tile, its frame and its close button are called after what is in it
@@ -584,7 +585,7 @@ export default class extends Controller {
       const news = tiles.filter((tile) => tile.unread).map((tile) => tile.name)
       const calls = tiles.filter((tile) => tile.inCall).map((tile) => tile.name)
       const name = this.state.desks[number]?.name || ""
-      const called = name ? `Desktop ${number}, ${name}` : `Desktop ${number}`
+      const called = name ? _("Desktop %{number}, %{name}", { number, name }) : _("Desktop %{number}", { number })
 
       button.hidden = !shown.has(number)
       button.setAttribute("aria-current", number === this.state.desk)
@@ -696,9 +697,9 @@ export default class extends Controller {
       rename.className = "workspace-desk-card-rename"
       rename.dataset.desk = number
       rename.dataset.action = "click->workspace#renameDesk"
-      rename.title = "Rename this desktop"
-      rename.setAttribute("aria-label", `Rename desktop ${number}`)
-      rename.textContent = name || `Desktop ${number}`
+      rename.title = _("Rename this desktop")
+      rename.setAttribute("aria-label", _("Rename desktop %{number}", { number }))
+      rename.textContent = name || _("Desktop %{number}", { number })
       heading.append(rename, key)
     }
 
@@ -719,21 +720,21 @@ export default class extends Controller {
       go.append(...(icon ? [ icon ] : []), name)
       // A page inside a tool has its own name: the tool's goes beside it
       if (tile.tool && tile.tool !== tile.name) go.append(note(tile.tool))
-      if (tile.inCall) go.append(note("Call is on", "workspace-desk-card-call"))
-      if (tile.unread) go.append(note("New", "workspace-desk-card-new"))
+      if (tile.inCall) go.append(note(_("Call is on"), "workspace-desk-card-call"))
+      if (tile.unread) go.append(note(_("New"), "workspace-desk-card-new"))
 
       const close = document.createElement("button")
       close.type = "button"
       close.className = "workspace-desk-card-close"
       close.dataset.tileId = tile.id
       close.dataset.action = "click->workspace#closeTileOfCard"
-      close.setAttribute("aria-label", `Close ${tile.name}`)
+      close.setAttribute("aria-label", _("Close %{name}", { name: tile.name }))
       close.textContent = "×"
 
       row.append(go, close)
       return row
     })
-    if (rows.length === 0) rows.push(note("Nothing open here yet. Go there and open a tool.", "workspace-desk-card-empty"))
+    if (rows.length === 0) rows.push(note(_("Nothing open here yet. Go there and open a tool."), "workspace-desk-card-empty"))
 
     card.replaceChildren(heading, ...rows)
     const place = button.getBoundingClientRect()
@@ -762,8 +763,8 @@ export default class extends Controller {
     field.className = "workspace-desk-card-field"
     field.value = name
     field.maxLength = DESK_NAME_LENGTH
-    field.placeholder = `Desktop ${number}`
-    field.setAttribute("aria-label", `Name of desktop ${number}`)
+    field.placeholder = _("Desktop %{number}", { number })
+    field.setAttribute("aria-label", _("Name of desktop %{number}", { number }))
     field.autocomplete = "off"
 
     this.renamingDesk = true
@@ -775,7 +776,7 @@ export default class extends Controller {
         this.deskAt(number).name = deskName(field.value)
         this.save()
         this.drawBar()
-        this.say(this.deskAt(number).name ? `Desktop ${number} is called ${this.deskAt(number).name}` : `Desktop ${number} has no name`)
+        this.say(this.deskAt(number).name ? _("Desktop %{number} is called %{name}", { number, name: this.deskAt(number).name }) : _("Desktop %{number} has no name", { number }))
       }
       this.hideDeskCard()
       this.deskCardTarget.replaceChildren()
@@ -972,7 +973,7 @@ export default class extends Controller {
     if (!keyboardStays) this.grabFocus()
 
     const names = leaves(this.desk.tree).map((id) => this.nameOf(id))
-    this.say(names.length ? `Desktop ${number}: ${names.join(", ")}` : `Desktop ${number}, nothing open`)
+    this.say(names.length ? _("Desktop %{number}: %{names}", { number, names: names.join(_(", ")) }) : _("Desktop %{number}, nothing open", { number }))
   }
 
   // The tiles of the desktop you arrive on come in from the side it lies on
@@ -1050,7 +1051,7 @@ export default class extends Controller {
     this.save()
     this.arrange({ glide: true })
     this.drawBar()
-    this.say(this.desk.alone ? `${this.nameOf(this.desk.focus)} alone` : "All tiles side by side again")
+    this.say(this.desk.alone ? _("%{name} alone", { name: this.nameOf(this.desk.focus) }) : _("All tiles side by side again"))
   }
 
   // ── Keys ──
@@ -1619,7 +1620,7 @@ export default class extends Controller {
     this.draw({ glide: true })
     for (const id of this.elements.keys()) this.nameTile(id)
     if (keyboardWasHere && this.calm) this.grabFocus()
-    this.say("Arranged as in your other window")
+    this.say(_("Arranged as in your other window"))
     if (this.unsent) this.keepSoon()
   }
 

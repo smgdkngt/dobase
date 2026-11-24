@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { _, intlLocale } from "services/i18n"
 
 export default class extends Controller {
   static targets = [
@@ -33,10 +34,10 @@ export default class extends Controller {
     if (!year || !month || !day) return
 
     const start = new Date(year, month - 1, day)
-    const ordinals = ["1st", "2nd", "3rd", "4th", "5th"]
-    const weekday = start.toLocaleDateString("en-US", { weekday: "long" })
+    const ordinals = [_("1st"), _("2nd"), _("3rd"), _("4th"), _("5th")]
+    const weekday = start.toLocaleDateString(intlLocale(), { weekday: "long" })
     if (this.hasWeekdayLabelTarget) {
-      this.weekdayLabelTarget.textContent = `The ${ordinals[Math.floor((day - 1) / 7)]} ${weekday}`
+      this.weekdayLabelTarget.textContent = _("The %{ordinal} %{weekday}", { ordinal: ordinals[Math.floor((day - 1) / 7)], weekday })
     }
 
     if (!this.followStartValue) return

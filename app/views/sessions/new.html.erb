@@ -1,14 +1,14 @@
-<% content_for :title, "Sign In - #{app_name}" %>
+<% content_for :title, _("Sign In - %{app_name}", app_name: app_name) %>
 
 <div class="w-full max-w-sm">
   <div class="text-center mb-8">
     <%= render "shared/logo", class: "w-16 h-16 mx-auto mb-4" %>
     <% if Demo.enabled? %>
-      <h1 class="text-2xl font-semibold text-text-primary">Try <%= app_name %></h1>
-      <p class="text-text-secondary mt-1">A workspace of your own, full of examples</p>
+      <h1 class="text-2xl font-semibold text-text-primary"><%= _("Try %{app_name}", app_name: app_name) %></h1>
+      <p class="text-text-secondary mt-1"><%= _("A workspace of your own, full of examples") %></p>
     <% else %>
-      <h1 class="text-2xl font-semibold text-text-primary">Welcome back</h1>
-      <p class="text-text-secondary mt-1">Sign in to your <%= app_name %> account</p>
+      <h1 class="text-2xl font-semibold text-text-primary"><%= _("Welcome back") %></h1>
+      <p class="text-text-secondary mt-1"><%= _("Sign in to your %{app_name} account", app_name: app_name) %></p>
     <% end %>
   </div>
 
@@ -16,9 +16,9 @@
     <div class="auth-card mb-6">
       <div class="card-body text-center">
         <%= form_with url: demo_path do %>
-          <%= render "components/button", text: "Try the demo", icon: "rocket", full_width: true %>
+          <%= render "components/button", text: _("Try the demo"), icon: "rocket", full_width: true %>
         <% end %>
-        <p class="text-sm text-text-secondary mt-3">No account needed. Everything is removed after a day.</p>
+        <p class="text-sm text-text-secondary mt-3"><%= _("No account needed. Everything is removed after a day.") %></p>
       </div>
     </div>
   <% end %>
@@ -28,7 +28,7 @@
       <%= render "shared/flash", position: :inline %>
       <%= form_with url: session_path, method: :post, class: "space-y-4" do |f| %>
         <div>
-          <label for="email_address" class="label">Email</label>
+          <label for="email_address" class="label"><%= _("Email") %></label>
           <%= f.email_field :email_address,
             class: "input",
             placeholder: "you@example.com",
@@ -41,30 +41,30 @@
 
         <div>
           <div class="flex items-center justify-between mb-1.5">
-            <label for="password" class="label !mb-0">Password</label>
-            <%= link_to "Forgot password?", new_password_path, class: "text-xs text-accent hover:underline" %>
+            <label for="password" class="label !mb-0"><%= _("Password") %></label>
+            <%= link_to _("Forgot password?"), new_password_path, class: "text-xs text-accent hover:underline" %>
           </div>
           <%= f.password_field :password,
             class: "input",
-            placeholder: "Enter your password",
+            placeholder: _("Enter your password"),
             required: true,
             autocomplete: "current-password",
             maxlength: 72
           %>
         </div>
 
-        <%= render "components/button", text: "Sign In", variant: (Demo.enabled? ? :secondary : :primary), full_width: true %>
+        <%= render "components/button", text: _("Sign In"), variant: (Demo.enabled? ? :secondary : :primary), full_width: true %>
       <% end %>
     </div>
   </div>
 
   <% if !Demo.enabled? && (ENV["OPEN_REGISTRATION"] == "true" || User.none?) %>
     <p class="text-center text-sm text-text-secondary mt-6">
-      Don't have an account?
-      <%= link_to "Sign up", signup_path, class: "text-accent hover:underline font-medium" %>
+      <%= _("Don't have an account?") %>
+      <%= link_to _("Sign up"), signup_path, class: "text-accent hover:underline font-medium" %>
     </p>
   <% end %>
   <p class="text-center text-xs text-text-tertiary mt-4">
-    Powered by <a href="https://dobase.co" class="hover:underline" target="_blank">Dobase</a>
+    <%= _("Powered by") %> <a href="https://dobase.co" class="hover:underline" target="_blank"><%= _("Dobase") %></a>
   </p>
 </div>

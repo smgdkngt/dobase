@@ -1,8 +1,8 @@
-<% content_for(:title) { "#{@file.name} - Shared" } %>
+<% content_for(:title) { _("%{name} - Shared", name: @file.name) } %>
 
 <div class="w-full max-w-[900px]">
   <div class="mb-4">
-    <%= render "components/back_link", href: share_path(@share.token), text: "Back to folder" %>
+    <%= render "components/back_link", href: share_path(@share.token), text: _("Back to folder") %>
   </div>
 
   <div class="mb-8">
@@ -28,7 +28,7 @@
     <span class="text-text-secondary text-sm"><%= @file.human_file_size %></span>
     <%= link_to share_file_download_path(@share.token, @file), class: "btn btn-primary", data: { turbo: false } do %>
       <%= render "shared/icon", name: "download", size: 16 %>
-      <span>Download</span>
+      <span><%= _("Download") %></span>
     <% end %>
   </div>
 </div>

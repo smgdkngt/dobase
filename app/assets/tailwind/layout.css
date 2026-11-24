@@ -2,9 +2,9 @@
 @layer components {
   /* Sidebar */
   .sidebar {
-    @apply fixed left-0 top-0 bottom-0 w-[var(--sidebar-width)] bg-sidebar-bg border-r border-border-light flex flex-col;
+    @apply fixed start-0 top-0 bottom-0 w-[var(--sidebar-width)] bg-sidebar-bg border-e border-border-light flex flex-col;
     padding-top: var(--inset-top);
-    padding-left: env(safe-area-inset-left);
+    padding-inline-start: env(safe-area-inset-left);
     padding-bottom: env(safe-area-inset-bottom);
   }
 
@@ -84,15 +84,15 @@
 
   /* Faces of the people who have a tool open right now */
   .sidebar-presence {
-    @apply flex items-center shrink-0 pl-1;
+    @apply flex items-center shrink-0 ps-1;
   }
 
   .sidebar-presence-face {
-    @apply w-4.5 h-4.5 -ml-1 text-[0.5rem] font-semibold ring-2 ring-sidebar-bg;
+    @apply w-4.5 h-4.5 -ms-1 text-[0.5rem] font-semibold ring-2 ring-sidebar-bg;
   }
 
   .sidebar-presence-more {
-    @apply ml-1 text-[0.625rem] font-medium text-text-tertiary;
+    @apply ms-1 text-[0.625rem] font-medium text-text-tertiary;
   }
 
   /* Unread activity dot */
@@ -223,9 +223,9 @@
   /* Main content */
   .main-content {
     @apply min-h-dvh bg-background;
-    margin-left: var(--sidebar-width);
+    margin-inline-start: var(--sidebar-width);
     padding-top: var(--titlebar-height);
-    padding-right: env(safe-area-inset-right);
+    padding-inline-end: env(safe-area-inset-right);
     padding-bottom: calc(env(safe-area-inset-bottom) + var(--demo-banner-height));
   }
 
@@ -261,7 +261,7 @@
     }
 
     .sidebar-tool-menu-btn {
-      @apply w-10 h-10 -my-2.5 -mr-2.5;
+      @apply w-10 h-10 -my-2.5 -me-2.5;
     }
 
     .sidebar-context-btn {
@@ -275,7 +275,7 @@
 
   /* ── Mobile Bottom Bar ── */
   .mobile-bottom-bar {
-    @apply fixed left-0 right-0 z-50 hidden items-center justify-between;
+    @apply fixed start-0 end-0 z-50 hidden items-center justify-between;
     bottom: 0;
     margin: 0 0.75rem calc(0.75rem + env(safe-area-inset-bottom));
     padding: 0.375rem 0.5rem;
@@ -308,10 +308,10 @@
 
   /* ── Demo banner: one line along the bottom of the page (see docs/demo.md) ── */
   .demo-banner {
-    @apply fixed right-0 bottom-0 z-30 flex items-center justify-center gap-3 px-4
+    @apply fixed end-0 bottom-0 z-30 flex items-center justify-center gap-3 px-4
            text-xs text-text-secondary border-t border-border-light;
     anchor-name: --demo-banner;
-    left: var(--sidebar-width);
+    inset-inline-start: var(--sidebar-width);
     height: var(--demo-banner-height);
     /* The accent tint on solid ground: in dark mode the tint is see-through, and pages scroll on behind the banner */
     background: linear-gradient(var(--color-accent-light), var(--color-accent-light)), var(--color-sidebar-bg);
@@ -347,9 +347,9 @@
   /* ── Time zone offer: one small line in the bottom-left corner of the page,
         clear of the toasts on the right (shared/time_zone_notice) ── */
   .time-zone-notice {
-    @apply fixed z-40 flex items-center gap-2 py-1.5 pl-3 pr-1.5 max-w-[calc(100vw-2rem)]
+    @apply fixed z-40 flex items-center gap-2 py-1.5 ps-3 pe-1.5 max-w-[calc(100vw-2rem)]
            rounded-lg border border-border-light shadow-lg text-sm text-text-secondary;
-    left: calc(var(--sidebar-width) + 1.5rem);
+    inset-inline-start: calc(var(--sidebar-width) + 1.5rem);
     bottom: calc(1.5rem + var(--demo-banner-height));
     background: var(--color-surface);
   }
@@ -390,7 +390,7 @@ body[data-workspace] {
 
   /* The time zone offer too, the width of the page */
   .time-zone-notice {
-    @apply left-4 right-4;
+    @apply start-4 end-4;
     bottom: var(--mobile-bar-clearance);
   }
 
@@ -400,7 +400,7 @@ body[data-workspace] {
 
   /* The demo banner sits just above the bottom bar */
   .demo-banner {
-    @apply left-3 right-3 rounded-lg border;
+    @apply start-3 end-3 rounded-lg border;
     bottom: calc(var(--mobile-bar-clearance) - var(--demo-banner-height));
   }
 
@@ -423,8 +423,8 @@ body[data-workspace] {
   /* ── Sidebar becomes bottom sheet ── */
   .sidebar {
     @apply z-50 top-auto bottom-0 inset-x-0 w-full max-h-[75vh]
-           border-r-0 rounded-t-2xl translate-y-full
-           pt-0 pl-0 transition-transform duration-300 ease-in-out shadow-xl;
+           border-e-0 rounded-t-2xl translate-y-full
+           pt-0 ps-0 transition-transform duration-300 ease-in-out shadow-xl;
     padding-bottom: var(--mobile-bar-clearance);
   }
 
@@ -443,7 +443,7 @@ body[data-workspace] {
 
   /* ── Main content ── */
   .main-content {
-    @apply ml-0!;
+    @apply ms-0!;
     padding-top: var(--inset-top);
     padding-bottom: var(--mobile-bar-clearance);
   }
@@ -468,7 +468,7 @@ body[data-workspace] {
 
   /* Toasts span the width above the bottom bar */
   .flash-toast {
-    @apply left-4 right-4 max-w-none;
+    @apply start-4 end-4 max-w-none;
     bottom: var(--mobile-bar-clearance);
   }
 
@@ -514,7 +514,7 @@ body[data-workspace] {
   }
 
   .edit-modal-tabs {
-    @apply flex-row! w-full! border-r-0! border-b border-border-light p-2! gap-1! overflow-x-auto;
+    @apply flex-row! w-full! border-e-0! border-b border-border-light p-2! gap-1! overflow-x-auto;
   }
 
   .edit-modal-tabs .tab {
@@ -661,6 +661,6 @@ body[data-workspace] {
   }
 
   .skip-link:is(:focus-visible, [data-keyboard-focus]) {
-    @apply not-sr-only fixed top-3 left-3 z-[200] rounded-lg bg-surface px-4 py-2 text-sm font-medium text-text-primary shadow-lg ring-2 ring-accent;
+    @apply not-sr-only fixed top-3 start-3 z-[200] rounded-lg bg-surface px-4 py-2 text-sm font-medium text-text-primary shadow-lg ring-2 ring-accent;
   }
 }

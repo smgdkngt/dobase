@@ -14,7 +14,7 @@ module Tools
           if request.format.json?
             render json: { error: "Calendar account not configured" }, status: :not_found
           else
-            redirect_to new_tool_calendar_account_path(@tool), alert: "Please configure your calendar account first."
+            redirect_to new_tool_calendar_account_path(@tool), alert: _("Please configure your calendar account first.")
           end
           return
         end

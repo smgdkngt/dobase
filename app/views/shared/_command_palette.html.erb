@@ -8,15 +8,15 @@
       data: { controller: "command-palette", command_palette_menu_value: true, keyboard_shortcuts_target: "commandPalette",
               action: "workspace:menu@window->command-palette#reset arrow-keys:edge@window->command-palette#backToSearch" } }
   else
-    { class: "modal-dialog max-w-md", aria: { label: "Command palette" },
+    { class: "modal-dialog max-w-md", aria: { label: _("Command palette") },
       data: { controller: "command-palette", keyboard_shortcuts_target: "commandPalette" } }
   end
 %>
 <%= content_tag(menu ? :div : :dialog, **wrapper) do %>
   <div class="<%= menu ? "menu-search-field" : "p-3" %>">
-    <input type="text" placeholder="<%= menu ? "Open a tool, or search everything…" : "Jump to a tool, or search everything..." %>"
+    <input type="text" placeholder="<%= menu ? _("Open a tool, or search everything…") : _("Jump to a tool, or search everything...") %>"
            class="input w-full"
-           aria-label="Jump to a tool or action, or search your tools"
+           aria-label="<%= _("Jump to a tool or action, or search your tools") %>"
            autocomplete="off"
            data-command-palette-target="input"
            data-action="input->command-palette#filter keydown->command-palette#navigate">
@@ -24,7 +24,7 @@
   <div class="<%= menu ? "menu-search-results" : "max-h-[min(60vh,32rem)] overflow-y-auto pb-2" %>" data-command-palette-target="results">
     <% if content_for?(:command_palette_actions) %>
       <div class="px-4 py-1.5" data-command-palette-target="sectionHeader" data-section="action">
-        <span class="text-xs font-semibold text-text-tertiary uppercase tracking-wider">Actions</span>
+        <span class="text-xs font-semibold text-text-tertiary uppercase tracking-wider"><%= _("Actions") %></span>
       </div>
       <%= content_for(:command_palette_actions) %>
       <div class="border-t border-border-light my-1" data-command-palette-target="sectionDivider"></div>
@@ -39,7 +39,7 @@
       end
     %>
     <div class="px-4 py-1.5" data-command-palette-target="sectionHeader" data-section="tool">
-      <span class="text-xs font-semibold text-text-tertiary uppercase tracking-wider">Tools</span>
+      <span class="text-xs font-semibold text-text-tertiary uppercase tracking-wider"><%= _("Tools") %></span>
     </div>
     <% current_user.accessible_tools.includes(:tool_type).order(:name).each do |tool| %>
       <% group_name = group_lookup[tool.id] %>
@@ -47,14 +47,14 @@
          class="command-palette-item"
          data-command-palette-target="item"
          data-name="<%= tool.name.downcase %>"
-         data-type="<%= [tool.tool_type.name, group_name].compact.join(" ").downcase %>">
+         data-type="<%= [tool.tool_type.name, tool.tool_type.human_name, group_name].compact.uniq.join(" ").downcase %>">
         <% if tool.emoji_icon %>
           <span class="tool-emoji" aria-hidden="true"><%= tool.emoji_icon %></span>
         <% else %>
           <%= render "shared/icon", name: tool.display_icon, size: 18, class: "text-text-secondary" %>
         <% end %>
-        <span class="flex-1 truncate"><%= tool.display_name %><% if group_name %> <span class="text-xs text-text-tertiary">in <%= group_name %></span><% end %></span>
-        <span class="text-xs text-text-tertiary"><%= tool.tool_type.name %></span>
+        <span class="flex-1 truncate"><%= tool.display_name %><% if group_name %> <span class="text-xs text-text-tertiary"><%= _("in %{group_name}", group_name: group_name) %></span><% end %></span>
+        <span class="text-xs text-text-tertiary"><%= tool.tool_type.human_name %></span>
       </a>
     <% end %>
 
@@ -62,11 +62,11 @@
 
     <%# The themes, once you type towards one %>
     <div class="px-4 py-1.5 hidden" data-command-palette-target="sectionHeader" data-section="theme">
-      <span class="text-xs font-semibold text-text-tertiary uppercase tracking-wider">Themes</span>
+      <span class="text-xs font-semibold text-text-tertiary uppercase tracking-wider"><%= _("Themes") %></span>
     </div>
     <% [ nil, *Theme.all ].each do |theme| %>
       <button type="button"
-              class="command-palette-item w-full text-left hidden"
+              class="command-palette-item w-full text-start hidden"
               data-command-palette-target="item"
               data-action="click->command-palette#pickTheme"
               data-when-typed
@@ -74,8 +74,8 @@
               data-type="theme"
               data-theme="<%= theme&.name %>">
         <%= render "shared/icon", name: "palette", size: 18, class: "text-text-secondary" %>
-        <span class="flex-1 truncate"><%= theme&.label || "#{app_name}'s own look" %></span>
-        <span class="text-xs text-text-tertiary"><%= theme ? "#{theme.mode.capitalize} theme" : "Theme" %></span>
+        <span class="flex-1 truncate"><%= theme&.label || _("%{app_name}'s own look", app_name: app_name) %></span>
+        <span class="text-xs text-text-tertiary"><%= theme ? (theme.mode == "dark" ? _("Dark theme") : _("Light theme")) : _("Theme") %></span>
       </button>
     <% end %>
 
@@ -87,8 +87,8 @@
   <%# In the workspace this is the launcher: what Enter does there %>
   <% if @workspace %>
     <p class="command-palette-hint">
-      <span><kbd class="shortcut-key">Enter</kbd> Open as a tile</span>
-      <span><kbd class="shortcut-key">Shift+Enter</kbd> In a new tile</span>
+      <span><kbd class="shortcut-key">Enter</kbd> <%= _("Open as a tile") %></span>
+      <span><kbd class="shortcut-key">Shift+Enter</kbd> <%= _("In a new tile") %></span>
     </p>
   <% end %>
 <% end %>

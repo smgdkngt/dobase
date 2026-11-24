@@ -1,11 +1,11 @@
-<% content_for :title, "New Event - #{@tool.name} - #{app_name}" %>
-<% content_for :page_title, "New Event" %>
+<% content_for :title, _("New Event - %{name} - %{app_name}", name: @tool.name, app_name: app_name) %>
+<% content_for :page_title, _("New Event") %>
 
 <div class="p-6">
   <div class="max-w-2xl">
     <div class="card">
       <div class="card-header">
-        <h2 class="text-lg font-semibold">Create new event</h2>
+        <h2 class="text-lg font-semibold"><%= _("Create new event") %></h2>
       </div>
       <div class="card-body">
         <%= render "tools/calendars/events/form",

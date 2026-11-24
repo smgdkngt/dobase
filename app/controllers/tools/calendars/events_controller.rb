@@ -48,7 +48,7 @@ module Tools
           notify_event_created
 
           respond_to do |format|
-            format.html { redirect_to calendar_path_after_change, notice: "Event created successfully.", status: :see_other }
+            format.html { redirect_to calendar_path_after_change, notice: _("Event created successfully."), status: :see_other }
             format.json { render :show, status: :created }
           end
         else
@@ -75,7 +75,7 @@ module Tools
           PushEventJob.perform_later(@event.id, @event.saved_change_to_calendar_id? ? :move : :update)
 
           respond_to do |format|
-            format.html { redirect_to calendar_path_after_change, notice: "Event updated successfully.", status: :see_other }
+            format.html { redirect_to calendar_path_after_change, notice: _("Event updated successfully."), status: :see_other }
             format.json { render :show }
           end
         else
@@ -101,7 +101,7 @@ module Tools
         DeleteCalendarEventJob.perform_later(event_data)
 
         respond_to do |format|
-          format.html { redirect_to calendar_path_after_change, notice: "Event deleted successfully.", status: :see_other }
+          format.html { redirect_to calendar_path_after_change, notice: _("Event deleted successfully."), status: :see_other }
           format.json { head :no_content }
         end
       end
@@ -115,7 +115,7 @@ module Tools
         if request.format.json?
           render json: { error: "Calendar account not configured" }, status: :not_found
         else
-          redirect_to new_tool_calendar_account_path(@tool), alert: "Please configure your calendar account first."
+          redirect_to new_tool_calendar_account_path(@tool), alert: _("Please configure your calendar account first.")
         end
       end
 
@@ -175,9 +175,9 @@ module Tools
         return true unless @event.new_record? || @event.calendar_id_changed?
 
         if @event.calendar.read_only?
-          @event.errors.add(:calendar, "is read-only")
+          @event.errors.add(:calendar, _("is read-only"))
         elsif !@event.calendar.enabled?
-          @event.errors.add(:calendar, "is disabled")
+          @event.errors.add(:calendar, _("is disabled"))
         end
 
         @event.errors.none?

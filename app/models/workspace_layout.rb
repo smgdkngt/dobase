@@ -29,6 +29,6 @@ class WorkspaceLayout < ApplicationRecord
   private
 
   def small_enough
-    errors.add(:state, "is too large") if state.to_json.bytesize > MAX_BYTES
+    errors.add(:state, _("is too large")) if state.to_json.bytesize > MAX_BYTES
   end
 end

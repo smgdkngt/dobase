@@ -126,7 +126,7 @@ module Calendars
       unsupported.empty?
     end
 
-    # Human-readable recurrence description
+    # Human-readable recurrence description, in the page's language (English for the API)
     def recurrence_description
       return nil unless is_recurring? && rrule.present?
       parts = parse_rrule_parts
@@ -135,35 +135,35 @@ module Calendars
 
       desc = case freq
       when "daily"
-        interval == 1 ? "Daily" : "Every #{interval} days"
+        interval == 1 ? _("Daily") : _("Every %{count} days", count: interval)
       when "weekly"
-        base = interval == 1 ? "Weekly" : "Every #{interval} weeks"
+        base = interval == 1 ? _("Weekly") : _("Every %{count} weeks", count: interval)
         if parts[:byday].present?
           day_names = parts[:byday].split(",").filter_map { |d| day_full_name(d) }
-          day_names.any? ? "#{base} on #{day_names.join(', ')}" : base
+          day_names.any? ? _("%{base} on %{days}", base: base, days: day_names.map { |name| _(name) }.join(Translation.rtl? ? "، " : ", ")) : base
         else
           base
         end
       when "monthly"
-        base = interval == 1 ? "Monthly" : "Every #{interval} months"
+        base = interval == 1 ? _("Monthly") : _("Every %{count} months", count: interval)
         if parts[:bymonthday].present?
-          "#{base} on day #{parts[:bymonthday]}"
+          _("%{base} on day %{day}", base: base, day: Translation.digits(parts[:bymonthday]))
         elsif parts[:byday].present?
-          "#{base} on #{ordinal_day_description(parts[:byday])}"
+          _("%{base} on %{days}", base: base, days: ordinal_day_description(parts[:byday]))
         else
           base
         end
       when "yearly"
-        interval == 1 ? "Yearly" : "Every #{interval} years"
+        interval == 1 ? _("Yearly") : _("Every %{count} years", count: interval)
       else
         rrule
       end
 
       if parts[:count].present?
-        desc += ", #{parts[:count]} times"
+        desc = _("%{description}, %{count} times", description: desc, count: parts[:count].to_i)
       elsif parts[:until].present?
         if (until_date = parse_until_date(parts[:until]))
-          desc += ", until #{Date.parse(until_date).strftime('%b %d, %Y')}"
+          desc = _("%{description}, until %{date}", description: desc, date: ApplicationController.helpers.format_date(Date.parse(until_date), year: true))
         end
       end
 
@@ -395,10 +395,9 @@ module Calendars
 
     def ordinal_day_description(byday)
       if byday =~ /^(\d+)([A-Z]{2})$/
-        ordinals = { 1 => "1st", 2 => "2nd", 3 => "3rd", 4 => "4th", 5 => "5th" }
+        ordinals = { 1 => _("1st"), 2 => _("2nd"), 3 => _("3rd"), 4 => _("4th"), 5 => _("5th") }
         ordinal = ordinals[$1.to_i] || "#{$1.to_i}th"
-        day = day_full_name($2)
-        "the #{ordinal} #{day}"
+        _("the %{ordinal} %{weekday}", ordinal: ordinal, weekday: _(day_full_name($2).to_s))
       else
         byday
       end
@@ -421,13 +420,13 @@ module Calendars
 
     def reminders_readable
       Array(@reminder_errors).each { |message| errors.add(:reminders, message) }
-      errors.add(:reminders, "are more than #{Calendars::Reminder::LIMIT}") if reminders.size > Calendars::Reminder::LIMIT
+      errors.add(:reminders, _("are more than %{limit}", limit: Calendars::Reminder::LIMIT)) if reminders.size > Calendars::Reminder::LIMIT
     end
 
     def ends_at_after_starts_at
       return unless starts_at && ends_at
       # An all-day event lasts a day at least
-      errors.add(:ends_at, "must be after the start") if all_day? ? ends_at <= starts_at : ends_at < starts_at
+      errors.add(:ends_at, _("must be after the start")) if all_day? ? ends_at <= starts_at : ends_at < starts_at
     end
   end
 end

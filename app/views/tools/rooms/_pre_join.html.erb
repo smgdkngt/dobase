@@ -2,8 +2,8 @@
   <div class="room-pre-join" data-room-target="preJoin">
     <div class="room-pre-join-card media-fade-in">
       <div class="text-center">
-        <h2 class="text-lg font-semibold text-text-primary">Ready to join?</h2>
-        <p class="text-sm text-text-secondary mt-1">Check your camera and microphone first.</p>
+        <h2 class="text-lg font-semibold text-text-primary"><%= _("Ready to join?") %></h2>
+        <p class="text-sm text-text-secondary mt-1"><%= _("Check your camera and microphone first.") %></p>
       </div>
 
       <div class="hidden flex flex-col items-center gap-2 w-full" data-room-target="preJoinError">
@@ -12,7 +12,7 @@
           <span class="flex-1" data-room-target="preJoinErrorMessage"></span>
         </div>
         <%= render "components/button",
-              text: "Try again",
+              text: _("Try again"),
               variant: :secondary,
               size: :sm,
               icon: "refresh-cw",
@@ -35,16 +35,16 @@
       <div class="w-full flex flex-col gap-3">
         <div class="form-field !mb-0">
           <label class="label" for="room-audio-device">
-            <%= render "shared/icon", name: "mic", size: 14, class: "inline-block align-[-2px] mr-1 text-text-tertiary" %>
-            Microphone
+            <%= render "shared/icon", name: "mic", size: 14, class: "inline-block align-[-2px] me-1 text-text-tertiary" %>
+            <%= _("Microphone") %>
           </label>
           <select id="room-audio-device" class="input" data-room-target="audioSelect"></select>
         </div>
 
         <div class="form-field !mb-0">
           <label class="label" for="room-video-device">
-            <%= render "shared/icon", name: "video", size: 14, class: "inline-block align-[-2px] mr-1 text-text-tertiary" %>
-            Camera
+            <%= render "shared/icon", name: "video", size: 14, class: "inline-block align-[-2px] me-1 text-text-tertiary" %>
+            <%= _("Camera") %>
           </label>
           <select id="room-video-device" class="input"
                   data-room-target="videoSelect"
@@ -53,7 +53,7 @@
       </div>
 
       <%= render "components/button",
-            text: "Join Room",
+            text: _("Join Room"),
             variant: :primary,
             icon: "video",
             full_width: true,

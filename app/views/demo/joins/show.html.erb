@@ -1,10 +1,10 @@
-<% content_for :title, "Join Moonshot Snacks - #{app_name}" %>
+<% content_for :title, _("Join Moonshot Snacks - %{app_name}", app_name: app_name) %>
 
 <div class="flex items-center justify-center min-h-full py-12">
   <div class="w-full max-w-sm">
     <div class="text-center mb-8">
       <%= render "shared/logo", class: "w-16 h-16 mx-auto mb-4" %>
-      <h1 class="text-2xl font-semibold text-text-primary">Join Moonshot Snacks</h1>
+      <h1 class="text-2xl font-semibold text-text-primary"><%= _("Join Moonshot Snacks") %></h1>
       <p class="text-text-secondary mt-1">as <strong><%= @teammate.name %></strong></p>
     </div>
 
@@ -15,16 +15,16 @@
         </div>
 
         <p class="text-sm text-text-secondary mb-6">
-          This signs this window in as <%= @teammate.first_name %>.
+          <%= _("This signs this window in as %{first_name}.", first_name: @teammate.first_name) %>
           <% if authenticated? %>
-            You're signed in as <%= current_user.name %> here, and would leave that workspace behind in this window.
+            <%= _("You're signed in as %{current_user_name} here, and would leave that workspace behind in this window.", current_user_name: current_user.name) %>
           <% end %>
-          To keep your own session, open the link in a private window or on another device.
+          <%= _("To keep your own session, open the link in a private window or on another device.") %>
         </p>
 
         <%= form_with url: demo_joins_path do %>
           <%= hidden_field_tag :token, params[:token] %>
-          <%= render "components/button", text: "Join as #{@teammate.first_name}", full_width: true %>
+          <%= render "components/button", text: _("Join as %{first_name}", first_name: @teammate.first_name), full_width: true %>
         <% end %>
       </div>
     </div>

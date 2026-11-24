@@ -34,7 +34,7 @@
   }
 
   .recipient-token {
-    @apply flex items-center gap-1 min-w-0 max-w-64 h-7 pl-2.5 pr-1.5 rounded-md text-sm text-text-primary cursor-default select-none outline-none;
+    @apply flex items-center gap-1 min-w-0 max-w-64 h-7 ps-2.5 pe-1.5 rounded-md text-sm text-text-primary cursor-default select-none outline-none;
     background: color-mix(in srgb, var(--color-accent) 12%, transparent);
     transition: background-color 120ms var(--ease-out);
   }
@@ -104,7 +104,7 @@
   }
 
   .recipient-options {
-    @apply absolute left-12 right-0 top-full z-50 mt-1 max-w-md max-h-72 overflow-y-auto p-1 rounded-lg bg-surface border border-border-light shadow-lg;
+    @apply absolute start-12 end-0 top-full z-50 mt-1 max-w-md max-h-72 overflow-y-auto p-1 rounded-lg bg-surface border border-border-light shadow-lg;
   }
 
   .recipient-options[hidden] {

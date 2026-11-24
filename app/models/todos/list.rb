@@ -11,7 +11,7 @@ module Todos
     validates :title, presence: true
 
     def self.create_default_for(tool)
-      create!(tool: tool, title: "To Do", position: 0)
+      create!(tool: tool, title: Translation.translate("To Do"), position: 0)
     end
   end
 end

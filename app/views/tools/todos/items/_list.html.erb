@@ -3,7 +3,7 @@
             keyboard too. It lands at the bottom of the list, and the dialog
             shows the todo again; the page catches up when it closes. %>
         <div class="detail-field">
-          <label for="todo-list-<%= item.id %>" class="detail-field-label">List</label>
+          <label for="todo-list-<%= item.id %>" class="detail-field-label"><%= _("List") %></label>
           <%= form_with url: tool_todo_item_position_path(tool, item), method: :patch, data: { turbo_frame: "item-detail-content" } do %>
             <%= select_tag :todo_list_id,
                   options_from_collection_for_select(lists, :id, :title, item.todo_list_id),

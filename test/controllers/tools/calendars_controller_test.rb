@@ -58,8 +58,8 @@ module Tools
 
       # (without the menu a right click shows, which is a template)
       blocks = css_select(".week-column [data-event-id]").to_h { |block| block.css("template").remove; [ block.text.squish, block["style"] ] }
-      assert_match "left: calc(0.0% + 2px); width: calc(50.0% - 4px)", blocks["12:00 PM Design review"]
-      assert_match "left: calc(50.0% + 2px); width: calc(50.0% - 4px)", blocks["12:30 PM Call"]
+      assert_match "inset-inline-start: calc(0.0% + 2px); width: calc(50.0% - 4px)", blocks["12:00 PM Design review"]
+      assert_match "inset-inline-start: calc(50.0% + 2px); width: calc(50.0% - 4px)", blocks["12:30 PM Call"]
       assert_match "height: 2.08", blocks["12:30 PM Call"]
       assert_equal [ "12:00 PM Design review", "12:30 PM Call", "10:00 PM Late" ], blocks.keys
       assert_select ".all-day-event-span", text: "9:00 AM Conference" do |spans|

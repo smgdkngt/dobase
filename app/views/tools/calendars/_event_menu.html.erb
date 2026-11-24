@@ -1,10 +1,10 @@
 <%# What a right click on an appointment offers. Locals: event %>
 <% tool = @tool || event.calendar.account.tool %>
-<%= render "components/context_menu", label: "Appointment: #{event.summary}" do %>
-  <%= render "components/menu_item", text: "Open", icon: "eye", href: tool_calendar_event_path(tool, event), data: { turbo_frame: "_top" } %>
-  <%= render "components/menu_item", text: "Edit", icon: "edit", href: edit_tool_calendar_event_path(tool, event), data: { turbo_frame: "_top" } %>
+<%= render "components/context_menu", label: _("Appointment: %{summary}", summary: event.summary) do %>
+  <%= render "components/menu_item", text: _("Open"), icon: "eye", href: tool_calendar_event_path(tool, event), data: { turbo_frame: "_top" } %>
+  <%= render "components/menu_item", text: _("Edit"), icon: "edit", href: edit_tool_calendar_event_path(tool, event), data: { turbo_frame: "_top" } %>
   <%= render "components/menu_divider" %>
-  <%= render "components/menu_item", text: "Copy link", icon: "link", data: { copy: tool_calendar_event_url(tool, event) } %>
-  <%= render "components/menu_item", text: "Delete", icon: "trash-2", variant: :danger, href: tool_calendar_event_path(tool, event), method: :delete,
-        turbo_confirm: event.is_recurring? ? "Delete every time “#{event.summary}” repeats?" : "Delete “#{event.summary}”?", data: { turbo_confirm_button: "Delete", turbo_frame: "_top", sound: "trash" } %>
+  <%= render "components/menu_item", text: _("Copy link"), icon: "link", data: { copy: tool_calendar_event_url(tool, event) } %>
+  <%= render "components/menu_item", text: _("Delete"), icon: "trash-2", variant: :danger, href: tool_calendar_event_path(tool, event), method: :delete,
+        turbo_confirm: event.is_recurring? ? _("Delete every time “%{summary}” repeats?", summary: event.summary) : _("Delete “%{summary}”?", summary: event.summary), data: { turbo_confirm_button: _("Delete"), turbo_frame: "_top", sound: "trash" } %>
 <% end %>

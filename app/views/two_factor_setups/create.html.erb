@@ -4,13 +4,13 @@
       <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-success/10 text-success mb-3">
         <%= render "shared/icon", name: "check", size: 24 %>
       </div>
-      <h3 class="text-lg font-semibold text-text-primary">Two-factor authentication enabled</h3>
-      <p class="text-sm text-text-secondary mt-1">Save these recovery codes in a safe place</p>
+      <h3 class="text-lg font-semibold text-text-primary"><%= _("Two-factor authentication enabled") %></h3>
+      <p class="text-sm text-text-secondary mt-1"><%= _("Save these recovery codes in a safe place") %></p>
     </div>
 
     <div class="bg-background-secondary rounded-lg p-4" data-controller="clipboard">
       <p class="text-sm text-text-secondary mb-3">
-        Use these codes to sign in if you lose access to your authenticator app. Each code can only be used once.
+        <%= _("Use these codes to sign in if you lose access to your authenticator app. Each code can only be used once.") %>
       </p>
       <div class="grid grid-cols-2 gap-2">
         <% @recovery_codes.each do |code| %>
@@ -22,13 +22,13 @@
               class="btn btn-primary btn-sm w-full mt-3"
               data-clipboard-target="button"
               data-action="clipboard#copy">
-        Copy all codes
+        <%= _("Copy all codes") %>
       </button>
     </div>
 
     <div class="flex justify-end">
       <%= render "components/button",
-        text: "Done",
+        text: _("Done"),
         href: edit_profile_path(tab: "security"),
         data: { turbo_frame: "profile-form" } %>
     </div>

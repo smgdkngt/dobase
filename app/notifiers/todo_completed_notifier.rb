@@ -6,13 +6,13 @@ class TodoCompletedNotifier < Noticed::Event
   deliver_by :custom_action_cable,
     class: "Noticed::DeliveryMethods::CustomActionCable",
     stream: -> { "notifications:#{recipient.id}" },
-    message: -> { notification_data }
+    message: -> { I18n.with_locale(Translation.supported(recipient.try(:locale)) || I18n.default_locale) { notification_data } }
 
   notification_methods do
     def message
       completer = event.params[:completer]
       item = event.params[:item]
-      "#{completer&.name || 'Someone'} completed #{item&.title || 'a todo'}"
+      _("%{person} completed %{item}", person: completer&.name || _("Someone"), item: item&.title || _("a todo"))
     end
 
     def url

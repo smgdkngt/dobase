@@ -1,3 +1,4 @@
+import { _ } from "services/i18n"
 // A tool's own page in a frame: a tile in the workspace (workspace_controller.js).
 // What the workspace does with such a frame.
 //
@@ -41,7 +42,7 @@ export function toolFrame(url) {
   const frame = document.createElement("iframe")
   frame.src = url
   frame.name = "workspace-tile"
-  frame.title = "Tool"
+  frame.title = _("Tool")
   // A call in a room asks for these itself
   frame.allow = "camera; microphone; display-capture; fullscreen; clipboard-write"
   return frame
@@ -121,7 +122,7 @@ export function frameAddress(frame) {
 export function sendFrameTo(frame, path) {
   if (inPage(frame)) {
     // (a page of its own asks this itself, as the visit below reaches it)
-    if (hasUnfinishedWork(frame) && !window.confirm("This tile has unfinished work, such as an unsent mail. Leave it?")) return false
+    if (hasUnfinishedWork(frame) && !window.confirm(_("This tile has unfinished work, such as an unsent mail. Leave it?"))) return false
 
     pathOf(frame.getAttribute("src")) === path ? reloadFrame(frame) : frame.setAttribute("src", path)
     return true
@@ -221,8 +222,8 @@ export function focusFrame(frame) {
  * @returns {Promise<boolean>}
  */
 export function confirmClosing() {
-  const message = "This tile has unfinished work, such as an unsent mail or a call. Close it anyway?"
-  return Turbo.config.forms.confirm(message, null, { dataset: { turboConfirmButton: "Close" } })
+  const message = _("This tile has unfinished work, such as an unsent mail or a call. Close it anyway?")
+  return Turbo.config.forms.confirm(message, null, { dataset: { turboConfirmButton: _("Close") } })
 }
 
 /**

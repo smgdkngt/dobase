@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-turbo-not-loaded <%= tag.attributes(theme_attributes) %><%= " data-in-tile" if tile? %>>
+<html data-turbo-not-loaded <%= tag.attributes(language_attributes) %> <%= tag.attributes(theme_attributes) %><%= " data-in-tile" if tile? %>>
   <head>
     <title><%= content_for(:title) || app_name %></title>
     <meta name="viewport" content="<%= viewport_content %>">
@@ -15,6 +15,9 @@
     <% if current_theme %><meta name="theme-color" content="<%= current_theme.chrome_color %>" data-theme-chrome><% end %>
     <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#2c2c2e" media="(prefers-color-scheme: dark)">
+    <%# A change of language reloads the page (Turbo never touches <html>, where dir is) %>
+    <meta name="locale" content="<%= I18n.locale %>" data-turbo-track="reload">
+    <%= tag.meta name: "translations", content: Translation.for_scripts.to_json if Translation.for_scripts.any? %>
     <%= csrf_meta_tags %>
     <meta name="time-zone" content="<%= Time.zone.tzinfo.name %>">
     <%= csp_meta_tag %>
@@ -74,11 +77,11 @@
 
   <%# data-workspace on the body, not on <html>: Turbo brings a new body with every
       visit and leaves <html> as the first page had it %>
-  <body class="bg-background-secondary text-text-primary" data-controller="keyboard-shortcuts theme arrow-keys context-menu drag-drop time-zone" data-arrow-keys-over-value="true"
+  <body <%= tag.attributes(dir: Translation.direction) %> class="bg-background-secondary text-text-primary" data-controller="keyboard-shortcuts theme arrow-keys context-menu drag-drop time-zone" data-arrow-keys-over-value="true"
         data-theme-version-value="<%= theme_version %>"<%= " data-workspace" if @workspace %>>
     <%# data-turbo="false" so the browser handles the fragment itself and moves
         focus into <main>; a Turbo anchor visit only scrolls. %>
-    <a href="#main-content" class="skip-link" data-turbo="false">Skip to main content</a>
+    <a href="#main-content" class="skip-link" data-turbo="false"><%= _("Skip to main content") %></a>
     <%= render "shared/turbo_confirm_dialog" %>
     <%= render "shared/file_viewer" if user_signed_in? %>
     <% if user_signed_in? && tile? %>
@@ -91,10 +94,10 @@
           <%= yield %>
         </main>
         <div id="persistent-room" data-turbo-permanent hidden></div>
-        <button data-controller="hotkey" data-hotkey="b" data-action="click->tile-page#notifications" hidden>Notifications</button>
+        <button data-controller="hotkey" data-hotkey="b" data-action="click->tile-page#notifications" hidden><%= _("Notifications") %></button>
       </div>
       <%# With Shift too: in the workspace Mod+K is the launcher of the page around the tiles %>
-      <button data-controller="hotkey" data-hotkey="Mod+k,Mod+Shift+K" data-action="click->keyboard-shortcuts#openCommandPalette" hidden>Command palette</button>
+      <button data-controller="hotkey" data-hotkey="Mod+k,Mod+Shift+K" data-action="click->keyboard-shortcuts#openCommandPalette" hidden><%= _("Command palette") %></button>
       <%= render "shared/command_palette" %>
       <%= render "shared/keyboard_shortcuts_dialog" %>
     <% elsif user_signed_in? %>
@@ -112,10 +115,10 @@
         </main>
 
         <%# Mobile bottom bar — only visible < 1024px %>
-        <nav class="mobile-bottom-bar" aria-label="Main">
+        <nav class="mobile-bottom-bar" aria-label="<%= _("Main") %>">
           <button type="button"
                   class="mobile-bottom-bar-item"
-                  aria-label="Account menu for <%= current_user.name %>"
+                  aria-label="<%= _("Account menu for %{name}", name: current_user.name) %>"
                   aria-haspopup="menu"
                   popovertarget="sidebar-user-menu"
                   style="anchor-name: --mobile-user-btn">
@@ -140,7 +143,7 @@
                data-notifications-unread-mail-count-value="<%= current_user.unread_mail_count %>">
             <button type="button"
                     class="mobile-bottom-bar-item"
-                    aria-label="Notifications"
+                    aria-label="<%= _("Notifications") %>"
                     popovertarget="sidebar-notifications"
                     style="anchor-name: --mobile-notifications-btn"
                     data-notifications-target="trigger"
@@ -148,7 +151,7 @@
               <%= render "shared/icon", name: "bell", size: 20 %>
               <%# Rendered server-side so a Turbo morph refresh (which restores
                   whatever class the server sends) doesn't reset it to hidden. %>
-              <span class="absolute -top-0.5 -right-0.5 badge badge-sm <%= "hidden" if mobile_unread_count.zero? %>"
+              <span class="absolute -top-0.5 -end-0.5 badge badge-sm <%= "hidden" if mobile_unread_count.zero? %>"
                     aria-hidden="true"
                     data-notifications-target="badge">
                 <%= mobile_unread_count %>
@@ -161,7 +164,7 @@
         <%= render "shared/demo_banner" if Demo.enabled? %>
         <%= render "shared/time_zone_notice" if suggested_time_zone %>
       </div>
-      <button data-controller="hotkey" data-hotkey="Mod+k" data-action="click->keyboard-shortcuts#openCommandPalette" hidden>Command palette</button>
+      <button data-controller="hotkey" data-hotkey="Mod+k" data-action="click->keyboard-shortcuts#openCommandPalette" hidden><%= _("Command palette") %></button>
       <%# In the workspace it is the top of the menu (shared/sidebar) %>
       <%= render "shared/command_palette" unless @workspace %>
       <%= render "shared/keyboard_shortcuts_dialog" %>

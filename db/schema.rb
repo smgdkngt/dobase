@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_18_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_24_120000) do
   create_table "access_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
@@ -733,6 +733,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_18_120000) do
     t.string "last_name", null: false
     t.datetime "last_notification_digest_at"
     t.string "last_visited_path"
+    t.string "locale"
     t.string "notification_digest", default: "daily", null: false
     t.text "otp_recovery_codes"
     t.boolean "otp_required", default: false, null: false

@@ -4,6 +4,7 @@ import { showFlash } from "services/flash"
 import { play } from "services/sound"
 import { gesture, done, DOING_DISTANCE } from "services/swipe"
 import { visitPage } from "services/tile"
+import { _ } from "services/i18n"
 
 // On a phone a conversation in the list is archived by swiping it to the left, as in a
 // phone's own mail app. The row goes at once; when the server refuses, it comes back.
@@ -103,7 +104,7 @@ export default class extends Controller {
     } else {
       delete row.dataset.swipedAway
       row.style.removeProperty("--swipe")
-      showFlash("The mail couldn't be archived.", "alert")
+      showFlash(_("The mail couldn't be archived."), "alert")
     }
   }
 }

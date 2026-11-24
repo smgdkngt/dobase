@@ -32,19 +32,19 @@
     <%# Who has this tool open right now; filled in by sidebar_presence_controller.js %>
     <span class="sidebar-presence" hidden data-sidebar-presence-target="slot" data-tool-id="<%= instance.id %>"></span>
     <% if has_unread %>
-      <span class="sr-only">New activity</span>
+      <span class="sr-only"><%= _("New activity") %></span>
     <% end %>
     <% if instance.tool_type.slug == "mail" && instance.mail_account %>
       <% unread = instance.mail_account.messages.inbox.not_archived.unread.count %>
       <% if unread > 0 %>
         <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-accent-solid text-text-inverse text-xs font-medium"
-              aria-label="<%= pluralize(unread, "unread message") %>"><%= unread > 99 ? "99+" : unread %></span>
+              aria-label="<%= n_("%{count} unread message", "%{count} unread messages", unread) %>"><%= Translation.digits(unread > 99 ? "99+" : unread) %></span>
       <% end %>
     <% end %>
   </a>
   <button type="button" class="sidebar-tool-menu-btn"
           data-arrow-keys-target="item"
-          aria-label="Settings for <%= instance.display_name %>"
+          aria-label="<%= _("Settings for %{name}", name: instance.display_name) %>"
           data-action="click->sidebar#editTool"
           data-context-menu-action="settings"
           data-tool-id="<%= instance.id %>">

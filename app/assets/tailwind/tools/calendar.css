@@ -26,12 +26,12 @@
   }
 
   .week-header-cell {
-    @apply flex flex-col items-center justify-center p-3 border-r border-border-light;
+    @apply flex flex-col items-center justify-center p-3 border-e border-border-light;
   }
 
   /* Stays put beside the hours below it when the week scrolls sideways */
   .week-header-cell.time-label-cell {
-    @apply bg-surface sticky left-0 z-10;
+    @apply bg-surface sticky start-0 z-10;
   }
 
   .week-header-cell.today {
@@ -46,7 +46,7 @@
   }
 
   .all-day-label {
-    @apply flex items-start justify-end pr-2 pt-1.5 bg-surface border-r border-border-light sticky left-0 z-20;
+    @apply flex items-start justify-end pe-2 pt-1.5 bg-surface border-e border-border-light sticky start-0 z-20;
   }
 
   .all-day-events-grid {
@@ -58,7 +58,7 @@
   }
 
   .all-day-grid-cell {
-    @apply border-r border-border-light;
+    @apply border-e border-border-light;
     grid-row: 1 / -1;
   }
 
@@ -76,11 +76,11 @@
 
   /* Time labels */
   .time-labels {
-    @apply bg-surface border-r border-border-light sticky left-0 z-5;
+    @apply bg-surface border-e border-border-light sticky start-0 z-5;
   }
 
   .time-label {
-    @apply flex items-start justify-end pr-2 pt-1;
+    @apply flex items-start justify-end pe-2 pt-1;
     height: 60px;
     border-bottom: 1px solid var(--color-border-light);
   }
@@ -92,7 +92,7 @@
   }
 
   .week-column {
-    @apply relative border-r border-border-light;
+    @apply relative border-e border-border-light;
   }
 
   .week-column.today {
@@ -137,7 +137,7 @@
   .calendar-week-container {
     --calendar-day-width: calc((100vw - 64px) / 2);
     scroll-snap-type: x proximity;
-    scroll-padding-left: 64px;
+    scroll-padding-inline-start: 64px;
   }
 
   .week-header-cell:not(.time-label-cell) {

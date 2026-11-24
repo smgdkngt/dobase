@@ -34,26 +34,26 @@
             class: "inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-accent transition-colors",
             data: { turbo_method: :delete, turbo_frame: "_top" } do %>
           <%= render "shared/icon", name: "archive-restore", size: 14 %>
-          Restore card
+          <%= _("Restore card") %>
         <% end %>
       <% else %>
         <%= link_to tool_board_card_archive_path(@tool, @card),
             class: "inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-accent transition-colors",
             data: { turbo_method: :post, turbo_frame: "_top" } do %>
           <%= render "shared/icon", name: "archive", size: 14 %>
-          Archive card
+          <%= _("Archive card") %>
         <% end %>
       <% end %>
       <%= link_to tool_board_card_path(@tool, @card),
           class: "inline-flex items-center gap-1.5 text-sm text-text-tertiary hover:text-error transition-colors",
           data: {
             turbo_method: :delete,
-            turbo_confirm: "Delete this card? This cannot be undone.",
-            turbo_confirm_button: "Delete",
+            turbo_confirm: _("Delete this card? This cannot be undone."),
+            turbo_confirm_button: _("Delete"),
             turbo_frame: "_top"
           } do %>
         <%= render "shared/icon", name: "trash-2", size: 14 %>
-        Delete card
+        <%= _("Delete card") %>
       <% end %>
     </div>
     <% if (text = attribution_text(@card)) %>

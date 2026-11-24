@@ -16,7 +16,7 @@ module Tools
         undoable(:unarchive, with_their_conversations([ @message ], folder: folder)) { account.archive(_1) }
 
         respond_to do |format|
-          format.html { redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Email archived.") }
+          format.html { redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: _("Email archived.")) }
           format.json { render "tools/mails/message" }
         end
       end
@@ -30,7 +30,7 @@ module Tools
         @message = conversation.find { |message| message.persisted? && message.message_id == @message.message_id } if @message.destroyed?
 
         respond_to do |format|
-          format.html { redirect_to_next_mail_or_fallback(next_msg, folder: "archive", notice: "Email unarchived.") }
+          format.html { redirect_to_next_mail_or_fallback(next_msg, folder: "archive", notice: _("Email unarchived.")) }
           format.json { render "tools/mails/message" }
         end
       end

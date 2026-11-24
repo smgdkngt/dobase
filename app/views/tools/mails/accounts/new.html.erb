@@ -1,12 +1,12 @@
-<% content_for :title, "Connect mail - #{@tool.name} - #{app_name}" %>
-<% content_for :page_title, "Connect mail" %>
+<% content_for :title, _("Connect mail - %{name} - %{app_name}", name: @tool.name, app_name: app_name) %>
+<% content_for :page_title, _("Connect mail") %>
 
 <div class="mail-connect p-6 max-sm:px-4">
 <div class="max-w-2xl mx-auto">
   <div class="card">
     <div class="card-header">
-      <h2 class="text-lg font-semibold">Connect your mail</h2>
-      <p class="text-sm text-text-secondary mt-1">Pick your mail service and sign in. Dobase tries the login before it saves anything.</p>
+      <h2 class="text-lg font-semibold"><%= _("Connect your mail") %></h2>
+      <p class="text-sm text-text-secondary mt-1"><%= _("Pick your mail service and sign in. Dobase tries the login before it saves anything.") %></p>
     </div>
     <div class="card-body">
       <%= form_with model: @mail_account, url: tool_mails_account_path(@tool), method: :post,
@@ -15,11 +15,11 @@
 
         <%# The service %>
         <div class="mb-6">
-          <p class="label" id="mail-provider-label">Mail service</p>
+          <p class="label" id="mail-provider-label"><%= _("Mail service") %></p>
           <div class="mail-provider-choices" role="group" aria-labelledby="mail-provider-label">
             <% ::Mails::Provider::ALL.each do |key, provider| %>
               <%= render "components/button",
-                    text: provider[:name],
+                    text: key == "other" ? _("Other") : provider[:name],
                     variant: :secondary,
                     type: :button,
                     pressed: false,
@@ -31,7 +31,7 @@
             <%= render "shared/icon", name: "key-round", size: 16, class: "shrink-0 mt-0.5 text-accent" %>
             <p>
               <span data-mail-provider-target="hint"></span>
-              <a href="#" target="_blank" rel="noopener" class="font-medium text-accent hover:underline" data-mail-provider-target="appPasswordLink">How to make an app password</a>
+              <a href="#" target="_blank" rel="noopener" class="font-medium text-accent hover:underline" data-mail-provider-target="appPasswordLink"><%= _("How to make an app password") %></a>
             </p>
           </div>
         </div>
@@ -40,7 +40,7 @@
         <div class="mb-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <%= f.label :email_address, "Email address", class: "label" %>
+              <%= f.label :email_address, _("Email address"), class: "label" %>
               <%= f.email_field :email_address,
                 class: "input #{@mail_account.errors[:email_address].any? ? 'input-error' : ''}",
                 placeholder: "you@example.com",
@@ -50,28 +50,28 @@
               %>
             </div>
             <div>
-              <%= f.label :display_name, "Your name", class: "label" %>
-              <%= f.text_field :display_name, class: "input", placeholder: "Ann Lee" %>
-              <p class="help-text">Shown on mail you send</p>
+              <%= f.label :display_name, _("Your name"), class: "label" %>
+              <%= f.text_field :display_name, class: "input", placeholder: _("Ann Lee") %>
+              <p class="help-text"><%= _("Shown on mail you send") %></p>
             </div>
             <div>
-              <%= f.label :username, "Username", class: "label" %>
+              <%= f.label :username, _("Username"), class: "label" %>
               <%= f.text_field :username,
                 class: "input #{@mail_account.errors[:username].any? ? 'input-error' : ''}",
                 placeholder: "you@example.com",
                 required: true,
                 data: { mail_provider_target: "username", action: "input->mail-provider#usernameTyped" }
               %>
-              <p class="help-text">Usually your email address</p>
+              <p class="help-text"><%= _("Usually your email address") %></p>
             </div>
             <div>
-              <%= f.label :password, "Password", class: "label" %>
+              <%= f.label :password, _("Password"), class: "label" %>
               <%= f.password_field :password,
                 class: "input #{@mail_account.errors[:encrypted_password].any? ? 'input-error' : ''}",
-                placeholder: "App password",
+                placeholder: _("App password"),
                 required: true
               %>
-              <p class="help-text">Most services want an app password, not the one you sign in with</p>
+              <p class="help-text"><%= _("Most services want an app password, not the one you sign in with") %></p>
             </div>
           </div>
         </div>
@@ -80,15 +80,15 @@
         <%= tag.details class: "mail-connect-servers mb-6", open: true, data: { mail_provider_target: "servers" } do %>
           <summary class="mail-connect-servers-summary">
             <%= render "shared/icon", name: "chevron-right", size: 16, class: "mail-connect-servers-chevron" %>
-            <span>Server settings</span>
+            <span><%= _("Server settings") %></span>
             <span class="text-text-tertiary font-normal truncate" data-mail-provider-target="serversSummary"><%= [ @mail_account.imap_host, @mail_account.smtp_host ].compact_blank.join(", ") %></span>
           </summary>
 
           <div class="pt-4">
-            <h3 class="text-sm font-semibold text-text-primary mb-3">Incoming mail (IMAP)</h3>
+            <h3 class="text-sm font-semibold text-text-primary mb-3"><%= _("Incoming mail (IMAP)") %></h3>
             <div class="grid grid-cols-3 gap-4">
               <div class="col-span-2">
-                <%= f.label :imap_host, "IMAP server", class: "label" %>
+                <%= f.label :imap_host, _("IMAP server"), class: "label" %>
                 <%= f.text_field :imap_host,
                   class: "input #{@mail_account.errors[:imap_host].any? ? 'input-error' : ''}",
                   placeholder: "imap.example.com",
@@ -97,19 +97,19 @@
                 %>
               </div>
               <div>
-                <%= f.label :imap_port, "Port", class: "label" %>
+                <%= f.label :imap_port, _("Port"), class: "label" %>
                 <%= f.number_field :imap_port, class: "input", value: @mail_account.imap_port || 993, data: { mail_provider_target: "imapPort" } %>
               </div>
             </div>
             <label class="flex items-center gap-3 mt-3 cursor-pointer">
               <%= f.check_box :imap_ssl, class: "w-4 h-4 rounded border-border text-accent focus:ring-accent/20", checked: @mail_account.imap_ssl.nil? || @mail_account.imap_ssl, data: { mail_provider_target: "imapSsl" } %>
-              <span class="text-sm text-text-primary">Use SSL/TLS</span>
+              <span class="text-sm text-text-primary"><%= _("Use SSL/TLS") %></span>
             </label>
 
-            <h3 class="text-sm font-semibold text-text-primary mt-6 mb-3">Outgoing mail (SMTP)</h3>
+            <h3 class="text-sm font-semibold text-text-primary mt-6 mb-3"><%= _("Outgoing mail (SMTP)") %></h3>
             <div class="grid grid-cols-3 gap-4">
               <div class="col-span-2">
-                <%= f.label :smtp_host, "SMTP server", class: "label" %>
+                <%= f.label :smtp_host, _("SMTP server"), class: "label" %>
                 <%= f.text_field :smtp_host,
                   class: "input #{@mail_account.errors[:smtp_host].any? ? 'input-error' : ''}",
                   placeholder: "smtp.example.com",
@@ -118,15 +118,15 @@
                 %>
               </div>
               <div>
-                <%= f.label :smtp_port, "Port", class: "label" %>
+                <%= f.label :smtp_port, _("Port"), class: "label" %>
                 <%= f.number_field :smtp_port, class: "input", value: @mail_account.smtp_port || 587, data: { mail_provider_target: "smtpPort" } %>
               </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
               <div>
-                <%= f.label :smtp_auth, "Authentication", class: "label" %>
+                <%= f.label :smtp_auth, _("Authentication"), class: "label" %>
                 <%= f.select :smtp_auth,
-                  [["Plain", "plain"], ["Login", "login"], ["CRAM-MD5", "cram_md5"]],
+                  [[_("Plain"), "plain"], [_("Login"), "login"], ["CRAM-MD5", "cram_md5"]],
                   {},
                   class: "input",
                   data: { mail_provider_target: "smtpAuth" }
@@ -135,7 +135,7 @@
               <div class="flex items-end pb-2">
                 <label class="flex items-center gap-3 cursor-pointer">
                   <%= f.check_box :smtp_tls, class: "w-4 h-4 rounded border-border text-accent focus:ring-accent/20", checked: @mail_account.smtp_tls.nil? || @mail_account.smtp_tls, data: { mail_provider_target: "smtpTls" } %>
-                  <span class="text-sm text-text-primary">Use STARTTLS</span>
+                  <span class="text-sm text-text-primary"><%= _("Use STARTTLS") %></span>
                 </label>
               </div>
             </div>
@@ -144,8 +144,8 @@
 
         <div class="flex items-center justify-end gap-3">
           <%# The tool would only bring this form back %>
-          <%= render "components/button", text: "Cancel", href: root_path, variant: :secondary, data: { turbo_frame: "_top" } %>
-          <%= render "components/button", text: "Connect", icon: "mail" %>
+          <%= render "components/button", text: _("Cancel"), href: root_path, variant: :secondary, data: { turbo_frame: "_top" } %>
+          <%= render "components/button", text: _("Connect"), icon: "mail" %>
         </div>
       <% end %>
     </div>

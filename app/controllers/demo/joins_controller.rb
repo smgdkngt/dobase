@@ -8,7 +8,7 @@ module Demo
     allow_unauthenticated_access
     before_action :require_demo_mode
     rate_limit to: 10, within: 3.minutes, only: :create,
-      with: -> { redirect_to new_session_path, alert: "Try again in a few minutes." }
+      with: -> { redirect_to new_session_path, alert: _("Try again in a few minutes.") }
     before_action :set_teammate
 
     def show
@@ -17,7 +17,7 @@ module Demo
 
     def create
       start_new_session_for @teammate
-      redirect_to workspace_path, notice: "You're #{@teammate.name} now. Say hi in the chat!"
+      redirect_to workspace_path, notice: _("You're %{name} now. Say hi in the chat!", name: @teammate.name)
     end
 
     private
@@ -28,7 +28,7 @@ module Demo
 
     def set_teammate
       @teammate = User.find_signed(params[:token], purpose: :demo_join)
-      redirect_to new_session_path, alert: "That link has expired." unless Demo.teammate?(@teammate)
+      redirect_to new_session_path, alert: _("That link has expired.") unless Demo.teammate?(@teammate)
     end
 
     def workspace_path

@@ -6,14 +6,14 @@ class CardMovedNotifier < Noticed::Event
   deliver_by :custom_action_cable,
     class: "Noticed::DeliveryMethods::CustomActionCable",
     stream: -> { "notifications:#{recipient.id}" },
-    message: -> { notification_data }
+    message: -> { I18n.with_locale(Translation.supported(recipient.try(:locale)) || I18n.default_locale) { notification_data } }
 
   notification_methods do
     def message
       mover = event.params[:mover]
       card = event.params[:card]
       column = event.params[:column]
-      "#{mover&.name || 'Someone'} moved #{card&.title || 'a card'} to #{column&.name || 'a column'}"
+      _("%{person} moved %{card} to %{column}", person: mover&.name || _("Someone"), card: card&.title || _("a card"), column: column&.name || _("a column"))
     end
 
     def url

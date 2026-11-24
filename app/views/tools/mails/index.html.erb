@@ -1,4 +1,4 @@
-<% content_for :title, [ (@heading if @composing), @tool.name, app_name ].compact.join(" - ") %>
+<% content_for :title, [ (_(@heading) if @composing), @tool.name, app_name ].compact.join(" - ") %>
 <% content_for :page_title, "" %>
 <% if @composing %>
   <%# A failed send renders the compose form again at the same address. Morphing it would empty
@@ -19,7 +19,7 @@
 
   <%= render "tools/mails/topbar" %>
 
-  <nav class="tool-scroll-area mail-folder-rail" aria-label="Mail folders">
+  <nav class="tool-scroll-area mail-folder-rail" aria-label="<%= _("Mail folders") %>">
     <%= render "tools/mails/folder_links", rail: true,
           folders: mail_folders(inbox_unread: @inbox_unread, drafts_count: @drafts_count, trash_count: @trash_count, junk_unread: @junk_unread) %>
   </nav>

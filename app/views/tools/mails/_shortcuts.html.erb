@@ -1,43 +1,43 @@
 <% content_for :command_palette_actions do %>
-  <%= render "shared/command_palette_action", key: "c", description: "Compose", icon: "edit" %>
-  <%= render "shared/command_palette_action", key: "/", description: "Search", icon: "search" %>
+  <%= render "shared/command_palette_action", key: "c", description: _("Compose"), icon: "edit" %>
+  <%= render "shared/command_palette_action", key: "/", description: _("Search"), icon: "search" %>
   <%# These act on the open message, rendered by tools/mails/mail_detail — hide
       them when there isn't one, since their hotkey target wouldn't be on the page. %>
   <% if @selected_message %>
     <% if @current_folder == "archive" %>
-      <%= render "shared/command_palette_action", key: "e", description: "Unarchive", icon: "archive-restore" %>
+      <%= render "shared/command_palette_action", key: "e", description: _("Unarchive"), icon: "archive-restore" %>
     <% else %>
-      <%= render "shared/command_palette_action", key: "e", description: "Archive", icon: "archive" %>
+      <%= render "shared/command_palette_action", key: "e", description: _("Archive"), icon: "archive" %>
     <% end %>
-    <%= render "shared/command_palette_action", key: "s", description: "Star / unstar", icon: "star" %>
-    <%= render "shared/command_palette_action", key: "r", description: "Reply", icon: "reply" %>
-    <%= render "shared/command_palette_action", key: "f", description: "Forward", icon: "forward" %>
-    <%= render "shared/command_palette_action", key: "#", description: "Trash", icon: "trash-2" %>
+    <%= render "shared/command_palette_action", key: "s", description: _("Star / unstar"), icon: "star" %>
+    <%= render "shared/command_palette_action", key: "r", description: _("Reply"), icon: "reply" %>
+    <%= render "shared/command_palette_action", key: "f", description: _("Forward"), icon: "forward" %>
+    <%= render "shared/command_palette_action", key: "#", description: _("Trash"), icon: "trash-2" %>
   <% end %>
 <% end %>
 
 <% content_for :keyboard_shortcuts do %>
   <div>
-    <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Mail</h3>
+    <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2"><%= _("Mail") %></h3>
     <div class="shortcut-list">
-      <%= render "shared/shortcut_row", key: "j / ↓", description: "Next message" %>
-      <%= render "shared/shortcut_row", key: "k / ↑", description: "Previous message" %>
-      <%= render "shared/shortcut_row", key: "o / Enter", description: "Open message" %>
-      <%= render "shared/shortcut_row", key: "→", description: "Into the message: its buttons, its attachments" %>
-      <%= render "shared/shortcut_row", key: "←", description: "Back to the list" %>
-      <%= render "shared/shortcut_row", key: "Space", description: "Turn the page of the message" %>
-      <%= render "shared/shortcut_row", key: "Home / End", description: "First or last message" %>
-      <%= render "shared/shortcut_row", key: "c", description: "Compose" %>
-      <%= render "shared/shortcut_row", key: "/", description: "Search" %>
-      <%= render "shared/shortcut_row", key: "e", description: "Archive" %>
-      <%= render "shared/shortcut_row", key: "s", description: "Star / unstar" %>
-      <%= render "shared/shortcut_row", key: "u", description: "Mark unread" %>
-      <%= render "shared/shortcut_row", key: "#", description: "Trash" %>
-      <%= render "shared/shortcut_row", key: "z", description: "Undo: archiving, trashing, moving, or sending while it waits" %>
-      <%= render "shared/shortcut_row", key: "r", description: "Reply" %>
-      <%= render "shared/shortcut_row", key: "a", description: "Reply all" %>
-      <%= render "shared/shortcut_row", key: "f", description: "Forward" %>
-      <%= render "shared/shortcut_row", key: mod_key("Enter"), description: "Send the message being written" %>
+      <%= render "shared/shortcut_row", key: "j / ↓", description: _("Next message") %>
+      <%= render "shared/shortcut_row", key: "k / ↑", description: _("Previous message") %>
+      <%= render "shared/shortcut_row", key: "o / Enter", description: _("Open message") %>
+      <%= render "shared/shortcut_row", key: "→", description: _("Into the message: its buttons, its attachments") %>
+      <%= render "shared/shortcut_row", key: "←", description: _("Back to the list") %>
+      <%= render "shared/shortcut_row", key: "Space", description: _("Turn the page of the message") %>
+      <%= render "shared/shortcut_row", key: "Home / End", description: _("First or last message") %>
+      <%= render "shared/shortcut_row", key: "c", description: _("Compose") %>
+      <%= render "shared/shortcut_row", key: "/", description: _("Search") %>
+      <%= render "shared/shortcut_row", key: "e", description: _("Archive") %>
+      <%= render "shared/shortcut_row", key: "s", description: _("Star / unstar") %>
+      <%= render "shared/shortcut_row", key: "u", description: _("Mark unread") %>
+      <%= render "shared/shortcut_row", key: "#", description: _("Trash") %>
+      <%= render "shared/shortcut_row", key: "z", description: _("Undo: archiving, trashing, moving, or sending while it waits") %>
+      <%= render "shared/shortcut_row", key: "r", description: _("Reply") %>
+      <%= render "shared/shortcut_row", key: "a", description: _("Reply all") %>
+      <%= render "shared/shortcut_row", key: "f", description: _("Forward") %>
+      <%= render "shared/shortcut_row", key: mod_key("Enter"), description: _("Send the message being written") %>
     </div>
   </div>
 <% end %>

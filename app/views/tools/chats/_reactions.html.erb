@@ -5,8 +5,8 @@
   <% message.reaction_groups.each do |emoji, users| %>
     <button type="button"
             class="chat-reaction"
-            title="<%= users.map(&:name).to_sentence %> reacted with <%= emoji %>"
-            aria-label="<%= emoji %> <%= users.size %>, from <%= users.map(&:name).to_sentence %>"
+            title="<%= _("%{names} reacted with %{emoji}", names: users.map(&:name).to_sentence, emoji: emoji) %>"
+            aria-label="<%= _("%{emoji} %{count}, from %{names}", emoji: emoji, count: users.size, names: users.map(&:name).to_sentence) %>"
             aria-pressed="false"
             data-reactions-target="pill"
             data-emoji="<%= emoji %>"

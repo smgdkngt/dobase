@@ -51,7 +51,7 @@ module Tools
           end
         else
           respond_to do |format|
-            format.html { redirect_to tool_board_path(@tool), alert: "Could not delete card" }
+            format.html { redirect_to tool_board_path(@tool), alert: _("Could not delete card") }
             format.json { render json: { error: "Could not delete card" }, status: :unprocessable_entity }
           end
         end

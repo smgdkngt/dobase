@@ -8,14 +8,14 @@ class SyncStalledNotifier < Noticed::Event
   deliver_by :custom_action_cable,
     class: "Noticed::DeliveryMethods::CustomActionCable",
     stream: -> { "notifications:#{recipient.id}" },
-    message: -> { notification_data }
+    message: -> { I18n.with_locale(Translation.supported(recipient.try(:locale)) || I18n.default_locale) { notification_data } }
 
   notification_methods do
     def message
       account = event.params[:account]
-      what = account.is_a?(Calendars::Account) ? "The calendar" : "Mail for #{account&.email_address || 'this tool'}"
+      what = account.is_a?(Calendars::Account) ? _("The calendar") : _("Mail for %{address}", address: account&.email_address || _("this tool"))
       since = Time.zone.parse(event.params[:since].to_s)
-      text = "#{what} hasn't synced since #{since ? ApplicationController.helpers.format_datetime(since) : 'a day ago'}"
+      text = _("%{what} hasn't synced since %{since}", what: what, since: since ? ApplicationController.helpers.format_datetime(since) : _("a day ago"))
       error = event.params[:error].presence
       error ? "#{text}: #{error}" : text
     end

@@ -4,30 +4,30 @@
     <% if share.expired? %>
       <p class="flex items-center gap-1.5 text-sm text-error">
         <%= render "shared/icon", name: "alert-circle", size: 14 %>
-        Expired on <%= format_date(share.expires_at) %>
+        <%= _("Expired on") %> <%= format_date(share.expires_at) %>
       </p>
     <% else %>
       <div class="flex gap-2" data-controller="clipboard">
-        <input type="text" readonly aria-label="Share link" value="<%= share_url(share.token) %>" class="input flex-1" data-clipboard-target="source">
-        <%= render "components/button", text: "Copy", variant: :secondary, size: :sm, type: :button, data: { action: "clipboard#copy", clipboard_target: "button" } %>
+        <input type="text" readonly aria-label="<%= _("Share link") %>" value="<%= share_url(share.token) %>" class="input flex-1" data-clipboard-target="source">
+        <%= render "components/button", text: _("Copy"), variant: :secondary, size: :sm, type: :button, data: { action: "clipboard#copy", clipboard_target: "button" } %>
       </div>
       <% if share.expires_at %>
         <p class="text-sm text-text-secondary mt-2">
-          Expires <%= format_date(share.expires_at) %>
+          <%= _("Expires %{expires_at}", expires_at: format_date(share.expires_at)) %>
         </p>
       <% end %>
     <% end %>
     <% if share.password_protected? %>
-      <p class="text-xs text-text-tertiary mt-1">Password protected</p>
+      <p class="text-xs text-text-tertiary mt-1"><%= _("Password protected") %></p>
     <% end %>
     <p class="text-xs text-text-tertiary mt-1">
-      Downloaded <%= pluralize(share.download_count, "time") %>
+      <%= _("Downloaded") %> <%= pluralize(share.download_count, "time") %>
     </p>
     <div class="mt-4 pt-4 border-t border-border flex justify-end">
-      <%= render "components/button", text: "Remove Share", variant: :danger, size: :sm, href: share_url, method: :delete, turbo_confirm: "Remove public access?", data: { turbo_frame: "_top", turbo_confirm_button: "Remove" } %>
+      <%= render "components/button", text: _("Remove Share"), variant: :danger, size: :sm, href: share_url, method: :delete, turbo_confirm: _("Remove public access?"), data: { turbo_frame: "_top", turbo_confirm_button: _("Remove") } %>
     </div>
   <% elsif Demo.enabled? %>
-    <p class="text-sm text-text-secondary">Public links are switched off in the demo.</p>
+    <p class="text-sm text-text-secondary"><%= _("Public links are switched off in the demo.") %></p>
   <% else %>
     <%= form_with url: share_url, method: :post, data: { action: "turbo:submit-end->file-preview#onShareCreated" } do |f| %>
       <% if errors&.any? %>
@@ -36,15 +36,15 @@
         </div>
       <% end %>
       <div class="mb-4">
-        <label class="label">Expiration (optional)</label>
+        <label class="label"><%= _("Expiration (optional)") %></label>
         <input type="date" name="expires_at" class="input" min="<%= Date.tomorrow %>" value="<%= 1.week.from_now.to_date %>">
       </div>
       <div class="mb-4">
-        <label class="label">Password (optional)</label>
-        <input type="text" name="password" class="input" placeholder="Leave blank for no password" autocomplete="off" data-1p-ignore data-lpignore="true" data-protonpass-ignore="true">
+        <label class="label"><%= _("Password (optional)") %></label>
+        <input type="text" name="password" class="input" placeholder="<%= _("Leave blank for no password") %>" autocomplete="off" data-1p-ignore data-lpignore="true" data-protonpass-ignore="true">
       </div>
       <div class="flex justify-end gap-2">
-        <%= render "components/button", text: "Create Link", variant: :primary %>
+        <%= render "components/button", text: _("Create Link"), variant: :primary %>
       </div>
     <% end %>
   <% end %>

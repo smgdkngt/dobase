@@ -1,13 +1,13 @@
-<% content_for :title, "All Tools - #{app_name}" %>
-<% content_for :page_title, "All Tools" %>
+<% content_for :title, _("All Tools - %{app_name}", app_name: app_name) %>
+<% content_for :page_title, _("All Tools") %>
 
 <div class="p-6">
 <div class="flex items-center justify-between mb-6">
   <div>
-    <h1 class="text-xl font-semibold text-text-primary">All Tools</h1>
-    <p class="text-text-secondary">Manage all your tools in one place.</p>
+    <h1 class="text-xl font-semibold text-text-primary"><%= _("All Tools") %></h1>
+    <p class="text-text-secondary"><%= _("Manage all your tools in one place.") %></p>
   </div>
-  <%= render "components/button", text: "Add Tool", icon: "plus", href: new_tool_path %>
+  <%= render "components/button", text: _("Add Tool"), icon: "plus", href: new_tool_path %>
 </div>
 
 <% if @tools.any? %>
@@ -22,12 +22,12 @@
             <%= link_to tool_path(tool), class: "font-medium text-text-primary hover:text-accent after:absolute after:inset-0" do %>
               <%= tool.name %>
             <% end %>
-            <p class="text-sm text-text-secondary"><%= tool.tool_type.name %></p>
+            <p class="text-sm text-text-secondary"><%= tool.tool_type.human_name %></p>
           </div>
           <% if @owned_tool_ids.include?(tool.id) %>
-            <span class="text-xs text-text-tertiary">Owner</span>
+            <span class="text-xs text-text-tertiary"><%= _("Owner") %></span>
           <% else %>
-            <%= render "components/badge", text: "Shared", variant: :muted, size: :sm %>
+            <%= render "components/badge", text: _("Shared"), variant: :muted, size: :sm %>
           <% end %>
           <%= render "shared/icon", name: "chevron-right", size: 16, class: "text-text-tertiary flex-shrink-0" %>
         </div>
@@ -37,11 +37,11 @@
 <% else %>
   <div class="card">
     <%= render "components/empty_state",
-        title: "No tools yet",
-        description: "Get started by adding your first tool.",
+        title: _("No tools yet"),
+        description: _("Get started by adding your first tool."),
         icon: "layout",
         size: :md,
-        action_text: "Add Your First Tool",
+        action_text: _("Add Your First Tool"),
         action_href: new_tool_path,
         action_icon: "plus" %>
   </div>

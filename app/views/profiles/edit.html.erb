@@ -1,7 +1,7 @@
 <% unless turbo_frame_request? %>
-  <% content_for :title, "Profile - #{app_name}" %>
+  <% content_for :title, _("Profile - %{app_name}", app_name: app_name) %>
   <div class="p-6"><div class="max-w-3xl mx-auto card overflow-hidden">
-    <div class="card-header"><h2 class="text-lg font-semibold">Profile</h2></div>
+    <div class="card-header"><h2 class="text-lg font-semibold"><%= _("Profile") %></h2></div>
 <% end %>
 <%= turbo_frame_tag "profile-form" do %>
   <%= render "profiles/settings", user: @user, in_dialog: turbo_frame_request?, tab: params[:tab], open_tab: @open_tab %>

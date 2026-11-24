@@ -5,7 +5,7 @@
     <%= render "components/search",
         url: tool_mails_path(@tool),
         value: params[:q],
-        placeholder: "Search all mail…",
+        placeholder: _("Search all mail…"),
         hidden_fields: { folder: @current_folder, **mail_search_params.except(:q) },
         data: { turbo_frame: "_top" },
         input_data: { "controller": "hotkey", "hotkey": "/", "mail-keyboard-target": "search" } %>
@@ -34,44 +34,44 @@
       </div>
     </div>
 
-    <%= render "shared/modal", id: "create-folder-modal", title: "New Folder", size: :sm do %>
+    <%= render "shared/modal", id: "create-folder-modal", title: _("New Folder"), size: :sm do %>
       <%= form_with url: tool_folder_path(@tool), method: :post do %>
         <%= render "components/form_field",
-            label: "Folder name",
+            label: _("Folder name"),
             name: "folder_name",
-            placeholder: "e.g. Receipts",
+            placeholder: _("e.g. Receipts"),
             required: true,
             autofocus: true %>
         <div class="flex justify-end gap-2 mt-4">
-          <%= render "components/button", text: "Cancel", variant: :secondary, type: :button, data: { action: "click->modal#close" } %>
-          <%= render "components/button", text: "Create" %>
+          <%= render "components/button", text: _("Cancel"), variant: :secondary, type: :button, data: { action: "click->modal#close" } %>
+          <%= render "components/button", text: _("Create") %>
         </div>
       <% end %>
     <% end %>
 
-    <div class="mail-topbar-actions flex items-center gap-2 ml-auto">
-      <div class="flex items-center gap-2 pr-3 mr-2 border-r border-border-light"
+    <div class="mail-topbar-actions flex items-center gap-2 ms-auto">
+      <div class="flex items-center gap-2 pe-3 me-2 border-e border-border-light"
            data-controller="sync-status"
            data-sync-status-url-value="<%= tool_sync_path(@tool) %>"
            data-sync-status-syncing-value="<%= @mail_account.syncing? %>">
         <div class="w-1.5 h-1.5 rounded-full <%= @mail_account.synced? ? 'bg-success' : (@mail_account.sync_error? ? 'bg-error' : 'bg-warning') %>"
              aria-hidden="true"
              data-sync-status-target="indicator"></div>
-        <span class="sr-only">Mail sync:</span>
+        <span class="sr-only"><%= _("Mail sync:") %></span>
         <%= tag.span class: "mail-sync-text text-xs text-text-tertiary", role: "status", title: (@mail_account.sync_error if @mail_account.sync_error?), data: { sync_status_target: "status" } do %>
           <% if @mail_account.syncing? %>
-            Syncing...
+            <%= _("Syncing...") %>
           <% elsif @mail_account.authentication_failed? %>
-            Login failed
+            <%= _("Login failed") %>
           <% elsif @mail_account.last_synced_at %>
-            <%= time_ago_in_words(@mail_account.last_synced_at) %>
+            <%= ago(@mail_account.last_synced_at) %>
           <% else %>
-            Not synced
+            <%= _("Not synced") %>
           <% end %>
         <% end %>
         <%= render "components/icon_button",
             icon: "refresh-cw",
-            title: "Sync now",
+            title: _("Sync now"),
             size: :sm,
             href: tool_sync_path(@tool),
             method: :post,
@@ -80,12 +80,12 @@
       </div>
 
       <% if @tool.owned_by?(current_user) %>
-        <%= render "components/icon_button", icon: "settings", title: "Mailbox settings", size: :sm,
+        <%= render "components/icon_button", icon: "settings", title: _("Mailbox settings"), size: :sm,
               href: edit_tool_path(@tool, tab: "email") %>
       <% end %>
 
       <%= render "components/button",
-          text: "Compose",
+          text: _("Compose"),
           icon: "edit",
           size: :sm,
           href: new_tool_mail_path(@tool),

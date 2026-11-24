@@ -1,6 +1,6 @@
 <%# The dialog an event's details open in. Empty until the calendar fetches the event
     that is opened (calendar#showEvent). %>
-<%= render "shared/modal", id: "event-details-modal", title: "Event Details", size: :lg,
+<%= render "shared/modal", id: "event-details-modal", title: _("Event Details"), size: :lg,
       data: { calendar_target: "eventDetailDialog" } do %>
   <div data-calendar-target="eventModal"></div>
 <% end %>

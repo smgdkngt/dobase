@@ -12,4 +12,10 @@ class ToolType < ApplicationRecord
   def to_param
     slug
   end
+
+  # The name and description in the page's language: the rows are English (db/seeds.rb),
+  # and their Persian is in config/locales/fa/ui.yml like any other text
+  def human_name = _(name)
+
+  def human_description = _(description.to_s)
 end

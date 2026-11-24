@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import Sortable from "sortablejs"
 import { formatRecipient, inQuotes, listOfRecipients, parseRecipients, validAddress } from "services/recipients"
+import { _ } from "services/i18n"
 
 // A To, Cc or Bcc field of a mail being written (tools/mails/_recipient_field).
 //
@@ -215,9 +216,9 @@ export default class extends Controller {
     this.menuTarget.hidePopover()
     try {
       await navigator.clipboard.writeText(token.dataset.address)
-      this.say("Address copied")
+      this.say(_("Address copied"))
     } catch {
-      this.say("The address could not be copied")
+      this.say(_("The address could not be copied"))
     }
   }
 

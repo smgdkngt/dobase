@@ -2,20 +2,20 @@
 <% content_for :page_title, "" %>
 
 <% content_for :command_palette_actions do %>
-  <%= render "shared/command_palette_action", key: "n", description: "New event", icon: "plus" %>
-  <%= render "shared/command_palette_action", key: "t", description: "Go to today", icon: "clock-arrow-down" %>
+  <%= render "shared/command_palette_action", key: "n", description: _("New event"), icon: "plus" %>
+  <%= render "shared/command_palette_action", key: "t", description: _("Go to today"), icon: "clock-arrow-down" %>
 <% end %>
 
 <% content_for :keyboard_shortcuts do %>
   <div>
-    <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Calendar</h3>
+    <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2"><%= _("Calendar") %></h3>
     <div class="shortcut-list">
-      <%= render "shared/shortcut_row", key: "n", description: "New event" %>
-      <%= render "shared/shortcut_row", key: "t", description: "Go to today" %>
-      <%= render "shared/shortcut_row", key: mod_key("←"), description: "Previous week" %>
-      <%= render "shared/shortcut_row", key: mod_key("→"), description: "Next week" %>
-      <%= render "shared/shortcut_row", key: "← → ↑ ↓", description: "Go from event to event" %>
-      <%= render "shared/shortcut_row", key: "Enter", description: "Open the event" %>
+      <%= render "shared/shortcut_row", key: "n", description: _("New event") %>
+      <%= render "shared/shortcut_row", key: "t", description: _("Go to today") %>
+      <%= render "shared/shortcut_row", key: mod_key("←"), description: _("Previous week") %>
+      <%= render "shared/shortcut_row", key: mod_key("→"), description: _("Next week") %>
+      <%= render "shared/shortcut_row", key: "← → ↑ ↓", description: _("Go from event to event") %>
+      <%= render "shared/shortcut_row", key: "Enter", description: _("Open the event") %>
     </div>
   </div>
 <% end %>
@@ -32,13 +32,7 @@
 
   <%
     week_end = @week_start + 6.days
-    if @week_start.month == week_end.month
-      month_title = @week_start.strftime("%B %Y")
-    elsif @week_start.year == week_end.year
-      month_title = "#{@week_start.strftime("%b")} – #{week_end.strftime("%b %Y")}"
-    else
-      month_title = "#{@week_start.strftime("%b %Y")} – #{week_end.strftime("%b %Y")}"
-    end
+    month_title = calendar_week_title(@week_start, week_end)
     is_current_week = @week_start == Date.current.beginning_of_week(:monday)
   %>
   <div class="tool-topbar flex-wrap gap-2">
@@ -49,13 +43,13 @@
 
     <!-- Center: Week navigation pill -->
     <%= render "components/nav_pill" do %>
-      <%= render "components/nav_pill_button", icon: "chevron-left", title: "Previous week (#{mod_key("←")})", data: { controller: "hotkey", action: "calendar#previousWeek", hotkey: "Mod+ArrowLeft" } %>
-      <%= render "components/nav_pill_button", icon: "clock-arrow-down", title: "Today (t)", data: { controller: "hotkey", action: "calendar#goToToday", hotkey: "t" } %>
-      <%= render "components/nav_pill_button", icon: "plus", title: "New event (n)", data: { controller: "hotkey", action: "calendar#newEvent", hotkey: "n" } %>
-      <%= render "components/nav_pill_button", icon: "calendar-days", title: "Pick a week", data: { action: "calendar#openWeekPicker" } %>
-      <%= render "components/nav_pill_button", icon: "chevron-right", title: "Next week (#{mod_key("→")})", data: { controller: "hotkey", action: "calendar#nextWeek", hotkey: "Mod+ArrowRight" } %>
+      <%= render "components/nav_pill_button", icon: "chevron-left", title: _("Previous week (%{key})", key: mod_key("←")), data: { controller: "hotkey", action: "calendar#previousWeek", hotkey: "Mod+ArrowLeft" } %>
+      <%= render "components/nav_pill_button", icon: "clock-arrow-down", title: _("Today (t)"), data: { controller: "hotkey", action: "calendar#goToToday", hotkey: "t" } %>
+      <%= render "components/nav_pill_button", icon: "plus", title: _("New event (n)"), data: { controller: "hotkey", action: "calendar#newEvent", hotkey: "n" } %>
+      <%= render "components/nav_pill_button", icon: "calendar-days", title: _("Pick a week"), data: { action: "calendar#openWeekPicker" } %>
+      <%= render "components/nav_pill_button", icon: "chevron-right", title: _("Next week (%{key})", key: mod_key("→")), data: { controller: "hotkey", action: "calendar#nextWeek", hotkey: "Mod+ArrowRight" } %>
       <input type="date"
-             aria-label="Jump to the week of a date"
+             aria-label="<%= _("Jump to the week of a date") %>"
              value="<%= @week_start.iso8601 %>"
              class="absolute opacity-0 pointer-events-none"
              data-action="change->calendar#jumpToWeek"
@@ -72,21 +66,21 @@
           <div class="w-1.5 h-1.5 rounded-full <%= @calendar_account.synced? ? 'bg-success' : (@calendar_account.sync_error? ? 'bg-error' : 'bg-warning') %>"
                aria-hidden="true"
                data-sync-status-target="indicator"></div>
-          <span class="sr-only">Calendar sync:</span>
+          <span class="sr-only"><%= _("Calendar sync:") %></span>
           <%= tag.span class: "text-xs text-text-tertiary", role: "status", title: (@calendar_account.sync_error if @calendar_account.sync_error?), data: { sync_status_target: "status" } do %>
             <% if @calendar_account.syncing? %>
-              Syncing...
+              <%= _("Syncing...") %>
             <% elsif @calendar_account.authentication_failed? %>
-              Login failed
+              <%= _("Login failed") %>
             <% elsif @calendar_account.last_synced_at %>
-              <%= time_ago_in_words(@calendar_account.last_synced_at) %>
+              <%= ago(@calendar_account.last_synced_at) %>
             <% else %>
-              Not synced
+              <%= _("Not synced") %>
             <% end %>
           <% end %>
           <%= render "components/icon_button",
               icon: "refresh-cw",
-              title: "Sync now",
+              title: _("Sync now"),
               size: :sm,
               href: tool_calendar_sync_path(@tool),
               method: :post,
@@ -119,7 +113,7 @@
       end_time: default_end
     ).tap(&:load_recurrence_for_form)
   %>
-  <%= render "shared/modal", id: "new-event-modal", title: "New Event", size: :lg,
+  <%= render "shared/modal", id: "new-event-modal", title: _("New Event"), size: :lg,
         data: { calendar_target: "newEventDialog" } do %>
     <div data-calendar-target="newEventModal">
       <%= render "tools/calendars/events/form",

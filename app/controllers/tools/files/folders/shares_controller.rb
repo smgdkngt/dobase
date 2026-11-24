@@ -40,7 +40,7 @@ module Tools
 
         def destroy
           @folder.share&.destroy
-          redirect_to tool_files_path(@tool, folder_id: @folder.parent_id), notice: "Share removed"
+          redirect_to tool_files_path(@tool, folder_id: @folder.parent_id), notice: _("Share removed")
         end
 
         private
