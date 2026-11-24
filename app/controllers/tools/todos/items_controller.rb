@@ -51,7 +51,7 @@ module Tools
           end
         else
           respond_to do |format|
-            format.html { redirect_to tool_todo_path(@tool), alert: "Could not delete item" }
+            format.html { redirect_to tool_todo_path(@tool), alert: _("Could not delete item") }
             format.json { render json: { error: "Could not delete item" }, status: :unprocessable_entity }
           end
         end

@@ -8,17 +8,17 @@
   # Dragged onto a folder beside the list it goes there; anywhere else it is a link to it
   # (drag_drop_controller.js). A draft isn't dragged: it is opened.
   drag = conversation[:draft] ? {} : drag_attributes(::Mails::Message.new(id: conversation[:id]), tool: tool,
-    title: conversation[:subject].presence || "(No subject)", path: tool_mail_path(tool, conversation[:id]),
+    title: conversation[:subject].presence || _("(No subject)"), path: tool_mail_path(tool, conversation[:id]),
     move: tool_mail_move_path(tool, conversation[:id], current_folder: current_folder),
     archive: tool_mail_archive_path(tool, conversation[:id], folder: current_folder),
     trash: tool_mail_trash_path(tool, conversation[:id], folder: current_folder),
     junk: tool_mail_junk_path(tool, conversation[:id], folder: current_folder),
     star: tool_mail_star_path(tool, conversation[:id]))
 %>
-<%= tag.div id: "conversation-#{conversation[:id]}", **drag.except(:data), class: "mail-list-item flex items-start gap-3 px-3 py-2.5 border-b border-border-light border-l-2 border-l-transparent transition-all cursor-pointer hover:bg-background-tertiary #{'selected' if is_selected}",
-      data: { mail_keyboard_target: "item", archive_url: archive_url, context_menu: true, **drag.fetch(:data, {}) } do %>
+<%= tag.div id: "conversation-#{conversation[:id]}", **drag.except(:data), class: "mail-list-item flex items-start gap-3 px-3 py-2.5 border-b border-border-light border-s-2 border-s-transparent transition-all cursor-pointer hover:bg-background-tertiary #{'selected' if is_selected}",
+      data: { mail_keyboard_target: "item", archive_url: archive_url, swipe_label: (_("Archive") if archive_url), context_menu: true, **drag.fetch(:data, {}) } do %>
   <%= render "tools/mails/conversation_menu", conversation: conversation, tool: tool, current_folder: current_folder %>
-  <input type="checkbox" name="message_ids[]" value="<%= conversation[:id] %>" aria-label="Select conversation: <%= conversation[:subject].presence || "(no subject)" %>" class="mail-list-checkbox w-4 h-4 rounded accent-accent flex-shrink-0 mt-0.5" data-mail-bulk-target="checkbox" data-action="click->mail-bulk#toggle">
+  <input type="checkbox" name="message_ids[]" value="<%= conversation[:id] %>" aria-label="<%= _("Select conversation: %{subject}", subject: conversation[:subject].presence || _("(no subject)")) %>" class="mail-list-checkbox w-4 h-4 rounded accent-accent flex-shrink-0 mt-0.5" data-mail-bulk-target="checkbox" data-action="click->mail-bulk#toggle">
   <% conversation_href = conversation[:draft] ? new_tool_mail_path(tool, draft_id: conversation[:id], folder: current_folder) : tool_mail_path(tool, conversation[:id], folder: current_folder) %>
   <% conversation_data = conversation[:draft] ? { turbo_frame: "_top" } : { turbo_frame: mail_frame_id(tool), turbo: "true", action: "click->mail-keyboard#selectItem" } %>
   <%# The arrow keys go from conversation to conversation by these links (arrow_keys_controller.js) %>
@@ -30,7 +30,7 @@
           <div class="w-2 h-2 rounded-full bg-accent flex-shrink-0"></div>
         <% end %>
         <% if conversation[:draft] %>
-          <span class="text-sm text-warning truncate font-medium">Draft</span>
+          <span class="text-sm text-warning truncate font-medium"><%= _("Draft") %></span>
         <% else %>
           <span class="text-sm text-text-primary truncate <%= 'font-semibold' unless conversation[:read] %>"><%= conversation[:from] %></span>
         <% end %>
@@ -51,7 +51,7 @@
     <div class="mail-list-subject flex items-center gap-1.5 text-sm text-text-secondary mb-0.5 <%= 'text-text-primary font-medium' unless conversation[:read] %>">
       <span class="truncate"><%= conversation[:subject] %></span>
       <% if local_assigns[:searching] %>
-        <span class="mail-list-folder ml-auto" title="In <%= mail_folder_name(current_folder) %>"><%= render "shared/icon", name: mail_view_icon(current_folder), size: 11 %><span class="truncate"><%= mail_view_name(current_folder) %></span></span>
+        <span class="mail-list-folder ms-auto" title="<%= _("In %{folder}", folder: mail_folder_name(current_folder)) %>"><%= render "shared/icon", name: mail_view_icon(current_folder), size: 11 %><span class="truncate"><%= mail_view_name(current_folder) %></span></span>
       <% end %>
     </div>
     <div class="mail-list-preview text-xs text-text-tertiary truncate"><%= conversation[:preview] %></div>

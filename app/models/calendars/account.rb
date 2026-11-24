@@ -40,9 +40,9 @@ module Calendars
       return if caldav_url.blank?
 
       uri = URI.parse(caldav_url)
-      errors.add(:caldav_url, "must be an http:// or https:// address") unless uri.is_a?(URI::HTTP) && uri.host.present?
+      errors.add(:caldav_url, _("must be an http:// or https:// address")) unless uri.is_a?(URI::HTTP) && uri.host.present?
     rescue URI::InvalidURIError
-      errors.add(:caldav_url, "must be an http:// or https:// address")
+      errors.add(:caldav_url, _("must be an http:// or https:// address"))
     end
 
     def encryption_salt

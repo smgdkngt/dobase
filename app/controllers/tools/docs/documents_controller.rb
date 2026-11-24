@@ -28,7 +28,7 @@ module Tools
 
       def create
         @document = @tool.documents.build(
-          title: "Untitled",
+          title: _("Untitled"),
           created_by: current_user,
           updated_by: current_user,
           last_edited_at: Time.current
@@ -42,7 +42,7 @@ module Tools
             format.html { redirect_to edit_tool_docs_document_path(@tool, @document) }
             format.json { render :show, status: :created }
           else
-            format.html { redirect_to tool_docs_path(@tool), alert: "Could not create document." }
+            format.html { redirect_to tool_docs_path(@tool), alert: _("Could not create document.") }
             format.json { render json: { errors: @document.errors.full_messages }, status: :unprocessable_entity }
           end
         end
@@ -79,7 +79,7 @@ module Tools
         @document.destroy
 
         respond_to do |format|
-          format.html { redirect_to tool_docs_path(@tool), notice: "Document deleted." }
+          format.html { redirect_to tool_docs_path(@tool), notice: _("Document deleted.") }
           format.json { head :no_content }
         end
       end

@@ -19,7 +19,7 @@
            class="todo-checkbox"
            data-arrow-keys-target="item"
            id="todo-item-<%= item.id %>-completion"
-           aria-label="Mark &quot;<%= item.title %>&quot; complete"
+           aria-label="<%= _("Mark \"%{title}\" complete", title: item.title) %>"
            <%= "checked" if is_completed %>
            data-action="change->todo#toggleCompletion"
            data-item-id="<%= item.id %>"
@@ -31,14 +31,14 @@
        role="button"
        tabindex="0"
        data-arrow-keys-target="item"
-       aria-label="Open <%= item.title %>"
+       aria-label="<%= _("Open %{title}", title: item.title) %>"
        data-action="click->todo#openItem keydown->todo#openItemKey"
        data-item-id="<%= item.id %>">
     <span class="text-[0.9375rem] text-text-primary leading-normal"><%= item.title %></span>
     <% if item.assigned_user.present? %>
       <span class="inline-flex shrink-0" role="img"
-            title="Assigned to <%= item.assigned_user.name %>"
-            aria-label="Assigned to <%= item.assigned_user.name %>">
+            title="<%= _("Assigned to %{name}", name: item.assigned_user.name) %>"
+            aria-label="<%= _("Assigned to %{name}", name: item.assigned_user.name) %>">
         <%= render "shared/avatar", user: item.assigned_user, size: :xs %>
       </span>
     <% end %>

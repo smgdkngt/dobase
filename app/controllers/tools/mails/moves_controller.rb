@@ -16,7 +16,7 @@ module Tools
 
         unless target_folder
           respond_to do |format|
-            format.html { redirect_back fallback_location: tool_mails_path(@tool), alert: "Invalid folder name." }
+            format.html { redirect_back fallback_location: tool_mails_path(@tool), alert: _("Invalid folder name.") }
             format.json { render json: { errors: [ "Invalid folder name" ] }, status: :unprocessable_entity }
           end
           return
@@ -30,7 +30,7 @@ module Tools
         undoable(:put_back, moving) { @tool.mail_account.move(_1, target_folder) }
 
         respond_to do |format|
-          format.html { redirect_to_next_mail_or_fallback(next_msg, folder: current_folder, notice: "Moved to #{helpers.mail_folder_name(target_folder)}.") }
+          format.html { redirect_to_next_mail_or_fallback(next_msg, folder: current_folder, notice: _("Moved to %{mail_folder_name}.", mail_folder_name: helpers.mail_folder_name(target_folder))) }
           format.json { render "tools/mails/message" }
         end
       end

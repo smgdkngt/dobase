@@ -20,7 +20,7 @@ module Boards
     private
 
     def file_size_within_limit
-      errors.add(:file, "is too large (max 25 MB)") if file_size.present? && file_size > MAX_FILE_SIZE
+      errors.add(:file, _("is too large (max 25 MB)")) if file_size.present? && file_size > MAX_FILE_SIZE
     end
   end
 end

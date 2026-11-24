@@ -1,12 +1,12 @@
-<% content_for :title, "Edit Calendar Account - #{@tool.name} - #{app_name}" %>
-<% content_for :page_title, "Edit Calendar Account" %>
+<% content_for :title, _("Edit Calendar Account - %{name} - %{app_name}", name: @tool.name, app_name: app_name) %>
+<% content_for :page_title, _("Edit Calendar Account") %>
 
 <div class="p-6">
   <div class="max-w-2xl">
     <div class="card">
       <div class="card-header">
-        <h2 class="text-lg font-semibold">Edit calendar account</h2>
-        <p class="text-sm text-text-secondary mt-1">Update your CalDAV server settings</p>
+        <h2 class="text-lg font-semibold"><%= _("Edit calendar account") %></h2>
+        <p class="text-sm text-text-secondary mt-1"><%= _("Update your CalDAV server settings") %></p>
       </div>
       <div class="card-body">
         <%= form_with model: @calendar_account, url: tool_calendar_account_path(@tool), method: :patch do |f| %>
@@ -14,35 +14,35 @@
 
           <!-- CalDAV URL -->
           <div class="mb-6">
-            <h3 class="text-sm font-semibold text-text-primary mb-3">Server Settings</h3>
+            <h3 class="text-sm font-semibold text-text-primary mb-3"><%= _("Server Settings") %></h3>
             <div>
-              <%= f.label :caldav_url, "CalDAV URL", class: "label" %>
+              <%= f.label :caldav_url, _("CalDAV URL"), class: "label" %>
               <%= f.text_field :caldav_url,
                 class: "input #{@calendar_account.errors[:caldav_url].any? ? 'input-error' : ''}",
                 required: true
               %>
-              <p class="help-text">Your calendar server's CalDAV endpoint URL</p>
+              <p class="help-text"><%= _("Your calendar server's CalDAV endpoint URL") %></p>
             </div>
           </div>
 
           <!-- Credentials -->
           <div class="mb-6">
-            <h3 class="text-sm font-semibold text-text-primary mb-3">Credentials</h3>
+            <h3 class="text-sm font-semibold text-text-primary mb-3"><%= _("Credentials") %></h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <%= f.label :username, "Username", class: "label" %>
+                <%= f.label :username, _("Username"), class: "label" %>
                 <%= f.text_field :username,
                   class: "input #{@calendar_account.errors[:username].any? ? 'input-error' : ''}",
                   required: true
                 %>
               </div>
               <div>
-                <%= f.label :password, "Password", class: "label" %>
+                <%= f.label :password, _("Password"), class: "label" %>
                 <%= f.password_field :password,
                   class: "input",
-                  placeholder: "Leave blank to keep current password"
+                  placeholder: _("Leave blank to keep current password")
                 %>
-                <p class="help-text">Only fill if changing password</p>
+                <p class="help-text"><%= _("Only fill if changing password") %></p>
               </div>
             </div>
           </div>
@@ -51,28 +51,28 @@
           <% calendars = @calendar_account.calendars.by_position %>
           <% if calendars.any? %>
             <div class="mb-6">
-              <h3 class="text-sm font-semibold text-text-primary mb-3">Calendars</h3>
+              <h3 class="text-sm font-semibold text-text-primary mb-3"><%= _("Calendars") %></h3>
               <div class="border border-border-light rounded-lg divide-y divide-border-light">
                 <% calendars.each do |calendar| %>
                   <div class="flex items-center gap-3 px-3 py-2.5">
                     <div class="w-3 h-3 rounded-full flex-shrink-0" style="background-color: <%= calendar.color %>"></div>
                     <span class="text-sm flex-1"><%= calendar.name %></span>
                     <% if calendar.read_only? %>
-                      <span class="text-xs text-text-tertiary bg-background-secondary px-2 py-0.5 rounded-full">Read-only</span>
+                      <span class="text-xs text-text-tertiary bg-background-secondary px-2 py-0.5 rounded-full"><%= _("Read-only") %></span>
                     <% end %>
                     <% if !calendar.enabled? %>
-                      <span class="text-xs text-text-tertiary bg-background-secondary px-2 py-0.5 rounded-full">Disabled</span>
+                      <span class="text-xs text-text-tertiary bg-background-secondary px-2 py-0.5 rounded-full"><%= _("Disabled") %></span>
                     <% end %>
                   </div>
                 <% end %>
               </div>
-              <p class="help-text mt-1.5">Read-only calendars are synced but you cannot create events on them.</p>
+              <p class="help-text mt-1.5"><%= _("Read-only calendars are synced but you cannot create events on them.") %></p>
             </div>
           <% end %>
 
           <div class="flex items-center justify-end gap-3">
-            <%= render "components/button", text: "Cancel", href: tool_path(@tool), variant: :secondary %>
-            <%= render "components/button", text: "Save Changes" %>
+            <%= render "components/button", text: _("Cancel"), href: tool_path(@tool), variant: :secondary %>
+            <%= render "components/button", text: _("Save Changes") %>
           </div>
         <% end %>
       </div>

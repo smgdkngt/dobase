@@ -105,7 +105,7 @@ module Files
 
     def file_size_limit
       if file.blob.byte_size > MAX_FILE_SIZE
-        errors.add(:file, "is too large. Maximum size is #{MAX_FILE_SIZE / 1.megabyte}MB")
+        errors.add(:file, _("is too large. Maximum size is %{size}MB", size: MAX_FILE_SIZE / 1.megabyte))
       end
     end
   end

@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { intlLocale, rtl } from "services/i18n"
 
 // Redraws a <time> in the viewer's time zone, which the page names in <meta name="time-zone">.
 // The server writes it in the zone of whoever's request rendered it, which for a broadcast
@@ -11,7 +12,7 @@ export default class extends Controller {
     if (isNaN(date)) return
 
     const timeZone = document.querySelector('meta[name="time-zone"]')?.content || undefined
-    const parts = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone }).formatToParts(date)
+    const parts = new Intl.DateTimeFormat(intlLocale(), { hour: "numeric", minute: "2-digit", timeZone, ...(rtl() ? { hourCycle: "h23" } : {}) }).formatToParts(date)
     this.element.textContent = parts
       .filter(part => this.periodValue || !["dayPeriod", "literal"].includes(part.type) || part.value === ":")
       .map(part => part.value)

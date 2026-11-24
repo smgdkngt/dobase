@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html <%= tag.attributes(language_attributes) %>>
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -36,7 +36,7 @@
     </style>
   </head>
 
-  <body class="email-bg" style="margin: 0; padding: 0; background-color: <%= mail_color(:page) %>; font-family: <%= mail_font %>;">
+  <body dir="<%= Translation.direction %>" class="email-bg" style="margin: 0; padding: 0; background-color: <%= mail_color(:page) %>; font-family: <%= mail_font %>;">
     <% if content_for?(:preheader) %>
       <div style="display: none; max-height: 0; overflow: hidden; opacity: 0; mso-hide: all;">
         <%= yield(:preheader) %>
@@ -58,7 +58,7 @@
                         <img src="<%= logo %>" width="24" height="24" alt="" style="display: block; width: 24px; height: 24px; border-radius: 6px;">
                       </td>
                     <% end %>
-                    <td style="vertical-align: middle; <%= "padding-left: 10px;" if logo %>">
+                    <td style="vertical-align: middle; <%= "padding-#{Translation.rtl? ? "right" : "left"}: 10px;" if logo %>">
                       <span class="brand-name" style="font-size: 16px; font-weight: 600; color: <%= mail_color(:text) %>; letter-spacing: -0.01em;"><%= app_name %></span>
                     </td>
                   </tr>
@@ -75,7 +75,7 @@
             <tr>
               <td class="email-footer" style="padding: 20px 32px; border-top: 1px solid <%= mail_color(:border) %>;">
                 <p class="muted-text" style="margin: 0; font-size: 13px; color: <%= mail_color(:muted) %>; line-height: 1.5;">
-                  Sent by <%= app_name %><% if content_for?(:footer_context) %> &middot; <%= yield(:footer_context) %><% end %>
+                  <%= _("Sent by %{app_name}", app_name: app_name) %><% if content_for?(:footer_context) %> &middot; <%= yield(:footer_context) %><% end %>
                 </p>
                 <% if content_for?(:footer_note) %>
                   <p class="muted-text" style="margin: 6px 0 0; font-size: 13px; color: <%= mail_color(:muted) %>; line-height: 1.5;">

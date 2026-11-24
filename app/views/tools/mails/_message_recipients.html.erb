@@ -1,7 +1,7 @@
 <%# Everyone an open message went to, in full. Locals: recipients (mail_recipients), hidden %>
 <%= tag.dl class: [ "mail-recipients", ("hidden" if hidden) ], data: { collapse_target: "content" } do %>
   <% recipients.each do |header, people| %>
-    <dt><%= header %></dt>
+    <dt><%= _(header) %></dt>
     <dd>
       <%# Someone is a name and an address, or an address alone; the comma stands against them %>
       <% people.each_with_index do |person, index| %>

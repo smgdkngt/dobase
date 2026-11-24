@@ -6,19 +6,19 @@
   <% if @search.searchable? %>
     <div class="px-4 py-1.5 flex items-center gap-2" data-section="search">
       <span class="flex-1 text-xs font-semibold text-text-tertiary uppercase tracking-wider">
-        <%= @search.kind ? "All #{search_kind_count(@search, @search.kind)}" : "Found in your tools" %>
+        <%= @search.kind ? _("All %{kind}", kind: search_kind_count(@search, @search.kind)) : _("Found in your tools") %>
       </span>
     </div>
     <% if @search.kind %>
       <%= button_to search_path, method: :get, params: { q: @search.query },
-            class: "command-palette-item w-full text-left text-text-secondary",
+            class: "command-palette-item w-full text-start text-text-secondary",
             data: { command_palette_target: "item", search_result: true, search_back: true, action: "click->command-palette#keepTyping", name: "", type: "search" } do %>
         <%= render "shared/icon", name: "arrow-left", size: 16, class: "text-text-tertiary shrink-0" %>
-        <span class="flex-1">Back to everything found</span>
+        <span class="flex-1"><%= _("Back to everything found") %></span>
       <% end %>
     <% end %>
     <% if @search.hits.empty? %>
-      <p class="px-4 py-2 text-sm text-text-tertiary">Nothing matches “<%= @search.query %>”.</p>
+      <p class="px-4 py-2 text-sm text-text-tertiary"><%= _("Nothing matches “%{query}”.", query: @search.query) %></p>
     <% else %>
       <% @search.hits.chunk_while { |a, b| a.kind == b.kind }.each do |group| %>
         <% group.each do |hit| %>
@@ -29,7 +29,7 @@
               <span class="flex items-center gap-2 min-w-0">
                 <span class="truncate"><%= search_marked(hit.title, @search.words) %></span>
                 <% if hit.archived %>
-                  <%= render "components/badge", text: "Archived", variant: :muted, size: :sm %>
+                  <%= render "components/badge", text: _("Archived"), variant: :muted, size: :sm %>
                 <% end %>
               </span>
               <% if hit.excerpt.present? %>
@@ -47,10 +47,10 @@
         <% kind = group.first.kind %>
         <% if @search.more?(kind) %>
           <%= button_to search_path, method: :get, params: { q: @search.query, kind: kind },
-                class: "command-palette-item w-full text-left text-text-secondary",
+                class: "command-palette-item w-full text-start text-text-secondary",
                 data: { command_palette_target: "item", search_result: true, action: "click->command-palette#keepTyping", name: "", type: "search" } do %>
             <%= render "shared/icon", name: "chevron-down", size: 16, class: "text-text-tertiary shrink-0" %>
-            <span class="flex-1">Show all <%= search_kind_count(@search, kind) %></span>
+            <span class="flex-1"><%= _("Show all %{kind}", kind: search_kind_count(@search, kind)) %></span>
           <% end %>
         <% end %>
       <% end %>

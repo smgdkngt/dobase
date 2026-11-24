@@ -5,6 +5,7 @@ import { DocumentSync } from "services/document_sync"
 import { createMentionSuggestion } from "services/mention_suggestion"
 import { api } from "services/api"
 import { reloadPage, tileOf } from "services/tile"
+import { _ } from "services/i18n"
 
 export default class extends Controller {
   static targets = ["form", "title", "editor", "saveIndicator"]
@@ -155,7 +156,7 @@ export default class extends Controller {
     this.loaded = true
     this.editorTarget.inert = false
     clearTimeout(this.waiting)
-    if (this.hasSaveIndicatorTarget && this.saveIndicatorTarget.textContent === "Connecting...") this.showSaveIndicator("Saved")
+    if (this.hasSaveIndicatorTarget && this.saveIndicatorTarget.dataset.status === "connecting") this.showSaveIndicator("Saved")
 
     if (compact) this.sync.compact()
   }
@@ -281,6 +282,7 @@ export default class extends Controller {
       indicator.classList.add("text-success")
     }
 
-    indicator.textContent = status
+    indicator.dataset.status = status === "Connecting..." ? "connecting" : ""
+    indicator.textContent = _(status)
   }
 }

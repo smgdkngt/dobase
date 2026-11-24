@@ -4,6 +4,7 @@ import { tileOf } from "services/tile"
 import { csrfToken } from "services/api"
 import { showFlash } from "services/flash"
 import { AUTOSAVE_DELAY, RETRY_DELAY, SEND_WAIT, hasUnsaved, fitsKeepalive, savedAt, settlesWithin } from "services/draft_autosave"
+import { _ } from "services/i18n"
 
 const FILE_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>'
 
@@ -48,7 +49,7 @@ export default class extends Controller {
     this._beforeVisit = (e) => {
       if (this._tile) return
       if (this._mustAsk()) {
-        if (!confirm("You have an unsent message. Discard it?")) {
+        if (!confirm(_("You have an unsent message. Discard it?"))) {
           e.preventDefault()
         }
       }
@@ -61,7 +62,7 @@ export default class extends Controller {
         ? e.target.closest?.("a[href]:not([data-turbo-frame='_top'], [data-turbo-frame='file_viewer'], [target='_blank'], [download])")
         : e.target.closest?.("a[data-turbo-frame]:not([data-turbo-frame='_top'], [data-turbo-frame='file_viewer'])")
       if (!link || this.element.contains(link)) return
-      if (this._mustAsk() && !confirm("You have an unsent message. Discard it?")) {
+      if (this._mustAsk() && !confirm(_("You have an unsent message. Discard it?"))) {
         e.preventDefault()
         e.stopImmediatePropagation()
       }
@@ -85,7 +86,7 @@ export default class extends Controller {
       // may: a draft can wait for its recipients). The server refuses it too.
       if (this._sendsToNobody(event.submitter)) {
         event.preventDefault()
-        showFlash(NO_RECIPIENTS, "alert")
+        showFlash(_(NO_RECIPIENTS), "alert")
         if (this.hasToTarget) this.toTarget.focus()
         return
       }
@@ -207,7 +208,7 @@ export default class extends Controller {
     form.set("autosave", "1")
     const id = this._draftId()
 
-    this._showStatus("Saving…")
+    this._showStatus(_("Saving…"))
     this._saving = this._send(id ? `${this.draftsUrlValue}/${id}` : this.draftsUrlValue, id ? "PATCH" : "POST", form, snapshot)
       .finally(() => {
         this._saving = null
@@ -244,7 +245,7 @@ export default class extends Controller {
       this._savedSnapshot = snapshot
       this._showStatus(savedAt(new Date()))
     } catch {
-      this._showStatus("Not saved")
+      this._showStatus(_("Not saved"))
       if (!this._submitting) this._saveTimer = setTimeout(() => this._save(), RETRY_DELAY)
     }
   }
@@ -271,9 +272,9 @@ export default class extends Controller {
       const trash = this.discardTarget
       trash.href = `${this.mailsUrlValue}/${draft.id}`
       trash.dataset.turboMethod = "delete"
-      trash.dataset.turboConfirm = "Delete this draft?"
-      trash.title = "Delete draft"
-      trash.setAttribute("aria-label", "Delete draft")
+      trash.dataset.turboConfirm = _("Delete this draft?")
+      trash.title = _("Delete draft")
+      trash.setAttribute("aria-label", _("Delete draft"))
     }
     this._carryOnDraft(draft.attachments || [])
   }

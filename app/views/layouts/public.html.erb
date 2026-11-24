@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html <%= tag.attributes(theme_attributes) %>>
+<html <%= tag.attributes(language_attributes) %> <%= tag.attributes(theme_attributes) %>>
   <head>
-    <title><%= content_for(:title) || "Shared File - #{app_name}" %></title>
+    <title><%= content_for(:title) || _("Shared File - %{app_name}", app_name: app_name) %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
     <% if current_theme %><meta name="theme-color" content="<%= current_theme.chrome_color %>"><% end %>
@@ -15,9 +15,11 @@
     <link rel="icon" href="/icon.png" type="image/png">
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
+    <meta name="locale" content="<%= I18n.locale %>" data-turbo-track="reload">
+    <%= tag.meta name: "translations", content: Translation.for_scripts.to_json if Translation.for_scripts.any? %>
   </head>
 
-  <body class="bg-background text-text-primary">
+  <body <%= tag.attributes(dir: Translation.direction) %> class="bg-background text-text-primary">
     <div class="min-h-screen flex flex-col">
       <header class="px-8 py-4 border-b border-border-light">
         <div class="flex items-center gap-3">
@@ -32,7 +34,7 @@
 
       <footer class="px-8 py-4 text-center border-t border-border-light">
         <p class="text-text-tertiary text-sm">
-          Shared via <a href="/" class="text-accent hover:underline"><%= app_name %></a>
+          <%= _("Shared via") %> <a href="/" class="text-accent hover:underline"><%= app_name %></a>
         </p>
       </footer>
     </div>

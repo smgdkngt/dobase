@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { _ } from "services/i18n"
 
 export default class extends Controller {
   static targets = ["source", "button"]
@@ -13,7 +14,7 @@ export default class extends Controller {
 
     // Left to copy by hand: the text is selected for it, where it shows
     if (!copied) this.sourceTarget.select?.()
-    if (this.hasButtonTarget) this._say(copied ? "Copied!" : `Press ${/Mac|iP/.test(navigator.platform) ? "Cmd" : "Ctrl"}+C`)
+    if (this.hasButtonTarget) this._say(copied ? _("Copied!") : _("Press %{key}", { key: `${/Mac|iP/.test(navigator.platform) ? "Cmd" : "Ctrl"}+C` }))
   }
 
   // navigator.clipboard only exists on HTTPS and localhost. An install reached over plain

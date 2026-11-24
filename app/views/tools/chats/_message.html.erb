@@ -8,7 +8,7 @@
   if time_ago < 24.hours
     timestamp = time
   elsif time_ago < 48.hours
-    timestamp = safe_join([ "Yesterday, ", time ])
+    timestamp = safe_join([ _("Yesterday, "), time ])
   else
     timestamp = safe_join([ format_date(message.created_at), ", ", time ])
   end
@@ -25,7 +25,7 @@
      class="chat-message group/message flex gap-2.5 sm:gap-3 px-2 sm:px-4 py-1.5 sm:py-2 hover:bg-background-tertiary/50 <%= is_continuation ? '' : 'mt-2 sm:mt-3' %>"
      data-controller="message reactions"
      role="article"
-     aria-label="Message from <%= poster_name(message) %>"
+     aria-label="<%= _("Message from %{name}", name: poster_name(message)) %>"
      data-arrow-keys-target="item"
      data-action="keydown->chat#messageKey"
      data-message-user-id-value="<%= message.user_id %>"
@@ -34,13 +34,13 @@
      data-message-author="<%= poster_name(message) %>"
      data-message-content="<%= truncate(message.body.to_plain_text, length: 100) %>"
      data-context-menu>
-  <%= render "components/context_menu", label: "Message from #{poster_name(message)}" do %>
-    <%= render "components/menu_item", text: "Reply", icon: "reply", data: { context_menu_press: "reply" } %>
-    <%= render "components/menu_item", text: "Add a reaction", icon: "smile-plus", data: { context_menu_press: "react" } %>
-    <%= render "components/menu_item", text: "Copy text", icon: "copy", data: { copy: message.body.to_plain_text } %>
-    <%= render "components/menu_item", text: "Copy link", icon: "link", data: { copy_link: tool_chat_path(tool, message: message.id) } %>
-    <%= render "components/menu_item", text: "Edit", icon: "edit-2", data: { context_menu_press: "edit" } %>
-    <%= render "components/menu_item", text: "Delete", icon: "trash-2", variant: :danger, data: { context_menu_press: "delete" } %>
+  <%= render "components/context_menu", label: _("Message from %{poster_name}", poster_name: poster_name(message)) do %>
+    <%= render "components/menu_item", text: _("Reply"), icon: "reply", data: { context_menu_press: "reply" } %>
+    <%= render "components/menu_item", text: _("Add a reaction"), icon: "smile-plus", data: { context_menu_press: "react" } %>
+    <%= render "components/menu_item", text: _("Copy text"), icon: "copy", data: { copy: message.body.to_plain_text } %>
+    <%= render "components/menu_item", text: _("Copy link"), icon: "link", data: { copy_link: tool_chat_path(tool, message: message.id) } %>
+    <%= render "components/menu_item", text: _("Edit"), icon: "edit-2", data: { context_menu_press: "edit" } %>
+    <%= render "components/menu_item", text: _("Delete"), icon: "trash-2", variant: :danger, data: { context_menu_press: "delete" } %>
   <% end %>
 
   <!-- Avatar column -->
@@ -49,7 +49,7 @@
       <%= render "shared/avatar", user: message.user, agent: message.agent?, size: :md, class: "sm:hidden" %><%= render "shared/avatar", user: message.user, agent: message.agent?, size: :xl, class: "hidden sm:inline-flex" %>
     <% else %>
       <!-- Hover timestamp for continuation messages -->
-      <span class="hidden group-hover/message:block text-xs text-text-tertiary text-right leading-relaxed pt-[5px]">
+      <span class="hidden group-hover/message:block text-xs text-text-tertiary text-end leading-relaxed pt-[5px]">
         <%= local_time_tag(message.created_at, period: false) %>
       </span>
     <% end %>
@@ -67,7 +67,7 @@
 
     <% if reply_to %>
       <!-- Reply quote -->
-      <div class="mb-2 pl-3 py-1.5 border-l-2 border-accent/50 bg-background-secondary/50 rounded-r">
+      <div class="mb-2 ps-3 py-1.5 border-s-2 border-accent/50 bg-background-secondary/50 rounded-e">
         <div class="text-xs font-medium text-accent mb-0.5"><%= poster_name(reply_to) %></div>
         <div class="text-sm text-text-secondary line-clamp-2"><%= reply_to.body.to_plain_text.truncate(200) %></div>
       </div>
@@ -91,8 +91,8 @@
     <% if other_files.any? %>
       <div class="flex flex-wrap gap-2 mt-2">
         <% other_files.each do |file| %>
-          <span class="inline-flex items-center gap-1 pr-1.5 rounded border border-border-light hover:bg-background-tertiary transition-colors">
-            <%= link_to_file_preview tool, file, class: "inline-flex items-center gap-2 pl-3 py-1.5" do %>
+          <span class="inline-flex items-center gap-1 pe-1.5 rounded border border-border-light hover:bg-background-tertiary transition-colors">
+            <%= link_to_file_preview tool, file, class: "inline-flex items-center gap-2 ps-3 py-1.5" do %>
               <%= render "shared/icon", name: "file", size: 16, class: "text-text-tertiary" %>
               <span class="text-sm text-text-primary"><%= file.filename.to_s %></span>
               <span class="text-xs text-text-tertiary"><%= human_file_size(file.byte_size) %></span>
@@ -111,8 +111,8 @@
     <div class="flex items-center bg-surface border border-border-light rounded-lg shadow-sm">
       <button type="button"
               class="icon-btn icon-btn-group-left"
-              title="Add a reaction"
-              aria-label="Add a reaction"
+              title="<%= _("Add a reaction") %>"
+              aria-label="<%= _("Add a reaction") %>"
               popovertarget="<%= dom_id(message, :react) %>"
               data-context-menu-action="react"
               style="anchor-name: --<%= dom_id(message, :react) %>">
@@ -120,13 +120,13 @@
       </button>
       <%= render "components/icon_button",
             icon: "reply",
-            title: "Reply",
+            title: _("Reply"),
             group: :middle,
             data: { action: "click->chat#startReply", message_id: message.id, context_menu_action: "reply" } %>
       <div class="hidden" data-message-edit>
         <%= render "components/icon_button",
               icon: "edit-2",
-              title: "Edit",
+              title: _("Edit"),
               group: :middle,
               href: edit_tool_chat_message_path(tool, message),
               data: { turbo_frame: dom_id(message, :body), context_menu_action: "edit" } %>
@@ -134,13 +134,13 @@
       <div class="hidden" data-message-delete>
         <%= render "components/icon_button",
               icon: "trash-2",
-              title: "Delete",
+              title: _("Delete"),
               variant: :danger,
               group: :right,
               href: tool_chat_message_path(tool, message),
               method: :delete,
-              turbo_confirm: "Delete this message?",
-              data: { turbo_confirm_button: "Delete", context_menu_action: "delete" } %>
+              turbo_confirm: _("Delete this message?"),
+              data: { turbo_confirm_button: _("Delete"), context_menu_action: "delete" } %>
       </div>
     </div>
   </div>
@@ -151,7 +151,7 @@
        class="popover-menu chat-reaction-picker"
        style="position-anchor: --<%= dom_id(message, :react) %>; position-area: block-start span-inline-start">
     <% Chats::Reaction::EMOJI.each do |emoji| %>
-      <button type="button" class="chat-reaction-choice" data-emoji="<%= emoji %>" data-action="reactions#pick" aria-label="React with <%= emoji %>"><%= emoji %></button>
+      <button type="button" class="chat-reaction-choice" data-emoji="<%= emoji %>" data-action="reactions#pick" aria-label="<%= _("React with %{emoji}", emoji: emoji) %>"><%= emoji %></button>
     <% end %>
   </div>
 </div>

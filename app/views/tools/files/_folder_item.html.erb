@@ -18,7 +18,7 @@
      role="button"
      tabindex="0"
      data-arrow-keys-target="item"
-     aria-label="Folder <%= folder.name %>"
+     aria-label="<%= _("Folder %{name}", name: folder.name) %>"
      data-action="keydown->files#openItemKey click->file-selection#select click->file-drag#recordClick dblclick->files#openItem contextmenu->file-selection#selectForMenu contextmenu->file-context-menu#show dragstart->file-drag#dragStart dragend->file-drag#dragEnd dragover->file-drag#dragOverFolder dragenter->file-drag#dragEnterFolder dragleave->file-drag#dragLeaveFolder drop->file-drag#dropOnFolder">
   <div class="<%= icon_base %> <%= icon_size %>">
     <%= render "shared/icon", name: "folder", size: view_mode == "grid" ? 32 : 16 %>
@@ -30,21 +30,21 @@
       <span data-item-name class=" flex-1 min-w-0 truncate text-sm @min-[40rem]:text-base"><%= folder.name %></span>
       <span class="w-5 shrink-0 text-center hidden @min-[40rem]:block">
         <% if folder.share %>
-          <span class="text-accent"><%= render "shared/icon", name: "link", size: 14, label: "Shared" %></span>
+          <span class="text-accent"><%= render "shared/icon", name: "link", size: 14, label: _("Shared") %></span>
         <% end %>
       </span>
-      <span class="text-sm text-text-secondary w-[100px] text-right shrink-0 hidden @3xl:block">Folder</span>
-      <span class="text-sm text-text-secondary w-[100px] text-right shrink-0 hidden @5xl:block"><%= format_date(folder.created_at) %></span>
+      <span class="text-sm text-text-secondary w-[100px] text-end shrink-0 hidden @3xl:block"><%= _("Folder") %></span>
+      <span class="text-sm text-text-secondary w-[100px] text-end shrink-0 hidden @5xl:block"><%= format_date(folder.created_at) %></span>
     </div>
   <% end %>
-  <div class="<%= view_mode == 'grid' ? 'absolute top-2 right-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity' : '' %> flex items-center gap-2">
+  <div class="<%= view_mode == 'grid' ? 'absolute top-2 end-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity' : '' %> flex items-center gap-2">
     <% if view_mode == "grid" && folder.share %>
       <span class="text-accent">
-        <%= render "shared/icon", name: "link", size: 14, label: "Shared" %>
+        <%= render "shared/icon", name: "link", size: 14, label: _("Shared") %>
       </span>
     <% end %>
     <button type="button" class="<%= view_mode == 'grid' ? 'file-grid-more' : 'touch-target' %> p-1 rounded text-text-tertiary hover:bg-background-tertiary hover:text-text-primary transition-all <%= 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100' if view_mode == 'grid' %>"
-            aria-label="More actions for <%= folder.name %>"
+            aria-label="<%= _("More actions for %{name}", name: folder.name) %>"
             aria-haspopup="menu"
             data-action="click->file-selection#selectForMenu click->file-context-menu#showFromButton:stop">
       <%= render "shared/icon", name: "more-vertical", size: 16 %>

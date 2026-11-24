@@ -1,6 +1,6 @@
         <%# ── Assignee ───────────────────────────────────────────────── %>
         <div class="detail-field">
-          <p class="detail-field-label">Assignee</p>
+          <p class="detail-field-label"><%= _("Assignee") %></p>
           <div class="relative">
             <button type="button"
                     class="detail-field-control group"
@@ -9,20 +9,20 @@
                     style="anchor-name: --item-assignee">
               <% if item.assigned_user %>
                 <%= render "shared/avatar", user: item.assigned_user, size: :sm %>
-                <span class="text-sm font-medium text-text-primary flex-1 truncate text-left" data-todo-item-target="assigneeLabel"><%= item.assigned_user.name %></span>
+                <span class="text-sm font-medium text-text-primary flex-1 truncate text-start" data-todo-item-target="assigneeLabel"><%= item.assigned_user.name %></span>
               <% else %>
                 <div class="w-6 h-6 rounded-full bg-background-tertiary border border-dashed border-border flex items-center justify-center flex-shrink-0">
                   <%= render "shared/icon", name: "user", size: 12, class: "text-text-tertiary" %>
                 </div>
-                <span class="text-sm text-text-tertiary flex-1 text-left" data-todo-item-target="assigneeLabel">Unassigned</span>
+                <span class="text-sm text-text-tertiary flex-1 text-start" data-todo-item-target="assigneeLabel"><%= _("Unassigned") %></span>
               <% end %>
               <%= render "shared/icon", name: "chevron-down", size: 12, class: "text-text-tertiary flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" %>
             </button>
             <div id="item-assignee-menu" popover="auto"
                  class="popover-menu max-h-44 overflow-y-auto"
-                 style="position-anchor: --item-assignee; top: anchor(bottom); left: anchor(left); width: anchor-size(width);">
+                 style="position-anchor: --item-assignee; top: anchor(bottom); inset-inline-start: anchor(start); width: anchor-size(width);">
               <button type="button"
-                      class="flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-left hover:bg-background-tertiary transition-colors"
+                      class="flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-start hover:bg-background-tertiary transition-colors"
                       data-action="click->todo-item#setAssignee"
                       data-user-id=""
                       data-user-name="Unassigned"
@@ -30,11 +30,11 @@
                 <div class="w-6 h-6 rounded-full bg-background-tertiary flex items-center justify-center flex-shrink-0">
                   <%= render "shared/icon", name: "user", size: 12, class: "text-text-tertiary" %>
                 </div>
-                <span class="text-text-tertiary">Unassigned</span>
+                <span class="text-text-tertiary"><%= _("Unassigned") %></span>
               </button>
               <% @collaborators.each do |user| %>
                 <button type="button"
-                        class="flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-left hover:bg-background-tertiary transition-colors"
+                        class="flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-start hover:bg-background-tertiary transition-colors"
                         data-action="click->todo-item#setAssignee"
                         data-user-id="<%= user.id %>"
                         data-user-name="<%= user.name %>"

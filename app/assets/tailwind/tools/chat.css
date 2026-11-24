@@ -28,7 +28,7 @@
   }
 
   .chat-message-actions {
-    @apply absolute -top-3 right-2 sm:right-4 z-10 opacity-0 pointer-events-none transition-opacity;
+    @apply absolute -top-3 end-2 sm:end-4 z-10 opacity-0 pointer-events-none transition-opacity;
   }
 
   .chat-message:is(:hover, :focus-within) > .chat-message-actions,
@@ -124,11 +124,11 @@
 
 /* A message on its way, where it will show once the server has it (chat_controller.js) */
 .chat-sending {
-  @apply flex items-baseline gap-2 py-1 pr-4 pl-14 text-sm text-text-secondary whitespace-pre-wrap break-words opacity-70;
+  @apply flex items-baseline gap-2 py-1 pe-4 ps-14 text-sm text-text-secondary whitespace-pre-wrap break-words opacity-70;
 }
 
 .chat-sending-label {
-  @apply shrink-0 ml-auto text-xs text-text-tertiary;
+  @apply shrink-0 ms-auto text-xs text-text-tertiary;
 }
 
 /* The message a mention or a search hit led to (?message=): lit for a moment, so the

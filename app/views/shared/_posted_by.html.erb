@@ -10,5 +10,5 @@
 <% if record.agent? %>
   <span class="text-xs text-text-tertiary">for <%= record.user&.first_name || "a former member" %></span>
 <% elsif record.via %>
-  <span class="text-xs text-text-tertiary">via <%= record.via %></span>
+  <span class="text-xs text-text-tertiary"><%= _("via %{via}", via: record.via) %></span>
 <% end %>

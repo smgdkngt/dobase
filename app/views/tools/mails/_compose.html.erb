@@ -27,17 +27,17 @@
   <% end %>
 
   <div class="compose-header">
-    <%= link_to folder_path, class: "compose-back", title: "Back", "aria-label": "Back" do %>
+    <%= link_to folder_path, class: "compose-back", title: _("Back"), "aria-label": _("Back") do %>
       <%= render "shared/icon", name: "arrow-left", size: 18 %>
     <% end %>
-    <h1 class="flex-1 min-w-0 truncate text-base font-semibold text-text-primary"><%= @heading %></h1>
-    <%= render "components/icon_button", icon: "x", title: "Close", href: folder_path, class: "narrow:hidden" %>
+    <h1 class="flex-1 min-w-0 truncate text-base font-semibold text-text-primary"><%= _(@heading) %></h1>
+    <%= render "components/icon_button", icon: "x", title: _("Close"), href: folder_path, class: "narrow:hidden" %>
   </div>
 
   <div class="compose-body">
     <div class="compose-fields">
       <div class="compose-field">
-        <span class="compose-field-label">From</span>
+        <span class="compose-field-label"><%= _("From") %></span>
         <span class="min-w-0 truncate text-sm text-text-secondary">
           <% if @mail_account.display_name.present? %>
             <%= @mail_account.display_name %> <span class="text-text-tertiary">&lt;<%= @mail_account.email_address %>&gt;</span>
@@ -47,17 +47,17 @@
         </span>
       </div>
 
-      <%= render "tools/mails/recipient_field", label: "To", name: "to", value: @to, input_target: "to",
+      <%= render "tools/mails/recipient_field", label: _("To"), name: "to", value: @to, input_target: "to",
             toggles: { cc: ("Cc" if @cc.blank?), bcc: ("Bcc" if @bcc.blank?) }.compact %>
-      <%= render "tools/mails/recipient_field", label: "Cc", name: "cc", value: @cc, field_target: "ccField", hidden: @cc.blank? %>
-      <%= render "tools/mails/recipient_field", label: "Bcc", name: "bcc", value: @bcc, field_target: "bccField", hidden: @bcc.blank? %>
+      <%= render "tools/mails/recipient_field", label: _("Cc"), name: "cc", value: @cc, field_target: "ccField", hidden: @cc.blank? %>
+      <%= render "tools/mails/recipient_field", label: _("Bcc"), name: "bcc", value: @bcc, field_target: "bccField", hidden: @bcc.blank? %>
 
       <div class="compose-field">
         <input type="text"
                name="subject"
                value="<%= @subject %>"
-               placeholder="Subject"
-               aria-label="Subject"
+               placeholder="<%= _("Subject") %>"
+               aria-label="<%= _("Subject") %>"
                class="compose-subject"
                autocomplete="off">
       </div>
@@ -68,7 +68,7 @@
     <div class="compose-message">
       <rhino-editor input="<%= input_id %>"
         class="compose-editor"
-        placeholder="Compose your message..."
+        placeholder="<%= _("Compose your message...") %>"
         data-blob-url-template="<%= rails_service_blob_url(":signed_id", ":filename") %>"
         data-direct-upload-url="<%= rails_direct_uploads_url %>">
       </rhino-editor>
@@ -97,7 +97,7 @@
             <%= hidden_field_tag "forward_attachment_ids[]", attachment.id, id: nil %>
             <%= render "tools/mails/attachment", attachment: attachment %>
             <%= tag.button "×", type: "button", class: "compose-attachment-remove touch-target",
-                  title: "Remove #{attachment.filename}", aria: { label: "Remove #{attachment.filename}" },
+                  title: _("Remove %{filename}", filename: attachment.filename), aria: { label: _("Remove %{filename}", filename: attachment.filename) },
                   data: { action: "click->compose#removeCarried", attachment_id: attachment.id,
                           on_draft: (true if @draft && attachment.mail_message_id == @draft.id) } %>
           <% end %>
@@ -110,20 +110,20 @@
         also a draft the form saved itself as %>
     <p class="flash flash-alert" role="alert" hidden data-compose-target="gone">
       <%= render "shared/icon", name: "alert-circle", size: 16 %>
-      <span>This draft was sent or deleted elsewhere, so it can't be sent from here again.</span>
+      <span><%= _("This draft was sent or deleted elsewhere, so it can't be sent from here again.") %></span>
     </p>
     <div class="compose-actions">
-      <%= render "components/button", text: "Send", icon: "send", type: :submit, title: "Send (#{mod_key("Enter")})", data: { compose_target: "send" } %>
+      <%= render "components/button", text: _("Send"), icon: "send", type: :submit, title: _("Send (%{key})", key: mod_key("Enter")), data: { compose_target: "send" } %>
       <% if @draft %>
-        <%= render "components/button", text: "Save Draft", variant: :ghost, type: :submit,
+        <%= render "components/button", text: _("Save Draft"), variant: :ghost, type: :submit,
               formaction: tool_mail_draft_path(@tool, @draft), name: "_method", value: "patch", data: { compose_target: "saveDraft" } %>
       <% else %>
-        <%= render "components/button", text: "Save Draft", variant: :ghost, type: :submit,
+        <%= render "components/button", text: _("Save Draft"), variant: :ghost, type: :submit,
               formaction: tool_mail_drafts_path(@tool), data: { compose_target: "saveDraft" } %>
       <% end %>
       <%# What the form saves by itself while it is written (compose_controller.js) %>
       <span class="compose-save-status" role="status" aria-live="polite" data-compose-target="saveStatus"></span>
-      <label class="icon-btn cursor-pointer" title="Attach files" aria-label="Attach files">
+      <label class="icon-btn cursor-pointer" title="<%= _("Attach files") %>" aria-label="<%= _("Attach files") %>">
         <%= render "shared/icon", name: "paperclip", size: 16 %>
         <input type="file"
                name="attachments[]"
@@ -133,14 +133,14 @@
                data-action="change->compose#handleFiles">
       </label>
 
-      <span class="ml-auto"></span>
+      <span class="ms-auto"></span>
       <% if @draft %>
-        <%= render "components/icon_button", icon: "trash-2", title: "Delete draft",
-              href: tool_mail_path(@tool, @draft), method: :delete, turbo_confirm: "Delete this draft?",
+        <%= render "components/icon_button", icon: "trash-2", title: _("Delete draft"),
+              href: tool_mail_path(@tool, @draft), method: :delete, turbo_confirm: _("Delete this draft?"),
               data: { action: "click->compose#discard", compose_target: "discard" } %>
       <% else %>
         <%# Once the form has saved itself as a draft, this deletes that draft (compose_controller.js) %>
-        <%= render "components/icon_button", icon: "trash-2", title: "Discard",
+        <%= render "components/icon_button", icon: "trash-2", title: _("Discard"),
               href: folder_path, data: { action: "click->compose#discard", compose_target: "discard" } %>
       <% end %>
     </div>

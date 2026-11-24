@@ -1,14 +1,14 @@
-Reset your password
+<%= _("Reset your password") %>
 
-We received a request to reset the password for your <%= app_name %> account
+<%= _("We received a request to reset the password for your %{app_name} account", app_name: app_name) %>
 (<%= @user.email_address %>).
 
-Reset your password:
+<%= _("Reset your password:") %>
 <%= edit_password_url(@user.password_reset_token) %>
 
-This link expires in <%= distance_of_time_in_words(0, @user.password_reset_token_expires_in) %>.
+<%= _("This link expires in %{password_reset_token_expires_in}.", password_reset_token_expires_in: distance_of_time_in_words(0, @user.password_reset_token_expires_in)) %>
 
-If you didn't request this, you can safely ignore this email — your password won't change.
+<%= _("If you didn't request this, you can safely ignore this email — your password won't change.") %>
 
 --
-Sent by <%= app_name %>
+<%= _("Sent by %{app_name}", app_name: app_name) %>

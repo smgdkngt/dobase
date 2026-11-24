@@ -18,7 +18,7 @@ module Tools
         undoable(:put_back, with_their_conversations([ @message ], folder: folder)) { @tool.mail_account.mark_as_junk(_1) }
 
         respond_to do |format|
-          format.html { redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Moved to Junk.") }
+          format.html { redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: _("Moved to Junk.")) }
           format.json { render "tools/mails/message" }
         end
       end
@@ -29,7 +29,7 @@ module Tools
         undoable(:put_back, with_their_conversations([ @message ], folder: "junk")) { @tool.mail_account.not_junk(_1) }
 
         respond_to do |format|
-          format.html { redirect_to_next_mail_or_fallback(next_msg, folder: "junk", notice: "Moved to the inbox.") }
+          format.html { redirect_to_next_mail_or_fallback(next_msg, folder: "junk", notice: _("Moved to the inbox.")) }
           format.json { render "tools/mails/message" }
         end
       end
@@ -44,7 +44,7 @@ module Tools
         return if @tool.mail_account.junk_folder?
 
         respond_to do |format|
-          format.html { redirect_back_or_to tool_mails_path(@tool), alert: "This account's mail server has no junk folder." }
+          format.html { redirect_back_or_to tool_mails_path(@tool), alert: _("This account's mail server has no junk folder.") }
           format.json { render json: { error: "This account's mail server has no junk folder." }, status: :unprocessable_entity }
         end
       end

@@ -1,9 +1,11 @@
 module ApplicationHelper
+  include Translation::Methods
+
   def app_name = Rails.application.config.x.app.name
   def app_logo_path = Rails.application.config.x.app.logo_path
 
   # Who wrote something, once they may have deleted their account
-  def author_name(user) = user&.name || "Former member"
+  def author_name(user) = user&.name || _("Former member")
 
   # The name a message or comment goes by: its agent's, or its author's
   def poster_name(record) = record.agent? ? record.via : author_name(record.user)
@@ -41,6 +43,11 @@ module ApplicationHelper
 
   # Says which theme and typeface a page is in; services/theme.js compares it
   def theme_version = Theme.payload(current_theme, current_typeface)[:version]
+
+  # The language a page is in, and which way it reads: on <html>, and on <body>,
+  # which a Turbo visit brings anew (a change of language reloads the page: the
+  # locale's <meta> in the head is tracked)
+  def language_attributes = { lang: I18n.locale, dir: Translation.direction }
 
   # What <html> wears for them; a change later on goes through services/theme.js
   def theme_attributes
@@ -115,11 +122,11 @@ module ApplicationHelper
   end
 
   def tool_type_description(tool_type)
-    tool_type.description
+    tool_type.human_description
   end
 
   def browser_name(user_agent)
-    return "Unknown browser" if user_agent.blank?
+    return _("Unknown browser") if user_agent.blank?
 
     case user_agent
     when /Edg\//i then "Microsoft Edge"
@@ -127,7 +134,7 @@ module ApplicationHelper
     when /Firefox\//i then "Mozilla Firefox"
     when /Safari\//i then "Safari"
     when /Opera|OPR\//i then "Opera"
-    else "Unknown browser"
+    else _("Unknown browser")
     end
   end
 
@@ -165,11 +172,11 @@ module ApplicationHelper
     updated = record.updated_by
 
     if created && created != current_user
-      parts << "Created by #{created.name}"
+      parts << _("Created by %{name}", name: created.name)
     end
 
     if updated && updated != current_user && updated != created
-      parts << "Edited by #{updated.name}"
+      parts << _("Edited by %{name}", name: updated.name)
     end
 
     parts.join(" · ").presence

@@ -15,7 +15,7 @@
   }
 
   .mail-topbar-title {
-    @apply pr-4 mr-1 border-r border-border-light;
+    @apply pe-4 me-1 border-e border-border-light;
   }
 
   /* Filled while starred, from the moment it is pressed (pressed_controller.js) */
@@ -25,7 +25,7 @@
 
   /* Folders as a column beside the list, on screens wide enough for it (below) */
   .mail-folder-rail {
-    @apply hidden flex-col gap-0.5 py-2 bg-surface border-r border-border-light overflow-y-auto;
+    @apply hidden flex-col gap-0.5 py-2 bg-surface border-e border-border-light overflow-y-auto;
   }
 
   .mail-folder-link {
@@ -90,7 +90,7 @@
   }
 
   .compose-back {
-    @apply hidden max-lg:flex items-center justify-center w-8 h-8 -ml-1 rounded-lg shrink-0 text-text-secondary hover:bg-background-tertiary transition-colors;
+    @apply hidden max-lg:flex items-center justify-center w-8 h-8 -ms-1 rounded-lg shrink-0 text-text-secondary hover:bg-background-tertiary transition-colors;
   }
 
   .compose-body {
@@ -123,7 +123,7 @@
 
   /* A mail's attachment: its name opens it, the arrow beside it downloads it */
   .mail-attachment {
-    @apply inline-flex items-center gap-1 pr-1.5 bg-background-secondary rounded-md text-sm text-text-primary transition-colors;
+    @apply inline-flex items-center gap-1 pe-1.5 bg-background-secondary rounded-md text-sm text-text-primary transition-colors;
   }
 
   .mail-attachment:hover {
@@ -140,11 +140,11 @@
   }
 
   .compose-carried-attachment > .compose-attachment-remove {
-    @apply ml-0 self-stretch px-2.5 rounded-r-md hover:bg-background-tertiary;
+    @apply ms-0 self-stretch px-2.5 rounded-e-md hover:bg-background-tertiary;
   }
 
   .mail-attachment-name {
-    @apply inline-flex items-center gap-2 pl-3 py-2 text-text-primary no-underline;
+    @apply inline-flex items-center gap-2 ps-3 py-2 text-text-primary no-underline;
   }
 
   .compose-actions {
@@ -267,7 +267,7 @@
 
   /* (the room around the face is the face's, so the line opens and closes from its very start) */
   .mail-message-face {
-    @apply row-span-2 self-start py-4 pl-4 pr-3;
+    @apply row-span-2 self-start py-4 ps-4 pe-3;
   }
 
   .mail-message-avatar {
@@ -275,7 +275,7 @@
   }
 
   .mail-message-toggle {
-    @apply row-span-2 flex items-start gap-3 py-4 pr-4 bg-transparent border-none cursor-pointer text-left;
+    @apply row-span-2 flex items-start gap-3 py-4 pe-4 bg-transparent border-none cursor-pointer text-left;
   }
 
   /* Who wrote it and when; closed, how it starts between them */
@@ -301,7 +301,7 @@
   }
 
   .mail-message-date {
-    @apply ml-auto shrink-0 inline-flex items-center gap-1.5 text-xs text-text-tertiary whitespace-nowrap;
+    @apply ms-auto shrink-0 inline-flex items-center gap-1.5 text-xs text-text-tertiary whitespace-nowrap;
   }
 
   .mail-message-chevron {
@@ -311,7 +311,7 @@
   /* Closed, a message is a line: a smaller face on the axis of the open ones, and its
      name, how it starts and when side by side, as far as the line has room */
   .mail-message[data-collapse-open-value="false"] .mail-message-face {
-    @apply py-2.5 pl-[1.375rem] pr-[1.125rem];
+    @apply py-2.5 ps-[1.375rem] pe-[1.125rem];
   }
 
   .mail-message[data-collapse-open-value="false"] :is(.mail-message-avatar, .mail-draft-avatar) {
@@ -362,13 +362,13 @@
   }
 
   .mail-recipients {
-    @apply col-start-2 grid gap-x-2 gap-y-1 pr-4 pb-4 text-xs text-text-tertiary;
+    @apply col-start-2 grid gap-x-2 gap-y-1 pe-4 pb-4 text-xs text-text-tertiary;
     grid-template-columns: 1.75rem minmax(0, 1fr);
   }
 
   /* Someone stays in one piece where the line has the room, and breaks where it hasn't */
   .mail-recipient {
-    @apply inline-block max-w-full mr-1;
+    @apply inline-block max-w-full me-1;
     overflow-wrap: anywhere;
   }
 
@@ -387,7 +387,7 @@
     }
 
     .mail-recipients {
-      @apply col-span-full pl-2;
+      @apply col-span-full ps-2;
     }
   }
 
@@ -461,7 +461,7 @@
 
   /* Selected state with color-mix - no Tailwind equivalent */
   .mail-list-item.selected {
-    @apply border-l-accent;
+    @apply border-s-accent;
     background: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
   }
 
@@ -469,7 +469,7 @@
      shade stronger than a selected one. A ring around the link as well was a second
      mark for the same thing, with a white band in it in a dark theme. */
   .mail-list-item:has(> a:is(:focus-visible, [data-keyboard-focus])) {
-    @apply border-l-accent;
+    @apply border-s-accent;
     background: color-mix(in srgb, var(--color-accent) 20%, var(--color-surface));
   }
 
@@ -510,7 +510,7 @@ rhino-editor.compose-editor .trix-content {
   }
 
   blockquote {
-    @apply pl-4 border-l-3 border-border text-text-secondary;
+    @apply ps-4 border-s-3 border-border text-text-secondary;
     margin-inline-start: 0;
   }
 
@@ -589,13 +589,13 @@ rhino-editor.compose-editor .trix-content {
 
 .mail-topbar-title {
   @variant narrow {
-    @apply flex-auto min-w-0 truncate border-r-0 pr-0 mr-0;
+    @apply flex-auto min-w-0 truncate border-e-0 pe-0 me-0;
   }
 }
 
 .mail-topbar > .mail-topbar-actions {
   @variant narrow {
-    @apply order-1 ml-auto;
+    @apply order-1 ms-auto;
   }
 }
 
@@ -728,7 +728,9 @@ body:has(.mail-layout) .flash-toast {
   }
 
   .mail-list-item:is([data-swiping], [data-swiped-away])::after {
-    content: "Archive";
+    /* What a swipe does, in the page's language (tools/mails/_email_list_item) */
+    content: attr(data-swipe-label);
+    /* Physical: the swipe is a finger's movement to the left, whichever way the page reads */
     @apply absolute inset-y-0 left-full w-screen flex items-center pl-5 text-sm font-medium text-text-inverse;
     background: color-mix(in srgb, var(--color-accent-solid) 70%, var(--color-surface));
   }

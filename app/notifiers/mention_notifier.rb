@@ -10,13 +10,13 @@ class MentionNotifier < Noticed::Event
   deliver_by :custom_action_cable,
     class: "Noticed::DeliveryMethods::CustomActionCable",
     stream: -> { "notifications:#{recipient.id}" },
-    message: -> { notification_data }
+    message: -> { I18n.with_locale(Translation.supported(recipient.try(:locale)) || I18n.default_locale) { notification_data } }
 
   notification_methods do
     def message
       mentioner = event.params[:mentioner]
       context = event.params[:context]
-      "#{event.params[:byline] || mentioner&.name || 'Someone'} mentioned you in #{context || 'a message'}"
+      _("%{person} mentioned you in %{context}", person: event.params[:byline] || mentioner&.name || _("Someone"), context: context || _("a message"))
     end
 
     def url

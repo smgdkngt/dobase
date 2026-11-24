@@ -7,12 +7,12 @@ class MailNotSentNotifier < Noticed::Event
   deliver_by :custom_action_cable,
     class: "Noticed::DeliveryMethods::CustomActionCable",
     stream: -> { "notifications:#{recipient.id}" },
-    message: -> { notification_data }
+    message: -> { I18n.with_locale(Translation.supported(recipient.try(:locale)) || I18n.default_locale) { notification_data } }
 
   notification_methods do
     def message
-      subject = event.params[:draft]&.subject.presence || "(No subject)"
-      "Couldn't send “#{subject}”, it's in your drafts: #{event.params[:error]}"
+      subject = event.params[:draft]&.subject.presence || _("(No subject)")
+      _("Couldn't send “%{subject}”, it's in your drafts: %{error}", subject: subject, error: event.params[:error])
     end
 
     def url

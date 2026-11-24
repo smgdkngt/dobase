@@ -14,7 +14,7 @@ module Tools
         undo = ::Mails::Undo.find(params[:undo], account: account, user: Current.user) if account
 
         unless undo
-          redirect_back_or_to tool_mails_path(@tool), alert: "That can't be undone any more."
+          redirect_back_or_to tool_mails_path(@tool), alert: _("That can't be undone any more.")
           return
         end
 
@@ -22,16 +22,16 @@ module Tools
         undone = account.messages.where(id: undo.places.map(&:first))
         message = undone.order(sent_at: :desc).first
         unless message
-          redirect_back_or_to tool_mails_path(@tool), alert: "That mail is gone."
+          redirect_back_or_to tool_mails_path(@tool), alert: _("That mail is gone.")
           return
         end
 
         # One conversation opens where it is again, more than one show in their folder's list
         folder = account.view_of(message)
         if undone.distinct.count(:thread_id) <= 1
-          redirect_to tool_mail_path(@tool, message, folder: folder), notice: "Undone."
+          redirect_to tool_mail_path(@tool, message, folder: folder), notice: _("Undone.")
         else
-          redirect_to tool_mails_path(@tool, folder: folder), notice: "Undone."
+          redirect_to tool_mails_path(@tool, folder: folder), notice: _("Undone.")
         end
       end
     end

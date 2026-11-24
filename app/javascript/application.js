@@ -42,6 +42,7 @@ document.addEventListener("turbo:submit-end", (event) => {
 import "rhino-editor"
 // An address typed or pasted stays one link, querystring and all
 import "services/rhino_links"
+import { _ } from "services/i18n"
 
 // Close open dialogs and popovers before Turbo morphs them
 // (morph preserves top-layer state, so they'd stay stuck open)
@@ -88,7 +89,7 @@ document.addEventListener("click", (event) => {
 
 function confirmButtonLabel(element, submitter) {
   const link = element instanceof HTMLFormElement && submitsLink(element, clickedConfirmLink) ? clickedConfirmLink : null
-  return submitter?.dataset.turboConfirmButton || element?.dataset.turboConfirmButton || link?.dataset.turboConfirmButton || "Confirm"
+  return submitter?.dataset.turboConfirmButton || element?.dataset.turboConfirmButton || link?.dataset.turboConfirmButton || _("Confirm")
 }
 
 // Turbo moves the link's query string into hidden fields, so the form's action has none

@@ -15,8 +15,8 @@
       <details class="comments-earlier space-y-4">
         <summary class="comments-earlier-toggle">
           <%= render "shared/icon", name: "chevron-up", size: 14, class: "comments-earlier-icon" %>
-          <span class="comments-earlier-show">Show <%= pluralize(earlier, "earlier comment") %></span>
-          <span class="comments-earlier-hide">Hide earlier comments</span>
+          <span class="comments-earlier-show"><%= _("Show") %> <%= pluralize(earlier, "earlier comment") %></span>
+          <span class="comments-earlier-hide"><%= _("Hide earlier comments") %></span>
         </summary>
         <%= render partial: partial, collection: comments.first(earlier), as: :comment, locals: locals %>
       </details>

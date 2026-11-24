@@ -7,12 +7,12 @@ module CalendarsHelper
   def reminder_options(event, chosen)
     choices = Calendars::Reminder::CHOICES.map do |label, value|
       minutes = Calendars::Reminder.parse(value, starts_at: event.starts_at, all_day: event.all_day?) rescue nil
-      [ label, minutes && minutes == chosen ? chosen.to_s : value ]
+      [ _(label), minutes && minutes == chosen ? chosen.to_s : value ]
     end
     unless chosen.nil? || choices.any? { |_, value| value == chosen.to_s }
       choices.unshift([ Calendars::Reminder.label(chosen, starts_at: event.starts_at, all_day: event.all_day?), chosen.to_s ])
     end
-    [ [ chosen.nil? ? "Add an alert" : "None", "" ] ] + choices
+    [ [ chosen.nil? ? _("Add an alert") : _("None"), "" ] ] + choices
   end
 
   def navigate_date(date, direction)
@@ -78,7 +78,8 @@ module CalendarsHelper
 
   # The week grid's hour labels, kept short: "12 AM", "9 AM", "1 PM"
   def format_hour(hour)
-    Time.zone.today.in_time_zone.change(hour: hour).strftime("%-l %p")
+    time = Time.zone.today.in_time_zone.change(hour: hour)
+    persian_date? ? Translation.digits(time.strftime("%H")) : time.strftime("%-l %p")
   end
 
   # When an invitation is, in a few words: "Mon Nov 23, 2:00 PM", "Mon Nov 23, all day"
@@ -86,7 +87,7 @@ module CalendarsHelper
     return unless invite.starts_at
 
     day = invite.all_day? ? invite.first_day : invite.starts_at.in_time_zone
-    "#{day.strftime("%a")} #{format_date(day)}, #{invite.all_day? ? "all day" : format_time(invite.starts_at)}"
+    "#{format_weekday(day, short: !persian_date?)} #{format_date(day)}#{persian_date? ? "،" : ","} #{invite.all_day? ? _("all day") : format_time(invite.starts_at)}"
   end
 
   # Calendars a mail invite can be added to: enabled, writable, and in a calendar tool the user can access

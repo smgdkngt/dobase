@@ -81,7 +81,7 @@
 
 <div class="form-field">
   <%= tag.label class: "label", for: field_id do %>
-    <%= label %><% if local_assigns[:required] %> <span class="text-error" aria-hidden="true">*</span><span class="sr-only"> (required)</span><% end %>
+    <%= label %><% if local_assigns[:required] %> <span class="text-error" aria-hidden="true">*</span><span class="sr-only"> <%= _("(required)") %></span><% end %>
   <% end %>
 
   <% case type %>

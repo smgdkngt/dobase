@@ -37,10 +37,10 @@ module DemoRestricted
       format.json { render json: { error: status == :forbidden ? "Not available in the demo" : message }, status: status }
       # A form in a modal or a frame stays where it is, and the page says why
       format.turbo_stream do
-        flash.now[:alert] = message
+        flash.now[:alert] = _(message)
         render turbo_stream: turbo_stream.replace("flash", partial: "shared/flash"), status: status
       end
-      format.any { redirect_back_or_to root_path, alert: message }
+      format.any { redirect_back_or_to root_path, alert: _(message) }
     end
   end
 end

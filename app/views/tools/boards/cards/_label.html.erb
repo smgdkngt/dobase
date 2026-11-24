@@ -1,6 +1,6 @@
         <%# ── Label / Color ──────────────────────────────────────────── %>
         <div class="detail-field">
-          <p class="detail-field-label">Label</p>
+          <p class="detail-field-label"><%= _("Label") %></p>
           <div class="relative">
             <button type="button"
                     class="detail-field-control group"
@@ -10,32 +10,32 @@
               <span class="w-4 h-4 rounded-sm flex-shrink-0"
                     data-board-card-target="colorDot"
                     style="<%= card_color(card) ? "background-color: #{card_color(card)[:fill]};" : "background-color: transparent; border: 1px dashed var(--color-border);" %>"></span>
-              <span class="text-sm flex-1 text-left <%= card_color(card) ? "font-medium text-text-primary" : "text-text-tertiary" %>"
-                    data-board-card-target="colorLabel"><%= card_color(card) ? card.color.capitalize : "No label" %></span>
+              <span class="text-sm flex-1 text-start <%= card_color(card) ? "font-medium text-text-primary" : "text-text-tertiary" %>"
+                    data-board-card-target="colorLabel"><%= card_color(card) ? _(card.color.capitalize) : _("No label") %></span>
               <%= render "shared/icon", name: "chevron-down", size: 12, class: "text-text-tertiary flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" %>
             </button>
             <div id="card-color-menu" popover="auto"
                  class="popover-menu"
-                 style="position-anchor: --card-color; top: anchor(bottom); left: anchor(left); width: anchor-size(width);">
+                 style="position-anchor: --card-color; top: anchor(bottom); inset-inline-start: anchor(start); width: anchor-size(width);">
               <button type="button"
-                      class="flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-left hover:bg-background-tertiary transition-colors"
+                      class="flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-start hover:bg-background-tertiary transition-colors"
                       data-action="click->board-card#setColor"
                       data-color=""
                       commandfor="card-color-menu" command="hide-popover">
                 <span class="w-4 h-4 rounded-sm bg-background-tertiary border border-border flex-shrink-0"></span>
-                <span class="text-text-tertiary">None</span>
+                <span class="text-text-tertiary"><%= _("None") %></span>
               </button>
               <% card_colors.each do |color, styles| %>
                 <button type="button"
-                        class="flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-left hover:bg-background-tertiary transition-colors"
+                        class="flex items-center gap-2.5 w-full px-3 py-1.5 text-sm text-start hover:bg-background-tertiary transition-colors"
                         data-action="click->board-card#setColor"
                         data-color="<%= color %>"
                         data-color-hex="<%= styles[:fill] %>"
                         commandfor="card-color-menu" command="hide-popover">
                   <span class="w-4 h-4 rounded-sm flex-shrink-0" style="background-color: <%= styles[:fill] %>;"></span>
-                  <span class="text-text-primary"><%= color.capitalize %></span>
+                  <span class="text-text-primary"><%= _(color.capitalize) %></span>
                   <% if card.color == color %>
-                    <%= render "shared/icon", name: "check", size: 13, class: "text-accent ml-auto flex-shrink-0" %>
+                    <%= render "shared/icon", name: "check", size: 13, class: "text-accent ms-auto flex-shrink-0" %>
                   <% end %>
                 </button>
               <% end %>

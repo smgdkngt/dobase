@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { zoomOf } from "services/tile"
 import { showFlash } from "services/flash"
+import { _ } from "services/i18n"
 
 // What a right click on an item offers (components/context_menu). It lives on <body>
 // and knows no tool: an item says `data-context-menu` and carries its menu as a
@@ -92,7 +93,7 @@ export default class extends Controller {
     menu.className = "popover-menu context-menu"
     menu.setAttribute("popover", "auto")
     menu.setAttribute("role", "menu")
-    menu.setAttribute("aria-label", template.getAttribute("aria-label") || "Actions")
+    menu.setAttribute("aria-label", template.getAttribute("aria-label") || _("Actions"))
     // Not the server's: the page isn't drawn again under it while it is open
     menu.setAttribute("data-live-busy", "")
     menu.append(template.content.cloneNode(true))
@@ -119,7 +120,7 @@ export default class extends Controller {
   copy(event) {
     const { copy, copyLink } = event.currentTarget.dataset
     const text = copyLink ? new URL(copyLink, location.origin).href : copy
-    navigator.clipboard?.writeText(text).then(() => showFlash("Copied", "notice"), () => showFlash("Couldn't copy"))
+    navigator.clipboard?.writeText(text).then(() => showFlash(_("Copied"), "notice"), () => showFlash(_("Couldn't copy")))
   }
 
   // What was chosen goes first (Turbo's own click listener on the document follows

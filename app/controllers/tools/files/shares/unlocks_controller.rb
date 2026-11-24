@@ -10,7 +10,7 @@ module Tools
 
         skip_before_action :require_unlocked_share
         rate_limit to: 10, within: 3.minutes, only: :create,
-          with: -> { refuse_unlock("Too many attempts. Try again in a few minutes.", :too_many_requests) }
+          with: -> { refuse_unlock(_("Too many attempts. Try again in a few minutes."), :too_many_requests) }
 
         def create
           if @share_not_found || @share_expired || !@share.password_protected?
@@ -19,7 +19,7 @@ module Tools
             unlock_share
             redirect_to share_path(@share.token), status: :see_other
           else
-            refuse_unlock("Incorrect password", :unprocessable_entity)
+            refuse_unlock(_("Incorrect password"), :unprocessable_entity)
           end
         end
 

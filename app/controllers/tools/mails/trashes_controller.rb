@@ -19,7 +19,7 @@ module Tools
         undoable(:put_back, @message.draft? ? [ @message ] : with_their_conversations([ @message ], folder: folder)) { @tool.mail_account.trash(_1) }
 
         respond_to do |format|
-          format.html { redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Email moved to trash.") }
+          format.html { redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: _("Email moved to trash.")) }
           format.json { render "tools/mails/message" }
         end
       end
@@ -30,7 +30,7 @@ module Tools
         @tool.mail_account.restore(@message.draft? ? [ @message ] : with_their_conversations([ @message ], folder: "trash"))
 
         respond_to do |format|
-          format.html { redirect_to_next_mail_or_fallback(next_msg, folder: "trash", notice: "Email restored.") }
+          format.html { redirect_to_next_mail_or_fallback(next_msg, folder: "trash", notice: _("Email restored.")) }
           format.json { render "tools/mails/message" }
         end
       end
@@ -38,7 +38,7 @@ module Tools
       # DELETE /tools/:tool_id/mails/trash (empty trash)
       def destroy_all
         count = @tool.mail_account.delete_for_good(@tool.mail_account.messages.trashed.to_a).size
-        redirect_to tool_mails_path(@tool, folder: "trash"), notice: "#{count} email(s) permanently deleted."
+        redirect_to tool_mails_path(@tool, folder: "trash"), notice: _("%{count} email(s) permanently deleted.", count: count)
       end
 
       private

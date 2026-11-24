@@ -16,7 +16,7 @@ module Tools
             format.html do
               # Undo is this card's own way back (destroy)
               offer_undo(tool_board_card_archive_path(@tool, @card), method: :delete)
-              redirect_to tool_board_path(@tool), notice: "Card archived."
+              redirect_to tool_board_path(@tool), notice: _("Card archived.")
             end
             format.json { render "tools/boards/cards/show" }
           end

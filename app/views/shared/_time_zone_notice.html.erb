@@ -4,15 +4,15 @@
     workspace too, is drawn again in the new zone. Waved away, it stays away for
     that zone in this browser (time_zone_controller.js). %>
 <% suggestion = suggested_time_zone %>
-<%= tag.aside class: "time-zone-notice", aria: { label: "Time zone" }, data: { time_zone_target: "notice" } do %>
+<%= tag.aside class: "time-zone-notice", aria: { label: _("Time zone") }, data: { time_zone_target: "notice" } do %>
   <%= render "shared/icon", name: "clock", size: 16 %>
   <span class="time-zone-notice-text">
-    Times are shown in UTC. Use <%= suggestion[:browser] %>?
+    <%= _("Times are shown in UTC. Use %{browser}?", browser: suggestion[:browser]) %>
   </span>
   <%= form_with url: profile_time_zone_path, method: :patch, data: { turbo: false } do %>
     <%= hidden_field_tag :time_zone, suggestion[:zone], id: nil %>
-    <%= render "components/button", text: "Switch", size: :sm %>
+    <%= render "components/button", text: _("Switch"), size: :sm %>
   <% end %>
-  <%= render "components/icon_button", icon: "x", title: "Keep UTC", size: :sm,
+  <%= render "components/icon_button", icon: "x", title: _("Keep UTC"), size: :sm,
         data: { action: "time-zone#dismiss" } %>
 <% end %>

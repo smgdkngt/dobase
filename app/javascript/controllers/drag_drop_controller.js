@@ -3,6 +3,7 @@ import { apiPost } from "services/api"
 import { showFlash } from "services/flash"
 import { play } from "services/sound"
 import { visitPage } from "services/tile"
+import { _ } from "services/i18n"
 
 // Dragging from one place in Dobase to another (Dropped, DragDropHelper). It lives on
 // <body> and knows no tool: an item says what it is (`data-drag-sgid`, its kind, its
@@ -86,7 +87,7 @@ export default class extends Controller {
     const answer = await apiPost(url, body)
     if (!answer) {
       play("error")
-      showFlash("That can't go there")
+      showFlash(_("That can't go there"))
       return
     }
 
@@ -95,7 +96,7 @@ export default class extends Controller {
       Turbo.visit(place.dataset.dropOpen.replace(":id", answer.id))
       return
     }
-    showFlash(place.dataset.dropDone || "Done", "notice")
+    showFlash(place.dataset.dropDone || _("Done"), "notice")
     // The page dropped on and the one dragged from show it (the change was this page's own request)
     for (const element of new Set([ place, this.source ])) {
       if (element?.isConnected && element.closest(".tile-page, main")) visitPage(element)

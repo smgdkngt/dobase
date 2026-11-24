@@ -35,6 +35,7 @@ class User < ApplicationRecord
 
   validates :email_address, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :first_name, :last_name, presence: true
+  validates :locale, inclusion: { in: Translation.locales }, allow_nil: true
 
   def name = "#{first_name} #{last_name}".strip
 
@@ -314,10 +315,10 @@ class User < ApplicationRecord
   def acceptable_avatar
     return unless avatar.attached?
     unless avatar.content_type.in?(%w[image/png image/jpeg image/gif image/webp])
-      errors.add(:avatar, "must be an image (PNG, JPEG, GIF, or WebP)")
+      errors.add(:avatar, _("must be an image (PNG, JPEG, GIF, or WebP)"))
     end
     if avatar.byte_size > 5.megabytes
-      errors.add(:avatar, "must be less than 5MB")
+      errors.add(:avatar, _("must be less than 5MB"))
     end
   end
 end

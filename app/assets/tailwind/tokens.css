@@ -1,3 +1,16 @@
+/* Persian (and Arabic) letters in Vazirmatn, everywhere, in either language: the
+   systems' own fonts have none or poor ones. Only those letters (unicode-range), so
+   Latin text stays in the system's font and the file loads only for a page that has
+   some. app/assets/fonts/vazirmatn-OFL.txt is its licence. */
+@font-face {
+  font-family: Vazirmatn;
+  src: url("/vazirmatn.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+200C-200F, U+FB50-FDFF, U+FE70-FEFF;
+}
+
 /* Design Tokens - macOS-inspired design system */
 @theme {
   /* Colors - Light Mode */
@@ -67,7 +80,7 @@
   /* Typography */
   /* The app's own typeface; --font-family-sans is what the interface is set in,
      which Profile → Appearance can make the monospace font */
-  --font-family-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-family-ui: Vazirmatn, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-family-sans: var(--font-family-ui);
   /* Ends in the generic family and names no font a Linux desktop would have, so on
      Omarchy it is the font the desktop is set in (fontconfig's "monospace").

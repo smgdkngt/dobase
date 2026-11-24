@@ -6,7 +6,7 @@
   <%= render "shared/error_flash", object: tool %>
 
   <fieldset class="mb-6" data-controller="tool-type-select">
-    <legend class="label mb-3">What do you want to add?</legend>
+    <legend class="label mb-3"><%= _("What do you want to add?") %></legend>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
       <% ToolType.enabled.order(:name).each_with_index do |tool_type, index| %>
         <label class="block cursor-pointer">
@@ -22,7 +22,7 @@
               <%= render "shared/icon", name: tool_type.icon, size: 20, style: "color: #{tool_type_color(tool_type)};" %>
             </div>
             <div class="min-w-0">
-              <div class="font-medium text-sm text-text-primary"><%= tool_type.name %></div>
+              <div class="font-medium text-sm text-text-primary"><%= tool_type.human_name %></div>
               <div class="text-xs text-text-tertiary line-clamp-2"><%= tool_type_description(tool_type) %></div>
             </div>
           </div>
@@ -33,18 +33,18 @@
 
   <div class="mb-6">
     <%# The new tool page renders this modal too, so its fields need ids of their own %>
-    <%= f.label :name, "Name", for: "new_tool_name", class: "label" %>
+    <%= f.label :name, _("Name"), for: "new_tool_name", class: "label" %>
     <%= f.text_field :name,
       id: "new_tool_name",
       class: "input",
-      placeholder: "e.g. Work Email, Project Board...",
+      placeholder: _("e.g. Work Email, Project Board..."),
       required: true
     %>
-    <p class="help-text">Start with an emoji to use it as the icon, like 🚀 Updates. You can rename this anytime.</p>
+    <p class="help-text"><%= _("Start with an emoji to use it as the icon, like 🚀 Updates. You can rename this anytime.") %></p>
   </div>
 
   <div class="flex items-center justify-end gap-3 pt-2">
-    <%= render "components/button", text: "Cancel", variant: :ghost, type: :button, data: { action: "click->modal#close" } %>
-    <%= render "components/button", text: "Create", icon: "plus" %>
+    <%= render "components/button", text: _("Cancel"), variant: :ghost, type: :button, data: { action: "click->modal#close" } %>
+    <%= render "components/button", text: _("Create"), icon: "plus" %>
   </div>
 <% end %>

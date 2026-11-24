@@ -79,11 +79,11 @@ rhino-editor.document-editor .trix-content,
   }
 
   blockquote {
-    @apply border-l-2 border-border pl-4 text-text-secondary italic;
+    @apply border-s-2 border-border ps-4 text-text-secondary italic;
   }
 
   ul, ol {
-    @apply pl-6;
+    @apply ps-6;
   }
 
   ul {
@@ -99,10 +99,10 @@ rhino-editor.document-editor .trix-content,
    colour comes from the editor as an inline style, per person. */
 .collaboration-carets__caret {
   position: relative;
-  margin-left: -1px;
-  margin-right: -1px;
-  border-left: 1px solid;
-  border-right: 1px solid;
+  margin-inline-start: -1px;
+  margin-inline-end: -1px;
+  border-inline-start: 1px solid;
+  border-inline-end: 1px solid;
   word-break: normal;
   pointer-events: none;
 }
@@ -110,7 +110,7 @@ rhino-editor.document-editor .trix-content,
 .collaboration-carets__label {
   position: absolute;
   top: -1.4em;
-  left: -1px;
+  inset-inline-start: -1px;
   border-radius: 4px 4px 4px 0;
   padding: 0.1rem 0.35rem;
   font-size: 0.75rem;

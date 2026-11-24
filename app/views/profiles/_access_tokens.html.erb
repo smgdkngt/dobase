@@ -1,18 +1,18 @@
 <%# locals: (access_tokens:, access_token: AccessToken.new, created_token: nil) %>
 <%= turbo_frame_tag "access-tokens" do %>
-  <h3 class="text-sm font-semibold text-text-primary mb-1">Access tokens</h3>
+  <h3 class="text-sm font-semibold text-text-primary mb-1"><%= _("Access tokens") %></h3>
   <p class="text-xs text-text-tertiary mb-4">
-    Tokens let scripts, the <code>dobase</code> command-line tool and AI assistants work in your tools on your behalf.
+    <%= _("Tokens let scripts, the") %> <code>dobase</code> command-line tool and AI assistants work in your tools on your behalf.
     They can't change your account, connected mail or calendar accounts, or who a tool is shared with.
   </p>
 
   <% if created_token %>
     <div class="p-3 mb-4 rounded-lg bg-success/10 border border-success/20" data-controller="clipboard">
-      <p class="text-sm font-medium text-text-primary">Copy your new token now</p>
-      <p class="text-xs text-text-tertiary mb-2">It won't be shown again. Treat it like a password.</p>
+      <p class="text-sm font-medium text-text-primary"><%= _("Copy your new token now") %></p>
+      <p class="text-xs text-text-tertiary mb-2"><%= _("It won't be shown again. Treat it like a password.") %></p>
       <div class="flex gap-2">
-        <input type="text" readonly value="<%= created_token %>" class="input flex-1 font-mono text-xs" aria-label="New access token" data-clipboard-target="source">
-        <%= render "components/button", text: "Copy", variant: :secondary, size: :sm, type: :button, data: { action: "clipboard#copy", clipboard_target: "button" } %>
+        <input type="text" readonly value="<%= created_token %>" class="input flex-1 font-mono text-xs" aria-label="<%= _("New access token") %>" data-clipboard-target="source">
+        <%= render "components/button", text: _("Copy"), variant: :secondary, size: :sm, type: :button, data: { action: "clipboard#copy", clipboard_target: "button" } %>
       </div>
     </div>
   <% end %>
@@ -20,31 +20,30 @@
   <%= form_with url: profile_access_tokens_path, class: "mb-6" do %>
     <div class="grid grid-cols-[1fr_auto_auto] gap-3 max-lg:grid-cols-1">
       <%= render "components/form_field",
-            label: "Name",
+            label: _("Name"),
             name: "name",
             value: access_token.name,
             required: true,
-            placeholder: "e.g. Claude on my laptop",
+            placeholder: _("e.g. Claude on my laptop"),
             error: access_token.errors[:name].first %>
       <%= render "components/form_field",
-            label: "Permission",
+            label: _("Permission"),
             name: "permission",
             type: :select,
             value: access_token.permission,
-            options: [ [ "Read only", "read" ], [ "Read and write", "write" ] ] %>
+            options: [ [ _("Read only"), "read" ], [ _("Read and write"), "write" ] ] %>
       <%= render "components/form_field",
-            label: "Posts as",
+            label: _("Posts as"),
             name: "agent",
             type: :select,
             value: access_token.agent?.to_s,
-            options: [ [ "You", "false" ], [ "Itself, for you", "true" ] ] %>
+            options: [ [ _("You"), "false" ], [ _("Itself, for you"), "true" ] ] %>
     </div>
     <p class="text-xs text-text-tertiary mt-2">
-      Posting as you puts your name on messages and comments, with "via" and the token's name.
-      Posting as itself shows the token's name instead, as an agent working for you, and tells you what it posted.
+      <%= _("Posting as you puts your name on messages and comments, with \"via\" and the token's name. Posting as itself shows the token's name instead, as an agent working for you, and tells you what it posted.") %>
     </p>
     <div class="flex justify-end mt-3">
-      <%= render "components/button", text: "Create token", icon: "plus", size: :sm %>
+      <%= render "components/button", text: _("Create token"), icon: "plus", size: :sm %>
     </div>
   <% end %>
 
@@ -58,53 +57,53 @@
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
               <p class="text-sm font-medium text-text-primary truncate"><%= token.name %></p>
-              <%= render "components/badge", text: token.write? ? "Read and write" : "Read only", variant: token.write? ? :warning : :muted, size: :sm %>
+              <%= render "components/badge", text: token.write? ? _("Read and write") : _("Read only"), variant: token.write? ? :warning : :muted, size: :sm %>
               <% if token.agent? %>
-                <%= render "components/badge", text: "Agent", size: :sm %>
+                <%= render "components/badge", text: _("Agent"), size: :sm %>
               <% end %>
             </div>
             <p class="text-xs text-text-tertiary">
               <% if token.connection? %>
-                Connected by MCP <%= time_ago_in_words(token.created_at) %> ago, ends in <%= time_ago_in_words(token.expires_at) %>
+                <%= _("Connected by MCP %{created_at} ago, ends in %{expires_at}", created_at: time_ago_in_words(token.created_at), expires_at: time_ago_in_words(token.expires_at)) %>
               <% else %>
-                Created <%= time_ago_in_words(token.created_at) %> ago
+                <%= _("Created %{created_at} ago", created_at: time_ago_in_words(token.created_at)) %>
               <% end %>
               &middot;
-              <%= token.last_used_at ? "Last used #{time_ago_in_words(token.last_used_at)} ago" : "Never used" %>
+              <%= token.last_used_at ? _("Last used %{time}", time: ago(token.last_used_at)) : _("Never used") %>
             </p>
           </div>
           <%= render "components/icon_button",
                 icon: token.agent? ? "user" : "bot",
-                title: token.agent? ? "Post as you" : "Post as itself, for you",
+                title: token.agent? ? _("Post as you") : _("Post as itself, for you"),
                 size: :sm,
                 href: profile_access_token_path(token, agent: !token.agent?),
                 method: :patch %>
           <%= render "components/icon_button",
                 icon: "x",
-                title: "Revoke token",
+                title: _("Revoke token"),
                 size: :sm,
                 variant: :danger,
                 href: profile_access_token_path(token),
                 method: :delete,
-                data: { turbo_frame: "profile-form", turbo_confirm: "Revoke this token? Anything using it will stop working.", turbo_confirm_button: "Revoke" } %>
+                data: { turbo_frame: "profile-form", turbo_confirm: _("Revoke this token? Anything using it will stop working."), turbo_confirm_button: _("Revoke") } %>
         </div>
       <% end %>
     </div>
   <% else %>
-    <%= render "components/empty_state", title: "No access tokens", description: "Create one to use Dobase from the command line.", icon: "key-round" %>
+    <%= render "components/empty_state", title: _("No access tokens"), description: _("Create one to use Dobase from the command line."), icon: "key-round" %>
   <% end %>
 
-  <h3 class="text-sm font-semibold text-text-primary mt-8 mb-1">Command line</h3>
+  <h3 class="text-sm font-semibold text-text-primary mt-8 mb-1"><%= _("Command line") %></h3>
   <p class="text-xs text-text-tertiary mb-3">
-    Install <code>dobase</code> on macOS or Linux, then sign in with a token.
-    <%= link_to "Windows and more", "https://github.com/smgdkngt/dobase/tree/main/cli#readme", class: "underline", target: "_blank", rel: "noopener" %>
+    <%= _("Install") %> <code>dobase</code> <%= _("on macOS or Linux, then sign in with a token.") %>
+    <%= link_to _("Windows and more"), "https://github.com/smgdkngt/dobase/tree/main/cli#readme", class: "underline", target: "_blank", rel: "noopener" %>
   </p>
   <div class="space-y-2">
-    <% [ [ "Install command", "curl -fsSL https://raw.githubusercontent.com/smgdkngt/dobase/main/cli/install.sh | sh" ],
-         [ "Sign-in command", "dobase login #{root_url.chomp("/")}" ] ].each do |label, command| %>
+    <% [ [ _("Install command"), "curl -fsSL https://raw.githubusercontent.com/smgdkngt/dobase/main/cli/install.sh | sh" ],
+         [ _("Sign-in command"), "dobase login #{root_url.chomp("/")}" ] ].each do |label, command| %>
       <div class="flex gap-2" data-controller="clipboard">
         <input type="text" readonly value="<%= command %>" class="input flex-1 font-mono text-xs" aria-label="<%= label %>" data-clipboard-target="source">
-        <%= render "components/button", text: "Copy", variant: :secondary, size: :sm, type: :button, data: { action: "clipboard#copy", clipboard_target: "button" } %>
+        <%= render "components/button", text: _("Copy"), variant: :secondary, size: :sm, type: :button, data: { action: "clipboard#copy", clipboard_target: "button" } %>
       </div>
     <% end %>
   </div>

@@ -40,7 +40,7 @@ class Demo::JoinsControllerTest < ActionDispatch::IntegrationTest
     in_demo_mode { get demo_join_path(Demo.join_token(@marcus)) }
 
     assert_response :success
-    assert_match "You're signed in as Guest Visitor here", response.body
+    assert_match "You&#39;re signed in as Guest Visitor here", response.body
   end
 
   test "an expired link is refused" do

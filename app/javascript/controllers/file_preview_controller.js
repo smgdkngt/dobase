@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { visitPage } from "services/tile"
 import { api } from "services/api"
+import { _ } from "services/i18n"
 
 export default class extends Controller {
   static targets = ["shareDialog", "shareContent", "shareLinkInput"]
@@ -26,7 +27,7 @@ export default class extends Controller {
     // Visual feedback
     const btn = this.element.querySelector("[data-action='file-preview#copyShareLink']")
     const originalText = btn.textContent
-    btn.textContent = "Copied!"
+    btn.textContent = _("Copied!")
     setTimeout(() => btn.textContent = originalText, 2000)
   }
 

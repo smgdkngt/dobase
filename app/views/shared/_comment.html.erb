@@ -21,14 +21,14 @@
   <% if delete_path %>
     <%= render "components/icon_button",
           icon: "more-horizontal",
-          title: "Comment actions",
+          title: _("Comment actions"),
           size: :sm,
           class: "self-start opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity",
           data: { action: "context-menu#show" } %>
-    <%= render "components/context_menu", label: "Comment" do %>
-      <%= render "components/menu_item", text: "Delete comment", icon: "trash-2", variant: :danger,
-            href: delete_path, method: :delete, turbo_confirm: "Delete this comment?",
-            data: { turbo_confirm_button: "Delete", turbo_frame: frame } %>
+    <%= render "components/context_menu", label: _("Comment") do %>
+      <%= render "components/menu_item", text: _("Delete comment"), icon: "trash-2", variant: :danger,
+            href: delete_path, method: :delete, turbo_confirm: _("Delete this comment?"),
+            data: { turbo_confirm_button: _("Delete"), turbo_frame: frame } %>
     <% end %>
   <% end %>
 <% end %>

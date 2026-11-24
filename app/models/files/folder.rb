@@ -50,7 +50,7 @@ module Files
       return unless parent && (new_record? || parent_id_changed?)
 
       if parent.depth + 1 + subtree_height > MAX_DEPTH - 1
-        errors.add(:base, "Maximum folder depth of #{MAX_DEPTH} reached")
+        errors.add(:base, _("Maximum folder depth of %{max_depth} reached", max_depth: MAX_DEPTH))
       end
     end
 
@@ -82,7 +82,7 @@ module Files
     # Moving a folder into itself or one of its subfolders would cut it off from the tree.
     def parent_outside_own_subtree
       if parent && parent.breadcrumbs.include?(self)
-        errors.add(:base, "A folder can't be moved into itself or one of its subfolders")
+        errors.add(:base, _("A folder can't be moved into itself or one of its subfolders"))
       end
     end
   end

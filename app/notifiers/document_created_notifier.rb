@@ -6,13 +6,13 @@ class DocumentCreatedNotifier < Noticed::Event
   deliver_by :custom_action_cable,
     class: "Noticed::DeliveryMethods::CustomActionCable",
     stream: -> { "notifications:#{recipient.id}" },
-    message: -> { notification_data }
+    message: -> { I18n.with_locale(Translation.supported(recipient.try(:locale)) || I18n.default_locale) { notification_data } }
 
   notification_methods do
     def message
       creator = event.params[:creator]
       document = event.params[:document]
-      "#{creator&.name || 'Someone'} created #{document&.title || 'a document'}"
+      _("%{person} created %{document}", person: creator&.name || _("Someone"), document: document&.title || _("a document"))
     end
 
     def url

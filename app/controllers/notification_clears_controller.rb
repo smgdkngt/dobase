@@ -6,7 +6,7 @@ class NotificationClearsController < ApplicationController
     current_user.notifications.delete_all
 
     respond_to do |format|
-      format.html { redirect_to notifications_path, notice: "Notifications cleared." }
+      format.html { redirect_to notifications_path, notice: _("Notifications cleared.") }
       format.any { head :ok }
     end
   end

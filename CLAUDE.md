@@ -267,6 +267,14 @@ Collaborators are always added via invitation (never direct-add). Flow:
 
 `Invitation` model: auto-generates token, 7-day expiry, statuses: `pending`/`accepted`/`declined`. Declined invitations show in collaborators panel with a "Reinvite" option.
 
+### Languages (English and Persian)
+
+The interface is in English or Persian (`Translation::LANGUAGES`), chosen per person under Profile → Settings (`users.locale`), else by a `locale` cookie, else by `Accept-Language`. The JSON API, MCP and anything a token asks for stay English.
+
+- **The English is the key** (gettext style): write a text in English where it is used and hand it to `_("Delete %{name}?", name:)`, or `n_(one, other, count)` (in views, controllers, models, mailers, jobs, notifiers: `Translation::Methods`). An html_safe value keeps its markup. Persian is in `config/locales/fa/ui.yml`; what a script shows is `_` from `services/i18n.js`, with its Persian in `config/locales/fa/js.yml` (sent in `<meta name="translations">`). A plural's Persian is under its `other` text. Rails' own messages (validations, `time_ago_in_words`, sizes) are in `config/locales/fa.yml`. Keep a sentence whole, values and links as `%{name}`: never split it around a tag. `test/models/translation_test.rb` fails on a text in the code without Persian, or whose Persian fills in other values.
+- **Persian dates** are the solar calendar (`Translation::Jalali`) with Persian digits and a 24-hour clock, through `FormattingHelper`; in scripts `intlLocale()` ("fa-IR"). Numbers in a translated text come out in Persian digits by themselves.
+- **Right to left**: `<html dir>` and `<body dir>` follow the language (`language_attributes`). Write CSS with logical properties (`ms-`/`me-`, `ps-`/`pe-`, `start-`/`end-`, `inset-inline-start`, `text-start`), never left/right, and an icon that points along the line is mirrored by `shared/icon` (its `.icon-directional` list: add a new such icon there). What people write takes its own direction per paragraph (`unicode-bidi: plaintext` on rich text and fields, `components.css`). Persian letters are in Vazirmatn (`app/assets/fonts`, `unicode-range` only).
+
 ### Themes
 
 `Theme` (`app/models/theme.rb`) turns a palette in Omarchy's `colors.toml` names into the `--color-*` tokens of `tokens.css`, nudging text, the accent and button fills until they carry WCAG AA. The built-in themes are Omarchy's (`config/themes.yml`); a user has `theme_name` and, for a palette of their own, `theme_colors` (`User#theme`, `User#choose_theme`). No theme means the app's own look, light or dark by `prefers-color-scheme`.

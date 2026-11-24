@@ -40,7 +40,9 @@ module Mails
 
     # What the form's script needs: the servers to fill in and where the app password is made
     def self.presets
-      ALL.transform_values { |provider| provider.except(:name) }
+      ALL.transform_values do |provider|
+        provider.except(:name).merge(provider.slice(:hint).transform_values { |hint| Translation.translate(hint) })
+      end
     end
   end
 end

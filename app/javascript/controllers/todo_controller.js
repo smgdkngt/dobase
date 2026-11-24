@@ -6,6 +6,7 @@ import { pageInUse } from "services/page_in_use"
 import { play } from "services/sound"
 import { pageAddress, visitPage, tileOf } from "services/tile"
 import { addAgainLater, forgetAddAgain, takeAddAgain } from "services/add_again"
+import { _ } from "services/i18n"
 
 // What a drawing of the page after adding a todo ends with, whichever way it came
 const DRAWN = [ "turbo:load", "turbo:morph", "turbo:frame-render" ]
@@ -129,7 +130,7 @@ export default class extends Controller {
             this.itemDetailDialogTarget.close()
           }
           this._clearItemParam()
-          showFlash("This item no longer exists.")
+          showFlash(_("This item no longer exists."))
           return null
         }
         return response.text()
@@ -252,7 +253,7 @@ export default class extends Controller {
       section.classList.toggle("flex", isHidden)
       if (label) {
         const count = label.textContent.match(/\d+/)?.[0] || ""
-        label.textContent = isHidden ? `Hide ${count} completed` : `${count} completed`
+        label.textContent = isHidden ? _("Hide %{count} completed", { count }) : _("%{count} completed", { count })
       }
     }
   }

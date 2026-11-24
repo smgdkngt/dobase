@@ -20,7 +20,7 @@ module Tools
 
           if files.any? { |file| file.size > MAX_ATTACHMENT_SIZE }
             respond_to do |format|
-              format.html { redirect_to tool_todo_item_path(@tool, @item), alert: "File too large (max 25 MB)." }
+              format.html { redirect_to tool_todo_item_path(@tool, @item), alert: _("File too large (max 25 MB).") }
               format.json { render json: { errors: [ "File too large (max 25 MB)" ] }, status: :unprocessable_entity }
             end
             return

@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { api } from "services/api"
 import { play } from "services/sound"
+import { _ } from "services/i18n"
 
 export default class extends Controller {
   static values = { itemId: String, toolId: String }
@@ -79,7 +80,7 @@ export default class extends Controller {
 
   setAssignee(event) {
     const userId = event.currentTarget.dataset.userId
-    const userName = event.currentTarget.dataset.userName || "Unassigned"
+    const userName = event.currentTarget.dataset.userName || _("Unassigned")
 
     if (this.hasAssigneeLabelTarget) {
       this.assigneeLabelTarget.textContent = userName
@@ -92,7 +93,7 @@ export default class extends Controller {
 
   setRecurrence(event) {
     const rule = event.currentTarget.dataset.recurrenceRule
-    const label = event.currentTarget.dataset.recurrenceLabel || "Never"
+    const label = event.currentTarget.dataset.recurrenceLabel || _("Never")
 
     if (this.hasRecurrenceLabelTarget) {
       this.recurrenceLabelTarget.textContent = label

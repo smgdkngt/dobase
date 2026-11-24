@@ -27,10 +27,10 @@
       <span class="notification-excerpt"><%= entry.excerpt %></span>
     <% end %>
     <span class="notification-meta">
-      <%= [ entry.tool&.name, "#{time_ago_in_words(entry.created_at)} ago" ].compact.join(" · ") %>
+      <%= [ entry.tool&.name, ago(entry.created_at) ].compact.join(" · ") %>
     </span>
   </span>
   <% if entry.unread? %>
-    <span class="notification-dot"><span class="sr-only">Unread</span></span>
+    <span class="notification-dot"><span class="sr-only"><%= _("Unread") %></span></span>
   <% end %>
 <% end %>

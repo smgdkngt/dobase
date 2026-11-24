@@ -15,16 +15,16 @@
   <div class="px-4 py-3 bg-accent/10 border-b border-accent/20 flex items-center gap-3">
     <%= render "shared/icon", name: "calendar", size: 20, class: "text-accent" %>
     <div class="flex-1">
-      <h2 class="font-medium text-text-primary">Calendar Invitation</h2>
+      <h2 class="font-medium text-text-primary"><%= _("Calendar Invitation") %></h2>
     </div>
     <% if invite.accepted? %>
-      <%= render "components/badge", text: "Accepted", variant: :success %>
+      <%= render "components/badge", text: _("Accepted"), variant: :success %>
     <% elsif invite.declined? %>
-      <%= render "components/badge", text: "Declined", variant: :muted %>
+      <%= render "components/badge", text: _("Declined"), variant: :muted %>
     <% elsif invite.pending? %>
-      <%= render "components/badge", text: "Pending", variant: :warning %>
+      <%= render "components/badge", text: _("Pending"), variant: :warning %>
     <% elsif invite.cancelled? %>
-      <%= render "components/badge", text: "Cancelled", variant: :error %>
+      <%= render "components/badge", text: _("Cancelled"), variant: :error %>
     <% end %>
   </div>
 
@@ -33,7 +33,7 @@
     <!-- Title -->
     <div>
       <h4 class="text-lg font-semibold text-text-primary">
-        <%= invite.summary.presence || "(No title)" %>
+        <%= invite.summary.presence || _("(No title)") %>
       </h4>
     </div>
 
@@ -44,14 +44,14 @@
         <div class="text-text-primary">
           <% if invite.all_day? %>
             <p>
-              <%= invite.first_day.strftime("%A, %B %-d, %Y") %>
+              <%= format_long_date(invite.first_day) %>
               <% if invite.last_day > invite.first_day %>
-                – <%= invite.last_day.strftime("%A, %B %-d, %Y") %>
+                – <%= format_long_date(invite.last_day) %>
               <% end %>
             </p>
-            <p class="text-text-secondary">All day</p>
+            <p class="text-text-secondary"><%= _("All day") %></p>
           <% else %>
-            <p><%= invite.starts_at.strftime("%A, %B %-d, %Y") %></p>
+            <p><%= format_long_date(invite.starts_at) %></p>
             <p class="text-text-secondary">
               <%= format_time(invite.starts_at) %> – <%= format_time(invite.ends_at) %>
               <% if invite.duration_display %>
@@ -124,7 +124,7 @@
           <!-- Calendar Selection (if multiple calendars) -->
           <% if invite_target_calendars.many? %>
             <%= render "components/form_field",
-                label: "Add to calendar",
+                label: _("Add to calendar"),
                 name: "calendar_id",
                 id: "invite_#{invite.id}_calendar_id",
                 type: :select,
@@ -134,25 +134,25 @@
           <% else %>
             <%= f.hidden_field :calendar_id, value: default_calendar.id, id: nil %>
             <div class="text-sm text-text-secondary">
-              Will be added to: <span class="font-medium text-text-primary"><%= default_calendar_tool.name %> - <%= default_calendar.name %></span>
+              <%= _("Will be added to:") %> <span class="font-medium text-text-primary"><%= default_calendar_tool.name %> - <%= default_calendar.name %></span>
             </div>
           <% end %>
 
           <!-- Action Buttons -->
           <div class="flex items-center gap-2">
             <%= render "components/button",
-                text: "Add to Calendar",
+                text: _("Add to Calendar"),
                 icon: "calendar-plus",
                 variant: :primary,
                 size: :sm,
                 type: :submit %>
             <%= render "components/button",
-                text: "Decline",
+                text: _("Decline"),
                 variant: :secondary,
                 size: :sm,
                 href: tool_calendar_invite_path(default_calendar_tool, invite),
                 method: :delete,
-                data: { turbo_confirm: "Decline this invitation?", turbo_confirm_button: "Decline", turbo_frame: "_top" } %>
+                data: { turbo_confirm: _("Decline this invitation?"), turbo_confirm_button: _("Decline"), turbo_frame: "_top" } %>
           </div>
         <% end %>
       </div>
@@ -160,17 +160,17 @@
       <%# Declining goes through a calendar tool too, so without one there is nothing to offer %>
       <div class="px-4 py-3 bg-background-secondary border-t border-border-light">
         <p class="text-sm text-text-secondary">
-          No calendar configured. Set up a calendar tool to accept this invitation.
+          <%= _("No calendar configured. Set up a calendar tool to accept this invitation.") %>
         </p>
       </div>
     <% end %>
   <% elsif invite.cancelled? %>
     <div class="px-4 py-3 bg-background-secondary border-t border-border-light flex flex-wrap items-center gap-3">
-      <p class="text-sm text-text-secondary">This event has been cancelled.</p>
+      <p class="text-sm text-text-secondary"><%= _("This event has been cancelled.") %></p>
       <% if (accepted = invite.method == "CANCEL" && invite.accepted_invitation) && (calendar_tool = accepted.added_to_calendar&.account&.tool) %>
-        <p class="text-sm text-text-secondary">It's still in your calendar.</p>
+        <p class="text-sm text-text-secondary"><%= _("It's still in your calendar.") %></p>
         <%= render "components/button",
-            text: "View in Calendar",
+            text: _("View in Calendar"),
             icon: "external-link",
             variant: :secondary,
             size: :sm,
@@ -183,14 +183,14 @@
     <div class="invite-added">
       <%= render "shared/icon", name: "calendar-check", size: 16, class: "invite-added-icon" %>
       <div class="invite-added-text">
-        <p>In <span class="font-medium text-text-primary"><%= calendar.name %></span>: <%= invite_when(invite) %></p>
+        <p><%= _("In") %> <span class="font-medium text-text-primary"><%= calendar.name %></span>: <%= invite_when(invite) %></p>
         <%# Pushed within moments of adding (PushEventJob); still without the server's address a minute on, it wasn't taken %>
         <% if event.remote_href.blank? && !calendar.account.local? && event.updated_at < 1.minute.ago %>
-          <p class="invite-added-pending">Not on the calendar server yet</p>
+          <p class="invite-added-pending"><%= _("Not on the calendar server yet") %></p>
         <% end %>
       </div>
       <%= render "components/button",
-          text: "Open in Calendar",
+          text: _("Open in Calendar"),
           icon: "external-link",
           variant: :secondary,
           size: :sm,

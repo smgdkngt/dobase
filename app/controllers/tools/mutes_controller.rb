@@ -11,12 +11,12 @@ module Tools
 
     def create
       @collaborator.mute!
-      redirect_back_or_to edit_tool_path(@tool), notice: "Notifications muted for #{@tool.name}."
+      redirect_back_or_to edit_tool_path(@tool), notice: _("Notifications muted for %{name}.", name: @tool.name)
     end
 
     def destroy
       @collaborator.unmute!
-      redirect_back_or_to edit_tool_path(@tool), notice: "Notifications unmuted for #{@tool.name}."
+      redirect_back_or_to edit_tool_path(@tool), notice: _("Notifications unmuted for %{name}.", name: @tool.name)
     end
 
     private

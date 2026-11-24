@@ -6,7 +6,7 @@ module Rooms
 
     belongs_to :tool
 
-    validates :tool_id, uniqueness: { message: "already has a room" }
+    validates :tool_id, uniqueness: { message: ->(_object, _data) { Translation.translate("already has a room") } }
 
     # LIVEKIT_ROOM_PREFIX keeps apart the rooms of apps sharing one LiveKit server,
     # like a demo next to the real thing

@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 module AssigneeFilterHelper
+  include Translation::Methods
+
   # Filters an in-memory collection of records by their assigned_user_id.
   # Supports symbolic values "me" and "unassigned", or a user id.
   # Returns the original collection when the filter is blank.
@@ -16,11 +18,11 @@ module AssigneeFilterHelper
   # Label shown in the active filter chip / heading.
   def assignee_filter_label(filter, collaborators)
     case filter
-    when "me"         then "Assigned to me"
-    when "unassigned" then "Unassigned"
+    when "me"         then _("Assigned to me")
+    when "unassigned" then _("Unassigned")
     when /\A\d+\z/
       user = collaborators.find { |u| u.id == filter.to_i }
-      user ? "Assigned to #{user.name}" : nil
+      user ? _("Assigned to %{name}", name: user.name) : nil
     end
   end
 end

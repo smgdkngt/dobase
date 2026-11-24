@@ -4,6 +4,7 @@ import { api } from "services/api"
 import consumer from "channels/consumer"
 import { play, unseen } from "services/sound"
 import { drawnScale, forgetInAddress } from "services/tile"
+import { _ } from "services/i18n"
 
 export default class extends Controller {
   static targets = ["messages", "typingIndicator", "fileInput", "filePreview", "form", "replyPreview", "replyToId", "replyAuthor", "replyContent", "onlineIndicator", "imagePreviewTemplate", "filePreviewTemplate", "olderMessages", "olderMessagesTrigger", "olderMessagesPlaceholder"]
@@ -392,7 +393,7 @@ export default class extends Controller {
     if (!msg) return
 
     if (this.hasReplyToIdTarget) this.replyToIdTarget.value = msg.dataset.messageId
-    if (this.hasReplyAuthorTarget) this.replyAuthorTarget.textContent = `Replying to ${msg.dataset.messageAuthor}`
+    if (this.hasReplyAuthorTarget) this.replyAuthorTarget.textContent = _("Replying to %{name}", { name: msg.dataset.messageAuthor })
     if (this.hasReplyContentTarget) this.replyContentTarget.textContent = msg.dataset.messageContent || "[File attachment]"
     if (this.hasReplyPreviewTarget) this.replyPreviewTarget.classList.remove("hidden")
     this.#editor?.commands.focus()
@@ -498,10 +499,10 @@ export default class extends Controller {
     const sending = document.createElement("div")
     sending.className = "chat-sending"
     sending.dataset.chatSending = ""
-    sending.textContent = text || "Sending files…"
+    sending.textContent = text || _("Sending files…")
     const label = document.createElement("span")
     label.className = "chat-sending-label"
-    label.textContent = "Sending…"
+    label.textContent = _("Sending…")
     sending.append(label)
     list.append(sending)
     this.scrollToBottom()

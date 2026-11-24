@@ -9,51 +9,51 @@
 %>
 <div class="mail-detail-header bg-surface border-b border-border-light px-4 py-3 flex items-center justify-between gap-4">
   <%= link_to tool_mails_path(@tool, folder: @current_folder),
-      class: "mail-detail-back hidden narrow:flex items-center justify-center w-8 h-8 -ml-1 rounded-lg hover:bg-background-tertiary transition-colors shrink-0",
-      aria: { label: "Back to the list" } do %>
+      class: "mail-detail-back hidden narrow:flex items-center justify-center w-8 h-8 -ms-1 rounded-lg hover:bg-background-tertiary transition-colors shrink-0",
+      aria: { label: _("Back to the list") } do %>
     <%= render "shared/icon", name: "arrow-left", size: 18, class: "text-text-secondary" %>
   <% end %>
-  <h1 class="text-base font-semibold text-text-primary flex-1 min-w-0"><%= @selected_message.normalized_subject.presence || "(No subject)" %></h1>
+  <h1 class="text-base font-semibold text-text-primary flex-1 min-w-0"><%= @selected_message.normalized_subject.presence || _("(No subject)") %></h1>
   <div class="flex items-center gap-1 flex-shrink-0">
     <%# Where the list and the conversation take turns, replying and forwarding are in the
         bar under the conversation, so the rest fits a finger %>
     <span class="flex items-center gap-1 narrow:hidden">
-    <%= render "components/icon_button", icon: "reply", title: "Reply (r)",
+    <%= render "components/icon_button", icon: "reply", title: _("Reply (r)"),
         href: new_tool_mail_path(@tool, reply_to: last_message.id, folder: @current_folder),
         data: { controller: "hotkey", hotkey: "r" } %>
     <% if has_multiple_recipients %>
-      <%= render "components/icon_button", icon: "reply-all", title: "Reply All (a)",
+      <%= render "components/icon_button", icon: "reply-all", title: _("Reply All (a)"),
           href: new_tool_mail_path(@tool, reply_to: last_message.id, folder: @current_folder, reply_all: true),
           data: { controller: "hotkey", hotkey: "a" } %>
     <% end %>
-    <%= render "components/icon_button", icon: "forward", title: "Forward (f)",
+    <%= render "components/icon_button", icon: "forward", title: _("Forward (f)"),
         href: new_tool_mail_path(@tool, forward: last_message.id, folder: @current_folder),
         data: { controller: "hotkey", hotkey: "f" } %>
     <span class="w-px h-4 bg-border-light mx-1"></span>
     </span>
     <% if @current_folder == "trash" %>
-      <%= render "components/icon_button", icon: "rotate-ccw", title: "Restore",
+      <%= render "components/icon_button", icon: "rotate-ccw", title: _("Restore"),
           href: tool_mail_trash_path(@tool, @selected_message), method: :delete,
           data: { turbo_frame: "_top" } %>
     <% elsif @current_folder == "junk" %>
-      <%= render "components/button", text: "Not junk", icon: "shield-check", size: :sm, variant: :secondary,
+      <%= render "components/button", text: _("Not junk"), icon: "shield-check", size: :sm, variant: :secondary,
           href: tool_mail_junk_path(@tool, @selected_message), method: :delete,
-          title: "Move to the inbox (e)",
+          title: _("Move to the inbox (e)"),
           data: { controller: "hotkey", hotkey: "e", turbo_frame: "_top" } %>
     <% elsif @current_folder == "archive" %>
-      <%= render "components/icon_button", icon: "archive-restore", title: "Unarchive (e)",
+      <%= render "components/icon_button", icon: "archive-restore", title: _("Unarchive (e)"),
           href: tool_mail_archive_path(@tool, @selected_message), method: :delete,
           data: { controller: "hotkey", hotkey: "e", turbo_frame: "_top" } %>
     <% else %>
-      <%= render "components/icon_button", icon: "archive", title: "Archive (e)",
+      <%= render "components/icon_button", icon: "archive", title: _("Archive (e)"),
           href: tool_mail_archive_path(@tool, @selected_message, folder: @current_folder), method: :post,
           data: { controller: "hotkey", hotkey: "e", turbo_frame: "_top", sound: "tuck" } %>
     <% end %>
     <div class="relative">
       <button type="button"
               class="icon-btn"
-              title="Move to folder"
-              aria-label="Move to folder"
+              title="<%= _("Move to folder") %>"
+              aria-label="<%= _("Move to folder") %>"
               popovertarget="move-to-menu"
               style="anchor-name: --move-to-btn">
         <%= render "shared/icon", name: "folder-input", size: 16 %>
@@ -61,7 +61,7 @@
       <div id="move-to-menu" popover="auto" class="popover-menu"
            style="position-anchor: --move-to-btn; position-area: block-end span-inline-start">
         <%
-          move_folders = [["INBOX", "inbox", "Inbox"], ["Sent", "send", "Sent"]]
+          move_folders = [["INBOX", "inbox", _("Inbox")], ["Sent", "send", _("Sent")]]
           (@custom_folders || []).each { |f| move_folders << [f, "folder", mail_folder_name(f)] }
         %>
         <% move_folders.each do |folder_name, icon, label| %>
@@ -80,14 +80,14 @@
                 params: { folder: @current_folder },
                 data: { turbo_frame: "_top" } do %>
             <%= render "shared/icon", name: "shield-alert", size: 16 %>
-            <span>Junk</span>
+            <span><%= _("Junk") %></span>
           <% end %>
         <% end %>
       </div>
     </div>
     <%= render "components/icon_button",
         icon: "star",
-        title: "Star (s)",
+        title: _("Star (s)"),
         href: tool_mail_star_path(@tool, @selected_message),
         method: @selected_message.starred? ? :delete : :post,
         class: "mail-star",
@@ -95,27 +95,27 @@
         data: { controller: "hotkey pressed", hotkey: "s", action: "click->pressed#flip" } %>
     <%= render "components/icon_button",
         icon: @selected_message.read? ? "mail" : "mail-open",
-        title: @selected_message.read? ? "Mark unread (u)" : "Mark read",
+        title: @selected_message.read? ? _("Mark unread (u)") : _("Mark read"),
         href: tool_mail_read_path(@tool, @selected_message, folder: @current_folder),
         method: @selected_message.read? ? :delete : :post,
         data: { controller: "hotkey", hotkey: "u" } %>
     <%# Where # takes Shift, as on US keyboards, the browser reports Shift+# %>
     <% if @current_folder == "trash" %>
-      <%= render "components/icon_button", icon: "trash-2", title: "Delete forever",
+      <%= render "components/icon_button", icon: "trash-2", title: _("Delete forever"),
           href: tool_mail_path(@tool, @selected_message, folder: @current_folder), method: :delete,
-          variant: :danger, turbo_confirm: "Permanently delete this email?",
-          data: { controller: "hotkey", hotkey: "#,Shift+#", turbo_confirm_button: "Delete forever", turbo_frame: "_top" } %>
+          variant: :danger, turbo_confirm: _("Permanently delete this email?"),
+          data: { controller: "hotkey", hotkey: "#,Shift+#", turbo_confirm_button: _("Delete forever"), turbo_frame: "_top" } %>
     <% else %>
-      <%= render "components/icon_button", icon: "trash-2", title: "Delete (#)",
+      <%= render "components/icon_button", icon: "trash-2", title: _("Delete (#)"),
           href: tool_mail_trash_path(@tool, @selected_message, folder: @current_folder), method: :post,
           data: { controller: "hotkey", hotkey: "#,Shift+#", turbo_frame: "_top", sound: "trash" } %>
     <% end %>
     <%# Where the list and the conversation take turns (a phone, a tile): on to the one
         after it in the list, or back to the one before, without going by the list %>
-    <span class="hidden narrow:flex items-center gap-1 ml-auto">
-      <%= render "components/icon_button", icon: "chevron-up", title: "Previous conversation (k)",
+    <span class="hidden narrow:flex items-center gap-1 ms-auto">
+      <%= render "components/icon_button", icon: "chevron-up", title: _("Previous conversation (k)"),
             data: { action: "click->mail-keyboard#stepPrevious" } %>
-      <%= render "components/icon_button", icon: "chevron-down", title: "Next conversation (j)",
+      <%= render "components/icon_button", icon: "chevron-down", title: _("Next conversation (j)"),
             data: { action: "click->mail-keyboard#stepNext" } %>
     </span>
   </div>
@@ -139,18 +139,18 @@
       <div class="w-7 h-7 rounded-full bg-accent-light flex items-center justify-center">
         <span class="text-[0.6875rem] font-semibold text-accent"><%= current_user.first_name[0]&.upcase %></span>
       </div>
-      <span class="text-[0.8125rem] text-text-tertiary"><%= reply_draft ? "Continue your reply…" : "Reply…" %></span>
+      <span class="text-[0.8125rem] text-text-tertiary"><%= reply_draft ? _("Continue your reply…") : _("Reply…") %></span>
     <% end %>
     <% if has_multiple_recipients %>
       <%= render "components/button",
-          text: "Reply All",
+          text: _("Reply All"),
           icon: "reply-all",
           size: :sm,
           variant: :secondary,
           href: new_tool_mail_path(@tool, reply_to: last_message.id, folder: @current_folder, reply_all: true) %>
     <% end %>
     <span class="hidden narrow:flex">
-      <%= render "components/icon_button", icon: "forward", title: "Forward",
+      <%= render "components/icon_button", icon: "forward", title: _("Forward"),
           href: new_tool_mail_path(@tool, forward: last_message.id, folder: @current_folder) %>
     </span>
   </div>

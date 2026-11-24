@@ -1,7 +1,7 @@
-<%= @notifications.size %> new <%= "notification".pluralize(@notifications.size) %>
+<%= n_("%{count} new notification", "%{count} new notifications", @notifications.size) %>
 
 <%
-  grouped = @notifications.group_by { |n| n.event.params[:tool]&.name || "General" }
+  grouped = @notifications.group_by { |n| n.event.params[:tool]&.name || _("General") }
 %>
 <% grouped.each do |tool_name, notifications| %>
 [<%= tool_name %>]
@@ -23,5 +23,5 @@
 <% end %>
 <% end %>
 --
-Change how often you get these: <%= absolute_url('/profile/edit?tab=notifications') %>
-Sent by <%= app_name %>
+<%= _("Change how often you get these: %{url}", url: absolute_url("/profile/edit?tab=notifications")) %>
+<%= _("Sent by %{app_name}", app_name: app_name) %>

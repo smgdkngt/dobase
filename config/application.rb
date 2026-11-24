@@ -34,5 +34,11 @@ module Dobase
     config.active_storage.urls_expire_in = 1.day
 
     config.middleware.insert_before ActionDispatch::RemoteIp, WithoutClientIp
+
+    # The interface in English or Persian (Translation, Profile → Language). The
+    # Persian is config/locales/fa.yml and the files in config/locales/fa/.
+    config.i18n.available_locales = %i[en fa]
+    config.i18n.default_locale = :en
+    config.i18n.load_path += Dir[Rails.root.join("config/locales/**/*.yml")]
   end
 end
