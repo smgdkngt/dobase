@@ -112,16 +112,15 @@ export default class extends Controller {
       // (and from which tile, when the form was in one that is part of this page)
       const frame = this.tileFrameOf(event.target)
       const tile = frame?.closest("[data-tile-id]")?.dataset.tileId
-      this.submitted = { at: performance.now(), toolId: toolIdOf(pathOf(event.target.action)), tile }
+      const action = pathOf(event.target.action)
       // A form Turbo made of a tile's link, or a form in a tile sent to the whole page
       // (an invitation added to a calendar): the page it led to is fetched, and what it
-      // says (an archived mail's notice, with its Undo) is said here, since the tile
-      // goes there by a visit of its own (visiting), which says nothing
+      // says (an archived mail's notice, with its Undo) is said once the tile has gone
+      // there by a visit of its own (visiting), which says nothing
       const { fetchResponse, success } = event.detail
       const toTheWholePage = !frame?.contains(event.target) || sentToTop(event.target)
-      if (frame && success && fetchResponse?.redirected && toTheWholePage) {
-        fetchResponse.responseHTML.then((html) => showFlashesOf(html, { frame: frame.id }))
-      }
+      const html = frame && success && fetchResponse?.redirected && toTheWholePage ? fetchResponse.responseHTML : null
+      this.submitted = { at: performance.now(), toolId: toolIdOf(action), tile, action, html }
     })
     this.listen(document, "turbo:morph", () => this.refreshed())
     // The keyboard arrived on a tile itself, however it got there: that is the level it is at
@@ -1149,9 +1148,20 @@ export default class extends Controller {
     } else {
       this.open(address.href)
     }
+    this.showSubmittedFlashes(submitted, from ? this.frameOf(from) : null)
     // The keyboard goes to the tile that was asked for, not back to the menu's button
     this.closeMenu({ toTheTile: true })
-    if (submitted) this.freshen({ evenIfBusy: true })
+    if (submitted && (!submitted.tile || /^\/tools\/\d+(?:\/mute)?$/.test(submitted.action || ""))) this.freshen({ evenIfBusy: true })
+  }
+
+  showSubmittedFlashes(submitted, frame) {
+    if (!submitted?.html || !frame) return
+
+    const html = submitted.html
+    submitted.html = null
+    Promise.all([ html, frameSettled(frame) ]).then(([ body ]) => {
+      showFlashesOf(body, { frame: frame.id })
+    })
   }
 
   // To a tile that is open, on whatever desktop it is
@@ -1278,7 +1288,7 @@ export default class extends Controller {
   }
 
   get calm() {
-    return !document.hidden && !this.menuOpen && !document.querySelector("dialog[open], :popover-open")
+    return !document.hidden && !this.menuOpen && !document.querySelector("dialog[open], :popover-open, .tile-frame[busy], form[aria-busy]")
   }
 
   // ── What the pages in the tiles say (tile_page_controller.js) ──
@@ -1640,6 +1650,27 @@ function note(text, className = "workspace-desk-card-note") {
 // A form that says it goes to the whole page, not to the frame it is in
 function sentToTop(form) {
   return form instanceof HTMLElement && form.closest("[data-turbo-frame]")?.getAttribute("data-turbo-frame") === "_top"
+}
+
+function frameSettled(frame) {
+  if (!frame || !inPage(frame) || !frame.isConnected || (frame.hasAttribute("complete") && !frame.hasAttribute("busy"))) {
+    return Promise.resolve()
+  }
+
+  return new Promise((resolve) => {
+    const events = [ "turbo:frame-load", "turbo:frame-missing", "turbo:fetch-request-error" ]
+    const done = () => {
+      for (const type of events) frame.removeEventListener(type, onEvent)
+      resolve()
+    }
+    const onEvent = (event) => {
+      if (event.target === frame) done()
+    }
+    for (const type of events) frame.addEventListener(type, onEvent)
+    Promise.resolve(frame.loaded).catch(() => {}).then(() => {
+      if (!frame.isConnected || (frame.hasAttribute("complete") && !frame.hasAttribute("busy"))) done()
+    })
+  })
 }
 
 function px(rect) {

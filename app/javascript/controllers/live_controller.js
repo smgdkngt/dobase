@@ -22,7 +22,9 @@ const DRAWING_TAKES_AT_MOST_MS = 10000
 
 export default class extends Controller {
   connect() {
-    this.refresher = refresher({ draw: () => this.draw(), busy: () => this.busy })
+    this.tile = tileOf(this.element)
+    this.ownRequests = new Set()
+    this.refresher = refresher({ draw: () => this.draw(), busy: () => this.busy || this.inFlight })
     this.listening = new AbortController()
     const options = { signal: this.listening.signal }
     const always = { ...options, capture: true }
@@ -42,15 +44,32 @@ export default class extends Controller {
     window.addEventListener("drop", () => { this.dragging = false }, always)
 
     // The page of a tile in the workspace's own page is that tile's frame
-    const tile = tileOf(this.element)
-    const page = tile || document
-    page.addEventListener("turbo:before-fetch-request", () => { this.asked += 1 }, options)
-    page.addEventListener(tile ? "turbo:before-frame-render" : "turbo:before-render", (event) => this.hold(event), options)
+    const page = this.tile || document
+    document.addEventListener("turbo:before-fetch-request", (event) => this.beforeFetch(event), options)
+    if (this.tile) {
+      this.tile.addEventListener("turbo:frame-load", (event) => {
+        if (event.target === this.tile) this.refresher.look()
+      }, options)
+    }
+    page.addEventListener(this.tile ? "turbo:before-frame-render" : "turbo:before-render", (event) => this.hold(event), options)
   }
 
   disconnect() {
     this.listening.abort()
     this.refresher.stop()
+  }
+
+  beforeFetch(event) {
+    const headers = event.detail.fetchOptions?.headers
+    const forThisPage = !this.tile || (event.target instanceof Node && this.tile.contains(event.target)) || headers?.["Turbo-Frame"] === this.tile.id
+    if (!forThisPage) return
+
+    this.asked += 1
+    const id = headers?.["X-Turbo-Request-Id"]
+    if (this.tile && id) {
+      this.ownRequests.add(id)
+      if (this.ownRequests.size > 20) this.ownRequests.delete(this.ownRequests.values().next().value)
+    }
   }
 
   changed({ by } = {}) {
@@ -64,10 +83,15 @@ export default class extends Controller {
   // workspace's page are one document: there the change is the doing of the tile
   // you are in, and another tile of the same tool draws it.
   mine(by) {
-    if (!by || !window.Turbo?.session.recentRequests.has(by)) return false
+    if (!by) return false
+    if (this.ownRequests.has(by)) return true
+    if (!window.Turbo?.session.recentRequests.has(by)) return false
 
-    const tile = tileOf(this.element)
-    return !tile || Boolean(tile.closest("[aria-current='true']"))
+    return !this.tile || Boolean(this.tile.closest("[aria-current='true']"))
+  }
+
+  get inFlight() {
+    return Boolean(this.tile ? this.tile.hasAttribute("busy") : document.documentElement.hasAttribute("aria-busy"))
   }
 
   get busy() {
