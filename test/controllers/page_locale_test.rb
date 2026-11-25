@@ -6,7 +6,7 @@ class PageLocaleTest < ActionDispatch::IntegrationTest
   setup { @user = users(:one) }
 
   test "a page nobody is signed in on is in English when the browser asks for nothing we have" do
-    get new_session_path, headers: { "Accept-Language" => "de-DE,de;q=0.9" }
+    get new_session_path, headers: { "Accept-Language" => "ja-JP,ja;q=0.9" }
 
     assert_select "html[lang=en][dir=ltr]"
   end

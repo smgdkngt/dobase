@@ -1,0 +1,222 @@
+nl:
+  activerecord:
+    attributes:
+      mails/account:
+        encrypted_password: "Wachtwoord"
+        imap_host: "IMAP-server"
+        smtp_host: "SMTP-server"
+      calendars/account:
+        caldav_url: "CalDAV-URL"
+        encrypted_password: "Wachtwoord"
+      calendars/event:
+        summary: "Titel"
+        starts_at: "Start"
+        start_time: "Start"
+        ends_at: "Einde"
+        end_time: "Einde"
+    errors:
+      messages:
+        record_invalid: "Validatie mislukt: %{errors}"
+        restrict_dependent_destroy:
+          has_one: "Kan item niet verwijderen omdat er een afhankelijke %{record} bestaat"
+          has_many: "Kan item niet verwijderen omdat er afhankelijke %{record} bestaan"
+  attributes:
+    assigned_user: "Toegewezen gebruiker"
+    avatar: "Profielfoto"
+    body: "Inhoud"
+    calendar: "Agenda"
+    caldav_url: "CalDAV-URL"
+    color: "Kleur"
+    email: "E-mail"
+    email_address: "E-mailadres"
+    emoji: "Emoji"
+    encrypted_password: "Wachtwoord"
+    ends_at: "Einde"
+    expires_at: "Vervaldatum"
+    file: "Bestand"
+    filename: "Bestandsnaam"
+    files: "Bestanden"
+    first_name: "Voornaam"
+    icon: "Pictogram"
+    imap_host: "IMAP-server"
+    kind: "Type"
+    last_name: "Achternaam"
+    locale: "Taal"
+    name: "Naam"
+    password: "Wachtwoord"
+    password_confirmation: "Wachtwoordbevestiging"
+    permission: "Machtiging"
+    recurrence_rule: "Herhaling"
+    redirect_uris: "Omleidings-URL's"
+    reminders: "Herinneringen"
+    reply_to: "Antwoorden aan"
+    role: "Rol"
+    slug: "Slug"
+    smtp_host: "SMTP-server"
+    starts_at: "Start"
+    state: "Status"
+    status: "Status"
+    summary: "Titel"
+    timezone: "Tijdzone"
+    title: "Titel"
+    tool_id: "Tool"
+    user: "Gebruiker"
+    user_id: "Gebruiker"
+    username: "Gebruikersnaam"
+  errors:
+    format: "%{attribute} %{message}"
+    messages:
+      accepted: "moet worden geaccepteerd"
+      blank: "moet opgegeven zijn"
+      confirmation: "komt niet overeen met %{attribute}"
+      empty: "moet opgegeven zijn"
+      equal_to: "moet gelijk zijn aan %{count}"
+      even: "moet even zijn"
+      exclusion: "is gereserveerd"
+      greater_than: "moet groter zijn dan %{count}"
+      greater_than_or_equal_to: "moet groter of gelijk zijn aan %{count}"
+      in: "moet binnen %{count} liggen"
+      inclusion: "is niet in de lijst opgenomen"
+      invalid: "is ongeldig"
+      less_than: "moet kleiner zijn dan %{count}"
+      less_than_or_equal_to: "moet kleiner of gelijk zijn aan %{count}"
+      model_invalid: "Validatie mislukt: %{errors}"
+      not_a_number: "is geen getal"
+      not_an_integer: "moet een geheel getal zijn"
+      odd: "moet oneven zijn"
+      other_than: "moet anders zijn dan %{count}"
+      present: "moet leeg zijn"
+      required: "moet bestaan"
+      taken: "is al in gebruik"
+      too_long:
+        one: "is te lang (maximaal 1 teken)"
+        other: "is te lang (maximaal %{count} tekens)"
+      too_short:
+        one: "is te kort (minimaal 1 teken)"
+        other: "is te kort (minimaal %{count} tekens)"
+      wrong_length:
+        one: "heeft onjuiste lengte (moet 1 teken lang zijn)"
+        other: "heeft onjuiste lengte (moet %{count} tekens lang zijn)"
+      password_too_long: "is te lang"
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        one: "ongeveer een uur"
+        other: "ongeveer %{count} uur"
+      about_x_months:
+        one: "ongeveer een maand"
+        other: "ongeveer %{count} maanden"
+      about_x_years:
+        one: "ongeveer een jaar"
+        other: "ongeveer %{count} jaar"
+      almost_x_years:
+        one: "bijna een jaar"
+        other: "bijna %{count} jaar"
+      half_a_minute: "een halve minuut"
+      less_than_x_minutes:
+        one: "minder dan een minuut"
+        other: "minder dan %{count} minuten"
+      less_than_x_seconds:
+        one: "minder dan een seconde"
+        other: "minder dan %{count} seconden"
+      over_x_years:
+        one: "langer dan een jaar"
+        other: "langer dan %{count} jaar"
+      x_days:
+        one: "1 dag"
+        other: "%{count} dagen"
+      x_minutes:
+        one: "1 minuut"
+        other: "%{count} minuten"
+      x_months:
+        one: "1 maand"
+        other: "%{count} maanden"
+      x_seconds:
+        one: "1 seconde"
+        other: "%{count} seconden"
+      x_years:
+        one: "1 jaar"
+        other: "%{count} jaar"
+    prompts:
+      second: "Seconde"
+      minute: "Minuut"
+      hour: "Uur"
+      day: "Dag"
+      month: "Maand"
+      year: "Jaar"
+  translation:
+    direction: ltr
+  date:
+    formats:
+      default: "%d-%m-%Y"
+      short: "%-d %b"
+      long: "%-d %B %Y"
+      day: "%-d %b"
+      day_and_year: "%-d %b %Y"
+      day_of_month: "%-d"
+      weekday: "%A"
+      weekday_short: "%a"
+      weekday_with_date: "%a"
+      month_and_year: "%B %Y"
+      week_start: "%b"
+      week_start_with_year: "%b %Y"
+      week_end: "%b %Y"
+      long_day: "%A %-d %B %Y"
+    day_names: [zondag, maandag, dinsdag, woensdag, donderdag, vrijdag, zaterdag]
+    abbr_day_names: [zo, ma, di, wo, do, vr, za]
+    month_names: [~, januari, februari, maart, april, mei, juni, juli, augustus, september, oktober, november, december]
+    abbr_month_names: [~, jan, feb, mrt, apr, mei, jun, jul, aug, sep, okt, nov, dec]
+    order:
+      - :day
+      - :month
+      - :year
+  time:
+    formats:
+      default: "%d-%m-%Y %H:%M"
+      short: "%-d %b %H:%M"
+      long: "%-d %B %Y %H:%M"
+      clock: "%H:%M"
+      clock_without_period: "%H:%M"
+      hour: "%H:00"
+    am: "'s ochtends"
+    pm: "'s middags"
+  number:
+    format:
+      delimiter: "."
+      separator: ","
+      precision: 3
+      significant: false
+      strip_insignificant_zeros: false
+    human:
+      format:
+        delimiter: ""
+        precision: 3
+        significant: true
+        strip_insignificant_zeros: true
+      storage_units:
+        format: "%n %u"
+        units:
+          byte:
+            one: "B"
+            other: "B"
+          kb: "KB"
+          mb: "MB"
+          gb: "GB"
+          tb: "TB"
+          pb: "PB"
+          eb: "EB"
+    percentage:
+      format:
+        format: "%n%"
+  helpers:
+    select:
+      prompt: "Selecteer"
+    submit:
+      create: "%{model} aanmaken"
+      submit: "%{model} opslaan"
+      update: "%{model} bijwerken"
+  support:
+    array:
+      words_connector: ", "
+      two_words_connector: " en "
+      last_word_connector: " en "
