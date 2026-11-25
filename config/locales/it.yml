@@ -1,0 +1,222 @@
+it:
+  activerecord:
+    attributes:
+      mails/account:
+        encrypted_password: "Password"
+        imap_host: "Server IMAP"
+        smtp_host: "Server SMTP"
+      calendars/account:
+        caldav_url: "URL CalDAV"
+        encrypted_password: "Password"
+      calendars/event:
+        summary: "Titolo"
+        starts_at: "Inizio"
+        start_time: "Inizio"
+        ends_at: "Fine"
+        end_time: "Fine"
+    errors:
+      messages:
+        record_invalid: "Validazione fallita: %{errors}"
+        restrict_dependent_destroy:
+          has_one: "Il record non può essere eliminato perché esiste un %{record} dipendente"
+          has_many: "Il record non può essere eliminato perché esistono %{record} dipendenti"
+  attributes:
+    assigned_user: "Assegnatario"
+    avatar: "Avatar"
+    body: "Contenuto"
+    calendar: "Calendario"
+    caldav_url: "URL CalDAV"
+    color: "Colore"
+    email: "Email"
+    email_address: "Indirizzo email"
+    emoji: "Emoji"
+    encrypted_password: "Password"
+    ends_at: "Fine"
+    expires_at: "Scadenza"
+    file: "File"
+    filename: "Nome file"
+    files: "File"
+    first_name: "Nome"
+    icon: "Icona"
+    imap_host: "Server IMAP"
+    kind: "Tipo"
+    last_name: "Cognome"
+    locale: "Lingua"
+    name: "Nome"
+    password: "Password"
+    password_confirmation: "Conferma password"
+    permission: "Autorizzazione"
+    recurrence_rule: "Ricorrenza"
+    redirect_uris: "URI di reindirizzamento"
+    reminders: "Promemoria"
+    reply_to: "Rispondi a"
+    role: "Ruolo"
+    slug: "Identificatore"
+    smtp_host: "Server SMTP"
+    starts_at: "Inizio"
+    state: "Stato"
+    status: "Stato"
+    summary: "Titolo"
+    timezone: "Fuso orario"
+    title: "Titolo"
+    tool_id: "Strumento"
+    user: "Utente"
+    user_id: "Utente"
+    username: "Nome utente"
+  errors:
+    format: "%{attribute} %{message}"
+    messages:
+      accepted: "deve essere accettata"
+      blank: "non può essere lasciato in bianco"
+      confirmation: "non coincide con %{attribute}"
+      empty: "non può essere vuoto"
+      equal_to: "deve essere uguale a %{count}"
+      even: "deve essere pari"
+      exclusion: "è riservato"
+      greater_than: "deve essere maggiore di %{count}"
+      greater_than_or_equal_to: "deve essere maggiore o uguale a %{count}"
+      in: "deve essere compreso in %{count}"
+      inclusion: "non è compreso tra le opzioni disponibili"
+      invalid: "non è valido"
+      less_than: "deve essere minore di %{count}"
+      less_than_or_equal_to: "deve essere minore o uguale a %{count}"
+      model_invalid: "Validazione fallita: %{errors}"
+      not_a_number: "non è un numero"
+      not_an_integer: "non è un numero intero"
+      odd: "deve essere dispari"
+      other_than: "deve essere diverso da %{count}"
+      present: "deve essere lasciato in bianco"
+      required: "deve esistere"
+      taken: "è già presente"
+      too_long:
+        one: "è troppo lungo (il massimo è 1 carattere)"
+        other: "è troppo lungo (il massimo è %{count} caratteri)"
+      too_short:
+        one: "è troppo corto (il minimo è 1 carattere)"
+        other: "è troppo corto (il minimo è %{count} caratteri)"
+      wrong_length:
+        one: "è della lunghezza sbagliata (deve essere di 1 carattere)"
+        other: "è della lunghezza sbagliata (deve essere di %{count} caratteri)"
+      password_too_long: "è troppo lunga"
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        one: "circa un'ora"
+        other: "circa %{count} ore"
+      about_x_months:
+        one: "circa un mese"
+        other: "circa %{count} mesi"
+      about_x_years:
+        one: "circa un anno"
+        other: "circa %{count} anni"
+      almost_x_years:
+        one: "quasi 1 anno"
+        other: "quasi %{count} anni"
+      half_a_minute: "mezzo minuto"
+      less_than_x_minutes:
+        one: "meno di un minuto"
+        other: "meno di %{count} minuti"
+      less_than_x_seconds:
+        one: "meno di un secondo"
+        other: "meno di %{count} secondi"
+      over_x_years:
+        one: "oltre un anno"
+        other: "oltre %{count} anni"
+      x_days:
+        one: "1 giorno"
+        other: "%{count} giorni"
+      x_minutes:
+        one: "1 minuto"
+        other: "%{count} minuti"
+      x_months:
+        one: "1 mese"
+        other: "%{count} mesi"
+      x_seconds:
+        one: "1 secondo"
+        other: "%{count} secondi"
+      x_years:
+        one: "1 anno"
+        other: "%{count} anni"
+    prompts:
+      second: "Secondi"
+      minute: "Minuti"
+      hour: "Ora"
+      day: "Giorno"
+      month: "Mese"
+      year: "Anno"
+  translation:
+    direction: ltr
+  date:
+    formats:
+      default: "%d/%m/%Y"
+      short: "%-d %b"
+      long: "%-d %B %Y"
+      day: "%-d %b"
+      day_and_year: "%-d %b %Y"
+      day_of_month: "%-d"
+      weekday: "%A"
+      weekday_short: "%a"
+      weekday_with_date: "%a"
+      month_and_year: "%B %Y"
+      week_start: "%b"
+      week_start_with_year: "%b %Y"
+      week_end: "%b %Y"
+      long_day: "%A %-d %B %Y"
+    day_names: [domenica, lunedì, martedì, mercoledì, giovedì, venerdì, sabato]
+    abbr_day_names: [dom, lun, mar, mer, gio, ven, sab]
+    month_names: [~, gennaio, febbraio, marzo, aprile, maggio, giugno, luglio, agosto, settembre, ottobre, novembre, dicembre]
+    abbr_month_names: [~, gen, feb, mar, apr, mag, giu, lug, ago, set, ott, nov, dic]
+    order:
+      - :day
+      - :month
+      - :year
+  time:
+    formats:
+      default: "%d/%m/%Y %H:%M"
+      short: "%-d %b %H:%M"
+      long: "%-d %B %Y %H:%M"
+      clock: "%H:%M"
+      clock_without_period: "%H:%M"
+      hour: "%H:00"
+    am: "am"
+    pm: "pm"
+  number:
+    format:
+      delimiter: "."
+      separator: ","
+      precision: 3
+      significant: false
+      strip_insignificant_zeros: false
+    human:
+      format:
+        delimiter: ""
+        precision: 3
+        significant: true
+        strip_insignificant_zeros: true
+      storage_units:
+        format: "%n %u"
+        units:
+          byte:
+            one: "B"
+            other: "B"
+          kb: "KB"
+          mb: "MB"
+          gb: "GB"
+          tb: "TB"
+          pb: "PB"
+          eb: "EB"
+    percentage:
+      format:
+        format: "%n%"
+  helpers:
+    select:
+      prompt: "Seleziona"
+    submit:
+      create: "Crea %{model}"
+      submit: "Salva %{model}"
+      update: "Aggiorna %{model}"
+  support:
+    array:
+      words_connector: ", "
+      two_words_connector: " e "
+      last_word_connector: " e "

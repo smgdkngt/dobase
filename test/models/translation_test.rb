@@ -79,14 +79,16 @@ class TranslationTest < ActiveSupport::TestCase
 
   test "the language a browser asks for" do
     assert_equal "fa", Translation.from_accept_language("fa-IR,fa;q=0.9,en;q=0.8")
-    assert_equal "en", Translation.from_accept_language("de-DE,en;q=0.5")
-    assert_nil Translation.from_accept_language("de-DE")
+    assert_equal "en", Translation.from_accept_language("ja-JP,en;q=0.5")
+    assert_nil Translation.from_accept_language("ja-JP")
+    assert_equal "pt", Translation.from_accept_language("pt-BR,pt;q=0.9")
+    assert_equal "nl", Translation.from_accept_language("nl-NL,nl;q=0.9,en;q=0.8")
   end
 
   test "the language a browser asks for goes by its q-values" do
     assert_equal "fa", Translation.from_accept_language("en;q=0.1, fa;q=0.9")
     assert_equal "en", Translation.from_accept_language("fa;q=0, en")
-    assert_equal "fa", Translation.from_accept_language("de-CH, fa;q=0.5")
+    assert_equal "fa", Translation.from_accept_language("ja-JP, fa;q=0.5")
     assert_equal "en", Translation.from_accept_language("en, fa")
     assert_equal "fa", Translation.from_accept_language("fa;q=0.8, en;q=0.8")
     assert_equal "fa", Translation.from_accept_language("FA-ir;Q=1")

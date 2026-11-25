@@ -1,0 +1,222 @@
+fr:
+  activerecord:
+    attributes:
+      mails/account:
+        encrypted_password: "Mot de passe"
+        imap_host: "Serveur IMAP"
+        smtp_host: "Serveur SMTP"
+      calendars/account:
+        caldav_url: "URL CalDAV"
+        encrypted_password: "Mot de passe"
+      calendars/event:
+        summary: "Titre"
+        starts_at: "Début"
+        start_time: "Début"
+        ends_at: "Fin"
+        end_time: "Fin"
+    errors:
+      messages:
+        record_invalid: "La validation a échoué : %{errors}"
+        restrict_dependent_destroy:
+          has_one: "Vous ne pouvez pas supprimer l'enregistrement car un(e) %{record} dépendant(e) existe"
+          has_many: "Vous ne pouvez pas supprimer l'enregistrement car des %{record} dépendants existent"
+  attributes:
+    assigned_user: "Responsable"
+    avatar: "Avatar"
+    body: "Contenu"
+    calendar: "Calendrier"
+    caldav_url: "URL CalDAV"
+    color: "Couleur"
+    email: "E-mail"
+    email_address: "Adresse e-mail"
+    emoji: "Emoji"
+    encrypted_password: "Mot de passe"
+    ends_at: "Fin"
+    expires_at: "Expiration"
+    file: "Fichier"
+    filename: "Nom du fichier"
+    files: "Fichiers"
+    first_name: "Prénom"
+    icon: "Icône"
+    imap_host: "Serveur IMAP"
+    kind: "Type"
+    last_name: "Nom"
+    locale: "Langue"
+    name: "Nom"
+    password: "Mot de passe"
+    password_confirmation: "Confirmation du mot de passe"
+    permission: "Autorisation"
+    recurrence_rule: "Récurrence"
+    redirect_uris: "URL de redirection"
+    reminders: "Rappels"
+    reply_to: "Répondre à"
+    role: "Rôle"
+    slug: "Identifiant"
+    smtp_host: "Serveur SMTP"
+    starts_at: "Début"
+    state: "État"
+    status: "Statut"
+    summary: "Titre"
+    timezone: "Fuseau horaire"
+    title: "Titre"
+    tool_id: "Outil"
+    user: "Utilisateur"
+    user_id: "Utilisateur"
+    username: "Nom d'utilisateur"
+  errors:
+    format: "%{attribute} %{message}"
+    messages:
+      accepted: "doit être accepté"
+      blank: "doit être rempli"
+      confirmation: "ne correspond pas à %{attribute}"
+      empty: "doit être rempli"
+      equal_to: "doit être égal à %{count}"
+      even: "doit être pair"
+      exclusion: "n'est pas disponible"
+      greater_than: "doit être supérieur à %{count}"
+      greater_than_or_equal_to: "doit être supérieur ou égal à %{count}"
+      in: "doit être compris dans %{count}"
+      inclusion: "n'est pas inclus dans la liste"
+      invalid: "n'est pas valide"
+      less_than: "doit être inférieur à %{count}"
+      less_than_or_equal_to: "doit être inférieur ou égal à %{count}"
+      model_invalid: "La validation a échoué : %{errors}"
+      not_a_number: "n'est pas un nombre"
+      not_an_integer: "doit être un nombre entier"
+      odd: "doit être impair"
+      other_than: "doit être différent de %{count}"
+      present: "doit être vide"
+      required: "doit exister"
+      taken: "est déjà utilisé"
+      too_long:
+        one: "est trop long (pas plus d'un caractère)"
+        other: "est trop long (pas plus de %{count} caractères)"
+      too_short:
+        one: "est trop court (au moins un caractère)"
+        other: "est trop court (au moins %{count} caractères)"
+      wrong_length:
+        one: "ne fait pas la bonne longueur (doit comporter un seul caractère)"
+        other: "ne fait pas la bonne longueur (doit comporter %{count} caractères)"
+      password_too_long: "est trop long"
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        one: "environ une heure"
+        other: "environ %{count} heures"
+      about_x_months:
+        one: "environ un mois"
+        other: "environ %{count} mois"
+      about_x_years:
+        one: "environ un an"
+        other: "environ %{count} ans"
+      almost_x_years:
+        one: "presqu'un an"
+        other: "presque %{count} ans"
+      half_a_minute: "une demi-minute"
+      less_than_x_minutes:
+        one: "moins d'une minute"
+        other: "moins de %{count} minutes"
+      less_than_x_seconds:
+        one: "moins d'une seconde"
+        other: "moins de %{count} secondes"
+      over_x_years:
+        one: "plus d'un an"
+        other: "plus de %{count} ans"
+      x_days:
+        one: "1 jour"
+        other: "%{count} jours"
+      x_minutes:
+        one: "1 minute"
+        other: "%{count} minutes"
+      x_months:
+        one: "1 mois"
+        other: "%{count} mois"
+      x_seconds:
+        one: "1 seconde"
+        other: "%{count} secondes"
+      x_years:
+        one: "1 an"
+        other: "%{count} ans"
+    prompts:
+      second: "Seconde"
+      minute: "Minute"
+      hour: "Heure"
+      day: "Jour"
+      month: "Mois"
+      year: "Année"
+  translation:
+    direction: ltr
+  date:
+    formats:
+      default: "%d/%m/%Y"
+      short: "%-d %b"
+      long: "%-d %B %Y"
+      day: "%-d %b"
+      day_and_year: "%-d %b %Y"
+      day_of_month: "%-d"
+      weekday: "%A"
+      weekday_short: "%a"
+      weekday_with_date: "%a"
+      month_and_year: "%B %Y"
+      week_start: "%b"
+      week_start_with_year: "%b %Y"
+      week_end: "%b %Y"
+      long_day: "%A %-d %B %Y"
+    day_names: [dimanche, lundi, mardi, mercredi, jeudi, vendredi, samedi]
+    abbr_day_names: [dim, lun, mar, mer, jeu, ven, sam]
+    month_names: [~, janvier, février, mars, avril, mai, juin, juillet, août, septembre, octobre, novembre, décembre]
+    abbr_month_names: [~, janv., févr., mars, avr., mai, juin, juil., août, sept., oct., nov., déc.]
+    order:
+      - :day
+      - :month
+      - :year
+  time:
+    formats:
+      default: "%d/%m/%Y %H:%M"
+      short: "%-d %b %H:%M"
+      long: "%-d %B %Y %H:%M"
+      clock: "%H:%M"
+      clock_without_period: "%H:%M"
+      hour: "%H:00"
+    am: "am"
+    pm: "pm"
+  number:
+    format:
+      delimiter: " "
+      separator: ","
+      precision: 3
+      significant: false
+      strip_insignificant_zeros: false
+    human:
+      format:
+        delimiter: ""
+        precision: 3
+        significant: true
+        strip_insignificant_zeros: true
+      storage_units:
+        format: "%n %u"
+        units:
+          byte:
+            one: "o"
+            other: "o"
+          kb: "ko"
+          mb: "Mo"
+          gb: "Go"
+          tb: "To"
+          pb: "Po"
+          eb: "Eo"
+    percentage:
+      format:
+        format: "%n %"
+  helpers:
+    select:
+      prompt: "Veuillez sélectionner"
+    submit:
+      create: "Créer %{model}"
+      submit: "Enregistrer %{model}"
+      update: "Mettre à jour %{model}"
+  support:
+    array:
+      words_connector: ", "
+      two_words_connector: " et "
+      last_word_connector: " et "

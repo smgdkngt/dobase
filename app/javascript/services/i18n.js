@@ -14,7 +14,7 @@ function translations() {
 }
 
 /** @type {Record<string, string>} */
-const INTL_LOCALES = { en: "en-US", fa: "fa-IR" }
+const INTL_LOCALES = { en: "en-US", pt: "pt-BR", fa: "fa-IR" }
 
 export function locale() {
   return (typeof document === "undefined" ? "" : document.documentElement.lang) || "en"

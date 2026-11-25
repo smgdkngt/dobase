@@ -35,7 +35,7 @@ module Dobase
 
     config.middleware.insert_before ActionDispatch::RemoteIp, WithoutClientIp
 
-    config.i18n.available_locales = %i[en fa]
+    config.i18n.available_locales = %i[en nl de fr es pt it fa]
     config.i18n.default_locale = :en
     config.i18n.load_path += Dir[Rails.root.join("config/locales/**/*.yml")]
   end

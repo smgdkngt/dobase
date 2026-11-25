@@ -5,7 +5,7 @@
 #   n_("%{count} file", "%{count} files", 3)
 #   Translation.localize(date, :day)
 module Translation
-  LANGUAGES = { "en" => "English", "fa" => "فارسی" }.freeze
+  LANGUAGES = { "en" => "English", "nl" => "Nederlands", "de" => "Deutsch", "fr" => "Français", "es" => "Español", "pt" => "Português (Brasil)", "it" => "Italiano", "fa" => "فارسی" }.freeze
 
   SEPARATOR = "\u0001"
 
