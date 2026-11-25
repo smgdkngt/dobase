@@ -1,0 +1,222 @@
+nb:
+  activerecord:
+    attributes:
+      mails/account:
+        encrypted_password: "Passord"
+        imap_host: "IMAP-server"
+        smtp_host: "SMTP-server"
+      calendars/account:
+        caldav_url: "CalDAV-URL"
+        encrypted_password: "Passord"
+      calendars/event:
+        summary: "Tittel"
+        starts_at: "Start"
+        start_time: "Start"
+        ends_at: "Slutt"
+        end_time: "Slutt"
+    errors:
+      messages:
+        record_invalid: "Validering feilet: %{errors}"
+        restrict_dependent_destroy:
+          has_one: "Kan ikke slette elementet fordi en avhengig %{record} finnes"
+          has_many: "Kan ikke slette elementet fordi avhengige %{record} finnes"
+  attributes:
+    assigned_user: "Tildelt bruker"
+    avatar: "Profilbilde"
+    body: "Innhold"
+    calendar: "Kalender"
+    caldav_url: "CalDAV-URL"
+    color: "Farge"
+    email: "E-post"
+    email_address: "E-postadresse"
+    emoji: "Emoji"
+    encrypted_password: "Passord"
+    ends_at: "Slutt"
+    expires_at: "Utløpsdato"
+    file: "Fil"
+    filename: "Filnavn"
+    files: "Filer"
+    first_name: "Fornavn"
+    icon: "Ikon"
+    imap_host: "IMAP-server"
+    kind: "Type"
+    last_name: "Etternavn"
+    locale: "Språk"
+    name: "Navn"
+    password: "Passord"
+    password_confirmation: "Bekreft passord"
+    permission: "Tilgang"
+    recurrence_rule: "Gjentakelse"
+    redirect_uris: "Omdirigerings-URL-er"
+    reminders: "Påminnelser"
+    reply_to: "Svar til"
+    role: "Rolle"
+    slug: "Slug"
+    smtp_host: "SMTP-server"
+    starts_at: "Start"
+    state: "Status"
+    status: "Status"
+    summary: "Tittel"
+    timezone: "Tidssone"
+    title: "Tittel"
+    tool_id: "Verktøy"
+    user: "Bruker"
+    user_id: "Bruker"
+    username: "Brukernavn"
+  errors:
+    format: "%{attribute} %{message}"
+    messages:
+      accepted: "må aksepteres"
+      blank: "må fylles ut"
+      confirmation: "samsvarer ikke med %{attribute}"
+      empty: "kan ikke være tom"
+      equal_to: "må være lik %{count}"
+      even: "må være et partall"
+      exclusion: "er reservert"
+      greater_than: "må være større enn %{count}"
+      greater_than_or_equal_to: "må være større enn eller lik %{count}"
+      in: "må være innenfor %{count}"
+      inclusion: "er ikke inkludert i listen"
+      invalid: "er ugyldig"
+      less_than: "må være mindre enn %{count}"
+      less_than_or_equal_to: "må være mindre enn eller lik %{count}"
+      model_invalid: "Validering feilet: %{errors}"
+      not_a_number: "er ikke et tall"
+      not_an_integer: "må være et heltall"
+      odd: "må være et oddetall"
+      other_than: "må være forskjellig fra %{count}"
+      present: "må være tom"
+      required: "må finnes"
+      taken: "er allerede i bruk"
+      too_long:
+        one: "er for lang (maks 1 tegn)"
+        other: "er for lang (maks %{count} tegn)"
+      too_short:
+        one: "er for kort (minst 1 tegn)"
+        other: "er for kort (minst %{count} tegn)"
+      wrong_length:
+        one: "har feil lengde (må være 1 tegn)"
+        other: "har feil lengde (må være %{count} tegn)"
+      password_too_long: "er for langt"
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        one: "omtrent 1 time"
+        other: "omtrent %{count} timer"
+      about_x_months:
+        one: "omtrent 1 måned"
+        other: "omtrent %{count} måneder"
+      about_x_years:
+        one: "omtrent 1 år"
+        other: "omtrent %{count} år"
+      almost_x_years:
+        one: "nesten 1 år"
+        other: "nesten %{count} år"
+      half_a_minute: "et halvt minutt"
+      less_than_x_minutes:
+        one: "mindre enn 1 minutt"
+        other: "mindre enn %{count} minutter"
+      less_than_x_seconds:
+        one: "mindre enn 1 sekund"
+        other: "mindre enn %{count} sekunder"
+      over_x_years:
+        one: "over 1 år"
+        other: "over %{count} år"
+      x_days:
+        one: "1 dag"
+        other: "%{count} dager"
+      x_minutes:
+        one: "1 minutt"
+        other: "%{count} minutter"
+      x_months:
+        one: "1 måned"
+        other: "%{count} måneder"
+      x_seconds:
+        one: "1 sekund"
+        other: "%{count} sekunder"
+      x_years:
+        one: "1 år"
+        other: "%{count} år"
+    prompts:
+      second: "Sekund"
+      minute: "Minutt"
+      hour: "Time"
+      day: "Dag"
+      month: "Måned"
+      year: "År"
+  translation:
+    direction: ltr
+  date:
+    formats:
+      default: "%d.%m.%Y"
+      short: "%-d. %b"
+      long: "%-d. %B %Y"
+      day: "%-d. %b"
+      day_and_year: "%-d. %b %Y"
+      day_of_month: "%-d"
+      weekday: "%A"
+      weekday_short: "%a"
+      weekday_with_date: "%a"
+      month_and_year: "%B %Y"
+      week_start: "%b"
+      week_start_with_year: "%b %Y"
+      week_end: "%b %Y"
+      long_day: "%A %-d. %B %Y"
+    day_names: [søndag, mandag, tirsdag, onsdag, torsdag, fredag, lørdag]
+    abbr_day_names: [søn, man, tir, ons, tor, fre, lør]
+    month_names: [~, januar, februar, mars, april, mai, juni, juli, august, september, oktober, november, desember]
+    abbr_month_names: [~, jan, feb, mar, apr, mai, jun, jul, aug, sep, okt, nov, des]
+    order:
+      - :day
+      - :month
+      - :year
+  time:
+    formats:
+      default: "%d.%m.%Y %H:%M"
+      short: "%-d. %b %H:%M"
+      long: "%-d. %B %Y %H:%M"
+      clock: "%H:%M"
+      clock_without_period: "%H:%M"
+      hour: "%H:00"
+    am: "am"
+    pm: "pm"
+  number:
+    format:
+      delimiter: " "
+      separator: ","
+      precision: 3
+      significant: false
+      strip_insignificant_zeros: false
+    human:
+      format:
+        delimiter: ""
+        precision: 3
+        significant: true
+        strip_insignificant_zeros: true
+      storage_units:
+        format: "%n %u"
+        units:
+          byte:
+            one: "B"
+            other: "B"
+          kb: "KB"
+          mb: "MB"
+          gb: "GB"
+          tb: "TB"
+          pb: "PB"
+          eb: "EB"
+    percentage:
+      format:
+        format: "%n %"
+  helpers:
+    select:
+      prompt: "Velg"
+    submit:
+      create: "Opprett %{model}"
+      submit: "Lagre %{model}"
+      update: "Oppdater %{model}"
+  support:
+    array:
+      words_connector: ", "
+      two_words_connector: " og "
+      last_word_connector: " og "

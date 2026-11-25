@@ -1,0 +1,206 @@
+ja:
+  activerecord:
+    attributes:
+      mails/account:
+        encrypted_password: "パスワード"
+        imap_host: "IMAP サーバー"
+        smtp_host: "SMTP サーバー"
+      calendars/account:
+        caldav_url: "CalDAV URL"
+        encrypted_password: "パスワード"
+      calendars/event:
+        summary: "タイトル"
+        starts_at: "開始"
+        start_time: "開始"
+        ends_at: "終了"
+        end_time: "終了"
+    errors:
+      messages:
+        record_invalid: "バリデーションに失敗しました: %{errors}"
+        restrict_dependent_destroy:
+          has_one: "依存する%{record}が存在するため削除できません"
+          has_many: "依存する%{record}が存在するため削除できません"
+  attributes:
+    assigned_user: "担当者"
+    avatar: "プロフィール画像"
+    body: "本文"
+    calendar: "カレンダー"
+    caldav_url: "CalDAV URL"
+    color: "色"
+    email: "メール"
+    email_address: "メールアドレス"
+    emoji: "絵文字"
+    encrypted_password: "パスワード"
+    ends_at: "終了"
+    expires_at: "有効期限"
+    file: "ファイル"
+    filename: "ファイル名"
+    files: "ファイル"
+    first_name: "名"
+    icon: "アイコン"
+    imap_host: "IMAP サーバー"
+    kind: "種類"
+    last_name: "姓"
+    locale: "言語"
+    name: "名前"
+    password: "パスワード"
+    password_confirmation: "パスワード（確認）"
+    permission: "権限"
+    recurrence_rule: "繰り返し"
+    redirect_uris: "リダイレクト URL"
+    reminders: "リマインダー"
+    reply_to: "返信先"
+    role: "ロール"
+    slug: "スラッグ"
+    smtp_host: "SMTP サーバー"
+    starts_at: "開始"
+    state: "ステータス"
+    status: "ステータス"
+    summary: "タイトル"
+    timezone: "タイムゾーン"
+    title: "タイトル"
+    tool_id: "ツール"
+    user: "ユーザー"
+    user_id: "ユーザー"
+    username: "ユーザー名"
+  errors:
+    format: "%{attribute}%{message}"
+    messages:
+      accepted: "を受諾してください"
+      blank: "を入力してください"
+      confirmation: "と%{attribute}の入力が一致しません"
+      empty: "を入力してください"
+      equal_to: "は%{count}にしてください"
+      even: "は偶数にしてください"
+      exclusion: "は予約されています"
+      greater_than: "は%{count}より大きい値にしてください"
+      greater_than_or_equal_to: "は%{count}以上の値にしてください"
+      in: "は%{count}の範囲に含めてください"
+      inclusion: "は一覧にありません"
+      invalid: "は不正な値です"
+      less_than: "は%{count}より小さい値にしてください"
+      less_than_or_equal_to: "は%{count}以下の値にしてください"
+      model_invalid: "バリデーションに失敗しました: %{errors}"
+      not_a_number: "は数値で入力してください"
+      not_an_integer: "は整数で入力してください"
+      odd: "は奇数にしてください"
+      other_than: "は%{count}以外の値にしてください"
+      present: "は入力しないでください"
+      required: "を入力してください"
+      taken: "はすでに使用されています"
+      too_long:
+        other: "は%{count}文字以内で入力してください"
+      too_short:
+        other: "は%{count}文字以上で入力してください"
+      wrong_length:
+        other: "は%{count}文字で入力してください"
+      password_too_long: "が長すぎます"
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        other: "約%{count}時間"
+      about_x_months:
+        other: "約%{count}か月"
+      about_x_years:
+        other: "約%{count}年"
+      almost_x_years:
+        other: "%{count}年近く"
+      half_a_minute: "約30秒"
+      less_than_x_minutes:
+        other: "%{count}分未満"
+      less_than_x_seconds:
+        other: "%{count}秒未満"
+      over_x_years:
+        other: "%{count}年以上"
+      x_days:
+        other: "%{count}日"
+      x_minutes:
+        other: "%{count}分"
+      x_months:
+        other: "%{count}か月"
+      x_seconds:
+        other: "%{count}秒"
+      x_years:
+        other: "%{count}年"
+    prompts:
+      second: "秒"
+      minute: "分"
+      hour: "時"
+      day: "日"
+      month: "月"
+      year: "年"
+  translation:
+    direction: ltr
+  date:
+    formats:
+      default: "%Y/%m/%d"
+      short: "%-m月%-d日"
+      long: "%Y年%-m月%-d日"
+      day: "%-m月%-d日"
+      day_and_year: "%Y年%-m月%-d日"
+      day_of_month: "%-d"
+      weekday: "%A"
+      weekday_short: "%a"
+      weekday_with_date: "%a"
+      month_and_year: "%Y年%-m月"
+      week_start: "%Y年%-m月"
+      week_start_with_year: "%Y年%-m月"
+      week_end: "%Y年%-m月"
+      long_day: "%Y年%-m月%-d日（%A）"
+    day_names: [日曜日, 月曜日, 火曜日, 水曜日, 木曜日, 金曜日, 土曜日]
+    abbr_day_names: [日, 月, 火, 水, 木, 金, 土]
+    month_names: [~, 1月, 2月, 3月, 4月, 5月, 6月, 7月, 8月, 9月, 10月, 11月, 12月]
+    abbr_month_names: [~, 1月, 2月, 3月, 4月, 5月, 6月, 7月, 8月, 9月, 10月, 11月, 12月]
+    order:
+      - :year
+      - :month
+      - :day
+  time:
+    formats:
+      default: "%Y/%m/%d %H:%M"
+      short: "%-m月%-d日 %H:%M"
+      long: "%Y年%-m月%-d日 %H:%M"
+      clock: "%H:%M"
+      clock_without_period: "%H:%M"
+      hour: "%H:00"
+    am: "午前"
+    pm: "午後"
+  number:
+    format:
+      delimiter: ","
+      separator: "."
+      precision: 3
+      significant: false
+      strip_insignificant_zeros: false
+    human:
+      format:
+        delimiter: ""
+        precision: 3
+        significant: true
+        strip_insignificant_zeros: true
+      storage_units:
+        format: "%n %u"
+        units:
+          byte:
+            other: "B"
+          kb: "KB"
+          mb: "MB"
+          gb: "GB"
+          tb: "TB"
+          pb: "PB"
+          eb: "EB"
+    percentage:
+      format:
+        format: "%n%"
+  helpers:
+    select:
+      prompt: "選択してください"
+    submit:
+      create: "%{model}を作成"
+      submit: "%{model}を保存"
+      update: "%{model}を更新"
+  support:
+    array:
+      words_connector: "、"
+      two_words_connector: "、"
+      last_word_connector: "、"

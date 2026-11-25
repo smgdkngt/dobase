@@ -1,0 +1,222 @@
+hi:
+  activerecord:
+    attributes:
+      mails/account:
+        encrypted_password: "पासवर्ड"
+        imap_host: "IMAP सर्वर"
+        smtp_host: "SMTP सर्वर"
+      calendars/account:
+        caldav_url: "CalDAV URL"
+        encrypted_password: "पासवर्ड"
+      calendars/event:
+        summary: "शीर्षक"
+        starts_at: "प्रारंभ"
+        start_time: "प्रारंभ"
+        ends_at: "समाप्ति"
+        end_time: "समाप्ति"
+    errors:
+      messages:
+        record_invalid: "सत्यापन विफल रहा: %{errors}"
+        restrict_dependent_destroy:
+          has_one: "रिकॉर्ड हटाया नहीं जा सकता क्योंकि एक आश्रित %{record} मौजूद है"
+          has_many: "रिकॉर्ड हटाया नहीं जा सकता क्योंकि आश्रित %{record} मौजूद हैं"
+  attributes:
+    assigned_user: "जिसे सौंपा गया"
+    avatar: "प्रोफ़ाइल फ़ोटो"
+    body: "सामग्री"
+    calendar: "कैलेंडर"
+    caldav_url: "CalDAV URL"
+    color: "रंग"
+    email: "ईमेल"
+    email_address: "ईमेल पता"
+    emoji: "इमोजी"
+    encrypted_password: "पासवर्ड"
+    ends_at: "समाप्ति"
+    expires_at: "समाप्ति समय"
+    file: "फ़ाइल"
+    filename: "फ़ाइल नाम"
+    files: "फ़ाइलें"
+    first_name: "पहला नाम"
+    icon: "आइकन"
+    imap_host: "IMAP सर्वर"
+    kind: "प्रकार"
+    last_name: "अंतिम नाम"
+    locale: "भाषा"
+    name: "नाम"
+    password: "पासवर्ड"
+    password_confirmation: "पासवर्ड पुष्टि"
+    permission: "अनुमति"
+    recurrence_rule: "दोहराव"
+    redirect_uris: "रीडायरेक्ट URL"
+    reminders: "रिमाइंडर"
+    reply_to: "जवाब भेजें"
+    role: "भूमिका"
+    slug: "स्लग"
+    smtp_host: "SMTP सर्वर"
+    starts_at: "प्रारंभ"
+    state: "स्थिति"
+    status: "स्थिति"
+    summary: "शीर्षक"
+    timezone: "समय क्षेत्र"
+    title: "शीर्षक"
+    tool_id: "टूल"
+    user: "उपयोगकर्ता"
+    user_id: "उपयोगकर्ता"
+    username: "उपयोगकर्ता नाम"
+  errors:
+    format: "%{attribute} %{message}"
+    messages:
+      accepted: "स्वीकार किया जाना चाहिए"
+      blank: "खाली नहीं हो सकता"
+      confirmation: "%{attribute} से मेल नहीं खाता"
+      empty: "खाली नहीं हो सकता"
+      equal_to: "%{count} के बराबर होना चाहिए"
+      even: "सम संख्या होनी चाहिए"
+      exclusion: "आरक्षित है"
+      greater_than: "%{count} से बड़ा होना चाहिए"
+      greater_than_or_equal_to: "%{count} से बड़ा या उसके बराबर होना चाहिए"
+      in: "%{count} के भीतर होना चाहिए"
+      inclusion: "सूची में शामिल नहीं है"
+      invalid: "अमान्य है"
+      less_than: "%{count} से छोटा होना चाहिए"
+      less_than_or_equal_to: "%{count} से छोटा या उसके बराबर होना चाहिए"
+      model_invalid: "सत्यापन विफल रहा: %{errors}"
+      not_a_number: "संख्या नहीं है"
+      not_an_integer: "पूर्णांक होना चाहिए"
+      odd: "विषम संख्या होनी चाहिए"
+      other_than: "%{count} से भिन्न होना चाहिए"
+      present: "खाली होना चाहिए"
+      required: "आवश्यक है"
+      taken: "पहले से उपयोग में है"
+      too_long:
+        one: "बहुत लंबा है (अधिकतम 1 वर्ण)"
+        other: "बहुत लंबा है (अधिकतम %{count} वर्ण)"
+      too_short:
+        one: "बहुत छोटा है (न्यूनतम 1 वर्ण)"
+        other: "बहुत छोटा है (न्यूनतम %{count} वर्ण)"
+      wrong_length:
+        one: "लंबाई गलत है (1 वर्ण होना चाहिए)"
+        other: "लंबाई गलत है (%{count} वर्ण होने चाहिए)"
+      password_too_long: "बहुत लंबा है"
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        one: "लगभग 1 घंटा"
+        other: "लगभग %{count} घंटे"
+      about_x_months:
+        one: "लगभग 1 महीना"
+        other: "लगभग %{count} महीने"
+      about_x_years:
+        one: "लगभग 1 साल"
+        other: "लगभग %{count} साल"
+      almost_x_years:
+        one: "करीब 1 साल"
+        other: "करीब %{count} साल"
+      half_a_minute: "आधा मिनट"
+      less_than_x_minutes:
+        one: "1 मिनट से कम"
+        other: "%{count} मिनट से कम"
+      less_than_x_seconds:
+        one: "1 सेकंड से कम"
+        other: "%{count} सेकंड से कम"
+      over_x_years:
+        one: "1 साल से अधिक"
+        other: "%{count} साल से अधिक"
+      x_days:
+        one: "1 दिन"
+        other: "%{count} दिन"
+      x_minutes:
+        one: "1 मिनट"
+        other: "%{count} मिनट"
+      x_months:
+        one: "1 महीना"
+        other: "%{count} महीने"
+      x_seconds:
+        one: "1 सेकंड"
+        other: "%{count} सेकंड"
+      x_years:
+        one: "1 साल"
+        other: "%{count} साल"
+    prompts:
+      second: "सेकंड"
+      minute: "मिनट"
+      hour: "घंटा"
+      day: "दिन"
+      month: "महीना"
+      year: "साल"
+  translation:
+    direction: ltr
+  date:
+    formats:
+      default: "%d/%m/%Y"
+      short: "%-d %b"
+      long: "%-d %B %Y"
+      day: "%-d %b"
+      day_and_year: "%-d %b %Y"
+      day_of_month: "%-d"
+      weekday: "%A"
+      weekday_short: "%a"
+      weekday_with_date: "%a"
+      month_and_year: "%B %Y"
+      week_start: "%b"
+      week_start_with_year: "%b %Y"
+      week_end: "%b %Y"
+      long_day: "%A, %-d %B %Y"
+    day_names: [रविवार, सोमवार, मंगलवार, बुधवार, गुरुवार, शुक्रवार, शनिवार]
+    abbr_day_names: [रवि, सोम, मंगल, बुध, गुरु, शुक्र, शनि]
+    month_names: [~, जनवरी, फ़रवरी, मार्च, अप्रैल, मई, जून, जुलाई, अगस्त, सितंबर, अक्टूबर, नवंबर, दिसंबर]
+    abbr_month_names: [~, जन, फ़र, मार्च, अप्रै, मई, जून, जुल, अग, सितं, अक्टू, नवं, दिसं]
+    order:
+      - :day
+      - :month
+      - :year
+  time:
+    formats:
+      default: "%d/%m/%Y %-I:%M %p"
+      short: "%-d %b %-I:%M %p"
+      long: "%-d %B %Y %-I:%M %p"
+      clock: "%-I:%M %p"
+      clock_without_period: "%-I:%M"
+      hour: "%-l %p"
+    am: "AM"
+    pm: "PM"
+  number:
+    format:
+      delimiter: ","
+      separator: "."
+      precision: 3
+      significant: false
+      strip_insignificant_zeros: false
+    human:
+      format:
+        delimiter: ""
+        precision: 3
+        significant: true
+        strip_insignificant_zeros: true
+      storage_units:
+        format: "%n %u"
+        units:
+          byte:
+            one: "B"
+            other: "B"
+          kb: "KB"
+          mb: "MB"
+          gb: "GB"
+          tb: "TB"
+          pb: "PB"
+          eb: "EB"
+    percentage:
+      format:
+        format: "%n%"
+  helpers:
+    select:
+      prompt: "चुनें"
+    submit:
+      create: "%{model} बनाएँ"
+      submit: "%{model} सहेजें"
+      update: "%{model} अपडेट करें"
+  support:
+    array:
+      words_connector: ", "
+      two_words_connector: " और "
+      last_word_connector: " और "

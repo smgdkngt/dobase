@@ -5,7 +5,7 @@
 #   n_("%{count} file", "%{count} files", 3)
 #   Translation.localize(date, :day)
 module Translation
-  LANGUAGES = { "en" => "English", "nl" => "Nederlands", "de" => "Deutsch", "fr" => "Français", "es" => "Español", "pt" => "Português (Brasil)", "it" => "Italiano", "fa" => "فارسی" }.freeze
+  LANGUAGES = { "en" => "English", "nl" => "Nederlands", "de" => "Deutsch", "fr" => "Français", "es" => "Español", "pt" => "Português (Brasil)", "it" => "Italiano", "pl" => "Polski", "cs" => "Čeština", "ro" => "Română", "tr" => "Türkçe", "sv" => "Svenska", "da" => "Dansk", "nb" => "Norsk bokmål", "fi" => "Suomi", "id" => "Bahasa Indonesia", "uk" => "Українська", "hi" => "हिन्दी", "ja" => "日本語", "ko" => "한국어", "zh" => "简体中文", "ar" => "العربية", "he" => "עברית", "fa" => "فارسی" }.freeze
   ALIASES = { "no" => "nb", "nn" => "nb", "iw" => "he", "in" => "id" }.freeze
 
   SEPARATOR = "\u0001"

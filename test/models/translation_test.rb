@@ -146,7 +146,7 @@ class TranslationTest < ActiveSupport::TestCase
 
   test "translate_plural picks the language's CLDR form and falls back to other" do
     with_test_locale(:ar, ui: {
-      "%{count} files" => {
+      "%{count} widgets" => {
         zero: "لا توجد ملفات",
         one: "ملف واحد",
         two: "ملفان",
@@ -154,22 +154,22 @@ class TranslationTest < ActiveSupport::TestCase
         many: "%{count} ملفاً",
         other: "%{count} ملف"
       },
-      "%{count} cards" => { one: "بطاقة واحدة", other: "%{count} بطاقة" }
+      "%{count} gadgets" => { one: "بطاقة واحدة", other: "%{count} بطاقة" }
     }) do
-      assert_equal "لا توجد ملفات", Translation.translate_plural("%{count} file", "%{count} files", 0)
-      assert_equal "ملف واحد", Translation.translate_plural("%{count} file", "%{count} files", 1)
-      assert_equal "ملفان", Translation.translate_plural("%{count} file", "%{count} files", 2)
-      assert_equal "3 ملفات", Translation.translate_plural("%{count} file", "%{count} files", 3)
-      assert_equal "10 ملفات", Translation.translate_plural("%{count} file", "%{count} files", 10)
-      assert_equal "11 ملفاً", Translation.translate_plural("%{count} file", "%{count} files", 11)
-      assert_equal "99 ملفاً", Translation.translate_plural("%{count} file", "%{count} files", 99)
-      assert_equal "100 ملف", Translation.translate_plural("%{count} file", "%{count} files", 100)
-      assert_equal "101 ملف", Translation.translate_plural("%{count} file", "%{count} files", 101)
-      assert_equal "103 ملفات", Translation.translate_plural("%{count} file", "%{count} files", 103)
-      assert_equal "3.5 ملف", Translation.translate_plural("%{count} file", "%{count} files", 3.5)
-      assert_equal "0 بطاقة", Translation.translate_plural("%{count} card", "%{count} cards", 0)
-      assert_equal "بطاقة واحدة", Translation.translate_plural("%{count} card", "%{count} cards", 1)
-      assert_equal "5 بطاقة", Translation.translate_plural("%{count} card", "%{count} cards", 5)
+      assert_equal "لا توجد ملفات", Translation.translate_plural("%{count} widget", "%{count} widgets", 0)
+      assert_equal "ملف واحد", Translation.translate_plural("%{count} widget", "%{count} widgets", 1)
+      assert_equal "ملفان", Translation.translate_plural("%{count} widget", "%{count} widgets", 2)
+      assert_equal "3 ملفات", Translation.translate_plural("%{count} widget", "%{count} widgets", 3)
+      assert_equal "10 ملفات", Translation.translate_plural("%{count} widget", "%{count} widgets", 10)
+      assert_equal "11 ملفاً", Translation.translate_plural("%{count} widget", "%{count} widgets", 11)
+      assert_equal "99 ملفاً", Translation.translate_plural("%{count} widget", "%{count} widgets", 99)
+      assert_equal "100 ملف", Translation.translate_plural("%{count} widget", "%{count} widgets", 100)
+      assert_equal "101 ملف", Translation.translate_plural("%{count} widget", "%{count} widgets", 101)
+      assert_equal "103 ملفات", Translation.translate_plural("%{count} widget", "%{count} widgets", 103)
+      assert_equal "3.5 ملف", Translation.translate_plural("%{count} widget", "%{count} widgets", 3.5)
+      assert_equal "0 بطاقة", Translation.translate_plural("%{count} gadget", "%{count} gadgets", 0)
+      assert_equal "بطاقة واحدة", Translation.translate_plural("%{count} gadget", "%{count} gadgets", 1)
+      assert_equal "5 بطاقة", Translation.translate_plural("%{count} gadget", "%{count} gadgets", 5)
     end
 
     with_test_locale(:pl, ui: {
@@ -290,8 +290,8 @@ class TranslationTest < ActiveSupport::TestCase
 
   test "the language a browser asks for" do
     assert_equal "fa", Translation.from_accept_language("fa-IR,fa;q=0.9,en;q=0.8")
-    assert_equal "en", Translation.from_accept_language("ja-JP,en;q=0.5")
-    assert_nil Translation.from_accept_language("ja-JP")
+    assert_equal "en", Translation.from_accept_language("vi-VN,en;q=0.5")
+    assert_nil Translation.from_accept_language("vi-VN")
     assert_equal "pt", Translation.from_accept_language("pt-BR,pt;q=0.9")
     assert_equal "nl", Translation.from_accept_language("nl-NL,nl;q=0.9,en;q=0.8")
   end
@@ -310,14 +310,14 @@ class TranslationTest < ActiveSupport::TestCase
     assert_equal "zh", Translation.from_accept_language("zh-HK,en;q=0.5", available: available)
     assert_equal "zh", Translation.from_accept_language("zh-Hans-CN", available: available)
     assert_equal "nb", Translation.from_accept_language("en;q=0.5, nn;q=0.9", available: available)
-    assert_nil Translation.from_accept_language("no-NO")
-    assert_equal "en", Translation.from_accept_language("zh-TW,en;q=0.5")
+    assert_equal "nb", Translation.from_accept_language("no-NO")
+    assert_equal "zh", Translation.from_accept_language("zh-TW,en;q=0.5")
   end
 
   test "the language a browser asks for goes by its q-values" do
     assert_equal "fa", Translation.from_accept_language("en;q=0.1, fa;q=0.9")
     assert_equal "en", Translation.from_accept_language("fa;q=0, en")
-    assert_equal "fa", Translation.from_accept_language("ja-JP, fa;q=0.5")
+    assert_equal "fa", Translation.from_accept_language("vi-VN, fa;q=0.5")
     assert_equal "en", Translation.from_accept_language("en, fa")
     assert_equal "fa", Translation.from_accept_language("fa;q=0.8, en;q=0.8")
     assert_equal "fa", Translation.from_accept_language("FA-ir;Q=1")

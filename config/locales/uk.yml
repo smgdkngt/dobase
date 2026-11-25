@@ -1,0 +1,254 @@
+uk:
+  activerecord:
+    attributes:
+      mails/account:
+        encrypted_password: "Пароль"
+        imap_host: "IMAP-сервер"
+        smtp_host: "SMTP-сервер"
+      calendars/account:
+        caldav_url: "CalDAV URL"
+        encrypted_password: "Пароль"
+      calendars/event:
+        summary: "Назва"
+        starts_at: "Початок"
+        start_time: "Початок"
+        ends_at: "Завершення"
+        end_time: "Завершення"
+    errors:
+      messages:
+        record_invalid: "Помилка перевірки: %{errors}"
+        restrict_dependent_destroy:
+          has_one: "Неможливо видалити запис, оскільки існує залежний %{record}"
+          has_many: "Неможливо видалити запис, оскільки існують залежні %{record}"
+  attributes:
+    assigned_user: "Відповідальний"
+    avatar: "Фото профілю"
+    body: "Вміст"
+    calendar: "Календар"
+    caldav_url: "CalDAV URL"
+    color: "Колір"
+    email: "Електронна пошта"
+    email_address: "Електронна адреса"
+    emoji: "Емодзі"
+    encrypted_password: "Пароль"
+    ends_at: "Завершення"
+    expires_at: "Термін дії"
+    file: "Файл"
+    filename: "Назва файлу"
+    files: "Файли"
+    first_name: "Ім'я"
+    icon: "Іконка"
+    imap_host: "IMAP-сервер"
+    kind: "Тип"
+    last_name: "Прізвище"
+    locale: "Мова"
+    name: "Назва"
+    password: "Пароль"
+    password_confirmation: "Підтвердження пароля"
+    permission: "Дозвіл"
+    recurrence_rule: "Повторення"
+    redirect_uris: "URL-адреси перенаправлення"
+    reminders: "Нагадування"
+    reply_to: "Адреса для відповіді"
+    role: "Роль"
+    slug: "Ідентифікатор"
+    smtp_host: "SMTP-сервер"
+    starts_at: "Початок"
+    state: "Стан"
+    status: "Статус"
+    summary: "Назва"
+    timezone: "Часовий пояс"
+    title: "Назва"
+    tool_id: "Інструмент"
+    user: "Користувач"
+    user_id: "Користувач"
+    username: "Ім'я користувача"
+  errors:
+    format: "%{attribute} %{message}"
+    messages:
+      accepted: "потрібно прийняти"
+      blank: "не може бути порожнім"
+      confirmation: "не збігається з полем %{attribute}"
+      empty: "не може бути порожнім"
+      equal_to: "має дорівнювати %{count}"
+      even: "має бути парним"
+      exclusion: "зарезервовано"
+      greater_than: "має бути більше ніж %{count}"
+      greater_than_or_equal_to: "має бути більше або дорівнювати %{count}"
+      in: "має бути в діапазоні %{count}"
+      inclusion: "не входить до списку допустимих значень"
+      invalid: "має неправильний формат"
+      less_than: "має бути менше ніж %{count}"
+      less_than_or_equal_to: "має бути менше або дорівнювати %{count}"
+      model_invalid: "Помилка перевірки: %{errors}"
+      not_a_number: "не є числом"
+      not_an_integer: "має бути цілим числом"
+      odd: "має бути непарним"
+      other_than: "має відрізнятися від %{count}"
+      present: "має бути порожнім"
+      required: "має існувати"
+      taken: "вже використовується"
+      too_long:
+        one: "занадто довге значення (максимум %{count} символ)"
+        few: "занадто довге значення (максимум %{count} символи)"
+        many: "занадто довге значення (максимум %{count} символів)"
+        other: "занадто довге значення (максимум %{count} символу)"
+      too_short:
+        one: "занадто коротке значення (мінімум %{count} символ)"
+        few: "занадто коротке значення (мінімум %{count} символи)"
+        many: "занадто коротке значення (мінімум %{count} символів)"
+        other: "занадто коротке значення (мінімум %{count} символу)"
+      wrong_length:
+        one: "має неправильну довжину (має бути %{count} символ)"
+        few: "має неправильну довжину (має бути %{count} символи)"
+        many: "має неправильну довжину (має бути %{count} символів)"
+        other: "має неправильну довжину (має бути %{count} символу)"
+      password_too_long: "занадто довгий"
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        one: "близько %{count} години"
+        few: "близько %{count} годин"
+        many: "близько %{count} годин"
+        other: "близько %{count} години"
+      about_x_months:
+        one: "близько %{count} місяця"
+        few: "близько %{count} місяців"
+        many: "близько %{count} місяців"
+        other: "близько %{count} місяця"
+      about_x_years:
+        one: "близько %{count} року"
+        few: "близько %{count} років"
+        many: "близько %{count} років"
+        other: "близько %{count} року"
+      almost_x_years:
+        one: "майже %{count} рік"
+        few: "майже %{count} роки"
+        many: "майже %{count} років"
+        other: "майже %{count} року"
+      half_a_minute: "півхвилини"
+      less_than_x_minutes:
+        one: "менше %{count} хвилини"
+        few: "менше %{count} хвилин"
+        many: "менше %{count} хвилин"
+        other: "менше %{count} хвилини"
+      less_than_x_seconds:
+        one: "менше %{count} секунди"
+        few: "менше %{count} секунд"
+        many: "менше %{count} секунд"
+        other: "менше %{count} секунди"
+      over_x_years:
+        one: "понад %{count} рік"
+        few: "понад %{count} роки"
+        many: "понад %{count} років"
+        other: "понад %{count} року"
+      x_days:
+        one: "%{count} день"
+        few: "%{count} дні"
+        many: "%{count} днів"
+        other: "%{count} дня"
+      x_minutes:
+        one: "%{count} хвилина"
+        few: "%{count} хвилини"
+        many: "%{count} хвилин"
+        other: "%{count} хвилини"
+      x_months:
+        one: "%{count} місяць"
+        few: "%{count} місяці"
+        many: "%{count} місяців"
+        other: "%{count} місяця"
+      x_seconds:
+        one: "%{count} секунда"
+        few: "%{count} секунди"
+        many: "%{count} секунд"
+        other: "%{count} секунди"
+      x_years:
+        one: "%{count} рік"
+        few: "%{count} роки"
+        many: "%{count} років"
+        other: "%{count} року"
+    prompts:
+      second: "Секунда"
+      minute: "Хвилина"
+      hour: "Година"
+      day: "День"
+      month: "Місяць"
+      year: "Рік"
+  translation:
+    direction: ltr
+  date:
+    formats:
+      default: "%d.%m.%Y"
+      short: "%-d %b"
+      long: "%-d %B %Y"
+      day: "%-d %b"
+      day_and_year: "%-d %b %Y"
+      day_of_month: "%-d"
+      weekday: "%A"
+      weekday_short: "%a"
+      weekday_with_date: "%a"
+      month_and_year: "%B %Y"
+      week_start: "%b"
+      week_start_with_year: "%b %Y"
+      week_end: "%b %Y"
+      long_day: "%A, %-d %B %Y"
+    day_names: ["неділя", "понеділок", "вівторок", "середа", "четвер", "п'ятниця", "субота"]
+    abbr_day_names: ["нд", "пн", "вт", "ср", "чт", "пт", "сб"]
+    month_names: [~, "січня", "лютого", "березня", "квітня", "травня", "червня", "липня", "серпня", "вересня", "жовтня", "листопада", "грудня"]
+    abbr_month_names: [~, "січ", "лют", "бер", "квіт", "трав", "черв", "лип", "серп", "вер", "жовт", "лист", "груд"]
+    order:
+      - :day
+      - :month
+      - :year
+  time:
+    formats:
+      default: "%d.%m.%Y %H:%M"
+      short: "%-d %b, %H:%M"
+      long: "%-d %B %Y, %H:%M"
+      clock: "%H:%M"
+      clock_without_period: "%H:%M"
+      hour: "%H:00"
+    am: "ранку"
+    pm: "вечора"
+  number:
+    format:
+      delimiter: " "
+      separator: ","
+      precision: 3
+      significant: false
+      strip_insignificant_zeros: false
+    human:
+      format:
+        delimiter: ""
+        precision: 3
+        significant: true
+        strip_insignificant_zeros: true
+      storage_units:
+        format: "%n %u"
+        units:
+          byte:
+            one: "Б"
+            few: "Б"
+            many: "Б"
+            other: "Б"
+          kb: "КБ"
+          mb: "МБ"
+          gb: "ГБ"
+          tb: "ТБ"
+          pb: "ПБ"
+          eb: "ЕБ"
+    percentage:
+      format:
+        format: "%n%"
+  helpers:
+    select:
+      prompt: "Виберіть"
+    submit:
+      create: "Створити %{model}"
+      submit: "Зберегти %{model}"
+      update: "Оновити %{model}"
+  support:
+    array:
+      words_connector: ", "
+      two_words_connector: " і "
+      last_word_connector: " і "

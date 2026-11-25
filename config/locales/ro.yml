@@ -1,0 +1,238 @@
+ro:
+  activerecord:
+    attributes:
+      mails/account:
+        encrypted_password: "Parolă"
+        imap_host: "Server IMAP"
+        smtp_host: "Server SMTP"
+      calendars/account:
+        caldav_url: "URL CalDAV"
+        encrypted_password: "Parolă"
+      calendars/event:
+        summary: "Titlu"
+        starts_at: "Început"
+        start_time: "Început"
+        ends_at: "Sfârșit"
+        end_time: "Sfârșit"
+    errors:
+      messages:
+        record_invalid: "Validarea a eșuat: %{errors}"
+        restrict_dependent_destroy:
+          has_one: "Nu se poate șterge înregistrarea deoarece există o dependență %{record}"
+          has_many: "Nu se poate șterge înregistrarea deoarece există dependențe %{record}"
+  attributes:
+    assigned_user: "Utilizator atribuit"
+    avatar: "Poză de profil"
+    body: "Conținut"
+    calendar: "Calendar"
+    caldav_url: "URL CalDAV"
+    color: "Culoare"
+    email: "E-mail"
+    email_address: "Adresă de e-mail"
+    emoji: "Emoji"
+    encrypted_password: "Parolă"
+    ends_at: "Sfârșit"
+    expires_at: "Data expirării"
+    file: "Fișier"
+    filename: "Nume fișier"
+    files: "Fișiere"
+    first_name: "Prenume"
+    icon: "Pictogramă"
+    imap_host: "Server IMAP"
+    kind: "Tip"
+    last_name: "Nume"
+    locale: "Limbă"
+    name: "Nume"
+    password: "Parolă"
+    password_confirmation: "Confirmare parolă"
+    permission: "Permisiune"
+    recurrence_rule: "Repetare"
+    redirect_uris: "URL-uri de redirecționare"
+    reminders: "Mementouri"
+    reply_to: "Răspunde la"
+    role: "Rol"
+    slug: "Slug"
+    smtp_host: "Server SMTP"
+    starts_at: "Început"
+    state: "Stare"
+    status: "Stare"
+    summary: "Titlu"
+    timezone: "Fus orar"
+    title: "Titlu"
+    tool_id: "Instrument"
+    user: "Utilizator"
+    user_id: "Utilizator"
+    username: "Nume de utilizator"
+  errors:
+    format: "%{attribute} %{message}"
+    messages:
+      accepted: "trebuie acceptat"
+      blank: "nu poate fi gol"
+      confirmation: "nu corespunde cu %{attribute}"
+      empty: "nu poate fi gol"
+      equal_to: "trebuie să fie egal cu %{count}"
+      even: "trebuie să fie par"
+      exclusion: "este rezervat"
+      greater_than: "trebuie să fie mai mare decât %{count}"
+      greater_than_or_equal_to: "trebuie să fie mai mare sau egal cu %{count}"
+      in: "trebuie să fie în intervalul %{count}"
+      inclusion: "nu se află în listă"
+      invalid: "este nevalid"
+      less_than: "trebuie să fie mai mic decât %{count}"
+      less_than_or_equal_to: "trebuie să fie mai mic sau egal cu %{count}"
+      model_invalid: "Validarea a eșuat: %{errors}"
+      not_a_number: "nu este un număr"
+      not_an_integer: "trebuie să fie un număr întreg"
+      odd: "trebuie să fie impar"
+      other_than: "trebuie să fie diferit de %{count}"
+      present: "trebuie să fie gol"
+      required: "trebuie să existe"
+      taken: "este deja folosit"
+      too_long:
+        one: "este prea lung (maximum 1 caracter)"
+        few: "este prea lung (maximum %{count} caractere)"
+        other: "este prea lung (maximum %{count} de caractere)"
+      too_short:
+        one: "este prea scurt (minimum 1 caracter)"
+        few: "este prea scurt (minimum %{count} caractere)"
+        other: "este prea scurt (minimum %{count} de caractere)"
+      wrong_length:
+        one: "are lungimea greșită (trebuie să aibă 1 caracter)"
+        few: "are lungimea greșită (trebuie să aibă %{count} caractere)"
+        other: "are lungimea greșită (trebuie să aibă %{count} de caractere)"
+      password_too_long: "este prea lungă"
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        one: "aproximativ o oră"
+        few: "aproximativ %{count} ore"
+        other: "aproximativ %{count} de ore"
+      about_x_months:
+        one: "aproximativ o lună"
+        few: "aproximativ %{count} luni"
+        other: "aproximativ %{count} de luni"
+      about_x_years:
+        one: "aproximativ un an"
+        few: "aproximativ %{count} ani"
+        other: "aproximativ %{count} de ani"
+      almost_x_years:
+        one: "aproape un an"
+        few: "aproape %{count} ani"
+        other: "aproape %{count} de ani"
+      half_a_minute: "o jumătate de minut"
+      less_than_x_minutes:
+        one: "mai puțin de un minut"
+        few: "mai puțin de %{count} minute"
+        other: "mai puțin de %{count} de minute"
+      less_than_x_seconds:
+        one: "mai puțin de o secundă"
+        few: "mai puțin de %{count} secunde"
+        other: "mai puțin de %{count} de secunde"
+      over_x_years:
+        one: "peste un an"
+        few: "peste %{count} ani"
+        other: "peste %{count} de ani"
+      x_days:
+        one: "1 zi"
+        few: "%{count} zile"
+        other: "%{count} de zile"
+      x_minutes:
+        one: "1 minut"
+        few: "%{count} minute"
+        other: "%{count} de minute"
+      x_months:
+        one: "1 lună"
+        few: "%{count} luni"
+        other: "%{count} de luni"
+      x_seconds:
+        one: "1 secundă"
+        few: "%{count} secunde"
+        other: "%{count} de secunde"
+      x_years:
+        one: "1 an"
+        few: "%{count} ani"
+        other: "%{count} de ani"
+    prompts:
+      second: "Secundă"
+      minute: "Minut"
+      hour: "Oră"
+      day: "Zi"
+      month: "Lună"
+      year: "An"
+  translation:
+    direction: ltr
+  date:
+    formats:
+      default: "%d.%m.%Y"
+      short: "%-d %b"
+      long: "%-d %B %Y"
+      day: "%-d %b"
+      day_and_year: "%-d %b %Y"
+      day_of_month: "%-d"
+      weekday: "%A"
+      weekday_short: "%a"
+      weekday_with_date: "%a"
+      month_and_year: "%B %Y"
+      week_start: "%b"
+      week_start_with_year: "%b %Y"
+      week_end: "%b %Y"
+      long_day: "%A, %-d %B %Y"
+    day_names: [duminică, luni, marți, miercuri, joi, vineri, sâmbătă]
+    abbr_day_names: [dum., lun., mar., mie., joi, vin., sâm.]
+    month_names: [~, ianuarie, februarie, martie, aprilie, mai, iunie, iulie, august, septembrie, octombrie, noiembrie, decembrie]
+    abbr_month_names: [~, ian., feb., mar., apr., mai, iun., iul., aug., sep., oct., nov., dec.]
+    order:
+      - :day
+      - :month
+      - :year
+  time:
+    formats:
+      default: "%d.%m.%Y %H:%M"
+      short: "%-d %b %H:%M"
+      long: "%-d %B %Y, %H:%M"
+      clock: "%H:%M"
+      clock_without_period: "%H:%M"
+      hour: "%H:00"
+    am: "a.m."
+    pm: "p.m."
+  number:
+    format:
+      delimiter: "."
+      separator: ","
+      precision: 3
+      significant: false
+      strip_insignificant_zeros: false
+    human:
+      format:
+        delimiter: ""
+        precision: 3
+        significant: true
+        strip_insignificant_zeros: true
+      storage_units:
+        format: "%n %u"
+        units:
+          byte:
+            one: "B"
+            few: "B"
+            other: "B"
+          kb: "KB"
+          mb: "MB"
+          gb: "GB"
+          tb: "TB"
+          pb: "PB"
+          eb: "EB"
+    percentage:
+      format:
+        format: "%n%"
+  helpers:
+    select:
+      prompt: "Selectează"
+    submit:
+      create: "Creează %{model}"
+      submit: "Salvează %{model}"
+      update: "Actualizează %{model}"
+  support:
+    array:
+      words_connector: ", "
+      two_words_connector: " și "
+      last_word_connector: " și "
