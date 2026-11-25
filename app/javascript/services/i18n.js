@@ -1,7 +1,7 @@
-/** @type {Record<string, string> | null} */
+/** @type {Record<string, string | Record<string, string>> | null} */
 let table = null
 
-/** @returns {Record<string, string>} */
+/** @returns {Record<string, string | Record<string, string>>} */
 function translations() {
   if (table) return table
   const meta = typeof document === "undefined" ? null : document.querySelector('meta[name="translations"]')
@@ -10,11 +10,20 @@ function translations() {
   } catch {
     table = {}
   }
-  return /** @type {Record<string, string>} */ (table)
+  return /** @type {Record<string, string | Record<string, string>>} */ (table)
 }
 
 /** @type {Record<string, string>} */
-const INTL_LOCALES = { en: "en-US", pt: "pt-BR", fa: "fa-IR" }
+const INTL_LOCALES = {
+  en: "en-US",
+  pt: "pt-BR",
+  fa: "fa-IR",
+  ar: "ar-u-nu-latn",
+  he: "he-IL",
+  nb: "nb-NO",
+  zh: "zh-CN",
+  hi: "hi-IN"
+}
 
 export function locale() {
   return (typeof document === "undefined" ? "" : document.documentElement.lang) || "en"
@@ -68,17 +77,41 @@ function listsJoined(values) {
 }
 
 /**
- * @param {string} text
- * @param {Record<string, string | number>} [values]
+ * @param {string} template
+ * @param {Record<string, string | number>} values
  * @returns {string}
  */
-export function _(text, values = {}) {
-  const template = translations()[text] ?? text
+function interpolate(template, values) {
   return template.replace(/%\{(\w+)\}/g, (whole, name) => {
     if (!(name in values)) return whole
     const value = values[name]
     return typeof value === "number" ? digits(value) : String(value)
   })
+}
+
+/**
+ * @param {string} other
+ * @param {number} count
+ * @returns {string | undefined}
+ */
+function pluralTemplate(other, count) {
+  const entry = translations()[other]
+  if (typeof entry === "string") return entry
+  if (entry && typeof entry === "object") {
+    const category = new Intl.PluralRules(intlLocale()).select(count)
+    return entry[category] ?? entry.other
+  }
+  return undefined
+}
+
+/**
+ * @param {string} text
+ * @param {Record<string, string | number>} [values]
+ * @returns {string}
+ */
+export function _(text, values = {}) {
+  const entry = translations()[text]
+  return interpolate(typeof entry === "string" ? entry : text, values)
 }
 
 /**
@@ -89,8 +122,8 @@ export function _(text, values = {}) {
  * @returns {string}
  */
 export function n_(one, other, count, values = {}) {
-  const translated = translations()[other]
-  return _(translated ?? (count === 1 ? one : other), { ...values, count })
+  const template = pluralTemplate(other, count) ?? (count === 1 ? one : other)
+  return interpolate(template, { ...values, count })
 }
 
 export function forgetTranslations() {

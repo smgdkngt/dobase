@@ -8,30 +8,78 @@ de:
     "%{base} on day %{day}": "%{base} am %{day}. Tag"
     "%{client} for %{name}": "%{client} für %{name}"
     "%{completed_hidden_count} completed": "%{completed_hidden_count} erledigt"
-    "%{count} attachments": "%{count} Anhänge"
-    "%{count} cards": "%{count} Karten"
-    "%{count} days": "%{count} Tage"
-    "%{count} days before at %{time}": "%{count} Tage vorher um %{time}"
-    "%{count} emails archived.": "%{count} E-Mails archiviert."
-    "%{count} emails marked as read.": "%{count} E-Mails als gelesen markiert."
-    "%{count} emails marked as unread.": "%{count} E-Mails als ungelesen markiert."
-    "%{count} emails moved to %{folder}.": "%{count} E-Mails nach %{folder} verschoben."
-    "%{count} emails moved to Junk.": "%{count} E-Mails in Spam verschoben."
-    "%{count} emails moved to the inbox.": "%{count} E-Mails in den Posteingang verschoben."
-    "%{count} emails moved to trash.": "%{count} E-Mails in den Papierkorb verschoben."
-    "%{count} emails permanently deleted.": "%{count} E-Mails endgültig gelöscht."
-    "%{count} emails restored.": "%{count} E-Mails wiederhergestellt."
-    "%{count} files": "%{count} Dateien"
-    "%{count} folders": "%{count} Ordner"
-    "%{count} hours": "%{count} Stunden"
-    "%{count} messages": "%{count} Nachrichten"
-    "%{count} minutes": "%{count} Minuten"
-    "%{count} new notifications": "%{count} neue Benachrichtigungen"
-    "%{count} new notifications from %{app_name}": "%{count} neue Benachrichtigungen von %{app_name}"
-    "%{count} participants": "%{count} Teilnehmende"
-    "%{count} unread messages": "%{count} ungelesene Nachrichten"
-    "%{count} unread notifications": "%{count} ungelesene Benachrichtigungen"
-    "%{count} weeks": "%{count} Wochen"
+    "%{count} attachments":
+      one: "%{count} Anhang"
+      other: "%{count} Anhänge"
+    "%{count} cards":
+      one: "%{count} Karte"
+      other: "%{count} Karten"
+    "%{count} days":
+      one: "%{count} Tag"
+      other: "%{count} Tage"
+    "%{count} days before at %{time}":
+      one: "%{count} Tag vorher um %{time}"
+      other: "%{count} Tage vorher um %{time}"
+    "%{count} emails archived.":
+      one: "%{count} E-Mail archiviert."
+      other: "%{count} E-Mails archiviert."
+    "%{count} emails marked as read.":
+      one: "%{count} E-Mail als gelesen markiert."
+      other: "%{count} E-Mails als gelesen markiert."
+    "%{count} emails marked as unread.":
+      one: "%{count} E-Mail als ungelesen markiert."
+      other: "%{count} E-Mails als ungelesen markiert."
+    "%{count} emails moved to %{folder}.":
+      one: "%{count} E-Mail nach %{folder} verschoben."
+      other: "%{count} E-Mails nach %{folder} verschoben."
+    "%{count} emails moved to Junk.":
+      one: "%{count} E-Mail in Spam verschoben."
+      other: "%{count} E-Mails in Spam verschoben."
+    "%{count} emails moved to the inbox.":
+      one: "%{count} E-Mail in den Posteingang verschoben."
+      other: "%{count} E-Mails in den Posteingang verschoben."
+    "%{count} emails moved to trash.":
+      one: "%{count} E-Mail in den Papierkorb verschoben."
+      other: "%{count} E-Mails in den Papierkorb verschoben."
+    "%{count} emails permanently deleted.":
+      one: "%{count} E-Mail endgültig gelöscht."
+      other: "%{count} E-Mails endgültig gelöscht."
+    "%{count} emails restored.":
+      one: "%{count} E-Mail wiederhergestellt."
+      other: "%{count} E-Mails wiederhergestellt."
+    "%{count} files":
+      one: "%{count} Datei"
+      other: "%{count} Dateien"
+    "%{count} folders":
+      one: "%{count} Ordner"
+      other: "%{count} Ordner"
+    "%{count} hours":
+      one: "%{count} Stunde"
+      other: "%{count} Stunden"
+    "%{count} messages":
+      one: "%{count} Nachricht"
+      other: "%{count} Nachrichten"
+    "%{count} minutes":
+      one: "%{count} Minute"
+      other: "%{count} Minuten"
+    "%{count} new notifications":
+      one: "%{count} neue Benachrichtigung"
+      other: "%{count} neue Benachrichtigungen"
+    "%{count} new notifications from %{app_name}":
+      one: "%{count} neue Benachrichtigung von %{app_name}"
+      other: "%{count} neue Benachrichtigungen von %{app_name}"
+    "%{count} participants":
+      one: "%{count} teilnehmende Person"
+      other: "%{count} Teilnehmende"
+    "%{count} unread messages":
+      one: "%{count} ungelesene Nachricht"
+      other: "%{count} ungelesene Nachrichten"
+    "%{count} unread notifications":
+      one: "%{count} ungelesene Benachrichtigung"
+      other: "%{count} ungelesene Benachrichtigungen"
+    "%{count} weeks":
+      one: "%{count} Woche"
+      other: "%{count} Wochen"
     "%{date}, %{time}": "%{date}, %{time}"
     "%{description}, %{count} times": "%{description}, %{count}-mal"
     "%{description}, until %{date}": "%{description}, bis %{date}"
@@ -346,8 +394,12 @@ de:
     "Delete list": "Liste löschen"
     "Delete this attachment?": "Diesen Anhang löschen?"
     "Delete this card? This cannot be undone.": "Diese Karte löschen? Das kann nicht rückgängig gemacht werden."
-    "Delete this column and its %{count} cards (%{archived} archived)?": "Diese Spalte und ihre %{count} Karten (%{archived} archiviert) löschen?"
-    "Delete this column and its %{count} cards?": "Diese Spalte und ihre %{count} Karten löschen?"
+    "Delete this column and its %{count} cards (%{archived} archived)?":
+      one: "Diese Spalte und ihre %{count} Karte (%{archived} archiviert) löschen?"
+      other: "Diese Spalte und ihre %{count} Karten (%{archived} archiviert) löschen?"
+    "Delete this column and its %{count} cards?":
+      one: "Diese Spalte und ihre %{count} Karte löschen?"
+      other: "Diese Spalte und ihre %{count} Karten löschen?"
     "Delete this column?": "Diese Spalte löschen?"
     "Delete this comment?": "Diesen Kommentar löschen?"
     "Delete this draft?": "Diesen Entwurf löschen?"
@@ -355,8 +407,12 @@ de:
     "Delete this file?": "Diese Datei löschen?"
     "Delete this group? Tools will become ungrouped.": "Diese Gruppe löschen? Die Tools werden nicht mehr gruppiert."
     "Delete this item? This cannot be undone.": "Dieses Element löschen? Das kann nicht rückgängig gemacht werden."
-    "Delete this list and its %{count} items (%{completed} completed)?": "Diese Liste und ihre %{count} Elemente (%{completed} erledigt) löschen?"
-    "Delete this list and its %{count} items?": "Diese Liste und ihre %{count} Elemente löschen?"
+    "Delete this list and its %{count} items (%{completed} completed)?":
+      one: "Diese Liste und ihr %{count} Element (%{completed} erledigt) löschen?"
+      other: "Diese Liste und ihre %{count} Elemente (%{completed} erledigt) löschen?"
+    "Delete this list and its %{count} items?":
+      one: "Diese Liste und ihr %{count} Element löschen?"
+      other: "Diese Liste und ihre %{count} Elemente löschen?"
     "Delete this list?": "Diese Liste löschen?"
     "Delete this message?": "Diese Nachricht löschen?"
     "Delete “%{summary}”?": "„%{summary}“ löschen?"
