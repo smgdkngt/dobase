@@ -7,7 +7,7 @@ import { showFlashesOf } from "services/flash"
 import { _ } from "services/i18n"
 import {
   GAP, MIN_TILE, DESKS, DESK_NAME_LENGTH, NOTHING_OPEN,
-  deskAt, insert, remove, place, neighbour, cleaned, withChanges, parsed, deskOf, leaves, find, parentOf, deskName
+  deskAt, insert, remove, place, neighbour, cleaned, withChanges, parsed, deskOf, freeDesk, leaves, find, parentOf, deskName
 } from "services/workspace_layout"
 
 // The tiling workspace: every tool you open is a tile, and the tiles arrange
@@ -55,7 +55,7 @@ const KEEP_AFTER_MS = 600
 const IN_THIS_PAGE = [ "todos", "boards", "chat", "docs", "calendar", "files", "mail" ]
 
 export default class extends Controller {
-  static targets = ["tiles", "tileTemplate", "empty", "desks", "deskCard", "title", "menu", "hint", "status"]
+  static targets = ["tiles", "tileTemplate", "empty", "desks", "newDesk", "deskCard", "title", "menu", "hint", "status"]
   static values = { userId: Number, appName: String, start: String, kept: Object, revision: Number }
 
   connect() {
@@ -555,18 +555,18 @@ export default class extends Controller {
     handle.addEventListener("pointercancel", stop, { signal: dragging.signal })
   }
 
-  // The desktops that have something on them, the one you are on, and the first
-  // free one. Each shows the tools that are on it by their icons from the menu: the
+  // The desktops that have something on them and the one you are on. Each shows
+  // the tools that are on it by their icons from the menu: the
   // one you'd land on lit, a dot on one with something new in it that you aren't
   // looking at, a green one on a room with a call on. The buttons stay the same
   // ones, so the keyboard can stay on one, and one is only drawn again when what it
   // shows changed (a dot that just arrived makes a small entrance, once).
   drawBar() {
     const used = Object.keys(this.state.desks).filter((number) => this.state.desks[number].tree).map(Number)
-    const free = DESKS.find((number) => !used.includes(number))
     // (one that was given a name stays in the bar while it is empty)
     const named = Object.keys(this.state.desks).filter((number) => this.state.desks[number].name).map(Number)
-    const shown = new Set([ ...used, ...named, this.state.desk, free ])
+    const shown = new Set([ ...used, ...named, this.state.desk ])
+    const free = freeDesk(this.state)
 
     if (this.desksTarget.children.length !== DESKS.length) {
       this.desksTarget.replaceChildren(...DESKS.map((number) => {
@@ -586,15 +586,16 @@ export default class extends Controller {
       const calls = tiles.filter((tile) => tile.inCall).map((tile) => tile.name)
       const name = this.state.desks[number]?.name || ""
       const called = name ? _("Desktop %{number}, %{name}", { number, name }) : _("Desktop %{number}", { number })
+      const list = tiles.map((tile) => tile.name).join(_(", "))
 
       button.hidden = !shown.has(number)
       button.setAttribute("aria-current", number === this.state.desk)
       button.toggleAttribute("data-empty", tiles.length === 0)
       button.toggleAttribute("data-unread", news.length > 0)
       button.setAttribute("aria-label", [
-        tiles.length ? `${called}: ${tiles.map((tile) => tile.name).join(", ")}` : `${called}, nothing open`,
-        news.length ? `New in ${news.join(", ")}` : null,
-        calls.length ? `A call is on in ${calls.join(", ")}` : null
+        tiles.length ? _("%{desktop}: %{names}", { desktop: called, names: list }) : _("%{desktop}, nothing open", { desktop: called }),
+        news.length ? _("New in %{names}", { names: news.join(_(", ")) }) : null,
+        calls.length ? _("A call is on in %{names}", { names: calls.join(_(", ")) }) : null
       ].filter(Boolean).join(". "))
 
       const drawn = JSON.stringify([ name, ...tiles.map((tile) => [ tile.id, tile.toolId, tile.unread, tile.inCall, tile.focused ]) ])
@@ -606,13 +607,14 @@ export default class extends Controller {
         ...tiles.slice(0, TOOLS_IN_THE_BAR).map((tile) => this.markOf(tile)), ...(more > 0 ? [ `+${more}` ] : []))
     })
 
+    if (this.hasNewDeskTarget) this.newDeskTarget.hidden = !free
     this.markMenu()
 
     // A tile says its own name; among several, the bar says which one you are on
     const desk = this.desk
     const count = leaves(desk.tree).length
     const title = this.state.tiles[desk.focus]?.title || ""
-    this.titleTarget.textContent = count < 2 ? "" : desk.alone ? `${title} · ${count - 1} more behind it` : title
+    this.titleTarget.textContent = count < 2 ? "" : desk.alone ? _("%{title} · %{count} more behind it", { title, count: count - 1 }) : title
     document.title = title ? `${title} - ${this.appNameValue}` : this.appNameValue
   }
 
@@ -817,6 +819,14 @@ export default class extends Controller {
   deskClicked(event) {
     this.hideDeskCard()
     this.goToDesk(event.currentTarget.dataset.desk, { keyboardStays: event.detail === 0 })
+  }
+
+  newDesk() {
+    this.hideDeskCard()
+    const number = freeDesk(this.state)
+    if (!number || number === this.state.desk) return
+
+    this.goToDesk(number)
   }
 
   // A tool's icon as the menu draws it
@@ -1085,6 +1095,9 @@ export default class extends Controller {
         break
       case "desk":
         command.shift ? this.takeToDesk(command.desk) : this.goToDesk(command.desk)
+        break
+      case "newDesk":
+        this.newDesk()
         break
       case "close":
         if (this.desk.focus) this.close(this.desk.focus)

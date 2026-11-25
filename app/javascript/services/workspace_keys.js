@@ -61,6 +61,7 @@ const COMMANDS = {
   Equal: "grow", NumpadAdd: "grow",
   Minus: "shrink", NumpadSubtract: "shrink",
   KeyM: "menu",
+  KeyN: "newDesk",
   KeyR: "reload"
 }
 // Plus and minus are not where the American keyboard has them everywhere

@@ -695,6 +695,8 @@ pt:
     "New Password": "Nova senha"
     "New access token": "Novo token de acesso"
     "New activity": "Nova atividade"
+    "New desktop": "Nova área de trabalho"
+    "New desktop (%{key})": "Nova área de trabalho (%{key})"
     "New document": "Novo documento"
     "New event": "Novo evento"
     "New event (n)": "Novo evento (n)"

@@ -695,6 +695,8 @@ nl:
     "New Password": "Nieuw wachtwoord"
     "New access token": "Nieuw toegangstoken"
     "New activity": "Nieuwe activiteit"
+    "New desktop": "Nieuw bureaublad"
+    "New desktop (%{key})": "Nieuw bureaublad (%{key})"
     "New document": "Nieuw document"
     "New event": "Nieuwe afspraak"
     "New event (n)": "Nieuwe afspraak (n)"
