@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-# Chrome 158 refuses Storage.clearDataForOrigin for origin "*", which Capybara 3.40 sends on every reset
 module ChromeStorageReset
   private
 
