@@ -1,0 +1,222 @@
+fi:
+  activerecord:
+    attributes:
+      mails/account:
+        encrypted_password: "Salasana"
+        imap_host: "IMAP-palvelin"
+        smtp_host: "SMTP-palvelin"
+      calendars/account:
+        caldav_url: "CalDAV-URL"
+        encrypted_password: "Salasana"
+      calendars/event:
+        summary: "Otsikko"
+        starts_at: "Alkamisaika"
+        start_time: "Alkamisaika"
+        ends_at: "Päättymisaika"
+        end_time: "Päättymisaika"
+    errors:
+      messages:
+        record_invalid: "Validointi epäonnistui: %{errors}"
+        restrict_dependent_destroy:
+          has_one: "Kohdetta ei voi poistaa, koska siitä riippuvainen %{record} on olemassa"
+          has_many: "Kohdetta ei voi poistaa, koska siitä riippuvaisia kohteita (%{record}) on olemassa"
+  attributes:
+    assigned_user: "Vastuuhenkilö"
+    avatar: "Profiilikuva"
+    body: "Sisältö"
+    calendar: "Kalenteri"
+    caldav_url: "CalDAV-URL"
+    color: "Väri"
+    email: "Sähköposti"
+    email_address: "Sähköpostiosoite"
+    emoji: "Emoji"
+    encrypted_password: "Salasana"
+    ends_at: "Päättymisaika"
+    expires_at: "Vanhentumisaika"
+    file: "Tiedosto"
+    filename: "Tiedostonimi"
+    files: "Tiedostot"
+    first_name: "Etunimi"
+    icon: "Kuvake"
+    imap_host: "IMAP-palvelin"
+    kind: "Tyyppi"
+    last_name: "Sukunimi"
+    locale: "Kieli"
+    name: "Nimi"
+    password: "Salasana"
+    password_confirmation: "Salasanan vahvistus"
+    permission: "Käyttöoikeus"
+    recurrence_rule: "Toistuvuus"
+    redirect_uris: "Uudelleenohjausosoitteet"
+    reminders: "Muistutukset"
+    reply_to: "Vastausosoite"
+    role: "Rooli"
+    slug: "Tunnus"
+    smtp_host: "SMTP-palvelin"
+    starts_at: "Alkamisaika"
+    state: "Tila"
+    status: "Tila"
+    summary: "Otsikko"
+    timezone: "Aikavyöhyke"
+    title: "Otsikko"
+    tool_id: "Työkalu"
+    user: "Käyttäjä"
+    user_id: "Käyttäjä"
+    username: "Käyttäjätunnus"
+  errors:
+    format: "%{attribute} %{message}"
+    messages:
+      accepted: "on hyväksyttävä"
+      blank: "ei voi olla tyhjä"
+      confirmation: "ei vastaa kenttää %{attribute}"
+      empty: "ei voi olla tyhjä"
+      equal_to: "on oltava yhtä suuri kuin %{count}"
+      even: "on oltava parillinen"
+      exclusion: "on varattu"
+      greater_than: "on oltava suurempi kuin %{count}"
+      greater_than_or_equal_to: "on oltava suurempi tai yhtä suuri kuin %{count}"
+      in: "on oltava välillä %{count}"
+      inclusion: "ei kuulu luetteloon"
+      invalid: "on virheellinen"
+      less_than: "on oltava pienempi kuin %{count}"
+      less_than_or_equal_to: "on oltava pienempi tai yhtä suuri kuin %{count}"
+      model_invalid: "Validointi epäonnistui: %{errors}"
+      not_a_number: "ei ole luku"
+      not_an_integer: "on oltava kokonaisluku"
+      odd: "on oltava pariton"
+      other_than: "on oltava muu kuin %{count}"
+      present: "on oltava tyhjä"
+      required: "vaaditaan"
+      taken: "on jo käytössä"
+      too_long:
+        one: "on liian pitkä (enintään 1 merkki)"
+        other: "on liian pitkä (enintään %{count} merkkiä)"
+      too_short:
+        one: "on liian lyhyt (vähintään 1 merkki)"
+        other: "on liian lyhyt (vähintään %{count} merkkiä)"
+      wrong_length:
+        one: "on väärän pituinen (on oltava 1 merkki)"
+        other: "on väärän pituinen (on oltava %{count} merkkiä)"
+      password_too_long: "on liian pitkä"
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        one: "noin tunti"
+        other: "noin %{count} tuntia"
+      about_x_months:
+        one: "noin kuukausi"
+        other: "noin %{count} kuukautta"
+      about_x_years:
+        one: "noin vuosi"
+        other: "noin %{count} vuotta"
+      almost_x_years:
+        one: "lähes vuosi"
+        other: "lähes %{count} vuotta"
+      half_a_minute: "puoli minuuttia"
+      less_than_x_minutes:
+        one: "alle minuutti"
+        other: "alle %{count} minuuttia"
+      less_than_x_seconds:
+        one: "alle sekunti"
+        other: "alle %{count} sekuntia"
+      over_x_years:
+        one: "yli vuosi"
+        other: "yli %{count} vuotta"
+      x_days:
+        one: "1 päivä"
+        other: "%{count} päivää"
+      x_minutes:
+        one: "1 minuutti"
+        other: "%{count} minuuttia"
+      x_months:
+        one: "1 kuukausi"
+        other: "%{count} kuukautta"
+      x_seconds:
+        one: "1 sekunti"
+        other: "%{count} sekuntia"
+      x_years:
+        one: "1 vuosi"
+        other: "%{count} vuotta"
+    prompts:
+      second: "Sekunti"
+      minute: "Minuutti"
+      hour: "Tunti"
+      day: "Päivä"
+      month: "Kuukausi"
+      year: "Vuosi"
+  translation:
+    direction: ltr
+  date:
+    formats:
+      default: "%-d.%-m.%Y"
+      short: "%-d. %b"
+      long: "%-d. %Bta %Y"
+      day: "%-d. %b"
+      day_and_year: "%-d. %b %Y"
+      day_of_month: "%-d"
+      weekday: "%A"
+      weekday_short: "%a"
+      weekday_with_date: "%a"
+      month_and_year: "%B %Y"
+      week_start: "%b"
+      week_start_with_year: "%b %Y"
+      week_end: "%b %Y"
+      long_day: "%A %-d. %Bta %Y"
+    day_names: [sunnuntai, maanantai, tiistai, keskiviikko, torstai, perjantai, lauantai]
+    abbr_day_names: [su, ma, ti, ke, to, pe, la]
+    month_names: [~, tammikuu, helmikuu, maaliskuu, huhtikuu, toukokuu, kesäkuu, heinäkuu, elokuu, syyskuu, lokakuu, marraskuu, joulukuu]
+    abbr_month_names: [~, tammik., helmik., maalisk., huhtik., toukok., kesäk., heinäk., elok., syysk., lokak., marrask., jouluk.]
+    order:
+      - :day
+      - :month
+      - :year
+  time:
+    formats:
+      default: "%-d.%-m.%Y %H:%M"
+      short: "%-d. %b %H:%M"
+      long: "%-d. %Bta %Y %H:%M"
+      clock: "%H:%M"
+      clock_without_period: "%H:%M"
+      hour: "%H:00"
+    am: "ap."
+    pm: "ip."
+  number:
+    format:
+      delimiter: " "
+      separator: ","
+      precision: 3
+      significant: false
+      strip_insignificant_zeros: false
+    human:
+      format:
+        delimiter: ""
+        precision: 3
+        significant: true
+        strip_insignificant_zeros: true
+      storage_units:
+        format: "%n %u"
+        units:
+          byte:
+            one: "t"
+            other: "t"
+          kb: "kt"
+          mb: "Mt"
+          gb: "Gt"
+          tb: "Tt"
+          pb: "Pt"
+          eb: "Et"
+    percentage:
+      format:
+        format: "%n %"
+  helpers:
+    select:
+      prompt: "Valitse"
+    submit:
+      create: "Luo %{model}"
+      submit: "Tallenna %{model}"
+      update: "Päivitä %{model}"
+  support:
+    array:
+      words_connector: ", "
+      two_words_connector: " ja "
+      last_word_connector: " ja "

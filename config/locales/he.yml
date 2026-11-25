@@ -1,0 +1,238 @@
+he:
+  activerecord:
+    attributes:
+      mails/account:
+        encrypted_password: "סיסמה"
+        imap_host: "שרת IMAP"
+        smtp_host: "שרת SMTP"
+      calendars/account:
+        caldav_url: "כתובת CalDAV"
+        encrypted_password: "סיסמה"
+      calendars/event:
+        summary: "כותרת"
+        starts_at: "התחלה"
+        start_time: "התחלה"
+        ends_at: "סיום"
+        end_time: "סיום"
+    errors:
+      messages:
+        record_invalid: "האימות נכשל: %{errors}"
+        restrict_dependent_destroy:
+          has_one: "לא ניתן למחוק את הרשומה מאחר שקיים %{record} תלוי"
+          has_many: "לא ניתן למחוק את הרשומה מאחר שקיימים %{record} תלויים"
+  attributes:
+    assigned_user: "משתמש מוקצה"
+    avatar: "תמונת פרופיל"
+    body: "תוכן"
+    calendar: "יומן"
+    caldav_url: "כתובת CalDAV"
+    color: "צבע"
+    email: "אימייל"
+    email_address: "כתובת אימייל"
+    emoji: "אימוג'י"
+    encrypted_password: "סיסמה"
+    ends_at: "סיום"
+    expires_at: "תוקף"
+    file: "קובץ"
+    filename: "שם קובץ"
+    files: "קבצים"
+    first_name: "שם פרטי"
+    icon: "סמל"
+    imap_host: "שרת IMAP"
+    kind: "סוג"
+    last_name: "שם משפחה"
+    locale: "שפה"
+    name: "שם"
+    password: "סיסמה"
+    password_confirmation: "אימות סיסמה"
+    permission: "הרשאה"
+    recurrence_rule: "חזרה"
+    redirect_uris: "כתובות הפניה"
+    reminders: "תזכורות"
+    reply_to: "כתובת לתשובה"
+    role: "תפקיד"
+    slug: "מזהה"
+    smtp_host: "שרת SMTP"
+    starts_at: "התחלה"
+    state: "מצב"
+    status: "סטטוס"
+    summary: "כותרת"
+    timezone: "אזור זמן"
+    title: "כותרת"
+    tool_id: "כלי"
+    user: "משתמש"
+    user_id: "משתמש"
+    username: "שם משתמש"
+  errors:
+    format: "%{attribute} %{message}"
+    messages:
+      accepted: "חייב להיות מאושר"
+      blank: "לא יכול להיות ריק"
+      confirmation: "לא תואם ל-%{attribute}"
+      empty: "לא יכול להיות ריק"
+      equal_to: "חייב להיות שווה ל-%{count}"
+      even: "חייב להיות זוגי"
+      exclusion: "שמור במערכת"
+      greater_than: "חייב להיות גדול מ-%{count}"
+      greater_than_or_equal_to: "חייב להיות גדול או שווה ל-%{count}"
+      in: "חייב להיות בטווח %{count}"
+      inclusion: "אינו כלול ברשימה"
+      invalid: "אינו תקין"
+      less_than: "חייב להיות קטן מ-%{count}"
+      less_than_or_equal_to: "חייב להיות קטן או שווה ל-%{count}"
+      model_invalid: "האימות נכשל: %{errors}"
+      not_a_number: "אינו מספר"
+      not_an_integer: "חייב להיות מספר שלם"
+      odd: "חייב להיות אי-זוגי"
+      other_than: "חייב להיות שונה מ-%{count}"
+      present: "חייב להיות ריק"
+      required: "חייב להיות קיים"
+      taken: "כבר בשימוש"
+      too_long:
+        one: "ארוך מדי (תו אחד לכל היותר)"
+        two: "ארוך מדי (שני תווים לכל היותר)"
+        other: "ארוך מדי (%{count} תווים לכל היותר)"
+      too_short:
+        one: "קצר מדי (תו אחד לפחות)"
+        two: "קצר מדי (שני תווים לפחות)"
+        other: "קצר מדי (%{count} תווים לפחות)"
+      wrong_length:
+        one: "באורך שגוי (צריך להיות תו אחד)"
+        two: "באורך שגוי (צריך להיות שני תווים)"
+        other: "באורך שגוי (צריך להיות %{count} תווים)"
+      password_too_long: "ארוכה מדי"
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        one: "כשעה"
+        two: "כשעתיים"
+        other: "כ-%{count} שעות"
+      about_x_months:
+        one: "כחודש"
+        two: "כחודשיים"
+        other: "כ-%{count} חודשים"
+      about_x_years:
+        one: "כשנה"
+        two: "כשנתיים"
+        other: "כ-%{count} שנים"
+      almost_x_years:
+        one: "כמעט שנה"
+        two: "כמעט שנתיים"
+        other: "כמעט %{count} שנים"
+      half_a_minute: "חצי דקה"
+      less_than_x_minutes:
+        one: "פחות מדקה"
+        two: "פחות משתי דקות"
+        other: "פחות מ-%{count} דקות"
+      less_than_x_seconds:
+        one: "פחות משנייה"
+        two: "פחות משתי שניות"
+        other: "פחות מ-%{count} שניות"
+      over_x_years:
+        one: "יותר משנה"
+        two: "יותר משנתיים"
+        other: "יותר מ-%{count} שנים"
+      x_days:
+        one: "יום אחד"
+        two: "יומיים"
+        other: "%{count} ימים"
+      x_minutes:
+        one: "דקה אחת"
+        two: "שתי דקות"
+        other: "%{count} דקות"
+      x_months:
+        one: "חודש אחד"
+        two: "חודשיים"
+        other: "%{count} חודשים"
+      x_seconds:
+        one: "שנייה אחת"
+        two: "שתי שניות"
+        other: "%{count} שניות"
+      x_years:
+        one: "שנה אחת"
+        two: "שנתיים"
+        other: "%{count} שנים"
+    prompts:
+      second: "שנייה"
+      minute: "דקה"
+      hour: "שעה"
+      day: "יום"
+      month: "חודש"
+      year: "שנה"
+  translation:
+    direction: rtl
+  date:
+    formats:
+      default: "%d.%m.%Y"
+      short: "%-d ב%b"
+      long: "%-d ב%B %Y"
+      day: "%-d ב%b"
+      day_and_year: "%-d ב%b %Y"
+      day_of_month: "%-d"
+      weekday: "%A"
+      weekday_short: "%a"
+      weekday_with_date: "%a"
+      month_and_year: "%B %Y"
+      week_start: "%b"
+      week_start_with_year: "%b %Y"
+      week_end: "%b %Y"
+      long_day: "%A, %-d ב%B %Y"
+    day_names: ["יום ראשון", "יום שני", "יום שלישי", "יום רביעי", "יום חמישי", "יום שישי", "שבת"]
+    abbr_day_names: ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"]
+    month_names: [~, "ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
+    abbr_month_names: [~, "ינו׳", "פבר׳", "מרץ", "אפר׳", "מאי", "יוני", "יולי", "אוג׳", "ספט׳", "אוק׳", "נוב׳", "דצמ׳"]
+    order:
+      - :day
+      - :month
+      - :year
+  time:
+    formats:
+      default: "%d.%m.%Y %H:%M"
+      short: "%-d ב%b %H:%M"
+      long: "%-d ב%B %Y %H:%M"
+      clock: "%H:%M"
+      clock_without_period: "%H:%M"
+      hour: "%H:00"
+    am: "לפנה״צ"
+    pm: "אחה״צ"
+  number:
+    format:
+      delimiter: ","
+      separator: "."
+      precision: 3
+      significant: false
+      strip_insignificant_zeros: false
+    human:
+      format:
+        delimiter: ""
+        precision: 3
+        significant: true
+        strip_insignificant_zeros: true
+      storage_units:
+        format: "%n %u"
+        units:
+          byte:
+            one: "B"
+            two: "B"
+            other: "B"
+          kb: "KB"
+          mb: "MB"
+          gb: "GB"
+          tb: "TB"
+          pb: "PB"
+          eb: "EB"
+    percentage:
+      format:
+        format: "%n%"
+  helpers:
+    select:
+      prompt: "יש לבחור"
+    submit:
+      create: "יצירת %{model}"
+      submit: "שמירת %{model}"
+      update: "עדכון %{model}"
+  support:
+    array:
+      words_connector: ", "
+      two_words_connector: " ו"
+      last_word_connector: " ו"

@@ -1,0 +1,286 @@
+ar:
+  activerecord:
+    attributes:
+      mails/account:
+        encrypted_password: "كلمة المرور"
+        imap_host: "خادم IMAP"
+        smtp_host: "خادم SMTP"
+      calendars/account:
+        caldav_url: "رابط CalDAV"
+        encrypted_password: "كلمة المرور"
+      calendars/event:
+        summary: "العنوان"
+        starts_at: "البداية"
+        start_time: "البداية"
+        ends_at: "النهاية"
+        end_time: "النهاية"
+    errors:
+      messages:
+        record_invalid: "فشل التحقق من الصحة: %{errors}"
+        restrict_dependent_destroy:
+          has_one: "لا يمكن حذف السجل لوجود %{record} مرتبط به"
+          has_many: "لا يمكن حذف السجل لوجود %{record} مرتبطة به"
+  attributes:
+    assigned_user: "المستخدم المعيّن"
+    avatar: "الصورة الشخصية"
+    body: "المحتوى"
+    calendar: "التقويم"
+    caldav_url: "رابط CalDAV"
+    color: "اللون"
+    email: "البريد الإلكتروني"
+    email_address: "عنوان البريد الإلكتروني"
+    emoji: "رمز تعبيري"
+    encrypted_password: "كلمة المرور"
+    ends_at: "النهاية"
+    expires_at: "تاريخ الانتهاء"
+    file: "الملف"
+    filename: "اسم الملف"
+    files: "الملفات"
+    first_name: "الاسم الأول"
+    icon: "الأيقونة"
+    imap_host: "خادم IMAP"
+    kind: "النوع"
+    last_name: "اسم العائلة"
+    locale: "اللغة"
+    name: "الاسم"
+    password: "كلمة المرور"
+    password_confirmation: "تأكيد كلمة المرور"
+    permission: "الصلاحية"
+    recurrence_rule: "التكرار"
+    redirect_uris: "روابط إعادة التوجيه"
+    reminders: "التذكيرات"
+    reply_to: "الرد إلى"
+    role: "الدور"
+    slug: "المعرّف"
+    smtp_host: "خادم SMTP"
+    starts_at: "البداية"
+    state: "الحالة"
+    status: "الحالة"
+    summary: "العنوان"
+    timezone: "المنطقة الزمنية"
+    title: "العنوان"
+    tool_id: "الأداة"
+    user: "المستخدم"
+    user_id: "المستخدم"
+    username: "اسم المستخدم"
+  errors:
+    format: "%{attribute} %{message}"
+    messages:
+      accepted: "يجب قبوله"
+      blank: "لا يمكن أن يكون فارغاً"
+      confirmation: "لا يطابق %{attribute}"
+      empty: "لا يمكن أن يكون فارغاً"
+      equal_to: "يجب أن يساوي %{count}"
+      even: "يجب أن يكون عدداً زوجياً"
+      exclusion: "محجوز"
+      greater_than: "يجب أن يكون أكبر من %{count}"
+      greater_than_or_equal_to: "يجب أن يكون أكبر من أو يساوي %{count}"
+      in: "يجب أن يكون ضمن %{count}"
+      inclusion: "غير مدرج في القائمة"
+      invalid: "غير صالح"
+      less_than: "يجب أن يكون أصغر من %{count}"
+      less_than_or_equal_to: "يجب أن يكون أصغر من أو يساوي %{count}"
+      model_invalid: "فشل التحقق من الصحة: %{errors}"
+      not_a_number: "ليس رقماً"
+      not_an_integer: "يجب أن يكون عدداً صحيحاً"
+      odd: "يجب أن يكون عدداً فردياً"
+      other_than: "يجب أن يختلف عن %{count}"
+      present: "يجب أن يكون فارغاً"
+      required: "مطلوب"
+      taken: "مستخدم بالفعل"
+      too_long:
+        zero: "طويل جداً (الحد الأقصى %{count} أحرف)"
+        one: "طويل جداً (الحد الأقصى %{count} حرف)"
+        two: "طويل جداً (الحد الأقصى %{count} حرف)"
+        few: "طويل جداً (الحد الأقصى %{count} أحرف)"
+        many: "طويل جداً (الحد الأقصى %{count} حرفاً)"
+        other: "طويل جداً (الحد الأقصى %{count} حرف)"
+      too_short:
+        zero: "قصير جداً (الحد الأدنى %{count} أحرف)"
+        one: "قصير جداً (الحد الأدنى %{count} حرف)"
+        two: "قصير جداً (الحد الأدنى %{count} حرف)"
+        few: "قصير جداً (الحد الأدنى %{count} أحرف)"
+        many: "قصير جداً (الحد الأدنى %{count} حرفاً)"
+        other: "قصير جداً (الحد الأدنى %{count} حرف)"
+      wrong_length:
+        zero: "بطول غير صحيح (يجب أن يكون %{count} أحرف)"
+        one: "بطول غير صحيح (يجب أن يكون %{count} حرف)"
+        two: "بطول غير صحيح (يجب أن يكون %{count} حرف)"
+        few: "بطول غير صحيح (يجب أن يكون %{count} أحرف)"
+        many: "بطول غير صحيح (يجب أن يكون %{count} حرفاً)"
+        other: "بطول غير صحيح (يجب أن يكون %{count} حرف)"
+      password_too_long: "طويل جداً"
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        zero: "حوالي %{count} ساعات"
+        one: "حوالي %{count} ساعة"
+        two: "حوالي %{count} ساعة"
+        few: "حوالي %{count} ساعات"
+        many: "حوالي %{count} ساعة"
+        other: "حوالي %{count} ساعة"
+      about_x_months:
+        zero: "حوالي %{count} أشهر"
+        one: "حوالي %{count} شهر"
+        two: "حوالي %{count} شهر"
+        few: "حوالي %{count} أشهر"
+        many: "حوالي %{count} شهراً"
+        other: "حوالي %{count} شهر"
+      about_x_years:
+        zero: "حوالي %{count} سنوات"
+        one: "حوالي %{count} سنة"
+        two: "حوالي %{count} سنة"
+        few: "حوالي %{count} سنوات"
+        many: "حوالي %{count} سنة"
+        other: "حوالي %{count} سنة"
+      almost_x_years:
+        zero: "ما يقارب %{count} سنوات"
+        one: "ما يقارب %{count} سنة"
+        two: "ما يقارب %{count} سنة"
+        few: "ما يقارب %{count} سنوات"
+        many: "ما يقارب %{count} سنة"
+        other: "ما يقارب %{count} سنة"
+      half_a_minute: "نصف دقيقة"
+      less_than_x_minutes:
+        zero: "أقل من %{count} دقائق"
+        one: "أقل من %{count} دقيقة"
+        two: "أقل من %{count} دقيقة"
+        few: "أقل من %{count} دقائق"
+        many: "أقل من %{count} دقيقة"
+        other: "أقل من %{count} دقيقة"
+      less_than_x_seconds:
+        zero: "أقل من %{count} ثوانٍ"
+        one: "أقل من %{count} ثانية"
+        two: "أقل من %{count} ثانية"
+        few: "أقل من %{count} ثوانٍ"
+        many: "أقل من %{count} ثانية"
+        other: "أقل من %{count} ثانية"
+      over_x_years:
+        zero: "أكثر من %{count} سنوات"
+        one: "أكثر من %{count} سنة"
+        two: "أكثر من %{count} سنة"
+        few: "أكثر من %{count} سنوات"
+        many: "أكثر من %{count} سنة"
+        other: "أكثر من %{count} سنة"
+      x_days:
+        zero: "%{count} أيام"
+        one: "%{count} يوم"
+        two: "%{count} يوم"
+        few: "%{count} أيام"
+        many: "%{count} يوماً"
+        other: "%{count} يوم"
+      x_minutes:
+        zero: "%{count} دقائق"
+        one: "%{count} دقيقة"
+        two: "%{count} دقيقة"
+        few: "%{count} دقائق"
+        many: "%{count} دقيقة"
+        other: "%{count} دقيقة"
+      x_months:
+        zero: "%{count} أشهر"
+        one: "%{count} شهر"
+        two: "%{count} شهر"
+        few: "%{count} أشهر"
+        many: "%{count} شهراً"
+        other: "%{count} شهر"
+      x_seconds:
+        zero: "%{count} ثوانٍ"
+        one: "%{count} ثانية"
+        two: "%{count} ثانية"
+        few: "%{count} ثوانٍ"
+        many: "%{count} ثانية"
+        other: "%{count} ثانية"
+      x_years:
+        zero: "%{count} سنوات"
+        one: "%{count} سنة"
+        two: "%{count} سنة"
+        few: "%{count} سنوات"
+        many: "%{count} سنة"
+        other: "%{count} سنة"
+    prompts:
+      second: "ثانية"
+      minute: "دقيقة"
+      hour: "ساعة"
+      day: "يوم"
+      month: "شهر"
+      year: "سنة"
+  translation:
+    direction: rtl
+  date:
+    formats:
+      default: "%d/%m/%Y"
+      short: "%-d %b"
+      long: "%-d %B %Y"
+      day: "%-d %B"
+      day_and_year: "%-d %B %Y"
+      day_of_month: "%-d"
+      weekday: "%A"
+      weekday_short: "%a"
+      weekday_with_date: "%a"
+      month_and_year: "%B %Y"
+      week_start: "%b"
+      week_start_with_year: "%b %Y"
+      week_end: "%b %Y"
+      long_day: "%A، %-d %B %Y"
+    day_names: ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"]
+    abbr_day_names: ["أحد", "إثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة", "سبت"]
+    month_names: [~, "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+    abbr_month_names: [~, "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+    order:
+      - :day
+      - :month
+      - :year
+  time:
+    formats:
+      default: "%d/%m/%Y %H:%M"
+      short: "%-d %b %H:%M"
+      long: "%-d %B %Y %H:%M"
+      clock: "%H:%M"
+      clock_without_period: "%H:%M"
+      hour: "%H:00"
+    am: "ص"
+    pm: "م"
+  number:
+    format:
+      delimiter: ","
+      separator: "."
+      precision: 3
+      significant: false
+      strip_insignificant_zeros: false
+    human:
+      format:
+        delimiter: ""
+        precision: 3
+        significant: true
+        strip_insignificant_zeros: true
+      storage_units:
+        format: "%n %u"
+        units:
+          byte:
+            zero: "بايت"
+            one: "بايت"
+            two: "بايت"
+            few: "بايت"
+            many: "بايت"
+            other: "بايت"
+          kb: "كيلوبايت"
+          mb: "ميجابايت"
+          gb: "جيجابايت"
+          tb: "تيرابايت"
+          pb: "بيتابايت"
+          eb: "إكسابايت"
+    percentage:
+      format:
+        format: "%n%"
+  helpers:
+    select:
+      prompt: "اختر"
+    submit:
+      create: "إنشاء %{model}"
+      submit: "حفظ %{model}"
+      update: "تحديث %{model}"
+  support:
+    array:
+      words_connector: "، "
+      two_words_connector: " و"
+      last_word_connector: "، و"

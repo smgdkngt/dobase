@@ -1,0 +1,254 @@
+pl:
+  activerecord:
+    attributes:
+      mails/account:
+        encrypted_password: "Hasło"
+        imap_host: "Serwer IMAP"
+        smtp_host: "Serwer SMTP"
+      calendars/account:
+        caldav_url: "Adres URL CalDAV"
+        encrypted_password: "Hasło"
+      calendars/event:
+        summary: "Tytuł"
+        starts_at: "Początek"
+        start_time: "Początek"
+        ends_at: "Koniec"
+        end_time: "Koniec"
+    errors:
+      messages:
+        record_invalid: "Walidacja nie powiodła się: %{errors}"
+        restrict_dependent_destroy:
+          has_one: "Nie można usunąć rekordu, ponieważ istnieje zależny obiekt %{record}"
+          has_many: "Nie można usunąć rekordu, ponieważ istnieją zależne obiekty %{record}"
+  attributes:
+    assigned_user: "Przypisany użytkownik"
+    avatar: "Zdjęcie profilowe"
+    body: "Treść"
+    calendar: "Kalendarz"
+    caldav_url: "Adres URL CalDAV"
+    color: "Kolor"
+    email: "E-mail"
+    email_address: "Adres e-mail"
+    emoji: "Emoji"
+    encrypted_password: "Hasło"
+    ends_at: "Koniec"
+    expires_at: "Data wygaśnięcia"
+    file: "Plik"
+    filename: "Nazwa pliku"
+    files: "Pliki"
+    first_name: "Imię"
+    icon: "Ikona"
+    imap_host: "Serwer IMAP"
+    kind: "Typ"
+    last_name: "Nazwisko"
+    locale: "Język"
+    name: "Nazwa"
+    password: "Hasło"
+    password_confirmation: "Potwierdzenie hasła"
+    permission: "Uprawnienie"
+    recurrence_rule: "Powtarzanie"
+    redirect_uris: "Adresy przekierowania"
+    reminders: "Przypomnienia"
+    reply_to: "Odpowiedz do"
+    role: "Rola"
+    slug: "Identyfikator"
+    smtp_host: "Serwer SMTP"
+    starts_at: "Początek"
+    state: "Stan"
+    status: "Status"
+    summary: "Tytuł"
+    timezone: "Strefa czasowa"
+    title: "Tytuł"
+    tool_id: "Narzędzie"
+    user: "Użytkownik"
+    user_id: "Użytkownik"
+    username: "Nazwa użytkownika"
+  errors:
+    format: "%{attribute} %{message}"
+    messages:
+      accepted: "musi zostać zaakceptowane"
+      blank: "nie może być puste"
+      confirmation: "nie zgadza się z polem %{attribute}"
+      empty: "nie może być puste"
+      equal_to: "musi być równe %{count}"
+      even: "musi być parzyste"
+      exclusion: "jest zarezerwowane"
+      greater_than: "musi być większe od %{count}"
+      greater_than_or_equal_to: "musi być większe lub równe %{count}"
+      in: "musi mieścić się w %{count}"
+      inclusion: "nie znajduje się na liście dopuszczalnych wartości"
+      invalid: "jest nieprawidłowe"
+      less_than: "musi być mniejsze od %{count}"
+      less_than_or_equal_to: "musi być mniejsze lub równe %{count}"
+      model_invalid: "Walidacja nie powiodła się: %{errors}"
+      not_a_number: "nie jest liczbą"
+      not_an_integer: "musi być liczbą całkowitą"
+      odd: "musi być nieparzyste"
+      other_than: "musi być inne niż %{count}"
+      present: "musi być puste"
+      required: "musi istnieć"
+      taken: "jest już zajęte"
+      too_long:
+        one: "jest za długie (maksymalnie %{count} znak)"
+        few: "jest za długie (maksymalnie %{count} znaki)"
+        many: "jest za długie (maksymalnie %{count} znaków)"
+        other: "jest za długie (maksymalnie %{count} znaku)"
+      too_short:
+        one: "jest za krótkie (minimum %{count} znak)"
+        few: "jest za krótkie (minimum %{count} znaki)"
+        many: "jest za krótkie (minimum %{count} znaków)"
+        other: "jest za krótkie (minimum %{count} znaku)"
+      wrong_length:
+        one: "ma nieprawidłową długość (powinna wynosić %{count} znak)"
+        few: "ma nieprawidłową długość (powinna wynosić %{count} znaki)"
+        many: "ma nieprawidłową długość (powinna wynosić %{count} znaków)"
+        other: "ma nieprawidłową długość (powinna wynosić %{count} znaku)"
+      password_too_long: "jest za długie"
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        one: "około godziny"
+        few: "około %{count} godzin"
+        many: "około %{count} godzin"
+        other: "około %{count} godziny"
+      about_x_months:
+        one: "około miesiąca"
+        few: "około %{count} miesięcy"
+        many: "około %{count} miesięcy"
+        other: "około %{count} miesiąca"
+      about_x_years:
+        one: "około roku"
+        few: "około %{count} lat"
+        many: "około %{count} lat"
+        other: "około %{count} roku"
+      almost_x_years:
+        one: "prawie rok"
+        few: "prawie %{count} lata"
+        many: "prawie %{count} lat"
+        other: "prawie %{count} roku"
+      half_a_minute: "pół minuty"
+      less_than_x_minutes:
+        one: "mniej niż minutę"
+        few: "mniej niż %{count} minuty"
+        many: "mniej niż %{count} minut"
+        other: "mniej niż %{count} minuty"
+      less_than_x_seconds:
+        one: "mniej niż sekundę"
+        few: "mniej niż %{count} sekundy"
+        many: "mniej niż %{count} sekund"
+        other: "mniej niż %{count} sekundy"
+      over_x_years:
+        one: "ponad rok"
+        few: "ponad %{count} lata"
+        many: "ponad %{count} lat"
+        other: "ponad %{count} roku"
+      x_days:
+        one: "1 dzień"
+        few: "%{count} dni"
+        many: "%{count} dni"
+        other: "%{count} dnia"
+      x_minutes:
+        one: "1 minutę"
+        few: "%{count} minuty"
+        many: "%{count} minut"
+        other: "%{count} minuty"
+      x_months:
+        one: "1 miesiąc"
+        few: "%{count} miesiące"
+        many: "%{count} miesięcy"
+        other: "%{count} miesiąca"
+      x_seconds:
+        one: "1 sekundę"
+        few: "%{count} sekundy"
+        many: "%{count} sekund"
+        other: "%{count} sekundy"
+      x_years:
+        one: "1 rok"
+        few: "%{count} lata"
+        many: "%{count} lat"
+        other: "%{count} roku"
+    prompts:
+      second: "Sekunda"
+      minute: "Minuta"
+      hour: "Godzina"
+      day: "Dzień"
+      month: "Miesiąc"
+      year: "Rok"
+  translation:
+    direction: ltr
+  date:
+    formats:
+      default: "%d.%m.%Y"
+      short: "%-d %b"
+      long: "%-d %B %Y"
+      day: "%-d %b"
+      day_and_year: "%-d %b %Y"
+      day_of_month: "%-d"
+      weekday: "%A"
+      weekday_short: "%a"
+      weekday_with_date: "%a"
+      month_and_year: "%B %Y"
+      week_start: "%b"
+      week_start_with_year: "%b %Y"
+      week_end: "%b %Y"
+      long_day: "%A, %-d %B %Y"
+    day_names: [niedziela, poniedziałek, wtorek, środa, czwartek, piątek, sobota]
+    abbr_day_names: [ndz, pon, wt, śr, czw, pt, sob]
+    month_names: [~, stycznia, lutego, marca, kwietnia, maja, czerwca, lipca, sierpnia, września, października, listopada, grudnia]
+    abbr_month_names: [~, sty, lut, mar, kwi, maj, cze, lip, sie, wrz, paź, lis, gru]
+    order:
+      - :day
+      - :month
+      - :year
+  time:
+    formats:
+      default: "%d.%m.%Y %H:%M"
+      short: "%-d %b %H:%M"
+      long: "%-d %B %Y %H:%M"
+      clock: "%H:%M"
+      clock_without_period: "%H:%M"
+      hour: "%H:00"
+    am: "rano"
+    pm: "po południu"
+  number:
+    format:
+      delimiter: " "
+      separator: ","
+      precision: 3
+      significant: false
+      strip_insignificant_zeros: false
+    human:
+      format:
+        delimiter: ""
+        precision: 3
+        significant: true
+        strip_insignificant_zeros: true
+      storage_units:
+        format: "%n %u"
+        units:
+          byte:
+            one: "B"
+            few: "B"
+            many: "B"
+            other: "B"
+          kb: "KB"
+          mb: "MB"
+          gb: "GB"
+          tb: "TB"
+          pb: "PB"
+          eb: "EB"
+    percentage:
+      format:
+        format: "%n%"
+  helpers:
+    select:
+      prompt: "Wybierz"
+    submit:
+      create: "Utwórz %{model}"
+      submit: "Zapisz %{model}"
+      update: "Zaktualizuj %{model}"
+  support:
+    array:
+      words_connector: ", "
+      two_words_connector: " i "
+      last_word_connector: " i "

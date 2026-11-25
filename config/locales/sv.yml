@@ -1,0 +1,222 @@
+sv:
+  activerecord:
+    attributes:
+      mails/account:
+        encrypted_password: "Lösenord"
+        imap_host: "IMAP-server"
+        smtp_host: "SMTP-server"
+      calendars/account:
+        caldav_url: "CalDAV-URL"
+        encrypted_password: "Lösenord"
+      calendars/event:
+        summary: "Titel"
+        starts_at: "Start"
+        start_time: "Start"
+        ends_at: "Slut"
+        end_time: "Slut"
+    errors:
+      messages:
+        record_invalid: "Valideringen misslyckades: %{errors}"
+        restrict_dependent_destroy:
+          has_one: "Kan inte radera posten eftersom det finns en beroende %{record}"
+          has_many: "Kan inte radera posten eftersom det finns beroende %{record}"
+  attributes:
+    assigned_user: "Tilldelad användare"
+    avatar: "Profilbild"
+    body: "Innehåll"
+    calendar: "Kalender"
+    caldav_url: "CalDAV-URL"
+    color: "Färg"
+    email: "E-post"
+    email_address: "E-postadress"
+    emoji: "Emoji"
+    encrypted_password: "Lösenord"
+    ends_at: "Slut"
+    expires_at: "Utgångsdatum"
+    file: "Fil"
+    filename: "Filnamn"
+    files: "Filer"
+    first_name: "Förnamn"
+    icon: "Ikon"
+    imap_host: "IMAP-server"
+    kind: "Typ"
+    last_name: "Efternamn"
+    locale: "Språk"
+    name: "Namn"
+    password: "Lösenord"
+    password_confirmation: "Lösenordsbekräftelse"
+    permission: "Behörighet"
+    recurrence_rule: "Upprepning"
+    redirect_uris: "Omdirigerings-URL:er"
+    reminders: "Påminnelser"
+    reply_to: "Svara till"
+    role: "Roll"
+    slug: "Slug"
+    smtp_host: "SMTP-server"
+    starts_at: "Start"
+    state: "Status"
+    status: "Status"
+    summary: "Titel"
+    timezone: "Tidszon"
+    title: "Titel"
+    tool_id: "Verktyg"
+    user: "Användare"
+    user_id: "Användare"
+    username: "Användarnamn"
+  errors:
+    format: "%{attribute} %{message}"
+    messages:
+      accepted: "måste accepteras"
+      blank: "får inte vara tomt"
+      confirmation: "stämmer inte överens med %{attribute}"
+      empty: "får inte vara tomt"
+      equal_to: "måste vara lika med %{count}"
+      even: "måste vara jämnt"
+      exclusion: "är reserverat"
+      greater_than: "måste vara större än %{count}"
+      greater_than_or_equal_to: "måste vara större än eller lika med %{count}"
+      in: "måste vara inom %{count}"
+      inclusion: "finns inte i listan"
+      invalid: "är ogiltigt"
+      less_than: "måste vara mindre än %{count}"
+      less_than_or_equal_to: "måste vara mindre än eller lika med %{count}"
+      model_invalid: "Valideringen misslyckades: %{errors}"
+      not_a_number: "är inte ett tal"
+      not_an_integer: "måste vara ett heltal"
+      odd: "måste vara udda"
+      other_than: "måste vara något annat än %{count}"
+      present: "måste vara tomt"
+      required: "måste finnas"
+      taken: "används redan"
+      too_long:
+        one: "är för långt (högst 1 tecken)"
+        other: "är för långt (högst %{count} tecken)"
+      too_short:
+        one: "är för kort (minst 1 tecken)"
+        other: "är för kort (minst %{count} tecken)"
+      wrong_length:
+        one: "har fel längd (måste vara 1 tecken)"
+        other: "har fel längd (måste vara %{count} tecken)"
+      password_too_long: "är för långt"
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        one: "ungefär en timme"
+        other: "ungefär %{count} timmar"
+      about_x_months:
+        one: "ungefär en månad"
+        other: "ungefär %{count} månader"
+      about_x_years:
+        one: "ungefär ett år"
+        other: "ungefär %{count} år"
+      almost_x_years:
+        one: "nästan ett år"
+        other: "nästan %{count} år"
+      half_a_minute: "en halv minut"
+      less_than_x_minutes:
+        one: "mindre än en minut"
+        other: "mindre än %{count} minuter"
+      less_than_x_seconds:
+        one: "mindre än en sekund"
+        other: "mindre än %{count} sekunder"
+      over_x_years:
+        one: "mer än ett år"
+        other: "mer än %{count} år"
+      x_days:
+        one: "1 dag"
+        other: "%{count} dagar"
+      x_minutes:
+        one: "1 minut"
+        other: "%{count} minuter"
+      x_months:
+        one: "1 månad"
+        other: "%{count} månader"
+      x_seconds:
+        one: "1 sekund"
+        other: "%{count} sekunder"
+      x_years:
+        one: "1 år"
+        other: "%{count} år"
+    prompts:
+      second: "Sekund"
+      minute: "Minut"
+      hour: "Timme"
+      day: "Dag"
+      month: "Månad"
+      year: "År"
+  translation:
+    direction: ltr
+  date:
+    formats:
+      default: "%Y-%m-%d"
+      short: "%-d %b"
+      long: "%-d %B %Y"
+      day: "%-d %b"
+      day_and_year: "%-d %b %Y"
+      day_of_month: "%-d"
+      weekday: "%A"
+      weekday_short: "%a"
+      weekday_with_date: "%a"
+      month_and_year: "%B %Y"
+      week_start: "%b"
+      week_start_with_year: "%b %Y"
+      week_end: "%b %Y"
+      long_day: "%A %-d %B %Y"
+    day_names: [söndag, måndag, tisdag, onsdag, torsdag, fredag, lördag]
+    abbr_day_names: [sön, mån, tis, ons, tor, fre, lör]
+    month_names: [~, januari, februari, mars, april, maj, juni, juli, augusti, september, oktober, november, december]
+    abbr_month_names: [~, jan, feb, mar, apr, maj, jun, jul, aug, sep, okt, nov, dec]
+    order:
+      - :year
+      - :month
+      - :day
+  time:
+    formats:
+      default: "%Y-%m-%d %H:%M"
+      short: "%-d %b %H:%M"
+      long: "%-d %B %Y %H:%M"
+      clock: "%H:%M"
+      clock_without_period: "%H:%M"
+      hour: "%H:00"
+    am: "fm"
+    pm: "em"
+  number:
+    format:
+      delimiter: " "
+      separator: ","
+      precision: 3
+      significant: false
+      strip_insignificant_zeros: false
+    human:
+      format:
+        delimiter: ""
+        precision: 3
+        significant: true
+        strip_insignificant_zeros: true
+      storage_units:
+        format: "%n %u"
+        units:
+          byte:
+            one: "B"
+            other: "B"
+          kb: "kB"
+          mb: "MB"
+          gb: "GB"
+          tb: "TB"
+          pb: "PB"
+          eb: "EB"
+    percentage:
+      format:
+        format: "%n %"
+  helpers:
+    select:
+      prompt: "Välj"
+    submit:
+      create: "Skapa %{model}"
+      submit: "Spara %{model}"
+      update: "Uppdatera %{model}"
+  support:
+    array:
+      words_connector: ", "
+      two_words_connector: " och "
+      last_word_connector: " och "

@@ -1,0 +1,206 @@
+id:
+  activerecord:
+    attributes:
+      mails/account:
+        encrypted_password: "Kata sandi"
+        imap_host: "Server IMAP"
+        smtp_host: "Server SMTP"
+      calendars/account:
+        caldav_url: "URL CalDAV"
+        encrypted_password: "Kata sandi"
+      calendars/event:
+        summary: "Judul"
+        starts_at: "Mulai"
+        start_time: "Mulai"
+        ends_at: "Selesai"
+        end_time: "Selesai"
+    errors:
+      messages:
+        record_invalid: "Validasi gagal: %{errors}"
+        restrict_dependent_destroy:
+          has_one: "Tidak dapat menghapus data karena terdapat %{record} terkait"
+          has_many: "Tidak dapat menghapus data karena terdapat %{record} terkait"
+  attributes:
+    assigned_user: "Pengguna yang ditugaskan"
+    avatar: "Foto profil"
+    body: "Isi"
+    calendar: "Kalender"
+    caldav_url: "URL CalDAV"
+    color: "Warna"
+    email: "Email"
+    email_address: "Alamat email"
+    emoji: "Emoji"
+    encrypted_password: "Kata sandi"
+    ends_at: "Selesai"
+    expires_at: "Tanggal kedaluwarsa"
+    file: "File"
+    filename: "Nama file"
+    files: "File"
+    first_name: "Nama depan"
+    icon: "Ikon"
+    imap_host: "Server IMAP"
+    kind: "Jenis"
+    last_name: "Nama belakang"
+    locale: "Bahasa"
+    name: "Nama"
+    password: "Kata sandi"
+    password_confirmation: "Konfirmasi kata sandi"
+    permission: "Izin"
+    recurrence_rule: "Pengulangan"
+    redirect_uris: "URL pengalihan"
+    reminders: "Pengingat"
+    reply_to: "Balas ke"
+    role: "Peran"
+    slug: "Slug"
+    smtp_host: "Server SMTP"
+    starts_at: "Mulai"
+    state: "Status"
+    status: "Status"
+    summary: "Judul"
+    timezone: "Zona waktu"
+    title: "Judul"
+    tool_id: "Alat"
+    user: "Pengguna"
+    user_id: "Pengguna"
+    username: "Nama pengguna"
+  errors:
+    format: "%{attribute} %{message}"
+    messages:
+      accepted: "harus disetujui"
+      blank: "tidak boleh kosong"
+      confirmation: "tidak cocok dengan %{attribute}"
+      empty: "tidak boleh kosong"
+      equal_to: "harus sama dengan %{count}"
+      even: "harus berupa bilangan genap"
+      exclusion: "sudah dipesan"
+      greater_than: "harus lebih besar dari %{count}"
+      greater_than_or_equal_to: "harus lebih besar atau sama dengan %{count}"
+      in: "harus berada dalam %{count}"
+      inclusion: "tidak termasuk dalam daftar"
+      invalid: "tidak valid"
+      less_than: "harus lebih kecil dari %{count}"
+      less_than_or_equal_to: "harus lebih kecil atau sama dengan %{count}"
+      model_invalid: "Validasi gagal: %{errors}"
+      not_a_number: "bukan angka"
+      not_an_integer: "harus berupa bilangan bulat"
+      odd: "harus berupa bilangan ganjil"
+      other_than: "harus selain %{count}"
+      present: "harus kosong"
+      required: "harus ada"
+      taken: "sudah digunakan"
+      too_long:
+        other: "terlalu panjang (maksimal %{count} karakter)"
+      too_short:
+        other: "terlalu pendek (minimal %{count} karakter)"
+      wrong_length:
+        other: "panjang tidak sesuai (harus %{count} karakter)"
+      password_too_long: "terlalu panjang"
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        other: "sekitar %{count} jam"
+      about_x_months:
+        other: "sekitar %{count} bulan"
+      about_x_years:
+        other: "sekitar %{count} tahun"
+      almost_x_years:
+        other: "hampir %{count} tahun"
+      half_a_minute: "setengah menit"
+      less_than_x_minutes:
+        other: "kurang dari %{count} menit"
+      less_than_x_seconds:
+        other: "kurang dari %{count} detik"
+      over_x_years:
+        other: "lebih dari %{count} tahun"
+      x_days:
+        other: "%{count} hari"
+      x_minutes:
+        other: "%{count} menit"
+      x_months:
+        other: "%{count} bulan"
+      x_seconds:
+        other: "%{count} detik"
+      x_years:
+        other: "%{count} tahun"
+    prompts:
+      second: "Detik"
+      minute: "Menit"
+      hour: "Jam"
+      day: "Hari"
+      month: "Bulan"
+      year: "Tahun"
+  translation:
+    direction: ltr
+  date:
+    formats:
+      default: "%d/%m/%Y"
+      short: "%-d %b"
+      long: "%-d %B %Y"
+      day: "%-d %b"
+      day_and_year: "%-d %b %Y"
+      day_of_month: "%-d"
+      weekday: "%A"
+      weekday_short: "%a"
+      weekday_with_date: "%a"
+      month_and_year: "%B %Y"
+      week_start: "%b"
+      week_start_with_year: "%b %Y"
+      week_end: "%b %Y"
+      long_day: "%A, %-d %B %Y"
+    day_names: [Minggu, Senin, Selasa, Rabu, Kamis, Jumat, Sabtu]
+    abbr_day_names: [Min, Sen, Sel, Rab, Kam, Jum, Sab]
+    month_names: [~, Januari, Februari, Maret, April, Mei, Juni, Juli, Agustus, September, Oktober, November, Desember]
+    abbr_month_names: [~, Jan, Feb, Mar, Apr, Mei, Jun, Jul, Agu, Sep, Okt, Nov, Des]
+    order:
+      - :day
+      - :month
+      - :year
+  time:
+    formats:
+      default: "%d/%m/%Y %H:%M"
+      short: "%-d %b %H:%M"
+      long: "%-d %B %Y %H:%M"
+      clock: "%H:%M"
+      clock_without_period: "%H:%M"
+      hour: "%H:00"
+    am: "AM"
+    pm: "PM"
+  number:
+    format:
+      delimiter: "."
+      separator: ","
+      precision: 3
+      significant: false
+      strip_insignificant_zeros: false
+    human:
+      format:
+        delimiter: ""
+        precision: 3
+        significant: true
+        strip_insignificant_zeros: true
+      storage_units:
+        format: "%n %u"
+        units:
+          byte:
+            other: "B"
+          kb: "KB"
+          mb: "MB"
+          gb: "GB"
+          tb: "TB"
+          pb: "PB"
+          eb: "EB"
+    percentage:
+      format:
+        format: "%n%"
+  helpers:
+    select:
+      prompt: "Pilih"
+    submit:
+      create: "Buat %{model}"
+      submit: "Simpan %{model}"
+      update: "Perbarui %{model}"
+  support:
+    array:
+      words_connector: ", "
+      two_words_connector: " dan "
+      last_word_connector: ", dan "

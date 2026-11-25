@@ -1,0 +1,206 @@
+ko:
+  activerecord:
+    attributes:
+      mails/account:
+        encrypted_password: "비밀번호"
+        imap_host: "IMAP 서버"
+        smtp_host: "SMTP 서버"
+      calendars/account:
+        caldav_url: "CalDAV URL"
+        encrypted_password: "비밀번호"
+      calendars/event:
+        summary: "제목"
+        starts_at: "시작"
+        start_time: "시작"
+        ends_at: "종료"
+        end_time: "종료"
+    errors:
+      messages:
+        record_invalid: "유효성 검사 실패: %{errors}"
+        restrict_dependent_destroy:
+          has_one: "종속된 %{record} 항목이 있어 삭제할 수 없습니다"
+          has_many: "종속된 %{record} 항목이 있어 삭제할 수 없습니다"
+  attributes:
+    assigned_user: "담당자"
+    avatar: "프로필 사진"
+    body: "내용"
+    calendar: "캘린더"
+    caldav_url: "CalDAV URL"
+    color: "색상"
+    email: "이메일"
+    email_address: "이메일 주소"
+    emoji: "이모지"
+    encrypted_password: "비밀번호"
+    ends_at: "종료"
+    expires_at: "만료일"
+    file: "파일"
+    filename: "파일 이름"
+    files: "파일"
+    first_name: "이름"
+    icon: "아이콘"
+    imap_host: "IMAP 서버"
+    kind: "유형"
+    last_name: "성"
+    locale: "언어"
+    name: "이름"
+    password: "비밀번호"
+    password_confirmation: "비밀번호 확인"
+    permission: "권한"
+    recurrence_rule: "반복"
+    redirect_uris: "리디렉션 URL"
+    reminders: "미리 알림"
+    reply_to: "답장 받을 주소"
+    role: "역할"
+    slug: "슬러그"
+    smtp_host: "SMTP 서버"
+    starts_at: "시작"
+    state: "상태"
+    status: "상태"
+    summary: "제목"
+    timezone: "시간대"
+    title: "제목"
+    tool_id: "도구"
+    user: "사용자"
+    user_id: "사용자"
+    username: "사용자 이름"
+  errors:
+    format: "%{attribute} %{message}"
+    messages:
+      accepted: "동의해야 합니다"
+      blank: "비워 둘 수 없습니다"
+      confirmation: "%{attribute} 확인과 일치하지 않습니다"
+      empty: "비워 둘 수 없습니다"
+      equal_to: "%{count}와(과) 같아야 합니다"
+      even: "짝수여야 합니다"
+      exclusion: "예약된 값입니다"
+      greater_than: "%{count}보다 커야 합니다"
+      greater_than_or_equal_to: "%{count} 이상이어야 합니다"
+      in: "%{count} 범위 내에 있어야 합니다"
+      inclusion: "목록에 없는 값입니다"
+      invalid: "올바르지 않습니다"
+      less_than: "%{count}보다 작아야 합니다"
+      less_than_or_equal_to: "%{count} 이하여야 합니다"
+      model_invalid: "유효성 검사 실패: %{errors}"
+      not_a_number: "숫자가 아닙니다"
+      not_an_integer: "정수여야 합니다"
+      odd: "홀수여야 합니다"
+      other_than: "%{count}와(과) 달라야 합니다"
+      present: "비어 있어야 합니다"
+      required: "필수 항목입니다"
+      taken: "이미 사용 중입니다"
+      too_long:
+        other: "너무 깁니다 (최대 %{count}자)"
+      too_short:
+        other: "너무 짧습니다 (최소 %{count}자)"
+      wrong_length:
+        other: "길이가 올바르지 않습니다 (%{count}자여야 함)"
+      password_too_long: "너무 깁니다"
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        other: "약 %{count}시간"
+      about_x_months:
+        other: "약 %{count}개월"
+      about_x_years:
+        other: "약 %{count}년"
+      almost_x_years:
+        other: "거의 %{count}년"
+      half_a_minute: "30초"
+      less_than_x_minutes:
+        other: "%{count}분 미만"
+      less_than_x_seconds:
+        other: "%{count}초 미만"
+      over_x_years:
+        other: "%{count}년 이상"
+      x_days:
+        other: "%{count}일"
+      x_minutes:
+        other: "%{count}분"
+      x_months:
+        other: "%{count}개월"
+      x_seconds:
+        other: "%{count}초"
+      x_years:
+        other: "%{count}년"
+    prompts:
+      second: "초"
+      minute: "분"
+      hour: "시"
+      day: "일"
+      month: "월"
+      year: "년"
+  translation:
+    direction: ltr
+  date:
+    formats:
+      default: "%Y-%m-%d"
+      short: "%-m월 %-d일"
+      long: "%Y년 %-m월 %-d일"
+      day: "%-m월 %-d일"
+      day_and_year: "%Y년 %-m월 %-d일"
+      day_of_month: "%-d"
+      weekday: "%A"
+      weekday_short: "%a"
+      weekday_with_date: "%a"
+      month_and_year: "%Y년 %B"
+      week_start: "%Y년 %b"
+      week_start_with_year: "%Y년 %b"
+      week_end: "%Y년 %b"
+      long_day: "%Y년 %-m월 %-d일 %A"
+    day_names: [일요일, 월요일, 화요일, 수요일, 목요일, 금요일, 토요일]
+    abbr_day_names: [일, 월, 화, 수, 목, 금, 토]
+    month_names: [~, 1월, 2월, 3월, 4월, 5월, 6월, 7월, 8월, 9월, 10월, 11월, 12월]
+    abbr_month_names: [~, 1월, 2월, 3월, 4월, 5월, 6월, 7월, 8월, 9월, 10월, 11월, 12월]
+    order:
+      - :year
+      - :month
+      - :day
+  time:
+    formats:
+      default: "%Y-%m-%d %H:%M"
+      short: "%-m월 %-d일 %H:%M"
+      long: "%Y년 %-m월 %-d일 %H:%M"
+      clock: "%H:%M"
+      clock_without_period: "%H:%M"
+      hour: "%H:00"
+    am: "오전"
+    pm: "오후"
+  number:
+    format:
+      delimiter: ","
+      separator: "."
+      precision: 3
+      significant: false
+      strip_insignificant_zeros: false
+    human:
+      format:
+        delimiter: ""
+        precision: 3
+        significant: true
+        strip_insignificant_zeros: true
+      storage_units:
+        format: "%n %u"
+        units:
+          byte:
+            other: "B"
+          kb: "KB"
+          mb: "MB"
+          gb: "GB"
+          tb: "TB"
+          pb: "PB"
+          eb: "EB"
+    percentage:
+      format:
+        format: "%n%"
+  helpers:
+    select:
+      prompt: "선택하세요"
+    submit:
+      create: "%{model} 만들기"
+      submit: "%{model} 저장"
+      update: "%{model} 업데이트"
+  support:
+    array:
+      words_connector: ", "
+      two_words_connector: " 및 "
+      last_word_connector: " 및 "

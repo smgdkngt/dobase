@@ -1,0 +1,206 @@
+zh:
+  activerecord:
+    attributes:
+      mails/account:
+        encrypted_password: "密码"
+        imap_host: "IMAP 服务器"
+        smtp_host: "SMTP 服务器"
+      calendars/account:
+        caldav_url: "CalDAV URL"
+        encrypted_password: "密码"
+      calendars/event:
+        summary: "标题"
+        starts_at: "开始时间"
+        start_time: "开始时间"
+        ends_at: "结束时间"
+        end_time: "结束时间"
+    errors:
+      messages:
+        record_invalid: "验证失败：%{errors}"
+        restrict_dependent_destroy:
+          has_one: "由于存在关联的 %{record}，无法删除记录"
+          has_many: "由于存在关联的 %{record}，无法删除记录"
+  attributes:
+    assigned_user: "负责人"
+    avatar: "头像"
+    body: "内容"
+    calendar: "日历"
+    caldav_url: "CalDAV URL"
+    color: "颜色"
+    email: "电子邮件"
+    email_address: "电子邮箱"
+    emoji: "表情符号"
+    encrypted_password: "密码"
+    ends_at: "结束时间"
+    expires_at: "过期时间"
+    file: "文件"
+    filename: "文件名"
+    files: "文件"
+    first_name: "名"
+    icon: "图标"
+    imap_host: "IMAP 服务器"
+    kind: "类型"
+    last_name: "姓"
+    locale: "语言"
+    name: "名称"
+    password: "密码"
+    password_confirmation: "确认密码"
+    permission: "权限"
+    recurrence_rule: "重复规则"
+    redirect_uris: "重定向地址"
+    reminders: "提醒"
+    reply_to: "回复地址"
+    role: "角色"
+    slug: "标识符"
+    smtp_host: "SMTP 服务器"
+    starts_at: "开始时间"
+    state: "状态"
+    status: "状态"
+    summary: "标题"
+    timezone: "时区"
+    title: "标题"
+    tool_id: "工具"
+    user: "用户"
+    user_id: "用户"
+    username: "用户名"
+  errors:
+    format: "%{attribute}%{message}"
+    messages:
+      accepted: "必须被接受"
+      blank: "不能为空"
+      confirmation: "与%{attribute}不匹配"
+      empty: "不能为空"
+      equal_to: "必须等于 %{count}"
+      even: "必须为偶数"
+      exclusion: "是保留值"
+      greater_than: "必须大于 %{count}"
+      greater_than_or_equal_to: "必须大于或等于 %{count}"
+      in: "必须在 %{count} 范围内"
+      inclusion: "不包含于列表中"
+      invalid: "无效"
+      less_than: "必须小于 %{count}"
+      less_than_or_equal_to: "必须小于或等于 %{count}"
+      model_invalid: "验证失败：%{errors}"
+      not_a_number: "不是数字"
+      not_an_integer: "必须是整数"
+      odd: "必须为奇数"
+      other_than: "必须不等于 %{count}"
+      present: "必须为空"
+      required: "必须存在"
+      taken: "已被使用"
+      too_long:
+        other: "过长（最多 %{count} 个字符）"
+      too_short:
+        other: "过短（最少 %{count} 个字符）"
+      wrong_length:
+        other: "长度无效（应为 %{count} 个字符）"
+      password_too_long: "过长"
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        other: "大约 %{count} 小时"
+      about_x_months:
+        other: "大约 %{count} 个月"
+      about_x_years:
+        other: "大约 %{count} 年"
+      almost_x_years:
+        other: "将近 %{count} 年"
+      half_a_minute: "半分钟"
+      less_than_x_minutes:
+        other: "不到 %{count} 分钟"
+      less_than_x_seconds:
+        other: "不到 %{count} 秒"
+      over_x_years:
+        other: "超过 %{count} 年"
+      x_days:
+        other: "%{count} 天"
+      x_minutes:
+        other: "%{count} 分钟"
+      x_months:
+        other: "%{count} 个月"
+      x_seconds:
+        other: "%{count} 秒"
+      x_years:
+        other: "%{count} 年"
+    prompts:
+      second: "秒"
+      minute: "分"
+      hour: "时"
+      day: "日"
+      month: "月"
+      year: "年"
+  translation:
+    direction: ltr
+  date:
+    formats:
+      default: "%Y-%m-%d"
+      short: "%-m月%-d日"
+      long: "%Y年%-m月%-d日"
+      day: "%-m月%-d日"
+      day_and_year: "%Y年%-m月%-d日"
+      day_of_month: "%-d"
+      weekday: "%A"
+      weekday_short: "%a"
+      weekday_with_date: "%a"
+      month_and_year: "%Y年%-m月"
+      week_start: "%Y年%-m月"
+      week_start_with_year: "%Y年%-m月"
+      week_end: "%Y年%-m月"
+      long_day: "%Y年%-m月%-d日 %A"
+    day_names: [星期日, 星期一, 星期二, 星期三, 星期四, 星期五, 星期六]
+    abbr_day_names: [周日, 周一, 周二, 周三, 周四, 周五, 周六]
+    month_names: [~, 一月, 二月, 三月, 四月, 五月, 六月, 七月, 八月, 九月, 十月, 十一月, 十二月]
+    abbr_month_names: [~, 1月, 2月, 3月, 4月, 5月, 6月, 7月, 8月, 9月, 10月, 11月, 12月]
+    order:
+      - :year
+      - :month
+      - :day
+  time:
+    formats:
+      default: "%Y-%m-%d %H:%M"
+      short: "%-m月%-d日 %H:%M"
+      long: "%Y年%-m月%-d日 %H:%M"
+      clock: "%H:%M"
+      clock_without_period: "%H:%M"
+      hour: "%H:00"
+    am: "上午"
+    pm: "下午"
+  number:
+    format:
+      delimiter: ","
+      separator: "."
+      precision: 3
+      significant: false
+      strip_insignificant_zeros: false
+    human:
+      format:
+        delimiter: ""
+        precision: 3
+        significant: true
+        strip_insignificant_zeros: true
+      storage_units:
+        format: "%n %u"
+        units:
+          byte:
+            other: "B"
+          kb: "KB"
+          mb: "MB"
+          gb: "GB"
+          tb: "TB"
+          pb: "PB"
+          eb: "EB"
+    percentage:
+      format:
+        format: "%n%"
+  helpers:
+    select:
+      prompt: "请选择"
+    submit:
+      create: "创建%{model}"
+      submit: "保存%{model}"
+      update: "更新%{model}"
+  support:
+    array:
+      words_connector: "、"
+      two_words_connector: "和"
+      last_word_connector: "和"
