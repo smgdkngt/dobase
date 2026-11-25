@@ -26,7 +26,7 @@
         </div>
 
         <p class="text-sm text-text-secondary mb-6">
-          <%= _("Joining gives you access to this %{downcase}.", downcase: @tool.tool_type.name.downcase) %>
+          <%= _("Joining gives you access to this %{kind}.", kind: @tool.tool_type.human_name.downcase) %>
         </p>
 
         <div class="flex flex-col gap-2">

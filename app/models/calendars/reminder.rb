@@ -70,7 +70,7 @@ module Calendars
     def clock_label(minutes, midnight, start_seconds)
       at = midnight + start_seconds - minutes.minutes
       days = (midnight.to_date - at.to_date).to_i
-      clock = Translation.rtl? ? Translation.digits(at.strftime("%H:%M")) : at.strftime("%-I:%M %p") # as FormattingHelper#format_time
+      clock = Translation.localize(at, :clock) # as FormattingHelper#format_time
       case days
       when 0 then t("On the day at %{time}", time: clock)
       when 1 then t("The day before at %{time}", time: clock)
@@ -85,7 +85,10 @@ module Calendars
 
     def duration(minutes)
       hours, rest = minutes.divmod(60)
-      [ (count(hours, "hour") if hours.positive?), (count(rest, "minute") if rest.positive?) ].compact.join(Translation.rtl? ? " و " : " ")
+      return count(rest, "minute") if hours.zero?
+      return count(hours, "hour") if rest.zero?
+
+      Translation.translate("%{hours} %{minutes}", hours: count(hours, "hour"), minutes: count(rest, "minute"))
     end
 
     def count(number, unit)

@@ -79,7 +79,7 @@ module CalendarsHelper
   # The week grid's hour labels, kept short: "12 AM", "9 AM", "1 PM"
   def format_hour(hour)
     time = Time.zone.today.in_time_zone.change(hour: hour)
-    persian_date? ? Translation.digits(time.strftime("%H")) : time.strftime("%-l %p")
+    Translation.localize(time, :hour)
   end
 
   # When an invitation is, in a few words: "Mon Nov 23, 2:00 PM", "Mon Nov 23, all day"
@@ -87,7 +87,8 @@ module CalendarsHelper
     return unless invite.starts_at
 
     day = invite.all_day? ? invite.first_day : invite.starts_at.in_time_zone
-    "#{format_weekday(day, short: !persian_date?)} #{format_date(day)}#{persian_date? ? "،" : ","} #{invite.all_day? ? _("all day") : format_time(invite.starts_at)}"
+    _("%{date}, %{time}", date: "#{Translation.localize(day, :weekday_with_date)} #{format_date(day)}",
+      time: invite.all_day? ? _("all day") : format_time(invite.starts_at))
   end
 
   # Calendars a mail invite can be added to: enabled, writable, and in a calendar tool the user can access

@@ -169,7 +169,7 @@
   }
 
   .sidebar-jump-pill-label {
-    @apply flex-1 text-left truncate;
+    @apply flex-1 text-start truncate;
   }
 
   .sidebar-jump-pill-kbd {
@@ -188,7 +188,7 @@
   }
 
   .sidebar-user-name {
-    @apply text-sm font-medium text-text-primary truncate text-left leading-none;
+    @apply text-sm font-medium text-text-primary truncate text-start leading-none;
     /* Max-width: 240px sidebar - 16px padding×2 - 28px avatar - 8px gap - 32px bell - 4px gap = ~136px */
     max-width: 136px;
   }

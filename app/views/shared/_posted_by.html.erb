@@ -8,7 +8,8 @@
 %>
 <span class="text-sm font-semibold text-text-primary"><%= poster_name(record) %></span>
 <% if record.agent? %>
-  <span class="text-xs text-text-tertiary">for <%= record.user&.first_name || "a former member" %></span>
+  <% owner = record.user&.first_name || _("a former member") %>
+  <span class="text-xs text-text-tertiary" data-words="<%= words(text: [ "for %{name}", { name: owner } ]) %>"><%= _("for %{name}", name: owner) %></span>
 <% elsif record.via %>
-  <span class="text-xs text-text-tertiary"><%= _("via %{via}", via: record.via) %></span>
+  <span class="text-xs text-text-tertiary" data-words="<%= words(text: [ "via %{via}", { via: record.via } ]) %>"><%= _("via %{via}", via: record.via) %></span>
 <% end %>

@@ -38,7 +38,7 @@
       <%
         is_today = day == today
         day_name = format_weekday(day, short: true)
-        day_number = persian_date? ? Translation.digits(Translation::Jalali.from(day).last) : day.day
+        day_number = format_day_number(day)
       %>
       <div class="week-header-cell <%= 'today' if is_today %>">
         <div class="text-xs font-medium text-text-secondary"><%= day_name %></div>

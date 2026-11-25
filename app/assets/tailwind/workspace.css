@@ -128,7 +128,7 @@
 
   /* The desktop's name in its card is what renames it */
   .workspace-desk-card-rename {
-    @apply min-w-0 truncate -mx-1 px-1 rounded text-left uppercase tracking-wider font-semibold cursor-text hover:bg-background-tertiary hover:text-text-primary;
+    @apply min-w-0 truncate -mx-1 px-1 rounded text-start uppercase tracking-wider font-semibold cursor-text hover:bg-background-tertiary hover:text-text-primary;
   }
 
   .workspace-desk-card-field {
@@ -140,7 +140,7 @@
   }
 
   .workspace-desk-card-go {
-    @apply flex flex-1 items-center gap-2 min-w-0 px-2 py-1.5 text-left cursor-pointer;
+    @apply flex flex-1 items-center gap-2 min-w-0 px-2 py-1.5 text-start cursor-pointer;
   }
 
   .workspace-desk-card-go .workspace-desk-icon {

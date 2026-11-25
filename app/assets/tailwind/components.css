@@ -393,7 +393,7 @@
   }
 
   .dropdown-item {
-    @apply block w-full px-4 py-2 text-sm text-text-primary hover:bg-background-tertiary text-left transition-colors;
+    @apply block w-full px-4 py-2 text-sm text-text-primary hover:bg-background-tertiary text-start transition-colors;
   }
 
   .dropdown-divider {
@@ -959,7 +959,7 @@
     hr { @apply my-6 border-border-light; }
     img { @apply max-w-full rounded-lg my-4; }
     table { @apply w-full my-4 text-sm border-collapse; }
-    th { @apply text-left font-semibold border-b border-border px-3 py-2 bg-background-secondary; }
+    th { @apply text-start font-semibold border-b border-border px-3 py-2 bg-background-secondary; }
     td { @apply border-b border-border-light px-3 py-2 align-top; }
     input[type="checkbox"] { @apply me-2 align-[-1px]; }
     li:has(> input[type="checkbox"]) { @apply list-none -ms-5; }
@@ -1070,7 +1070,7 @@
   }
 
   .mention-suggestion-item {
-    @apply flex w-full items-center px-3 py-1.5 text-sm text-left text-text-primary hover:bg-background-tertiary transition-colors cursor-pointer;
+    @apply flex w-full items-center px-3 py-1.5 text-sm text-start text-text-primary hover:bg-background-tertiary transition-colors cursor-pointer;
   }
 
   .mention-suggestion-item[data-active] {
@@ -1200,7 +1200,7 @@
 
   :is(.trix-content, .rich-text-content) pre {
     direction: ltr;
-    text-align: left;
+    text-align: start;
   }
 }
 
@@ -1233,7 +1233,7 @@ rhino-editor .trix-content a[href] {
   }
 
   .theme-option {
-    @apply flex flex-col gap-1 p-1.5 rounded-xl border border-border-light bg-surface text-left cursor-pointer
+    @apply flex flex-col gap-1 p-1.5 rounded-xl border border-border-light bg-surface text-start cursor-pointer
            transition-all duration-150 hover:border-border hover:shadow-sm active:scale-[0.98];
   }
 
@@ -1265,7 +1265,7 @@ rhino-editor .trix-content a[href] {
   }
 
   .theme-slot {
-    @apply flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border-light bg-surface text-left text-text-secondary
+    @apply flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border-light bg-surface text-start text-text-secondary
            cursor-pointer transition-all duration-150 hover:border-border;
   }
 

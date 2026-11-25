@@ -52,7 +52,8 @@
 <%= tag.div class: [ "avatar", size_classes[size], extra_class.presence ],
       data: (look ? { avatar_hue: look[:hue], avatar_second: look[:second], avatar_pattern: look[:pattern] } : nil) do %>
   <% if local_assigns[:agent] %>
-    <%= render "shared/icon", name: "bot", size: { xs: 12, sm: 14, md: 18, lg: 22, xl: 24, "2xl": 32 }[size], label: _("Agent") %>
+    <%= tag.span render("shared/icon", name: "bot", size: { xs: 12, sm: 14, md: 18, lg: 22, xl: 24, "2xl": 32 }[size]),
+          class: "inline-flex", role: "img", aria: { label: _("Agent") }, data: { words: words("aria-label": "Agent") } %>
   <% elsif has_image %>
     <%= image_tag image_url, alt: user&.name || _("Avatar"), class: "w-full h-full object-cover" %>
   <% else %>

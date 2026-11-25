@@ -1,17 +1,11 @@
 <%
   tool = message.chat.tool
 
-  # Timestamp formatting. A new or edited message is broadcast from one
-  # person's request to everyone, so the browser puts the time in the viewer's zone
-  time_ago = Time.current - message.created_at
-  time = local_time_tag(message.created_at)
-  if time_ago < 24.hours
-    timestamp = time
-  elsif time_ago < 48.hours
-    timestamp = safe_join([ _("Yesterday, "), time ])
-  else
-    timestamp = safe_join([ format_date(message.created_at), ", ", time ])
-  end
+  # A new or edited message is broadcast from one person's request to everyone, in
+  # English (Chats::Message): the browser writes the time in the viewer's zone and
+  # language, and the texts named in `data-words` in the viewer's language
+  timestamp = local_time_tag(message.created_at, day: true)
+  name = poster_name(message)
 
   has_files = message.has_files?
   image_files = has_files ? message.image_files : []
@@ -25,22 +19,23 @@
      class="chat-message group/message flex gap-2.5 sm:gap-3 px-2 sm:px-4 py-1.5 sm:py-2 hover:bg-background-tertiary/50 <%= is_continuation ? '' : 'mt-2 sm:mt-3' %>"
      data-controller="message reactions"
      role="article"
-     aria-label="<%= _("Message from %{name}", name: poster_name(message)) %>"
+     aria-label="<%= _("Message from %{name}", name: name) %>"
+     data-words="<%= words("aria-label": [ "Message from %{name}", { name: name } ]) %>"
      data-arrow-keys-target="item"
      data-action="keydown->chat#messageKey"
      data-message-user-id-value="<%= message.user_id %>"
      data-reactions-url-value="<%= tool_chat_message_reactions_path(tool, message) %>"
      data-message-id="<%= message.id %>"
-     data-message-author="<%= poster_name(message) %>"
+     data-message-author="<%= name %>"
      data-message-content="<%= truncate(message.body.to_plain_text, length: 100) %>"
      data-context-menu>
-  <%= render "components/context_menu", label: _("Message from %{poster_name}", poster_name: poster_name(message)) do %>
-    <%= render "components/menu_item", text: _("Reply"), icon: "reply", data: { context_menu_press: "reply" } %>
-    <%= render "components/menu_item", text: _("Add a reaction"), icon: "smile-plus", data: { context_menu_press: "react" } %>
-    <%= render "components/menu_item", text: _("Copy text"), icon: "copy", data: { copy: message.body.to_plain_text } %>
-    <%= render "components/menu_item", text: _("Copy link"), icon: "link", data: { copy_link: tool_chat_path(tool, message: message.id) } %>
-    <%= render "components/menu_item", text: _("Edit"), icon: "edit-2", data: { context_menu_press: "edit" } %>
-    <%= render "components/menu_item", text: _("Delete"), icon: "trash-2", variant: :danger, data: { context_menu_press: "delete" } %>
+  <%= render "components/context_menu", label: _("Message from %{name}", name: name), words: words("aria-label": [ "Message from %{name}", { name: name } ]) do %>
+    <%= render "components/menu_item", text: _("Reply"), words: words(text: "Reply"), icon: "reply", data: { context_menu_press: "reply" } %>
+    <%= render "components/menu_item", text: _("Add a reaction"), words: words(text: "Add a reaction"), icon: "smile-plus", data: { context_menu_press: "react" } %>
+    <%= render "components/menu_item", text: _("Copy text"), words: words(text: "Copy text"), icon: "copy", data: { copy: message.body.to_plain_text } %>
+    <%= render "components/menu_item", text: _("Copy link"), words: words(text: "Copy link"), icon: "link", data: { copy_link: tool_chat_path(tool, message: message.id) } %>
+    <%= render "components/menu_item", text: _("Edit"), words: words(text: "Edit"), icon: "edit-2", data: { context_menu_press: "edit" } %>
+    <%= render "components/menu_item", text: _("Delete"), words: words(text: "Delete"), icon: "trash-2", variant: :danger, data: { context_menu_press: "delete" } %>
   <% end %>
 
   <!-- Avatar column -->
@@ -113,6 +108,7 @@
               class="icon-btn icon-btn-group-left"
               title="<%= _("Add a reaction") %>"
               aria-label="<%= _("Add a reaction") %>"
+              data-words="<%= words(title: "Add a reaction", "aria-label": "Add a reaction") %>"
               popovertarget="<%= dom_id(message, :react) %>"
               data-context-menu-action="react"
               style="anchor-name: --<%= dom_id(message, :react) %>">
@@ -122,14 +118,16 @@
             icon: "reply",
             title: _("Reply"),
             group: :middle,
-            data: { action: "click->chat#startReply", message_id: message.id, context_menu_action: "reply" } %>
+            data: { action: "click->chat#startReply", message_id: message.id, context_menu_action: "reply",
+                    words: words(title: "Reply", "aria-label": "Reply") } %>
       <div class="hidden" data-message-edit>
         <%= render "components/icon_button",
               icon: "edit-2",
               title: _("Edit"),
               group: :middle,
               href: edit_tool_chat_message_path(tool, message),
-              data: { turbo_frame: dom_id(message, :body), context_menu_action: "edit" } %>
+              data: { turbo_frame: dom_id(message, :body), context_menu_action: "edit",
+                      words: words(title: "Edit", "aria-label": "Edit") } %>
       </div>
       <div class="hidden" data-message-delete>
         <%= render "components/icon_button",
@@ -140,7 +138,9 @@
               href: tool_chat_message_path(tool, message),
               method: :delete,
               turbo_confirm: _("Delete this message?"),
-              data: { turbo_confirm_button: _("Delete"), context_menu_action: "delete" } %>
+              data: { turbo_confirm_button: _("Delete"), context_menu_action: "delete",
+                      words: words(title: "Delete", "aria-label": "Delete", "data-turbo-confirm": "Delete this message?",
+                        "data-turbo-confirm-button": "Delete") } %>
       </div>
     </div>
   </div>
@@ -151,7 +151,8 @@
        class="popover-menu chat-reaction-picker"
        style="position-anchor: --<%= dom_id(message, :react) %>; position-area: block-start span-inline-start">
     <% Chats::Reaction::EMOJI.each do |emoji| %>
-      <button type="button" class="chat-reaction-choice" data-emoji="<%= emoji %>" data-action="reactions#pick" aria-label="<%= _("React with %{emoji}", emoji: emoji) %>"><%= emoji %></button>
+      <button type="button" class="chat-reaction-choice" data-emoji="<%= emoji %>" data-action="reactions#pick" aria-label="<%= _("React with %{emoji}", emoji: emoji) %>"
+              data-words="<%= words("aria-label": [ "React with %{emoji}", { emoji: emoji } ]) %>"><%= emoji %></button>
     <% end %>
   </div>
 </div>

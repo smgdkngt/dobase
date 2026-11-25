@@ -2,6 +2,8 @@
 
 class ApplicationController < ActionController::Base
   include Authentication
+  # Before the demo's limits, whose refusals are said in the page's language
+  around_action :switch_locale
   include DemoRestricted
   include AnnouncesChanges
   include Translation::Methods
@@ -11,7 +13,6 @@ class ApplicationController < ActionController::Base
 
   rescue_from ActiveRecord::RecordNotFound, with: :record_not_found
 
-  around_action :switch_locale
   around_action :set_time_zone
   after_action :track_last_visited_path
   after_action :remember_theme

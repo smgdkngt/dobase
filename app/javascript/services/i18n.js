@@ -4,9 +4,10 @@
 //
 //   _("Saved %{time}", { time })
 //
-// The page's <head> carries the Persian of every text the scripts have (config/locales/
-// fa/js.yml) in <meta name="translations">; English pages carry none, and a text without
-// a translation stays English. Changing the language reloads the page, so this is read once.
+// The page's <head> carries the translation of every text the scripts have (config/locales/
+// <language>/js.yml) in <meta name="translations">; English pages carry none, and a text
+// without a translation stays English. Changing the language reloads the page, so this is
+// read once.
 
 /** @type {Record<string, string> | null} */
 let table = null
@@ -23,7 +24,13 @@ function translations() {
   return /** @type {Record<string, string>} */ (table)
 }
 
-/** The page's language: "en" or "fa" */
+// The name Intl knows a language by, where the page's own isn't the one meant: English
+// as the server writes it (12-hour clock, the month first), Persian as in Iran (its
+// digits and solar calendar). Any other language is Intl's by its own name.
+/** @type {Record<string, string>} */
+const INTL_LOCALES = { en: "en-US", fa: "fa-IR" }
+
+/** The page's language, as Translation::LANGUAGES names it */
 export function locale() {
   return (typeof document === "undefined" ? "" : document.documentElement.lang) || "en"
 }
@@ -34,12 +41,11 @@ export function rtl() {
 }
 
 /**
- * The language's name for dates and numbers, for Intl: Persian is written with its own
- * digits and its own (solar) calendar
+ * The language's name for dates and numbers, for Intl
  * @returns {string}
  */
 export function intlLocale() {
-  return locale() === "fa" ? "fa-IR" : "en-US"
+  return INTL_LOCALES[locale()] || locale()
 }
 
 /**
@@ -48,8 +54,43 @@ export function intlLocale() {
  * @returns {string}
  */
 export function digits(text) {
-  const value = String(text)
-  return locale() === "fa" ? value.replace(/[0-9]/g, (digit) => "۰۱۲۳۴۵۶۷۸۹"[Number(digit)]) : value
+  const number = new Intl.NumberFormat(intlLocale(), { useGrouping: false })
+  return String(text).replace(/[0-9]/g, (digit) => number.format(Number(digit)))
+}
+
+/**
+ * Writes the texts a part of the page names in `data-words` in the page's language
+ * (ApplicationHelper#words): a part broadcast to everyone, like a chat message, is drawn
+ * once in English. Each attribute named is set, `text` is the element's own text, and a
+ * list of values is joined as the language joins one.
+ * @param {Element | DocumentFragment} root
+ */
+export function translateWords(root) {
+  const marked = [ ...("matches" in root && root.matches("[data-words]") ? [ root ] : []), ...root.querySelectorAll("[data-words]") ]
+  for (const element of marked) {
+    /** @type {Record<string, [string, Record<string, string | number | string[]>?]>} */
+    let texts
+    try {
+      texts = JSON.parse(element.getAttribute("data-words") || "{}")
+    } catch {
+      continue
+    }
+    for (const [attribute, [text, values = {}]] of Object.entries(texts)) {
+      const written = _(text, listsJoined(values))
+      if (attribute === "text") element.textContent = written
+      else element.setAttribute(attribute, written)
+    }
+  }
+  root.querySelectorAll("template").forEach((template) => translateWords(template.content))
+}
+
+/**
+ * @param {Record<string, string | number | string[]>} values
+ * @returns {Record<string, string | number>}
+ */
+function listsJoined(values) {
+  const list = new Intl.ListFormat(intlLocale(), { type: "conjunction" })
+  return Object.fromEntries(Object.entries(values).map(([name, value]) => [ name, Array.isArray(value) ? list.format(value) : value ]))
 }
 
 /**

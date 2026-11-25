@@ -14,6 +14,7 @@
           a path on this site as a whole address (the server that draws a broadcast
           doesn't know the address it is reached by; the browser does)
     shortcut: The key that does the same, shown at the end ("e")
+    words: The text for the reader's browser to write, in a part that is broadcast (ApplicationHelper#words)
 %>
 <%
   data = (local_assigns[:data] || {}).dup
@@ -25,7 +26,7 @@
   content = capture do
 %>
   <%= render "shared/icon", name: icon, size: 15 if local_assigns[:icon] %>
-  <span class="flex-1 min-w-0 truncate"><%= text %></span>
+  <%= tag.span text, class: "flex-1 min-w-0 truncate", data: { words: local_assigns[:words] }.compact.presence %>
   <% if local_assigns[:shortcut] %><kbd class="context-menu-shortcut keyboard-hint" aria-hidden="true"><%= shortcut %></kbd><% end %>
 <% end %>
 <% if local_assigns[:href] %>

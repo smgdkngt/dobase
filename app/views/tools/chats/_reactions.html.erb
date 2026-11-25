@@ -3,10 +3,13 @@
     everyone, so it can't say so itself. %>
 <div id="<%= dom_id(message, :reactions) %>" class="chat-reactions" data-reactions-target="row">
   <% message.reaction_groups.each do |emoji, users| %>
+    <% names = users.map(&:name) %>
     <button type="button"
             class="chat-reaction"
-            title="<%= _("%{names} reacted with %{emoji}", names: users.map(&:name).to_sentence, emoji: emoji) %>"
-            aria-label="<%= _("%{emoji} %{count}, from %{names}", emoji: emoji, count: users.size, names: users.map(&:name).to_sentence) %>"
+            title="<%= _("%{names} reacted with %{emoji}", names: names.to_sentence, emoji: emoji) %>"
+            aria-label="<%= _("%{emoji} %{count}, from %{names}", emoji: emoji, count: users.size, names: names.to_sentence) %>"
+            data-words="<%= words(title: [ "%{names} reacted with %{emoji}", { names: names, emoji: emoji } ],
+                                  "aria-label": [ "%{emoji} %{count}, from %{names}", { emoji: emoji, count: users.size, names: names } ]) %>"
             aria-pressed="false"
             data-reactions-target="pill"
             data-emoji="<%= emoji %>"

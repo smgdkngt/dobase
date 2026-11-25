@@ -35,7 +35,7 @@ module Tools
 
         assert_not trashed.reload.trashed
         assert_nil trashed.trashed_at
-        assert_equal "1 email(s) restored.", flash[:notice]
+        assert_equal "1 email restored.", flash[:notice]
       end
 
       test "bulk archive, trash, restore and delete act on whole conversations" do
@@ -43,12 +43,12 @@ module Tools
 
         post tool_bulk_path(@tool), params: { message_ids: [ newer.id ], action_type: "archive", folder: "inbox" }
         assert older.reload.archived?
-        assert_equal "2 email(s) archived.", flash[:notice]
+        assert_equal "2 emails archived.", flash[:notice]
 
         [ older, newer ].each { |message| message.update!(archived: false) }
         post tool_bulk_path(@tool), params: { message_ids: [ newer.id ], action_type: "trash", folder: "inbox" }
         assert older.reload.trashed?
-        assert_equal "2 email(s) moved to trash.", flash[:notice]
+        assert_equal "2 emails moved to trash.", flash[:notice]
 
         post tool_bulk_path(@tool), params: { message_ids: [ newer.id ], action_type: "restore", folder: "trash" }
         assert_not older.reload.trashed?
@@ -69,11 +69,11 @@ module Tools
         end
         assert older.reload.read?
         assert_not elsewhere.reload.read?
-        assert_equal "2 email(s) marked as read.", flash[:notice]
+        assert_equal "2 emails marked as read.", flash[:notice]
 
         post tool_bulk_path(@tool), params: { message_ids: [ newer.id ], action_type: "mark_unread", folder: "inbox" }
         assert_not older.reload.read?
-        assert_equal "2 email(s) marked as unread.", flash[:notice]
+        assert_equal "2 emails marked as unread.", flash[:notice]
 
         mails_accounts(:primary).update!(synced_folders: [ "INBOX", "Sent", "Receipts", "Projecten &- co" ].to_json)
         assert_enqueued_jobs 2, only: ImapSyncJob do
@@ -81,7 +81,7 @@ module Tools
         end
         assert_equal "Projecten &- co", older.reload.folder
         assert_equal "Receipts", elsewhere.reload.folder
-        assert_equal "2 email(s) moved to Projecten & co.", flash[:notice]
+        assert_equal "2 emails moved to Projecten & co.", flash[:notice]
       end
 
       test "bulk move_to_folder leaves mail where it is when the server doesn't have the folder" do

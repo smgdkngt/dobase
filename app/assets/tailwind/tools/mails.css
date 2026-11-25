@@ -30,7 +30,7 @@
 
   .mail-folder-link {
     @apply flex items-center gap-2.5 px-3 py-1.5 mx-2 rounded-lg text-sm text-text-secondary
-           hover:bg-background-tertiary hover:text-text-primary transition-colors text-left;
+           hover:bg-background-tertiary hover:text-text-primary transition-colors text-start;
   }
 
   .mail-folder-link[aria-current="page"] {
@@ -275,7 +275,7 @@
   }
 
   .mail-message-toggle {
-    @apply row-span-2 flex items-start gap-3 py-4 pe-4 bg-transparent border-none cursor-pointer text-left;
+    @apply row-span-2 flex items-start gap-3 py-4 pe-4 bg-transparent border-none cursor-pointer text-start;
   }
 
   /* Who wrote it and when; closed, how it starts between them */

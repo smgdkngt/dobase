@@ -38,7 +38,7 @@ module Tools
       # DELETE /tools/:tool_id/mails/trash (empty trash)
       def destroy_all
         count = @tool.mail_account.delete_for_good(@tool.mail_account.messages.trashed.to_a).size
-        redirect_to tool_mails_path(@tool, folder: "trash"), notice: _("%{count} email(s) permanently deleted.", count: count)
+        redirect_to tool_mails_path(@tool, folder: "trash"), notice: n_("%{count} email permanently deleted.", "%{count} emails permanently deleted.", count)
       end
 
       private

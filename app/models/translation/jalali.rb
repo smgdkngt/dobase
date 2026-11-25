@@ -1,15 +1,11 @@
 # frozen_string_literal: true
 
 # The solar calendar Persian is read in: a Gregorian date as its Jalali year, month and
-# day, and the names Persian gives them. FormattingHelper writes dates with it.
+# day. A language whose locale file says `translation.calendar: jalali` writes its dates
+# by it (Translation.localize), with the month names under `translation.month_names`.
 #
 #   Translation::Jalali.from(Date.new(2025, 3, 21))  # => [1404, 1, 1]
 module Translation::Jalali
-  MONTHS = %w[فروردین اردیبهشت خرداد تیر مرداد شهریور مهر آبان آذر دی بهمن اسفند].freeze
-  # By Date#wday: Sunday first
-  WEEKDAYS = %w[یکشنبه دوشنبه سه‌شنبه چهارشنبه پنجشنبه جمعه شنبه].freeze
-  SHORT_WEEKDAYS = %w[ی د س چ پ ج ش].freeze
-
   DAYS_BEFORE_MONTH = [ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 ].freeze
 
   module_function
@@ -33,8 +29,4 @@ module Translation::Jalali
       [ year, 7 + ((days - 186) / 30), 1 + ((days - 186) % 30) ]
     end
   end
-
-  def month_name(date) = MONTHS[from(date)[1] - 1]
-
-  def weekday(date, short: false) = (short ? SHORT_WEEKDAYS : WEEKDAYS)[date.wday]
 end

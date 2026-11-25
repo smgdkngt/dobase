@@ -66,7 +66,7 @@
     @apply opacity-100;
   }
   .board-card-archived-open {
-    @apply flex-1 min-w-0 text-left cursor-pointer rounded-sm;
+    @apply flex-1 min-w-0 text-start cursor-pointer rounded-sm;
   }
 
   /* Card hover lift — a physical sense of picking something up */

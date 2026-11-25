@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { _ } from "services/i18n"
+import { _, n_ } from "services/i18n"
 
 // Handles file/folder selection (single, multi, shift-select)
 export default class extends Controller {
@@ -174,7 +174,7 @@ export default class extends Controller {
     if (this.selectedItems.size > 0) {
       this.bulkToolbarTarget.classList.remove("hidden")
       this.bulkToolbarTarget.classList.add("flex")
-      this.bulkCountTarget.textContent = `${this.selectedItems.size} selected`
+      this.bulkCountTarget.textContent = n_("%{count} selected", "%{count} selected", this.selectedItems.size)
     } else {
       this.bulkToolbarTarget.classList.add("hidden")
       this.bulkToolbarTarget.classList.remove("flex")

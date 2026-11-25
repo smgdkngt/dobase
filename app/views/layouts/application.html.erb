@@ -17,7 +17,8 @@
     <meta name="theme-color" content="#2c2c2e" media="(prefers-color-scheme: dark)">
     <%# A change of language reloads the page (Turbo never touches <html>, where dir is) %>
     <meta name="locale" content="<%= I18n.locale %>" data-turbo-track="reload">
-    <%= tag.meta name: "translations", content: Translation.for_scripts.to_json if Translation.for_scripts.any? %>
+    <% script_texts = Translation.for_scripts %>
+    <%= tag.meta name: "translations", content: script_texts.to_json if script_texts.any? %>
     <%= csrf_meta_tags %>
     <meta name="time-zone" content="<%= Time.zone.tzinfo.name %>">
     <%= csp_meta_tag %>

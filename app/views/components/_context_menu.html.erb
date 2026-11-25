@@ -9,6 +9,9 @@
   Required:
     label: What the menu is about, for a screen reader ("Conversation", "Card")
 
+  Options:
+    words: The label for the reader's browser to write, in a part that is broadcast (ApplicationHelper#words)
+
   Example (in the item's view):
     tag.div data: { context_menu: true } do
       ...
@@ -17,6 +20,6 @@
       end
     end
 %>
-<%= tag.template data: { context_menu_items: true }, aria: { label: label } do %>
+<%= tag.template data: { context_menu_items: true, words: local_assigns[:words] }.compact, aria: { label: label } do %>
   <%= yield %>
 <% end %>

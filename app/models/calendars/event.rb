@@ -140,7 +140,7 @@ module Calendars
         base = interval == 1 ? _("Weekly") : _("Every %{count} weeks", count: interval)
         if parts[:byday].present?
           day_names = parts[:byday].split(",").filter_map { |d| day_full_name(d) }
-          day_names.any? ? _("%{base} on %{days}", base: base, days: day_names.map { |name| _(name) }.join(Translation.rtl? ? "، " : ", ")) : base
+          day_names.any? ? _("%{base} on %{days}", base: base, days: day_names.map { |name| _(name) }.join(I18n.t("support.array.words_connector"))) : base
         else
           base
         end

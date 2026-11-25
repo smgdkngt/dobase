@@ -1,11 +1,14 @@
 import { Controller } from "@hotwired/stimulus"
+import { translateWords } from "services/i18n"
 
 export default class extends Controller {
   static values = {
     userId: Number
   }
 
+  // A message that was broadcast is in English: its texts go into this page's language
   connect() {
+    translateWords(this.element)
     this.applyOwnershipStyling()
   }
 

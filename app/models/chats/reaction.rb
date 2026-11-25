@@ -18,15 +18,18 @@ module Chats
     # Everyone in the chat sees the new count; the row is redrawn, not the
     # message, so a message that continues its author's group stays one. It's
     # drawn from the message as stored now: this reaction's copy of the message
-    # may remember an older list of reactions.
+    # may remember an older list of reactions. Like the message, it is drawn in
+    # English and each reader's browser writes its texts in their own language.
     after_commit -> {
       current = Chats::Message.includes(reactions: :user).find_by(id: message_id)
       next unless current
 
-      broadcast_replace_to current.chat,
-        target: ActionView::RecordIdentifier.dom_id(current, :reactions),
-        partial: "tools/chats/reactions",
-        locals: { message: current }
+      I18n.with_locale(I18n.default_locale) do
+        broadcast_replace_to current.chat,
+          target: ActionView::RecordIdentifier.dom_id(current, :reactions),
+          partial: "tools/chats/reactions",
+          locals: { message: current }
+      end
     }, on: %i[create destroy]
   end
 end

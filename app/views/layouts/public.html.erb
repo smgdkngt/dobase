@@ -16,7 +16,8 @@
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
     <meta name="locale" content="<%= I18n.locale %>" data-turbo-track="reload">
-    <%= tag.meta name: "translations", content: Translation.for_scripts.to_json if Translation.for_scripts.any? %>
+    <% script_texts = Translation.for_scripts %>
+    <%= tag.meta name: "translations", content: script_texts.to_json if script_texts.any? %>
   </head>
 
   <body <%= tag.attributes(dir: Translation.direction) %> class="bg-background text-text-primary">
@@ -34,7 +35,7 @@
 
       <footer class="px-8 py-4 text-center border-t border-border-light">
         <p class="text-text-tertiary text-sm">
-          <%= _("Shared via") %> <a href="/" class="text-accent hover:underline"><%= app_name %></a>
+          <%= _("Shared via %{app_name}", app_name: link_to(app_name, "/", class: "text-accent hover:underline")) %>
         </p>
       </footer>
     </div>

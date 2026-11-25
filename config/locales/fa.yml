@@ -147,11 +147,29 @@ fa:
       day: "روز"
       month: "ماه"
       year: "سال"
+  # How Persian writes: right to left, dates by the solar calendar, its own digits
+  # (Translation)
+  translation:
+    direction: rtl
+    calendar: jalali
+    month_names: [~, فروردین, اردیبهشت, خرداد, تیر, مرداد, شهریور, مهر, آبان, آذر, دی, بهمن, اسفند]
+    digits: "۰۱۲۳۴۵۶۷۸۹"
   date:
     formats:
       default: "%Y/%m/%d"
       short: "%d %b"
       long: "%d %B %Y"
+      day: "%-d %B"
+      day_and_year: "%-d %B %Y"
+      day_of_month: "%-d"
+      weekday: "%A"
+      weekday_short: "%a"
+      weekday_with_date: "%A"
+      month_and_year: "%B %Y"
+      week_start: "%B"
+      week_start_with_year: "%B %Y"
+      week_end: "%B %Y"
+      long_day: "%A، %-d %B %Y"
     day_names: [یکشنبه, دوشنبه, سه‌شنبه, چهارشنبه, پنجشنبه, جمعه, شنبه]
     abbr_day_names: [ی, د, س, چ, پ, ج, ش]
     month_names: [~, ژانویه, فوریه, مارس, آوریل, مه, ژوئن, ژوئیه, اوت, سپتامبر, اکتبر, نوامبر, دسامبر]
@@ -165,6 +183,9 @@ fa:
       default: "%Y/%m/%d %H:%M"
       short: "%d %b %H:%M"
       long: "%d %B %Y %H:%M"
+      clock: "%H:%M"
+      clock_without_period: "%H:%M"
+      hour: "%H"
     am: "ق.ظ."
     pm: "ب.ظ."
   number:

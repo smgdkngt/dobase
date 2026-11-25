@@ -10,6 +10,7 @@
   <% end %>
 
   <% if message.edited_at %>
-    <span class="text-[11px] text-text-tertiary" data-message-edited title="<%= _("This message was edited after it was sent") %>">edited</span>
+    <span class="text-[11px] text-text-tertiary" data-message-edited title="<%= _("This message was edited after it was sent") %>"
+          data-words="<%= words(title: "This message was edited after it was sent", text: "edited") %>"><%= _("edited") %></span>
   <% end %>
 <% end %>

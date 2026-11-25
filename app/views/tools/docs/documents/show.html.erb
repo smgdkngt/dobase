@@ -19,7 +19,7 @@
             role="status"
             aria-live="polite">
         <span class="w-2 h-2 bg-warning rounded-full animate-pulse" aria-hidden="true"></span>
-        <span><span data-document-viewer-target="editorName"><%= @editing_user&.name %></span> <%= _("is editing") %></span>
+        <span><%= _("%{locked_by_name} is editing", locked_by_name: tag.span(@editing_user&.name, data: { document_viewer_target: "editorName" })) %></span>
       </span>
 
       <% show_edited = @document.updated_by && @document.updated_by != current_user %>

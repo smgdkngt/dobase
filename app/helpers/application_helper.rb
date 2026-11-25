@@ -49,6 +49,18 @@ module ApplicationHelper
   # locale's <meta> in the head is tracked)
   def language_attributes = { lang: I18n.locale, dir: Translation.direction }
 
+  # A part of a page that is broadcast to everyone (a chat message) is drawn once, in
+  # English, for readers of every language. This names its texts for `data-words`, and
+  # the reader's browser writes them in the page's language (services/i18n.js
+  # translateWords); they go in config/locales/<language>/js.yml.
+  #
+  #   data: { words: words(title: "Reply", "aria-label": ["Message from %{name}", { name: }]) }
+  #
+  # `text` is the element's own text; a list of values is joined as the language joins one.
+  def words(**texts)
+    texts.to_h { |attribute, text| [ attribute.to_s.dasherize, Array(text) ] }.to_json
+  end
+
   # What <html> wears for them; a change later on goes through services/theme.js
   def theme_attributes
     theme = current_theme

@@ -1,4 +1,4 @@
-import { _, intlLocale, locale } from "services/i18n"
+import { _, intlLocale } from "services/i18n"
 // What the compose form saves by itself, and when (compose_controller.js). The form is
 // compared as a snapshot: a string of what it would save.
 
@@ -53,8 +53,7 @@ export function fitsKeepalive(entries) {
  * @returns {string}
  */
 export function savedAt(date, locales = intlLocale()) {
-  const hourCycle = locale() === "fa" ? { hourCycle: /** @type {const} */ ("h23") } : {}
-  return _("Saved %{time}", { time: date.toLocaleTimeString(locales, { hour: "numeric", minute: "2-digit", ...hourCycle }) })
+  return _("Saved %{time}", { time: date.toLocaleTimeString(locales, { hour: "numeric", minute: "2-digit" }) })
 }
 
 /**

@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { apiPost, apiDelete } from "services/api"
+import { translateWords } from "services/i18n"
 
 // Emoji on a chat message. The row arrives over the chat's broadcast, the
 // same for everyone, so which emoji are yours is marked here, each time the
@@ -10,6 +11,7 @@ export default class extends Controller {
   static values = { url: String }
 
   pillTargetConnected(pill) {
+    translateWords(pill)
     pill.setAttribute("aria-pressed", this._isMine(pill) ? "true" : "false")
   }
 

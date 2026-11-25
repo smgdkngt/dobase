@@ -12,7 +12,8 @@
     <%# Nothing of the app's own JavaScript: this page only hands itself on %>
     <%= yield :head %>
     <meta name="locale" content="<%= I18n.locale %>" data-turbo-track="reload">
-    <%= tag.meta name: "translations", content: Translation.for_scripts.to_json if Translation.for_scripts.any? %>
+    <% script_texts = Translation.for_scripts %>
+    <%= tag.meta name: "translations", content: script_texts.to_json if script_texts.any? %>
   </head>
 
   <body <%= tag.attributes(dir: Translation.direction) %> class="bg-background-secondary text-text-primary">
