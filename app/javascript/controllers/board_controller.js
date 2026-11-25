@@ -5,6 +5,7 @@ import { reportPresence } from "services/presence"
 import { pageInUse } from "services/page_in_use"
 import { pageAddress, visitPage, tileOf } from "services/tile"
 import { addAgainLater, forgetAddAgain, takeAddAgain } from "services/add_again"
+import { _ } from "services/i18n"
 
 // What a drawing of the page after adding a card ends with, whichever way it came
 const DRAWN = [ "turbo:load", "turbo:morph", "turbo:frame-render" ]
@@ -127,7 +128,7 @@ export default class extends Controller {
             this.cardDetailDialogTarget.close()
           }
           this._clearCardParam()
-          showFlash("This card no longer exists.")
+          showFlash(_("This card no longer exists."))
           return null
         }
         return response.text()
@@ -251,7 +252,7 @@ export default class extends Controller {
       event.currentTarget.setAttribute("aria-expanded", String(isHidden))
       if (label) {
         const count = label.textContent.match(/\d+/)?.[0] || ""
-        label.textContent = isHidden ? `Hide ${count} archived` : `${count} archived`
+        label.textContent = isHidden ? _("Hide %{count} archived", { count }) : _("%{count} archived", { count })
       }
     }
   }

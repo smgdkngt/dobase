@@ -2,8 +2,10 @@
 
 class ApplicationController < ActionController::Base
   include Authentication
+  around_action :switch_locale
   include DemoRestricted
   include AnnouncesChanges
+  include Translation::Methods
 
   # Requires Popover API, CSS Anchor Positioning, and Invoker Commands (commandfor)
   allow_browser versions: { safari: 26.2, chrome: 135, firefox: 144, opera: 117, ie: false }
@@ -13,6 +15,7 @@ class ApplicationController < ActionController::Base
   around_action :set_time_zone
   after_action :track_last_visited_path
   after_action :remember_theme
+  after_action :remember_locale
 
   helper_method :tile?, :tile_frame, :workspace_wanted?, :browser_scheme
 
@@ -86,6 +89,27 @@ class ApplicationController < ActionController::Base
     address if tool_id && tool_id == params[:tool_id].to_s
   end
 
+  def switch_locale(&block)
+    I18n.with_locale(page_locale, &block)
+  end
+
+  def page_locale
+    return I18n.default_locale if access_token_request? || request.format.json?
+
+    chosen = current_user&.locale if user_signed_in?
+    Translation.supported(chosen) || Translation.supported(cookies[:locale]) ||
+      Translation.from_accept_language(request.headers["Accept-Language"]) || I18n.default_locale
+  end
+
+  def remember_locale
+    return unless current_user && Current.session && request.format.html?
+
+    locale = Translation.supported(current_user.locale)
+    return if cookies[:locale] == locale
+
+    locale ? cookies.permanent[:locale] = { value: locale, same_site: :lax } : cookies.delete(:locale)
+  end
+
   def set_time_zone(&block)
     timezone = current_user&.timezone.presence || "UTC"
     Time.use_zone(timezone, &block)
@@ -147,7 +171,7 @@ class ApplicationController < ActionController::Base
       # frame (a modal, say) would go blank without saying why.
       render partial: "shared/record_not_found", status: :not_found
     else
-      redirect_to root_path, alert: "That item no longer exists."
+      redirect_to root_path, alert: _("That item no longer exists.")
     end
   end
 

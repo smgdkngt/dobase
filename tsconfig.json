@@ -37,6 +37,7 @@
     "app/javascript/services/draft_autosave.js",
     "app/javascript/services/drafts.js",
     "app/javascript/services/add_again.js",
+    "app/javascript/services/i18n.js",
     "test/javascript/**/*.mjs",
     "test/javascript/support/globals.d.ts"
   ]

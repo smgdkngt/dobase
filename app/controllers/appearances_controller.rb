@@ -21,7 +21,7 @@ class AppearancesController < ApplicationController
 
     if name.present? && Theme.find(name).nil? && Theme.clean_palette(colors).nil?
       return respond_to do |format|
-        format.html { redirect_to edit_profile_path(tab: "appearance"), alert: "That theme doesn't exist.", status: :see_other }
+        format.html { redirect_to edit_profile_path(tab: "appearance"), alert: _("That theme doesn't exist."), status: :see_other }
         format.json { render json: { error: "Unknown theme. Pick one of the built-in themes, or send its colors." }, status: :unprocessable_entity }
       end
     end

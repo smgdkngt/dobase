@@ -138,7 +138,7 @@ module Todos
       def assignee_must_be_on_tool
         return if assigned_user_id.nil? || assignee_on_tool?
 
-        errors.add(:assigned_user, "must be a collaborator on this tool")
+        errors.add(:assigned_user, _("must be a collaborator on this tool"))
       end
 
       def next_due_date

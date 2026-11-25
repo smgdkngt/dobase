@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { translateWords } from "services/i18n"
 
 export default class extends Controller {
   static values = {
@@ -6,6 +7,7 @@ export default class extends Controller {
   }
 
   connect() {
+    translateWords(this.element)
     this.applyOwnershipStyling()
   }
 

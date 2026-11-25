@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { showFlash } from "services/flash"
 import { play } from "services/sound"
+import { _ } from "services/i18n"
 
 export default class extends Controller {
   static targets = [
@@ -146,7 +147,7 @@ export default class extends Controller {
     } catch (e) {
       console.error("Room: failed to connect", e)
       await this._teardownFailedRoom(room)
-      this._showJoinError("Couldn't reach the video server. Check your connection and try again.", () => this.join())
+      this._showJoinError(_("Couldn't reach the video server. Check your connection and try again."), () => this.join())
       return
     }
 
@@ -254,7 +255,7 @@ export default class extends Controller {
   // does for someone who leaves, and they are told why.
   _callDropped(remaining) {
     const wasOnRoomPage = window.location.pathname === this.toolPathValue
-    const message = "You were disconnected from the call. Check your connection and join again."
+    const message = _("You were disconnected from the call. Check your connection and join again.")
 
     this._pingActivity(false, remaining)
     this._endCall(wasOnRoomPage)
@@ -294,7 +295,7 @@ export default class extends Controller {
     const enabled = local.isMicrophoneEnabled
     local.setMicrophoneEnabled(!enabled)
     this.micButtonTarget.classList.toggle("text-error", enabled)
-    this.micButtonTarget.title = enabled ? "Unmute microphone" : "Mute microphone"
+    this.micButtonTarget.title = enabled ? _("Unmute microphone") : _("Mute microphone")
     if (this.hasLocalMutedIconTarget) this.localMutedIconTarget.classList.toggle("hidden", !enabled)
   }
 
@@ -304,7 +305,7 @@ export default class extends Controller {
     const enabled = local.isCameraEnabled
     local.setCameraEnabled(!enabled)
     this.cameraButtonTarget.classList.toggle("text-error", enabled)
-    this.cameraButtonTarget.title = enabled ? "Turn on camera" : "Turn off camera"
+    this.cameraButtonTarget.title = enabled ? _("Turn on camera") : _("Turn off camera")
   }
 
   async toggleScreen() {
@@ -507,13 +508,13 @@ export default class extends Controller {
   _mediaErrorMessage(e) {
     switch (e?.name) {
       case "NotAllowedError":
-        return "Camera and microphone access is blocked. Allow access in your browser's settings, then try again."
+        return _("Camera and microphone access is blocked. Allow access in your browser's settings, then try again.")
       case "NotFoundError":
-        return "No camera or microphone was found. Connect a device and try again."
+        return _("No camera or microphone was found. Connect a device and try again.")
       case "NotReadableError":
-        return "Your camera or microphone is already in use by another application."
+        return _("Your camera or microphone is already in use by another application.")
       default:
-        return "Couldn't access your camera or microphone. Try again."
+        return _("Couldn't access your camera or microphone. Try again.")
     }
   }
 
@@ -642,10 +643,10 @@ export default class extends Controller {
       const audioDevices = devices.filter(d => d.kind === "audioinput")
       const videoDevices = devices.filter(d => d.kind === "videoinput")
 
-      if (this.hasAudioSelectTarget) this._populateSelect(this.audioSelectTarget, audioDevices, "Microphone")
-      if (this.hasVideoSelectTarget) this._populateSelect(this.videoSelectTarget, videoDevices, "Camera")
-      if (this.hasSettingsAudioSelectTarget) this._populateSelect(this.settingsAudioSelectTarget, audioDevices, "Microphone")
-      if (this.hasSettingsVideoSelectTarget) this._populateSelect(this.settingsVideoSelectTarget, videoDevices, "Camera")
+      if (this.hasAudioSelectTarget) this._populateSelect(this.audioSelectTarget, audioDevices, _("Microphone"))
+      if (this.hasVideoSelectTarget) this._populateSelect(this.videoSelectTarget, videoDevices, _("Camera"))
+      if (this.hasSettingsAudioSelectTarget) this._populateSelect(this.settingsAudioSelectTarget, audioDevices, _("Microphone"))
+      if (this.hasSettingsVideoSelectTarget) this._populateSelect(this.settingsVideoSelectTarget, videoDevices, _("Camera"))
     } catch (e) {
       console.warn("Room: could not enumerate devices:", e)
     }
@@ -720,7 +721,7 @@ export default class extends Controller {
           this._showSpotlight(track, this.room.localParticipant)
           if (this.hasScreenButtonTarget) {
             this.screenButtonTarget.classList.add("text-error")
-            this.screenButtonTarget.title = "Stop sharing"
+            this.screenButtonTarget.title = _("Stop sharing")
           }
         }
       })
@@ -734,7 +735,7 @@ export default class extends Controller {
           this._hideSpotlight(this.room.localParticipant.identity)
           if (this.hasScreenButtonTarget) {
             this.screenButtonTarget.classList.remove("text-error")
-            this.screenButtonTarget.title = "Share screen"
+            this.screenButtonTarget.title = _("Share screen")
           }
         }
       })
@@ -772,7 +773,7 @@ export default class extends Controller {
           // Dropped while still joining: back to the pre-join page it never left
           this._showPreJoin()
           this._requestDeviceAccess()
-          this._showJoinError("You were disconnected from the call. Check your connection and try again.", () => this.join())
+          this._showJoinError(_("You were disconnected from the call. Check your connection and try again."), () => this.join())
         }
       })
   }
@@ -827,7 +828,7 @@ export default class extends Controller {
     const isLocal = participant.identity === this.room.localParticipant.identity
     if (this.hasSpotlightLabelTarget) {
       this.spotlightLabelTarget.textContent = isLocal
-        ? "You're presenting"
+        ? _("You're presenting")
         : `${participant.name || participant.identity} is presenting`
     }
     if (this.hasSpotlightVideoTarget) track.attach(this.spotlightVideoTarget)
@@ -866,7 +867,7 @@ export default class extends Controller {
       : this.videoGridTarget.querySelector(`[data-participant-id="${participant.identity}"] [data-quality-dot]`)
     if (!dot) return
     dot.classList.toggle("hidden", !poor)
-    dot.title = quality === "lost" ? "Connection lost" : "Poor connection"
+    dot.title = quality === "lost" ? _("Connection lost") : _("Poor connection")
   }
 
   _updateActiveSpeakers(speakers) {
@@ -884,7 +885,7 @@ export default class extends Controller {
     if (!this.hasParticipantListBodyTarget) return
     this.participantListBodyTarget.innerHTML = ""
     if (this.room) {
-      this._appendParticipantRow(this.userNameValue || "You", this.initials(this.userNameValue), true)
+      this._appendParticipantRow(this.userNameValue || _("You"), this.initials(this.userNameValue), true)
     }
     this.videoGridTarget.querySelectorAll("[data-participant-id]").forEach((tile) => {
       const name = tile.querySelector("[data-name]")?.textContent || "Participant"

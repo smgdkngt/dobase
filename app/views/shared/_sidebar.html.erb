@@ -1,30 +1,30 @@
 <%# The arrow keys go through all of it: the tools, their settings, the search, the buttons (arrow_keys_controller.js) %>
-<aside class="sidebar" id="sidebar" aria-label="Workspace" data-controller="sidebar arrow-keys"
+<aside class="sidebar" id="sidebar" aria-label="<%= _("Workspace") %>" data-controller="sidebar arrow-keys"
        data-action="sortable:move->sidebar#handleToolMove"
        data-mobile-sidebar-target="sidebar">
   <%# ── Logo ── %>
   <div class="px-2 py-2 border-b border-border-light flex items-center gap-1">
     <button type="button"
             class="sidebar-logo-btn sidebar-reorder-hide"
-            aria-label="<%= app_name %> menu"
+            aria-label="<%= _("%{app_name} menu", app_name: app_name) %>"
             aria-haspopup="menu"
             popovertarget="sidebar-add-menu"
             style="anchor-name: --sidebar-add-btn">
       <%= render "shared/logo", class: "w-7 h-7 flex-shrink-0" %>
       <span class="font-semibold text-base text-text-primary truncate"><%= app_name %></span>
-      <%= render "shared/icon", name: "settings", size: 14, class: "text-text-tertiary flex-shrink-0 ml-auto" %>
+      <%= render "shared/icon", name: "settings", size: 14, class: "text-text-tertiary flex-shrink-0 ms-auto" %>
     </button>
 
     <button type="button"
             class="sidebar-logo-btn sidebar-reorder-show"
             data-action="click->sidebar#toggleReorder"
-            title="Done reordering">
+            title="<%= _("Done reordering") %>">
       <%= render "shared/logo", class: "w-7 h-7 flex-shrink-0" %>
       <span class="font-semibold text-base text-text-primary truncate"><%= app_name %></span>
-      <%= render "shared/icon", name: "check", size: 14, class: "text-accent flex-shrink-0 ml-auto" %>
+      <%= render "shared/icon", name: "check", size: 14, class: "text-accent flex-shrink-0 ms-auto" %>
     </button>
 
-    <button type="button" class="sidebar-close-btn flex-shrink-0" aria-label="Close sidebar" data-action="click->mobile-sidebar#close">
+    <button type="button" class="sidebar-close-btn flex-shrink-0" aria-label="<%= _("Close sidebar") %>" data-action="click->mobile-sidebar#close">
       <%= render "shared/icon", name: "x", size: 20 %>
     </button>
   </div>
@@ -37,16 +37,16 @@
     <button type="button"
             class="sidebar-jump-pill"
             data-action="click->keyboard-shortcuts#openCommandPalette"
-            title="Jump to a tool or action (<%= launcher_key %>)">
+            title="<%= _("Jump to a tool or action (%{key})", key: launcher_key) %>">
       <%= render "shared/icon", name: "search", size: 14, class: "text-text-tertiary flex-shrink-0" %>
-      <span class="sidebar-jump-pill-label">Jump to…</span>
+      <span class="sidebar-jump-pill-label"><%= _("Jump to…") %></span>
       <kbd class="shortcut-key sidebar-jump-pill-kbd keyboard-hint"><%= launcher_key %></kbd>
     </button>
   </div>
   <% end %>
 
   <%# ── Navigation ── %>
-  <nav class="flex-1 py-2 overflow-y-auto scrollbar-thin" aria-label="Tools" data-sidebar-target="nav"
+  <nav class="flex-1 py-2 overflow-y-auto scrollbar-thin" aria-label="<%= _("Tools") %>" data-sidebar-target="nav"
        <%= tag.attributes(data: { controller: "sidebar-presence", sidebar_presence_user_id_value: current_user.id }) if defined?(current_user) && current_user %>>
     <% if defined?(current_user) && current_user %>
       <% unread_tool_ids = Tool.unread_tool_ids_for(current_user) %>
@@ -87,7 +87,7 @@
               <div class="sidebar-group-actions">
                 <button type="button" class="sidebar-context-btn"
                         data-sidebar-context-btn
-                        aria-label="<%= group.name %> group options"
+                        aria-label="<%= _("%{name} group options", name: group.name) %>"
                         aria-haspopup="menu"
                         popovertarget="group-menu-<%= group.id %>"
                         style="anchor-name: --grp-<%= group.id %>">
@@ -108,14 +108,14 @@
                       data-group-id="<%= group.id %>"
                       popovertarget="group-menu-<%= group.id %>" popovertargetaction="hide">
                 <%= render "shared/icon", name: "edit", size: 14 %>
-                <span>Rename</span>
+                <span><%= _("Rename") %></span>
               </button>
               <div class="dropdown-divider"></div>
               <%= button_to sidebar_group_path(group), method: :delete,
                     class: "dropdown-item flex items-center gap-2 text-error",
-                    data: { turbo_confirm: "Delete this group? Tools will become ungrouped.", turbo_confirm_button: "Delete" } do %>
+                    data: { turbo_confirm: _("Delete this group? Tools will become ungrouped."), turbo_confirm_button: _("Delete") } do %>
                 <%= render "shared/icon", name: "trash-2", size: 14 %>
-                <span>Delete Group</span>
+                <span><%= _("Delete Group") %></span>
               <% end %>
             </div>
 
@@ -151,7 +151,7 @@
       <%# User menu trigger — avatar with name %>
       <button type="button"
               class="sidebar-user-btn"
-              aria-label="Account menu for <%= current_user.name %>"
+              aria-label="<%= _("Account menu for %{name}", name: current_user.name) %>"
               aria-haspopup="menu"
               popovertarget="sidebar-user-menu"
               style="anchor-name: --sidebar-user-btn">
@@ -169,18 +169,18 @@
                 data-hotkey="b"
                 data-notifications-target="trigger"
                 data-action="click->notifications#togglePopover"
-                title="Notifications (b)">
+                title="<%= _("Notifications (b)") %>">
           <%= render "shared/icon", name: "bell", size: 16 %>
           <%# Rendered server-side (not just toggled by JS) so a Turbo morph
               refresh — which restores whatever class the server sends —
               keeps showing an accurate badge instead of resetting to hidden. %>
-          <span class="absolute -top-0.5 -right-0.5 badge badge-sm <%= "hidden" if sidebar_unread_count.zero? %>"
+          <span class="absolute -top-0.5 -end-0.5 badge badge-sm <%= "hidden" if sidebar_unread_count.zero? %>"
                 aria-hidden="true"
                 data-notifications-target="badge">
             <%= sidebar_unread_count %>
           </span>
           <span class="sr-only" role="status" data-notifications-target="badgeStatus">
-            <%= sidebar_unread_count.zero? ? "No unread notifications" : pluralize(sidebar_unread_count, "unread notification") %>
+            <%= sidebar_unread_count.zero? ? _("No unread notifications") : n_("%{count} unread notification", "%{count} unread notifications", sidebar_unread_count) %>
           </span>
         </button>
       </div>
@@ -205,19 +205,19 @@
       <button type="button" class="dropdown-item flex items-center gap-2"
               commandfor="new-tool-modal" command="show-modal">
         <%= render "shared/icon", name: "rocket", size: 16 %>
-        <span>Add Tool</span>
+        <span><%= _("Add Tool") %></span>
       </button>
       <%= button_to sidebar_groups_path, params: { name: "New Group" },
             class: "dropdown-item flex items-center gap-2" do %>
         <%= render "shared/icon", name: "folder-plus", size: 16 %>
-        <span>New Group</span>
+        <span><%= _("New Group") %></span>
       <% end %>
       <div class="dropdown-divider"></div>
       <button type="button" class="dropdown-item flex items-center gap-2"
               data-action="click->sidebar#toggleReorder"
               popovertarget="sidebar-add-menu" popovertargetaction="hide">
         <%= render "shared/icon", name: "grip-vertical", size: 16 %>
-        <span>Reorder</span>
+        <span><%= _("Reorder") %></span>
       </button>
     </div>
 
@@ -229,12 +229,12 @@
       <button type="button" class="dropdown-item flex items-center gap-2"
               commandfor="profile-modal" command="show-modal">
         <%= render "shared/icon", name: "user", size: 16 %>
-        <span>Profile</span>
+        <span><%= _("Profile") %></span>
       </button>
       <div class="dropdown-divider"></div>
       <%= button_to logout_path, method: :delete, class: "dropdown-item flex items-center gap-2 text-error" do %>
         <%= render "shared/icon", name: "log-out", size: 16 %>
-        <span>Sign Out</span>
+        <span><%= _("Sign Out") %></span>
       <% end %>
     </div>
   </div>
@@ -244,11 +244,11 @@
 <%# ── Modals (outside sidebar to avoid stacking context) ── %>
 <% if defined?(current_user) && current_user %>
   <%= render "shared/new_tool_modal" %>
-  <%= render "shared/modal", id: "edit-tool-modal", title: "Edit tool", size: :xl,
+  <%= render "shared/modal", id: "edit-tool-modal", title: _("Edit tool"), size: :xl,
         data: { sidebar_target: "editToolDialog" } do %>
     <%= turbo_frame_tag "edit-tool-form", data: { sidebar_target: "editToolFrame" } %>
   <% end %>
-  <%= render "shared/modal", id: "profile-modal", title: "Profile", size: :xl do %>
+  <%= render "shared/modal", id: "profile-modal", title: _("Profile"), size: :xl do %>
     <%= turbo_frame_tag "profile-form", src: edit_profile_path, loading: :lazy do %>
       <div class="px-4 py-8 text-center">
         <div class="text-text-tertiary animate-spin">

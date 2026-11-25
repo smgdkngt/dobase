@@ -35,7 +35,7 @@ module Tools
             @calendar_account.mark_syncing!
             SyncCalendarsJob.perform_later(@calendar_account.id, discover: true)
           end
-          redirect_to tool_calendar_path(@tool), notice: "Calendar account updated successfully."
+          redirect_to tool_calendar_path(@tool), notice: _("Calendar account updated successfully.")
         else
           render :edit, status: :unprocessable_entity
         end
@@ -45,12 +45,12 @@ module Tools
 
       def set_tool
         @tool = Tool.find_by(id: params[:tool_id])
-        redirect_to root_path, alert: "Tool not found." unless @tool
+        redirect_to root_path, alert: _("Tool not found.") unless @tool
       end
 
       def set_calendar_account
         @calendar_account = @tool.calendar_account
-        redirect_to @tool, alert: "No calendar account configured." unless @calendar_account
+        redirect_to @tool, alert: _("No calendar account configured.") unless @calendar_account
       end
 
       def calendar_account_params
@@ -83,7 +83,7 @@ module Tools
         end
 
         if saved
-          redirect_to tool_calendar_path(@tool), notice: "Calendar created successfully."
+          redirect_to tool_calendar_path(@tool), notice: _("Calendar created successfully.")
         else
           render :new, status: :unprocessable_entity
         end
@@ -92,7 +92,7 @@ module Tools
       def create_caldav_account
         if @calendar_account.save
           SyncCalendarsJob.perform_later(@calendar_account.id, discover: true)
-          redirect_to tool_calendar_path(@tool), notice: "Calendar account connected successfully."
+          redirect_to tool_calendar_path(@tool), notice: _("Calendar account connected successfully.")
         else
           render :new, status: :unprocessable_entity
         end

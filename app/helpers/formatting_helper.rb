@@ -11,14 +11,16 @@
 #   local_time_tag(time)         # => <time> with "6:05 PM", redrawn in the viewer's zone
 #   posted_at_tag(time)          # => <time> "5 minutes ago" (today) / "Sep 16, 6:05 PM"
 module FormattingHelper
+  include Translation::Methods
+
   def human_file_size(bytes)
-    HumanFileSize.format(bytes)
+    Translation.digits(HumanFileSize.format(bytes))
   end
 
   def format_time(time)
     return if time.nil?
 
-    time.in_time_zone.strftime("%-I:%M %p")
+    Translation.localize(time.in_time_zone, :clock)
   end
 
   # year: true says the year this year too, where the date stands alone (a title)
@@ -26,13 +28,54 @@ module FormattingHelper
     return if date.nil?
 
     date = date.in_time_zone.to_date if date.respond_to?(:in_time_zone) && !date.is_a?(Date)
-    date.year == Time.zone.today.year && !year ? date.strftime("%b %-d") : date.strftime("%b %-d, %Y")
+    with_year = year || Translation.date_parts(date).first != Translation.date_parts(Time.zone.today).first
+    Translation.localize(date, with_year ? :day_and_year : :day)
   end
 
   def format_datetime(time, year: false)
     return if time.nil?
 
-    "#{format_date(time.in_time_zone, year: year)}, #{format_time(time)}"
+    _("%{date}, %{time}", date: format_date(time.in_time_zone, year: year), time: format_time(time))
+  end
+
+  def format_weekday(date, short: false)
+    return if date.nil?
+
+    Translation.localize(date, short ? :weekday_short : :weekday)
+  end
+
+  def format_month(date)
+    return if date.nil?
+
+    Translation.localize(date, :month_and_year)
+  end
+
+  def format_day_number(date)
+    Translation.localize(date, :day_of_month)
+  end
+
+  def calendar_week_title(week_start, week_end)
+    first, last = Translation.date_parts(week_start), Translation.date_parts(week_end)
+    if first[0..1] == last[0..1]
+      format_month(week_start)
+    elsif first[0] == last[0]
+      "#{Translation.localize(week_start, :week_start)} – #{Translation.localize(week_end, :week_end)}"
+    else
+      "#{Translation.localize(week_start, :week_start_with_year)} – #{Translation.localize(week_end, :week_end)}"
+    end
+  end
+
+  def format_long_date(date)
+    return if date.nil?
+
+    date = date.in_time_zone.to_date if date.respond_to?(:in_time_zone) && !date.is_a?(Date)
+    Translation.localize(date, :long_day)
+  end
+
+  def ago(time)
+    return if time.nil?
+
+    _("%{time} ago", time: Translation.digits(time_ago_in_words(time)))
   end
 
   # When mail came, as a list of it says it: today's by its time, older by its day
@@ -45,12 +88,13 @@ module FormattingHelper
   # A time in HTML that other people may see too, like a chat message broadcast from the
   # sender's request: the browser redraws it in the viewer's zone. Without the period,
   # it reads "6:05".
-  def local_time_tag(time, period: true, **options)
+  def local_time_tag(time, period: true, day: false, **options)
     return if time.nil?
 
-    text = period ? format_time(time) : time.in_time_zone.strftime("%-I:%M")
+    text = period ? format_time(time) : Translation.localize(time.in_time_zone, :clock_without_period)
+    text = with_day(time, text) if day
     tag.time(text, datetime: time.utc.iso8601, **options.except(:data),
-      data: { controller: "local-time", local_time_period_value: period, **options.fetch(:data, {}) })
+      data: { controller: "local-time", local_time_period_value: period, local_time_day_value: (day if day), **options.fetch(:data, {}) }.compact)
   end
 
   # When a comment was written: today's as how long ago, older ones by their day and time,
@@ -58,7 +102,20 @@ module FormattingHelper
   def posted_at_tag(time, **options)
     return if time.nil?
 
-    text = time.in_time_zone.to_date == Time.zone.today ? "#{time_ago_in_words(time)} ago" : format_datetime(time)
+    text = time.in_time_zone.to_date == Time.zone.today ? ago(time) : format_datetime(time)
     tag.time(text, datetime: time.utc.iso8601, title: format_datetime(time, year: true), **options)
+  end
+
+  private
+
+  def with_day(time, text)
+    elapsed = Time.current - time
+    if elapsed < 24.hours
+      text
+    elsif elapsed < 48.hours
+      _("Yesterday, %{time}", time: text)
+    else
+      _("%{date}, %{time}", date: format_date(time), time: text)
+    end
   end
 end

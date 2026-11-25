@@ -26,14 +26,14 @@ module Mails
       within_time { ImapSyncService.new(@account).check_login(timeout: TIMEOUT) }
       nil
     rescue StandardError => error
-      "Incoming mail (#{@account.imap_host}): #{ConnectionProblem.in_words(error.message)}"
+      Translation.translate("Incoming mail (%{host}): %{problem}", host: @account.imap_host, problem: ConnectionProblem.in_words(error.message))
     end
 
     def smtp_problem
       within_time { SmtpSendService.new(@account).check_login(timeout: TIMEOUT) }
       nil
     rescue StandardError => error
-      "Outgoing mail (#{@account.smtp_host}): #{ConnectionProblem.in_words(error.message)}"
+      Translation.translate("Outgoing mail (%{host}): %{problem}", host: @account.smtp_host, problem: ConnectionProblem.in_words(error.message))
     end
 
     # A server that takes the connection and then says nothing would keep the request waiting

@@ -7,12 +7,12 @@
   Example (inside a div with class "zoom-stage" and data-controller="zoom", after the file):
     render "components/zoom_controls"
 %>
-<div class="zoom-controls" role="group" aria-label="Zoom" data-zoom-target="controls" hidden>
-  <%= render "components/icon_button", icon: "minus", title: "Zoom out (-)", size: :sm,
+<div class="zoom-controls" role="group" aria-label="<%= _("Zoom") %>" data-zoom-target="controls" hidden>
+  <%= render "components/icon_button", icon: "minus", title: _("Zoom out (-)"), size: :sm,
         data: { zoom_target: "out", action: "zoom#zoomOut" } %>
-  <%= tag.button "100%", type: "button", class: "zoom-level", title: "Back to fit (0)",
-        aria: { label: "Zoom 100%, back to fit" },
+  <%= tag.button "100%", type: "button", class: "zoom-level", title: _("Back to fit (0)"),
+        aria: { label: _("Zoom 100%, back to fit") },
         data: { zoom_target: "level", action: "zoom#fit" } %>
-  <%= render "components/icon_button", icon: "plus", title: "Zoom in (+)", size: :sm,
+  <%= render "components/icon_button", icon: "plus", title: _("Zoom in (+)"), size: :sm,
         data: { zoom_target: "in", action: "zoom#zoomIn" } %>
 </div>

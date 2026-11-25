@@ -36,9 +36,9 @@ module Tools
           # from": in the workspace that is the mail's tile, which is another tool than this calendar
           offer_undo tool_calendar_invite_acceptance_path(@tool, @invite), method: :delete,
             params: { token: ::Calendars::InviteAcceptance.token_for(@invite, created: created, user: current_user) }
-          redirect_to invite_mail_path, notice: "Added to #{@calendar.name}: #{helpers.invite_when(@invite)}."
+          redirect_to invite_mail_path, notice: _("Added to %{name}: %{invite_when}.", name: @calendar.name, invite_when: helpers.invite_when(@invite))
         else
-          redirect_to invite_mail_path, alert: "Couldn't add it to #{@calendar.name}: #{@event.errors.full_messages.to_sentence}"
+          redirect_to invite_mail_path, alert: _("Couldn't add it to %{name}: %{to_sentence}", name: @calendar.name, to_sentence: @event.errors.full_messages.to_sentence)
         end
       end
 
@@ -46,14 +46,14 @@ module Tools
       # Decline an invite
       def destroy
         @invite.update!(status: "declined")
-        redirect_to invite_mail_path, notice: "Invite declined."
+        redirect_to invite_mail_path, notice: _("Invite declined.")
       end
 
       private
 
       def set_calendar_account
         @calendar_account = @tool.calendar_account
-        redirect_to new_tool_calendar_account_path(@tool), alert: "Please configure your calendar account first." unless @calendar_account
+        redirect_to new_tool_calendar_account_path(@tool), alert: _("Please configure your calendar account first.") unless @calendar_account
       end
 
       def set_invite

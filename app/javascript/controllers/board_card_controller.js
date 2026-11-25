@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { api } from "services/api"
+import { _, intlLocale } from "services/i18n"
 
 // Controls the card detail modal content loaded dynamically into card-detail-modal.
 // Registered as "board-card" so it scopes cleanly to each loaded card.
@@ -66,7 +67,7 @@ export default class extends Controller {
     const hex = event.currentTarget.dataset.colorHex
 
     if (this.hasColorLabelTarget) {
-      this.colorLabelTarget.textContent = color ? color.charAt(0).toUpperCase() + color.slice(1) : "No label"
+      this.colorLabelTarget.textContent = color ? _(color.charAt(0).toUpperCase() + color.slice(1)) : _("No label")
     }
 
     if (this.hasColorDotTarget) {
@@ -88,11 +89,11 @@ export default class extends Controller {
       if (value) {
         const [year, month, day] = value.split("-").map(Number)
         const date = new Date(year, month - 1, day)
-        this.dueDateLabelTarget.textContent = date.toLocaleDateString("en-US", {
+        this.dueDateLabelTarget.textContent = date.toLocaleDateString(intlLocale(), {
           month: "short", day: "numeric", year: "numeric"
         })
       } else {
-        this.dueDateLabelTarget.textContent = "No due date"
+        this.dueDateLabelTarget.textContent = _("No due date")
       }
     }
   }
@@ -101,7 +102,7 @@ export default class extends Controller {
 
   setAssignee(event) {
     const userId = event.currentTarget.dataset.userId
-    const userName = event.currentTarget.dataset.userName || "Unassigned"
+    const userName = event.currentTarget.dataset.userName || _("Unassigned")
 
     if (this.hasAssigneeLabelTarget) {
       this.assigneeLabelTarget.textContent = userName

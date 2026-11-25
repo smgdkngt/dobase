@@ -1,12 +1,12 @@
-You're invited to collaborate
+<%= _("You're invited to collaborate") %>
 
 <%= @inviter.name %> invited you to collaborate on "<%= @tool.name %>" in <%= app_name %>.
 
-Accept the invitation:
+<%= _("Accept the invitation:") %>
 <%= @accept_url %>
 
-This invitation expires in 7 days. If you don't have an account yet, you'll be able to
-create one when you accept.
+<%= _("This invitation expires in 7 days. If you don't have an account yet, you'll be able to") %>
+<%= _("create one when you accept.") %>
 
 --
-Sent by <%= app_name %>
+<%= _("Sent by %{app_name}", app_name: app_name) %>

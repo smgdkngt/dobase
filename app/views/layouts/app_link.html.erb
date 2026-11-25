@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html <%= tag.attributes(theme_attributes) %>>
+<html <%= tag.attributes(language_attributes) %> <%= tag.attributes(theme_attributes) %>>
   <head>
     <title><%= content_for(:title) || app_name %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -11,9 +11,12 @@
     <%= stylesheet_link_tag "tailwind" %>
     <%# Nothing of the app's own JavaScript: this page only hands itself on %>
     <%= yield :head %>
+    <meta name="locale" content="<%= I18n.locale %>" data-turbo-track="reload">
+    <% script_texts = Translation.for_scripts %>
+    <%= tag.meta name: "translations", content: script_texts.to_json if script_texts.any? %>
   </head>
 
-  <body class="bg-background-secondary text-text-primary">
+  <body <%= tag.attributes(dir: Translation.direction) %> class="bg-background-secondary text-text-primary">
     <main class="min-h-dvh flex items-center justify-center p-6" id="main-content">
       <%= yield %>
     </main>

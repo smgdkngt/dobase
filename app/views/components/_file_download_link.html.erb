@@ -12,6 +12,7 @@
 %>
 <% name = local_assigns[:name] || file.filename.to_s %>
 <%= link_to file_download_path(tool, file), class: "file-download-link",
-      title: "Download", "aria-label": "Download #{name}", download: name, data: { turbo: false } do %>
+      title: _("Download"), "aria-label": _("Download %{name}", name: name), download: name,
+      data: { turbo: false, words: words(title: "Download", "aria-label": [ "Download %{name}", { name: name } ]) } do %>
   <%= render "shared/icon", name: "download", size: local_assigns.fetch(:size, 14) %>
 <% end %>

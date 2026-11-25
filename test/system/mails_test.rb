@@ -1132,7 +1132,7 @@ class MailsTest < ApplicationSystemTestCase
       form.submit();
     JS
 
-    assert_text "2 email(s) archived."
+    assert_text "2 emails archived."
     assert_no_text "Welcome to Dobase"
     assert_no_text "Your weekly report"
     assert unread_message.reload.archived?

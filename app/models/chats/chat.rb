@@ -18,7 +18,7 @@ module Chats
     has_many :read_receipts, class_name: "Chats::ReadReceipt", foreign_key: "chat_id", dependent: :destroy
     has_many :messages, class_name: "Chats::Message", foreign_key: "chat_id", inverse_of: :chat, dependent: :destroy
 
-    validates :tool_id, uniqueness: { message: "already has a chat" }
+    validates :tool_id, uniqueness: { message: ->(_object, _data) { Translation.translate("already has a chat") } }
 
     # A page of messages, oldest first: the latest ones, or the ones just before
     # message id `before` when paging back. Answers the page and whether there

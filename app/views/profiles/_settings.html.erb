@@ -4,26 +4,26 @@
 <%= tag.div class: [ "edit-modal-layout flex", ("-m-5 h-[500px]" if in_dialog) ],
       data: { controller: "tabs", tabs_default_value: tab.presence || "profile", tabs_open_value: open_tab } do %>
   <%# Vertical tab navigation %>
-  <div class="edit-modal-tabs flex flex-col gap-1 w-44 flex-shrink-0 p-4 border-r border-border-light bg-background-secondary/50">
+  <div class="edit-modal-tabs flex flex-col gap-1 w-44 flex-shrink-0 p-4 border-e border-border-light bg-background-secondary/50">
     <button type="button" class="tab w-full justify-start" data-tabs-target="tab" data-tab="profile" data-action="click->tabs#select">
       <%= render "shared/icon", name: "user", size: 16 %>
-      <span>Profile</span>
+      <span><%= _("Profile") %></span>
     </button>
     <button type="button" class="tab w-full justify-start" data-tabs-target="tab" data-tab="appearance" data-action="click->tabs#select">
       <%= render "shared/icon", name: "palette", size: 16 %>
-      <span>Appearance</span>
+      <span><%= _("Appearance") %></span>
     </button>
     <button type="button" class="tab w-full justify-start" data-tabs-target="tab" data-tab="notifications" data-action="click->tabs#select">
       <%= render "shared/icon", name: "bell", size: 16 %>
-      <span>Notifications</span>
+      <span><%= _("Notifications") %></span>
     </button>
     <button type="button" class="tab w-full justify-start" data-tabs-target="tab" data-tab="security" data-action="click->tabs#select">
       <%= render "shared/icon", name: "shield", size: 16 %>
-      <span>Security</span>
+      <span><%= _("Security") %></span>
     </button>
     <button type="button" class="tab w-full justify-start" data-tabs-target="tab" data-tab="sessions" data-action="click->tabs#select">
       <%= render "shared/icon", name: "monitor", size: 16 %>
-      <span>Sessions</span>
+      <span><%= _("Sessions") %></span>
       <% if @sessions.count > 1 %>
         <%= render "components/badge", text: @sessions.count, size: :sm %>
       <% end %>
@@ -35,26 +35,26 @@
 
     <div class="mt-auto pt-2 border-t border-border-light flex flex-col gap-1 max-lg:hidden">
       <%= render "components/button",
-            text: "Delete account",
+            text: _("Delete account"),
             variant: :ghost,
             icon: "trash-2",
             size: :sm,
             class: "text-error w-full justify-start",
             href: profile_path,
             method: :delete,
-            turbo_confirm: "Are you sure you want to delete your account? All your data will be permanently removed. This cannot be undone.",
-            data: { turbo_frame: "_top", turbo_confirm_button: "Delete account" } %>
+            turbo_confirm: _("Are you sure you want to delete your account? All your data will be permanently removed. This cannot be undone."),
+            data: { turbo_frame: "_top", turbo_confirm_button: _("Delete account") } %>
     </div>
     <%= link_to profile_path,
           class: "tab tab-danger w-full justify-start lg:hidden",
-          data: { turbo_method: :delete, turbo_confirm: "Are you sure you want to delete your account? All your data will be permanently removed. This cannot be undone.", turbo_confirm_button: "Delete account", turbo_frame: "_top" } do %>
+          data: { turbo_method: :delete, turbo_confirm: _("Are you sure you want to delete your account? All your data will be permanently removed. This cannot be undone."), turbo_confirm_button: _("Delete account"), turbo_frame: "_top" } do %>
       <%= render "shared/icon", name: "trash-2", size: 16 %>
-      <span>Delete</span>
+      <span><%= _("Delete") %></span>
     <% end %>
   </div>
 
   <%# Panel content %>
-  <div class="edit-modal-content flex-1 py-4 pr-5 pl-5 overflow-y-auto">
+  <div class="edit-modal-content flex-1 py-4 pe-5 ps-5 overflow-y-auto">
     <%# What a form here said when it was sent, above whichever tab it came from %>
     <%= render "shared/flash", position: :inline %>
     <%= render "shared/error_flash", object: user %>
@@ -68,29 +68,29 @@
             <%= render "shared/avatar", user: user, size: "2xl" %>
           </div>
           <div class="flex-1">
-            <span class="label">Avatar</span>
+            <span class="label"><%= _("Avatar") %></span>
             <label for="user_avatar" class="btn btn-secondary btn-sm cursor-pointer w-fit">
               <%= render "shared/icon", name: "upload", size: 14 %>
-              <span>Choose photo…</span>
+              <span><%= _("Choose photo…") %></span>
             </label>
             <%= f.file_field :avatar,
               id: "user_avatar",
               class: "sr-only",
               accept: "image/png,image/jpeg,image/gif,image/webp"
             %>
-            <p class="help-text">PNG, JPEG, GIF or WebP. Max 5MB.</p>
+            <p class="help-text"><%= _("PNG, JPEG, GIF or WebP. Max 5MB.") %></p>
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3 mb-4">
           <div class="form-field">
-            <label for="user_first_name" class="label">First name</label>
+            <label for="user_first_name" class="label"><%= _("First name") %></label>
             <%= f.text_field :first_name,
               class: "input #{user.errors[:first_name].any? ? 'input-error' : ''}",
               required: true, autocomplete: "given-name" %>
           </div>
           <div class="form-field">
-            <label for="user_last_name" class="label">Last name</label>
+            <label for="user_last_name" class="label"><%= _("Last name") %></label>
             <%= f.text_field :last_name,
               class: "input #{user.errors[:last_name].any? ? 'input-error' : ''}",
               required: true, autocomplete: "family-name" %>
@@ -98,22 +98,30 @@
         </div>
 
         <div class="form-field mb-4">
-          <label for="user_email_address" class="label">Email</label>
+          <label for="user_email_address" class="label"><%= _("Email") %></label>
           <%= f.email_field :email_address,
             class: "input #{user.errors[:email_address].any? ? 'input-error' : ''}",
             required: true, autocomplete: "email", readonly: Demo.enabled? %>
         </div>
 
         <div class="form-field">
-          <label for="user_timezone" class="label">Timezone</label>
+          <label for="user_timezone" class="label"><%= _("Timezone") %></label>
           <%= f.time_zone_select :timezone,
             ActiveSupport::TimeZone.all,
             { default: "UTC" },
             class: "input #{user.errors[:timezone].any? ? 'input-error' : ''}" %>
         </div>
 
+        <div class="form-field">
+          <label for="user_locale" class="label"><%= _("Language") %></label>
+          <%= f.select :locale,
+            Translation::LANGUAGES.map { |code, name| [ name, code ] },
+            { selected: user.locale || I18n.locale.to_s },
+            class: "input #{user.errors[:locale].any? ? 'input-error' : ''}" %>
+        </div>
+
         <div class="flex justify-end mt-6">
-          <%= render "components/button", text: "Save changes" %>
+          <%= render "components/button", text: _("Save changes") %>
         </div>
       <% end %>
 
@@ -130,38 +138,38 @@
         <%= render "profiles/form_place", tab: "notifications", in_dialog: in_dialog %>
 
         <%# User#wants_notification?: the bell and the digest both go by it %>
-        <h3 class="text-sm font-semibold text-text-primary mb-1">Notify me about</h3>
-        <p class="text-xs text-text-tertiary mb-4">What you hear in the app and in the digest. A mail that couldn't be sent, or an account that stopped syncing, is always said.</p>
+        <h3 class="text-sm font-semibold text-text-primary mb-1"><%= _("Notify me about") %></h3>
+        <p class="text-xs text-text-tertiary mb-4"><%= _("What you hear in the app and in the digest. A mail that couldn't be sent, or an account that stopped syncing, is always said.") %></p>
         <div class="form-field mb-6">
-          <label for="user_notification_level" class="label">Notifications</label>
+          <label for="user_notification_level" class="label"><%= _("Notifications") %></label>
           <%= f.select :notification_level,
             options_for_select([
-              ["Everything", "all"],
-              ["Mentions and assignments", "mentions"],
-              ["Nothing", "nothing"]
+              [_("Everything"), "all"],
+              [_("Mentions and assignments"), "mentions"],
+              [_("Nothing"), "nothing"]
             ], user.notification_level),
             {},
             class: "input" %>
         </div>
 
-        <h3 class="text-sm font-semibold text-text-primary mb-1">Email digest</h3>
-        <p class="text-xs text-text-tertiary mb-4">Unread notifications are combined into a single email. If you've already seen them in the app, no email is sent.</p>
+        <h3 class="text-sm font-semibold text-text-primary mb-1"><%= _("Email digest") %></h3>
+        <p class="text-xs text-text-tertiary mb-4"><%= _("Unread notifications are combined into a single email. If you've already seen them in the app, no email is sent.") %></p>
         <div class="form-field mb-4">
-          <label for="user_notification_digest" class="label">Frequency</label>
+          <label for="user_notification_digest" class="label"><%= _("Frequency") %></label>
           <%= f.select :notification_digest,
             options_for_select([
-              ["Off", "off"],
-              ["Every hour", "1_hour"],
-              ["Every 2 hours", "2_hours"],
-              ["Every 4 hours", "4_hours"],
-              ["Once a day", "daily"]
+              [_("Off"), "off"],
+              [_("Every hour"), "1_hour"],
+              [_("Every 2 hours"), "2_hours"],
+              [_("Every 4 hours"), "4_hours"],
+              [_("Once a day"), "daily"]
             ], user.notification_digest),
             {},
             class: "input" %>
         </div>
 
         <div class="flex justify-end">
-          <%= render "components/button", text: "Save" %>
+          <%= render "components/button", text: _("Save") %>
         </div>
       <% end %>
 
@@ -169,14 +177,14 @@
       <% muted = user.collaborations.muted.includes(:tool).map(&:tool).compact.sort_by(&:name) %>
       <% if muted.any? %>
         <div class="mt-6 pt-6 border-t border-border-light">
-          <h3 class="text-sm font-semibold text-text-primary mb-1">Muted tools</h3>
-          <p class="text-xs text-text-tertiary mb-3">Nothing from these reaches you, not even a mention.</p>
-          <ul class="divide-y divide-border-light" aria-label="Muted tools">
+          <h3 class="text-sm font-semibold text-text-primary mb-1"><%= _("Muted tools") %></h3>
+          <p class="text-xs text-text-tertiary mb-3"><%= _("Nothing from these reaches you, not even a mention.") %></p>
+          <ul class="divide-y divide-border-light" aria-label="<%= _("Muted tools") %>">
             <% muted.each do |tool| %>
               <li class="flex items-center gap-3 py-2">
                 <%= render "shared/icon", name: tool.tool_type.icon, size: 16, class: "text-text-secondary" %>
                 <span class="flex-1 min-w-0 truncate text-sm text-text-primary"><%= tool.name %></span>
-                <%= render "components/button", text: "Unmute", icon: "bell", variant: :secondary, size: :sm,
+                <%= render "components/button", text: _("Unmute"), icon: "bell", variant: :secondary, size: :sm,
                       href: tool_mute_path(tool), method: :delete %>
               </li>
             <% end %>
@@ -187,21 +195,21 @@
       <%# The app's sounds (services/sound.js). Kept by the browser, not the account:
           a laptop in a quiet office and a phone want different answers. %>
       <% sounds = {
-           "send" => "Message sent", "receive" => "Message received", "notify" => "Notification",
-           "mail" => "New mail", "sent" => "Mail sent", "done" => "Todo done",
-           "drop" => "Card or todo moved", "tuck" => "Mail archived", "trash" => "Mail deleted",
-           "join" => "Joins a call", "leave" => "Leaves a call", "error" => "Something went wrong"
+           "send" => _("Message sent"), "receive" => _("Message received"), "notify" => _("Notification"),
+           "mail" => _("New mail"), "sent" => _("Mail sent"), "done" => _("Todo done"),
+           "drop" => _("Card or todo moved"), "tuck" => _("Mail archived"), "trash" => _("Mail deleted"),
+           "join" => _("Joins a call"), "leave" => _("Leaves a call"), "error" => _("Something went wrong")
          } %>
       <div class="mt-6 pt-6 border-t border-border-light" data-controller="sounds">
-        <h3 class="text-sm font-semibold text-text-primary mb-1">Sounds</h3>
-        <p class="text-xs text-text-tertiary mb-4">Short, quiet sounds for a message sent or received, a notification, a todo ticked off. A choice for this browser.</p>
+        <h3 class="text-sm font-semibold text-text-primary mb-1"><%= _("Sounds") %></h3>
+        <p class="text-xs text-text-tertiary mb-4"><%= _("Short, quiet sounds for a message sent or received, a notification, a todo ticked off. A choice for this browser.") %></p>
 
         <label class="flex items-center gap-2 text-sm text-text-primary cursor-pointer mb-4">
           <input type="checkbox" class="w-4 h-4 rounded accent-accent" data-sounds-target="on" data-action="change->sounds#choose">
-          Play sounds
+          <%= _("Play sounds") %>
         </label>
 
-        <p class="text-xs text-text-tertiary mb-2">Hear them:</p>
+        <p class="text-xs text-text-tertiary mb-2"><%= _("Hear them:") %></p>
         <div class="flex flex-wrap gap-1.5">
           <% sounds.each do |name, label| %>
             <%= render "components/button", text: label, icon: "play", variant: :secondary, size: :sm, type: :button,
@@ -213,44 +221,44 @@
 
     <%# Security panel %>
     <div data-tabs-target="panel" data-tab="security" class="hidden">
-      <h3 class="text-sm font-semibold text-text-primary mb-4">Change password</h3>
+      <h3 class="text-sm font-semibold text-text-primary mb-4"><%= _("Change password") %></h3>
 
       <%= form_with model: user, url: profile_path, method: :patch, data: { turbo_frame: "_top" } do |f| %>
         <%= render "profiles/form_place", tab: "security", in_dialog: in_dialog %>
         <div class="form-field mb-4">
-          <label for="user_current_password" class="label">Current password</label>
+          <label for="user_current_password" class="label"><%= _("Current password") %></label>
           <%= password_field_tag "user[current_password]", nil,
             id: "user_current_password",
             class: "input",
-            placeholder: "Enter your current password",
+            placeholder: _("Enter your current password"),
             autocomplete: "current-password" %>
         </div>
 
         <div class="form-field mb-4">
-          <label for="user_password" class="label">New password</label>
+          <label for="user_password" class="label"><%= _("New password") %></label>
           <%= f.password_field :password,
             class: "input",
-            placeholder: "Enter new password",
+            placeholder: _("Enter new password"),
             autocomplete: "new-password" %>
-          <p class="help-text">At least 8 characters</p>
+          <p class="help-text"><%= _("At least 8 characters") %></p>
         </div>
 
         <div class="form-field">
-          <label for="user_password_confirmation" class="label">Confirm password</label>
+          <label for="user_password_confirmation" class="label"><%= _("Confirm password") %></label>
           <%= f.password_field :password_confirmation,
             class: "input",
-            placeholder: "Confirm new password",
+            placeholder: _("Confirm new password"),
             autocomplete: "new-password" %>
         </div>
 
         <div class="flex justify-end mt-4">
-          <%= render "components/button", text: "Update password" %>
+          <%= render "components/button", text: _("Update password") %>
         </div>
       <% end %>
 
       <hr class="my-6 border-border-light">
 
-      <h3 class="text-sm font-semibold text-text-primary mb-3">Two-factor authentication</h3>
+      <h3 class="text-sm font-semibold text-text-primary mb-3"><%= _("Two-factor authentication") %></h3>
 
       <% if user.otp_required? %>
         <div class="flex items-center gap-3 mb-3">
@@ -258,8 +266,8 @@
             <%= render "shared/icon", name: "check", size: 16 %>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-text-primary">Enabled</p>
-            <p class="text-xs text-text-tertiary">Your account is protected with an authenticator app</p>
+            <p class="text-sm font-medium text-text-primary"><%= _("Enabled") %></p>
+            <p class="text-xs text-text-tertiary"><%= _("Your account is protected with an authenticator app") %></p>
           </div>
         </div>
         <%= form_with url: two_factor_setup_path, method: :delete, class: "flex items-center gap-2", data: { turbo_frame: "profile-form" } do |f| %>
@@ -267,12 +275,12 @@
           <input type="hidden" name="tab" value="security">
           <%= f.password_field :password,
             class: "input flex-1 !py-1.5 text-xs",
-            "aria-label": "Password, to disable two-factor authentication",
+            "aria-label": _("Password, to disable two-factor authentication"),
             required: true,
-            placeholder: "Enter password to disable",
+            placeholder: _("Enter password to disable"),
             autocomplete: "current-password" %>
           <%= render "components/button",
-            text: "Disable",
+            text: _("Disable"),
             variant: :danger,
             size: :sm %>
         <% end %>
@@ -282,11 +290,11 @@
             <%= render "shared/icon", name: "lock", size: 16 %>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-text-primary">Not enabled</p>
-            <p class="text-xs text-text-tertiary">Add an extra layer of security to your account</p>
+            <p class="text-sm font-medium text-text-primary"><%= _("Not enabled") %></p>
+            <p class="text-xs text-text-tertiary"><%= _("Add an extra layer of security to your account") %></p>
           </div>
           <%= render "components/button",
-            text: "Enable",
+            text: _("Enable"),
             variant: :secondary,
             size: :sm,
             href: new_two_factor_setup_path,
@@ -297,8 +305,8 @@
 
     <%# Sessions panel %>
     <div data-tabs-target="panel" data-tab="sessions" class="hidden">
-      <h3 class="text-sm font-semibold text-text-primary mb-1">Active sessions</h3>
-      <p class="text-xs text-text-tertiary mb-4">Devices where you're currently signed in</p>
+      <h3 class="text-sm font-semibold text-text-primary mb-1"><%= _("Active sessions") %></h3>
+      <p class="text-xs text-text-tertiary mb-4"><%= _("Devices where you're currently signed in") %></p>
 
       <div class="space-y-3">
         <% @sessions.each do |s| %>
@@ -311,24 +319,24 @@
               <div class="flex items-center gap-2">
                 <p class="text-sm font-medium text-text-primary truncate"><%= browser_name(s.user_agent) %></p>
                 <% if is_current %>
-                  <span class="text-[10px] font-semibold text-accent bg-accent/10 px-1.5 py-px rounded-full uppercase tracking-wide">Current</span>
+                  <span class="text-[10px] font-semibold text-accent bg-accent/10 px-1.5 py-px rounded-full uppercase tracking-wide"><%= _("Current") %></span>
                 <% end %>
               </div>
               <p class="text-xs text-text-tertiary">
-                <%= s.ip_address || "Unknown IP" %>
+                <%= s.ip_address || _("Unknown IP") %>
                 &middot;
-                <%= time_ago_in_words(s.created_at) %> ago
+                <%= ago(s.created_at) %>
               </p>
             </div>
             <% unless is_current %>
               <%= render "components/icon_button",
                 icon: "x",
-                title: "Revoke session",
+                title: _("Revoke session"),
                 size: :sm,
                 variant: :danger,
                 href: user_session_path(s),
                 method: :delete,
-                data: { turbo_frame: "profile-form", turbo_confirm: "Revoke this session? The device will be signed out.", turbo_confirm_button: "Revoke" } %>
+                data: { turbo_frame: "profile-form", turbo_confirm: _("Revoke this session? The device will be signed out."), turbo_confirm_button: _("Revoke") } %>
             <% end %>
           </div>
         <% end %>

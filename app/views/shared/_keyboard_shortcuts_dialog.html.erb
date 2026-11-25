@@ -3,21 +3,21 @@
         data-keyboard-shortcuts-target="dialog"
         data-controller="modal">
   <div class="modal-header">
-    <h2 id="keyboard-shortcuts-title" class="text-lg font-semibold text-text-primary">Keyboard shortcuts</h2>
-    <%= render "components/icon_button", icon: "x", title: "Close",
+    <h2 id="keyboard-shortcuts-title" class="text-lg font-semibold text-text-primary"><%= _("Keyboard shortcuts") %></h2>
+    <%= render "components/icon_button", icon: "x", title: _("Close"),
         data: { action: "click->modal#close" } %>
   </div>
   <div class="modal-body space-y-6 max-h-[70vh] overflow-y-auto">
     <div>
-      <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Global</h3>
+      <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2"><%= _("Global") %></h3>
       <div class="shortcut-list">
-        <%= render "shared/shortcut_row", key: "?", description: "Show keyboard shortcuts" %>
-        <%= render "shared/shortcut_row", key: launcher_key, description: (@workspace || tile? ? "Open the menu: your tools, and search" : "Jump to tool") %>
-        <%= render "shared/shortcut_row", key: "b", description: "Notifications" %>
-        <%= render "shared/shortcut_row", key: "← → ↑ ↓", description: "Go through what is on the page" %>
-        <%= render "shared/shortcut_row", key: "Home / End", description: "As far as it goes, up or down" %>
-        <%= render "shared/shortcut_row", key: "Page Up / Down", description: "About a screen up or down" %>
-        <%= render "shared/shortcut_row", key: "+ / - / 0", description: "Zoom in on an open file, out, back to fit" %>
+        <%= render "shared/shortcut_row", key: "?", description: _("Show keyboard shortcuts") %>
+        <%= render "shared/shortcut_row", key: launcher_key, description: (@workspace || tile? ? _("Open the menu: your tools, and search") : _("Jump to tool")) %>
+        <%= render "shared/shortcut_row", key: "b", description: _("Notifications") %>
+        <%= render "shared/shortcut_row", key: "← → ↑ ↓", description: _("Go through what is on the page") %>
+        <%= render "shared/shortcut_row", key: "Home / End", description: _("As far as it goes, up or down") %>
+        <%= render "shared/shortcut_row", key: "Page Up / Down", description: _("About a screen up or down") %>
+        <%= render "shared/shortcut_row", key: "+ / - / 0", description: _("Zoom in on an open file, out, back to fit") %>
       </div>
     </div>
 

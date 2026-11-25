@@ -73,13 +73,13 @@ class Invitation < ApplicationRecord
 
     others = tool.invitations.pending.where(email: email)
     others = others.where.not(id: id) if persisted?
-    errors.add(:email, "has already been invited") if others.exists?
+    errors.add(:email, _("has already been invited")) if others.exists?
   end
 
   def cannot_invite_existing_member
     return unless tool
     if tool.collaborators.joins(:user).exists?(users: { email_address: email })
-      errors.add(:email, "is already a member of this tool")
+      errors.add(:email, _("is already a member of this tool"))
     end
   end
 end

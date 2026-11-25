@@ -8,7 +8,7 @@
           <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ring-1 ring-inset"
                 style="background-color: <%= card_color(card)[:bg_light] %>; color: <%= card_color(card)[:text] %>; --tw-ring-color: <%= card_color(card)[:ring] %>;">
             <span class="w-1.5 h-1.5 rounded-full" style="background-color: <%= card_color(card)[:fill] %>;"></span>
-            <%= card.color.capitalize %>
+            <%= _(card.color.capitalize) %>
           </span>
         <% end %>
         <span class="text-xs text-text-tertiary">
@@ -18,7 +18,7 @@
         <% if card.archived? %>
           <span class="inline-flex items-center gap-1 text-xs text-text-tertiary" data-card-archived>
             <%= render "shared/icon", name: "archive", size: 12 %>
-            Archived <%= format_datetime(card.archived_at) %>
+            <%= _("Archived") %> <%= format_datetime(card.archived_at) %>
           </span>
         <% end %>
         <%# Who else has this open right now; filled in by presence_controller.js %>
@@ -31,7 +31,7 @@
           data-action="click->board-card#editTitle"><%= card.title %></h2>
       <input type="text"
              value="<%= card.title %>"
-             aria-label="Card title"
+             aria-label="<%= _("Card title") %>"
              class="input text-lg font-semibold hidden w-full"
              data-board-card-target="titleInput"
              data-action="blur->board-card#saveTitle keydown->board-card#titleKeydown">
@@ -39,7 +39,7 @@
 
     <%= render "components/icon_button",
         icon: "x",
-        title: "Close",
+        title: _("Close"),
         size: :sm,
         data: { action: "click->modal#close" } %>
   </div>

@@ -1,13 +1,13 @@
 <dialog id="turbo-confirm-dialog" class="modal-dialog max-w-sm" closedby="any"
         aria-labelledby="turbo-confirm-title" aria-describedby="turbo-confirm-message">
   <div class="modal-body">
-    <h2 id="turbo-confirm-title" class="text-base font-semibold text-text-primary mb-1">Are you sure?</h2>
+    <h2 id="turbo-confirm-title" class="text-base font-semibold text-text-primary mb-1"><%= _("Are you sure?") %></h2>
     <p id="turbo-confirm-message" class="text-sm text-text-secondary"></p>
   </div>
   <div class="flex items-center justify-end gap-2 px-5 py-3 border-t border-border-light">
-    <button type="button" class="btn btn-secondary btn-sm" commandfor="turbo-confirm-dialog" command="close">Cancel</button>
+    <button type="button" class="btn btn-secondary btn-sm" commandfor="turbo-confirm-dialog" command="close"><%= _("Cancel") %></button>
     <form method="dialog">
-      <button type="submit" value="confirm" class="btn btn-danger btn-sm">Confirm</button>
+      <button type="submit" value="confirm" class="btn btn-danger btn-sm"><%= _("Confirm") %></button>
     </form>
   </div>
 </dialog>

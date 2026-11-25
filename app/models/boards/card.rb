@@ -95,7 +95,7 @@ module Boards
       return if assigned_user_id.nil?
 
       unless assigned_user && column.board.tool.accessible_by?(assigned_user)
-        errors.add(:assigned_user, "must be a collaborator on this tool")
+        errors.add(:assigned_user, _("must be a collaborator on this tool"))
       end
     end
   end

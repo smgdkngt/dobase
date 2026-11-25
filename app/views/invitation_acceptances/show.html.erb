@@ -1,12 +1,12 @@
-<% content_for :title, "Invitation - #{app_name}" %>
+<% content_for :title, _("Invitation - %{app_name}", app_name: app_name) %>
 
 <div class="flex items-center justify-center min-h-full py-12">
   <div class="w-full max-w-sm">
     <div class="text-center mb-8">
       <%= render "shared/logo", class: "w-16 h-16 mx-auto mb-4" %>
-      <h1 class="text-2xl font-semibold text-text-primary">You're invited</h1>
+      <h1 class="text-2xl font-semibold text-text-primary"><%= _("You're invited") %></h1>
       <p class="text-text-secondary mt-1">
-        <strong><%= @inviter.name %></strong> invited you to collaborate on
+        <strong><%= @inviter.name %></strong> <%= _("invited you to collaborate on") %>
       </p>
     </div>
 
@@ -26,22 +26,21 @@
         </div>
 
         <p class="text-sm text-text-secondary mb-6">
-          Joining gives you access to this <%= @tool.tool_type.name.downcase %>.
+          <%= _("Joining gives you access to this %{kind}.", kind: @tool.tool_type.human_name.downcase) %>
         </p>
 
         <div class="flex flex-col gap-2">
           <% if @invitation.for?(current_user) %>
             <%= form_with url: invitation_acceptance_path(token: @invitation.token) do %>
-              <%= render "components/button", text: "Accept Invitation", full_width: true %>
+              <%= render "components/button", text: _("Accept Invitation"), full_width: true %>
             <% end %>
           <% else %>
             <p class="text-sm text-text-secondary mb-2">
-              This invitation is for <strong><%= @invitation.email %></strong>, and you're signed in as
-              <%= current_user.email_address %>. Sign in with <%= @invitation.email %> to accept it.
+              <%= _("This invitation is for %{invited}, and you're signed in as %{email_address}. Sign in with %{email} to accept it.", invited: tag.strong(@invitation.email), email_address: current_user.email_address, email: @invitation.email) %>
             </p>
           <% end %>
           <%= render "components/button",
-                text: "Decline",
+                text: _("Decline"),
                 variant: :ghost,
                 href: invitation_acceptance_path(token: @invitation.token),
                 method: :delete,

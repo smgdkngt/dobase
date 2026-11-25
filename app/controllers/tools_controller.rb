@@ -33,14 +33,14 @@ class ToolsController < ApplicationController
 
   def create
     if Demo.enabled? && current_user.owned_tools.count >= Demo::MAX_TOOLS_PER_VISITOR
-      return refuse_in_demo("That's as many tools as the demo holds.", status: :unprocessable_entity)
+      return refuse_in_demo(_("That's as many tools as the demo holds."), status: :unprocessable_entity)
     end
 
     @tool = current_user.owned_tools.build(tool_params)
 
     respond_to do |format|
       if @tool.save
-        format.html { redirect_to @tool, notice: "#{@tool.name} created successfully." }
+        format.html { redirect_to @tool, notice: _("%{name} created successfully.", name: @tool.name) }
         format.json { render :show, status: :created }
       else
         format.json { render json: { errors: @tool.errors.full_messages }, status: :unprocessable_entity }
@@ -70,7 +70,7 @@ class ToolsController < ApplicationController
   def update
     respond_to do |format|
       if @tool.update(tool_params)
-        format.html { redirect_to @tool, notice: "#{@tool.name} updated successfully." }
+        format.html { redirect_to @tool, notice: _("%{name} updated successfully.", name: @tool.name) }
         format.json { render :show }
       else
         format.html do
@@ -85,7 +85,7 @@ class ToolsController < ApplicationController
   def destroy
     name = @tool.name
     @tool.destroy
-    redirect_to root_path, notice: "#{name} deleted successfully."
+    redirect_to root_path, notice: _("%{name} deleted successfully.", name: name)
   end
 
   private

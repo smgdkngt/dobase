@@ -23,10 +23,12 @@ module Chats
       current = Chats::Message.includes(reactions: :user).find_by(id: message_id)
       next unless current
 
-      broadcast_replace_to current.chat,
-        target: ActionView::RecordIdentifier.dom_id(current, :reactions),
-        partial: "tools/chats/reactions",
-        locals: { message: current }
+      I18n.with_locale(I18n.default_locale) do
+        broadcast_replace_to current.chat,
+          target: ActionView::RecordIdentifier.dom_id(current, :reactions),
+          partial: "tools/chats/reactions",
+          locals: { message: current }
+      end
     }, on: %i[create destroy]
   end
 end

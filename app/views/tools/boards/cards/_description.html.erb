@@ -2,7 +2,7 @@
         <section class="p-4 sm:p-5">
           <h3 class="text-sm font-semibold text-text-tertiary mb-2 flex items-center gap-1.5">
             <%= render "shared/icon", name: "align-left", size: 14, class: "opacity-70" %>
-            Description
+            <%= _("Description") %>
           </h3>
 
           <% if card.description.present? %>
@@ -15,7 +15,7 @@
             <div class="text-sm text-text-tertiary/70 italic cursor-text rounded-md px-3 py-2.5 hover:bg-background-tertiary hover:text-text-tertiary transition-colors -mx-3"
                  data-board-card-target="descriptionDisplay"
                  data-action="click->board-card#editDescription">
-              Add a description...
+              <%= _("Add a description...") %>
             </div>
           <% end %>
 
@@ -24,14 +24,14 @@
               <%= render "components/rich_text_input", name: "card[description]", value: card.description, draft: "card-#{card.id}-description" do %>
                 <%= render "components/icon_button",
                       icon: "x",
-                      title: "Cancel",
+                      title: _("Cancel"),
                       size: :sm,
                       class: "rounded",
                       type: :button,
                       data: { action: "click->rich-text-input#discardDraft click->board-card#cancelDescription" } %>
                 <%= render "components/icon_button",
                       icon: "check",
-                      title: "Save",
+                      title: _("Save"),
                       variant: :accent,
                       size: :sm,
                       class: "rounded",

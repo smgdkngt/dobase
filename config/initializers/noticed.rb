@@ -41,3 +41,7 @@ end
 
 # (Noticed::Event is the engine's model, there once the app has loaded)
 Rails.application.config.to_prepare { Noticed::Event.prepend(DeliverOnlyToWhoWantsIt) }
+
+Rails.application.config.to_prepare do
+  Noticed::Notification.include Translation::Methods
+end

@@ -20,7 +20,7 @@
     render "components/rich_text_input", name: "body", placeholder: "Write a comment...", mentions: @collaborators
 %>
 <%
-  placeholder     = local_assigns.fetch(:placeholder, "Write something...")
+  placeholder     = local_assigns.fetch(:placeholder) { _("Write something...") }
   submit_on_enter = local_assigns.fetch(:submit_on_enter, false)
   buttons         = local_assigns.fetch(:buttons, %w[bold italic code])
   mentions        = local_assigns.fetch(:mentions, [])

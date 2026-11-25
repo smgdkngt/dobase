@@ -2,7 +2,7 @@
   <div class="flex items-center gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-border-light">
     <%# Big checkbox %>
     <input type="checkbox"
-           aria-label="Mark &quot;<%= item.title %>&quot; complete"
+           aria-label="<%= _("Mark \"%{title}\" complete", title: item.title) %>"
            class="todo-checkbox todo-checkbox-lg shrink-0"
            <%= "checked" if item.completed? %>
            data-action="change->todo-item#toggleCompletion">
@@ -14,7 +14,7 @@
           data-action="click->todo-item#editTitle"><%= item.title %></h2>
       <input type="text"
              value="<%= item.title %>"
-             aria-label="Todo title"
+             aria-label="<%= _("Todo title") %>"
              class="input text-lg font-semibold hidden w-full"
              data-todo-item-target="titleInput"
              data-action="blur->todo-item#saveTitle keydown->todo-item#titleKeydown">
@@ -25,7 +25,7 @@
 
     <%= render "components/icon_button",
         icon: "x",
-        title: "Close",
+        title: _("Close"),
         size: :sm,
         data: { action: "click->modal#close" } %>
   </div>

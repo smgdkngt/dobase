@@ -11,9 +11,9 @@ module Profiles
 
       if zone
         current_user.update!(timezone: zone)
-        redirect_back_or_to root_path, notice: "Time zone set to #{zone}.", status: :see_other
+        redirect_back_or_to root_path, notice: _("Time zone set to %{zone}.", zone: zone), status: :see_other
       else
-        redirect_back_or_to root_path, alert: "That time zone isn't one we know.", status: :see_other
+        redirect_back_or_to root_path, alert: _("That time zone isn't one we know."), status: :see_other
       end
     end
   end

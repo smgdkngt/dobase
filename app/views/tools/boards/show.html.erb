@@ -2,33 +2,33 @@
 <% reorder_mode = params[:reorder].present? %>
 
 <% content_for :command_palette_actions do %>
-  <%= render "shared/command_palette_action", key: "c", description: "Add card", icon: "plus" %>
-  <%= render "shared/command_palette_action", key: "n", description: "Add column", icon: "layout" %>
+  <%= render "shared/command_palette_action", key: "c", description: _("Add card"), icon: "plus" %>
+  <%= render "shared/command_palette_action", key: "n", description: _("Add column"), icon: "layout" %>
 <% end %>
 
 <% content_for :keyboard_shortcuts do %>
   <div>
-    <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Board</h3>
+    <h3 class="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2"><%= _("Board") %></h3>
     <div class="shortcut-list">
-      <%= render "shared/shortcut_row", key: "c", description: "Add card, to the column you are in" %>
-      <%= render "shared/shortcut_row", key: "n", description: "Add column" %>
-      <%= render "shared/shortcut_row", key: "← → ↑ ↓", description: "Go from card to card" %>
-      <%= render "shared/shortcut_row", key: "Enter", description: "Open the card" %>
-      <%= render "shared/shortcut_row", key: "Shift+← → ↑ ↓", description: "Move the card" %>
-      <%= render "shared/shortcut_row", key: "z", description: "Undo archiving a card, while it says so" %>
+      <%= render "shared/shortcut_row", key: "c", description: _("Add card, to the column you are in") %>
+      <%= render "shared/shortcut_row", key: "n", description: _("Add column") %>
+      <%= render "shared/shortcut_row", key: "← → ↑ ↓", description: _("Go from card to card") %>
+      <%= render "shared/shortcut_row", key: "Enter", description: _("Open the card") %>
+      <%= render "shared/shortcut_row", key: "Shift+← → ↑ ↓", description: _("Move the card") %>
+      <%= render "shared/shortcut_row", key: "z", description: _("Undo archiving a card, while it says so") %>
     </div>
   </div>
 <% end %>
 
 <div class="tool-layout flex flex-col h-screen overflow-hidden" data-controller="board" data-board-tool-id-value="<%= @tool.id %>">
-  <button data-controller="hotkey" data-hotkey="c" data-action="click->board#addCardToFirstColumn" hidden>Add card</button>
+  <button data-controller="hotkey" data-hotkey="c" data-action="click->board#addCardToFirstColumn" hidden><%= _("Add card") %></button>
   <%= render "components/tool_topbar", title: @tool.name do %>
     <% if reorder_mode %>
-      <%= render "components/button", text: "Done", size: :sm, variant: :primary, href: tool_board_path(@tool), data: { turbo_action: "replace" } %>
+      <%= render "components/button", text: _("Done"), size: :sm, variant: :primary, href: tool_board_path(@tool), data: { turbo_action: "replace" } %>
     <% else %>
-      <%= render "components/button", text: "Edit", size: :sm, variant: :ghost, href: tool_board_path(@tool, reorder: 1) %>
+      <%= render "components/button", text: _("Edit"), size: :sm, variant: :ghost, href: tool_board_path(@tool, reorder: 1) %>
     <% end %>
-    <%= render "components/button", text: "Add Column", icon: "plus", size: :sm, variant: :secondary, type: :button, commandfor: "add-column-modal-#{@tool.id}", command: "show-modal", data: { controller: "hotkey", hotkey: "n" } %>
+    <%= render "components/button", text: _("Add Column"), icon: "plus", size: :sm, variant: :secondary, type: :button, commandfor: "add-column-modal-#{@tool.id}", command: "show-modal", data: { controller: "hotkey", hotkey: "n" } %>
   <% end %>
 
   <% unless reorder_mode %>
@@ -51,12 +51,12 @@
   <%= render "tools/boards/card_dialog" %>
 
   <%# Add column dialog %>
-  <%= render "shared/modal", id: "add-column-modal-#{@tool.id}", title: "Add Column", size: :sm do %>
+  <%= render "shared/modal", id: "add-column-modal-#{@tool.id}", title: _("Add Column"), size: :sm do %>
     <%= form_with url: tool_board_columns_path(@tool), method: :post, data: { turbo_frame: "_top" } do %>
-      <%= render "components/form_field", label: "Column name", name: "name", required: true, autofocus: true, placeholder: "e.g. To Do" %>
+      <%= render "components/form_field", label: _("Column name"), name: "name", required: true, autofocus: true, placeholder: _("e.g. To Do") %>
       <div class="flex justify-end gap-2 mt-4">
-        <%= render "components/button", text: "Cancel", variant: :ghost, type: :button, data: { action: "modal#close" } %>
-        <%= render "components/button", text: "Add Column", variant: :primary %>
+        <%= render "components/button", text: _("Cancel"), variant: :ghost, type: :button, data: { action: "modal#close" } %>
+        <%= render "components/button", text: _("Add Column"), variant: :primary %>
       </div>
     <% end %>
   <% end %>

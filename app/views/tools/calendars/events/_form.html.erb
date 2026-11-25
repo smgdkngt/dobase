@@ -28,7 +28,7 @@
     <%= f.label :summary, class: "label" %>
     <%= f.text_field :summary,
       class: "input #{event.errors[:summary].any? ? 'input-error' : ''}",
-      placeholder: "Team meeting, Lunch with client...",
+      placeholder: _("Team meeting, Lunch with client..."),
       required: true,
       autofocus: true
     %>
@@ -73,17 +73,17 @@
   <div class="mb-4">
     <label class="flex items-center gap-3 cursor-pointer">
       <%= f.check_box :all_day, class: "w-4 h-4 rounded border-border text-accent focus:ring-accent/20" %>
-      <span class="text-sm text-text-primary">All day event</span>
+      <span class="text-sm text-text-primary"><%= _("All day event") %></span>
     </label>
   </div>
 
   <!-- Recurrence -->
   <div class="mb-4">
-    <label class="label">Repeat</label>
+    <label class="label"><%= _("Repeat") %></label>
 
     <%= f.select :recurrence_frequency,
-      [["Does not repeat", "none"], ["Daily", "daily"], ["Weekly", "weekly"],
-       ["Monthly", "monthly"], ["Yearly", "yearly"]],
+      [[_("Does not repeat"), "none"], [_("Daily"), "daily"], [_("Weekly"), "weekly"],
+       [_("Monthly"), "monthly"], [_("Yearly"), "yearly"]],
       {},
       class: "input",
       data: { action: "change->recurrence-form#frequencyChanged" }
@@ -94,9 +94,9 @@
 
       <!-- Interval -->
       <div class="flex items-center gap-2">
-        <span class="text-sm text-text-secondary">Every</span>
+        <span class="text-sm text-text-secondary"><%= _("Every") %></span>
         <%= f.number_field :recurrence_interval,
-          "aria-label": "Repeat every",
+          "aria-label": _("Repeat every"),
           value: event.recurrence_interval || 1,
           min: 1, max: 99,
           class: "input w-20"
@@ -109,7 +109,7 @@
       <!-- Weekly: Day of week checkboxes -->
       <div data-recurrence-form-target="weeklyOptions"
            class="<%= 'hidden' unless event.recurrence_frequency == 'weekly' %>">
-        <span class="text-sm text-text-secondary mb-1.5 block">On days</span>
+        <span class="text-sm text-text-secondary mb-1.5 block"><%= _("On days") %></span>
         <div class="flex gap-1">
           <% [["MO", "M"], ["TU", "T"], ["WE", "W"], ["TH", "T"], ["FR", "F"], ["SA", "S"], ["SU", "S"]].each do |abbr, letter| %>
             <% checked = weekly_days.include?(abbr) %>
@@ -128,18 +128,18 @@
       <!-- Monthly: By day of month or by weekday -->
       <%
         week_num = event.starts_at ? ((event.first_day.day - 1) / 7) + 1 : 1
-        ordinals = { 1 => "1st", 2 => "2nd", 3 => "3rd", 4 => "4th", 5 => "5th" }
-        wday_name = event.starts_at ? event.first_day.strftime("%A") : "day"
-        monthly_dow_label = "The #{ordinals[week_num] || "#{week_num}th"} #{wday_name}"
+        ordinals = { 1 => _("1st"), 2 => _("2nd"), 3 => _("3rd"), 4 => _("4th"), 5 => _("5th") }
+        wday_name = event.starts_at ? format_weekday(event.first_day) : _("day")
+        monthly_dow_label = _("The %{ordinal} %{weekday}", ordinal: ordinals[week_num] || week_num, weekday: wday_name)
       %>
       <div data-recurrence-form-target="monthlyOptions"
            class="<%= 'hidden' unless event.recurrence_frequency == 'monthly' %>">
-        <span class="text-sm text-text-secondary mb-1.5 block">Repeat by</span>
+        <span class="text-sm text-text-secondary mb-1.5 block"><%= _("Repeat by") %></span>
         <div class="space-y-2">
           <label class="flex items-center gap-2 cursor-pointer">
             <%= f.radio_button :recurrence_monthly_by, "day_of_month",
               class: "w-4 h-4 text-accent focus:ring-accent/20" %>
-            <span class="text-sm text-text-primary">Day of the month</span>
+            <span class="text-sm text-text-primary"><%= _("Day of the month") %></span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <%= f.radio_button :recurrence_monthly_by, "day_of_week",
@@ -151,13 +151,13 @@
 
       <!-- End condition -->
       <div>
-        <span class="text-sm text-text-secondary mb-1.5 block">Ends</span>
+        <span class="text-sm text-text-secondary mb-1.5 block"><%= _("Ends") %></span>
         <div class="space-y-2">
           <label class="flex items-center gap-2 cursor-pointer">
             <%= f.radio_button :recurrence_end_type, "never",
               class: "w-4 h-4 text-accent focus:ring-accent/20",
               data: { action: "change->recurrence-form#endTypeChanged" } %>
-            <span class="text-sm text-text-primary">Never</span>
+            <span class="text-sm text-text-primary"><%= _("Never") %></span>
           </label>
 
           <div class="flex items-center gap-2">
@@ -165,12 +165,12 @@
               <%= f.radio_button :recurrence_end_type, "count",
                 class: "w-4 h-4 text-accent focus:ring-accent/20",
                 data: { action: "change->recurrence-form#endTypeChanged" } %>
-              <span class="text-sm text-text-primary">After</span>
+              <span class="text-sm text-text-primary"><%= _("After") %></span>
             </label>
             <div data-recurrence-form-target="endCountField"
                  class="flex items-center gap-1 <%= 'hidden' unless event.recurrence_end_type == 'count' %>">
               <%= f.number_field :recurrence_count,
-                "aria-label": "Number of repeats",
+                "aria-label": _("Number of repeats"),
                 value: event.recurrence_count || 10,
                 min: 1, max: 999,
                 class: "input w-20" %>
@@ -183,12 +183,12 @@
               <%= f.radio_button :recurrence_end_type, "until",
                 class: "w-4 h-4 text-accent focus:ring-accent/20",
                 data: { action: "change->recurrence-form#endTypeChanged" } %>
-              <span class="text-sm text-text-primary">On date</span>
+              <span class="text-sm text-text-primary"><%= _("On date") %></span>
             </label>
             <div data-recurrence-form-target="endUntilField"
                  class="<%= 'hidden' unless event.recurrence_end_type == 'until' %>">
               <%= f.date_field :recurrence_until,
-                "aria-label": "Repeat until date",
+                "aria-label": _("Repeat until date"),
                 value: event.recurrence_until,
                 class: "input" %>
             </div>
@@ -201,7 +201,7 @@
   <!-- Alerts: a select per alert, and one more to add one. The calendar's server keeps them and
        the calendar app on a phone or computer gives them (Calendars::Reminder) -->
   <div class="mb-4">
-    <span class="label" id="<%= ids %>_reminders_label">Alerts</span>
+    <span class="label" id="<%= ids %>_reminders_label"><%= _("Alerts") %></span>
     <%= hidden_field_tag "calendars_event[reminders][]", "", id: nil %>
     <div class="space-y-2">
       <% (event.reminders + [ nil ]).each_with_index do |minutes, index| %>
@@ -210,7 +210,7 @@
           id: "#{ids}_reminder_#{index}", class: "input", "aria-labelledby": "#{ids}_reminders_label" %>
       <% end %>
     </div>
-    <p class="text-xs text-text-tertiary mt-1">The calendar app on your phone or computer gives the alert.</p>
+    <p class="text-xs text-text-tertiary mt-1"><%= _("The calendar app on your phone or computer gives the alert.") %></p>
   </div>
 
   <!-- Location -->
@@ -218,7 +218,7 @@
     <%= f.label :location, class: "label" %>
     <%= f.text_field :location,
       class: "input",
-      placeholder: "Meeting room, address..."
+      placeholder: _("Meeting room, address...")
     %>
   </div>
 
@@ -228,7 +228,7 @@
     <%= f.text_area :description,
       class: "input",
       rows: 4,
-      placeholder: "Add notes, agenda items..."
+      placeholder: _("Add notes, agenda items...")
     %>
   </div>
 
@@ -236,19 +236,19 @@
   <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-border-light">
     <% if modal_id %>
       <%= render "components/button",
-          text: "Cancel",
+          text: _("Cancel"),
           variant: :secondary,
           type: :button,
           data: { action: "click->modal#close" } %>
     <% else %>
       <%= render "components/button",
-          text: "Cancel",
+          text: _("Cancel"),
           variant: :secondary,
           href: tool_calendar_path(tool),
           data: { turbo_frame: "_top" } %>
     <% end %>
     <%= render "components/button",
-        text: is_new ? "Create Event" : "Save Changes",
+        text: is_new ? _("Create Event") : _("Save Changes"),
         icon: "calendar" %>
   </div>
 <% end %>

@@ -26,7 +26,7 @@
   }
 
   .workspace-desks {
-    @apply flex items-center gap-0.5 ml-1;
+    @apply flex items-center gap-0.5 ms-1;
   }
 
   /* A desktop: its number, and the tools on it */
@@ -78,7 +78,7 @@
      one that breathes. */
   .workspace-desk-tool[data-unread]::after,
   .workspace-desk-tool[data-in-call]::after {
-    @apply absolute -top-1 -right-1 w-[0.4375rem] h-[0.4375rem] rounded-full;
+    @apply absolute -top-1 -end-1 w-[0.4375rem] h-[0.4375rem] rounded-full;
     content: "";
     background: var(--color-accent);
     box-shadow: 0 0 0 1.5px var(--color-background-secondary);
@@ -101,7 +101,7 @@
   }
 
   .workspace-bar-btn[data-unread]::after {
-    @apply absolute top-0.5 right-0.5 w-2 h-2 rounded-full;
+    @apply absolute top-0.5 end-0.5 w-2 h-2 rounded-full;
     content: "";
     background: var(--color-accent);
     box-shadow: 0 0 0 1.5px var(--color-background-secondary);
@@ -128,7 +128,7 @@
 
   /* The desktop's name in its card is what renames it */
   .workspace-desk-card-rename {
-    @apply min-w-0 truncate -mx-1 px-1 rounded text-left uppercase tracking-wider font-semibold cursor-text hover:bg-background-tertiary hover:text-text-primary;
+    @apply min-w-0 truncate -mx-1 px-1 rounded text-start uppercase tracking-wider font-semibold cursor-text hover:bg-background-tertiary hover:text-text-primary;
   }
 
   .workspace-desk-card-field {
@@ -140,7 +140,7 @@
   }
 
   .workspace-desk-card-go {
-    @apply flex flex-1 items-center gap-2 min-w-0 px-2 py-1.5 text-left cursor-pointer;
+    @apply flex flex-1 items-center gap-2 min-w-0 px-2 py-1.5 text-start cursor-pointer;
   }
 
   .workspace-desk-card-go .workspace-desk-icon {
@@ -156,15 +156,15 @@
   }
 
   .workspace-desk-card-new {
-    @apply shrink-0 ml-auto px-1.5 rounded-full text-[0.625rem] font-semibold bg-accent-solid text-text-inverse;
+    @apply shrink-0 ms-auto px-1.5 rounded-full text-[0.625rem] font-semibold bg-accent-solid text-text-inverse;
   }
 
   .workspace-desk-card-call {
-    @apply shrink-0 ml-auto text-xs font-normal text-success;
+    @apply shrink-0 ms-auto text-xs font-normal text-success;
   }
 
   .workspace-desk-card-close {
-    @apply flex items-center justify-center w-6 h-6 mr-1 rounded-md text-base leading-none text-text-tertiary opacity-0
+    @apply flex items-center justify-center w-6 h-6 me-1 rounded-md text-base leading-none text-text-tertiary opacity-0
            hover:bg-surface hover:text-text-primary cursor-pointer;
   }
 
@@ -197,7 +197,7 @@
   }
 
   :root body[data-workspace] .flash-toast > .flash {
-    @apply min-h-7 py-0 pl-2.5 pr-1 gap-2 rounded-md text-xs;
+    @apply min-h-7 py-0 ps-2.5 pe-1 gap-2 rounded-md text-xs;
   }
 
   :root body[data-workspace] .flash-toast [data-flash-text] {
@@ -205,7 +205,7 @@
   }
 
   :root body[data-workspace] .flash-toast :is(.flash-undo .btn, button) {
-    @apply h-6 ml-0;
+    @apply h-6 ms-0;
   }
 
   /* The room the tiles share. They are placed in it by the controller. */
@@ -297,7 +297,7 @@
 
   /* Close sits in the corner of the tool's own top bar, which keeps room for it (below) */
   .workspace-tile-controls {
-    @apply absolute top-0 right-0 z-10 flex items-center pr-1.5 opacity-0 transition-opacity duration-150;
+    @apply absolute top-0 end-0 z-10 flex items-center pe-1.5 opacity-0 transition-opacity duration-150;
     height: var(--workspace-topbar-height);
   }
 
@@ -380,7 +380,7 @@
   /* The offer of a time zone (shared/time_zone_notice): in the window's corner, there
      being no sidebar, and above the hint while that is there */
   body[data-workspace] .time-zone-notice {
-    left: 1rem;
+    inset-inline-start: 1rem;
     bottom: 1rem;
   }
 
@@ -486,12 +486,12 @@
 /* ── The page around the tiles: no sidebar until it is asked for ── */
 
 body[data-workspace] .main-content {
-  margin-left: 0;
+  margin-inline-start: 0;
 }
 
 @media (min-width: 1024px) {
   body[data-workspace] .demo-banner {
-    left: 0;
+    inset-inline-start: 0;
   }
 
   /* The sidebar is the menu: a panel in the middle of the window, over the tiles, when
@@ -589,7 +589,7 @@ body[data-workspace] .main-content {
 
 .tile-page :is(.tool-topbar, .mail-topbar) {
   min-height: calc(var(--workspace-topbar-height) / var(--tile-zoom));
-  padding-right: 2.5rem;
+  padding-inline-end: 2.5rem;
 }
 
 /* A calendar's days and its column of hours are as wide as they are in a tile with a
@@ -639,7 +639,7 @@ body[data-workspace] .main-content {
 /* The top bar is lower, and keeps room for the tile's close button, which lies over it */
 :root[data-in-tile] :is(.tool-topbar, .mail-topbar) {
   min-height: var(--workspace-topbar-height);
-  padding-right: 2.5rem;
+  padding-inline-end: 2.5rem;
 }
 
 @media (max-width: 1023px) {

@@ -43,9 +43,9 @@ module Oauth
     def redirect_uris_allowed
       uris = redirect_uris
       if !uris.is_a?(Array) || uris.empty? || uris.size > MAX_REDIRECT_URIS
-        errors.add(:redirect_uris, "must list between 1 and #{MAX_REDIRECT_URIS} addresses")
+        errors.add(:redirect_uris, _("must list between 1 and %{max_redirect_uris} addresses", max_redirect_uris: MAX_REDIRECT_URIS))
       elsif uris.any? { |uri| !uri.is_a?(String) || uri.length > 500 || !Oauth.allowed_redirect?(uri) }
-        errors.add(:redirect_uris, "may only lead to Claude or to this computer")
+        errors.add(:redirect_uris, _("may only lead to Claude or to this computer"))
       end
     end
   end

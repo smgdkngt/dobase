@@ -25,12 +25,12 @@ module Tools
         if @draft.save
           sync_to_server
           respond_to do |format|
-            format.html { redirect_to new_tool_mail_path(@tool, draft_id: @draft.id), notice: "Draft saved.", status: :see_other }
+            format.html { redirect_to new_tool_mail_path(@tool, draft_id: @draft.id), notice: _("Draft saved."), status: :see_other }
             format.json { render :show, status: :created }
           end
         else
           respond_to do |format|
-            format.html { redirect_to new_tool_mail_path(@tool), alert: "Could not save draft.", status: :see_other }
+            format.html { redirect_to new_tool_mail_path(@tool), alert: _("Could not save draft."), status: :see_other }
             format.json { render json: { errors: @draft.errors.full_messages }, status: :unprocessable_entity }
           end
         end
@@ -53,12 +53,12 @@ module Tools
         if saved
           sync_to_server
           respond_to do |format|
-            format.html { redirect_to new_tool_mail_path(@tool, draft_id: @draft.id), notice: "Draft saved.", status: :see_other }
+            format.html { redirect_to new_tool_mail_path(@tool, draft_id: @draft.id), notice: _("Draft saved."), status: :see_other }
             format.json { render :show }
           end
         else
           respond_to do |format|
-            format.html { redirect_to new_tool_mail_path(@tool, draft_id: @draft.id), alert: "Could not save draft.", status: :see_other }
+            format.html { redirect_to new_tool_mail_path(@tool, draft_id: @draft.id), alert: _("Could not save draft."), status: :see_other }
             format.json { render json: { errors: @draft.errors.full_messages }, status: :unprocessable_entity }
           end
         end
@@ -84,7 +84,7 @@ module Tools
         return if @mail_account
 
         respond_to do |format|
-          format.html { redirect_to new_tool_mails_account_path(@tool), alert: "Please configure your mail account first." }
+          format.html { redirect_to new_tool_mails_account_path(@tool), alert: _("Please configure your mail account first.") }
           format.json { render json: { error: "Mail account not configured" }, status: :not_found }
         end
       end

@@ -13,7 +13,6 @@ module Tools
     before_action :build_compose_defaults, only: [ :new ]
 
     PER_PAGE = 30
-    DRAFT_GONE = "This draft was already sent or deleted elsewhere, so it wasn't sent again. Send it once more to send it as new mail."
 
     def index
       @mail_account = @tool.mail_account
@@ -90,21 +89,21 @@ module Tools
       invalid = recipients.values.flatten.reject(&:valid?)
 
       if invalid.any?
-        render_send_error "Invalid email address: #{invalid.first.address}"
+        render_send_error _("Invalid email address: %{address}", address: invalid.first.address)
         return
       end
 
       # Nobody to send it to: the form comes back to add someone (the page says so before it
       # sends, compose_controller.js; this is for whatever didn't ask the page)
       if recipients.values.flatten.empty?
-        render_send_error SmtpSendService::NO_RECIPIENTS
+        render_send_error _("Add a recipient: To, Cc or Bcc is empty.")
         return
       end
 
       # A draft sent or deleted elsewhere (another window, the CLI) while this form was open
       # isn't sent a second time: the form comes back, without the draft, to send as new mail
       if params[:draft_id].present? && !@mail_account.messages.drafts.exists?(id: params[:draft_id])
-        render_send_error DRAFT_GONE
+        render_send_error _("This draft was already sent or deleted elsewhere, so it wasn't sent again. Send it once more to send it as new mail.")
         return
       end
 
@@ -134,7 +133,7 @@ module Tools
         @tool.mail_account.discard(@message)
         # Discarded where it shows in its conversation, the conversation stays open
         answered = @message.conversation.not_draft.last if params[:from] == "conversation"
-        redirect_to answered ? tool_mail_path(@tool, answered, folder: params[:folder]) : tool_mails_path(@tool, folder: "drafts"), notice: "Draft deleted."
+        redirect_to answered ? tool_mail_path(@tool, answered, folder: params[:folder]) : tool_mails_path(@tool, folder: "drafts"), notice: _("Draft deleted.")
         return
       end
 
@@ -142,10 +141,10 @@ module Tools
       next_msg = find_next_message(@message, folder)
       if @message.trashed?
         @tool.mail_account.delete_for_good(with_their_conversations([ @message ], folder: "trash"))
-        redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Email permanently deleted.")
+        redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: _("Email permanently deleted."))
       else
         undoable(:put_back, with_their_conversations([ @message ], folder: folder)) { @tool.mail_account.trash(_1) }
-        redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: "Email moved to trash.")
+        redirect_to_next_mail_or_fallback(next_msg, folder: folder, notice: _("Email moved to trash."))
       end
     end
 

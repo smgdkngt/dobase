@@ -26,21 +26,21 @@
       <span class="mail-message-line">
         <span class="mail-message-from"><%= email_message.display_from %></span>
         <% if email_message.draft? %>
-          <%= render "components/badge", text: "Draft", variant: :warning, size: :sm %>
+          <%= render "components/badge", text: _("Draft"), variant: :warning, size: :sm %>
         <% elsif email_message.from_name.present? && email_message.from_name != email_message.from_address %>
           <%= tag.span email_message.from_address, class: [ "mail-message-address", ("hidden" unless open) ], data: { collapse_target: "content" } %>
         <% end %>
         <% if email_message.sending? %>
-          <%= render "components/badge", text: "Sending…", variant: :muted, size: :sm %>
+          <%= render "components/badge", text: _("Sending…"), variant: :muted, size: :sm %>
         <% end %>
         <%# Closed: how it starts, as far as the line has room %>
         <%= tag.span email_message.snippet, class: [ "mail-message-snippet", ("hidden" if open) ], data: { collapse_target: "preview" } %>
         <span class="mail-message-date">
           <% if attachments.any? %>
-            <%= tag.span(title: pluralize(attachments.size, "attachment")) { render "shared/icon", name: "paperclip", size: 12, label: pluralize(attachments.size, "attachment") } %>
+            <%= tag.span(title: n_("%{count} attachment", "%{count} attachments", attachments.size)) { render "shared/icon", name: "paperclip", size: 12, label: n_("%{count} attachment", "%{count} attachments", attachments.size) } %>
           <% end %>
           <% if email_message.draft? %>
-            <%= "Saved #{format_datetime(email_message.sent_at)}" %>
+            <%= _("Saved %{time}", time: format_datetime(email_message.sent_at)) %>
           <% else %>
             <%# Closed, as short as in the list; open, in full %>
             <%= tag.span mail_list_date(email_message.sent_at), class: ("hidden" if open), title: format_datetime(email_message.sent_at), data: { collapse_target: "preview" } %>
@@ -58,23 +58,23 @@
   </div>
   <%= tag.div class: ("hidden" unless open), data: { collapse_target: "content" } do %>
     <%# Beside the sender's face in a wide window; in a narrow one (a phone, a tile) the width is the message's %>
-    <div class="px-4 pb-4 pl-[4.25rem] narrow:px-2 narrow:pl-2">
+    <div class="px-4 pb-4 ps-[4.25rem] narrow:px-2 narrow:ps-2">
       <%# Sent off a moment ago and still waiting to go out (SendMailJob::UNDO_TIME): it can be taken back %>
       <% if email_message.can_be_taken_back? %>
         <div class="mail-sending-note">
-          <span class="flex-1">Sending in a moment.</span>
-          <%= render "components/button", text: "Undo", icon: "undo-2", variant: :secondary, size: :sm, title: "Undo Send (z)",
+          <span class="flex-1"><%= _("Sending in a moment.") %></span>
+          <%= render "components/button", text: _("Undo"), icon: "undo-2", variant: :secondary, size: :sm, title: _("Undo Send (z)"),
                 href: tool_mail_sending_path(@tool, email_message, folder: @current_folder), method: :delete,
                 data: { turbo_frame: "_top", controller: "hotkey", hotkey: "z" } %>
         </div>
       <% end %>
       <% if email_message.draft? && !email_message.trashed? %>
         <div class="mail-draft-note">
-          <span class="flex-1">Not sent yet.</span>
-          <%= render "components/button", text: "Discard", variant: :ghost, size: :sm,
+          <span class="flex-1"><%= _("Not sent yet.") %></span>
+          <%= render "components/button", text: _("Discard"), variant: :ghost, size: :sm,
                 href: tool_mail_path(@tool, email_message, from: "conversation", folder: @current_folder), method: :delete,
-                turbo_confirm: "Discard this draft?", data: { turbo_frame: "_top" } %>
-          <%= render "components/button", text: "Edit draft", icon: "edit", size: :sm,
+                turbo_confirm: _("Discard this draft?"), data: { turbo_frame: "_top" } %>
+          <%= render "components/button", text: _("Edit draft"), icon: "edit", size: :sm,
                 href: new_tool_mail_path(@tool, draft_id: email_message.id, folder: @current_folder), data: { turbo_frame: "_top" } %>
         </div>
       <% end %>
@@ -92,8 +92,8 @@
       <% if attachments.any? %>
         <div class="mt-4 pt-4 border-t border-border-light">
           <div class="text-xs font-medium text-text-secondary mb-2">
-            <%= render "shared/icon", name: "paperclip", size: 12, class: "inline mr-1" %>
-            <%= pluralize(attachments.size, "attachment") %>
+            <%= render "shared/icon", name: "paperclip", size: 12, class: "inline me-1" %>
+            <%= n_("%{count} attachment", "%{count} attachments", attachments.size) %>
           </div>
           <div class="flex flex-wrap gap-2">
             <% attachments.each do |attachment| %>

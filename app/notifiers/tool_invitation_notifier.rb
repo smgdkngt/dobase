@@ -7,13 +7,13 @@ class ToolInvitationNotifier < Noticed::Event
   deliver_by :custom_action_cable,
     class: "Noticed::DeliveryMethods::CustomActionCable",
     stream: -> { "notifications:#{recipient.id}" },
-    message: -> { notification_data }
+    message: -> { I18n.with_locale(Translation.supported(recipient.try(:locale)) || I18n.default_locale) { notification_data } }
 
   notification_methods do
     def message
       inviter = event.params[:invited_by]
       tool = event.params[:tool]
-      "#{inviter&.name || 'Someone'} invited you to collaborate on #{tool&.name || 'a tool'}"
+      _("%{person} invited you to collaborate on %{tool}", person: inviter&.name || _("Someone"), tool: tool&.name || _("a tool"))
     end
 
     def url

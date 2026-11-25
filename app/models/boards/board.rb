@@ -11,9 +11,9 @@ module Boards
     def self.create_default_for(tool)
       board = create!(tool: tool)
       board.columns.create!([
-        { name: "To Do", position: 0 },
-        { name: "In Progress", position: 1 },
-        { name: "Done", position: 2 }
+        { name: Translation.translate("To Do"), position: 0 },
+        { name: Translation.translate("In Progress"), position: 1 },
+        { name: Translation.translate("Done"), position: 2 }
       ])
       board
     end

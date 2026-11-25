@@ -2,7 +2,7 @@
 
 class TwoFactorChallengesController < ApplicationController
   allow_unauthenticated_access
-  rate_limit to: 10, within: 3.minutes, only: :create, with: -> { redirect_to new_two_factor_challenge_path, alert: "Too many attempts. Try again later." }
+  rate_limit to: 10, within: 3.minutes, only: :create, with: -> { redirect_to new_two_factor_challenge_path, alert: _("Too many attempts. Try again later.") }
 
   before_action :ensure_otp_user
 
@@ -17,7 +17,7 @@ class TwoFactorChallengesController < ApplicationController
       start_new_session_for @user
       redirect_to after_authentication_url
     else
-      flash.now[:alert] = "Invalid code. Please try again."
+      flash.now[:alert] = _("Invalid code. Please try again.")
       render :new, status: :unprocessable_entity
     end
   end

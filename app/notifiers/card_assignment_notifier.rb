@@ -6,13 +6,13 @@ class CardAssignmentNotifier < Noticed::Event
   deliver_by :custom_action_cable,
     class: "Noticed::DeliveryMethods::CustomActionCable",
     stream: -> { "notifications:#{recipient.id}" },
-    message: -> { notification_data }
+    message: -> { I18n.with_locale(Translation.supported(recipient.try(:locale)) || I18n.default_locale) { notification_data } }
 
   notification_methods do
     def message
       assigner = event.params[:assigner]
       card = event.params[:card]
-      "#{assigner&.name || 'Someone'} assigned you to #{card&.title || 'a card'}"
+      _("%{person} assigned you to %{item}", person: assigner&.name || _("Someone"), item: card&.title || _("a card"))
     end
 
     def url

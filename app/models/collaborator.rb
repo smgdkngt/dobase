@@ -7,7 +7,7 @@ class Collaborator < ApplicationRecord
   belongs_to :user
 
   validates :role, presence: true, inclusion: { in: ROLES }
-  validates :user_id, uniqueness: { scope: :tool_id, message: "is already a collaborator" }
+  validates :user_id, uniqueness: { scope: :tool_id, message: ->(_object, _data) { Translation.translate("is already a collaborator") } }
 
   before_create :place_last_in_sidebar
 

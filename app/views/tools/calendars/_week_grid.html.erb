@@ -37,8 +37,8 @@
     <% days.each do |day| %>
       <%
         is_today = day == today
-        day_name = day.strftime("%a")
-        day_number = day.day
+        day_name = format_weekday(day, short: true)
+        day_number = format_day_number(day)
       %>
       <div class="week-header-cell <%= 'today' if is_today %>">
         <div class="text-xs font-medium text-text-secondary"><%= day_name %></div>
@@ -115,7 +115,7 @@
     %>
     <div class="all-day-row" style="<%= "min-height: #{24 + max_rows * 24}px" if max_rows > 1 %>">
       <div class="all-day-label">
-        <span class="text-xs text-text-tertiary">All day</span>
+        <span class="text-xs text-text-tertiary"><%= _("All day") %></span>
       </div>
       <div class="all-day-events-grid">
         <!-- Grid lines for each day -->
@@ -133,9 +133,9 @@
             rounded_class = if span_info[:is_start] && span_info[:is_end]
               "rounded"
             elsif span_info[:is_start]
-              "rounded-l"
+              "rounded-s"
             elsif span_info[:is_end]
-              "rounded-r"
+              "rounded-e"
             else
               ""
             end
@@ -209,8 +209,8 @@
               current_minute = Time.current.min
               top_position = (current_hour * 60 + current_minute) / (24.0 * 60) * 100
             %>
-            <div class="absolute left-0 right-0 z-20 pointer-events-none" style="top: <%= top_position %>%" data-calendar-target="now">
-              <div class="absolute left-0 w-2 h-2 rounded-full bg-error -translate-x-1/2 -translate-y-1/2"></div>
+            <div class="absolute start-0 end-0 z-20 pointer-events-none" style="top: <%= top_position %>%" data-calendar-target="now">
+              <div class="absolute start-0 w-2 h-2 rounded-full bg-error -translate-x-1/2 -translate-y-1/2"></div>
               <div class="h-0.5 bg-error"></div>
             </div>
           <% end %>

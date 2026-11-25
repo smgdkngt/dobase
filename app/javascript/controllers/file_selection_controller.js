@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { _, n_ } from "services/i18n"
 
 // Handles file/folder selection (single, multi, shift-select)
 export default class extends Controller {
@@ -114,9 +115,9 @@ export default class extends Controller {
 
     if (items.length === 1) {
       const name = items[0].querySelector("[data-item-name]").textContent.trim()
-      return withFolders ? `Delete ${name} and everything in it?` : `Delete ${name}?`
+      return withFolders ? _("Delete %{name} and everything in it?", { name }) : _("Delete %{name}?", { name })
     }
-    return withFolders ? `Delete ${items.length} items and everything in them?` : `Delete ${items.length} files?`
+    return withFolders ? _("Delete %{count} items and everything in them?", { count: items.length }) : _("Delete %{count} files?", { count: items.length })
   }
 
   #rangeSelect(index, event) {
@@ -173,7 +174,7 @@ export default class extends Controller {
     if (this.selectedItems.size > 0) {
       this.bulkToolbarTarget.classList.remove("hidden")
       this.bulkToolbarTarget.classList.add("flex")
-      this.bulkCountTarget.textContent = `${this.selectedItems.size} selected`
+      this.bulkCountTarget.textContent = n_("%{count} selected", "%{count} selected", this.selectedItems.size)
     } else {
       this.bulkToolbarTarget.classList.add("hidden")
       this.bulkToolbarTarget.classList.remove("flex")

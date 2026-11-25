@@ -45,6 +45,24 @@ en:
         start_time: "Start"
         ends_at: "End"
         end_time: "End"
+  date:
+    formats:
+      day: "%b %-d"
+      day_and_year: "%b %-d, %Y"
+      day_of_month: "%-d"
+      weekday: "%A"
+      weekday_short: "%a"
+      weekday_with_date: "%a"
+      month_and_year: "%B %Y"
+      week_start: "%b"
+      week_start_with_year: "%b %Y"
+      week_end: "%b %Y"
+      long_day: "%A, %B %-d, %Y"
+  time:
+    formats:
+      clock: "%-I:%M %p"
+      clock_without_period: "%-I:%M"
+      hour: "%-l %p"
   number:
     human:
       storage_units:

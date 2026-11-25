@@ -16,5 +16,5 @@
 <%= link_to href, class: "inline-flex items-center gap-2 text-text-secondary text-sm hover:text-accent transition-colors",
       data: { arrow_keys_target: "back" } do %>
   <%= render "shared/icon", name: "arrow-left", size: local_assigns.fetch(:icon_size, 20) %>
-  <span><%= local_assigns.fetch(:text, "Back") %></span>
+  <span><%= local_assigns.fetch(:text) { _("Back") } %></span>
 <% end %>

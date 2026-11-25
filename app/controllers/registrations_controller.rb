@@ -2,13 +2,13 @@
 
 class RegistrationsController < ApplicationController
   allow_unauthenticated_access
-  rate_limit to: 10, within: 3.minutes, only: :create, with: -> { redirect_to signup_path, alert: "Too many attempts. Try again later." }
+  rate_limit to: 10, within: 3.minutes, only: :create, with: -> { redirect_to signup_path, alert: _("Too many attempts. Try again later.") }
 
   def new
     return redirect_to root_path if authenticated?
 
     unless registration_allowed?
-      redirect_to login_path, alert: "Registration is by invitation only."
+      redirect_to login_path, alert: _("Registration is by invitation only.")
       return
     end
     @user = User.new(email_address: pending_invitation&.email)
@@ -17,13 +17,13 @@ class RegistrationsController < ApplicationController
 
   def create
     unless registration_allowed?
-      redirect_to login_path, alert: "Registration is by invitation only."
+      redirect_to login_path, alert: _("Registration is by invitation only.")
       return
     end
 
     unless User.none? || verify_altcha
       @user = User.new(user_params)
-      flash.now[:alert] = "Please complete the verification."
+      flash.now[:alert] = _("Please complete the verification.")
       return render :new, status: :unprocessable_entity
     end
 
@@ -37,9 +37,9 @@ class RegistrationsController < ApplicationController
       start_new_session_for(@user)
 
       if (redirect_path = accept_pending_invitation(@user))
-        redirect_to redirect_path, notice: "Welcome to #{helpers.app_name}! You've been added as a collaborator."
+        redirect_to redirect_path, notice: _("Welcome to %{app_name}! You've been added as a collaborator.", app_name: helpers.app_name)
       else
-        redirect_to root_path, notice: "Welcome to #{helpers.app_name}, #{@user.first_name}!"
+        redirect_to root_path, notice: _("Welcome to %{app_name}, %{first_name}!", app_name: helpers.app_name, first_name: @user.first_name)
       end
     else
       render :new, status: :unprocessable_entity

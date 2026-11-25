@@ -1,21 +1,21 @@
 <%# Every notification that is kept (User::NOTIFICATION_LIMIT), a page at a time, newest
     first, a busy chat folded as in the bell. Clearing them all is here, not in the bell. %>
-<% content_for :title, "Notifications - #{app_name}" %>
-<% content_for :page_title, "Notifications" %>
+<% content_for :title, _("Notifications - %{app_name}", app_name: app_name) %>
+<% content_for :page_title, _("Notifications") %>
 
 <div class="p-6">
   <div class="max-w-2xl mx-auto">
     <div class="flex items-center justify-between gap-4 mb-6">
-      <h1 class="text-xl font-semibold text-text-primary">Notifications</h1>
+      <h1 class="text-xl font-semibold text-text-primary"><%= _("Notifications") %></h1>
       <% if @notifications.any? || @page > 1 %>
         <div class="flex items-center gap-2">
           <% if current_user.notifications.unread.exists? %>
-            <%= render "components/button", text: "Mark all read", icon: "check", variant: :secondary, size: :sm,
+            <%= render "components/button", text: _("Mark all read"), icon: "check", variant: :secondary, size: :sm,
                   href: notification_reads_path(page: (@page if @page > 1)), method: :post %>
           <% end %>
-          <%= render "components/button", text: "Clear all", icon: "trash-2", variant: :ghost, size: :sm,
-                href: notification_clears_path, method: :post, data: { turbo_confirm_button: "Clear all" },
-                turbo_confirm: "Clear all notifications? They can't be brought back." %>
+          <%= render "components/button", text: _("Clear all"), icon: "trash-2", variant: :ghost, size: :sm,
+                href: notification_clears_path, method: :post, data: { turbo_confirm_button: _("Clear all") },
+                turbo_confirm: _("Clear all notifications? They can't be brought back.") %>
         </div>
       <% end %>
     </div>
@@ -28,22 +28,22 @@
       </div>
 
       <% if @page > 1 || @has_more %>
-        <nav class="flex items-center justify-between mt-4" aria-label="Pages">
+        <nav class="flex items-center justify-between mt-4" aria-label="<%= _("Pages") %>">
           <% if @page > 1 %>
-            <%= render "components/button", text: "Newer", icon: "chevron-left", variant: :secondary, size: :sm,
+            <%= render "components/button", text: _("Newer"), icon: "chevron-left", variant: :secondary, size: :sm,
                   href: notifications_path(page: (@page - 1 if @page > 2)) %>
           <% else %>
             <span></span>
           <% end %>
           <% if @has_more %>
-            <%= render "components/button", text: "Older", icon: "chevron-right", variant: :secondary, size: :sm,
+            <%= render "components/button", text: _("Older"), icon: "chevron-right", variant: :secondary, size: :sm,
                   href: notifications_path(page: @page + 1) %>
           <% end %>
         </nav>
       <% end %>
     <% else %>
-      <%= render "components/empty_state", title: "No notifications", icon: "bell",
-            description: "Mentions, comments and what happens in your tools show up here." %>
+      <%= render "components/empty_state", title: _("No notifications"), icon: "bell",
+            description: _("Mentions, comments and what happens in your tools show up here.") %>
     <% end %>
   </div>
 </div>

@@ -6,13 +6,13 @@ class TodoCommentNotifier < Noticed::Event
   deliver_by :custom_action_cable,
     class: "Noticed::DeliveryMethods::CustomActionCable",
     stream: -> { "notifications:#{recipient.id}" },
-    message: -> { notification_data }
+    message: -> { I18n.with_locale(Translation.supported(recipient.try(:locale)) || I18n.default_locale) { notification_data } }
 
   notification_methods do
     def message
       commenter = event.params[:commenter]
       item = event.params[:item]
-      "#{event.params[:comment].try(:byline) || commenter&.name || 'Someone'} commented on #{item&.title || 'a todo'}"
+      _("%{person} commented on %{item}", person: event.params[:comment].try(:byline) || commenter&.name || _("Someone"), item: item&.title || _("a todo"))
     end
 
     def url

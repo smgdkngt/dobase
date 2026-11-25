@@ -1,6 +1,6 @@
 class SessionsController < ApplicationController
   allow_unauthenticated_access only: %i[ new create ]
-  rate_limit to: 10, within: 3.minutes, only: :create, with: -> { redirect_to new_session_path, alert: "Try again later." }
+  rate_limit to: 10, within: 3.minutes, only: :create, with: -> { redirect_to new_session_path, alert: _("Try again later.") }
 
   def new
     if authenticated?
@@ -21,7 +21,7 @@ class SessionsController < ApplicationController
         redirect_to after_authentication_url
       end
     else
-      redirect_to new_session_path, alert: "Try another email address or password."
+      redirect_to new_session_path, alert: _("Try another email address or password.")
     end
   end
 
@@ -30,7 +30,7 @@ class SessionsController < ApplicationController
       # Revoke a specific other session
       session_to_revoke = current_user.sessions.find(params[:id])
       session_to_revoke.destroy
-      redirect_to edit_profile_path(tab: "sessions"), notice: "Session revoked."
+      redirect_to edit_profile_path(tab: "sessions"), notice: _("Session revoked.")
     else
       # Log out current session
       terminate_session

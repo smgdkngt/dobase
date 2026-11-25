@@ -71,10 +71,10 @@
         <% if sheet.rows.any? %>
           <%= render "components/cell_table", rows: sheet.rows %>
         <% else %>
-          <p class="file-preview-note">This sheet is empty.</p>
+          <p class="file-preview-note"><%= _("This sheet is empty.") %></p>
         <% end %>
         <% if sheet.more %>
-          <p class="file-preview-note">Only the first <%= number_with_delimiter(FilePreview::MAX_ROWS) %> rows and <%= FilePreview::MAX_COLUMNS %> columns are shown here. Download the file for all of it.</p>
+          <p class="file-preview-note"><%= _("Only the first %{max_rows} rows and %{max_columns} columns are shown here. Download the file for all of it.", max_rows: number_with_delimiter(FilePreview::MAX_ROWS), max_columns: FilePreview::MAX_COLUMNS) %></p>
         <% end %>
       </section>
     <% end %>
@@ -83,7 +83,7 @@
   <%# A word processor's document: its text in order, without its layout or pictures %>
   <div class="file-text-preview <%= radius_class %> <%= "file-text-preview-fill" if fill %>" data-zoom-target="scroller">
     <div class="markdown-preview document-preview">
-      <p class="file-preview-note">The text of this document. Download the file for its layout and pictures.</p>
+      <p class="file-preview-note"><%= _("The text of this document. Download the file for its layout and pictures.") %></p>
       <% document.blocks.chunk_while { |a, b| a.kind == :list_item && b.kind == :list_item }.each do |group| %>
         <% if group.first.kind == :list_item %>
           <ul><% group.each do |item| %><li><%= item.text %></li><% end %></ul>
@@ -99,7 +99,7 @@
         <% end %>
       <% end %>
       <% if document.more %>
-        <p class="file-preview-note">Only the first part of this document is shown here. Download the file for all of it.</p>
+        <p class="file-preview-note"><%= _("Only the first part of this document is shown here. Download the file for all of it.") %></p>
       <% end %>
     </div>
   </div>
@@ -117,11 +117,11 @@
   <div class="flex flex-col items-center p-16 bg-background-secondary <%= radius_class %> text-text-tertiary">
     <%= render "shared/icon", name: file.icon_name, size: 64 %>
     <p class="mt-4 text-lg font-medium text-text-primary"><%= file.name %></p>
-    <p class="text-text-secondary">Too large to show here (<%= file.human_file_size %>)</p>
+    <p class="text-text-secondary"><%= _("Too large to show here (%{file})", file: file.human_file_size) %></p>
     <% if local_assigns[:download_path] %>
       <%= link_to download_path, class: "btn btn-primary mt-4", data: { turbo: false } do %>
         <%= render "shared/icon", name: "download", size: 16 %>
-        <span>Download</span>
+        <span><%= _("Download") %></span>
       <% end %>
     <% end %>
   </div>
@@ -137,7 +137,7 @@
     <% if local_assigns[:download_path] %>
       <%= link_to download_path, class: "btn btn-primary mt-4", data: { turbo: false } do %>
         <%= render "shared/icon", name: "download", size: 16 %>
-        <span>Download</span>
+        <span><%= _("Download") %></span>
       <% end %>
     <% end %>
   </div>

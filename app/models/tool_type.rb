@@ -12,4 +12,8 @@ class ToolType < ApplicationRecord
   def to_param
     slug
   end
+
+  def human_name = _(name)
+
+  def human_description = _(description.to_s)
 end

@@ -4,21 +4,21 @@
     <div>
       <div class="collaborator-name">
         <%= invitation.email %>
-        <span class="inline-block text-[0.625rem] font-semibold text-warning bg-warning-light px-1.5 py-px rounded-full ml-1.5 uppercase tracking-wide">Pending</span>
+        <span class="inline-block text-[0.625rem] font-semibold text-warning bg-warning-light px-1.5 py-px rounded-full ms-1.5 uppercase tracking-wide"><%= _("Pending") %></span>
       </div>
-      <div class="collaborator-email">Invited <%= time_ago_in_words(invitation.created_at) %> ago</div>
+      <div class="collaborator-email"><%= _("Invited %{created_at} ago", created_at: time_ago_in_words(invitation.created_at)) %></div>
     </div>
   </div>
   <div class="flex gap-1 shrink-0">
     <%= button_to tool_resend_invitation_path(tool, invitation),
           method: :post,
           class: "collaborator-action" do %>
-      Resend
+      <%= _("Resend") %>
     <% end %>
     <%= button_to tool_cancel_invitation_path(tool, invitation),
           method: :delete,
           class: "collaborator-remove" do %>
-      Cancel
+      <%= _("Cancel") %>
     <% end %>
   </div>
 </div>

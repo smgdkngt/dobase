@@ -2,9 +2,9 @@
 <%
   custom = local_assigns.fetch(:custom, false)
   label = theme ? theme.label : app_name
-  hint = if custom then "Yours"
-  elsif theme.nil? then "Light or dark, with your system"
-  else theme.mode.capitalize
+  hint = if custom then _("Yours")
+  elsif theme.nil? then _("Light or dark, with your system")
+  else _(theme.mode.capitalize)
   end
   # A custom palette is already on; choosing it again would need its colours
   html_options = {

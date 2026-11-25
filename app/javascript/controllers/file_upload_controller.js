@@ -1,5 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { visitPage } from "services/tile"
+import { _ } from "services/i18n"
 
 // Handles file uploads via form and drag-drop
 export default class extends Controller {
@@ -77,12 +78,12 @@ export default class extends Controller {
       } else {
         this.#uploaded()
         const data = await response.json()
-        alert(data.errors?.join(", ") || "Upload failed")
+        alert(data.errors?.join(", ") || _("Upload failed"))
       }
     } catch (error) {
       this.#uploaded()
       console.error("Upload error:", error)
-      alert("Upload failed")
+      alert(_("Upload failed"))
     }
   }
 
@@ -90,13 +91,13 @@ export default class extends Controller {
   // until the page is drawn again with the files in it (which puts the button back)
   #uploading(count) {
     if (!this.hasLabelTarget) return
-    this.labelTarget.textContent = count > 1 ? `Uploading ${count} files…` : "Uploading…"
+    this.labelTarget.textContent = count > 1 ? _("Uploading %{count} files…", { count }) : _("Uploading…")
     this.buttonTarget.setAttribute("aria-busy", "true")
   }
 
   #uploaded() {
     if (!this.hasLabelTarget) return
-    this.labelTarget.textContent = "Upload"
+    this.labelTarget.textContent = _("Upload")
     this.buttonTarget.removeAttribute("aria-busy")
   }
 

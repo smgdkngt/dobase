@@ -2,14 +2,14 @@
         <div class="detail-field detail-field-wide">
           <div class="flex items-center justify-between px-1 mb-1">
             <p class="text-xs font-medium text-text-tertiary">
-              Attachments
+              <%= _("Attachments") %>
               <% if card.attachments.any? %>
-                <span class="font-normal normal-case tracking-normal ml-0.5 text-text-tertiary">(<%= card.attachments.count %>)</span>
+                <span class="font-normal normal-case tracking-normal ms-0.5 text-text-tertiary">(<%= card.attachments.count %>)</span>
               <% end %>
             </p>
             <%= form_with url: tool_board_card_attachments_path(tool, card), multipart: true, class: "inline", data: { turbo_frame: "card-detail-content" } do %>
               <label class="text-xs font-medium text-accent hover:text-accent-hover cursor-pointer transition-colors">
-                + Add
+                <%= _("+ Add") %>
                 <input type="file" name="files[]" multiple class="hidden"
                        data-action="change->board-card#submitAttachment">
               </label>
@@ -31,13 +31,13 @@
                   <%= render "components/file_download_link", tool: tool, file: attachment.file %>
                   <%= link_to tool_board_card_attachment_path(tool, card, attachment),
                       class: "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 p-0.5 rounded hover:text-error text-text-tertiary transition-all",
-                      data: { turbo_method: :delete, turbo_confirm: "Delete this attachment?", turbo_confirm_button: "Delete", turbo_frame: "card-detail-content" } do %>
+                      data: { turbo_method: :delete, turbo_confirm: _("Delete this attachment?"), turbo_confirm_button: _("Delete"), turbo_frame: "card-detail-content" } do %>
                     <%= render "shared/icon", name: "x", size: 12 %>
                   <% end %>
                 </div>
               <% end %>
             <% else %>
-              <p class="detail-field-empty text-sm text-text-tertiary px-2 py-1">No attachments yet</p>
+              <p class="detail-field-empty text-sm text-text-tertiary px-2 py-1"><%= _("No attachments yet") %></p>
             <% end %>
           </div>
         </div>

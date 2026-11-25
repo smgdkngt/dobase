@@ -78,13 +78,13 @@ module MailsHelper
   # only for an account whose server has a junk folder (junk_unread is nil without one).
   def mail_folders(inbox_unread:, drafts_count:, trash_count:, junk_unread: nil)
     [
-      { key: "inbox",   label: "Inbox",   icon: "inbox",    badge: inbox_unread },
-      { key: "drafts",  label: "Drafts",  icon: "file-pen", badge: drafts_count },
-      { key: "starred", label: "Starred", icon: "star" },
-      { key: "sent",    label: "Sent",    icon: "send" },
-      { key: "archive", label: "Archive", icon: "archive" },
-      ({ key: "junk",   label: "Junk",    icon: "shield-alert", badge: junk_unread } if junk_unread),
-      { key: "trash",   label: "Trash",   icon: "trash-2",  badge: trash_count }
+      { key: "inbox",   label: _("Inbox"), icon: "inbox",    badge: inbox_unread },
+      { key: "drafts",  label: _("Drafts"),  icon: "file-pen", badge: drafts_count },
+      { key: "starred", label: _("Starred"), icon: "star" },
+      { key: "sent",    label: _("Sent"),  icon: "send" },
+      { key: "archive", label: _("Archive"), icon: "archive" },
+      ({ key: "junk",   label: _("Junk"),  icon: "shield-alert", badge: junk_unread } if junk_unread),
+      { key: "trash",   label: _("Trash"), icon: "trash-2",  badge: trash_count }
     ].compact
   end
 
@@ -113,7 +113,7 @@ module MailsHelper
   # A view of the mail page or one of the account's own folders, by its shown name (a
   # subfolder by its own part) and its icon
   def mail_view_name(view)
-    VIEW_LABELS.dig(view, 0) || mail_folder_name(view).split("/").last
+    (label = VIEW_LABELS.dig(view, 0)) ? _(label) : mail_folder_name(view).split("/").last
   end
 
   def mail_view_icon(view)
@@ -164,7 +164,7 @@ module MailsHelper
 
   # What a screen reader hears after a recipient's name
   def recipient_more(recipient)
-    return ", not a valid address" unless recipient.valid?
+    return _(", not a valid address") unless recipient.valid?
 
     recipient.name.present? ? ", #{recipient.address}" : ""
   end
@@ -179,9 +179,9 @@ module MailsHelper
   # Why a mailbox isn't updated, in a line above its list: since when, and why in words
   def mail_sync_problem(account)
     since = account.last_synced_at
-    lead = if since.nil? then "Couldn't get mail"
-    elsif since.in_time_zone.to_date == Time.zone.today then "Not updated since #{format_time(since)}"
-    else "Not updated since #{format_datetime(since)}"
+    lead = if since.nil? then _("Couldn't get mail")
+    elsif since.in_time_zone.to_date == Time.zone.today then _("Not updated since %{time}", time: format_time(since))
+    else _("Not updated since %{time}", time: format_datetime(since))
     end
 
     "#{lead}: #{Mails::ConnectionProblem.in_words(account.sync_error)}"

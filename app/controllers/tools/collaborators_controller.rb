@@ -13,17 +13,17 @@ module Tools
     def leave
       collaborator = @tool.collaborators.find_by(user: current_user)
       unless collaborator
-        redirect_to root_path, alert: "You are not a collaborator on this tool." and return
+        redirect_to root_path, alert: _("You are not a collaborator on this tool.") and return
       end
 
       if collaborator.role == "owner" && @tool.collaborators.owners.count == 1
-        redirect_to edit_tool_path(@tool, tab: "collaborators"), alert: "You are the only owner. Promote another owner before leaving."
+        redirect_to edit_tool_path(@tool, tab: "collaborators"), alert: _("You are the only owner. Promote another owner before leaving.")
         return
       end
 
       collaborator.destroy
       current_user.update_column(:last_visited_path, nil)
-      redirect_to root_path, notice: "You left #{@tool.name}."
+      redirect_to root_path, notice: _("You left %{name}.", name: @tool.name)
     end
 
     # Said in the settings dialog the form is in, on the collaborators tab: drawn
@@ -31,8 +31,8 @@ module Tools
     def create
       email = params[:email]&.downcase&.strip
 
-      return refuse_invitation(email, "You cannot invite yourself.") if email == current_user.email_address
-      return refuse_invitation(email, "Invitation already pending.") if @tool.invitations.active.exists?(email: email)
+      return refuse_invitation(email, _("You cannot invite yourself.")) if email == current_user.email_address
+      return refuse_invitation(email, _("Invitation already pending.")) if @tool.invitations.active.exists?(email: email)
 
       # Any earlier invitation for this address is spent — declined, accepted or
       # expired — since an active one returned above. Clear it out: the database
@@ -44,7 +44,7 @@ module Tools
       if invitation.save
         CollaboratorMailer.invitation(invitation).deliver_later
         notify_invitation(invitation, email)
-        show_collaborators notice: "Invitation sent to #{email}."
+        show_collaborators notice: _("Invitation sent to %{email}.", email: email)
       else
         refuse_invitation(email, invitation.errors.full_messages.first)
       end
@@ -53,13 +53,13 @@ module Tools
     def update
       collaborator = @tool.collaborators.find(params[:id])
       collaborator.update!(role: "owner")
-      redirect_to edit_tool_path(@tool, tab: "collaborators"), notice: "#{collaborator.user.name} is now an owner."
+      redirect_to edit_tool_path(@tool, tab: "collaborators"), notice: _("%{name} is now an owner.", name: collaborator.user.name)
     end
 
     def destroy
       collaborator = @tool.collaborators.find(params[:id])
       if collaborator.role == "owner"
-        redirect_to edit_tool_path(@tool, tab: "collaborators"), alert: "Cannot remove an owner."
+        redirect_to edit_tool_path(@tool, tab: "collaborators"), alert: _("Cannot remove an owner.")
       else
         collaborator.destroy
         redirect_to edit_tool_path(@tool, tab: "collaborators")

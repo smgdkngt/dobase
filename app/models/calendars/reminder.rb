@@ -57,10 +57,10 @@ module Calendars
     # "15 minutes before", "2 hours before", "1 day before", or "The day before at 5:00 PM"
     def label(minutes, starts_at:, all_day:)
       return clock_label(minutes, midnight_of(starts_at), 0) if all_day
-      return "At the start" if minutes.zero?
-      return "#{pluralize(minutes / 10_080, "week")} before" if (minutes % 10_080).zero?
-      return "#{pluralize(minutes / 1440, "day")} before" if (minutes % 1440).zero?
-      return "#{duration(minutes)} before" if minutes < 720 || starts_at.nil?
+      return t("At the start") if minutes.zero?
+      return t("%{time} before", time: count(minutes / 10_080, "week")) if (minutes % 10_080).zero?
+      return t("%{time} before", time: count(minutes / 1440, "day")) if (minutes % 1440).zero?
+      return t("%{time} before", time: duration(minutes)) if minutes < 720 || starts_at.nil?
 
       start = starts_at.in_time_zone
       clock_label(minutes, start.beginning_of_day, start.seconds_since_midnight)
@@ -69,11 +69,11 @@ module Calendars
     def clock_label(minutes, midnight, start_seconds)
       at = midnight + start_seconds - minutes.minutes
       days = (midnight.to_date - at.to_date).to_i
-      clock = at.strftime("%-I:%M %p") # as FormattingHelper#format_time
+      clock = Translation.localize(at, :clock) # as FormattingHelper#format_time
       case days
-      when 0 then "On the day at #{clock}"
-      when 1 then "The day before at #{clock}"
-      else "#{days} days before at #{clock}"
+      when 0 then t("On the day at %{time}", time: clock)
+      when 1 then t("The day before at %{time}", time: clock)
+      else Translation.translate_plural("%{count} day before at %{time}", "%{count} days before at %{time}", days, time: clock)
       end
     end
 
@@ -84,12 +84,22 @@ module Calendars
 
     def duration(minutes)
       hours, rest = minutes.divmod(60)
-      [ (pluralize(hours, "hour") if hours.positive?), (pluralize(rest, "minute") if rest.positive?) ].compact.join(" ")
+      return count(rest, "minute") if hours.zero?
+      return count(hours, "hour") if rest.zero?
+
+      Translation.translate("%{hours} %{minutes}", hours: count(hours, "hour"), minutes: count(rest, "minute"))
     end
 
-    def pluralize(count, word)
-      "#{count} #{count == 1 ? word : "#{word}s"}"
+    def count(number, unit)
+      case unit
+      when "week" then Translation.translate_plural("%{count} week", "%{count} weeks", number)
+      when "day" then Translation.translate_plural("%{count} day", "%{count} days", number)
+      when "hour" then Translation.translate_plural("%{count} hour", "%{count} hours", number)
+      else Translation.translate_plural("%{count} minute", "%{count} minutes", number)
+      end
     end
+
+    def t(text, **values) = Translation.translate(text, **values)
 
     # The minutes before the start a VALARM goes off, or nil for one that is no alert to show:
     # ACTION:NONE (what Apple leaves of a default alert taken away), an e-mail, or a trigger

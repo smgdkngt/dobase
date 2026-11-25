@@ -78,11 +78,11 @@
 
   /* Grouped button modifiers - use with icon-btn */
   .icon-btn-group-left {
-    @apply rounded-l-lg rounded-r-none;
+    @apply rounded-s-lg rounded-e-none;
   }
 
   .icon-btn-group-right {
-    @apply rounded-r-lg rounded-l-none;
+    @apply rounded-e-lg rounded-s-none;
   }
 
   .icon-btn-group-middle {
@@ -261,6 +261,11 @@
     animation: skeleton-shimmer 1.6s ease-in-out infinite;
   }
 
+  [dir="rtl"] .skeleton::after {
+    transform: translateX(100%);
+    animation-name: skeleton-shimmer-rtl;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .skeleton::after {
       display: none;
@@ -393,7 +398,7 @@
   }
 
   .dropdown-item {
-    @apply block w-full px-4 py-2 text-sm text-text-primary hover:bg-background-tertiary text-left transition-colors;
+    @apply block w-full px-4 py-2 text-sm text-text-primary hover:bg-background-tertiary text-start transition-colors;
   }
 
   .dropdown-divider {
@@ -472,7 +477,7 @@
   }
 
   .detail-modal-aside {
-    @apply shrink-0 w-56 border-l border-border-light bg-background-secondary/50 overflow-y-auto;
+    @apply shrink-0 w-56 border-s border-border-light bg-background-secondary/50 overflow-y-auto;
   }
 
   /* A field beside the discussion: its name over a control as wide as the column */
@@ -527,7 +532,7 @@
     }
 
     .detail-modal-aside {
-      @apply order-first w-auto border-l-0 border-b overflow-visible;
+      @apply order-first w-auto border-s-0 border-b overflow-visible;
     }
 
     .detail-modal-fields {
@@ -548,7 +553,7 @@
     }
 
     .detail-field-select {
-      @apply pr-8 text-sm;
+      @apply pe-8 text-sm;
     }
 
     .detail-field .popover-menu {
@@ -615,7 +620,7 @@
      room) they move to the top so they never cover Send */
   /* The holder lies over the page and is never in the way: only a message in it takes a click */
   .flash-toast {
-    @apply fixed right-6 z-[9999] max-w-sm pointer-events-none;
+    @apply fixed end-6 z-[9999] max-w-sm pointer-events-none;
     bottom: calc(1.5rem + var(--demo-banner-height));
   }
 
@@ -636,6 +641,10 @@
 
   .flash-dismiss {
     @apply opacity-0 translate-x-full transition-all duration-200 ease-in-out;
+  }
+
+  [dir="rtl"] .flash-dismiss {
+    @apply -translate-x-full;
   }
 
   /* Collaborators */
@@ -889,11 +898,11 @@
 
   /* Who else is in this tool right now: overlapping faces in the topbar */
   .presence-facepile {
-    @apply flex items-center pl-1;
+    @apply flex items-center ps-1;
   }
 
   .presence-face {
-    @apply -ml-1.5 ring-2 ring-surface transition-transform duration-150;
+    @apply -ms-1.5 ring-2 ring-surface transition-transform duration-150;
   }
 
   .presence-face:hover {
@@ -902,11 +911,11 @@
 
   /* Inside an open card or todo: the others who have it open too */
   .presence-watchers {
-    @apply ml-auto flex items-center pl-1.5;
+    @apply ms-auto flex items-center ps-1.5;
   }
 
   .presence-watchers-label {
-    @apply ml-2 text-xs text-text-secondary whitespace-nowrap;
+    @apply ms-2 text-xs text-text-secondary whitespace-nowrap;
   }
 
   /* "Anna is writing a comment…" above a comment box */
@@ -922,7 +931,7 @@
   /* Inside the corner, not over the edge: a board column and a files grid
      scroll, and anything past a card's edge is cut off by them */
   .presence-badge {
-    @apply absolute top-1.5 right-1.5 px-1.5 py-px rounded-full bg-accent-solid text-text-inverse text-[0.625rem] font-semibold tracking-wide shadow-sm pointer-events-none;
+    @apply absolute top-1.5 end-1.5 px-1.5 py-px rounded-full bg-accent-solid text-text-inverse text-[0.625rem] font-semibold tracking-wide shadow-sm pointer-events-none;
   }
 
   /* Rouge marks up a code file; these are the colours it gets */
@@ -949,20 +958,20 @@
     h2 { @apply text-xl font-semibold mt-7 mb-3 text-balance; }
     h3 { @apply text-lg font-semibold mt-6 mb-2; }
     h4, h5, h6 { @apply text-base font-semibold mt-5 mb-2; }
-    ul { @apply list-disc pl-6 my-3 space-y-1; }
-    ol { @apply list-decimal pl-6 my-3 space-y-1; }
+    ul { @apply list-disc ps-6 my-3 space-y-1; }
+    ol { @apply list-decimal ps-6 my-3 space-y-1; }
     li > ul, li > ol { @apply my-1; }
     code { @apply bg-background-secondary px-1 py-0.5 rounded text-[0.875em] font-mono; }
     pre { @apply bg-background-secondary p-4 rounded-lg my-4 overflow-x-auto text-sm leading-relaxed; }
     pre code { @apply bg-transparent p-0; }
-    blockquote { @apply border-l-4 border-border pl-4 my-4 text-text-secondary; }
+    blockquote { @apply border-s-4 border-border ps-4 my-4 text-text-secondary; }
     hr { @apply my-6 border-border-light; }
     img { @apply max-w-full rounded-lg my-4; }
     table { @apply w-full my-4 text-sm border-collapse; }
-    th { @apply text-left font-semibold border-b border-border px-3 py-2 bg-background-secondary; }
+    th { @apply text-start font-semibold border-b border-border px-3 py-2 bg-background-secondary; }
     td { @apply border-b border-border-light px-3 py-2 align-top; }
-    input[type="checkbox"] { @apply mr-2 align-[-1px]; }
-    li:has(> input[type="checkbox"]) { @apply list-none -ml-5; }
+    input[type="checkbox"] { @apply me-2 align-[-1px]; }
+    li:has(> input[type="checkbox"]) { @apply list-none -ms-5; }
   }
 
   .rich-text-content {
@@ -976,10 +985,10 @@
     code { @apply bg-background-secondary px-0.5 py-px rounded text-[0.85em] font-mono; }
     pre { @apply bg-background-secondary p-1.5 rounded my-1 overflow-x-auto text-xs; }
     pre code { @apply bg-transparent p-0; }
-    ul { @apply list-disc pl-4 my-0.5; }
-    ol { @apply list-decimal pl-5 my-0.5; }
+    ul { @apply list-disc ps-4 my-0.5; }
+    ol { @apply list-decimal ps-5 my-0.5; }
     li { @apply my-0; }
-    blockquote { @apply border-l-2 border-border pl-2 text-text-secondary italic my-0.5; }
+    blockquote { @apply border-s-2 border-border ps-2 text-text-secondary italic my-0.5; }
     h1, h2, h3, h4 { @apply font-semibold text-inherit my-0.5; }
     .mention { @apply text-accent bg-accent-light rounded px-1 py-px font-medium no-underline; }
   }
@@ -1024,7 +1033,7 @@
   }
 
   .notification-avatar-badge {
-    @apply absolute -bottom-1 -right-1 flex items-center justify-center w-4.5 h-4.5 rounded-full bg-surface text-text-secondary ring-1 ring-border-light;
+    @apply absolute -bottom-1 -end-1 flex items-center justify-center w-4.5 h-4.5 rounded-full bg-surface text-text-secondary ring-1 ring-border-light;
   }
 
   .notification-body {
@@ -1056,7 +1065,7 @@
   }
 
   .notification-desktop-offer-button {
-    @apply ml-auto shrink-0 px-2 py-1 rounded text-accent font-medium hover:bg-background-tertiary transition-colors;
+    @apply ms-auto shrink-0 px-2 py-1 rounded text-accent font-medium hover:bg-background-tertiary transition-colors;
   }
 
   /* @-mention pill inside the editor's contenteditable */
@@ -1070,7 +1079,7 @@
   }
 
   .mention-suggestion-item {
-    @apply flex w-full items-center px-3 py-1.5 text-sm text-left text-text-primary hover:bg-background-tertiary transition-colors cursor-pointer;
+    @apply flex w-full items-center px-3 py-1.5 text-sm text-start text-text-primary hover:bg-background-tertiary transition-colors cursor-pointer;
   }
 
   .mention-suggestion-item[data-active] {
@@ -1163,7 +1172,7 @@
   }
 
   .compose-attachment-remove {
-    @apply ml-1 text-text-tertiary hover:text-error cursor-pointer text-sm leading-none;
+    @apply ms-1 text-text-tertiary hover:text-error cursor-pointer text-sm leading-none;
   }
 }
 
@@ -1179,6 +1188,24 @@
 .trix-content pre {
   background-color: var(--color-background-tertiary);
   color: var(--color-text-primary);
+}
+
+@layer components {
+  :is(.trix-content, .rich-text-content) :is(p, li, h1, h2, h3, h4, h5, h6, blockquote),
+  .trix-content > div,
+  input:is([type="text"], [type="search"], :not([type])),
+  textarea {
+    unicode-bidi: plaintext;
+  }
+
+  :is(.trix-content, .rich-text-content) :is(p, h1, h2, h3, h4, h5, h6, blockquote) {
+    text-align: start;
+  }
+
+  :is(.trix-content, .rich-text-content) pre {
+    direction: ltr;
+    text-align: start;
+  }
 }
 
 /* A link in an editor looks like one, as it does once it's read: Tailwind's reset gives
@@ -1197,6 +1224,10 @@ rhino-editor .trix-content a[href] {
   100% { transform: translateX(100%); }
 }
 
+@keyframes skeleton-shimmer-rtl {
+  100% { transform: translateX(-100%); }
+}
+
 @keyframes empty-state-in {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
@@ -1210,7 +1241,7 @@ rhino-editor .trix-content a[href] {
   }
 
   .theme-option {
-    @apply flex flex-col gap-1 p-1.5 rounded-xl border border-border-light bg-surface text-left cursor-pointer
+    @apply flex flex-col gap-1 p-1.5 rounded-xl border border-border-light bg-surface text-start cursor-pointer
            transition-all duration-150 hover:border-border hover:shadow-sm active:scale-[0.98];
   }
 
@@ -1242,7 +1273,7 @@ rhino-editor .trix-content a[href] {
   }
 
   .theme-slot {
-    @apply flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border-light bg-surface text-left text-text-secondary
+    @apply flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border-light bg-surface text-start text-text-secondary
            cursor-pointer transition-all duration-150 hover:border-border;
   }
 
@@ -1290,7 +1321,7 @@ rhino-editor .trix-content a[href] {
   }
 
   .theme-swatch-sidebar {
-    @apply w-1/4 border-r;
+    @apply w-1/4 border-e;
   }
 
   .theme-swatch-page {
@@ -1360,7 +1391,7 @@ rhino-editor .trix-content a[href] {
   }
 
   .context-menu-shortcut {
-    @apply ml-4 text-xs text-text-tertiary font-sans;
+    @apply ms-4 text-xs text-text-tertiary font-sans;
   }
 
   /* The item whose menu is open */
@@ -1384,4 +1415,12 @@ rhino-editor .trix-content a[href] {
     outline-offset: -2px;
     background-color: color-mix(in srgb, var(--color-accent) 8%, transparent);
   }
+}
+
+[dir="rtl"] .icon-directional {
+  scale: -1 1;
+}
+[dir="rtl"] .icon-directional.rotate-90,
+[dir="rtl"] .compose-answered[open] .compose-answered-chevron {
+  rotate: -90deg;
 }

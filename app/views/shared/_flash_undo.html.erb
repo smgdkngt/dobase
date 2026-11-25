@@ -10,6 +10,6 @@
   <% Hash(undo["params"]).each do |name, value| %>
     <%= hidden_field_tag name, value, id: nil %>
   <% end %>
-  <%= render "components/button", text: "Undo", variant: :ghost, size: :sm, title: "Undo (z)",
+  <%= render "components/button", text: _("Undo"), variant: :ghost, size: :sm, title: _("Undo (z)"),
         data: { controller: "hotkey", hotkey: "z" } %>
 <% end %>

@@ -18,9 +18,9 @@ module Tools
         if acceptance
           removed = acceptance.undo
           redirect_to tool_mail_path(message.account.tool, message),
-            notice: removed ? "Taken out of the calendar again." : "The invitation is open again."
+            notice: removed ? _("Taken out of the calendar again.") : _("The invitation is open again.")
         else
-          redirect_to tool_mail_path(message.account.tool, message), alert: "That can't be undone any more."
+          redirect_to tool_mail_path(message.account.tool, message), alert: _("That can't be undone any more.")
         end
       end
     end

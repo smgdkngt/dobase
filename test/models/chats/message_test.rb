@@ -79,6 +79,45 @@ module Chats
       end
     end
 
+    test "a message from someone reading in Persian is broadcast without Persian" do
+      @chat.tool.collaborators.create!(user: users(:two), role: "collaborator")
+      @chat.messages.create!(user: users(:two), body: "<p>Before</p>", created_at: 3.days.ago)
+
+      streams = I18n.with_locale(:fa) do
+        capture_turbo_stream_broadcasts(@chat) do
+          message = @chat.messages.create!(user: @user, body: "<p>Hello</p>")
+          message.update!(body: "<p>Hello again</p>", edited_at: Time.current)
+          message.reactions.create!(user: users(:two), emoji: "👍")
+        end
+      end
+
+      assert_equal %w[append replace replace], streams.map { |stream| stream["action"] }
+      named = streams.map do |stream|
+        html = stream.at("template").inner_html
+        assert_no_match(/\p{Arabic}/, html)
+        words = html.scan(/data-words="([^"]*)"/).map { |(json)| JSON.parse(CGI.unescapeHTML(json)) }
+        assert words.any?
+        words.flat_map(&:values).each do |text, _values|
+          assert I18n.t(text, scope: :js, locale: :fa, separator: Translation::SEPARATOR, default: nil), "Add #{text} to config/locales/fa/js.yml"
+        end
+        words
+      end
+      assert_includes named.first, { "aria-label" => [ "Message from %{name}", { "name" => @user.name } ] }
+    end
+
+    test "a message is broadcast in English, whoever's request drew it" do
+      old = @chat.messages.create!(user: @user, body: "<p>Old</p>", created_at: 3.days.ago)
+
+      stream = I18n.with_locale(:fa) do
+        capture_turbo_stream_broadcasts(@chat) { old.update!(body: "<p>Old, fixed</p>", edited_at: Time.current) }.sole
+      end
+
+      message = Nokogiri::HTML5.fragment(stream.at("template").inner_html)
+      assert_equal "Message from #{@user.name}", message.at_css("[data-message-id]")["aria-label"]
+      time = message.at_css("time[data-local-time-day-value]")
+      assert_match(/\A[A-Z][a-z]{2} \d{1,2}(, \d{4})?, \d{1,2}:\d{2} [AP]M\z/, time.text)
+    end
+
     private
 
     # A continuation has no header; it shows its time, without AM or PM, on hover instead

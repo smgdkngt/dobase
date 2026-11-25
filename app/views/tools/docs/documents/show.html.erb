@@ -19,15 +19,14 @@
             role="status"
             aria-live="polite">
         <span class="w-2 h-2 bg-warning rounded-full animate-pulse" aria-hidden="true"></span>
-        <span><span data-document-viewer-target="editorName"><%= @editing_user&.name %></span> is editing</span>
+        <span><%= _("%{locked_by_name} is editing", locked_by_name: tag.span(@editing_user&.name, data: { document_viewer_target: "editorName" })) %></span>
       </span>
 
       <% show_edited = @document.updated_by && @document.updated_by != current_user %>
       <span class="hidden @min-[40rem]:inline text-sm text-text-tertiary <%= 'hidden' if @editing_user || !show_edited %>"
             data-document-viewer-target="editedStatus">
         <% if show_edited %>
-          Edited <%= time_ago_in_words(@document.edited_at) %> ago
-          by <%= @document.updated_by.name %>
+          <%= _("Edited %{edited_at} ago by %{updated_by_name}", edited_at: time_ago_in_words(@document.edited_at), updated_by_name: @document.updated_by.name) %>
         <% end %>
       </span>
 
@@ -35,17 +34,17 @@
          class="btn btn-sm btn-primary"
          data-controller="hotkey" data-hotkey="e">
         <%= render "shared/icon", name: "edit", size: 16 %>
-        Edit
+        <%= _("Edit") %>
       </a>
 
       <%= render "components/icon_button",
             icon: "trash-2",
-            title: "Delete document",
+            title: _("Delete document"),
             variant: :ghost,
             href: tool_docs_document_path(@tool, @document),
             method: :delete,
-            turbo_confirm: "Are you sure? This document will be permanently deleted.",
-            data: { turbo_confirm_button: "Delete" } %>
+            turbo_confirm: _("Are you sure? This document will be permanently deleted."),
+            data: { turbo_confirm_button: _("Delete") } %>
     </div>
   <% end %>
 
@@ -59,8 +58,8 @@
         <div class="min-h-[60vh] flex items-center justify-center">
           <%= render "components/empty_state",
                 icon: "file-text",
-                title: "This document is empty",
-                description: "Click Edit to start writing" %>
+                title: _("This document is empty"),
+                description: _("Click Edit to start writing") %>
         </div>
       <% end %>
     </article>

@@ -35,9 +35,8 @@ module Tools
 
         if archive.too_large?
           redirect_back_or_to tool_files_path(@tool),
-            alert: "The selection is too large to download as a zip. Zips are limited to " \
-                   "#{helpers.number_to_human_size(::Files::FolderArchive::MAX_BYTES)} and " \
-                   "#{helpers.number_with_delimiter(::Files::FolderArchive::MAX_FILES)} files."
+            alert: _("The selection is too large to download as a zip. Zips are limited to %{size} and %{count} files.",
+              size: helpers.human_file_size(::Files::FolderArchive::MAX_BYTES), count: helpers.number_with_delimiter(::Files::FolderArchive::MAX_FILES))
         else
           send_folder_archive archive
         end

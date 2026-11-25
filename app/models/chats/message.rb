@@ -135,7 +135,7 @@ module Chats
       return unless files.attached?
 
       if files.count > MAX_FILES
-        errors.add(:files, "cannot exceed #{MAX_FILES} files per message")
+        errors.add(:files, _("cannot exceed %{max_files} files per message", max_files: MAX_FILES))
       end
     end
 
@@ -144,7 +144,7 @@ module Chats
 
       files.each do |file|
         if file.blob.byte_size > MAX_FILE_SIZE
-          errors.add(:files, "must be smaller than #{MAX_FILE_SIZE / 1.megabyte}MB each")
+          errors.add(:files, _("must be smaller than %{size}MB each", size: MAX_FILE_SIZE / 1.megabyte))
           break
         end
       end
@@ -155,7 +155,7 @@ module Chats
 
       files.each do |file|
         unless ALLOWED_CONTENT_TYPES.include?(file.blob.content_type)
-          errors.add(:files, "contains unsupported file type: #{file.blob.content_type}")
+          errors.add(:files, _("contains unsupported file type: %{content_type}", content_type: file.blob.content_type))
           break
         end
       end
@@ -165,7 +165,7 @@ module Chats
       return if reply_to_id.blank?
 
       unless reply_to&.chat_id == chat_id
-        errors.add(:reply_to, "must be a message in the same chat")
+        errors.add(:reply_to, _("must be a message in the same chat"))
       end
     end
 
@@ -173,15 +173,19 @@ module Chats
     # Everyone in the chat gets the message as the page would have drawn it:
     # without its author's name again when it continues the one above.
     after_create_commit -> {
-      broadcast_append_to chat,
-        target: chat.part_id(:messages),
-        partial: "tools/chats/message",
-        locals: { message: self, is_continuation: continuation? }
+      I18n.with_locale(I18n.default_locale) do
+        broadcast_append_to chat,
+          target: chat.part_id(:messages),
+          partial: "tools/chats/message",
+          locals: { message: self, is_continuation: continuation? }
+      end
     }
     after_update_commit -> {
-      broadcast_replace_to chat,
-        partial: "tools/chats/message",
-        locals: { message: self, is_continuation: continuation? }
+      I18n.with_locale(I18n.default_locale) do
+        broadcast_replace_to chat,
+          partial: "tools/chats/message",
+          locals: { message: self, is_continuation: continuation? }
+      end
     }
     after_destroy_commit -> { broadcast_remove_to chat }
     after_create_commit -> {

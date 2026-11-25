@@ -85,4 +85,21 @@ class FormattingHelperTest < ActionView::TestCase
     end
     assert_nil mail_list_date(nil)
   end
+
+  test "in Persian, dates are Jalali and numbers are written with Persian digits" do
+    I18n.with_locale(:fa) do
+      travel_to Time.utc(2025, 9, 17, 12) do
+        assert_equal "۲۵ شهریور", format_date(Date.new(2025, 9, 16))
+        assert_equal "۲۵ شهریور ۱۴۰۴", format_date(Date.new(2025, 9, 16), year: true)
+        assert_equal "۱۰ دی ۱۴۰۳", format_date(Date.new(2024, 12, 30))
+        assert_equal "۱۸:۰۵", format_time(Time.utc(2025, 9, 16, 18, 5))
+        assert_equal "۲۵ شهریور، ۱۸:۰۵", format_datetime(Time.utc(2025, 9, 16, 18, 5))
+        assert_equal "سه‌شنبه، ۲۵ شهریور ۱۴۰۴", format_long_date(Date.new(2025, 9, 16))
+        assert_equal "شهریور ۱۴۰۴", format_month(Date.new(2025, 9, 16))
+        assert_equal "شهریور – مهر ۱۴۰۴", calendar_week_title(Date.new(2025, 9, 20), Date.new(2025, 9, 26))
+        assert_equal "۵ دقیقه پیش", ago(5.minutes.ago)
+        assert_equal "۸٫۵ کیلوبایت", human_file_size(8_700)
+      end
+    end
+  end
 end

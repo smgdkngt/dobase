@@ -8,6 +8,6 @@ module Chats
     belongs_to :user
     belongs_to :last_read_message, class_name: "Chats::Message", optional: true
 
-    validates :user_id, uniqueness: { scope: :chat_id, message: "already has a read receipt for this chat" }
+    validates :user_id, uniqueness: { scope: :chat_id, message: ->(_object, _data) { Translation.translate("already has a read receipt for this chat") } }
   end
 end

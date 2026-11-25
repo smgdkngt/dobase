@@ -12,9 +12,9 @@
     <%
       date_label =
         case message_date
-        when Date.current then "Today"
-        when Date.current - 1 then "Yesterday"
-        when (Date.current - 6)..Date.current then message_date.strftime("%A")
+        when Date.current then _("Today")
+        when Date.current - 1 then _("Yesterday")
+        when (Date.current - 6)..Date.current then format_weekday(message_date)
         else format_date(message_date)
         end
     %>
@@ -22,7 +22,7 @@
     <div id="<%= message.chat.part_id(:date, message_date) %>"
          class="flex items-center gap-3 my-4 sm:my-6 px-2 sm:px-4"
          role="separator"
-         aria-label="Messages from <%= date_label %>">
+         aria-label="<%= _("Messages from %{date}", date: date_label) %>">
       <div class="flex-1 h-px bg-border-light"></div>
       <span class="text-xs text-text-tertiary font-medium"><%= date_label %></span>
       <div class="flex-1 h-px bg-border-light"></div>

@@ -22,13 +22,13 @@ class ProfilesController < ApplicationController
     new_password = profile_params[:password].present?
 
     if new_password && !@user.authenticate(params[:user][:current_password].to_s)
-      return refuse_update("Your current password is incorrect.")
+      return refuse_update(_("Your current password is incorrect."))
     end
 
     if @user.update(profile_params)
       # A new password ends the other sessions, so someone who got into one can't stay
       @user.sessions.where.not(id: Current.session.id).destroy_all if new_password
-      redirect_to root_path, notice: new_password ? "Password updated. Other sessions have been signed out." : "Profile updated."
+      redirect_to root_path, notice: new_password ? _("Password updated. Other sessions have been signed out.") : _("Profile updated.")
     else
       refuse_update
     end
@@ -38,7 +38,7 @@ class ProfilesController < ApplicationController
     user = current_user
     terminate_session
     user.destroy!
-    redirect_to new_session_path, notice: "Your account has been deleted."
+    redirect_to new_session_path, notice: _("Your account has been deleted.")
   end
 
   private
@@ -69,7 +69,7 @@ class ProfilesController < ApplicationController
   end
 
   def profile_params
-    permitted = params.require(:user).permit(:first_name, :last_name, :email_address, :avatar, :timezone, :notification_digest, :notification_level, :password, :password_confirmation)
+    permitted = params.require(:user).permit(:first_name, :last_name, :email_address, :avatar, :timezone, :locale, :notification_digest, :notification_level, :password, :password_confirmation)
     # Demo visitors are known by their address, which is how they are cleaned up
     permitted.delete(:email_address) if Demo.enabled?
     if permitted[:password].blank?

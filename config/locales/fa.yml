@@ -1,0 +1,226 @@
+# Persian for Rails' own messages; the interface's texts are in fa/ui.yml and fa/js.yml.
+fa:
+  activerecord:
+    attributes:
+      mails/account:
+        encrypted_password: "گذرواژه"
+        imap_host: "سرور IMAP"
+        smtp_host: "سرور SMTP"
+      calendars/account:
+        caldav_url: "نشانی CalDAV"
+        encrypted_password: "گذرواژه"
+      calendars/event:
+        summary: "عنوان"
+        starts_at: "شروع"
+        start_time: "شروع"
+        ends_at: "پایان"
+        end_time: "پایان"
+    errors:
+      messages:
+        record_invalid: "اعتبارسنجی ناموفق بود: %{errors}"
+        restrict_dependent_destroy:
+          has_one: "حذف نمی‌شود، چون یک %{record} وابسته وجود دارد"
+          has_many: "حذف نمی‌شود، چون %{record} وابسته وجود دارد"
+  attributes:
+    assigned_user: "مسئول"
+    avatar: "تصویر"
+    body: "متن"
+    calendar: "تقویم"
+    caldav_url: "نشانی CalDAV"
+    color: "رنگ"
+    email: "ایمیل"
+    email_address: "نشانی ایمیل"
+    emoji: "شکلک"
+    encrypted_password: "گذرواژه"
+    ends_at: "پایان"
+    expires_at: "انقضا"
+    file: "فایل"
+    filename: "نام فایل"
+    files: "فایل‌ها"
+    first_name: "نام"
+    icon: "نماد"
+    imap_host: "سرور IMAP"
+    kind: "نوع"
+    last_name: "نام خانوادگی"
+    locale: "زبان"
+    name: "نام"
+    password: "گذرواژه"
+    password_confirmation: "تکرار گذرواژه"
+    permission: "دسترسی"
+    recurrence_rule: "تکرار"
+    redirect_uris: "نشانی‌های بازگشت"
+    reminders: "یادآورها"
+    reply_to: "پاسخ به"
+    role: "نقش"
+    slug: "شناسه"
+    smtp_host: "سرور SMTP"
+    starts_at: "شروع"
+    state: "وضعیت"
+    status: "وضعیت"
+    summary: "عنوان"
+    timezone: "منطقهٔ زمانی"
+    title: "عنوان"
+    tool_id: "ابزار"
+    user: "کاربر"
+    user_id: "کاربر"
+    username: "نام کاربری"
+  errors:
+    format: "%{attribute} %{message}"
+    messages:
+      accepted: "باید پذیرفته شود"
+      blank: "نباید خالی باشد"
+      confirmation: "با %{attribute} یکی نیست"
+      empty: "نباید خالی باشد"
+      equal_to: "باید برابر %{count} باشد"
+      even: "باید زوج باشد"
+      exclusion: "رزرو شده است"
+      greater_than: "باید بیشتر از %{count} باشد"
+      greater_than_or_equal_to: "باید بیشتر از یا برابر %{count} باشد"
+      in: "باید در بازهٔ %{count} باشد"
+      inclusion: "در فهرست نیست"
+      invalid: "نامعتبر است"
+      less_than: "باید کمتر از %{count} باشد"
+      less_than_or_equal_to: "باید کمتر از یا برابر %{count} باشد"
+      model_invalid: "اعتبارسنجی ناموفق بود: %{errors}"
+      not_a_number: "عدد نیست"
+      not_an_integer: "باید عدد صحیح باشد"
+      odd: "باید فرد باشد"
+      other_than: "باید غیر از %{count} باشد"
+      present: "باید خالی باشد"
+      required: "باید وجود داشته باشد"
+      taken: "قبلاً گرفته شده است"
+      too_long:
+        one: "بیش از حد بلند است (بیشینه ۱ نویسه)"
+        other: "بیش از حد بلند است (بیشینه %{count} نویسه)"
+      too_short:
+        one: "بیش از حد کوتاه است (کمینه ۱ نویسه)"
+        other: "بیش از حد کوتاه است (کمینه %{count} نویسه)"
+      wrong_length:
+        one: "طولش نادرست است (باید ۱ نویسه باشد)"
+        other: "طولش نادرست است (باید %{count} نویسه باشد)"
+      password_too_long: "بیش از حد بلند است"
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        one: "حدود ۱ ساعت"
+        other: "حدود %{count} ساعت"
+      about_x_months:
+        one: "حدود ۱ ماه"
+        other: "حدود %{count} ماه"
+      about_x_years:
+        one: "حدود ۱ سال"
+        other: "حدود %{count} سال"
+      almost_x_years:
+        one: "نزدیک ۱ سال"
+        other: "نزدیک %{count} سال"
+      half_a_minute: "نیم دقیقه"
+      less_than_x_minutes:
+        one: "کمتر از ۱ دقیقه"
+        other: "کمتر از %{count} دقیقه"
+      less_than_x_seconds:
+        one: "کمتر از ۱ ثانیه"
+        other: "کمتر از %{count} ثانیه"
+      over_x_years:
+        one: "بیش از ۱ سال"
+        other: "بیش از %{count} سال"
+      x_days:
+        one: "۱ روز"
+        other: "%{count} روز"
+      x_minutes:
+        one: "۱ دقیقه"
+        other: "%{count} دقیقه"
+      x_months:
+        one: "۱ ماه"
+        other: "%{count} ماه"
+      x_seconds:
+        one: "۱ ثانیه"
+        other: "%{count} ثانیه"
+      x_years:
+        one: "۱ سال"
+        other: "%{count} سال"
+    prompts:
+      second: "ثانیه"
+      minute: "دقیقه"
+      hour: "ساعت"
+      day: "روز"
+      month: "ماه"
+      year: "سال"
+  translation:
+    direction: rtl
+    calendar: jalali
+    month_names: [~, فروردین, اردیبهشت, خرداد, تیر, مرداد, شهریور, مهر, آبان, آذر, دی, بهمن, اسفند]
+    digits: "۰۱۲۳۴۵۶۷۸۹"
+  date:
+    formats:
+      default: "%Y/%m/%d"
+      short: "%d %b"
+      long: "%d %B %Y"
+      day: "%-d %B"
+      day_and_year: "%-d %B %Y"
+      day_of_month: "%-d"
+      weekday: "%A"
+      weekday_short: "%a"
+      weekday_with_date: "%A"
+      month_and_year: "%B %Y"
+      week_start: "%B"
+      week_start_with_year: "%B %Y"
+      week_end: "%B %Y"
+      long_day: "%A، %-d %B %Y"
+    day_names: [یکشنبه, دوشنبه, سه‌شنبه, چهارشنبه, پنجشنبه, جمعه, شنبه]
+    abbr_day_names: [ی, د, س, چ, پ, ج, ش]
+    month_names: [~, ژانویه, فوریه, مارس, آوریل, مه, ژوئن, ژوئیه, اوت, سپتامبر, اکتبر, نوامبر, دسامبر]
+    abbr_month_names: [~, ژانویه, فوریه, مارس, آوریل, مه, ژوئن, ژوئیه, اوت, سپتامبر, اکتبر, نوامبر, دسامبر]
+    order:
+      - :year
+      - :month
+      - :day
+  time:
+    formats:
+      default: "%Y/%m/%d %H:%M"
+      short: "%d %b %H:%M"
+      long: "%d %B %Y %H:%M"
+      clock: "%H:%M"
+      clock_without_period: "%H:%M"
+      hour: "%H"
+    am: "ق.ظ."
+    pm: "ب.ظ."
+  number:
+    format:
+      delimiter: "٬"
+      separator: "٫"
+      precision: 3
+      significant: false
+      strip_insignificant_zeros: false
+    human:
+      format:
+        delimiter: ""
+        precision: 3
+        significant: true
+        strip_insignificant_zeros: true
+      storage_units:
+        format: "%n %u"
+        units:
+          byte:
+            one: "بایت"
+            other: "بایت"
+          kb: "کیلوبایت"
+          mb: "مگابایت"
+          gb: "گیگابایت"
+          tb: "ترابایت"
+          pb: "پتابایت"
+          eb: "اگزابایت"
+    percentage:
+      format:
+        format: "%n٪"
+  helpers:
+    select:
+      prompt: "لطفاً انتخاب کنید"
+    submit:
+      create: "ساخت %{model}"
+      submit: "ذخیرهٔ %{model}"
+      update: "به‌روزرسانی %{model}"
+  support:
+    array:
+      words_connector: "، "
+      two_words_connector: " و "
+      last_word_connector: " و "

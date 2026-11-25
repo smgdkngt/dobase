@@ -51,9 +51,9 @@
         </span>
       <% end %>
       <% if card.assigned_user.present? %>
-        <span class="inline-flex ml-auto" role="img"
-              title="Assigned to <%= card.assigned_user.name %>"
-              aria-label="Assigned to <%= card.assigned_user.name %>">
+        <span class="inline-flex ms-auto" role="img"
+              title="<%= _("Assigned to %{name}", name: card.assigned_user.name) %>"
+              aria-label="<%= _("Assigned to %{name}", name: card.assigned_user.name) %>">
           <%= render "shared/avatar", user: card.assigned_user, size: :xs %>
         </span>
       <% end %>

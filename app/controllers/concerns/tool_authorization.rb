@@ -45,7 +45,7 @@ module ToolAuthorization
     if request.format.json?
       render json: { error: message }, status: :forbidden
     else
-      redirect_to root_path, alert: message
+      redirect_to root_path, alert: _(message)
     end
   end
 end

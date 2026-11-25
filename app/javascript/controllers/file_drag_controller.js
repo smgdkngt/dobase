@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 import { visitPage } from "services/tile"
 import { showFlash } from "services/flash"
+import { _ } from "services/i18n"
 
 // Handles dragging files/folders between folders
 export default class extends Controller {
@@ -164,7 +165,7 @@ export default class extends Controller {
     if (!refused) return null
 
     const body = await refused.json().catch(() => null)
-    return body?.errors?.join(" ") || body?.error || "Those items couldn't be moved."
+    return body?.errors?.join(" ") || body?.error || _("Those items couldn't be moved.")
   }
 
   get #csrfToken() {

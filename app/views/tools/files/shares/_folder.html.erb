@@ -1,21 +1,21 @@
-<% content_for(:title) { "#{@folder.name} - Shared Folder" } %>
+<% content_for(:title) { _("%{name} - Shared Folder", name: @folder.name) } %>
 
 <div class="w-full max-w-[900px]" data-controller="gallery">
   <div class="flex items-center justify-between gap-4 mb-8">
-    <div class="text-left">
+    <div class="text-start">
       <h1 class="flex items-center gap-3 text-2xl font-semibold mb-2 text-accent">
         <%= render "shared/icon", name: "folder", size: 24 %>
         <%= @folder.name %>
       </h1>
       <p class="text-text-secondary">
-        <%= pluralize(@files.count, "file") %><%= ", #{pluralize(@folders.count, 'folder')}" if @folders.any? %>
-        &middot; Shared <%= time_ago_in_words(@share.created_at) %> ago
+        <%= n_("%{count} file", "%{count} files", @files.count) %><%= _(", ") + n_("%{count} folder", "%{count} folders", @folders.count) if @folders.any? %>
+        · <%= _("Shared %{time}", time: ago(@share.created_at)) %>
       </p>
     </div>
     <% if @files.any? || @folders.any? %>
       <%= link_to share_download_path(@share.token), class: "btn btn-primary", data: { turbo: false } do %>
         <%= render "shared/icon", name: "download", size: 16 %>
-        <span>Download All</span>
+        <span><%= _("Download All") %></span>
       <% end %>
     <% end %>
   </div>
@@ -28,7 +28,7 @@
             <%= render "shared/icon", name: "folder", size: 32 %>
           </div>
           <span class="w-full text-sm text-center line-clamp-2 wrap-anywhere"><%= folder.name %></span>
-          <span class="text-xs text-text-tertiary mt-1">Folder</span>
+          <span class="text-xs text-text-tertiary mt-1"><%= _("Folder") %></span>
         </div>
       <% end %>
 
@@ -58,13 +58,13 @@
     </div>
   <% else %>
     <div class="text-center p-12 text-text-tertiary">
-      <p>This folder is empty</p>
+      <p><%= _("This folder is empty") %></p>
     </div>
   <% end %>
 
   <% if @share.expires_at %>
     <p class="text-center text-text-tertiary text-sm mt-8">
-      This link expires <%= @share.expires_at.strftime("%B %-d, %Y") %>
+      <%= _("This link expires") %> <%= @share.expires_at.strftime("%B %-d, %Y") %>
     </p>
   <% end %>
 

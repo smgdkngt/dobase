@@ -12,7 +12,7 @@ module Tools
       def destroy
         account = @tool.mail_account
         unless account
-          redirect_to tool_mails_path(@tool), alert: "That can't be undone any more."
+          redirect_to tool_mails_path(@tool), alert: _("That can't be undone any more.")
           return
         end
 
@@ -24,7 +24,7 @@ module Tools
           SyncDraftJob.perform_later(message.id)
           redirect_to new_tool_mail_path(@tool, draft_id: message.id, folder: folder)
         else
-          redirect_back_or_to tool_mail_path(@tool, message, folder: folder), alert: "Too late to undo: it's on its way."
+          redirect_back_or_to tool_mail_path(@tool, message, folder: folder), alert: _("Too late to undo: it's on its way.")
         end
       end
     end

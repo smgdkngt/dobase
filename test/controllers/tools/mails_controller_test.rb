@@ -1008,7 +1008,7 @@ module Tools
       end
 
       assert_response :unprocessable_entity
-      assert_select ".flash-alert", text: Tools::MailsController::DRAFT_GONE
+      assert_select ".flash-alert", text: "This draft was already sent or deleted elsewhere, so it wasn't sent again. Send it once more to send it as new mail."
       # The text is still there, now as new mail: sending it once more is a choice made knowingly
       assert_select "input[name=subject][value=Plans]"
       assert_select "input[name=draft_id]", count: 0

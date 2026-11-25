@@ -80,7 +80,7 @@ export function showFlash(message, type = "alert", { undo } = {}) {
 
   const dismiss = document.createElement("button")
   dismiss.type = "button"
-  dismiss.className = "ml-2 opacity-70 hover:opacity-100"
+  dismiss.className = "ms-2 opacity-70 hover:opacity-100"
   dismiss.dataset.action = "click->flash#dismiss"
   dismiss.appendChild(svg(CLOSE_ICON, 16))
 

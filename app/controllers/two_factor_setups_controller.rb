@@ -12,7 +12,7 @@ class TwoFactorSetupsController < ApplicationController
   def create
     secret = session[:pending_otp_secret]
     unless secret
-      redirect_to edit_profile_path(tab: "security"), alert: "Setup expired. Please try again."
+      redirect_to edit_profile_path(tab: "security"), alert: _("Setup expired. Please try again.")
       return
     end
 
@@ -24,7 +24,7 @@ class TwoFactorSetupsController < ApplicationController
     else
       @otp_secret = secret
       @qr_svg = generate_qr_svg(secret)
-      flash.now[:alert] = "Invalid code. Please try again."
+      flash.now[:alert] = _("Invalid code. Please try again.")
       render :new, status: :unprocessable_entity
     end
   end
@@ -39,7 +39,7 @@ class TwoFactorSetupsController < ApplicationController
       @user = current_user
       @sessions = current_user.sessions.order(created_at: :desc)
       @access_tokens = current_user.access_tokens.newest_first
-      flash.now[:alert] = "Incorrect password."
+      flash.now[:alert] = _("Incorrect password.")
       render "profiles/edit", status: :unprocessable_entity
       return
     end

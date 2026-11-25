@@ -67,7 +67,7 @@ class NotificationFeed
     actors = notifications.filter_map { |n| actor_of(n) }.uniq
     tool = params(notifications.first)[:tool]
     names = notifications.filter_map { |n| agent_byline(n) || actor_of(n)&.first_name }.uniq
-    who = names.size <= 2 ? names.to_sentence : "#{names.first(2).join(', ')} and #{names.size - 2} more"
+    who = names.size <= 2 ? names.to_sentence : Translation.translate("%{names} and %{count} more", names: names.first(2).join(Translation.translate(", ")), count: names.size - 2)
 
     Entry.new(
       notifications: notifications,
@@ -76,7 +76,7 @@ class NotificationFeed
       # The first of them, so the chat opens where there is something to catch up on
       url: notifications.last.url,
       icon: notifications.first.icon_name,
-      message: "#{who} sent #{notifications.size} messages in #{tool&.name || 'a chat'}",
+      message: Translation.translate("%{who} sent %{count} messages in %{chat}", who: who, count: notifications.size, chat: tool&.name || Translation.translate("a chat")),
       excerpt: excerpt_of(notifications.first),
       created_at: notifications.first.created_at
     )
