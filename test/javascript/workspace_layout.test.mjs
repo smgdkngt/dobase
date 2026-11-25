@@ -1,7 +1,7 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
 import {
-  GAP, NOTHING_OPEN, deskAt, insert, remove, place, neighbour, cleaned, withChanges, parsed, deskOf, leaves, find, parentOf, deskName
+  GAP, NOTHING_OPEN, deskAt, insert, remove, place, neighbour, cleaned, withChanges, parsed, deskOf, freeDesk, leaves, find, parentOf, deskName
 } from "services/workspace_layout"
 
 /** @typedef {import("services/workspace_layout").State} State */
@@ -398,6 +398,19 @@ test("the desktop a tile is on", () => {
 
   assert.equal(deskOf(state, "c"), "4")
   assert.equal(deskOf(state, "x"), undefined)
+})
+
+test("the first free desktop skips desktops with tiles or a name", () => {
+  const state = arranged({ 1: leaf("a") })
+  deskAt(state, 2).name = "Later"
+
+  assert.equal(freeDesk(state), 3)
+})
+
+test("no desktop is free when all nine are in use", () => {
+  const state = arranged(Object.fromEntries("abcdefghi".split("").map((id, index) => [ index + 1, leaf(id) ])))
+
+  assert.equal(freeDesk(state), undefined)
 })
 
 test("a desktop's name has no space around it and fits the bar", () => {

@@ -297,13 +297,33 @@ class WorkspaceTest < ApplicationSystemTestCase
   end
 
   test "a desktop picked with the keyboard on its button leaves the keyboard there" do
+    press "2"
+    launch @files, on_new_desktop: true
+    press "1"
     assert_selector ".workspace-desk", count: 2
     find(".workspace-desk", text: "2").send_keys(:enter)
 
     assert_selector ".workspace-desk[aria-current='true']:focus", text: "2"
-    assert_text "Nothing open on this desktop"
-    # The one in use, the one you are on; nothing further is on offer until this one is used
+    within_tile(0) { assert_selector "h1", text: @files.name }
     assert_selector ".workspace-desk", count: 2
+  end
+
+  test "the new-desktop button and its key open the next empty desktop" do
+    assert_selector ".workspace-desk", count: 1
+    assert_no_selector ".workspace-desk[data-desk='2']"
+
+    find(".workspace-new-desk[aria-label='New desktop']").click
+
+    assert_selector ".workspace-desk[data-desk='2'][aria-current='true']"
+    assert_text "Nothing open on this desktop"
+
+    launch @files, on_new_desktop: true
+    assert_no_selector ".workspace-desk[data-desk='3']"
+
+    press "n"
+
+    assert_selector ".workspace-desk[data-desk='3'][aria-current='true']"
+    assert_text "Nothing open on this desktop"
   end
 
   test "F6 goes on to the next tile, and with Shift back" do

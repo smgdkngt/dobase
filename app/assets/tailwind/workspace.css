@@ -44,6 +44,15 @@
     @apply hidden;
   }
 
+  .workspace-new-desk {
+    @apply inline-flex items-center justify-center shrink-0 w-6 h-6 rounded-md text-text-secondary
+           hover:bg-background-tertiary hover:text-text-primary transition-colors cursor-pointer;
+  }
+
+  .workspace-new-desk[hidden] {
+    @apply hidden;
+  }
+
   .workspace-desk[data-empty] {
     @apply text-text-tertiary;
   }

@@ -247,6 +247,14 @@ export function deskOf(state, id) {
 }
 
 /**
+ * @param {State} state
+ * @returns {number | undefined}
+ */
+export function freeDesk(state) {
+  return DESKS.find((number) => !state.desks[number]?.tree && !state.desks[number]?.name)
+}
+
+/**
  * The tiles of a tree, in the order they were split off
  * @param {Tree | null | undefined} node
  * @returns {string[]}

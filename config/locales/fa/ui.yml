@@ -697,6 +697,8 @@ fa:
     "New Password": "گذرواژهٔ جدید"
     "New access token": "توکن دسترسی جدید"
     "New activity": "فعالیت تازه"
+    "New desktop": "دسکتاپ جدید"
+    "New desktop (%{key})": "دسکتاپ جدید (%{key})"
     "New document": "سند جدید"
     "New event": "رویداد جدید"
     "New event (n)": "رویداد جدید (n)"
