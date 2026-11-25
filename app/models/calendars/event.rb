@@ -126,7 +126,7 @@ module Calendars
       unsupported.empty?
     end
 
-    # Human-readable recurrence description, in the page's language (English for the API)
+    # Human-readable recurrence description
     def recurrence_description
       return nil unless is_recurring? && rrule.present?
       parts = parse_rrule_parts

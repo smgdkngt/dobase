@@ -79,8 +79,6 @@ module Chats
       end
     end
 
-    # Drawn once for readers of every language: in English, with what each reader's
-    # browser writes in their own language named in data-words
     test "a message from someone reading in Persian is broadcast without Persian" do
       @chat.tool.collaborators.create!(user: users(:two), role: "collaborator")
       @chat.messages.create!(user: users(:two), body: "<p>Before</p>", created_at: 3.days.ago)

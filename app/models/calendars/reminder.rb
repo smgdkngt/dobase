@@ -54,8 +54,7 @@ module Calendars
       ((start - Time.zone.local(day.year, day.month, day.day, hour, minute)) / 60).round
     end
 
-    # "15 minutes before", "2 hours before", "1 day before", or "The day before at 5:00 PM",
-    # in the page's language (English for the API)
+    # "15 minutes before", "2 hours before", "1 day before", or "The day before at 5:00 PM"
     def label(minutes, starts_at:, all_day:)
       return clock_label(minutes, midnight_of(starts_at), 0) if all_day
       return t("At the start") if minutes.zero?

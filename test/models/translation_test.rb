@@ -6,7 +6,6 @@ class TranslationTest < ActiveSupport::TestCase
   STRING = /"((?:[^"\\]|\\.)*)"/
   ONE = /(?:(?<![\w.])_|Translation\.translate)\(\s*#{STRING}/
   TWO = /(?:(?<![\w.])n_|Translation\.translate_plural)\(\s*#{STRING}\s*,\s*#{STRING}/
-  # Every language but English, whose texts are the keys
   LANGUAGES = Translation.locales - [ "en" ]
 
   teardown { I18n.locale = :en }
@@ -20,7 +19,6 @@ class TranslationTest < ActiveSupport::TestCase
     end
   end
 
-  # Kinds of tool are rows (db/seeds.rb), shown through ToolType#human_name and #human_description
   test "every kind of tool has its name and description in every language" do
     texts = File.read(Rails.root.join("db/seeds.rb")).scan(/\{ name: #{STRING}, slug: .*description: #{STRING} \}/).flatten
 
@@ -85,6 +83,18 @@ class TranslationTest < ActiveSupport::TestCase
     assert_nil Translation.from_accept_language("de-DE")
   end
 
+  test "the language a browser asks for goes by its q-values" do
+    assert_equal "fa", Translation.from_accept_language("en;q=0.1, fa;q=0.9")
+    assert_equal "en", Translation.from_accept_language("fa;q=0, en")
+    assert_equal "fa", Translation.from_accept_language("de-CH, fa;q=0.5")
+    assert_equal "en", Translation.from_accept_language("en, fa")
+    assert_equal "fa", Translation.from_accept_language("fa;q=0.8, en;q=0.8")
+    assert_equal "fa", Translation.from_accept_language("FA-ir;Q=1")
+    assert_nil Translation.from_accept_language("fa;q=0, en;q=0.0")
+    assert_nil Translation.from_accept_language(";;,,q=;garbage=1")
+    assert_nil Translation.from_accept_language(nil)
+  end
+
   test "Persian reads right to left" do
     assert_equal "rtl", Translation.direction(:fa)
     assert_equal "ltr", Translation.direction(:en)
@@ -128,15 +138,11 @@ class TranslationTest < ActiveSupport::TestCase
     [ texts.uniq, plurals.uniq ]
   end
 
-  # The texts a view names for the reader's browser to write (ApplicationHelper#words):
-  # the strings in a `words(…)` that follow a `:` or a `[`, which are the texts, not the
-  # attributes they go in
   def words_in(paths)
     calls = paths.flat_map { |path| calls_of("words", File.read(path)) }
     calls.flat_map { |call| call.scan(/[:\[]\s*#{STRING}/).flatten }.map { |text| unescape(text) }.uniq
   end
 
-  # The arguments of every call to a method in a source, its parentheses balanced
   def calls_of(name, source)
     source.to_enum(:scan, /\b#{name}\(/).map do
       start = Regexp.last_match.end(0)

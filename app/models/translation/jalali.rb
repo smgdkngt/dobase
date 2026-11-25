@@ -1,16 +1,11 @@
 # frozen_string_literal: true
 
-# The solar calendar Persian is read in: a Gregorian date as its Jalali year, month and
-# day. A language whose locale file says `translation.calendar: jalali` writes its dates
-# by it (Translation.localize), with the month names under `translation.month_names`.
-#
 #   Translation::Jalali.from(Date.new(2025, 3, 21))  # => [1404, 1, 1]
 module Translation::Jalali
   DAYS_BEFORE_MONTH = [ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 ].freeze
 
   module_function
 
-  # The 33-year arithmetic of the calendar (as in jalaali-js), right from 1600 to 3000
   def from(date)
     gy, gm, gd = date.year, date.month, date.day
     gy2 = gm > 2 ? gy + 1 : gy

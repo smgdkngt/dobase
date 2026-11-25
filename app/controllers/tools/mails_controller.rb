@@ -13,7 +13,6 @@ module Tools
     before_action :build_compose_defaults, only: [ :new ]
 
     PER_PAGE = 30
-    DRAFT_GONE = "This draft was already sent or deleted elsewhere, so it wasn't sent again. Send it once more to send it as new mail."
 
     def index
       @mail_account = @tool.mail_account
@@ -97,14 +96,14 @@ module Tools
       # Nobody to send it to: the form comes back to add someone (the page says so before it
       # sends, compose_controller.js; this is for whatever didn't ask the page)
       if recipients.values.flatten.empty?
-        render_send_error SmtpSendService::NO_RECIPIENTS
+        render_send_error _("Add a recipient: To, Cc or Bcc is empty.")
         return
       end
 
       # A draft sent or deleted elsewhere (another window, the CLI) while this form was open
       # isn't sent a second time: the form comes back, without the draft, to send as new mail
       if params[:draft_id].present? && !@mail_account.messages.drafts.exists?(id: params[:draft_id])
-        render_send_error DRAFT_GONE
+        render_send_error _("This draft was already sent or deleted elsewhere, so it wasn't sent again. Send it once more to send it as new mail.")
         return
       end
 
@@ -174,7 +173,7 @@ module Tools
     def render_send_error(message)
       respond_to do |format|
         format.html do
-          flash.now[:alert] = _(message)
+          flash.now[:alert] = message
           build_compose_defaults
           # Still the draft it was, with the attachments it forwards
           @draft = @mail_account.messages.drafts.find_by(id: params[:draft_id]) if params[:draft_id].present?

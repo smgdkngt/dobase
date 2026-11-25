@@ -44,19 +44,8 @@ module ApplicationHelper
   # Says which theme and typeface a page is in; services/theme.js compares it
   def theme_version = Theme.payload(current_theme, current_typeface)[:version]
 
-  # The language a page is in, and which way it reads: on <html>, and on <body>,
-  # which a Turbo visit brings anew (a change of language reloads the page: the
-  # locale's <meta> in the head is tracked)
   def language_attributes = { lang: I18n.locale, dir: Translation.direction }
 
-  # A part of a page that is broadcast to everyone (a chat message) is drawn once, in
-  # English, for readers of every language. This names its texts for `data-words`, and
-  # the reader's browser writes them in the page's language (services/i18n.js
-  # translateWords); they go in config/locales/<language>/js.yml.
-  #
-  #   data: { words: words(title: "Reply", "aria-label": ["Message from %{name}", { name: }]) }
-  #
-  # `text` is the element's own text; a list of values is joined as the language joins one.
   def words(**texts)
     texts.to_h { |attribute, text| [ attribute.to_s.dasherize, Array(text) ] }.to_json
   end

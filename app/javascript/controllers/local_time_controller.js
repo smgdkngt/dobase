@@ -3,10 +3,9 @@ import { _, intlLocale } from "services/i18n"
 
 const DAY = 24 * 60 * 60 * 1000
 
-// Redraws a <time> in the viewer's time zone, which the page names in <meta name="time-zone">,
-// and in the page's language. The server writes it in the zone and language of whoever's
-// request rendered it, which for a broadcast chat message is the sender's zone, in English.
-// With the day, a time more than a day ago says which, as FormattingHelper#local_time_tag.
+// Redraws a <time> in the viewer's time zone, which the page names in <meta name="time-zone">.
+// The server writes it in the zone of whoever's request rendered it, which for a broadcast
+// chat message is the sender's.
 export default class extends Controller {
   static values = { period: { type: Boolean, default: true }, day: { type: Boolean, default: false } }
 

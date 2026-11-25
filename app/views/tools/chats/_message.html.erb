@@ -1,9 +1,8 @@
 <%
   tool = message.chat.tool
 
-  # A new or edited message is broadcast from one person's request to everyone, in
-  # English (Chats::Message): the browser writes the time in the viewer's zone and
-  # language, and the texts named in `data-words` in the viewer's language
+  # Timestamp formatting. A new or edited message is broadcast from one
+  # person's request to everyone, so the browser puts the time in the viewer's zone
   timestamp = local_time_tag(message.created_at, day: true)
   name = poster_name(message)
 

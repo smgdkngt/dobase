@@ -7,8 +7,6 @@
   size ||= 24
   stroke_width ||= 2
   css_class = local_assigns[:class] || ""
-  # Icons that point along the line are mirrored where the page reads right to left
-  # (components.css, .icon-directional): back is to the right there
   css_class = "#{css_class} icon-directional" if name.in?(%w[arrow-left arrow-right chevron-left chevron-right chevrons-left chevrons-right forward reply reply-all log-in log-out panel-left-close send undo-2 redo-2 list-indent-increase list-indent-decrease])
   css_style = local_assigns[:style] || ""
 

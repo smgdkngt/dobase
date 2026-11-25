@@ -184,6 +184,6 @@ module MailsHelper
     else _("Not updated since %{time}", time: format_datetime(since))
     end
 
-    "#{lead}: #{_(Mails::ConnectionProblem.in_words(account.sync_error))}"
+    "#{lead}: #{Mails::ConnectionProblem.in_words(account.sync_error)}"
   end
 end

@@ -2,7 +2,6 @@
 
 class ApplicationController < ActionController::Base
   include Authentication
-  # Before the demo's limits, whose refusals are said in the page's language
   around_action :switch_locale
   include DemoRestricted
   include AnnouncesChanges
@@ -90,9 +89,6 @@ class ApplicationController < ActionController::Base
     address if tool_id && tool_id == params[:tool_id].to_s
   end
 
-  # The language a page is in: the signed-in person's, else the one this browser
-  # last had (a cookie, so signing out keeps it), else what the browser asks for.
-  # The API stays English (Translation).
   def switch_locale(&block)
     I18n.with_locale(page_locale, &block)
   end
@@ -105,7 +101,6 @@ class ApplicationController < ActionController::Base
       Translation.from_accept_language(request.headers["Accept-Language"]) || I18n.default_locale
   end
 
-  # The sign-in page has nobody to ask for a language: the browser keeps the person's
   def remember_locale
     return unless current_user && Current.session && request.format.html?
 

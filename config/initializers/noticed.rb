@@ -42,9 +42,6 @@ end
 # (Noticed::Event is the engine's model, there once the app has loaded)
 Rails.application.config.to_prepare { Noticed::Event.prepend(DeliverOnlyToWhoWantsIt) }
 
-# A notification's message is written with `_` like every text, in the language of
-# whoever reads it: the page's when it is drawn, the recipient's when it is pushed
-# (`I18n.with_locale` in each notifier's `message:`).
 Rails.application.config.to_prepare do
   Noticed::Notification.include Translation::Methods
 end

@@ -112,7 +112,6 @@
             class: "input #{user.errors[:timezone].any? ? 'input-error' : ''}" %>
         </div>
 
-        <%# Each language under its own name, so that whoever can't read this page finds theirs %>
         <div class="form-field">
           <label for="user_locale" class="label"><%= _("Language") %></label>
           <%= f.select :locale,

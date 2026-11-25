@@ -6,7 +6,6 @@ export default class extends Controller {
     userId: Number
   }
 
-  // A message that was broadcast is in English: its texts go into this page's language
   connect() {
     translateWords(this.element)
     this.applyOwnershipStyling()

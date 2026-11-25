@@ -2,9 +2,6 @@
 
 require "test_helper"
 
-# The language a page is in (ApplicationController#page_locale): the signed-in person's
-# choice, else the one this browser last had, else what the browser asks for, else
-# English. The API stays English.
 class PageLocaleTest < ActionDispatch::IntegrationTest
   setup { @user = users(:one) }
 

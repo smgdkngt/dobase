@@ -171,9 +171,7 @@ module Chats
 
     after_create_commit :notify_collaborators
     # Everyone in the chat gets the message as the page would have drawn it:
-    # without its author's name again when it continues the one above. It is drawn
-    # once for readers of every language, so in English, whoever sent it; each
-    # reader's browser writes its texts and times in their own (ApplicationHelper#words).
+    # without its author's name again when it continues the one above.
     after_create_commit -> {
       I18n.with_locale(I18n.default_locale) do
         broadcast_append_to chat,

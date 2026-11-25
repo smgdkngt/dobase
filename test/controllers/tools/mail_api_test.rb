@@ -644,7 +644,7 @@ module Tools
       post tool_mails_path(@tool), headers: @headers, as: :json, params: params
 
       assert_response :unprocessable_entity
-      assert_equal [ Tools::MailsController::DRAFT_GONE ], response.parsed_body["errors"]
+      assert_equal [ "This draft was already sent or deleted elsewhere, so it wasn't sent again. Send it once more to send it as new mail." ], response.parsed_body["errors"]
       assert_equal 1, @smtp.sent.size
     end
 

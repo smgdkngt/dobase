@@ -1,6 +1,4 @@
-# Persian for what Rails says by itself: validation messages, field names in them,
-# "5 minutes" for `ago`, sizes and lists. The interface's own texts are in fa/ui.yml
-# and fa/js.yml (Translation).
+# Persian for Rails' own messages; the interface's texts are in fa/ui.yml and fa/js.yml.
 fa:
   activerecord:
     attributes:
@@ -147,8 +145,6 @@ fa:
       day: "روز"
       month: "ماه"
       year: "سال"
-  # How Persian writes: right to left, dates by the solar calendar, its own digits
-  # (Translation)
   translation:
     direction: rtl
     calendar: jalali

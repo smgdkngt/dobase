@@ -1,7 +1,3 @@
-/* Persian (and Arabic) letters in Vazirmatn, everywhere, in either language: the
-   systems' own fonts have none or poor ones. Only those letters (unicode-range), so
-   Latin text stays in the system's font and the file loads only for a page that has
-   some. app/assets/fonts/vazirmatn-OFL.txt is its licence. */
 @font-face {
   font-family: Vazirmatn;
   src: url("/vazirmatn.woff2") format("woff2");

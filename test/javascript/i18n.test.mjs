@@ -3,7 +3,6 @@ import assert from "node:assert/strict"
 import { _, n_, digits, intlLocale, forgetTranslations } from "services/i18n"
 
 /**
- * A page in this language, carrying these translations
  * @param {string} lang
  * @param {Record<string, string> | null} translations
  */

@@ -261,6 +261,11 @@
     animation: skeleton-shimmer 1.6s ease-in-out infinite;
   }
 
+  [dir="rtl"] .skeleton::after {
+    transform: translateX(100%);
+    animation-name: skeleton-shimmer-rtl;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .skeleton::after {
       display: none;
@@ -636,6 +641,10 @@
 
   .flash-dismiss {
     @apply opacity-0 translate-x-full transition-all duration-200 ease-in-out;
+  }
+
+  [dir="rtl"] .flash-dismiss {
+    @apply -translate-x-full;
   }
 
   /* Collaborators */
@@ -1181,11 +1190,6 @@
   color: var(--color-text-primary);
 }
 
-/* What people write runs the way its own language does, whatever the page's: a Persian
-   paragraph in an English page reads right to left and an English one in a Persian page
-   left to right, each by its first letter (as dir="auto" would, per paragraph). The same
-   for what is typed into a field. Code stays left to right. In the components layer, so
-   a utility (text-center on a code field) still wins. */
 @layer components {
   :is(.trix-content, .rich-text-content) :is(p, li, h1, h2, h3, h4, h5, h6, blockquote),
   .trix-content > div,
@@ -1218,6 +1222,10 @@ rhino-editor .trix-content a[href] {
 
 @keyframes skeleton-shimmer {
   100% { transform: translateX(100%); }
+}
+
+@keyframes skeleton-shimmer-rtl {
+  100% { transform: translateX(-100%); }
 }
 
 @keyframes empty-state-in {
@@ -1409,10 +1417,6 @@ rhino-editor .trix-content a[href] {
   }
 }
 
-/* Right to left (Persian): what points along the line points the other way. The
-   mirror is the `scale` property, which is applied before `rotate`: a chevron that
-   rotate-90 turns down when open is mirrored to point left first, so it turns the
-   other way round to point down too. */
 [dir="rtl"] .icon-directional {
   scale: -1 1;
 }

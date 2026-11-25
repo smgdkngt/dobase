@@ -1,31 +1,12 @@
 # frozen_string_literal: true
 
-# The languages the interface is in, and the one way a text of it is translated.
-#
-# A text is written in English where it is used, as it always was, and handed to `_`:
-#
-#   _("Save changes")                          # => "ذخیرهٔ تغییرات" in Persian
-#   _("Delete %{name}?", name: tool.name)      # interpolated like I18n
-#   _("%{link} changed it", link: link_to(…))  # an html_safe value keeps its markup
-#   n_("%{count} file", "%{count} files", 3)   # one or the other, by the count
-#
-# The English is the key (as with gettext): config/locales/fa/ui.yml holds each one under
-# `ui:` with its Persian, and a text without one stays English. Texts that a script
-# shows are under `js:` and reach the page in the <head> (services/i18n.js).
-# test/models/translation_test.rb fails on a text in the code that a language lacks.
-#
-# How a language writes dates, times and numbers is its locale file's too: the formats
-# under `date.formats` and `time.formats` (a 12- or 24-hour clock is a format), and under
-# `translation:` its direction, its calendar (a module like Translation::Jalali; none is
-# the Gregorian), that calendar's month names and its digits. A new language is its
-# locale files and a line in LANGUAGES.
-#
-# The JSON API and anything an access token asks for stay English: what reads them
-# is a program (the CLI, an agent), which expects the words it was written against.
+#   _("Save changes")
+#   _("Delete %{name}?", name: tool.name)
+#   n_("%{count} file", "%{count} files", 3)
+#   Translation.localize(date, :day)
 module Translation
   LANGUAGES = { "en" => "English", "fa" => "فارسی" }.freeze
 
-  # Keys are whole sentences, dots and all: a separator no text has
   SEPARATOR = "\u0001"
 
   module_function
@@ -38,9 +19,26 @@ module Translation
 
   def direction(locale = I18n.locale) = rtl?(locale) ? "rtl" : "ltr"
 
-  # The language a browser asks for first, of the ones there are
   def from_accept_language(header)
-    header.to_s.split(",").map { |part| part.split(";").first.to_s.strip.downcase[0, 2] }.find { |code| supported(code) }
+    ranges = header.to_s.split(",").filter_map.with_index do |part, index|
+      range, *parameters = part.split(";").map(&:strip)
+      next if range.blank?
+
+      quality = 1.0
+      parameters.each do |parameter|
+        name, value = parameter.split("=", 2).map(&:strip)
+        next unless name.casecmp?("q")
+
+        quality = value.to_s.match?(/\A(0(\.\d{0,3})?|1(\.0{0,3})?)\z/) ? value.to_f : 0.0
+      end
+      [ range.downcase.split(/[-_]/).first, quality, index ] if quality.positive?
+    end
+
+    ranges.sort_by { |_, quality, index| [ -quality, index ] }.each do |code, _, _|
+      found = supported(code)
+      return found if found
+    end
+    nil
   end
 
   def translate(text, scope: :ui, **values)
@@ -62,33 +60,23 @@ module Translation
     found.is_a?(String) ? found : text
   end
 
-  # What the language's locale file says under `translation:`
   def setting(name, locale = I18n.locale) = I18n.t(name, scope: :translation, locale: locale, default: nil)
 
-  # 0-9 as the language writes them
   def digits(text)
     written = setting(:digits)
     written ? text.to_s.tr("0123456789", written) : text.to_s
   end
 
-  # The calendar the language reads dates in, when it isn't the Gregorian
   def calendar(locale = I18n.locale)
     case setting(:calendar, locale)
     when "jalali" then Translation::Jalali
     end
   end
 
-  # A date as the language's calendar has it: [year, month, day]
   def date_parts(date)
     calendar&.from(date) || [ date.year, date.month, date.day ]
   end
 
-  # A date or time by one of the language's formats, in its calendar and digits:
-  #
-  #   Translation.localize(date, :day)    # date.formats.day   => "Sep 16"   "۲۵ شهریور"
-  #   Translation.localize(time, :clock)  # time.formats.clock => "6:05 PM"  "۱۸:۰۵"
-  #
-  # A time is looked for in time.formats first; a format the language lacks is English's.
   def localize(value, format)
     pattern = (format_named(format, "time.formats") if value.respond_to?(:hour)) || format_named(format, "date.formats")
     raise ArgumentError, "No date or time format #{format}" unless pattern
@@ -100,8 +88,6 @@ module Translation
     I18n.t(format, scope: scope, default: nil) || I18n.t(format, scope: scope, locale: :en, default: nil)
   end
 
-  # The year, month and day of a format, in the language's calendar when that isn't the
-  # Gregorian (whose month names I18n.l writes itself)
   def in_calendar(pattern, date)
     return pattern unless calendar
 
@@ -119,7 +105,6 @@ module Translation
     end
   end
 
-  # The texts the browser's scripts show, in this language (services/i18n.js)
   def for_scripts
     return {} if I18n.locale.to_s == "en"
 
@@ -138,8 +123,6 @@ module Translation
     end
   end
 
-  # `_` and `n_` wherever a text is written: views, controllers, models, mailers,
-  # notifiers and jobs include this
   module Methods
     private
 

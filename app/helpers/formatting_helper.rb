@@ -1,20 +1,12 @@
 # frozen_string_literal: true
 
 # Shared formats for sizes, dates and times, so every screen reads the same.
-# Times are shown in the viewer's zone (`Time.zone`, set from their timezone), and in
-# the page's language: by its formats (`date.formats` and `time.formats` in its locale
-# file), in its calendar and with its digits (Translation.localize). In Persian that is
-# the solar (Jalali) calendar, Persian digits and the 24-hour clock.
+# Times are shown in the viewer's zone (`Time.zone`, set from their timezone).
 #
 #   human_file_size(8_700)       # => "8.5 KB"
-#   format_time(time)            # => "6:05 PM"                       "۱۸:۰۵"
-#   format_date(date)            # => "Sep 16" (this year) / "Sep 16, 2025"   "۲۵ شهریور" / "۲۵ شهریور ۱۴۰۴"
+#   format_time(time)            # => "6:05 PM"
+#   format_date(date)            # => "Sep 16" (this year) / "Sep 16, 2025"
 #   format_datetime(time)        # => "Sep 16, 6:05 PM" / "Sep 16, 2025, 6:05 PM"
-#   format_weekday(date)         # => "Tuesday" ("Tue" with short: true)
-#   format_month(date)           # => "September 2025"
-#   format_day_number(date)      # => "16"
-#   format_long_date(date)       # => "Tuesday, September 16, 2025"
-#   ago(time)                    # => "5 minutes ago"
 #   mail_list_date(time)         # => "6:05 PM" (today) / "Sep 16" / "Sep 16, 2025"
 #   local_time_tag(time)         # => <time> with "6:05 PM", redrawn in the viewer's zone
 #   posted_at_tag(time)          # => <time> "5 minutes ago" (today) / "Sep 16, 6:05 PM"
@@ -52,20 +44,16 @@ module FormattingHelper
     Translation.localize(date, short ? :weekday_short : :weekday)
   end
 
-  # The month a date is in, with its year: a calendar's title
   def format_month(date)
     return if date.nil?
 
     Translation.localize(date, :month_and_year)
   end
 
-  # The day of the month, as a calendar's day shows it
   def format_day_number(date)
     Translation.localize(date, :day_of_month)
   end
 
-  # The month or months a week of the calendar lies in: "September 2025",
-  # "Sep – Oct 2025", "Dec 2025 – Jan 2026"; by the months of the language's calendar
   def calendar_week_title(week_start, week_end)
     first, last = Translation.date_parts(week_start), Translation.date_parts(week_end)
     if first[0..1] == last[0..1]
@@ -77,7 +65,6 @@ module FormattingHelper
     end
   end
 
-  # A day in full, weekday and all
   def format_long_date(date)
     return if date.nil?
 
@@ -85,7 +72,6 @@ module FormattingHelper
     Translation.localize(date, :long_day)
   end
 
-  # How long ago, as a phrase: "5 minutes ago"
   def ago(time)
     return if time.nil?
 
@@ -100,9 +86,8 @@ module FormattingHelper
   end
 
   # A time in HTML that other people may see too, like a chat message broadcast from the
-  # sender's request: the browser redraws it in the viewer's zone and language. Without
-  # the period, it reads "6:05". With the day, a time more than a day ago says which
-  # ("Yesterday, 6:05 PM", "Sep 16, 6:05 PM").
+  # sender's request: the browser redraws it in the viewer's zone. Without the period,
+  # it reads "6:05".
   def local_time_tag(time, period: true, day: false, **options)
     return if time.nil?
 
@@ -123,7 +108,6 @@ module FormattingHelper
 
   private
 
-  # As local_time_controller.js writes it
   def with_day(time, text)
     elapsed = Time.current - time
     if elapsed < 24.hours
