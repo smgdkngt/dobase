@@ -6,6 +6,7 @@
 #   Translation.localize(date, :day)
 module Translation
   LANGUAGES = { "en" => "English", "nl" => "Nederlands", "de" => "Deutsch", "fr" => "Français", "es" => "Español", "pt" => "Português (Brasil)", "it" => "Italiano", "fa" => "فارسی" }.freeze
+  ALIASES = { "no" => "nb", "nn" => "nb", "iw" => "he", "in" => "id" }.freeze
 
   SEPARATOR = "\u0001"
 
@@ -19,7 +20,7 @@ module Translation
 
   def direction(locale = I18n.locale) = rtl?(locale) ? "rtl" : "ltr"
 
-  def from_accept_language(header)
+  def from_accept_language(header, available: locales)
     ranges = header.to_s.split(",").filter_map.with_index do |part, index|
       range, *parameters = part.split(";").map(&:strip)
       next if range.blank?
@@ -35,7 +36,7 @@ module Translation
     end
 
     ranges.sort_by { |_, quality, index| [ -quality, index ] }.each do |code, _, _|
-      found = supported(code)
+      found = ALIASES.fetch(code, code).presence_in(available)
       return found if found
     end
     nil
@@ -47,9 +48,22 @@ module Translation
   end
 
   def translate_plural(one, other, count, scope: :ui, **values)
-    template = I18n.locale.to_s == "en" ? nil : I18n.t(other, scope: scope, separator: SEPARATOR, default: nil)
-    template ||= count == 1 ? one : other
+    template = plural_template(other, count, scope) || (count == 1 ? one : other)
     interpolate(template, values.merge(count: count))
+  end
+
+  def plural_template(key, count, scope = :ui)
+    return if I18n.locale.to_s == "en"
+
+    found = I18n.t(key, scope: scope, separator: SEPARATOR, default: nil)
+    case found
+    when String then found
+    when Hash
+      selected = I18n.backend.pluralize(I18n.locale, found, count)
+      selected.is_a?(String) ? selected : found[:other]
+    end
+  rescue I18n::InvalidPluralizationData
+    found[:other] if found.is_a?(Hash) && found[:other].is_a?(String)
   end
 
   def lookup(text, scope = :ui)

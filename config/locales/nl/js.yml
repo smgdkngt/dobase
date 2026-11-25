@@ -2,7 +2,9 @@ nl:
   js:
     "%{count} archived": "%{count} gearchiveerd"
     "%{count} completed": "%{count} voltooid"
-    "%{count} selected": "%{count} geselecteerd"
+    "%{count} selected":
+      one: "%{count} geselecteerd"
+      other: "%{count} geselecteerd"
     "%{date}, %{time}": "%{date}, %{time}"
     "%{desktop}, nothing open": "%{desktop}, niets geopend"
     "%{desktop}: %{names}": "%{desktop}: %{names}"

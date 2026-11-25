@@ -2,7 +2,9 @@ es:
   js:
     "%{count} archived": "%{count} archivadas"
     "%{count} completed": "%{count} completadas"
-    "%{count} selected": "%{count} seleccionados"
+    "%{count} selected":
+      one: "%{count} seleccionado"
+      other: "%{count} seleccionados"
     "%{date}, %{time}": "%{date}, %{time}"
     "%{desktop}, nothing open": "%{desktop}, nada abierto"
     "%{desktop}: %{names}": "%{desktop}: %{names}"

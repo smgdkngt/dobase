@@ -8,30 +8,78 @@ nl:
     "%{base} on day %{day}": "%{base} op dag %{day}"
     "%{client} for %{name}": "%{client} voor %{name}"
     "%{completed_hidden_count} completed": "%{completed_hidden_count} voltooid"
-    "%{count} attachments": "%{count} bijlagen"
-    "%{count} cards": "%{count} kaarten"
-    "%{count} days": "%{count} dagen"
-    "%{count} days before at %{time}": "%{count} dagen ervoor om %{time}"
-    "%{count} emails archived.": "%{count} e-mails gearchiveerd."
-    "%{count} emails marked as read.": "%{count} e-mails als gelezen gemarkeerd."
-    "%{count} emails marked as unread.": "%{count} e-mails als ongelezen gemarkeerd."
-    "%{count} emails moved to %{folder}.": "%{count} e-mails verplaatst naar %{folder}."
-    "%{count} emails moved to Junk.": "%{count} e-mails verplaatst naar Spam."
-    "%{count} emails moved to the inbox.": "%{count} e-mails verplaatst naar de inbox."
-    "%{count} emails moved to trash.": "%{count} e-mails verplaatst naar de prullenbak."
-    "%{count} emails permanently deleted.": "%{count} e-mails definitief verwijderd."
-    "%{count} emails restored.": "%{count} e-mails hersteld."
-    "%{count} files": "%{count} bestanden"
-    "%{count} folders": "%{count} mappen"
-    "%{count} hours": "%{count} uur"
-    "%{count} messages": "%{count} berichten"
-    "%{count} minutes": "%{count} minuten"
-    "%{count} new notifications": "%{count} nieuwe meldingen"
-    "%{count} new notifications from %{app_name}": "%{count} nieuwe meldingen van %{app_name}"
-    "%{count} participants": "%{count} deelnemers"
-    "%{count} unread messages": "%{count} ongelezen berichten"
-    "%{count} unread notifications": "%{count} ongelezen meldingen"
-    "%{count} weeks": "%{count} weken"
+    "%{count} attachments":
+      one: "%{count} bijlage"
+      other: "%{count} bijlagen"
+    "%{count} cards":
+      one: "%{count} kaart"
+      other: "%{count} kaarten"
+    "%{count} days":
+      one: "%{count} dag"
+      other: "%{count} dagen"
+    "%{count} days before at %{time}":
+      one: "%{count} dag ervoor om %{time}"
+      other: "%{count} dagen ervoor om %{time}"
+    "%{count} emails archived.":
+      one: "%{count} e-mail gearchiveerd."
+      other: "%{count} e-mails gearchiveerd."
+    "%{count} emails marked as read.":
+      one: "%{count} e-mail als gelezen gemarkeerd."
+      other: "%{count} e-mails als gelezen gemarkeerd."
+    "%{count} emails marked as unread.":
+      one: "%{count} e-mail als ongelezen gemarkeerd."
+      other: "%{count} e-mails als ongelezen gemarkeerd."
+    "%{count} emails moved to %{folder}.":
+      one: "%{count} e-mail verplaatst naar %{folder}."
+      other: "%{count} e-mails verplaatst naar %{folder}."
+    "%{count} emails moved to Junk.":
+      one: "%{count} e-mail verplaatst naar Spam."
+      other: "%{count} e-mails verplaatst naar Spam."
+    "%{count} emails moved to the inbox.":
+      one: "%{count} e-mail verplaatst naar de inbox."
+      other: "%{count} e-mails verplaatst naar de inbox."
+    "%{count} emails moved to trash.":
+      one: "%{count} e-mail verplaatst naar de prullenbak."
+      other: "%{count} e-mails verplaatst naar de prullenbak."
+    "%{count} emails permanently deleted.":
+      one: "%{count} e-mail definitief verwijderd."
+      other: "%{count} e-mails definitief verwijderd."
+    "%{count} emails restored.":
+      one: "%{count} e-mail hersteld."
+      other: "%{count} e-mails hersteld."
+    "%{count} files":
+      one: "%{count} bestand"
+      other: "%{count} bestanden"
+    "%{count} folders":
+      one: "%{count} map"
+      other: "%{count} mappen"
+    "%{count} hours":
+      one: "%{count} uur"
+      other: "%{count} uur"
+    "%{count} messages":
+      one: "%{count} bericht"
+      other: "%{count} berichten"
+    "%{count} minutes":
+      one: "%{count} minuut"
+      other: "%{count} minuten"
+    "%{count} new notifications":
+      one: "%{count} nieuwe melding"
+      other: "%{count} nieuwe meldingen"
+    "%{count} new notifications from %{app_name}":
+      one: "%{count} nieuwe melding van %{app_name}"
+      other: "%{count} nieuwe meldingen van %{app_name}"
+    "%{count} participants":
+      one: "%{count} deelnemer"
+      other: "%{count} deelnemers"
+    "%{count} unread messages":
+      one: "%{count} ongelezen bericht"
+      other: "%{count} ongelezen berichten"
+    "%{count} unread notifications":
+      one: "%{count} ongelezen melding"
+      other: "%{count} ongelezen meldingen"
+    "%{count} weeks":
+      one: "%{count} week"
+      other: "%{count} weken"
     "%{date}, %{time}": "%{date}, %{time}"
     "%{description}, %{count} times": "%{description}, %{count} keer"
     "%{description}, until %{date}": "%{description}, tot %{date}"
@@ -346,8 +394,12 @@ nl:
     "Delete list": "Lijst verwijderen"
     "Delete this attachment?": "Deze bijlage verwijderen?"
     "Delete this card? This cannot be undone.": "Deze kaart verwijderen? Dit kan niet ongedaan worden gemaakt."
-    "Delete this column and its %{count} cards (%{archived} archived)?": "Deze kolom en de %{count} kaarten erin (%{archived} gearchiveerd) verwijderen?"
-    "Delete this column and its %{count} cards?": "Deze kolom en de %{count} kaarten erin verwijderen?"
+    "Delete this column and its %{count} cards (%{archived} archived)?":
+      one: "Deze kolom en de %{count} kaart erin (%{archived} gearchiveerd) verwijderen?"
+      other: "Deze kolom en de %{count} kaarten erin (%{archived} gearchiveerd) verwijderen?"
+    "Delete this column and its %{count} cards?":
+      one: "Deze kolom en de %{count} kaart erin verwijderen?"
+      other: "Deze kolom en de %{count} kaarten erin verwijderen?"
     "Delete this column?": "Deze kolom verwijderen?"
     "Delete this comment?": "Deze opmerking verwijderen?"
     "Delete this draft?": "Dit concept verwijderen?"
@@ -355,8 +407,12 @@ nl:
     "Delete this file?": "Dit bestand verwijderen?"
     "Delete this group? Tools will become ungrouped.": "Deze groep verwijderen? Tools worden uit de groep gehaald."
     "Delete this item? This cannot be undone.": "Dit item verwijderen? Dit kan niet ongedaan worden gemaakt."
-    "Delete this list and its %{count} items (%{completed} completed)?": "Deze lijst en de %{count} items erin (%{completed} voltooid) verwijderen?"
-    "Delete this list and its %{count} items?": "Deze lijst en de %{count} items erin verwijderen?"
+    "Delete this list and its %{count} items (%{completed} completed)?":
+      one: "Deze lijst en het %{count} item erin (%{completed} voltooid) verwijderen?"
+      other: "Deze lijst en de %{count} items erin (%{completed} voltooid) verwijderen?"
+    "Delete this list and its %{count} items?":
+      one: "Deze lijst en het %{count} item erin verwijderen?"
+      other: "Deze lijst en de %{count} items erin verwijderen?"
     "Delete this list?": "Deze lijst verwijderen?"
     "Delete this message?": "Dit bericht verwijderen?"
     "Delete “%{summary}”?": "“%{summary}” verwijderen?"

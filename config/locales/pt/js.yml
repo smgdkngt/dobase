@@ -2,7 +2,9 @@ pt:
   js:
     "%{count} archived": "%{count} arquivados"
     "%{count} completed": "%{count} concluídas"
-    "%{count} selected": "%{count} selecionados"
+    "%{count} selected":
+      one: "%{count} selecionado"
+      other: "%{count} selecionados"
     "%{date}, %{time}": "%{date}, %{time}"
     "%{desktop}, nothing open": "%{desktop}, nada aberto"
     "%{desktop}: %{names}": "%{desktop}: %{names}"
