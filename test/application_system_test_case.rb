@@ -1,4 +1,5 @@
 require "test_helper"
+require "test_helpers/chrome_storage_reset"
 
 class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   # A browser test waits for what it asks about. Two seconds is enough on an idle
